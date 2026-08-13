@@ -1207,10 +1207,10 @@ export default function ProjectDetailsPage() {
 
           {/* TAB 7: PAYMENTS */}
           <TabsContent value="payments" className="space-y-6">
-            <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-              <CardHeader className="p-6 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
                 <div>
-                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                     <CreditCard className="w-5 h-5 text-primary" />
                     <span>سجل الدفعات المالية للمشروع</span>
                   </CardTitle>
@@ -1220,7 +1220,7 @@ export default function ProjectDetailsPage() {
                 </div>
                 {!isPaymentsLocked && (
                   <Button 
-                    className="rounded-2xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-10 px-4" 
+                    className="rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-9 px-4 shrink-0" 
                     onClick={() => navigate(`/disbursements/new/${project.id}`)}
                     disabled={isContractFullyAllocated}
                     title={isContractFullyAllocated ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
@@ -1230,19 +1230,36 @@ export default function ProjectDetailsPage() {
                   </Button>
                 )}
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-5 space-y-5">
                 {isPaymentsLocked ? (
                   <div className="text-center py-12 max-w-md mx-auto space-y-4">
                     <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
                       <Lock className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-bold text-foreground">قسم الدفعات مقفل حالياً</h3>
+                    <h3 className="text-base font-bold text-foreground">قسم الدفعات مقفل حالياً</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       هذا القسم غير متاح الصرف أو الإضافة فيه حالياً. سيتم إلغاء القفل بمجرد توثيق واعتماد العقد لمرحلة التنفيذ.
                     </p>
                   </div>
                 ) : project.payments && project.payments.length > 0 ? (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
+                    {/* Financial Summary Top Metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-semibold">
+                      <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-1">
+                        <span className="text-emerald-700 font-semibold text-[11px]">إجمالي المسدد فعلياً</span>
+                        <p className="font-extrabold text-emerald-700 font-mono text-base">{formatCurrency(paidPaymentsSum.toString())}</p>
+                      </div>
+                      <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-1">
+                        <span className="text-amber-700 font-semibold text-[11px]">المتبقي للصرف</span>
+                        <p className="font-extrabold text-amber-700 font-mono text-base">{formatCurrency(remainingContractSum.toString())}</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">قيمة العقد الكلية</span>
+                        <p className="font-extrabold text-foreground font-mono text-base">{formatCurrency(totalContractsSum.toString())}</p>
+                      </div>
+                    </div>
+
+                    {/* Alert for incomplete payment details */}
                     {project.payments.some(payment => payment.source !== "manual" && (
                       payment.completionPercentage === null || 
                       payment.completionPercentage === undefined || 
@@ -1250,33 +1267,34 @@ export default function ProjectDetailsPage() {
                       !payment.workDescription || 
                       payment.workDescription.trim() === ""
                     )) && (
-                      <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 rounded-2xl p-4 text-xs">
+                      <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 rounded-xl p-3.5 text-xs">
                         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                        <AlertTitle className="font-bold text-sm">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
-                        <AlertDescription className="mt-1 leading-relaxed">
+                        <AlertTitle className="font-bold text-xs">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
+                        <AlertDescription className="mt-1 leading-relaxed text-[11px]">
                           بعض الدفعات تفتقر إلى "نسبة الإنجاز المطلوبة" أو "وصف الأعمال الإنجازية". يُرجى استكمال البيانات عبر أيقونة التعديل (📝).
                         </AlertDescription>
                       </Alert>
                     )}
 
-                    <div className="overflow-x-auto rounded-2xl border border-border/60">
+                    {/* Payments Table */}
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
                       <Table>
                         <TableHeader className="bg-muted/40">
                           <TableRow>
-                            <TableHead className="text-right font-bold">رقم الدفعة</TableHead>
-                            <TableHead className="text-right font-bold">عنوان الدفعة والتفاصيل</TableHead>
-                            <TableHead className="text-right font-bold">المبلغ</TableHead>
-                            <TableHead className="text-right font-bold">الحالة</TableHead>
-                            <TableHead className="text-right font-bold">التاريخ</TableHead>
-                            <TableHead className="text-center font-bold">الإجراءات</TableHead>
+                            <TableHead className="text-right font-bold text-xs">رقم الدفعة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">عنوان الدفعة والتفاصيل</TableHead>
+                            <TableHead className="text-right font-bold text-xs">المبلغ</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الحالة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">التاريخ</TableHead>
+                            <TableHead className="text-center font-bold text-xs">الإجراءات</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {project.payments.map((payment) => (
                             <TableRow key={payment.id} className="hover:bg-muted/20">
-                              <TableCell className="font-mono font-bold text-foreground">{payment.paymentNumber}</TableCell>
+                              <TableCell className="font-mono font-bold text-foreground text-xs">{payment.paymentNumber}</TableCell>
                               <TableCell className="text-xs">
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                   <span className="font-bold text-foreground block">{payment.description || "-"}</span>
                                   {payment.source !== "manual" && (
                                     payment.completionPercentage === null || 
@@ -1292,9 +1310,9 @@ export default function ProjectDetailsPage() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="font-mono font-extrabold text-emerald-600">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell className="font-mono font-extrabold text-emerald-600 text-xs">{formatCurrency(payment.amount)}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className={`rounded-xl text-[11px] font-bold px-2.5 py-0.5 ${
+                                <Badge variant="outline" className={`rounded-lg text-[11px] font-bold px-2.5 py-0.5 ${
                                   payment.status === "paid" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
                                   payment.status === "approved" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
                                   payment.status === "rejected" ? "bg-red-500/10 text-red-600 border-red-500/20" :
@@ -1328,11 +1346,11 @@ export default function ProjectDetailsPage() {
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="rounded-xl h-8 w-8 text-blue-600 hover:bg-blue-50"
+                                      className="rounded-lg h-7 w-7 text-blue-600 hover:bg-blue-50"
                                       onClick={() => navigate(`/payments/edit/${payment.id}`)}
                                       title="تعديل الدفعة"
                                     >
-                                      <Edit className="h-4 w-4" />
+                                      <Edit className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </div>
@@ -1342,27 +1360,11 @@ export default function ProjectDetailsPage() {
                         </TableBody>
                       </Table>
                     </div>
-
-                    {/* Financial Summary Footer */}
-                    <div className="p-4 sm:p-5 bg-muted/40 rounded-2xl border border-border/40 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-semibold">
-                      <div className="flex items-center justify-between sm:justify-start gap-2">
-                        <span className="text-muted-foreground">إجمالي المدفوعات:</span>
-                        <span className="font-extrabold text-emerald-600 font-mono text-sm sm:text-base">{formatCurrency(paidPaymentsSum.toString())}</span>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-start gap-2">
-                        <span className="text-muted-foreground">المتبقي الصرف:</span>
-                        <span className="font-extrabold text-amber-600 font-mono text-sm sm:text-base">{formatCurrency(remainingContractSum.toString())}</span>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-start gap-2">
-                        <span className="text-muted-foreground">قيمة العقد الكلية:</span>
-                        <span className="font-extrabold text-foreground font-mono text-sm sm:text-base">{formatCurrency(totalContractsSum.toString())}</span>
-                      </div>
-                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <CreditCard className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
-                    <p className="text-xs text-muted-foreground">لا توجد دفعات مالية مسجلة بعد</p>
+                    <CreditCard className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-foreground">لا توجد دفعات مالية مسجلة بعد</p>
                   </div>
                 )}
               </CardContent>
