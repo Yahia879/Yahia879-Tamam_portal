@@ -376,10 +376,10 @@ export default function ProjectDetailsPage() {
       <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
         
         {/* Unified Executive Project Hero Panel */}
-        <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
-          <CardContent className="p-4 sm:p-5 space-y-4">
+        <Card className="py-0 border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+          <CardContent className="p-4 sm:p-4.5 space-y-3.5">
             {/* Top Row: Navigation, Project Number, Badges & Editable Title */}
-            <div className="space-y-2.5 min-w-0">
+            <div className="space-y-2 min-w-0">
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <Button
                   variant="outline"
