@@ -647,7 +647,7 @@ export default function ProjectDetailsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
           {!financialsOnly && (
             <div className="overflow-x-auto pb-1">
-              <TabsList className="w-full sm:w-auto justify-start">
+              <TabsList className="w-full">
                 <TabsTrigger value="overview">
                   <FolderOpen />
                   <span>نظرة عامة</span>
