@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import {
   DollarSign,
@@ -127,6 +128,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
 
   // Form States for Financial & Support Details
+  const [financialSubTab, setFinancialSubTab] = useState<string>("funding_details");
   const [approvedQuotationId, setApprovedQuotationId] = useState<number | null>(null);
   const [supportEntity, setSupportEntity] = useState<string>("");
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
@@ -530,57 +532,56 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   return (
     <div className="space-y-6 dir-rtl text-right">
 
-      {/* 1. معادلة التغطية المالية التجميعية (Combined Formula Status Banner) */}
-      <Card className={`border-2 shadow-sm ${isFullyCovered ? "border-green-300 bg-green-50/40" : "border-amber-300 bg-amber-50/40"}`}>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
+      {/* Executive Financial Summary Banner */}
+      <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
                 {isFullyCovered ? (
-                  <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
+                  <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold px-3 py-1 rounded-xl text-xs gap-1.5">
                     <CheckCircle2 className="h-4 w-4" />
-                    الدعم كافٍ ومغطى بالكامل (100%)
+                    <span>التغطية المالية مكتملة (100%)</span>
                   </Badge>
                 ) : (
-                  <Badge className="bg-amber-600 hover:bg-amber-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
+                  <Badge className="bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold px-3 py-1 rounded-xl text-xs gap-1.5">
                     <AlertTriangle className="h-4 w-4" />
-                    عجز في تغطية المبلغ الكلي للمشروع
+                    <span>عجز في التغطية المالية للمشروع</span>
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground font-medium">المعادلة المجمعة</span>
               </div>
-              <p className="text-sm text-gray-700 mt-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {isFullyCovered 
-                  ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية (المبلغ المتفق عليه مع المورد + الأجور الإدارية)."
-                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكاليف والأجور الإدارية.`
+                  ? "إجمالي التمويل المقدم من الجهة الداعمة كافٍ لتغطية التكلفة المعتمدة للمورد بالأجر الإداري المخصص."
+                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). التمويل الحالي لا يكفي التكلفة والأجور.`
                 }
               </p>
             </div>
 
-            {/* Visual Formula summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
-              <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">مبلغ المورد</span>
-                <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block">
-                  {supplierBaseAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+            {/* Financial Formula Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-muted/30 p-3 rounded-xl border border-border/40 text-xs w-full lg:w-auto shrink-0">
+              <div className="p-2 text-center rounded-lg bg-background border border-border/40 space-y-0.5">
+                <span className="text-[11px] text-muted-foreground block font-medium">مبلغ المورد</span>
+                <span className="font-extrabold text-foreground font-mono text-xs sm:text-sm">
+                  {supplierBaseAmount.toLocaleString("ar-SA", { minimumFractionDigits: 0 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">+ الأجور الإدارية</span>
-                <span className="font-bold text-orange-700 text-sm mt-0.5 inline-block">
-                  {calculatedAdminFeeAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+              <div className="p-2 text-center rounded-lg bg-background border border-border/40 space-y-0.5">
+                <span className="text-[11px] text-muted-foreground block font-medium">+ الأجور الإدارية</span>
+                <span className="font-extrabold text-amber-600 font-mono text-xs sm:text-sm">
+                  {calculatedAdminFeeAmount.toLocaleString("ar-SA", { minimumFractionDigits: 0 })}
                 </span>
               </div>
-              <div className="text-center p-2 border-r last:border-r-0 bg-slate-50 rounded-sm">
-                <span className="text-muted-foreground block">= إجمالي التكلفة</span>
-                <span className="font-bold text-primary text-sm mt-0.5 inline-block">
-                  {totalRequiredCost.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+              <div className="p-2 text-center rounded-lg bg-primary/5 border border-primary/20 space-y-0.5">
+                <span className="text-[11px] text-primary block font-medium">= إجمالي التكلفة</span>
+                <span className="font-extrabold text-primary font-mono text-xs sm:text-sm">
+                  {totalRequiredCost.toLocaleString("ar-SA", { minimumFractionDigits: 0 })}
                 </span>
               </div>
-              <div className="text-center p-2">
-                <span className="text-muted-foreground block">مبلغ الدعم المقدم</span>
-                <span className={`font-bold text-sm mt-0.5 inline-block ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
-                  {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+              <div className="p-2 text-center rounded-lg bg-background border border-border/40 space-y-0.5">
+                <span className="text-[11px] text-muted-foreground block font-medium">مبلغ الدعم</span>
+                <span className={`font-extrabold font-mono text-xs sm:text-sm ${isFullyCovered ? "text-emerald-600" : "text-red-500"}`}>
+                  {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 0 })}
                 </span>
               </div>
             </div>
@@ -588,8 +589,24 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         </CardContent>
       </Card>
 
-      {/* 2. تفاصيل عرض السعر المعتمد والمورد + جهة الدعم والأجور الإدارية */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Financial Sub-Tabs Navigation */}
+      <Tabs value={financialSubTab} onValueChange={setFinancialSubTab} dir="rtl" className="space-y-6">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="flex items-center gap-1 bg-muted/60 p-1.5 rounded-2xl border border-border/50 w-full sm:w-auto shrink-0 justify-start">
+            <TabsTrigger value="funding_details" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
+              <Building2 className="w-4 h-4" />
+              <span>تفاصيل العقد والجهات الداعمة</span>
+            </TabsTrigger>
+            <TabsTrigger value="receipt_vouchers" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
+              <Receipt className="w-4 h-4" />
+              <span>سندات القبض والتحصيل ({receiptVouchers.length})</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* SUB-TAB 1: FUNDING & SUPPLIER DETAILS */}
+        <TabsContent value="funding_details" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* عرض السعر المعتمد والمورد */}
         <Card className="shadow-xs border-slate-200">
@@ -1049,24 +1066,26 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           </Card>
         );
       })()}
+        </TabsContent>
 
-      {/* 3. قسم سندات القبض (Receipt Vouchers Section) */}
-      <Card className="shadow-xs border-slate-200">
-        <CardHeader className="bg-slate-50/50 pb-3 border-b flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-              <Receipt className="h-5 w-5 text-primary" />
-              سندات القبض (الدفعات المقبوضة فعلياً من الداعم)
-            </CardTitle>
-            <CardDescription className="text-xs mt-0.5">
-              تسجيل وتوثيق جميع الدفعات المقبوضة فعلياً وتحديد تاريخ القبض لكل دفعة
-            </CardDescription>
-          </div>
-          <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary">
-            <Plus className="h-4 w-4" />
-            تسجيل سند قبض جديد
-          </Button>
-        </CardHeader>
+        {/* SUB-TAB 2: RECEIPT VOUCHERS & COLLECTION */}
+        <TabsContent value="receipt_vouchers" className="space-y-6">
+          <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+            <CardHeader className="bg-muted/20 p-5 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  <span>سندات القبض (الدفعات المقبوضة فعلياً من الداعم)</span>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  تسجيل وتوثيق جميع الدفعات المقبوضة فعلياً وتحديد تاريخ القبض لكل دفعة
+                </CardDescription>
+              </div>
+              <Button onClick={openAddVoucherModal} size="sm" className="rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-9 px-3.5 shrink-0">
+                <Plus className="h-4 w-4" />
+                <span>تسجيل سند قبض جديد</span>
+              </Button>
+            </CardHeader>
 
         <CardContent className="pt-6 space-y-6">
 
@@ -1484,6 +1503,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog to Add/Edit Receipt Voucher */}
       <Dialog open={isVoucherModalOpen} onOpenChange={setIsVoucherModalOpen}>
