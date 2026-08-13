@@ -377,177 +377,179 @@ export default function ProjectDetailsPage() {
         
         {/* Unified Executive Project Hero Panel */}
         <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
-          <CardContent className="p-5 space-y-4">
-            {/* Top Row: Back button, Badges, Project Name & Progress Widget */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              {/* Right Side: Navigation, Badges & Editable Project Title */}
-              <div className="space-y-2 min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      if (window.history.length > 1) {
-                        window.history.back();
-                      } else {
-                        navigate("/project-management");
-                      }
-                    }}
-                    title="العودة"
-                  >
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
+          <CardContent className="p-4 sm:p-5 space-y-4">
+            {/* Top Row: Navigation, Project Number, Badges & Editable Title */}
+            <div className="space-y-2.5 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      navigate("/project-management");
+                    }
+                  }}
+                  title="العودة"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
 
-                  <span className="font-extrabold text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
-                    #{project.projectNumber}
-                  </span>
+                <span className="font-extrabold text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
+                  #{project.projectNumber}
+                </span>
 
-                  <Badge variant="outline" className={`rounded-lg font-bold text-xs px-2.5 py-0.5 ${statusColors[project.status || "planning"]}`}>
-                    {getStatusLabel()}
+                <Badge variant="outline" className={`rounded-lg font-bold text-xs px-2.5 py-0.5 ${statusColors[project.status || "planning"]}`}>
+                  {getStatusLabel()}
+                </Badge>
+
+                {project.donorName && (
+                  <Badge variant="secondary" className="rounded-lg font-bold text-xs bg-muted/60 text-muted-foreground border border-border/40 px-2.5 py-0.5">
+                    المانح: {project.donorName}
                   </Badge>
+                )}
 
-                  {project.donorName && (
-                    <Badge variant="secondary" className="rounded-lg font-bold text-xs bg-muted/60 text-muted-foreground border border-border/40 px-2.5 py-0.5">
-                      المانح: {project.donorName}
-                    </Badge>
-                  )}
-
-                  {project.isMultiMosque && (
-                    <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-lg border border-indigo-500/20 px-2.5 py-0.5">
-                      مشروع مباشر (عدة مساجد)
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Editable Project Name */}
-                <div>
-                  {isEditingName ? (
-                    <div className="flex items-center gap-2 max-w-xl">
-                      <Input
-                        value={editedName}
-                        onChange={(e) => setEditedName(e.target.value)}
-                        className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary"
-                        autoFocus
-                      />
-                      <Button
-                        size="sm"
-                        className="h-9 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
-                        onClick={() => {
-                          if (!editedName.trim()) {
-                            toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
-                            return;
-                          }
-                          updateProjectMutation.mutate({
-                            id: project.id,
-                            name: editedName,
-                          }, {
-                            onSuccess: () => {
-                              toast.success("تم تحديث اسم المشروع بنجاح");
-                              setIsEditingName(false);
-                            },
-                            onError: (err) => {
-                              toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
-                            }
-                          });
-                        }}
-                        disabled={updateProjectMutation.isPending}
-                      >
-                        حفظ
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-9 rounded-xl px-2.5 text-xs shrink-0"
-                        onClick={() => {
-                          setIsEditingName(false);
-                          setEditedName(project.name || "");
-                        }}
-                      >
-                        إلغاء
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <h1 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight leading-snug">
-                        {project.name}
-                      </h1>
-                      {canEditProjectName && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
-                          onClick={() => {
-                            setEditedName(project.name || "");
-                            setIsEditingName(true);
-                          }}
-                          title="تعديل اسم المشروع"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                {project.isMultiMosque && (
+                  <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-lg border border-indigo-500/20 px-2.5 py-0.5">
+                    مشروع مباشر (عدة مساجد)
+                  </Badge>
+                )}
               </div>
 
-              {/* Left Side: Completion Progress Widget - Enlarged */}
-              {!financialsOnly && (
-                <div className="flex flex-col justify-center bg-muted/40 p-4 rounded-xl border border-border/50 min-w-[260px] sm:min-w-[300px] space-y-2 shrink-0">
-                  <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
-                    <span className="text-muted-foreground">نسبة الإنجاز الكلي:</span>
-                    <span className="text-primary font-mono text-sm sm:text-base font-black">{project.completionPercentage || 0}%</span>
+              {/* Editable Project Name */}
+              <div>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 max-w-xl">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      className="h-9 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
+                      onClick={() => {
+                        if (!editedName.trim()) {
+                          toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
+                          return;
+                        }
+                        updateProjectMutation.mutate({
+                          id: project.id,
+                          name: editedName,
+                        }, {
+                          onSuccess: () => {
+                            toast.success("تم تحديث اسم المشروع بنجاح");
+                            setIsEditingName(false);
+                          },
+                          onError: (err) => {
+                            toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
+                          }
+                        });
+                      }}
+                      disabled={updateProjectMutation.isPending}
+                    >
+                      حفظ
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-xl px-2.5 text-xs shrink-0"
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setEditedName(project.name || "");
+                      }}
+                    >
+                      إلغاء
+                    </Button>
                   </div>
-                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full" />
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight leading-snug">
+                      {project.name}
+                    </h1>
+                    {canEditProjectName && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                        onClick={() => {
+                          setEditedName(project.name || "");
+                          setIsEditingName(true);
+                        }}
+                        title="تعديل اسم المشروع"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Bottom Embedded Metrics Bar - Enlarged & Balanced Spacing */}
+            {/* Intermediate Row: Completion Progress Bar Widget (Positioned Directly Above Statistics Cards) */}
             {!financialsOnly && (
-              <div className="pt-4 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 sm:px-4 rounded-xl border border-border/50">
+                <div className="flex items-center gap-2 shrink-0 text-xs sm:text-sm font-bold text-foreground">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <span>نسبة الإنجاز الكلي للمشروع:</span>
+                </div>
+                <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
+                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full flex-1" />
+                  <span className="text-primary font-mono text-sm sm:text-base font-black shrink-0">
+                    {project.completionPercentage || 0}%
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Embedded Metrics Bar */}
+            {!financialsOnly && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                 {/* Metric 1: Budget */}
-                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
-                  <div className="space-y-1">
-                    <span className="text-muted-foreground font-semibold text-xs">الميزانية الإجمالية</span>
-                    <p className="font-black text-foreground font-mono text-base sm:text-lg">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">الميزانية الإجمالية</span>
+                    <p className="font-black text-foreground font-mono text-sm sm:text-base">
                       {boqData && boqData.total > 0
                         ? formatCurrency(boqData.total.toString())
                         : formatCurrency(project.budget)
                       }
                     </p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                    <DollarSign className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-4.5 h-4.5" />
                   </div>
                 </div>
 
                 {/* Metric 2: Actual Cost */}
-                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
-                  <div className="space-y-1">
-                    <span className="text-muted-foreground font-semibold text-xs">التكلفة الفعلية</span>
-                    <p className="font-black text-primary font-mono text-base sm:text-lg">{formatCurrency(project.actualCost)}</p>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">التكلفة الفعلية</span>
+                    <p className="font-black text-primary font-mono text-sm sm:text-base">{formatCurrency(project.actualCost)}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CreditCard className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4.5 h-4.5" />
                   </div>
                 </div>
 
                 {/* Metric 3: Status */}
-                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
-                  <div className="space-y-1">
-                    <span className="text-muted-foreground font-semibold text-xs">حالة المشروع</span>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">حالة المشروع</span>
                     <p className="font-bold text-foreground text-xs sm:text-sm">{getStatusLabel()}</p>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <BarChart3 className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-4.5 h-4.5" />
                   </div>
                 </div>
 
                 {/* Metric 4: Project Manager */}
-                <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors min-h-[72px]">
-                  <div className="space-y-1 min-w-0 flex-1 ml-2">
-                    <span className="text-muted-foreground font-semibold text-xs block">مدير المشروع</span>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5 min-w-0 flex-1 ml-2">
+                    <span className="text-muted-foreground font-semibold text-[11px] block">مدير المشروع</span>
                     {isEditingManager ? (
                       <div className="flex items-center gap-1 mt-0.5">
                         <Select
@@ -593,8 +595,8 @@ export default function ProjectDetailsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
-                    <Users className="w-5 h-5" />
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                    <Users className="w-4.5 h-4.5" />
                   </div>
                 </div>
               </div>
