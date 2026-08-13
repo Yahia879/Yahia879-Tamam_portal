@@ -374,19 +374,19 @@ export default function ProjectDetailsPage() {
     <DashboardLayout>
       <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
         
-        {/* Modern Project Hero Header */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-l from-primary/95 via-primary to-emerald-950 text-white p-6 sm:p-8 shadow-xl">
-          <div className="absolute -right-16 -top-16 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 w-72 h-72 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
+        {/* Modern Compact Project Hero Header */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary via-primary/95 to-emerald-950 text-white p-4 sm:p-5 shadow-lg">
+          <div className="absolute -right-16 -top-16 w-60 h-60 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="absolute -left-16 -bottom-16 w-60 h-60 rounded-full bg-emerald-400/15 blur-2xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-5">
+          <div className="relative z-10 space-y-3">
             {/* Top Toolbar Line */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-2xl bg-white/15 text-white hover:bg-white/25 h-10 w-10 shrink-0 backdrop-blur-md"
+                  className="rounded-xl bg-white/15 text-white hover:bg-white/25 h-8 w-8 shrink-0 backdrop-blur-md"
                   onClick={() => {
                     if (window.history.length > 1) {
                       window.history.back();
@@ -396,20 +396,20 @@ export default function ProjectDetailsPage() {
                   }}
                   title="العودة"
                 >
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-black text-xl sm:text-2xl font-mono tracking-tight">{project.projectNumber}</span>
-                  <Badge variant="outline" className={`rounded-xl border-white/30 bg-white/15 text-white font-bold text-xs px-3 py-1 backdrop-blur-md`}>
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="font-black text-lg sm:text-xl font-mono tracking-tight">{project.projectNumber}</span>
+                  <Badge variant="outline" className="rounded-lg border-white/30 bg-white/15 text-white font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
                     {getStatusLabel()}
                   </Badge>
                   {project.donorName && (
-                    <Badge variant="outline" className="rounded-xl border-amber-300/40 bg-amber-400/20 text-amber-200 font-bold text-xs px-3 py-1 backdrop-blur-md">
+                    <Badge variant="outline" className="rounded-lg border-amber-300/40 bg-amber-400/20 text-amber-200 font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
                       المانح: {project.donorName}
                     </Badge>
                   )}
                   {project.isMultiMosque && (
-                    <Badge variant="outline" className="rounded-xl border-indigo-300/40 bg-indigo-400/20 text-indigo-200 font-bold text-xs px-3 py-1 backdrop-blur-md">
+                    <Badge variant="outline" className="rounded-lg border-indigo-300/40 bg-indigo-400/20 text-indigo-200 font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
                       مشروع مباشر (عدة مساجد)
                     </Badge>
                   )}
@@ -418,18 +418,18 @@ export default function ProjectDetailsPage() {
             </div>
 
             {/* Editable Project Title Line */}
-            <div className="pt-1">
+            <div>
               {isEditingName ? (
                 <div className="flex items-center gap-2 max-w-xl">
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="h-11 rounded-2xl text-base font-bold text-foreground bg-background border-2 border-white focus-visible:ring-0 shadow-lg"
+                    className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-2 border-white focus-visible:ring-0 shadow-md"
                     autoFocus
                   />
                   <Button
                     size="sm"
-                    className="h-11 rounded-2xl px-5 text-xs bg-white text-primary font-bold hover:bg-white/90 shadow-md shrink-0"
+                    className="h-9 rounded-xl px-4 text-xs bg-white text-primary font-bold hover:bg-white/90 shadow-xs shrink-0"
                     onClick={() => {
                       if (!editedName.trim()) {
                         toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
@@ -455,7 +455,7 @@ export default function ProjectDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-11 rounded-2xl px-4 text-xs border-white/40 text-white hover:bg-white/10 shrink-0"
+                    className="h-9 rounded-xl px-3 text-xs border-white/40 text-white hover:bg-white/10 shrink-0"
                     onClick={() => {
                       setIsEditingName(false);
                       setEditedName(project.name || "");
@@ -465,36 +465,43 @@ export default function ProjectDetailsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <h1 className="text-xl sm:text-3xl font-extrabold text-white tracking-tight leading-snug">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-snug">
                     {project.name}
                   </h1>
                   {canEditProjectName && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20 rounded-xl shrink-0"
+                      className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/20 rounded-lg shrink-0"
                       onClick={() => {
                         setEditedName(project.name || "");
                         setIsEditingName(true);
                       }}
                       title="تعديل الاسم"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3.5 h-3.5" />
                     </Button>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Embedded Progress Line */}
+            {/* Embedded High-Contrast Progress Line */}
             {!financialsOnly && (
-              <div className="pt-3 border-t border-white/15 space-y-2">
-                <div className="flex items-center justify-between text-xs sm:text-sm font-semibold">
+              <div className="pt-2 border-t border-white/15 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="text-white/90">نسبة التقدم الإجمالية للمشروع</span>
-                  <span className="font-extrabold text-amber-300 font-mono text-base">{project.completionPercentage || 0}%</span>
+                  <span className="font-extrabold text-amber-300 font-mono text-sm">
+                    {project.completionPercentage || 0}%
+                  </span>
                 </div>
-                <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full bg-white/20" />
+                <div className="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/15">
+                  <div
+                    className="bg-gradient-to-r from-amber-400 to-amber-300 h-full rounded-full transition-all duration-500 shadow-sm"
+                    style={{ width: `${Math.min(100, Math.max(0, project.completionPercentage || 0))}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>
