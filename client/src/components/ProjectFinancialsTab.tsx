@@ -592,7 +592,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       {/* Financial Sub-Tabs Navigation */}
       <Tabs value={financialSubTab} onValueChange={setFinancialSubTab} dir="rtl" className="space-y-6">
         <div className="overflow-x-auto pb-1">
-          <TabsList className="w-full sm:w-auto justify-start">
+          <TabsList className="w-full">
             <TabsTrigger value="funding_details">
               <Building2 />
               <span>تفاصيل العقد والجهات الداعمة</span>
