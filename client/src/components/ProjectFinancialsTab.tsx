@@ -592,13 +592,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       {/* Financial Sub-Tabs Navigation */}
       <Tabs value={financialSubTab} onValueChange={setFinancialSubTab} dir="rtl" className="space-y-6">
         <div className="overflow-x-auto pb-1">
-          <TabsList className="flex items-center gap-1 bg-muted/60 p-1.5 rounded-2xl border border-border/50 w-full sm:w-auto shrink-0 justify-start">
-            <TabsTrigger value="funding_details" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-              <Building2 className="w-4 h-4" />
+          <TabsList className="w-full sm:w-auto justify-start">
+            <TabsTrigger value="funding_details">
+              <Building2 />
               <span>تفاصيل العقد والجهات الداعمة</span>
             </TabsTrigger>
-            <TabsTrigger value="receipt_vouchers" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-              <Receipt className="w-4 h-4" />
+            <TabsTrigger value="receipt_vouchers">
+              <Receipt />
               <span>سندات القبض والتحصيل ({receiptVouchers.length})</span>
             </TabsTrigger>
           </TabsList>
