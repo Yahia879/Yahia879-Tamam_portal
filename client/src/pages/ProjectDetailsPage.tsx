@@ -42,6 +42,7 @@ import {
   MapPin,
   UserCheck,
   CheckCircle,
+  Tag,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -683,29 +684,40 @@ export default function ProjectDetailsPage() {
 
           {/* TAB 1: OVERVIEW */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Project Main Specs Card */}
-              <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-                <CardHeader className="p-6 border-b border-border/40 bg-muted/30">
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
                   <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-primary" />
                     <span>معلومات المشروع الأساسية</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4 text-xs sm:text-sm">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">رقم المشروع</p>
-                      <p className="font-extrabold text-foreground font-mono">{project.projectNumber}</p>
+                <CardContent className="p-5 space-y-4 text-xs sm:text-sm">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5 text-primary/70" />
+                        <span>رقم المشروع</span>
+                      </p>
+                      <p className="font-extrabold text-foreground font-mono text-sm">{project.projectNumber}</p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">حالة المشروع</p>
-                      <Badge variant="outline" className={statusColors[project.status || "planning"]}>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-primary/70" />
+                        <span>حالة المشروع</span>
+                      </p>
+                      <Badge variant="outline" className={`rounded-lg ${statusColors[project.status || "planning"]}`}>
                         {getStatusLabel()}
                       </Badge>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">تاريخ البدء</p>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                        <span>تاريخ البدء</span>
+                      </p>
                       <p className="font-bold text-foreground">
                         {project.startDate 
                           ? new Date(project.startDate).toLocaleDateString("ar-SA")
@@ -713,8 +725,12 @@ export default function ProjectDetailsPage() {
                         }
                       </p>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground font-medium mb-1">تاريخ الانتهاء المتوقع</p>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                        <span>تاريخ الانتهاء المتوقع</span>
+                      </p>
                       <p className="font-bold text-foreground">
                         {project.expectedEndDate 
                           ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA")
@@ -722,17 +738,19 @@ export default function ProjectDetailsPage() {
                         }
                       </p>
                     </div>
+
                     {project.donorName && (
-                      <div className="col-span-2">
-                        <p className="text-muted-foreground font-medium mb-1">اسم المانح / الجهة الداعمة</p>
-                        <p className="font-extrabold text-primary">{project.donorName}</p>
+                      <div className="col-span-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <p className="text-amber-700 dark:text-amber-300 text-[11px] font-semibold">اسم المانح / الجهة الداعمة</p>
+                        <p className="font-extrabold text-amber-800 dark:text-amber-200 text-sm">{project.donorName}</p>
                       </div>
                     )}
                   </div>
+
                   {project.description && (
-                    <div className="pt-3 border-t border-border/40">
-                      <p className="text-muted-foreground font-medium mb-1">الوصف المرفق للمشروع</p>
-                      <p className="font-medium text-foreground leading-relaxed bg-muted/30 p-3 rounded-2xl border border-border/40">
+                    <div className="pt-2">
+                      <p className="text-muted-foreground text-xs font-bold mb-1.5">الوصف المرفق للمشروع</p>
+                      <p className="font-medium text-foreground leading-relaxed bg-muted/40 p-3.5 rounded-xl border border-border/50 text-xs">
                         {project.description}
                       </p>
                     </div>
@@ -742,33 +760,37 @@ export default function ProjectDetailsPage() {
 
               {/* Linked Service Request Card */}
               {project.request && (
-                <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-                  <CardHeader className="p-6 border-b border-border/40 bg-muted/30">
+                <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                  <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <FileText className="w-5 h-5 text-primary" />
                       <span>بيانات الطلب المرتبط</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 space-y-4 text-xs sm:text-sm">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-muted-foreground font-medium mb-1">رقم الطلب</p>
+                  <CardContent className="p-5 space-y-4 text-xs sm:text-sm">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">رقم الطلب</p>
                         <Link href={`/requests/${project.request.id}`}>
-                          <span className="font-mono font-extrabold text-primary hover:underline cursor-pointer">
+                          <span className="font-mono font-extrabold text-primary hover:underline cursor-pointer flex items-center gap-1 text-sm">
                             {project.request.requestNumber}
+                            <ChevronLeft className="w-3.5 h-3.5" />
                           </span>
                         </Link>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground font-medium mb-1">البرنامج الفني</p>
+
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">البرنامج الفني</p>
                         <p className="font-bold text-foreground">{project.request.programType}</p>
                       </div>
+
                       {project.request.mosqueName && (
-                        <div className="col-span-2">
-                          <p className="text-muted-foreground font-medium mb-1">المسجد المستفيد</p>
-                          <p className="font-bold text-foreground flex items-center gap-1.5">
-                            <Building2 className="w-4 h-4 text-primary/70" />
-                            {project.request.mosqueName} - {project.request.mosqueCity}
+                        <div className="col-span-2 p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
+                          <p className="text-primary text-[11px] font-semibold">المسجد المستفيد</p>
+                          <p className="font-extrabold text-foreground flex items-center gap-1.5 text-sm">
+                            <Building2 className="w-4 h-4 text-primary shrink-0" />
+                            <span>{project.request.mosqueName}</span>
+                            {project.request.mosqueCity && <span className="text-xs text-muted-foreground">({project.request.mosqueCity})</span>}
                           </p>
                         </div>
                       )}
@@ -780,14 +802,14 @@ export default function ProjectDetailsPage() {
 
             {/* Linked Mosques Table (Multi-Mosque Direct Projects) */}
             {(project as any).linkedMosques && (project as any).linkedMosques.length > 0 && (
-              <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-                <CardHeader className="p-6 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <Building className="w-5 h-5 text-primary" />
                       <span>المساجد المشمولة بالمشروع (عدة مساجد)</span>
                     </CardTitle>
-                    <CardDescription className="text-xs mt-1">
+                    <CardDescription className="text-xs mt-0.5">
                       قائمة المساجد المخصصة ضمن هذا المشروع والميزانية المخصصة وشروط الأعمال
                     </CardDescription>
                   </div>
@@ -798,32 +820,32 @@ export default function ProjectDetailsPage() {
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <Table>
-                      <TableHeader className="bg-muted/40">
+                      <TableHeader className="bg-muted/30">
                         <TableRow>
-                          <TableHead className="text-right font-bold">المسجد</TableHead>
-                          <TableHead className="text-right font-bold">المدينة / الحي</TableHead>
-                          <TableHead className="text-right font-bold">الميزانية المخصصة</TableHead>
-                          <TableHead className="text-right font-bold">الإمام / التواصل</TableHead>
-                          <TableHead className="text-right font-bold">الشروط والملاحظات</TableHead>
+                          <TableHead className="text-right font-bold text-xs">المسجد</TableHead>
+                          <TableHead className="text-right font-bold text-xs">المدينة / الحي</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الميزانية المخصصة</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الإمام / التواصل</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الشروط والملاحظات</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {(project as any).linkedMosques.map((item: any) => (
                           <TableRow key={item.id} className="hover:bg-muted/20">
-                            <TableCell className="font-bold text-foreground">
+                            <TableCell className="font-bold text-foreground text-xs">
                               {item.mosqueName || `مسجد #${item.mosqueId}`}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-xs">
                               {item.mosqueCity || "—"} {item.mosqueDistrict ? ` - ${item.mosqueDistrict}` : ""}
                             </TableCell>
-                            <TableCell className="font-extrabold text-primary font-mono">
+                            <TableCell className="font-extrabold text-primary font-mono text-xs">
                               {item.allocatedBudget ? `${parseFloat(item.allocatedBudget).toLocaleString()} ريال` : "—"}
                             </TableCell>
                             <TableCell className="text-xs">
                               {item.imamName ? (
                                 <div>
                                   <span className="font-bold block text-foreground">{item.imamName}</span>
-                                  <span className="text-muted-foreground font-mono">{item.imamPhone || ""}</span>
+                                  <span className="text-muted-foreground font-mono text-[11px]">{item.imamPhone || ""}</span>
                                 </div>
                               ) : "—"}
                             </TableCell>
@@ -841,20 +863,20 @@ export default function ProjectDetailsPage() {
 
             {/* Technical Evaluation Notes */}
             {(project as any).evaluations && (project as any).evaluations.length > 0 && (
-              <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-                <CardHeader className="p-6 border-b border-border/40 bg-muted/30">
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
                   <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
                     <span>ملاحظات ومبررات التقييم الفني</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
+                <CardContent className="p-5">
+                  <div className="space-y-3">
                     {(project as any).evaluations.map((evalNote: any) => (
-                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-2xl space-y-2 border border-border/40">
+                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-xl space-y-2 border border-border/40">
                         <div className="flex justify-between items-center w-full text-xs">
-                          <span className="font-bold text-primary">{evalNote.userName || "موظف التقييم"}</span>
-                          <span className="text-muted-foreground font-medium">
+                          <span className="font-extrabold text-primary">{evalNote.userName || "موظف التقييم"}</span>
+                          <span className="text-muted-foreground font-mono text-[11px]">
                             {new Date(evalNote.createdAt).toLocaleString("ar-SA")}
                           </span>
                         </div>
