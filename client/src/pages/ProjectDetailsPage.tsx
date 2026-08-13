@@ -374,16 +374,16 @@ export default function ProjectDetailsPage() {
     <DashboardLayout>
       <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
         
-        {/* Clean Executive Project Header Card */}
+        {/* Ultra-Compact Executive Project Header Card */}
         <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
-          <CardContent className="p-4 sm:p-5 space-y-3.5">
+          <CardContent className="p-4 sm:p-4 space-y-3">
             {/* Top Row: Back button, Project Number & Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-xl h-9 w-9 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
+                  className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     if (window.history.length > 1) {
                       window.history.back();
@@ -393,10 +393,10 @@ export default function ProjectDetailsPage() {
                   }}
                   title="العودة"
                 >
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="font-black text-lg sm:text-xl font-mono text-foreground tracking-tight">{project.projectNumber}</span>
+                  <span className="font-black text-base sm:text-lg font-mono text-foreground tracking-tight">{project.projectNumber}</span>
                   <Badge variant="outline" className={statusColors[project.status || "planning"]}>
                     {getStatusLabel()}
                   </Badge>
@@ -414,88 +414,88 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
 
-            {/* Editable Title Row */}
-            <div>
-              {isEditingName ? (
-                <div className="flex items-center gap-2 max-w-xl">
-                  <Input
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary focus-visible:ring-1"
-                    autoFocus
-                  />
-                  <Button
-                    size="sm"
-                    className="h-9 rounded-xl px-4 text-xs gradient-primary text-white font-bold shrink-0"
-                    onClick={() => {
-                      if (!editedName.trim()) {
-                        toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
-                        return;
-                      }
-                      updateProjectMutation.mutate({
-                        id: project.id,
-                        name: editedName,
-                      }, {
-                        onSuccess: () => {
-                          toast.success("تم تحديث اسم المشروع بنجاح");
-                          setIsEditingName(false);
-                        },
-                        onError: (err) => {
-                          toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
-                        }
-                      });
-                    }}
-                    disabled={updateProjectMutation.isPending}
-                  >
-                    حفظ
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-9 rounded-xl px-3 text-xs shrink-0"
-                    onClick={() => {
-                      setIsEditingName(false);
-                      setEditedName(project.name || "");
-                    }}
-                  >
-                    إلغاء
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight leading-snug">
-                    {project.name}
-                  </h1>
-                  {canEditProjectName && (
+            {/* Bottom Row: Editable Title on Right + Inline Progress Bar Widget on Left */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-border/40">
+              <div className="min-w-0 flex-1">
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 max-w-xl">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="h-8 rounded-xl text-xs font-bold text-foreground bg-background border-primary focus-visible:ring-1"
+                      autoFocus
+                    />
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                      size="sm"
+                      className="h-8 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
                       onClick={() => {
-                        setEditedName(project.name || "");
-                        setIsEditingName(true);
+                        if (!editedName.trim()) {
+                          toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
+                          return;
+                        }
+                        updateProjectMutation.mutate({
+                          id: project.id,
+                          name: editedName,
+                        }, {
+                          onSuccess: () => {
+                            toast.success("تم تحديث اسم المشروع بنجاح");
+                            setIsEditingName(false);
+                          },
+                          onError: (err) => {
+                            toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
+                          }
+                        });
                       }}
-                      title="تعديل الاسم"
+                      disabled={updateProjectMutation.isPending}
                     >
-                      <Edit className="w-3.5 h-3.5" />
+                      حفظ
                     </Button>
-                  )}
-                </div>
-              )}
-            </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-xl px-2.5 text-xs shrink-0"
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setEditedName(project.name || "");
+                      }}
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-sm sm:text-base font-extrabold text-foreground tracking-tight leading-snug truncate">
+                      {project.name}
+                    </h1>
+                    {canEditProjectName && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                        onClick={() => {
+                          setEditedName(project.name || "");
+                          setIsEditingName(true);
+                        }}
+                        title="تعديل الاسم"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
 
-            {/* Progress Bar Row */}
-            {!financialsOnly && (
-              <div className="pt-2 border-t border-border/50 space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-muted-foreground">نسبة التقدم الإجمالية للمشروع</span>
-                  <span className="font-extrabold text-primary font-mono text-sm">
+              {/* Inline Progress Bar Widget */}
+              {!financialsOnly && (
+                <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-64 bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
+                  <span className="text-[11px] font-bold text-muted-foreground shrink-0">الإنجاز:</span>
+                  <Progress value={project.completionPercentage || 0} className="h-2 rounded-full flex-1" />
+                  <span className="font-extrabold text-primary font-mono text-xs shrink-0">
                     {project.completionPercentage || 0}%
                   </span>
                 </div>
-                <Progress value={project.completionPercentage || 0} className="h-2 rounded-full" />
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
