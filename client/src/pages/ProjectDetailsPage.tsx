@@ -485,11 +485,11 @@ export default function ProjectDetailsPage() {
                 )}
               </div>
 
-              {/* Inline Progress Bar Widget */}
+              {/* Inline Progress Bar Widget - Extended Width */}
               {!financialsOnly && (
-                <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-64 bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
-                  <span className="text-[11px] font-bold text-muted-foreground shrink-0">الإنجاز:</span>
-                  <Progress value={project.completionPercentage || 0} className="h-2 rounded-full flex-1" />
+                <div className="flex items-center gap-3 shrink-0 w-full sm:w-80 md:w-96 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/50">
+                  <span className="text-xs font-bold text-muted-foreground shrink-0">الإنجاز الكلي:</span>
+                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full flex-1" />
                   <span className="font-extrabold text-primary font-mono text-xs shrink-0">
                     {project.completionPercentage || 0}%
                   </span>
