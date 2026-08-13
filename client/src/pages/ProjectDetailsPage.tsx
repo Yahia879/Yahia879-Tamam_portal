@@ -375,229 +375,189 @@ export default function ProjectDetailsPage() {
     <DashboardLayout>
       <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
         
-        {/* Ultra-Compact Executive Project Header Card */}
+        {/* Unified Executive Project Hero Panel */}
         <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
-          <CardContent className="p-4 sm:p-4 space-y-3">
-            {/* Top Row: Back button, Project Number & Badges */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    if (window.history.length > 1) {
-                      window.history.back();
-                    } else {
-                      navigate("/project-management");
-                    }
-                  }}
-                  title="العودة"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
+          <CardContent className="p-5 space-y-4">
+            {/* Top Row: Back button, Badges, Project Name & Progress Widget */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Right Side: Navigation, Badges & Editable Project Title */}
+              <div className="space-y-2 min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="font-black text-base sm:text-lg font-mono text-foreground tracking-tight">{project.projectNumber}</span>
-                  <Badge variant="outline" className={statusColors[project.status || "planning"]}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      if (window.history.length > 1) {
+                        window.history.back();
+                      } else {
+                        navigate("/project-management");
+                      }
+                    }}
+                    title="العودة"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+
+                  <span className="font-extrabold text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
+                    #{project.projectNumber}
+                  </span>
+
+                  <Badge variant="outline" className={`rounded-lg font-bold text-xs px-2.5 py-0.5 ${statusColors[project.status || "planning"]}`}>
                     {getStatusLabel()}
                   </Badge>
+
                   {project.donorName && (
-                    <Badge variant="secondary" className="rounded-xl font-bold text-[11px] px-2.5 py-0.5">
+                    <Badge variant="secondary" className="rounded-lg font-bold text-xs bg-muted/60 text-muted-foreground border border-border/40 px-2.5 py-0.5">
                       المانح: {project.donorName}
                     </Badge>
                   )}
+
                   {project.isMultiMosque && (
-                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold text-[11px] px-2.5 py-0.5 border border-indigo-200/50">
+                    <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-lg border border-indigo-500/20 px-2.5 py-0.5">
                       مشروع مباشر (عدة مساجد)
                     </Badge>
                   )}
                 </div>
-              </div>
-            </div>
 
-            {/* Bottom Row: Editable Title on Right + Inline Progress Bar Widget on Left */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-border/40">
-              <div className="min-w-0 flex-1">
-                {isEditingName ? (
-                  <div className="flex items-center gap-2 max-w-xl">
-                    <Input
-                      value={editedName}
-                      onChange={(e) => setEditedName(e.target.value)}
-                      className="h-8 rounded-xl text-xs font-bold text-foreground bg-background border-primary focus-visible:ring-1"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
-                      onClick={() => {
-                        if (!editedName.trim()) {
-                          toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
-                          return;
-                        }
-                        updateProjectMutation.mutate({
-                          id: project.id,
-                          name: editedName,
-                        }, {
-                          onSuccess: () => {
-                            toast.success("تم تحديث اسم المشروع بنجاح");
-                            setIsEditingName(false);
-                          },
-                          onError: (err) => {
-                            toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
-                          }
-                        });
-                      }}
-                      disabled={updateProjectMutation.isPending}
-                    >
-                      حفظ
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 rounded-xl px-2.5 text-xs shrink-0"
-                      onClick={() => {
-                        setIsEditingName(false);
-                        setEditedName(project.name || "");
-                      }}
-                    >
-                      إلغاء
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-sm sm:text-base font-extrabold text-foreground tracking-tight leading-snug truncate">
-                      {project.name}
-                    </h1>
-                    {canEditProjectName && (
+                {/* Editable Project Name */}
+                <div>
+                  {isEditingName ? (
+                    <div className="flex items-center gap-2 max-w-xl">
+                      <Input
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary"
+                        autoFocus
+                      />
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                        size="sm"
+                        className="h-9 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
                         onClick={() => {
-                          setEditedName(project.name || "");
-                          setIsEditingName(true);
+                          if (!editedName.trim()) {
+                            toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
+                            return;
+                          }
+                          updateProjectMutation.mutate({
+                            id: project.id,
+                            name: editedName,
+                          }, {
+                            onSuccess: () => {
+                              toast.success("تم تحديث اسم المشروع بنجاح");
+                              setIsEditingName(false);
+                            },
+                            onError: (err) => {
+                              toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
+                            }
+                          });
                         }}
-                        title="تعديل الاسم"
+                        disabled={updateProjectMutation.isPending}
                       >
-                        <Edit className="w-3.5 h-3.5" />
+                        حفظ
                       </Button>
-                    )}
-                  </div>
-                )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 rounded-xl px-2.5 text-xs shrink-0"
+                        onClick={() => {
+                          setIsEditingName(false);
+                          setEditedName(project.name || "");
+                        }}
+                      >
+                        إلغاء
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <h1 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight leading-snug">
+                        {project.name}
+                      </h1>
+                      {canEditProjectName && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                          onClick={() => {
+                            setEditedName(project.name || "");
+                            setIsEditingName(true);
+                          }}
+                          title="تعديل اسم المشروع"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Inline Progress Bar Widget - Extended Width */}
+              {/* Left Side: Completion Progress Widget */}
               {!financialsOnly && (
-                <div className="flex items-center gap-3 shrink-0 w-full sm:w-80 md:w-96 bg-muted/40 px-3.5 py-2 rounded-xl border border-border/50">
-                  <span className="text-xs font-bold text-muted-foreground shrink-0">الإنجاز الكلي:</span>
-                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full flex-1" />
-                  <span className="font-extrabold text-primary font-mono text-xs shrink-0">
-                    {project.completionPercentage || 0}%
-                  </span>
+                <div className="flex flex-col justify-center bg-muted/40 p-3 rounded-xl border border-border/50 min-w-[220px] sm:min-w-[260px] space-y-1.5 shrink-0">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span className="text-muted-foreground">نسبة الإنجاز الكلي:</span>
+                    <span className="text-primary font-mono text-xs font-extrabold">{project.completionPercentage || 0}%</span>
+                  </div>
+                  <Progress value={project.completionPercentage || 0} className="h-2 rounded-full" />
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Unified Key Metrics Bar */}
-        {!financialsOnly && (
-          <TooltipProvider delayDuration={200}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              
-              {/* Card 1: Budget */}
-              {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage)) ? (
-                <Card className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-2xl bg-background">
-                  <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mb-1">
-                        <span>الميزانية الإجمالية</span>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/70 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p className="text-xs">الميزانية هي إجمالي قيمة جدول الكميات المعتمد</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <p className="text-lg sm:text-xl font-extrabold text-foreground">
-                        {boqData && boqData.total > 0
-                          ? formatCurrency(boqData.total.toString())
-                          : formatCurrency(project.budget)
-                        }
-                      </p>
-                    </div>
-                    <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                      <DollarSign className="w-5 h-5" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border border-border/60 shadow-xs rounded-2xl bg-background">
-                  <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground mb-1">الميزانية الإجمالية</p>
-                      <p className="text-sm font-bold text-muted-foreground">لم تُحدد بعد</p>
-                    </div>
-                    <div className="w-11 h-11 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center shrink-0">
-                      <DollarSign className="w-5 h-5" />
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            {/* Bottom Embedded Metrics Bar */}
+            {!financialsOnly && (
+              <div className="pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {/* Metric 1: Budget */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">الميزانية الإجمالية</span>
+                    <p className="font-extrabold text-foreground font-mono text-sm">
+                      {boqData && boqData.total > 0
+                        ? formatCurrency(boqData.total.toString())
+                        : formatCurrency(project.budget)
+                      }
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                </div>
 
-              {/* Card 2: Actual Cost */}
-              <Card className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-2xl bg-background">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-muted-foreground mb-1">
-                      <span>التكلفة الفعلية</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/70 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p className="text-xs">التكلفة المتفق عليها بالعقد المعتمد</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <p className="text-lg sm:text-xl font-extrabold text-foreground">{formatCurrency(project.actualCost)}</p>
+                {/* Metric 2: Actual Cost */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">التكلفة الفعلية</span>
+                    <p className="font-extrabold text-primary font-mono text-sm">{formatCurrency(project.actualCost)}</p>
                   </div>
-                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CreditCard className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Card 3: Completion percentage */}
-              <Card className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-2xl bg-background">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">نسبة الإنجاز</p>
-                    <p className="text-lg sm:text-xl font-extrabold text-foreground">{project.completionPercentage || 0}%</p>
+                {/* Metric 3: Status */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">حالة المشروع</span>
+                    <p className="font-bold text-foreground text-xs">{getStatusLabel()}</p>
                   </div>
-                  <div className="w-11 h-11 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <BarChart3 className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Card 4: Project Manager */}
-              <Card className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-2xl bg-background">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">مدير المشروع</p>
+                {/* Metric 4: Project Manager */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/30 border border-border/40">
+                  <div className="space-y-0.5 min-w-0 flex-1 ml-2">
+                    <span className="text-muted-foreground font-semibold text-[11px] block">مدير المشروع</span>
                     {isEditingManager ? (
-                      <div className="flex items-center gap-1.5 mt-1">
+                      <div className="flex items-center gap-1 mt-0.5">
                         <Select
                           value={project.managerId?.toString() || ""}
                           onValueChange={(val) => handleUpdateManager(parseInt(val))}
                         >
-                          <SelectTrigger className="h-8 rounded-xl text-xs font-bold border-border/60 bg-background">
-                            <SelectValue placeholder="اختر الموظف..." />
+                          <SelectTrigger className="h-7 rounded-lg text-xs font-bold border-border/60 bg-background">
+                            <SelectValue placeholder="اختر..." />
                           </SelectTrigger>
-                          <SelectContent className="rounded-2xl">
+                          <SelectContent className="rounded-xl">
                             {projectManagers.map((m: any) => (
                               <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
                                 {m.name}
@@ -609,39 +569,38 @@ export default function ProjectDetailsPage() {
                           variant="ghost" 
                           size="icon" 
                           onClick={() => setIsEditingManager(false)} 
-                          className="h-8 w-8 hover:bg-red-50 text-red-500 rounded-xl shrink-0"
+                          className="h-7 w-7 text-red-500 rounded-lg shrink-0"
                         >
                           <X className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 truncate">
-                        <p className="font-extrabold text-sm sm:text-base text-foreground truncate">
+                      <div className="flex items-center gap-1 truncate">
+                        <span className="font-extrabold text-foreground text-xs truncate">
                           {project.managerName || "غير محدد"}
-                        </p>
+                        </span>
                         {canChangeManager && (
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-full p-0 shrink-0"
+                            className="h-5 w-5 text-muted-foreground hover:text-primary rounded-full p-0 shrink-0"
                             onClick={() => setIsEditingManager(true)} 
                             title="تغيير مدير المشروع"
                           >
-                            <Edit className="w-3.5 h-3.5" />
+                            <Edit className="w-3 h-3" />
                           </Button>
                         )}
                       </div>
                     )}
                   </div>
-                  <div className="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0 mr-2">
-                    <Users className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4" />
                   </div>
-                </CardContent>
-              </Card>
-
-            </div>
-          </TooltipProvider>
-        )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Tab Navigation & Content Container */}
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
