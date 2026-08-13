@@ -647,35 +647,35 @@ export default function ProjectDetailsPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
           {!financialsOnly && (
             <div className="overflow-x-auto pb-1">
-              <TabsList className="flex items-center gap-1 bg-muted/60 p-1.5 rounded-2xl border border-border/50 w-full sm:w-auto shrink-0 justify-start">
-                <TabsTrigger value="overview" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <FolderOpen className="w-4 h-4" />
+              <TabsList className="w-full sm:w-auto justify-start">
+                <TabsTrigger value="overview">
+                  <FolderOpen />
                   <span>نظرة عامة</span>
                 </TabsTrigger>
-                <TabsTrigger value="progress_milestones" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <TrendingUp className="w-4 h-4" />
+                <TabsTrigger value="progress_milestones">
+                  <TrendingUp />
                   <span>الإنجاز والمعالم</span>
                 </TabsTrigger>
-                <TabsTrigger value="phases" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <Layers className="w-4 h-4" />
+                <TabsTrigger value="phases">
+                  <Layers />
                   <span>المراحل</span>
                 </TabsTrigger>
-                <TabsTrigger value="boq" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <ClipboardList className="w-4 h-4" />
+                <TabsTrigger value="boq">
+                  <ClipboardList />
                   <span>جدول الكميات</span>
                 </TabsTrigger>
                 {canViewFinancials && (
-                  <TabsTrigger value="financials" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                    <DollarSign className="w-4 h-4" />
+                  <TabsTrigger value="financials">
+                    <DollarSign />
                     <span>المالية</span>
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="contracts" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <FileSignature className="w-4 h-4" />
+                <TabsTrigger value="contracts">
+                  <FileSignature />
                   <span>العقود</span>
                 </TabsTrigger>
-                <TabsTrigger value="payments" className="rounded-xl text-xs font-bold px-4 py-2 gap-1.5 whitespace-nowrap">
-                  <CreditCard className="w-4 h-4" />
+                <TabsTrigger value="payments">
+                  <CreditCard />
                   <span>الدفعات</span>
                 </TabsTrigger>
               </TabsList>
