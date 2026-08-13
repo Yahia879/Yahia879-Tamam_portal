@@ -916,51 +916,70 @@ export default function ProjectDetailsPage() {
 
           {/* TAB 3: PHASES */}
           <TabsContent value="phases" className="space-y-6">
-            <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden">
-              <CardHeader className="p-6 border-b border-border/40 bg-muted/30">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
                 <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                   <Layers className="w-5 h-5 text-primary" />
                   <span>مراحل المشروع والدورة المستندية</span>
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  متابعة حالة وتقدم كل مرحلة تنفيدية بالخط الزمني للمشروع
+                <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                  متابعة تقدم وتتبع مراحل المشروع عبر الخط الزمني المستندي التفاعلي
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-5 sm:p-6">
                 {project.phases && project.phases.length > 0 ? (
-                  <div className="space-y-4">
-                    {project.phases.map((phase, index) => (
-                      <div key={phase.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-border/40">
-                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 font-extrabold text-sm ${
-                          phase.status === "completed" ? "bg-emerald-500 text-white shadow-xs" :
-                          phase.status === "in_progress" ? "bg-blue-500 text-white shadow-xs" :
-                          "bg-muted text-muted-foreground border border-border/60"
-                        }`}>
-                          {phase.status === "completed" ? (
-                            <CheckCircle2 className="w-6 h-6" />
-                          ) : (
-                            <span>{index + 1}</span>
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-extrabold text-sm sm:text-base text-foreground">{phase.phaseName}</h4>
-                            <Badge variant="outline" className={`rounded-xl text-[11px] px-2.5 py-0.5 font-bold ${phaseStatusColors[phase.status || "pending"]}`}>
-                              {phaseStatusLabels[phase.status || "pending"]}
-                            </Badge>
+                  <div className="relative pr-6 border-r-2 border-border/60 mr-3 space-y-6">
+                    {project.phases.map((phase, index) => {
+                      const isCompleted = phase.status === "completed";
+                      const isInProgress = phase.status === "in_progress";
+
+                      return (
+                        <div key={phase.id} className="relative group">
+                          {/* Timeline Step Circle Icon */}
+                          <div className={`absolute -right-[31px] top-1 w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs transition-all ${
+                            isCompleted ? "bg-primary text-white shadow-sm ring-4 ring-primary/15" :
+                            isInProgress ? "bg-primary text-white shadow-md ring-4 ring-primary/25 animate-pulse" :
+                            "bg-muted text-muted-foreground border border-border/70"
+                          }`}>
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              <span>{index + 1}</span>
+                            )}
                           </div>
-                          {phase.description && (
-                            <p className="text-xs text-muted-foreground">{phase.description}</p>
-                          )}
-                          <div className="flex items-center gap-3 pt-1">
-                            <Progress value={phase.completionPercentage || 0} className="flex-1 h-2 rounded-full" />
-                            <span className="text-xs font-mono font-extrabold text-primary shrink-0">
-                              {phase.completionPercentage || 0}%
-                            </span>
+
+                          {/* Phase Content Box */}
+                          <div className={`p-4 rounded-xl border transition-all ${
+                            isInProgress ? "bg-primary/5 border-primary/30 shadow-xs" :
+                            isCompleted ? "bg-muted/20 border-border/50" :
+                            "bg-muted/10 border-border/40 opacity-75"
+                          }`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-sm sm:text-base text-foreground">{phase.phaseName}</h4>
+                                <Badge variant="outline" className={`rounded-lg text-[11px] px-2.5 py-0.5 font-bold ${phaseStatusColors[phase.status || "pending"]}`}>
+                                  {phaseStatusLabels[phase.status || "pending"]}
+                                </Badge>
+                              </div>
+                              <span className="text-xs font-mono font-extrabold text-primary shrink-0">
+                                {phase.completionPercentage || 0}% الإنجاز
+                              </span>
+                            </div>
+
+                            {phase.description && (
+                              <p className="text-xs text-muted-foreground leading-relaxed mb-3">{phase.description}</p>
+                            )}
+
+                            <div className="flex items-center gap-3 pt-1">
+                              <Progress 
+                                value={phase.completionPercentage || 0} 
+                                className="h-2 rounded-full flex-1 [&>div]:bg-primary" 
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12">
