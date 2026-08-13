@@ -443,17 +443,17 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
             {/* Integrated Metrics Strip */}
             {boqData.length > 0 && (
               <div className="pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="flex items-center gap-2 bg-background p-2.5 rounded-xl border border-border/40">
-                  <span className="text-muted-foreground font-semibold">إجمالي البنود:</span>
-                  <span className="font-extrabold text-foreground font-mono">{boqData.length} بند</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                  <span className="text-muted-foreground font-bold">إجمالي البنود:</span>
+                  <span className="font-black text-foreground font-mono">{boqData.length} بند</span>
                 </div>
-                <div className="flex items-center gap-2 bg-primary/5 p-2.5 rounded-xl border border-primary/20">
-                  <span className="text-primary font-semibold">الإجمالي الكلي:</span>
-                  <span className="font-extrabold text-primary font-mono text-sm">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+                  <span className="text-primary font-bold">الإجمالي الكلي:</span>
+                  <span className="font-black text-primary font-mono text-sm">{totalAmount.toLocaleString("ar-SA")} ريال</span>
                 </div>
-                <div className="flex items-center gap-2 bg-background p-2.5 rounded-xl border border-border/40">
-                  <span className="text-muted-foreground font-semibold">التصنيفات:</span>
-                  <span className="font-extrabold text-foreground font-mono">{Object.keys(groupedItems).length} فئات</span>
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/50 border border-border/60">
+                  <span className="text-muted-foreground font-bold">التصنيفات:</span>
+                  <span className="font-black text-foreground font-mono">{Object.keys(groupedItems).length} فئات</span>
                 </div>
               </div>
             )}
