@@ -374,19 +374,16 @@ export default function ProjectDetailsPage() {
     <DashboardLayout>
       <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
         
-        {/* Modern Compact Project Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary via-primary/95 to-emerald-950 text-white p-4 sm:p-5 shadow-lg">
-          <div className="absolute -right-16 -top-16 w-60 h-60 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-          <div className="absolute -left-16 -bottom-16 w-60 h-60 rounded-full bg-emerald-400/15 blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 space-y-3">
-            {/* Top Toolbar Line */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
+        {/* Clean Executive Project Header Card */}
+        <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+          <CardContent className="p-4 sm:p-5 space-y-3.5">
+            {/* Top Row: Back button, Project Number & Badges */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="rounded-xl bg-white/15 text-white hover:bg-white/25 h-8 w-8 shrink-0 backdrop-blur-md"
+                  className="rounded-xl h-9 w-9 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     if (window.history.length > 1) {
                       window.history.back();
@@ -399,17 +396,17 @@ export default function ProjectDetailsPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Button>
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <span className="font-black text-lg sm:text-xl font-mono tracking-tight">{project.projectNumber}</span>
-                  <Badge variant="outline" className="rounded-lg border-white/30 bg-white/15 text-white font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
+                  <span className="font-black text-lg sm:text-xl font-mono text-foreground tracking-tight">{project.projectNumber}</span>
+                  <Badge variant="outline" className={statusColors[project.status || "planning"]}>
                     {getStatusLabel()}
                   </Badge>
                   {project.donorName && (
-                    <Badge variant="outline" className="rounded-lg border-amber-300/40 bg-amber-400/20 text-amber-200 font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
+                    <Badge variant="secondary" className="rounded-xl font-bold text-[11px] px-2.5 py-0.5">
                       المانح: {project.donorName}
                     </Badge>
                   )}
                   {project.isMultiMosque && (
-                    <Badge variant="outline" className="rounded-lg border-indigo-300/40 bg-indigo-400/20 text-indigo-200 font-bold text-[11px] px-2.5 py-0.5 backdrop-blur-md">
+                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-bold text-[11px] px-2.5 py-0.5 border border-indigo-200/50">
                       مشروع مباشر (عدة مساجد)
                     </Badge>
                   )}
@@ -417,19 +414,19 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
 
-            {/* Editable Project Title Line */}
+            {/* Editable Title Row */}
             <div>
               {isEditingName ? (
                 <div className="flex items-center gap-2 max-w-xl">
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-2 border-white focus-visible:ring-0 shadow-md"
+                    className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary focus-visible:ring-1"
                     autoFocus
                   />
                   <Button
                     size="sm"
-                    className="h-9 rounded-xl px-4 text-xs bg-white text-primary font-bold hover:bg-white/90 shadow-xs shrink-0"
+                    className="h-9 rounded-xl px-4 text-xs gradient-primary text-white font-bold shrink-0"
                     onClick={() => {
                       if (!editedName.trim()) {
                         toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
@@ -455,7 +452,7 @@ export default function ProjectDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 rounded-xl px-3 text-xs border-white/40 text-white hover:bg-white/10 shrink-0"
+                    className="h-9 rounded-xl px-3 text-xs shrink-0"
                     onClick={() => {
                       setIsEditingName(false);
                       setEditedName(project.name || "");
@@ -466,14 +463,14 @@ export default function ProjectDetailsPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-xl font-extrabold text-white tracking-tight leading-snug">
+                  <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight leading-snug">
                     {project.name}
                   </h1>
                   {canEditProjectName && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-white/80 hover:text-white hover:bg-white/20 rounded-lg shrink-0"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
                       onClick={() => {
                         setEditedName(project.name || "");
                         setIsEditingName(true);
@@ -487,25 +484,20 @@ export default function ProjectDetailsPage() {
               )}
             </div>
 
-            {/* Embedded High-Contrast Progress Line */}
+            {/* Progress Bar Row */}
             {!financialsOnly && (
-              <div className="pt-2 border-t border-white/15 space-y-1.5">
+              <div className="pt-2 border-t border-border/50 space-y-1.5">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-white/90">نسبة التقدم الإجمالية للمشروع</span>
-                  <span className="font-extrabold text-amber-300 font-mono text-sm">
+                  <span className="text-muted-foreground">نسبة التقدم الإجمالية للمشروع</span>
+                  <span className="font-extrabold text-primary font-mono text-sm">
                     {project.completionPercentage || 0}%
                   </span>
                 </div>
-                <div className="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/15">
-                  <div
-                    className="bg-gradient-to-r from-amber-400 to-amber-300 h-full rounded-full transition-all duration-500 shadow-sm"
-                    style={{ width: `${Math.min(100, Math.max(0, project.completionPercentage || 0))}%` }}
-                  />
-                </div>
+                <Progress value={project.completionPercentage || 0} className="h-2 rounded-full" />
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Unified Key Metrics Bar */}
         {!financialsOnly && (
