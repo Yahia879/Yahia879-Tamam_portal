@@ -1532,7 +1532,7 @@ export default function NewLinkedDisbursementRequest() {
 
                     {/* طريقة الدفع للمشروع المرتبط / فرصة التبرع */}
                     <div className="space-y-2">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">طريقة الدفع للمستفيد / الفاتورة *</Label>
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">طريقة الدفع للمستفيد *</Label>
                       <Select
                         value={requestType === "sadad_invoice" ? "sadad_invoice" : "supplier_one_time"}
                         onValueChange={(val) => handleRequestTypeChange(val)}
@@ -1541,8 +1541,8 @@ export default function NewLinkedDisbursementRequest() {
                           <SelectValue placeholder="اختر طريقة الدفع" />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
-                          <SelectItem value="supplier_one_time" className="text-right">تحويل بنكي (IBAN / حساب بنكي)</SelectItem>
-                          <SelectItem value="sadad_invoice" className="text-right">نظام سداد (رقم الفاتورة / رقم السداد / المفوتر)</SelectItem>
+                          <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
+                          <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
