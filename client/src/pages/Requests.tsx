@@ -30,6 +30,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
@@ -435,7 +436,7 @@ export default function Requests({
                       <div className="hidden md:flex w-8 justify-center">
                         {request.isMultiMosque || request.programData?.isMultiMosque ? (
                           <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
-                            <Building2 className="w-4.5 h-4.5" />
+                            <MultiMosquesIcon className="w-4.5 h-4.5" />
                           </div>
                         ) : (
                           <ProgramIcon program={request.programType} size="md" />
@@ -448,7 +449,7 @@ export default function Requests({
                            <div className="md:hidden shrink-0">
                             {request.isMultiMosque || request.programData?.isMultiMosque ? (
                               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-                                <Building2 className="w-4.5 h-4.5" />
+                                <MultiMosquesIcon className="w-4.5 h-4.5" />
                               </div>
                             ) : (
                               <ProgramIcon program={request.programType} size="md" />
@@ -480,7 +481,7 @@ export default function Requests({
 
                       {/* Descriptive Name / التسمية التوضيحية */}
                       <div className="hidden md:flex items-center gap-1.5 min-w-0">
-                        {request.descriptiveName ? (
+                        {request.descriptiveName && (!request.isMultiMosque || request.descriptiveName !== request.projectName) ? (
                           <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md border border-purple-200/60 dark:border-purple-800/60 truncate max-w-[170px]" title={request.descriptiveName}>
                             <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 inline-block ml-1" />
                             {request.descriptiveName}

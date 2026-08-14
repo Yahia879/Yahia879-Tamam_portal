@@ -2501,7 +2501,7 @@ export const projectsRouter = router({
         reviewCompleted: true,
         technicalEvalDecision: "convert_to_project",
         technicalEvalJustification: "تم اعتماد وإنشاء المشروع المباشر بمرحلة إعداد جداول الكميات",
-        descriptiveName: input.name,
+        descriptiveName: null,
         requestTrack: "standard",
         estimatedCost: input.budget !== undefined && input.budget !== null ? input.budget.toString() : null,
         approvedBudget: input.budget !== undefined && input.budget !== null ? input.budget.toString() : null,
