@@ -24,6 +24,7 @@ import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib
 import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
 import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
+import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
 import { getAllFieldsForProgram } from "@/lib/programFields";
@@ -1051,6 +1052,14 @@ export default function RequestDetailsNew() {
   const completedSteps = getCompletedSteps(request.currentStage, workflow);
   const progress = getProgressPercentage(request.currentStage, workflow);
 
+  const isMultiMosque = Boolean(
+    (request as any)?.isMultiMosque ||
+    (request as any)?.project?.isMultiMosque ||
+    (linkedProject as any)?.isMultiMosque ||
+    (typeof request?.programData === 'object' && (request?.programData as any)?.isMultiMosque)
+  );
+  const multiProjectName = (request as any)?.projectName || (request as any)?.project?.name || (linkedProject as any)?.name || (typeof request?.programData === 'object' && (request?.programData as any)?.projectName);
+
   return (
     <div className="min-h-screen bg-background" dir={isEn ? "ltr" : "rtl"}>
       {/* Header */}
@@ -1065,7 +1074,13 @@ export default function RequestDetailsNew() {
                 </Button>
               </Link>
               <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0">
-                <ProgramIcon program={request.programType} className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 mt-0.5 sm:mt-0" />
+                {isMultiMosque ? (
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs flex-shrink-0 mt-0.5 sm:mt-0" title="مشروع مباشر لعدة مساجد">
+                    <MultiMosquesIcon className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
+                ) : (
+                  <ProgramIcon program={request.programType} className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 mt-0.5 sm:mt-0" />
+                )}
                 <div className="min-w-0 space-y-1.5">
                   {/* Top Metadata Line */}
                   <div className="flex items-center gap-2 flex-wrap text-xs">
@@ -1073,14 +1088,24 @@ export default function RequestDetailsNew() {
                       {request.requestNumber}
                     </span>
 
-                    <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-md">
-                      {translateProgram(request.programType)}
-                    </span>
+                    {isMultiMosque ? (
+                      <span className="text-xs font-semibold text-indigo-800 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 px-2.5 py-0.5 rounded-md">
+                        مشروع مباشر لعدة مساجد
+                      </span>
+                    ) : (
+                      <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-md">
+                        {translateProgram(request.programType)}
+                      </span>
+                    )}
 
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
                         <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-6 text-[11px] px-2.5 rounded-md font-medium">
-                          <Building2 className={`w-3.5 h-3.5 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          {isMultiMosque ? (
+                            <MultiMosquesIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          ) : (
+                            <Building2 className={`w-3.5 h-3.5 flex-shrink-0 ${isEn ? "mr-1" : "ml-1"}`} />
+                          )}
                           <span>{isEn ? `Converted to Project (${linkedProject.projectNumber})` : `محول إلى مشروع (${linkedProject.projectNumber})`}</span>
                         </Button>
                       </Link>
@@ -1089,11 +1114,13 @@ export default function RequestDetailsNew() {
 
                   {/* Main Title */}
                   <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight leading-tight">
-                    {request.programType === "bunyan" 
-                      ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
-                      : (isEn 
-                          ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
-                          : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
+                    {isMultiMosque
+                      ? (multiProjectName || "مشروع لعدة مساجد")
+                      : request.programType === "bunyan" 
+                        ? (isEn ? `Request ${request.requester?.name || ""}` : `طلب ${request.requester?.name || ""}`)
+                        : (isEn 
+                            ? (request.mosque?.name?.trim().toLowerCase().startsWith("mosque") ? `Request for ${request.mosque?.name}` : `Request for Mosque ${request.mosque?.name || ""}`)
+                            : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
                   </h1>
 
                   {/* Descriptive Name Subtitle Line */}
@@ -1737,7 +1764,9 @@ export default function RequestDetailsNew() {
                   {/* معلومات أساسية ثابته */}
                   <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
                     <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Program" : "البرنامج"}</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{translateProgram(request.programType)}</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
+                      {isMultiMosque ? "مشروع مباشر لعدة مساجد" : translateProgram(request.programType)}
+                    </p>
                   </div>
                   <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
                     <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Submission Date" : "تاريخ التقديم"}</p>
@@ -1769,7 +1798,17 @@ export default function RequestDetailsNew() {
                       )}
                     </>
                   )}
-                  {request.mosque && (
+                  {isMultiMosque ? (
+                    <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 shadow-xs">
+                      <p className="text-[10px] sm:text-xs text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-1.5">
+                        <MultiMosquesIcon className="w-3.5 h-3.5" />
+                        المساجد المشمولة بالمشروع
+                      </p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {(request as any)?.multiMosques?.map((m: any) => m.name).join("، ") || "عدة مساجد مخصصة"}
+                      </p>
+                    </div>
+                  ) : request.mosque ? (
                     <>
                       <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
                         <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Mosque" : "المسجد"}</p>
@@ -1780,7 +1819,7 @@ export default function RequestDetailsNew() {
                         <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{request.mosque.city || (isEn ? "Not specified" : "غير محدد")}</p>
                       </div>
                     </>
-                  )}
+                  ) : null}
 
                   {/* معلومات الحقول الديناميكية */}
                   {(() => {
@@ -2435,20 +2474,29 @@ export default function RequestDetailsNew() {
         onOpenChange={setProjectInfoOpen}
         title="معلومات المشروع"
         color="blue"
-        icon={<Building2 className="w-6 h-6" />}
+        icon={isMultiMosque ? <MultiMosquesIcon className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
       >
         <div className="space-y-6">
+          {isMultiMosque ? (
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+              <p className="text-sm font-medium text-muted-foreground mb-1">المساجد المشمولة</p>
+              <p className="text-lg font-semibold">{(request as any)?.multiMosques?.map((m: any) => m.name).join("، ") || "عدة مساجد مخصصة"}</p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground mb-1">المسجد</p>
+                <p className="text-lg font-semibold">{request.mosque?.name || "غير محدد"}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
+                <p className="text-sm font-medium text-muted-foreground mb-1">الموقع</p>
+                <p className="text-lg">{request.mosque?.city || "غير محدد"}</p>
+              </div>
+            </>
+          )}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground mb-1">المسجد</p>
-            <p className="text-lg font-semibold">{request.mosque?.name || "غير محدد"}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground mb-1">الموقع</p>
-            <p className="text-lg">{request.mosque?.city || "غير محدد"}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground mb-1">البرنامج</p>
-            <p className="text-lg">{PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">البرنامج / نوع المشروع</p>
+            <p className="text-lg">{isMultiMosque ? "مشروع مباشر لعدة مساجد" : PROGRAM_LABELS[request.programType as keyof typeof PROGRAM_LABELS]}</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm">
             <p className="text-sm font-medium text-muted-foreground mb-1">تاريخ التقديم</p>

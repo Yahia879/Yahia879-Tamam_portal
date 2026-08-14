@@ -25,6 +25,7 @@ import {
   requestStageTracking,
   contractsEnhanced,
   requestNumberSequence,
+  projectMosques,
   fieldVisits,
   programs,
   contractPayments,
@@ -521,12 +522,28 @@ export const requestsRouter = router({
         name: projects.name,
         status: projects.status,
         budget: projects.budget,
+        isMultiMosque: projects.isMultiMosque,
       }).from(projects).where(eq(projects.requestId, input.id)).limit(1);
       const project = projectResult[0] || null;
 
+      let multiMosques: any[] = [];
+      if (project && project.isMultiMosque) {
+        multiMosques = await db.select({
+          id: mosques.id,
+          name: mosques.name,
+          city: mosques.city,
+          district: mosques.district,
+        }).from(projectMosques)
+          .innerJoin(mosques, eq(projectMosques.mosqueId, mosques.id))
+          .where(eq(projectMosques.projectId, project.id));
+      }
+
+      const isMultiMosque = Boolean(project?.isMultiMosque || (typeof request.programData === 'object' && (request.programData as any)?.isMultiMosque));
+      const multiProjectName = project?.name || (typeof request.programData === 'object' && (request.programData as any)?.projectName) || null;
+
       return {
         ...request,
-        mosque: mosque,
+        mosque: isMultiMosque ? null : mosque,
         requester: requester[0] || null,
         attachments,
         comments,
@@ -534,6 +551,9 @@ export const requestsRouter = router({
         fieldReports,
         quickReports,
         project,
+        isMultiMosque,
+        projectName: multiProjectName,
+        multiMosques,
         progressPercentage,
         isOwner,
         fieldVisitAssignedToUser,
