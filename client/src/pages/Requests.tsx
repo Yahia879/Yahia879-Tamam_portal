@@ -252,7 +252,7 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
-              {user?.role === "quick_response" && (
+              {(user?.role === "quick_response" || userPermissions.includes("requests.create_quick_request")) && (
                 <>
                   <Link href="/requests/quick-create">
                     <Button 
