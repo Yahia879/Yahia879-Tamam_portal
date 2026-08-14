@@ -2420,9 +2420,10 @@ export const projectsRouter = router({
       z.object({
         name: z.string().min(1, "اسم المشروع مطلوب"),
         description: z.string().optional(),
-        donorName: z.string().min(1, "اسم المانح مطلوب"),
-        managerId: z.number().optional().nullable(),
-        budget: z.number().positive("الميزانية يجب أن تكون أكبر من صفر"),
+        donorName: z.string().optional().nullable(),
+        managerId: z.number().min(1, "يرجى اختيار مدير المشروع"),
+        budget: z.number().optional().nullable(),
+        durationDays: z.number().optional().nullable(),
         startDate: z.string().optional(),
         expectedEndDate: z.string().optional(),
         mosques: z.array(
@@ -2448,19 +2449,25 @@ export const projectsRouter = router({
 
       const projectNumber = await generateProjectNumber(db);
 
+      let calculatedStartDate = input.startDate ? new Date(input.startDate) : new Date();
+      let calculatedEndDate = input.expectedEndDate ? new Date(input.expectedEndDate) : null;
+      if (!calculatedEndDate && input.durationDays && input.durationDays > 0) {
+        calculatedEndDate = new Date(calculatedStartDate.getTime() + input.durationDays * 24 * 60 * 60 * 1000);
+      }
+
       // 1. إنشاء المشروع المباشر لعدة مساجد
       const [projResult] = await db.insert(projects).values({
         projectNumber,
         requestId: null,
         name: input.name,
         description: input.description || null,
-        donorName: input.donorName,
+        donorName: input.donorName || null,
         isMultiMosque: true,
         managerId: input.managerId || null,
         status: "planning", // يمثل مرحلة "إعداد جدول الكميات" boq_preparation
-        budget: input.budget.toString(),
-        startDate: input.startDate ? new Date(input.startDate) : null,
-        expectedEndDate: input.expectedEndDate ? new Date(input.expectedEndDate) : null,
+        budget: input.budget !== undefined && input.budget !== null ? input.budget.toString() : null,
+        startDate: calculatedStartDate,
+        expectedEndDate: calculatedEndDate,
         completionPercentage: 0,
       });
 

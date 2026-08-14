@@ -53,11 +53,8 @@ export default function NewMultiMosqueProjectPage() {
   // البيانات العامة
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-  const [donorName, setDonorName] = useState("");
+  const [durationDays, setDurationDays] = useState("");
   const [managerId, setManagerId] = useState<string>("");
-  const [totalBudget, setTotalBudget] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [expectedEndDate, setExpectedEndDate] = useState("");
 
   // اختيارات المساجد
   const [mosqueSearchQuery, setMosqueSearchQuery] = useState("");
@@ -135,23 +132,19 @@ export default function NewMultiMosqueProjectPage() {
     return sum + (isNaN(val) ? 0 : val);
   }, 0);
 
-  const parsedTotalBudget = parseFloat(totalBudget || "0");
-  const remainingBudget = parsedTotalBudget - totalAllocatedBudgetsSum;
-  const budgetAllocationPercentage = parsedTotalBudget > 0 
-    ? Math.min(100, Math.round((totalAllocatedBudgetsSum / parsedTotalBudget) * 100))
-    : 0;
+  const selectedManager = managersList.find((m: any) => m.id.toString() === managerId);
 
   const validateStep1 = () => {
     if (!projectName.trim()) {
       toast.error("يرجى إدخال اسم المشروع");
       return false;
     }
-    if (!donorName.trim()) {
-      toast.error("يرجى إدخال اسم المانح أو الجهة الداعمة");
+    if (!durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0) {
+      toast.error("يرجى إدخال المدة المتوقعة للانتهاء بالأيام");
       return false;
     }
-    if (!totalBudget || isNaN(parsedTotalBudget) || parsedTotalBudget <= 0) {
-      toast.error("يرجى إدخال ميزانية إجمالية صالحة أكبر من صفر");
+    if (!managerId) {
+      toast.error("يرجى اختيار مدير المشروع");
       return false;
     }
     return true;
@@ -160,10 +153,6 @@ export default function NewMultiMosqueProjectPage() {
   const validateStep2 = () => {
     if (selectedMosques.length === 0) {
       toast.error("يجب اختيار مسجد واحد على الأقل للمشروع المباشر");
-      return false;
-    }
-    if (totalAllocatedBudgetsSum > parsedTotalBudget) {
-      toast.error(`مجموع الميزانيات المخصصة للمساجد (${totalAllocatedBudgetsSum.toLocaleString()} ريال) يتجاوز ميزانية المشروع الإجمالية (${parsedTotalBudget.toLocaleString()} ريال)`);
       return false;
     }
     return true;
@@ -175,11 +164,8 @@ export default function NewMultiMosqueProjectPage() {
     createMultiProjectMutation.mutate({
       name: projectName.trim(),
       description: projectDescription.trim() || undefined,
-      donorName: donorName.trim(),
-      managerId: managerId ? parseInt(managerId) : undefined,
-      budget: parsedTotalBudget,
-      startDate: startDate || undefined,
-      expectedEndDate: expectedEndDate || undefined,
+      managerId: parseInt(managerId),
+      durationDays: parseInt(durationDays),
       mosques: selectedMosques.map(m => ({
         mosqueId: m.mosqueId,
         allocatedBudget: m.allocatedBudget ? parseFloat(m.allocatedBudget) : undefined,
@@ -252,7 +238,7 @@ export default function NewMultiMosqueProjectPage() {
                   {currentStep > 1 ? <Check className="w-4 h-4" /> : "١"}
                 </div>
                 <span className={`text-xs font-semibold ${currentStep >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  بيانات المشروع والمانح
+                  بيانات المشروع الأساسية
                 </span>
               </button>
 
@@ -306,15 +292,15 @@ export default function NewMultiMosqueProjectPage() {
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                   <FolderKanban className="h-4.5 w-4.5 text-primary" />
-                  الخطوة 1: البيانات العامة للمشروع والمانح
+                  الخطوة 1: البيانات الأساسية للمشروع
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
-                  أدخل المعلومات الأساسية للمشروع واسم المانح والميزانية الإجمالية التقديرية
+                  أدخل المعلومات الأساسية للمشروع والمدة المتوقعة وحدد مدير المشروع المسؤول
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 px-6 text-right">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
+                  <div className="space-y-2 col-span-1 md:col-span-2">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       اسم المشروع *
                     </Label>
@@ -328,35 +314,27 @@ export default function NewMultiMosqueProjectPage() {
 
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      اسم المانح / الجهة الداعمة *
+                      المدة المتوقعة للانتهاء (بالأيام) *
                     </Label>
-                    <Input
-                      placeholder="مثال: أوقاف الشيخ فهد العتيبي / مؤسسة الراجحي الخيرية"
-                      value={donorName}
-                      onChange={(e) => setDonorName(e.target.value)}
-                      className="h-10 rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      الميزانية الإجمالية للمشروع (ريال) *
-                    </Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <div className="relative flex items-center">
                       <Input
                         type="number"
-                        placeholder="مثال: 500000"
-                        value={totalBudget}
-                        onChange={(e) => setTotalBudget(e.target.value)}
-                        className="h-10 rounded-xl pl-10 font-bold"
+                        min="1"
+                        placeholder="مثال: 30"
+                        value={durationDays}
+                        onChange={(e) => setDurationDays(e.target.value)}
+                        className="h-10 rounded-xl pl-12 font-bold"
                       />
+                      <span className="absolute left-3 text-xs text-muted-foreground font-medium pointer-events-none">
+                        يوم
+                      </span>
                     </div>
+                    <p className="text-[11px] text-muted-foreground">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      مدير المشروع (اختياري)
+                      مدير المشروع *
                     </Label>
                     <Select value={managerId} onValueChange={setManagerId}>
                       <SelectTrigger className="h-10 rounded-xl">
@@ -370,26 +348,7 @@ export default function NewMultiMosqueProjectPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">تاريخ البدء المخطط</Label>
-                    <Input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="h-10 rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">تاريخ الانتهاء المتوقع</Label>
-                    <Input
-                      type="date"
-                      value={expectedEndDate}
-                      onChange={(e) => setExpectedEndDate(e.target.value)}
-                      className="h-10 rounded-xl"
-                    />
+                    <p className="text-[11px] text-muted-foreground">سيتم إسناد المشروع وإدارته للمستخدم المختار</p>
                   </div>
 
                   <div className="col-span-1 md:col-span-2 space-y-2">
@@ -431,7 +390,7 @@ export default function NewMultiMosqueProjectPage() {
                     الخطوة 2: المساجد والشروط الخاصة بالمشروع
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
-                    اختر المساجد من القائمة الجانبية وحدد ميزانية وشروط الأعمال لكل مسجد بسهولة
+                    اختر المساجد من القائمة الجانبية وحدد شروط وملاحظات الأعمال لكل مسجد بسهولة
                   </CardDescription>
                 </div>
                 <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 text-xs">
@@ -440,41 +399,29 @@ export default function NewMultiMosqueProjectPage() {
               </CardHeader>
               
               <CardContent className="p-6 space-y-6 text-right">
-                {/* شريط توزيع الميزانية التفاعلي */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
-                      <span className="text-muted-foreground text-xs">ميزانية المشروع الكلية:</span>
-                      <span className="font-bold text-foreground text-sm">{parsedTotalBudget.toLocaleString()} ريال</span>
+                {/* شريط معلومات المساجد المضافة */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+                      <Building2 className="w-5 h-5" />
                     </div>
-
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
-                      <span className="text-muted-foreground text-xs">المخصص للمساجد:</span>
-                      <span className="font-bold text-primary text-sm">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span>
-                    </div>
-
-                    <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-border/60 flex items-center justify-between shadow-2xs">
-                      <span className="text-muted-foreground text-xs">المتبقي غير المخصص:</span>
-                      <span className={`font-bold text-sm ${remainingBudget < 0 ? 'text-destructive font-black' : 'text-emerald-600'}`}>
-                        {remainingBudget.toLocaleString()} ريال
-                      </span>
+                    <div>
+                      <div className="text-xs text-muted-foreground">عدد المساجد المختارة:</div>
+                      <div className="text-base font-bold text-foreground">{selectedMosques.length} مساجد</div>
                     </div>
                   </div>
 
-                  {remainingBudget < 0 && (
-                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs border border-red-200 dark:border-red-900 font-bold">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
-                      <span>تنبيه: إجمالي الميزانيات المخصصة للمساجد يتجاوز الميزانية الإجمالية للمشروع! يُرجى تعديل ميزانيات المساجد.</span>
+                  {totalAllocatedBudgetsSum > 0 && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center font-bold">
+                        <DollarSign className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">إجمالي المخصص للمساجد:</div>
+                        <div className="text-base font-bold text-emerald-600">{totalAllocatedBudgetsSum.toLocaleString()} ريال</div>
+                      </div>
                     </div>
                   )}
-
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] text-muted-foreground">
-                      <span>نسبة تخصيص ميزانية المساجد</span>
-                      <span className="font-bold">{budgetAllocationPercentage}%</span>
-                    </div>
-                    <Progress value={budgetAllocationPercentage} className="h-2" />
-                  </div>
                 </div>
 
                 {/* واجهة العرض المقسمة (2 Columns: Search vs Selected Mosques Workspace) */}
@@ -671,8 +618,8 @@ export default function NewMultiMosqueProjectPage() {
                     </h4>
                     <div className="space-y-1.5 text-xs">
                       <p><span className="text-muted-foreground">اسم المشروع:</span> <span className="font-bold">{projectName}</span></p>
-                      <p><span className="text-muted-foreground">اسم المانح:</span> <span className="font-bold text-primary">{donorName}</span></p>
-                      <p><span className="text-muted-foreground">الميزانية الإجمالية:</span> <span className="font-bold text-emerald-700">{parsedTotalBudget.toLocaleString()} ريال</span></p>
+                      <p><span className="text-muted-foreground">المدة المتوقعة للانتهاء:</span> <span className="font-bold text-primary">{durationDays} يوم</span></p>
+                      <p><span className="text-muted-foreground">مدير المشروع:</span> <span className="font-bold">{selectedManager?.name || "غير محدد"}</span></p>
                       {projectDescription && <p><span className="text-muted-foreground">الوصف:</span> <span>{projectDescription}</span></p>}
                     </div>
                   </div>
@@ -683,7 +630,9 @@ export default function NewMultiMosqueProjectPage() {
                     </h4>
                     <div className="space-y-1.5 text-xs">
                       <p><span className="text-muted-foreground">عدد المساجد:</span> <span className="font-bold">{selectedMosques.length} مساجد</span></p>
-                      <p><span className="text-muted-foreground">إجمالي المخصص للمساجد:</span> <span className="font-bold">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span></p>
+                      {totalAllocatedBudgetsSum > 0 && (
+                        <p><span className="text-muted-foreground">إجمالي المخصص للمساجد:</span> <span className="font-bold text-emerald-600">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span></p>
+                      )}
                       <p><span className="text-muted-foreground">المرحلة الابتدائية للمشروع:</span> <Badge className="bg-yellow-100 text-yellow-800 font-bold">إعداد جدول الكميات (مباشر)</Badge></p>
                     </div>
                   </div>
