@@ -240,11 +240,10 @@ export default function NewReceiptVoucherPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto pb-12 font-sans" dir="rtl">
-        
-        {/* Sticky Header with Back & Progress */}
-        <div className="bg-card border-b border-border/40 pb-4 sticky top-0 z-20 backdrop-blur-md bg-card/90 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0 font-sans" dir="rtl">
+        {/* Header and Visual Step Timeline */}
+        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
+          <div className="flex items-center justify-between pb-2">
             <div className="flex items-center gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
