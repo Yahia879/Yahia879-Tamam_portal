@@ -546,7 +546,7 @@ export default function RequesterDashboard() {
         </Card>
       </main>
 
-      {/* نافذة تقييم رضا المستفيد السريعة (Modal Dialog) - حجم واسع ومريح */}
+      {/* نافذة تقييم رضا المستفيد السريعة (Modal Dialog) */}
       <Dialog 
         open={!!evaluatingRequest} 
         onOpenChange={(open) => {
@@ -555,24 +555,24 @@ export default function RequesterDashboard() {
           }
         }}
       >
-        <DialogContent className="w-[95vw] max-w-2xl sm:max-w-3xl rounded-3xl p-6 sm:p-10 text-right bg-card/95 backdrop-blur-2xl border-border/80 shadow-2xl animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[92vh]" dir="rtl">
-          <DialogHeader className="text-right space-y-4">
+        <DialogContent className="w-[94vw] max-w-lg rounded-3xl p-6 sm:p-8 text-right bg-card/95 backdrop-blur-xl border-border/80 shadow-2xl animate-in zoom-in-95 duration-200" dir="rtl">
+          <DialogHeader className="text-right space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shadow-inner">
-                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shadow-inner">
+                <Sparkles className="w-6 h-6 animate-pulse" />
               </div>
-              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm px-4 py-1.5 rounded-full shadow-sm">
+              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-xs px-3 py-1 rounded-full shadow-sm">
                 مكتمل ومغلق
               </Badge>
             </div>
 
             <div>
-              <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-foreground flex items-center gap-2">
+              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
                 طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
               </DialogTitle>
-              <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-2.5 leading-relaxed">
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
                 تم إغلاق طلب الخدمة رقم{" "}
-                <span className="font-bold text-foreground font-mono bg-muted/80 px-2 py-0.5 rounded-lg border border-border/60">
+                <span className="font-bold text-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/60">
                   {evaluatingRequest?.requestNumber}
                 </span>{" "}
                 {evaluatingRequest?.mosqueName ? `لمسجد (${evaluatingRequest?.mosqueName})` : ''} بنجاح. نرجو مشاركتنا تقييمك لمساعدتنا في تطوير الخدمة.
@@ -580,13 +580,13 @@ export default function RequesterDashboard() {
             </div>
           </DialogHeader>
 
-          <div className="space-y-6 sm:space-y-8 py-4 sm:py-6">
+          <div className="space-y-6 py-4">
             {/* اختيار النجوم التفاعلي */}
-            <div className="text-center space-y-4 p-5 sm:p-7 rounded-3xl bg-muted/30 border border-border/60">
-              <span className="text-base sm:text-lg font-bold text-foreground block">
+            <div className="text-center space-y-3 p-4 rounded-2xl bg-muted/40 border border-border/50">
+              <span className="text-xs sm:text-sm font-semibold text-foreground block">
                 ما هو مستوى رضاك عن جودة الخدمة المقدمة؟
               </span>
-              <div className="flex items-center justify-center gap-3 sm:gap-6 py-2" dir="ltr">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 py-1" dir="ltr">
                 {[1, 2, 3, 4, 5].map((star) => {
                   const active = (hoverRating || evalRating) >= star;
                   return (
@@ -599,9 +599,9 @@ export default function RequesterDashboard() {
                       className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
                     >
                       <Star
-                        className={`w-11 h-11 sm:w-14 sm:h-14 transition-all duration-200 ${
+                        className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-200 ${
                           active
-                            ? "text-amber-500 fill-amber-500 drop-shadow-[0_4px_14px_rgba(245,158,11,0.5)]"
+                            ? "text-amber-500 fill-amber-500 drop-shadow-[0_2px_10px_rgba(245,158,11,0.5)]"
                             : "text-muted-foreground/30 hover:text-amber-300"
                         }`}
                       />
@@ -616,31 +616,31 @@ export default function RequesterDashboard() {
                 const detail = RATING_LABELS[activeVal];
                 if (!detail) return null;
                 return (
-                  <div className={`p-4 sm:p-5 rounded-2xl border text-center transition-all ${detail.color}`}>
-                    <div className="text-3xl sm:text-4xl mb-1.5">{detail.emoji}</div>
-                    <p className="font-extrabold text-base sm:text-lg">{detail.label}</p>
-                    <p className="text-xs sm:text-sm opacity-90 mt-0.5">{detail.description}</p>
+                  <div className={`p-3 rounded-xl border text-center transition-all ${detail.color}`}>
+                    <div className="text-2xl mb-0.5">{detail.emoji}</div>
+                    <p className="font-bold text-sm">{detail.label}</p>
+                    <p className="text-[11px] opacity-90">{detail.description}</p>
                   </div>
                 );
               })()}
             </div>
 
             {/* ملاحظات إضافية */}
-            <div className="space-y-2.5 text-right">
-              <label className="text-sm sm:text-base font-bold text-foreground block">
+            <div className="space-y-2 text-right">
+              <label className="text-xs sm:text-sm font-semibold text-foreground block">
                 ملاحظات أو مقترحات إضافية (اختياري)
               </label>
               <Textarea
                 value={evalNotes}
                 onChange={(e) => setEvalNotes(e.target.value)}
                 placeholder="شاركنا رأيك أو أي ملاحظات تسهم في الارتقاء بخدماتنا مستقبلاً..."
-                className="rounded-2xl min-h-[110px] sm:min-h-[130px] text-sm sm:text-base p-4 resize-none leading-relaxed"
+                className="rounded-xl min-h-[90px] text-sm resize-none"
                 maxLength={500}
               />
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-3 sm:gap-3 pt-3 border-t border-border/40">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 sm:gap-2 pt-2 border-t border-border/40">
             <Button
               disabled={submitEvaluationMutation.isPending || evalRating === 0}
               onClick={() => {
@@ -651,16 +651,16 @@ export default function RequesterDashboard() {
                   notes: evalNotes.trim() || undefined,
                 });
               }}
-              className="w-full sm:w-auto h-12 sm:h-13 text-base bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary text-white font-extrabold gap-2.5 rounded-2xl px-8 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary text-white font-bold gap-2 rounded-xl px-7 py-2.5 shadow-md transition-all hover:scale-[1.02]"
             >
               {submitEvaluationMutation.isPending ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>جاري إرسال التقييم...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-4 h-4" />
                   <span>إرسال التقييم</span>
                 </>
               )}
@@ -669,7 +669,7 @@ export default function RequesterDashboard() {
               variant="outline"
               disabled={submitEvaluationMutation.isPending}
               onClick={() => setEvaluatingRequest(null)}
-              className="w-full sm:w-auto h-12 sm:h-13 text-base rounded-2xl font-semibold px-6"
+              className="w-full sm:w-auto rounded-xl font-medium"
             >
               تقييم لاحقاً
             </Button>
