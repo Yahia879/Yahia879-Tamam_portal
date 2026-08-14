@@ -78,15 +78,9 @@ export default function NewReceiptVoucherPage() {
   });
   const projectsList: any[] = Array.isArray(rawProjectsData) ? rawProjectsData : (rawProjectsData as any)?.projects || [];
 
-  // Collect all known supporters across all projects for suggestions in unrestricted vouchers
-  const allSupportersSet = new Set<string>();
-  projectsList.forEach((p: any) => {
-    if (p.fundingEntity) {
-      const clean = p.fundingEntity.replace(/^(السيد|السيدة|السادة)\s*\/\s*/, "").trim();
-      if (clean && !clean.includes("الحساب العام")) allSupportersSet.add(clean);
-    }
-  });
-  const allKnownSupporters = Array.from(allSupportersSet);
+  // Categories for Funding / Support (التمويل / الدعم) from /categories
+  const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
+  const fundingSupportCategories: string[] = (fundingSupportData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
 
   // Project financial details
   const activeProjectId = parseInt(selectedProjectId) || 0;
@@ -164,6 +158,10 @@ export default function NewReceiptVoucherPage() {
         }
       } else {
         setPayerName("");
+      }
+    } else if (category === "unrestricted") {
+      if (!["السادة", "السيد", "السيدة"].includes(honorificTitle)) {
+        setHonorificTitle("السادة");
       }
     }
   }, [selectedProjectId, projectSupporters.length, category]);
@@ -759,10 +757,6 @@ export default function NewReceiptVoucherPage() {
                           <SelectItem value="السادة" className="text-right">السادة</SelectItem>
                           <SelectItem value="السيد" className="text-right">السيد</SelectItem>
                           <SelectItem value="السيدة" className="text-right">السيدة</SelectItem>
-                          <SelectItem value="الشيخ" className="text-right">الشيخ</SelectItem>
-                          <SelectItem value="المحسن الكريم" className="text-right">المحسن الكريم</SelectItem>
-                          <SelectItem value="الأستاذ" className="text-right">الأستاذ</SelectItem>
-                          <SelectItem value="الدكتور" className="text-right">الدكتور</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -781,13 +775,13 @@ export default function NewReceiptVoucherPage() {
                         }}
                       >
                         <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                          <SelectValue placeholder="اختر جهة مسجلة أو اختر كتابة جهة أخرى..." />
+                          <SelectValue placeholder="اختر من تصنيفات التمويل والدعم أو أضف جهة أخرى..." />
                         </SelectTrigger>
                         <SelectContent dir="rtl" className="max-h-60">
                           <SelectItem value="__custom__" className="text-right font-bold text-primary">
-                            ✍️ كتابة اسم جهة أخرى / متبرع يدوياً
+                            ✍️ إضافة جهة أخرى / إدخال يدوي
                           </SelectItem>
-                          {allKnownSupporters.map((sup, idx) => (
+                          {fundingSupportCategories.map((sup, idx) => (
                             <SelectItem key={idx} value={sup} className="text-right">
                               {sup}
                             </SelectItem>
