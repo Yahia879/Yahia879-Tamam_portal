@@ -787,7 +787,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
@@ -840,7 +840,7 @@ export default function RolePermissions() {
       modules: [
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
-        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report"] },
+        { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
@@ -946,6 +946,7 @@ export default function RolePermissions() {
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
+        create_quick_request: "إنشاء طلب سريع",
       },
       projects: {
         view: "عرض المشاريع",

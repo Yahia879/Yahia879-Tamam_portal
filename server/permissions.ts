@@ -59,6 +59,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
   "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
+  "requests.create_quick_request": ["requests.create_quick_request"],
   field_visits: ["field_visits.view", "field_visits.create", "field_visits.edit", "field_visits.delete"],
 
   // UI customized keys mapping to bridge checkboxes with database granular permissions
