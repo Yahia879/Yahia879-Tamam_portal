@@ -678,6 +678,7 @@ export const requestsRouter = router({
         projectId: projects.id,
         projectNumber: projects.projectNumber,
         projectName: projects.name,
+        evaluationNotes: sql<string | null>`(select notes from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
@@ -776,6 +777,7 @@ export const requestsRouter = router({
             projectId: r.projectId,
             projectNumber: r.projectNumber,
             projectName: r.projectName,
+            evaluationNotes: r.evaluationNotes,
           };
         }),
         total,

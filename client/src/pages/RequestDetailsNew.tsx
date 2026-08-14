@@ -1372,10 +1372,46 @@ export default function RequestDetailsNew() {
                   </Button>
                 </div>
               </div>
-            ) : activeAction && (
+            ) : (
               <div className="space-y-6">
-                {(() => {
-                  const translatedAction = translateActiveAction(activeAction);
+                {/* كرت تقييم رضا المستفيد للمسؤولين - يظهر فقط عند وجود تقييم مسجل */}
+                {request.isEvaluated && request.satisfactionRating && (
+                  <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/5 to-teal-500/10 border border-amber-400/30 dark:border-amber-500/30 rounded-2xl p-5 sm:p-6 shadow-sm" dir="rtl">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                          <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-bold text-base sm:text-lg text-foreground">
+                              تقييم رضا المستفيد عن الخدمة
+                            </h4>
+                            <span className="inline-flex items-center gap-1 bg-amber-600 text-white font-bold text-xs px-2.5 py-1 rounded-full shadow-xs">
+                              <Star className="w-3 h-3 fill-white" />
+                              {request.satisfactionRating} من 5 نجوم
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
+                            {request.evaluatedAt ? `تم التقييم بتاريخ: ${new Date(request.evaluatedAt).toLocaleDateString('ar-SA')}` : 'تم تسجيل التقييم بنجاح'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Link href={`/requests/${requestId}/evaluation`}>
+                        <Button variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0 font-medium">
+                          <Eye className="w-4 h-4" />
+                          <span>عرض صفحة التقييم</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
+                {activeAction && (
+                  <>
+                    {(() => {
+                      const translatedAction = translateActiveAction(activeAction);
                   return (
                     <ActiveActionCard
                       title={translatedAction.title}
@@ -1630,6 +1666,8 @@ export default function RequestDetailsNew() {
                   </button>
                 </div>
               )}
+                  </>
+                )}
             </div>
           )}
       </div>
