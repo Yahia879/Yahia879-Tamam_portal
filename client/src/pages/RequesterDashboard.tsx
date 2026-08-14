@@ -130,15 +130,25 @@ export default function RequesterDashboard() {
     (r: any) => (r.currentStage === "closed" || r.status === "completed") && !r.isEvaluated
   ) || [];
 
-  // فتح نافذة الـ Modal تلقائياً في صفحة /requester عند وجود طلب مكتمل لم يتم تقييمه بعد
+  // فتح نافذة الـ Modal تلقائياً لمرة واحدة فقط لكل طلب عند إغلاقه
   useEffect(() => {
-    if (!isLoading && myRequests && unEvaluatedClosedRequests.length > 0 && !hasAutoOpened && !evaluatingRequest) {
-      setEvaluatingRequest(unEvaluatedClosedRequests[0]);
-      setEvalRating(5);
-      setEvalNotes("");
-      setHasAutoOpened(true);
+    if (!isLoading && myRequests && unEvaluatedClosedRequests.length > 0 && !evaluatingRequest && user?.id) {
+      // البحث عن أول طلب مغلق لم يسبق إظهار النافذة التلقائية له للمستخدم
+      const targetReq = unEvaluatedClosedRequests.find((req: any) => {
+        const storageKey = `eval_modal_shown_${user.id}_${req.id}`;
+        return !localStorage.getItem(storageKey);
+      });
+
+      if (targetReq) {
+        setEvaluatingRequest(targetReq);
+        setEvalRating(5);
+        setEvalNotes("");
+        // تسجيل أن المودال قد ظهر لهذا الطلب لكي لا يتكرر ظهوره التلقائي مجدداً
+        const storageKey = `eval_modal_shown_${user.id}_${targetReq.id}`;
+        localStorage.setItem(storageKey, "true");
+      }
     }
-  }, [isLoading, myRequests, unEvaluatedClosedRequests, hasAutoOpened, evaluatingRequest]);
+  }, [isLoading, myRequests, unEvaluatedClosedRequests, evaluatingRequest, user?.id]);
 
   return (
     <div className="min-h-screen bg-background">
