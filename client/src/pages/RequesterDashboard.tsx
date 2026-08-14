@@ -218,51 +218,6 @@ export default function RequesterDashboard() {
           </p>
         </div>
 
-        {/* بانر تقييم الخدمة للطلبات المكتملة في مرحلة الإغلاق */}
-        {unEvaluatedClosedRequests.length > 0 && (
-          <div className="mb-8 max-w-4xl mx-auto text-right animate-in fade-in slide-in-from-top-3 duration-300" dir="rtl">
-            {unEvaluatedClosedRequests.map((req: any) => (
-              <div 
-                key={req.id}
-                className="relative overflow-hidden rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-teal-500/15 dark:from-amber-950/40 dark:via-emerald-950/20 dark:to-teal-950/40 border-2 border-amber-400/40 dark:border-amber-500/30 shadow-lg shadow-amber-500/5 mb-4 transition-all hover:shadow-xl"
-              >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 dark:bg-amber-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                      <Sparkles className="w-6 h-6 text-amber-600 dark:text-amber-400 animate-pulse" />
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-base sm:text-lg text-foreground">
-                          طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
-                        </h3>
-                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">
-                          مكتمل ومغلق
-                        </Badge>
-                      </div>
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                        تم إغلاق طلب الخدمة رقم <span className="font-bold text-foreground font-mono">{req.requestNumber}</span> {req.mosqueName ? `لمسجد (${req.mosqueName})` : ''} بنجاح. نرجو مشاركتنا تقييمك لمساعدتنا في تطوير الخدمة.
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={() => {
-                      setEvaluatingRequest(req);
-                      setEvalRating(5);
-                      setEvalNotes("");
-                    }}
-                    className="w-full sm:w-auto bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md gap-2 shrink-0 transition-all hover:scale-105"
-                  >
-                    <Star className="w-4 h-4 fill-white" />
-                    <span>تقييم الخدمة الآن</span>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {user?.status === "pending" && (
           <div className="mb-8 max-w-2xl mx-auto text-right" dir="rtl">
             <Alert className="border-yellow-250 bg-yellow-50/40 dark:bg-yellow-950/15 dark:border-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded-2xl flex items-center gap-3">
