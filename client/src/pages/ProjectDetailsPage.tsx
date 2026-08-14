@@ -875,29 +875,29 @@ export default function ProjectDetailsPage() {
                   <Table dir="rtl">
                     <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead className="text-center font-bold w-14">#</TableHead>
-                        <TableHead className="text-right font-bold">اسم المسجد</TableHead>
-                        <TableHead className="text-right font-bold">المدينة / المنطقة</TableHead>
-                        <TableHead className="text-right font-bold">الحي</TableHead>
-                        <TableHead className="text-left font-bold">الحالة</TableHead>
+                        <TableHead className="text-center font-bold w-16 pr-6 pl-2 py-3.5">#</TableHead>
+                        <TableHead className="text-right font-bold px-4 py-3.5">اسم المسجد</TableHead>
+                        <TableHead className="text-right font-bold px-4 py-3.5">المدينة / المنطقة</TableHead>
+                        <TableHead className="text-right font-bold px-4 py-3.5">الحي</TableHead>
+                        <TableHead className="text-left font-bold pl-6 pr-4 py-3.5">الحالة</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {(project as any).linkedMosques.map((item: any, idx: number) => (
                         <TableRow key={item.id} className="hover:bg-muted/20">
-                          <TableCell className="text-center font-bold text-muted-foreground text-xs">
+                          <TableCell className="text-center font-bold text-muted-foreground text-xs pr-6 pl-2 py-3.5">
                             {idx + 1}
                           </TableCell>
-                          <TableCell className="font-bold text-foreground">
+                          <TableCell className="font-bold text-foreground px-4 py-3.5">
                             {item.mosqueName || `مسجد #${item.mosqueId}`}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
+                          <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
                             {item.mosqueCity || "—"}
                           </TableCell>
-                          <TableCell className="text-muted-foreground text-xs">
+                          <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
                             {item.mosqueDistrict || "—"}
                           </TableCell>
-                          <TableCell className="text-left">
+                          <TableCell className="text-left pl-6 pr-4 py-3.5">
                             <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
                               مشمول بالمشروع
                             </Badge>
