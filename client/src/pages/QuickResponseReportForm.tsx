@@ -28,7 +28,8 @@ import {
   User,
   CheckCircle,
   XCircle,
-  X
+  X,
+  MessageSquare
 } from "lucide-react";
 
 // تقييمات الأعمال
@@ -88,6 +89,8 @@ const translations = {
     uploadWarning: "تم حفظ التقرير ولكن فشل رفع بعض الصور",
     uploadLimit: (maxFiles: number, maxSizeMB: number) => `الحد الأقصى: ${maxFiles} ملفات، ${maxSizeMB} ميجابايت لكل ملف`,
     uploadLimitReached: (maxFiles: number) => `تم الوصول للحد الأقصى من الملفات (${maxFiles})`,
+    technicalEvalNotesTitle: "ملاحظات وتوجيهات التحويل للاستجابة السريعة",
+    technicalEvalNotesDesc: "الملاحظات والتوجيهات المسجلة أثناء اتخاذ قرار التحويل للاستجابة السريعة",
   },
   en: {
     title: "Quick Response Report",
@@ -136,6 +139,8 @@ const translations = {
     uploadWarning: "Report saved, but some images failed to upload",
     uploadLimit: (maxFiles: number, maxSizeMB: number) => `Maximum: ${maxFiles} files, ${maxSizeMB} MB per file`,
     uploadLimitReached: (maxFiles: number) => `Maximum number of files reached (${maxFiles})`,
+    technicalEvalNotesTitle: "Quick Response Conversion Notes & Instructions",
+    technicalEvalNotesDesc: "Notes and instructions provided during conversion to quick response",
   }
 };
 
@@ -424,6 +429,32 @@ export default function QuickResponseReportForm() {
             </div>
           </CardContent>
         </Card>
+
+        {/* توجيهات وملاحظات التحويل للاستجابة السريعة */}
+        {requestData.technicalEvalJustification && (
+          <Card className="mb-6 border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/60 via-purple-50/30 to-white dark:from-purple-950/30 dark:via-purple-900/10 dark:to-slate-900 shadow-sm">
+            <CardHeader className="p-4 md:p-6 pb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shrink-0">
+                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">
+                    {t.technicalEvalNotesTitle}
+                  </CardTitle>
+                  <CardDescription className="text-xs md:text-sm text-purple-700/80 dark:text-purple-400 mt-0.5">
+                    {t.technicalEvalNotesDesc}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6 pt-2">
+              <div className="p-3.5 md:p-4 rounded-xl bg-white dark:bg-slate-950/80 border border-purple-100 dark:border-purple-900/40 text-slate-800 dark:text-slate-200 text-xs md:text-sm leading-relaxed whitespace-pre-wrap shadow-xs">
+                {requestData.technicalEvalJustification}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* التقييم الفني */}
         <Card className="mb-6 border-0 shadow-sm">
