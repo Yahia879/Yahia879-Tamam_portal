@@ -722,8 +722,8 @@ export default function RequestDetailsNew() {
     (userPermissions.includes("requests.view_details") && !['financial', 'financial_manager', 'corporate_comm'].includes(user.role))
   );
 
-  // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد إلا إذا كان الطلب مغلقاً أو في مرحلة الاستلام
-  let activeAction = (isRequester && !['handover', 'closed'].includes(request.currentStage))
+  // Get active action - لا تُظهر الإجراءات الإدارية للمستفيد
+  let activeAction = isRequester
     ? null
     : getActiveAction(request.currentStage, user?.role, {
         assignedTo: request.assignedTo,
@@ -747,7 +747,7 @@ export default function RequestDetailsNew() {
       } as any,
       canPerformAction: true,
     };
-  } else if (activeAction && request.currentStage === 'closed') {
+  } else if (activeAction && request.currentStage === 'closed' && !isRequester) {
     activeAction = {
       ...activeAction,
       title: "المشروع مكتمل",
