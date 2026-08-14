@@ -6,31 +6,46 @@ export function MultiMosquesIcon({ className = "w-5 h-5", ...props }: React.SVGP
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
       {...props}
     >
-      {/* Base Line */}
-      <path d="M2 21h20" />
-      
-      {/* First Mosque (Left) */}
-      <path d="M3 21v-7c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v7" />
-      <path d="M6 7.5C4.8 9 4.5 11 4.5 13h3c0-2-.3-4-1.5-5.5z" />
-      <path d="M6 7.5V4.5" />
-      <circle cx="6" cy="3.5" r="0.75" fill="currentColor" />
+      {/* Ground baseline */}
+      <path d="M1.5 21.5h21" />
 
-      {/* Second Mosque (Right - Slightly Larger) */}
-      <path d="M13 21v-9c0-.6.4-1 1-1h5c.6 0 1 .4 1 1v9" />
-      <path d="M16.5 5.5C15 7.2 14.5 9.5 14.5 11h4c0-1.5-.5-3.8-2-5.5z" />
-      <path d="M16.5 5.5V2.5" />
-      <circle cx="16.5" cy="1.5" r="0.75" fill="currentColor" />
+      {/* --- Left Mosque --- */}
+      {/* Minaret 1 (Far Left) */}
+      <path d="M3 21.5V11h2v10.5" />
+      <path d="M2.5 11h3" />
+      <path d="M4 11V8.5" />
+      <circle cx="4" cy="7.2" r="0.6" fill="currentColor" />
 
-      {/* Minaret / Spire in between */}
-      <path d="M10 21v-9h1.5v9" />
-      <path d="M10.75 12V9.5" />
-      <circle cx="10.75" cy="8.75" r="0.5" fill="currentColor" />
+      {/* Mosque 1 Structure & Dome */}
+      <path d="M5 21.5V14h5v7.5" />
+      <path d="M5 14c0-2.5 1-4.5 2.5-5.5 1.5 1 2.5 3 2.5 5.5" />
+      {/* Crescent/Finial 1 */}
+      <path d="M7.5 8.5V6.5" />
+      <circle cx="7.5" cy="5.5" r="0.6" fill="currentColor" />
+      {/* Arch door 1 */}
+      <path d="M6.5 21.5v-2.5c0-.6.4-1 1-1s1 .4 1 1v2.5" />
+
+      {/* --- Right Mosque (Slightly taller / offset) --- */}
+      {/* Mosque 2 Structure & Dome */}
+      <path d="M12 21.5V13h7v8.5" />
+      <path d="M12 13c0-3 1.5-5.5 3.5-6.5 2 1 3.5 3.5 3.5 6.5" />
+      {/* Crescent/Finial 2 */}
+      <path d="M15.5 6.5V4" />
+      <circle cx="15.5" cy="3" r="0.6" fill="currentColor" />
+      {/* Arch door 2 */}
+      <path d="M14.5 21.5v-3c0-.8.5-1.5 1-1.5s1 .7 1 1.5v3" />
+
+      {/* Minaret 2 (Far Right) */}
+      <path d="M19 21.5V9h2v12.5" />
+      <path d="M18.5 9h3" />
+      <path d="M20 9V6.5" />
+      <circle cx="20" cy="5.2" r="0.6" fill="currentColor" />
     </svg>
   );
 }
