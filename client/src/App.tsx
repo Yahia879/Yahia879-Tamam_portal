@@ -105,6 +105,7 @@ import DisbursementOrderPrint from "./pages/DisbursementOrderPrint";
 import DisbursementRequestPrint from "./pages/DisbursementRequestPrint";
 import ReceiptVoucherPrint from "./pages/ReceiptVoucherPrint";
 import ReceiptVouchers from "./pages/ReceiptVouchers";
+import NewReceiptVoucherPage from "./pages/NewReceiptVoucherPage";
 import ProgressReports from "./pages/ProgressReports";
 import ProgressReportPrint from "./pages/ProgressReportPrint";
 import DisbursementOrders from "./pages/DisbursementOrders";
@@ -344,6 +345,7 @@ function Router() {
       <Route path="/disbursements/requests/:id/print">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       <Route path="/disbursements/requests/:id">{() => <AdminRoute component={DisbursementRequestPrint} />}</Route>
       <Route path="/receipt-vouchers">{() => <AdminRoute component={ReceiptVouchers} />}</Route>
+      <Route path="/receipt-vouchers/new">{() => <AdminRoute component={NewReceiptVoucherPage} />}</Route>
       <Route path="/receipt-vouchers/:id/print">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       <Route path="/receipt-vouchers/:id">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       

@@ -550,7 +550,7 @@ export default function ReceiptVouchers() {
           {canEdit && (
             <div className="w-full sm:w-auto flex justify-end">
               <Button 
-                onClick={openAddVoucherModal}
+                onClick={() => navigate("/receipt-vouchers/new")}
                 className="w-full sm:w-auto gradient-primary text-white font-bold"
               >
                 <Plus className="ml-2 h-4 w-4" />
