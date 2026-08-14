@@ -359,7 +359,7 @@ export default function NewReceiptVoucherPage() {
                     <button
                       type="button"
                       onClick={() => setCategory("project_linked")}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                         category === "project_linked"
                           ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
                           : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
@@ -372,18 +372,13 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <FolderKanban className="w-5 h-5" />
                       </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
-                            سند قبض مرتبط بمشروع موجود
-                          </span>
-                          {category === "project_linked" && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
-                          )}
-                        </div>
-                        <p className={`text-[11px] leading-relaxed ${category === "project_linked" ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
-                          ربط سند القبض بمشروع معتمد ومسجل مع مطابقة الموقف المالي للداعم
-                        </p>
+                      <div className="min-w-0 flex-1 flex items-center justify-between">
+                        <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
+                          سند قبض مرتبط بمشروع موجود
+                        </span>
+                        {category === "project_linked" && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0 mr-2" />
+                        )}
                       </div>
                     </button>
 
@@ -391,7 +386,7 @@ export default function NewReceiptVoucherPage() {
                     <button
                       type="button"
                       onClick={() => setCategory("restricted")}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                         category === "restricted"
                           ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
                           : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
@@ -404,18 +399,13 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <FileCheck className="w-5 h-5" />
                       </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
-                            سند قبض مقيد
-                          </span>
-                          {category === "restricted" && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
-                          )}
-                        </div>
-                        <p className={`text-[11px] leading-relaxed ${category === "restricted" ? "text-blue-750 dark:text-blue-300" : "text-muted-foreground"}`}>
-                          سند قبض مخصص ومقيد لغرض أو بند محدد أو برنامج معين
-                        </p>
+                      <div className="min-w-0 flex-1 flex items-center justify-between">
+                        <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
+                          سند قبض مقيد
+                        </span>
+                        {category === "restricted" && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0 mr-2" />
+                        )}
                       </div>
                     </button>
 
@@ -423,7 +413,7 @@ export default function NewReceiptVoucherPage() {
                     <button
                       type="button"
                       onClick={() => setCategory("unrestricted")}
-                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                      className={`flex items-center gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
                         category === "unrestricted"
                           ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/80 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
                           : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
@@ -436,18 +426,13 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <Coins className="w-5 h-5" />
                       </div>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
-                            سند قبض غير مقيد
-                          </span>
-                          {category === "unrestricted" && (
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0" />
-                          )}
-                        </div>
-                        <p className={`text-[11px] leading-relaxed ${category === "unrestricted" ? "text-amber-750 dark:text-amber-300" : "text-muted-foreground"}`}>
-                          سند قبض عام غير مخصص لمشروع أو بند معين (تبرعات عامة)
-                        </p>
+                      <div className="min-w-0 flex-1 flex items-center justify-between">
+                        <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
+                          سند قبض غير مقيد
+                        </span>
+                        {category === "unrestricted" && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0 mr-2" />
+                        )}
                       </div>
                     </button>
                   </div>
