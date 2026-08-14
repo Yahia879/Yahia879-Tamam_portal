@@ -27,7 +27,8 @@ import {   ArrowRight,
   Camera,
   FileText,
   AlertCircle,
-  Star
+  Star,
+  MessageSquare
 } from "lucide-react";
 
 // حالات المسجد
@@ -296,10 +297,23 @@ export default function FieldInspectionForm() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-4 md:py-8" dir="rtl">
       <div className="container max-w-4xl mx-auto px-4 overflow-x-hidden">
+        {/* شريط الأدوات العلوي (زر الرجوع) */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3 text-muted-foreground hover:text-foreground"
+            onClick={() => navigate(`/requests/${requestId}`)}
+          >
+            <ArrowRight className="w-4 h-4 ml-2" />
+            <span className="hidden sm:inline">رجوع للطلب</span>
+          </Button>
+        </div>
+
         {/* العنوان */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">نموذج المعاينة الميدانية</h1>
-          <p className="text-sm md:text-base text-gray-600">توثيق حالة المسجد فنياً وتحديد الاحتياجات</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">نموذج المعاينة الميدانية</h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">توثيق حالة المسجد فنياً وتحديد الاحتياجات</p>
         </div>
 
         {/* شريط التقدم */}
@@ -325,6 +339,32 @@ export default function FieldInspectionForm() {
 
         {currentStep === 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* ملاحظات وتوجيهات جدولة الزيارة الميدانية */}
+            {requestData.fieldVisitNotes && (
+              <Card className="mb-6 border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-card shadow-xs overflow-hidden rounded-2xl">
+                <CardHeader className="p-4 md:p-6 pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-primary/15 text-primary shrink-0 shadow-xs">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base md:text-lg font-bold text-foreground">
+                        ملاحظات وتوجيهات جدولة الزيارة الميدانية
+                      </CardTitle>
+                      <CardDescription className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                        التعليمات والملاحظات المسجلة أثناء جدولة الزيارة لفريق المعاينة
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 md:p-6 pt-2">
+                  <div className="p-4 rounded-xl bg-card border border-border text-foreground text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium shadow-xs">
+                    {requestData.fieldVisitNotes}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* البيانات الأساسية */}
             <Card className="mb-6 border-0 shadow-sm">
           <CardHeader className="p-4 md:p-6 pb-2">
