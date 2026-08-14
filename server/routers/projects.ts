@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -19,6 +19,36 @@ async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof g
     await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
   }
   return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
+}
+
+// دالة إنشاء رقم طلب فريد للمشروع المباشر
+async function generateRequestNumberForProject(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  programType: string = "bunyan"
+): Promise<string> {
+  const currentYear = new Date().getFullYear();
+  const prefix = programType.substring(0, 3).toUpperCase();
+
+  const [existing] = await db
+    .select()
+    .from(requestNumberSequence)
+    .where(eq(requestNumberSequence.year, currentYear));
+
+  let sequence: number;
+  if (existing) {
+    sequence = existing.lastSequence + 1;
+    await db
+      .update(requestNumberSequence)
+      .set({ lastSequence: sequence })
+      .where(eq(requestNumberSequence.year, currentYear));
+  } else {
+    sequence = 1;
+    await db.insert(requestNumberSequence).values({
+      year: currentYear,
+      lastSequence: sequence,
+    });
+  }
+  return `REQ-${currentYear}-${prefix}-${String(sequence).padStart(4, "0")}`;
 }
 
 // إعادة تسلسل أرقام سندات القبض لجميع السندات بالترتيب REC-51, REC-52, ... حسب تاريخ/ترتيب الإنشاء (الترقيم يبدأ من 51)
@@ -2455,10 +2485,60 @@ export const projectsRouter = router({
         calculatedEndDate = new Date(calculatedStartDate.getTime() + input.durationDays * 24 * 60 * 60 * 1000);
       }
 
-      // 1. إنشاء المشروع المباشر لعدة مساجد
+      // 1. إنشاء طلب تلقائي في جدول الطلبات باسم المشروع وبمرحلة إعداد جداول الكميات
+      const requestNumber = await generateRequestNumberForProject(db, "bunyan");
+      const [reqResult] = await db.insert(mosqueRequests).values({
+        requestNumber,
+        mosqueId: input.mosques[0]?.mosqueId || null,
+        userId: ctx.user.id,
+        programType: "bunyan",
+        currentStage: "boq_preparation",
+        status: "in_progress",
+        priority: "normal",
+        assignedTo: input.managerId,
+        currentResponsible: input.managerId,
+        currentResponsibleDepartment: "إدارة المشاريع",
+        reviewCompleted: true,
+        technicalEvalDecision: "convert_to_project",
+        technicalEvalJustification: "تم اعتماد وإنشاء المشروع المباشر بمرحلة إعداد جداول الكميات",
+        descriptiveName: input.name,
+        requestTrack: "standard",
+        estimatedCost: input.budget !== undefined && input.budget !== null ? input.budget.toString() : null,
+        approvedBudget: input.budget !== undefined && input.budget !== null ? input.budget.toString() : null,
+        programData: {
+          isMultiMosque: true,
+          projectName: input.name,
+          durationDays: input.durationDays || null,
+          mosqueCount: input.mosques.length,
+          mosques: input.mosques,
+        },
+      });
+
+      const requestId = Number(reqResult.insertId);
+
+      // إضافة سجل تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId,
+        userId: ctx.user.id,
+        toStage: "boq_preparation",
+        toStatus: "in_progress",
+        action: "project_created_direct",
+        notes: `تم إنشاء المشروع المباشر (${input.name}) ونقله تلقائياً لمرحلة إعداد جداول الكميات`,
+      });
+
+      // إضافة سجل التدقيق
+      await db.insert(auditLogs).values({
+        userId: ctx.user.id,
+        action: "project_created_direct",
+        entityType: "request",
+        entityId: requestId,
+        newValues: { requestNumber, projectName: input.name, managerId: input.managerId },
+      });
+
+      // 2. إنشاء المشروع المباشر لعدة مساجد وربطه بالطلب المنشأ
       const [projResult] = await db.insert(projects).values({
         projectNumber,
-        requestId: null,
+        requestId,
         name: input.name,
         description: input.description || null,
         donorName: input.donorName || null,
@@ -2473,7 +2553,7 @@ export const projectsRouter = router({
 
       const projectId = Number(projResult.insertId);
 
-      // 2. ربط المساجد بالمشروع في جدول project_mosques
+      // 3. ربط المساجد بالمشروع في جدول project_mosques
       for (const m of input.mosques) {
         await db.insert(projectMosques).values({
           projectId,
@@ -2483,7 +2563,7 @@ export const projectsRouter = router({
         });
       }
 
-      // 3. إنشاء مراحل المشروع الخمس فورياً تبدأ مباشرة من "إعداد جدول الكميات" وتتخطى الطلبات الأولية
+      // 4. إنشاء مراحل المشروع الخمس فورياً تبدأ مباشرة من "إعداد جدول الكميات" وتتخطى الطلبات الأولية
       const defaultPhases = [
         { phaseName: "المرحلة الأولى : إعداد جدول الكميات", phaseOrder: 1, status: "in_progress", completionPercentage: 0 },
         { phaseName: "المرحلة الثانية : التقييم المالي واعتماد العرض المناسب", phaseOrder: 2, status: "pending", completionPercentage: 0 },
@@ -2515,7 +2595,9 @@ export const projectsRouter = router({
         success: true,
         projectId,
         projectNumber,
-        message: "تم إنشاء مشروع لعدة مساجد بنجاح",
+        requestId,
+        requestNumber,
+        message: "تم إنشاء مشروع لعدة مساجد والطلب التلقائي بنجاح",
       };
     }),
 });

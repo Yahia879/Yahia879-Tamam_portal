@@ -71,6 +71,7 @@ export default function NewMultiMosqueProjectPage() {
     onSuccess: (res) => {
       toast.success(res.message || "تم إنشاء مشروع لعدة مساجد بنجاح");
       utils.projects.search.invalidate();
+      utils.requests.search.invalidate();
       if (res.projectId) {
         navigate(`/projects/${res.projectId}`);
       } else {
