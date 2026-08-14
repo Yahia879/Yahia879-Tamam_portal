@@ -773,9 +773,14 @@ export default function ProjectDetailsPage() {
                     )}
                   </div>
                   {project.description && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">الوصف</p>
-                      <p className="font-medium">{project.description}</p>
+                    <div className="pt-3 border-t border-border/50">
+                      <p className="text-xs text-muted-foreground font-bold mb-1.5 flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        وصف الأعمال التي ستنجز خلال المشروع
+                      </p>
+                      <p className="font-medium text-xs sm:text-sm text-foreground bg-muted/40 p-3 rounded-xl border border-border/40 whitespace-pre-wrap leading-relaxed">
+                        {project.description}
+                      </p>
                     </div>
                   )}
                 </CardContent>

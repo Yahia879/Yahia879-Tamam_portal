@@ -2508,6 +2508,7 @@ export const projectsRouter = router({
         programData: {
           isMultiMosque: true,
           projectName: input.name,
+          description: input.description || null,
           durationDays: input.durationDays || null,
           mosqueCount: input.mosques.length,
           mosques: input.mosques,

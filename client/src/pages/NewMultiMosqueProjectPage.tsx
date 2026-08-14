@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -40,6 +41,7 @@ export default function NewMultiMosqueProjectPage() {
 
   // البيانات العامة
   const [projectName, setProjectName] = useState("");
+  const [description, setDescription] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [managerId, setManagerId] = useState<string>("");
 
@@ -135,6 +137,7 @@ export default function NewMultiMosqueProjectPage() {
 
     createMultiProjectMutation.mutate({
       name: projectName.trim(),
+      description: description.trim() || undefined,
       managerId: parseInt(managerId),
       durationDays: parseInt(durationDays),
       mosques: selectedMosques.map(m => ({
@@ -318,6 +321,19 @@ export default function NewMultiMosqueProjectPage() {
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground">سيتم إسناد المشروع وإدارته للمستخدم المختار</p>
+                  </div>
+
+                  <div className="space-y-2 col-span-1 md:col-span-2">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      وصف الأعمال التي ستنجز خلال المشروع
+                    </Label>
+                    <Textarea
+                      placeholder="أدخل وصفاً وتفاصيل نطاق الأعمال والمهام التي سيتم إنجازها خلال هذا المشروع..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="rounded-xl min-h-[90px] resize-y text-sm leading-relaxed"
+                    />
+                    <p className="text-[11px] text-muted-foreground">تفاصيل الأعمال المخططة ومجالات الصيانة والتنفيذ للمساجد</p>
                   </div>
                 </div>
 
@@ -521,6 +537,12 @@ export default function NewMultiMosqueProjectPage() {
                       <p><span className="text-muted-foreground">اسم المشروع:</span> <span className="font-bold">{projectName}</span></p>
                       <p><span className="text-muted-foreground">المدة المتوقعة للانتهاء:</span> <span className="font-bold text-primary">{durationDays} يوم</span></p>
                       <p><span className="text-muted-foreground">مدير المشروع:</span> <span className="font-bold">{selectedManager?.name || "غير محدد"}</span></p>
+                      {description && (
+                        <div className="pt-2 border-t border-border/40 text-[11px]">
+                          <span className="text-muted-foreground block mb-0.5">وصف الأعمال:</span>
+                          <p className="text-foreground leading-relaxed bg-background/50 p-2 rounded-lg border border-border/30 whitespace-pre-wrap">{description}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
