@@ -340,6 +340,7 @@ export const requestsRouter = router({
         request: mosqueRequests,
         programName: programs.name,
         programConditions: programs.conditions,
+        evaluationNotes: sql<string | null>`(select notes from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
       }).from(mosqueRequests)
         .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
         .where(eq(mosqueRequests.id, input.id))
@@ -353,6 +354,7 @@ export const requestsRouter = router({
         ...result[0].request,
         programName: result[0].programName,
         programConditions: result[0].programConditions,
+        evaluationNotes: result[0].evaluationNotes,
       };
 
       const isOwner = request.userId === ctx.user.id;

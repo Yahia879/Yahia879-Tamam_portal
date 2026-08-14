@@ -1374,37 +1374,82 @@ export default function RequestDetailsNew() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* كرت تقييم رضا المستفيد للمسؤولين - يظهر فقط عند وجود تقييم مسجل */}
+                {/* كرت تقييم رضا المستفيد للمسؤولين - متناسق تماماً مع ثيم المنصة */}
                 {request.isEvaluated && request.satisfactionRating && (
-                  <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/5 to-teal-500/10 border border-amber-400/30 dark:border-amber-500/30 rounded-2xl p-5 sm:p-6 shadow-sm" dir="rtl">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-start gap-3 sm:gap-4 min-w-0">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                          <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
-                        </div>
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-base sm:text-lg text-foreground">
-                              تقييم رضا المستفيد عن الخدمة
-                            </h4>
-                            <span className="inline-flex items-center gap-1 bg-amber-600 text-white font-bold text-xs px-2.5 py-1 rounded-full shadow-xs">
-                              <Star className="w-3 h-3 fill-white" />
-                              {request.satisfactionRating} من 5 نجوم
-                            </span>
+                  <div className="flex justify-center w-full" dir="rtl">
+                    <Card className="w-full max-w-2xl p-5 sm:p-7 rounded-2xl border border-border shadow-md bg-card transition-all hover:shadow-lg">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-start gap-3.5 sm:gap-4 min-w-0 flex-1">
+                          <div className="w-12 h-12 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20 shadow-inner">
+                            <Star className="w-6 h-6 fill-amber-500 text-amber-500" />
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            {request.evaluatedAt ? `تم التقييم بتاريخ: ${new Date(request.evaluatedAt).toLocaleDateString('ar-SA')}` : 'تم تسجيل التقييم بنجاح'}
-                          </p>
+                          
+                          <div className="space-y-1.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                                تقييم رضا المستفيد عن الخدمة
+                              </h3>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                {request.satisfactionRating} من 5 نجوم
+                              </span>
+                            </div>
+
+                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span>
+                                {request.evaluatedAt
+                                  ? `تم التقييم بتاريخ: ${new Date(request.evaluatedAt).toLocaleDateString('ar-SA')}`
+                                  : 'تم تسجيل التقييم بنجاح'}
+                              </span>
+                            </p>
+                          </div>
                         </div>
+
+                        <Link href={`/requests/${requestId}/evaluation`}>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full sm:w-auto rounded-xl gap-2 font-bold hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all shrink-0"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span>عرض صفحة التقييم</span>
+                          </Button>
+                        </Link>
                       </div>
-                      
-                      <Link href={`/requests/${requestId}/evaluation`}>
-                        <Button variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0 font-medium">
-                          <Eye className="w-4 h-4" />
-                          <span>عرض صفحة التقييم</span>
-                        </Button>
-                      </Link>
-                    </div>
+
+                      {/* عرض النجوم التفاعلية الخمسة المعبئة */}
+                      <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-1" dir="ltr">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-5 h-5 ${
+                                star <= (request.satisfactionRating || 5)
+                                  ? "text-amber-500 fill-amber-500 drop-shadow-[0_1px_4px_rgba(245,158,11,0.4)]"
+                                  : "text-muted-foreground/30"
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        <span className="text-xs font-semibold text-muted-foreground">
+                          {request.satisfactionRating === 5 && "😍 راضي جداً وممتاز"}
+                          {request.satisfactionRating === 4 && "🙂 راضي"}
+                          {request.satisfactionRating === 3 && "😐 محايد"}
+                          {request.satisfactionRating === 2 && "🙁 غير راضي"}
+                          {request.satisfactionRating === 1 && "😞 غير راضي جداً"}
+                        </span>
+                      </div>
+
+                      {/* ملاحظات المستفيد إن وجدت */}
+                      {(request as any).evaluationNotes && (
+                        <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/50 text-xs sm:text-sm text-foreground">
+                          <span className="font-bold text-muted-foreground ml-1">ملاحظات المستفيد:</span>
+                          <span className="text-foreground italic">"{(request as any).evaluationNotes}"</span>
+                        </div>
+                      )}
+                    </Card>
                   </div>
                 )}
 
