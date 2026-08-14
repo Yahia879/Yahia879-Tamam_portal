@@ -305,7 +305,7 @@ export default function NewMultiMosqueProjectPage() {
                       اسم المشروع *
                     </Label>
                     <Input
-                      placeholder="مثال: مشروع صيانة وتكييف مساجد المنطقة الشرقية - الدفعة الأولى"
+                      placeholder="مثال: مشروع صيانة وتكييف مساجد المنطقة الشرقية..."
                       value={projectName}
                       onChange={(e) => setProjectName(e.target.value)}
                       className="h-10 rounded-xl"
@@ -337,7 +337,7 @@ export default function NewMultiMosqueProjectPage() {
                       مدير المشروع *
                     </Label>
                     <Select value={managerId} onValueChange={setManagerId}>
-                      <SelectTrigger className="h-10 rounded-xl">
+                      <SelectTrigger className="h-10 rounded-xl w-full">
                         <SelectValue placeholder="اختر مدير المشروع..." />
                       </SelectTrigger>
                       <SelectContent>
