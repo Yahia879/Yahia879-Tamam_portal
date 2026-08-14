@@ -11,36 +11,25 @@ import {
   FolderKanban, 
   Search, 
   ArrowRight,
-  Calendar,
-  DollarSign,
-  Loader2,
-  Plus,
-  Trash2,
-  Building2,
-  CheckCircle2,
-  Building,
-  User,
-  FileText,
-  Sparkles,
-  Layers,
-  AlertTriangle,
-  Check,
-  Coins,
-  FileSpreadsheet,
+  Loader2, 
+  Plus, 
+  Trash2, 
+  Building2, 
+  CheckCircle2, 
+  Building, 
+  Sparkles, 
+  Check, 
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Progress } from "@/components/ui/progress";
 
 interface SelectedMosqueItem {
   mosqueId: number;
   mosqueName: string;
   city: string;
   district?: string;
-  allocatedBudget: string;
-  notes: string;
 }
 
 export default function NewMultiMosqueProjectPage() {
@@ -107,8 +96,6 @@ export default function NewMultiMosqueProjectPage() {
         mosqueName: mosque.name,
         city: mosque.city || "",
         district: mosque.district || "",
-        allocatedBudget: "",
-        notes: "",
       }
     ]);
     toast.success(`تمت إضافة ${mosque.name} إلى القائمة`);
@@ -117,20 +104,6 @@ export default function NewMultiMosqueProjectPage() {
   const handleRemoveMosque = (mosqueId: number) => {
     setSelectedMosques(prev => prev.filter(m => m.mosqueId !== mosqueId));
   };
-
-  const handleUpdateMosqueItem = (mosqueId: number, field: "allocatedBudget" | "notes", value: string) => {
-    setSelectedMosques(prev => prev.map(m => {
-      if (m.mosqueId === mosqueId) {
-        return { ...m, [field]: value };
-      }
-      return m;
-    }));
-  };
-
-  const totalAllocatedBudgetsSum = selectedMosques.reduce((sum, item) => {
-    const val = parseFloat(item.allocatedBudget || "0");
-    return sum + (isNaN(val) ? 0 : val);
-  }, 0);
 
   const selectedManager = managersList.find((m: any) => m.id.toString() === managerId);
 
@@ -168,8 +141,6 @@ export default function NewMultiMosqueProjectPage() {
       durationDays: parseInt(durationDays),
       mosques: selectedMosques.map(m => ({
         mosqueId: m.mosqueId,
-        allocatedBudget: m.allocatedBudget ? parseFloat(m.allocatedBudget) : undefined,
-        notes: m.notes.trim() || undefined,
       })),
     });
   };
@@ -258,7 +229,7 @@ export default function NewMultiMosqueProjectPage() {
                   {currentStep > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
                 <span className={`text-xs font-semibold ${currentStep >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
-                  المساجد والشروط
+                  المساجد المشمولة
                 </span>
               </button>
 
@@ -370,7 +341,7 @@ export default function NewMultiMosqueProjectPage() {
                     }}
                     className="gradient-primary text-white font-bold px-8 h-10 rounded-xl gap-2"
                   >
-                    <span>التالي: اختيار المساجد والشروط</span>
+                    <span>التالي: اختيار المساجد المشمولة</span>
                     <ArrowRight className="w-4 h-4 rotate-180" />
                   </Button>
                 </div>
@@ -379,7 +350,7 @@ export default function NewMultiMosqueProjectPage() {
           </div>
         )}
 
-        {/* الخطوة الثانية: حقل الشروط وملاحظات الأعمال ممتد بكامل العرض تحـت اسم كل مسجد */}
+        {/* الخطوة الثانية: اختيار المساجد المشمولة بالمشروع */}
         {currentStep === 2 && (
           <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
@@ -387,10 +358,10 @@ export default function NewMultiMosqueProjectPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                     <Building2 className="h-4.5 w-4.5 text-primary" />
-                    الخطوة 2: المساجد والشروط الخاصة بالمشروع
+                    الخطوة 2: المساجد المشمولة بالمشروع
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
-                    اختر المساجد من القائمة الجانبية وحدد شروط وملاحظات الأعمال لكل مسجد بسهولة
+                    اختر المساجد من القائمة لإضافتها لجدول المشروع المباشر
                   </CardDescription>
                 </div>
                 <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 text-xs">
@@ -399,36 +370,11 @@ export default function NewMultiMosqueProjectPage() {
               </CardHeader>
               
               <CardContent className="p-6 space-y-6 text-right">
-                {/* شريط معلومات المساجد المضافة */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">عدد المساجد المختارة:</div>
-                      <div className="text-base font-bold text-foreground">{selectedMosques.length} مساجد</div>
-                    </div>
-                  </div>
-
-                  {totalAllocatedBudgetsSum > 0 && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center font-bold">
-                        <DollarSign className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">إجمالي المخصص للمساجد:</div>
-                        <div className="text-base font-bold text-emerald-600">{totalAllocatedBudgetsSum.toLocaleString()} ريال</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {/* واجهة العرض المقسمة (2 Columns: Search vs Selected Mosques Workspace) */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   
                   {/* العمود الأيمن: البحث عن مسجد وإضافته */}
-                  <div className="lg:col-span-4 bg-muted/20 p-4 rounded-xl border border-border/50 space-y-3">
+                  <div className="lg:col-span-5 bg-muted/20 p-4 rounded-xl border border-border/50 space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                         <Search className="w-4 h-4 text-primary" />
@@ -490,76 +436,44 @@ export default function NewMultiMosqueProjectPage() {
                     )}
                   </div>
 
-                  {/* العمود الأيسر: مساحة المساجد المضافة مع حقل شروط الأعمال ممتد تحت كل مسجد */}
-                  <div className="lg:col-span-8 space-y-3">
+                  {/* العمود الأيسر: مساحة المساجد المضافة */}
+                  <div className="lg:col-span-7 space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-xs text-foreground flex items-center gap-2">
                         <Building2 className="w-4 h-4 text-primary" />
                         المساجد المضافة للمشروع ({selectedMosques.length})
                       </h4>
                       {selectedMosques.length > 0 && (
-                        <span className="text-[11px] text-muted-foreground">ادخل الميزانية والشروط المخصصة لكل مسجد</span>
+                        <span className="text-[11px] text-muted-foreground">قائمة المساجد التي سيشملها المشروع</span>
                       )}
                     </div>
 
                     {selectedMosques.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {selectedMosques.map((item, idx) => (
                           <div 
                             key={item.mosqueId} 
-                            className="p-3.5 border border-border/60 rounded-xl bg-background hover:bg-muted/10 transition-all space-y-2.5 shadow-2xs"
+                            className="p-3 sm:p-3.5 border border-border/60 rounded-xl bg-background hover:bg-muted/10 transition-all flex items-center justify-between gap-3 shadow-2xs"
                           >
-                            {/* السطر الأول: اسم المسجد + الميزانية المخصصة + زر الحذف */}
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/40 pb-2.5">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                                  {idx + 1}
-                                </span>
-                                <div className="min-w-0">
-                                  <span className="font-bold text-foreground text-xs sm:text-sm block truncate">{item.mosqueName}</span>
-                                  <span className="text-[11px] text-muted-foreground">{item.city} {item.district ? `- ${item.district}` : ""}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[11px] text-muted-foreground font-semibold whitespace-nowrap">الميزانية:</span>
-                                  <div className="relative">
-                                    <Input
-                                      type="number"
-                                      placeholder="0"
-                                      value={item.allocatedBudget}
-                                      onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "allocatedBudget", e.target.value)}
-                                      className="h-8 w-32 text-xs font-bold pl-9 pr-2.5 rounded-lg"
-                                    />
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-semibold">ريال</span>
-                                  </div>
-                                </div>
-
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveMosque(item.mosqueId)}
-                                  className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
-                                  title="حذف المسجد"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-foreground text-xs sm:text-sm block truncate">{item.mosqueName}</span>
+                                <span className="text-[11px] text-muted-foreground">{item.city} {item.district ? `- ${item.district}` : ""}</span>
                               </div>
                             </div>
 
-                            {/* السطر الثاني: الشروط وملاحظات الأعمال ممتد بكامل العرض لتوفير مساحة كتابة واسعة ورائعة */}
-                            <div className="space-y-1 pt-0.5">
-                              <Label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
-                                الشروط وملاحظات الأعمال للمسجد:
-                              </Label>
-                              <Input
-                                placeholder="أدخل الشروط أو ملاحظات الأعمال المخصصة لهذا المسجد..."
-                                value={item.notes}
-                                onChange={(e) => handleUpdateMosqueItem(item.mosqueId, "notes", e.target.value)}
-                                className="h-9 text-xs rounded-lg bg-slate-50/70 dark:bg-slate-800/40 w-full"
-                              />
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveMosque(item.mosqueId)}
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                              title="حذف المسجد"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         ))}
                       </div>
@@ -630,9 +544,6 @@ export default function NewMultiMosqueProjectPage() {
                     </h4>
                     <div className="space-y-1.5 text-xs">
                       <p><span className="text-muted-foreground">عدد المساجد:</span> <span className="font-bold">{selectedMosques.length} مساجد</span></p>
-                      {totalAllocatedBudgetsSum > 0 && (
-                        <p><span className="text-muted-foreground">إجمالي المخصص للمساجد:</span> <span className="font-bold text-emerald-600">{totalAllocatedBudgetsSum.toLocaleString()} ريال</span></p>
-                      )}
                       <p><span className="text-muted-foreground">المرحلة الابتدائية للمشروع:</span> <Badge className="bg-yellow-100 text-yellow-800 font-bold">إعداد جدول الكميات (مباشر)</Badge></p>
                     </div>
                   </div>
@@ -640,18 +551,20 @@ export default function NewMultiMosqueProjectPage() {
 
                 {/* قائمة المساجد للمراجعة */}
                 <div className="space-y-2 border border-border/40 rounded-xl overflow-hidden">
-                  <div className="bg-muted/40 p-3 font-bold text-xs">قائمة المساجد والميزانيات والشروط المخصصة:</div>
+                  <div className="bg-muted/40 p-3 font-bold text-xs">قائمة المساجد المشمولة بالمشروع:</div>
                   <div className="divide-y divide-border/40 max-h-60 overflow-y-auto">
                     {selectedMosques.map((item, idx) => (
                       <div key={item.mosqueId} className="p-3 flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-bold ml-2">{idx + 1}. {item.mosqueName}</span>
-                          <span className="text-muted-foreground">({item.city})</span>
-                          {item.notes && <span className="text-muted-foreground text-[11px] block mt-0.5">الشروط: {item.notes}</span>}
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[11px] font-bold flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold">{item.mosqueName}</span>
+                          <span className="text-muted-foreground">({item.city}{item.district ? ` - ${item.district}` : ""})</span>
                         </div>
-                        <div className="font-bold text-primary shrink-0">
-                          {item.allocatedBudget ? `${parseFloat(item.allocatedBudget).toLocaleString()} ريال` : "غير محددة"}
-                        </div>
+                        <Badge variant="outline" className="text-[11px] font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200">
+                          مشمول بالمشروع
+                        </Badge>
                       </div>
                     ))}
                   </div>
