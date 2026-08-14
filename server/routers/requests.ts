@@ -84,13 +84,15 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
 
     // 2. Email Notification (إشعار البريد الإلكتروني بزر تفاعلي أنيق)
     if (beneficiary.email) {
-      await sendEmailNotification(
+      sendEmailNotification(
         beneficiary.email, 
         emailTitle, 
         emailMessage, 
         evalUrl, 
         "تقييم الخدمة الآن ⭐"
-      );
+      ).catch((e) => {
+        console.error("Failed to send email survey notification in background:", e);
+      });
     }
   } catch (error) {
     console.error("Error triggering beneficiary satisfaction survey:", error);
@@ -3307,9 +3309,11 @@ export const requestsRouter = router({
             relatedId: exRow.userId,
           });
 
-          // 2. Mandatory email sending
+          // 2. Email sending in background
           if (targetUser && targetUser.email) {
-            await sendEmailNotification(targetUser.email, emailTitle, emailMessage);
+            sendEmailNotification(targetUser.email, emailTitle, emailMessage).catch((e) => {
+              console.error("Failed to send email notification in background:", e);
+            });
           }
         } catch (err) {
           console.error("Error sending user notification for exception review:", err);

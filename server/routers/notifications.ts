@@ -37,6 +37,12 @@ function getTransporter() {
   const pass = process.env.SMTP_PASS || "pK9#mX2!vL7$qZ4*";
   const service = process.env.SMTP_SERVICE;
 
+  const defaultTimeouts = {
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 8000,
+  };
+
   if (service) {
     transporter = nodemailer.createTransport({
       service,
@@ -44,6 +50,7 @@ function getTransporter() {
         user,
         pass,
       },
+      ...defaultTimeouts,
     });
   } else if (host) {
     transporter = nodemailer.createTransport({
@@ -58,6 +65,7 @@ function getTransporter() {
         ciphers: "SSLv3",
         rejectUnauthorized: false,
       },
+      ...defaultTimeouts,
     });
   } else {
     transporter = nodemailer.createTransport({
@@ -66,6 +74,7 @@ function getTransporter() {
         user,
         pass,
       },
+      ...defaultTimeouts,
     });
   }
 
