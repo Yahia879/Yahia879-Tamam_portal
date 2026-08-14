@@ -724,19 +724,25 @@ export default function ReceiptVouchers() {
 
                           {/* اسم المشروع */}
                           <TableCell className="py-3.5 px-4 text-right">
-                            <button
-                              onClick={() => handleSelectProject(voucher.projectId.toString())}
-                              className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
-                            >
-                              <span className="font-bold text-slate-800 dark:text-slate-200 block line-clamp-1 group-hover:underline">
-                                {voucher.projectName || `مشروع #${voucher.projectId}`}
-                              </span>
-                              {voucher.projectNumber && (
-                                <span className="text-[10px] text-muted-foreground font-mono block">
-                                  {voucher.projectNumber}
+                            {voucher.projectId ? (
+                              <button
+                                onClick={() => handleSelectProject(voucher.projectId!.toString())}
+                                className="text-right hover:text-emerald-700 transition-colors font-medium group cursor-pointer block"
+                              >
+                                <span className="font-bold text-slate-800 dark:text-slate-200 block line-clamp-1 group-hover:underline">
+                                  {voucher.projectName || `مشروع #${voucher.projectId}`}
                                 </span>
-                              )}
-                            </button>
+                                {voucher.projectNumber && (
+                                  <span className="text-[10px] text-muted-foreground font-mono block">
+                                    {voucher.projectNumber}
+                                  </span>
+                                )}
+                              </button>
+                            ) : (
+                              <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 text-[11px] font-semibold">
+                                سند قبض غير مقيد (عام)
+                              </Badge>
+                            )}
                           </TableCell>
 
                           {/* الجهة الداعمة */}

@@ -2043,7 +2043,7 @@ export type InsertProjectFinancialDetail = typeof projectFinancialDetails.$infer
 export const receiptVouchers = mysqlTable("receipt_vouchers", {
   id: int("id").primaryKey().autoincrement(),
   voucherNumber: varchar("voucherNumber", { length: 50 }).notNull().unique(),
-  projectId: int("projectId").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   receiptDate: datetime("receiptDate").notNull(),
   payerName: varchar("payerName", { length: 255 }),

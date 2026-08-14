@@ -2189,7 +2189,7 @@ export const projectsRouter = router({
 
   createReceiptVoucher: protectedProcedure
     .input(z.object({
-      projectId: z.number(),
+      projectId: z.number().optional().nullable(),
       amount: z.number().positive("يرجى إدخال مبلغ صحيح أكبر من 0"),
       receiptDate: z.string().min(1, "يرجى تحديد تاريخ القبض"),
       payerName: z.string().optional(),
@@ -2207,7 +2207,7 @@ export const projectsRouter = router({
 
       await db.insert(receiptVouchers).values({
         voucherNumber,
-        projectId: input.projectId,
+        projectId: input.projectId && input.projectId > 0 ? input.projectId : null,
         amount: input.amount.toString(),
         receiptDate: new Date(input.receiptDate),
         payerName: input.payerName || "",
@@ -2417,14 +2417,18 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
       }
 
-      const [project] = await db
-        .select({
-          id: projects.id,
-          name: projects.name,
-          projectNumber: projects.projectNumber,
-        })
-        .from(projects)
-        .where(eq(projects.id, voucher.projectId));
+      let project: { id: number; name: string; projectNumber: string | null } | undefined = undefined;
+      if (voucher.projectId) {
+        const [foundProject] = await db
+          .select({
+            id: projects.id,
+            name: projects.name,
+            projectNumber: projects.projectNumber,
+          })
+          .from(projects)
+          .where(eq(projects.id, voucher.projectId));
+        project = foundProject;
+      }
 
       // التوقيع يظهر بالتقرير فقط وحصرياً إذا كان السند معتمداً (status === 'approved')
       let signerUser = null;
