@@ -364,9 +364,35 @@ export default function QuickResponseReportForm() {
 
         {/* العنوان */}
         <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-2">{t.title}</h1>
-          <p className="text-sm md:text-base text-gray-600">{t.subtitle}</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{t.title}</h1>
+          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">{t.subtitle}</p>
         </div>
+
+        {/* توجيهات وملاحظات التحويل للاستجابة السريعة - تظهر في بداية الصفحة بألوان متناسقة مع ثيم المنصة */}
+        {requestData.technicalEvalJustification && (
+          <Card className="mb-6 border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-card shadow-xs overflow-hidden rounded-2xl">
+            <CardHeader className="p-4 md:p-6 pb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-primary/15 text-primary shrink-0 shadow-xs">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base md:text-lg font-bold text-foreground">
+                    {t.technicalEvalNotesTitle}
+                  </CardTitle>
+                  <CardDescription className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                    {t.technicalEvalNotesDesc}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6 pt-2">
+              <div className="p-4 rounded-xl bg-card border border-border text-foreground text-sm md:text-base leading-relaxed whitespace-pre-wrap font-medium shadow-xs">
+                {requestData.technicalEvalJustification}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* البيانات الأساسية */}
         <Card className="mb-6 border-0 shadow-sm">
@@ -429,32 +455,6 @@ export default function QuickResponseReportForm() {
             </div>
           </CardContent>
         </Card>
-
-        {/* توجيهات وملاحظات التحويل للاستجابة السريعة */}
-        {requestData.technicalEvalJustification && (
-          <Card className="mb-6 border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/60 via-purple-50/30 to-white dark:from-purple-950/30 dark:via-purple-900/10 dark:to-slate-900 shadow-sm">
-            <CardHeader className="p-4 md:p-6 pb-2">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shrink-0">
-                  <MessageSquare className="w-4 h-4 md:w-5 md:h-5" />
-                </div>
-                <div>
-                  <CardTitle className="text-base md:text-lg font-bold text-purple-900 dark:text-purple-200">
-                    {t.technicalEvalNotesTitle}
-                  </CardTitle>
-                  <CardDescription className="text-xs md:text-sm text-purple-700/80 dark:text-purple-400 mt-0.5">
-                    {t.technicalEvalNotesDesc}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 md:p-6 pt-2">
-              <div className="p-3.5 md:p-4 rounded-xl bg-white dark:bg-slate-950/80 border border-purple-100 dark:border-purple-900/40 text-slate-800 dark:text-slate-200 text-xs md:text-sm leading-relaxed whitespace-pre-wrap shadow-xs">
-                {requestData.technicalEvalJustification}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* التقييم الفني */}
         <Card className="mb-6 border-0 shadow-sm">
