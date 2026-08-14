@@ -781,7 +781,49 @@ export default function ProjectDetailsPage() {
                 </CardContent>
               </Card>
 
-              {project.request && (
+              {project.isMultiMosque ? (
+                <Card className="border-0 shadow-sm">
+                  <CardHeader className="text-right">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-primary" />
+                      إدارة ومساجد المشروع
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-right">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">مدير المشروع</p>
+                        <p className="font-bold text-foreground flex items-center gap-1.5 mt-0.5">
+                          <Users className="w-4 h-4 text-primary" />
+                          {project.managerName || "غير محدد"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">عدد المساجد المشمولة</p>
+                        <p className="font-bold text-primary flex items-center gap-1.5 mt-0.5">
+                          <Building className="w-4 h-4 text-primary" />
+                          {(project as any).linkedMosques?.length || 0} مساجد
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">المدة المخططة</p>
+                        <p className="font-medium text-foreground">
+                          {project.startDate && project.expectedEndDate
+                            ? `${Math.round((new Date(project.expectedEndDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} يوم`
+                            : "غير محددة"
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">المرحلة الحالية</p>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 mt-1 font-bold">
+                          إعداد جدول الكميات (مباشر)
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : project.request ? (
                 <Card className="border-0 shadow-sm">
                   <CardHeader className="text-right">
                     <CardTitle className="text-lg">الطلب المرتبط</CardTitle>
@@ -809,7 +851,7 @@ export default function ProjectDetailsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              ) : null}
             </div>
 
             {/* بطاقة المساجد المشمولة في حالة مشروع عدة مساجد المباشر */}
@@ -822,7 +864,7 @@ export default function ProjectDetailsPage() {
                       المساجد المشمولة بالمشروع (عدة مساجد)
                     </CardTitle>
                     <CardDescription className="text-xs mt-1">
-                      قائمة المساجد المخصصة ضمن هذا المشروع والميزانية وشروط الأعمال لكل مسجد
+                      قائمة المساجد المعتمدة والمشمولة ضمن هذا المشروع المباشر
                     </CardDescription>
                   </div>
                   <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1">
@@ -833,35 +875,32 @@ export default function ProjectDetailsPage() {
                   <Table dir="rtl">
                     <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead className="text-right font-bold">المسجد</TableHead>
-                        <TableHead className="text-right font-bold">المدينة / الحي</TableHead>
-                        <TableHead className="text-right font-bold">الميزانية المخصصة</TableHead>
-                        <TableHead className="text-right font-bold">الإمام / التواصل</TableHead>
-                        <TableHead className="text-right font-bold">الشروط وملاحظات الأعمال</TableHead>
+                        <TableHead className="text-center font-bold w-14">#</TableHead>
+                        <TableHead className="text-right font-bold">اسم المسجد</TableHead>
+                        <TableHead className="text-right font-bold">المدينة / المنطقة</TableHead>
+                        <TableHead className="text-right font-bold">الحي</TableHead>
+                        <TableHead className="text-left font-bold">الحالة</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(project as any).linkedMosques.map((item: any) => (
+                      {(project as any).linkedMosques.map((item: any, idx: number) => (
                         <TableRow key={item.id} className="hover:bg-muted/20">
+                          <TableCell className="text-center font-bold text-muted-foreground text-xs">
+                            {idx + 1}
+                          </TableCell>
                           <TableCell className="font-bold text-foreground">
                             {item.mosqueName || `مسجد #${item.mosqueId}`}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-xs">
-                            {item.mosqueCity || "—"} {item.mosqueDistrict ? ` - ${item.mosqueDistrict}` : ""}
+                            {item.mosqueCity || "—"}
                           </TableCell>
-                          <TableCell className="font-bold text-primary">
-                            {item.allocatedBudget ? `${parseFloat(item.allocatedBudget).toLocaleString()} ريال` : "—"}
+                          <TableCell className="text-muted-foreground text-xs">
+                            {item.mosqueDistrict || "—"}
                           </TableCell>
-                          <TableCell className="text-xs">
-                            {item.imamName ? (
-                              <div>
-                                <span className="font-semibold block">{item.imamName}</span>
-                                <span className="text-muted-foreground">{item.imamPhone || ""}</span>
-                              </div>
-                            ) : "—"}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-xs">
-                            {item.notes || "لا توجد ملاحظات خاصة"}
+                          <TableCell className="text-left">
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
+                              مشمول بالمشروع
+                            </Badge>
                           </TableCell>
                         </TableRow>
                       ))}
