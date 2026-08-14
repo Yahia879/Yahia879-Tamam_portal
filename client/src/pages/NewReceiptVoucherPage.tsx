@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,9 @@ import {
   CreditCard,
   UserCheck,
   Sparkles,
+  Info,
+  DollarSign,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -237,40 +240,41 @@ export default function NewReceiptVoucherPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto pb-12 font-sans" dir="rtl">
+      <div className="space-y-6 max-w-5xl mx-auto pb-12 font-sans" dir="rtl">
         
-        {/* هيدر الصفحة والـ Stepper */}
-        <div className="bg-card border border-border/50 rounded-2xl p-4 sm:p-6 shadow-sm space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
+        {/* Sticky Header with Back & Progress */}
+        <div className="bg-card border-b border-border/40 pb-4 sticky top-0 z-20 backdrop-blur-md bg-card/90 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Button 
+                variant="outline" 
+                size="icon" 
                 onClick={() => {
-                  if (step > 1) setStep((prev) => (prev - 1) as any);
-                  else navigate("/receipt-vouchers");
-                }}
-                className="h-9 w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
+                  if (step > 1) {
+                    setStep((prev) => (prev - 1) as any);
+                  } else if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigate("/receipt-vouchers");
+                  }
+                }} 
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0"
               >
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="text-right">
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                  <Coins className="w-6 h-6 text-primary" />
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
                   تسجيل سند قبض جديد
                 </h1>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  توثيق وتسجيل سند قبض مالي للدفعات المقبوضة للمشاريع والمساجد
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
+                  توثيق وتسجيل سند قبض مالي للدفعات المقبوضة فعلياً من الجهات الداعمة للمشاريع
                 </p>
               </div>
             </div>
-            <Badge variant="outline" className="hidden sm:inline-flex bg-primary/5 text-primary border-primary/20 text-xs px-3 py-1 font-bold">
-              سند قبض مالي
-            </Badge>
           </div>
 
-          {/* Stepper Timeline Header */}
-          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 pt-2">
+          {/* 3-Step Timeline Header */}
+          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
             <div className="relative flex items-center justify-between">
               {/* Connecting Line background */}
               <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
@@ -324,7 +328,7 @@ export default function NewReceiptVoucherPage() {
                   ٣
                 </div>
                 <span className={`text-xs font-semibold ${step === 3 ? "text-primary" : "text-muted-foreground"}`}>
-                  المراجعة والاعتماد
+                  المطابقة والبيانات المالية
                 </span>
               </div>
             </div>
@@ -333,7 +337,7 @@ export default function NewReceiptVoucherPage() {
 
         {/* ── الخطوة 1: اختيار نوع وتصنيف سند القبض ── */}
         {step === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
@@ -341,23 +345,27 @@ export default function NewReceiptVoucherPage() {
                   الخطوة 1: اختيار نوع وتصنيف سند القبض
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
-                  حدد نوع وتصنيف سند القبض للمتابعة إلى إدخال البيانات المالية وتحديد الداعم
+                  حدد تصنيف سند القبض المناسب للمتابعة إلى إدخال البيانات المالية وتحديد الداعم
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  
-                  {/* 1. سند قبض مرتبط بمشروع موجود */}
-                  <button
-                    type="button"
-                    onClick={() => setCategory("project_linked")}
-                    className={`flex flex-col items-start gap-3 p-4 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                      category === "project_linked"
-                        ? "bg-teal-50/90 dark:bg-teal-950/30 border-teal-500 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
-                        : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
+                <div className="space-y-3 pb-2 border-b border-border/40">
+                  <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-primary" />
+                    نوع سند القبض *
+                  </Label>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    {/* 1. سند قبض مرتبط بمشروع موجود */}
+                    <button
+                      type="button"
+                      onClick={() => setCategory("project_linked")}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                        category === "project_linked"
+                          ? "bg-teal-50/80 dark:bg-teal-950/30 border-teal-500/80 dark:border-teal-500/60 shadow-xs ring-2 ring-teal-500/20"
+                          : "bg-background border-border hover:border-teal-300 dark:hover:border-teal-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                      }`}
+                    >
                       <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
                         category === "project_linked"
                           ? "bg-teal-600 text-white"
@@ -365,31 +373,31 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <FolderKanban className="w-5 h-5" />
                       </div>
-                      {category === "project_linked" && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
-                        سند قبض مرتبط بمشروع موجود
-                      </span>
-                      <p className={`text-[11px] leading-relaxed ${category === "project_linked" ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
-                        ربط سند القبض بمشروع معتمد ومسجل مع مطابقة الموقف المالي للداعم
-                      </p>
-                    </div>
-                  </button>
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "project_linked" ? "text-teal-900 dark:text-teal-200" : "text-foreground"}`}>
+                            سند قبض مرتبط بمشروع موجود
+                          </span>
+                          {category === "project_linked" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
+                          )}
+                        </div>
+                        <p className={`text-[11px] leading-relaxed ${category === "project_linked" ? "text-teal-750 dark:text-teal-300" : "text-muted-foreground"}`}>
+                          ربط سند القبض بمشروع معتمد ومسجل مع مطابقة الموقف المالي للداعم
+                        </p>
+                      </div>
+                    </button>
 
-                  {/* 2. سند قبض مقيد */}
-                  <button
-                    type="button"
-                    onClick={() => setCategory("restricted")}
-                    className={`flex flex-col items-start gap-3 p-4 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                      category === "restricted"
-                        ? "bg-blue-50/90 dark:bg-blue-950/30 border-blue-500 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
-                        : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
+                    {/* 2. سند قبض مقيد */}
+                    <button
+                      type="button"
+                      onClick={() => setCategory("restricted")}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                        category === "restricted"
+                          ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-500/80 dark:border-blue-500/60 shadow-xs ring-2 ring-blue-500/20"
+                          : "bg-background border-border hover:border-blue-300 dark:hover:border-blue-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                      }`}
+                    >
                       <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
                         category === "restricted"
                           ? "bg-blue-600 text-white"
@@ -397,31 +405,31 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <FileCheck className="w-5 h-5" />
                       </div>
-                      {category === "restricted" && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
-                        سند قبض مقيد
-                      </span>
-                      <p className={`text-[11px] leading-relaxed ${category === "restricted" ? "text-blue-750 dark:text-blue-300" : "text-muted-foreground"}`}>
-                        سند قبض مخصص ومقيد لغرض أو بند محدد أو برنامج معين
-                      </p>
-                    </div>
-                  </button>
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "restricted" ? "text-blue-900 dark:text-blue-200" : "text-foreground"}`}>
+                            سند قبض مقيد
+                          </span>
+                          {category === "restricted" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+                          )}
+                        </div>
+                        <p className={`text-[11px] leading-relaxed ${category === "restricted" ? "text-blue-750 dark:text-blue-300" : "text-muted-foreground"}`}>
+                          سند قبض مخصص ومقيد لغرض أو بند محدد أو برنامج معين
+                        </p>
+                      </div>
+                    </button>
 
-                  {/* 3. سند قبض غير مقيد */}
-                  <button
-                    type="button"
-                    onClick={() => setCategory("unrestricted")}
-                    className={`flex flex-col items-start gap-3 p-4 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                      category === "unrestricted"
-                        ? "bg-amber-50/90 dark:bg-amber-950/30 border-amber-500 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
-                        : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
+                    {/* 3. سند قبض غير مقيد */}
+                    <button
+                      type="button"
+                      onClick={() => setCategory("unrestricted")}
+                      className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                        category === "unrestricted"
+                          ? "bg-amber-50/80 dark:bg-amber-950/30 border-amber-500/80 dark:border-amber-500/60 shadow-xs ring-2 ring-amber-500/20"
+                          : "bg-background border-border hover:border-amber-300 dark:hover:border-amber-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                      }`}
+                    >
                       <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
                         category === "unrestricted"
                           ? "bg-amber-600 text-white"
@@ -429,117 +437,115 @@ export default function NewReceiptVoucherPage() {
                       }`}>
                         <Coins className="w-5 h-5" />
                       </div>
-                      {category === "unrestricted" && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse" />
-                      )}
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
-                        سند قبض غير مقيد
-                      </span>
-                      <p className={`text-[11px] leading-relaxed ${category === "unrestricted" ? "text-amber-750 dark:text-amber-300" : "text-muted-foreground"}`}>
-                        سند قبض عام غير مخصص لمشروع أو بند معين (تبرعات وإيرادات عامة)
-                      </p>
-                    </div>
-                  </button>
-
-                </div>
-
-                <div className="flex justify-end pt-4 border-t border-border/40">
-                  <Button
-                    onClick={handleStep1Next}
-                    className="gradient-primary text-white font-bold px-8 h-10 rounded-xl gap-2 shadow-sm"
-                  >
-                    <span>التالي: إدخال بيانات سند القبض</span>
-                    <ArrowLeft className="w-4 h-4" />
-                  </Button>
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs sm:text-sm font-bold block ${category === "unrestricted" ? "text-amber-900 dark:text-amber-200" : "text-foreground"}`}>
+                            سند قبض غير مقيد
+                          </span>
+                          {category === "unrestricted" && (
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse shrink-0" />
+                          )}
+                        </div>
+                        <p className={`text-[11px] leading-relaxed ${category === "unrestricted" ? "text-amber-750 dark:text-amber-300" : "text-muted-foreground"}`}>
+                          سند قبض عام غير مخصص لمشروع أو بند معين (تبرعات عامة)
+                        </p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </CardContent>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-end gap-2">
+                <Button
+                  onClick={handleStep1Next}
+                  className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  <span>التالي</span>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         )}
 
         {/* ── الخطوة 2: بيانات سند القبض والمشروع ── */}
         {step === 2 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="space-y-6">
             {category === "project_linked" ? (
               <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                 <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                    <FolderKanban className="h-4.5 w-4.5 text-teal-600" />
-                    الخطوة 2: بيانات سند القبض المرتبط بمشروع
+                    <FileText className="h-4.5 w-4.5 text-primary" />
+                    الخطوة 2: بيانات سند القبض والمشروع المرتبط
                   </CardTitle>
                   <CardDescription className="text-right text-xs text-muted-foreground">
-                    اختر المشروع المسجل وحدد الداعم والمبلغ وتفاصيل السند المالي
+                    تحديد المشروع المسجل والداعم والمبالغ والبيانات المالية للسند
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-6 text-right">
                   
-                  {/* 1. اختيار المشروع والداعم */}
-                  <div className="p-4 bg-slate-50/70 dark:bg-slate-900/40 rounded-xl border border-slate-200/80 dark:border-slate-800 space-y-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <FolderKanban className="w-4 h-4 text-primary" />
-                        المشروع المرتبط بالسند *
-                      </Label>
-                      <Select
-                        value={selectedProjectId}
-                        onValueChange={(val) => {
-                          setSelectedProjectId(val);
-                          setAmount("");
-                        }}
-                      >
-                        <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 w-full text-right">
-                          <SelectValue placeholder="اختر المشروع المعتمد..." />
+                  {/* اختيار المشروع */}
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <FolderKanban className="w-4 h-4 text-primary" />
+                      المشروع المرتبط بالسند *
+                    </Label>
+                    <Select
+                      value={selectedProjectId}
+                      onValueChange={(val) => {
+                        setSelectedProjectId(val);
+                        setAmount("");
+                      }}
+                    >
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر المشروع المعتمد لجلب بياناته..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl" className="max-h-72">
+                        {projectsList.map((p) => (
+                          <SelectItem key={p.id} value={p.id.toString()} className="text-right">
+                            <span className="font-bold">{p.projectNumber || `#${p.id}`}</span> - {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground">اختر المشروع لجلب الموقف المالي والجهات الداعمة المسجلة تلقائياً</p>
+                  </div>
+
+                  {/* اختيار اللقب والجهة الداعمة / المسدد */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border/40 pt-4">
+                    <div className="col-span-1 space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اللقب / الصفة *</Label>
+                      <Select value={honorificTitle} onValueChange={setHonorificTitle}>
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                          <SelectValue placeholder="اللقب..." />
                         </SelectTrigger>
-                        <SelectContent dir="rtl" className="max-h-72">
-                          {projectsList.map((p) => (
-                            <SelectItem key={p.id} value={p.id.toString()} className="text-right">
-                              <span className="font-bold">{p.projectNumber || `#${p.id}`}</span> - {p.name}
+                        <SelectContent dir="rtl">
+                          <SelectItem value="السادة" className="text-right">السادة</SelectItem>
+                          <SelectItem value="السيد" className="text-right">السيد</SelectItem>
+                          <SelectItem value="السيدة" className="text-right">السيدة</SelectItem>
+                          <SelectItem value="الشيخ" className="text-right">الشيخ</SelectItem>
+                          <SelectItem value="المحسن الكريم" className="text-right">المحسن الكريم</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2 space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الجهة الداعمة / المسدد *</Label>
+                      <Select
+                        value={payerName}
+                        onValueChange={(val) => setPayerName(val)}
+                        disabled={projectSupporters.length === 0}
+                      >
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                          <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "لا يوجد داعمين مسجلين للمشروع"} />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl" className="max-h-60">
+                          {projectSupporters.map((sup, idx) => (
+                            <SelectItem key={idx} value={sup} className="text-right">
+                              {sup}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-[11px] text-muted-foreground">اختر المشروع لجلب الموقف المالي والجهات الداعمة المسجلة تلقائياً</p>
-                    </div>
-
-                    {/* اختيار اللقب والجهة الداعمة / المسدد */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-800">
-                      <div className="col-span-1 space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">اللقب / الصفة *</Label>
-                        <Select value={honorificTitle} onValueChange={setHonorificTitle}>
-                          <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                            <SelectValue placeholder="اللقب..." />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl">
-                            <SelectItem value="السادة">السادة</SelectItem>
-                            <SelectItem value="السيد">السيد</SelectItem>
-                            <SelectItem value="السيدة">السيدة</SelectItem>
-                            <SelectItem value="الشيخ">الشيخ</SelectItem>
-                            <SelectItem value="المحسن الكريم">المحسن الكريم</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="col-span-2 space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">الجهة الداعمة / المسدد *</Label>
-                        <Select
-                          value={payerName}
-                          onValueChange={(val) => setPayerName(val)}
-                          disabled={projectSupporters.length === 0}
-                        >
-                          <SelectTrigger className="h-10 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 w-full text-right">
-                            <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "لا يوجد داعمين مسجلين للمشروع"} />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl" className="max-h-60">
-                            {projectSupporters.map((sup, idx) => (
-                              <SelectItem key={idx} value={sup} className="text-right">
-                                {sup}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
                   </div>
 
@@ -613,11 +619,11 @@ export default function NewReceiptVoucherPage() {
                   )}
 
                   {/* 3. تفاصيل سند القبض: المبلغ والتاريخ والبيان */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4">
                     {/* مبلغ الدفعة المقبوضة */}
-                    <div className="space-y-1.5">
+                    <div className="space-y-2 text-right">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">مبلغ الدفعة المقبوضة (ريال) *</Label>
                         {remainingUnpaidForSupporter > 0 && (
                           <button
                             type="button"
@@ -636,70 +642,69 @@ export default function NewReceiptVoucherPage() {
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder="مثال: 50000"
                         disabled={remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0}
-                        className="h-10 font-bold text-emerald-800 dark:text-emerald-300 text-left [direction:ltr] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                        className="text-left [direction:ltr] border-border focus:ring-primary rounded-xl h-11 font-bold text-emerald-800 dark:text-emerald-300 bg-background"
                       />
                     </div>
 
                     {/* تاريخ القبض */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">تاريخ القبض *</Label>
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تاريخ القبض *</Label>
                       <Input
                         type="date"
                         value={receiptDate}
                         onChange={(e) => setReceiptDate(e.target.value)}
-                        className="h-10 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
                       />
                     </div>
                   </div>
 
                   {/* البيان / الملاحظات */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">وذلك مقابل (سبب المقبوض / البيان) *</Label>
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وذلك مقابل (سبب المقبوض / البيان) *</Label>
                     <Textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       placeholder="أدخل البيان أو سبب القبض (مثال: دفعة دعم مشروع صيانة المسجد...)"
                       rows={3}
-                      className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs"
+                      className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
                     />
                   </div>
 
                   {/* تفاصيل طريقة القبض والحساب البنكي */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <Label className="text-xs font-bold text-slate-800 dark:text-slate-200">تفاصيل طريقة القبض والحساب البنكي</Label>
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تفاصيل طريقة القبض والحساب البنكي</Label>
                     <Input
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
-                      className="h-10 text-xs bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 font-medium"
+                      className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
                     />
                   </div>
 
-                  {/* أزرار الخطوة 2 */}
-                  <div className="flex justify-between items-center pt-4 border-t border-border/40">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="text-xs h-10 px-5 rounded-xl gap-1.5"
-                    >
-                      <ArrowRight className="w-4 h-4" />
-                      <span>السابق: نوع السند</span>
-                    </Button>
-                    <Button
-                      onClick={handleStep2Next}
-                      disabled={!selectedProjectId || projectSupporters.length === 0 || !amount || parseFloat(amount) <= 0}
-                      className="gradient-primary text-white font-bold px-8 h-10 rounded-xl gap-2 shadow-sm"
-                    >
-                      <span>التالي: مراجعة وتأكيد السند</span>
-                      <ArrowLeft className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </CardContent>
+                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    <span>السابق</span>
+                  </Button>
+                  <Button
+                    onClick={handleStep2Next}
+                    disabled={!selectedProjectId || projectSupporters.length === 0 || !amount || parseFloat(amount) <= 0}
+                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  >
+                    <span>التالي</span>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </CardFooter>
               </Card>
             ) : (
-              /* في حال اختيار سند مقيد أو غير مقيد */
+              /* في حال اختيار مسار مقيد أو غير مقيد */
               <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                 <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                   <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
@@ -727,22 +732,33 @@ export default function NewReceiptVoucherPage() {
                     التبديل إلى سند مرتبط بمشروع
                   </Button>
                 </CardContent>
+                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    <span>السابق</span>
+                  </Button>
+                </CardFooter>
               </Card>
             )}
           </div>
         )}
 
-        {/* ── الخطوة 3: المراجعة والاعتماد ── */}
+        {/* ── الخطوة 3: المطابقة والبيانات المالية والمراجعة ── */}
         {step === 3 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="space-y-6">
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
                 <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                  <FileCheck className="h-4.5 w-4.5 text-emerald-600" />
-                  الخطوة 3: مراجعة واعتماد بيانات سند القبض
+                  <FileCheck className="h-4.5 w-4.5 text-primary" />
+                  الخطوة 3: المطابقة والبيانات المالية ومراجعة السند
                 </CardTitle>
                 <CardDescription className="text-right text-xs text-muted-foreground">
-                  راجع البيانات المدخلة وتفاصيل السند المالي قبل التأكيد والتسجيل
+                  مراجعة تفاصيل سند القبض والموقف المالي قبل التأكيد والتسجيل النهائي
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6 pt-6 text-right">
@@ -812,31 +828,30 @@ export default function NewReceiptVoucherPage() {
                   </div>
                 </div>
 
-                {/* أزرار الإرسال والتأكيد */}
-                <div className="flex justify-between items-center pt-4 border-t border-border/40">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                    className="text-xs h-10 px-5 rounded-xl gap-1.5"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    <span>السابق: تعديل البيانات</span>
-                  </Button>
-                  <Button
-                    onClick={handleFinalSubmit}
-                    disabled={createVoucherMutation.isPending}
-                    className="gradient-primary text-white font-bold px-8 h-10 rounded-xl gap-2 shadow-sm"
-                  >
-                    {createVoucherMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4" />
-                    )}
-                    <span>تأكيد وتسجيل سند القبض</span>
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(2)}
+                  className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  <span>السابق</span>
+                </Button>
+                <Button
+                  onClick={handleFinalSubmit}
+                  disabled={createVoucherMutation.isPending}
+                  className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                >
+                  {createVoucherMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  <span>تأكيد وتسجيل سند القبض</span>
+                </Button>
+              </CardFooter>
             </Card>
           </div>
         )}
