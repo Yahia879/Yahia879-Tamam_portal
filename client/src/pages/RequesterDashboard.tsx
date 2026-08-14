@@ -45,7 +45,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
@@ -89,6 +89,7 @@ export default function RequesterDashboard() {
   const [evalRating, setEvalRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [evalNotes, setEvalNotes] = useState<string>("");
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -103,14 +104,14 @@ export default function RequesterDashboard() {
 
   // إجراء إرسال التقييم
   const submitEvaluationMutation = trpc.requests.submitBeneficiaryEvaluation.useMutation({
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       toast.success(res.message || "تم استلام تقييمك بنجاح، شكراً لمشاركتك!");
       setEvaluatingRequest(null);
       setEvalNotes("");
       setEvalRating(5);
       utils.requests.getMyRequests.invalidate();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast.error(err.message || "حدث خطأ أثناء إرسال التقييم");
     },
   });
@@ -119,15 +120,25 @@ export default function RequesterDashboard() {
   const orgName = orgSettings?.organizationName || 'بوابة تمام';
   const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
-  const pendingRequests = myRequests?.filter(r => r.status === "pending") || [];
-  const inProgressRequests = myRequests?.filter(r => r.status === "in_progress") || [];
-  const completedRequests = myRequests?.filter(r => r.status === "completed" || r.currentStage === "closed") || [];
+  const pendingRequests = myRequests?.filter((r: any) => r.status === "pending") || [];
+  const inProgressRequests = myRequests?.filter((r: any) => r.status === "in_progress") || [];
+  const completedRequests = myRequests?.filter((r: any) => r.status === "completed" || r.currentStage === "closed") || [];
   const unreadNotifications = notifications?.notifications?.filter((n: any) => !n.isRead) || [];
 
   // تصفية الطلبات المكتملة/المغلقة التي لم يتم تقييمها بعد
   const unEvaluatedClosedRequests = myRequests?.filter(
     (r: any) => (r.currentStage === "closed" || r.status === "completed") && !r.isEvaluated
   ) || [];
+
+  // فتح نافذة الـ Modal تلقائياً في صفحة /requester عند وجود طلب مكتمل لم يتم تقييمه بعد
+  useEffect(() => {
+    if (!isLoading && myRequests && unEvaluatedClosedRequests.length > 0 && !hasAutoOpened && !evaluatingRequest) {
+      setEvaluatingRequest(unEvaluatedClosedRequests[0]);
+      setEvalRating(5);
+      setEvalNotes("");
+      setHasAutoOpened(true);
+    }
+  }, [isLoading, myRequests, unEvaluatedClosedRequests, hasAutoOpened, evaluatingRequest]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -579,26 +590,38 @@ export default function RequesterDashboard() {
           }
         }}
       >
-        <DialogContent className="w-[92vw] max-w-lg rounded-2xl p-6 sm:p-7 text-right" dir="rtl">
-          <DialogHeader className="text-right">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-600 flex items-center justify-center mb-2 mx-auto sm:mr-0">
-              <HeartHandshake className="w-6 h-6" />
+        <DialogContent className="w-[94vw] max-w-lg rounded-3xl p-6 sm:p-8 text-right bg-card/95 backdrop-blur-xl border-border/80 shadow-2xl animate-in zoom-in-95 duration-200" dir="rtl">
+          <DialogHeader className="text-right space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shadow-inner">
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              </div>
+              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-xs px-3 py-1 rounded-full shadow-sm">
+                مكتمل ومغلق
+              </Badge>
             </div>
-            <DialogTitle className="text-xl font-bold text-foreground">
-              تقييم رضا المستفيد عن الخدمة
-            </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
-              طلب رقم <span className="font-bold text-foreground font-mono">{evaluatingRequest?.requestNumber}</span> {evaluatingRequest?.mosqueName ? `— مسجد (${evaluatingRequest?.mosqueName})` : ''}
-            </DialogDescription>
+
+            <div>
+              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+                طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+                تم إغلاق طلب الخدمة رقم{" "}
+                <span className="font-bold text-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/60">
+                  {evaluatingRequest?.requestNumber}
+                </span>{" "}
+                {evaluatingRequest?.mosqueName ? `لمسجد (${evaluatingRequest?.mosqueName})` : ''} بنجاح. نرجو مشاركتنا تقييمك لمساعدتنا في تطوير الخدمة.
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             {/* اختيار النجوم التفاعلي */}
-            <div className="text-center space-y-3">
+            <div className="text-center space-y-3 p-4 rounded-2xl bg-muted/40 border border-border/50">
               <span className="text-xs sm:text-sm font-semibold text-foreground block">
-                ما هو مستوى رضاك عن جودة الخدمة وسرعة الإنجاز؟
+                ما هو مستوى رضاك عن جودة الخدمة المقدمة؟
               </span>
-              <div className="flex items-center justify-center gap-2 sm:gap-3 py-2" dir="ltr">
+              <div className="flex items-center justify-center gap-2 sm:gap-3 py-1" dir="ltr">
                 {[1, 2, 3, 4, 5].map((star) => {
                   const active = (hoverRating || evalRating) >= star;
                   return (
@@ -611,9 +634,9 @@ export default function RequesterDashboard() {
                       className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
                     >
                       <Star
-                        className={`w-8 h-8 sm:w-10 sm:h-10 transition-colors ${
+                        className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-200 ${
                           active
-                            ? "text-amber-500 fill-amber-500 drop-shadow-[0_2px_8px_rgba(245,158,11,0.4)]"
+                            ? "text-amber-500 fill-amber-500 drop-shadow-[0_2px_10px_rgba(245,158,11,0.5)]"
                             : "text-muted-foreground/30 hover:text-amber-300"
                         }`}
                       />
@@ -629,9 +652,9 @@ export default function RequesterDashboard() {
                 if (!detail) return null;
                 return (
                   <div className={`p-3 rounded-xl border text-center transition-all ${detail.color}`}>
-                    <div className="text-2xl mb-1">{detail.emoji}</div>
+                    <div className="text-2xl mb-0.5">{detail.emoji}</div>
                     <p className="font-bold text-sm">{detail.label}</p>
-                    <p className="text-xs opacity-90">{detail.description}</p>
+                    <p className="text-[11px] opacity-90">{detail.description}</p>
                   </div>
                 );
               })()}
@@ -652,7 +675,7 @@ export default function RequesterDashboard() {
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 sm:gap-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 sm:gap-2 pt-2 border-t border-border/40">
             <Button
               disabled={submitEvaluationMutation.isPending || evalRating === 0}
               onClick={() => {
@@ -663,7 +686,7 @@ export default function RequesterDashboard() {
                   notes: evalNotes.trim() || undefined,
                 });
               }}
-              className="w-full sm:w-auto bg-primary hover:bg-primary/95 text-white font-bold gap-2 rounded-xl px-6"
+              className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary text-white font-bold gap-2 rounded-xl px-7 py-2.5 shadow-md transition-all hover:scale-[1.02]"
             >
               {submitEvaluationMutation.isPending ? (
                 <>
@@ -683,7 +706,7 @@ export default function RequesterDashboard() {
               onClick={() => setEvaluatingRequest(null)}
               className="w-full sm:w-auto rounded-xl font-medium"
             >
-              إلغاء
+              تقييم لاحقاً
             </Button>
           </DialogFooter>
         </DialogContent>
