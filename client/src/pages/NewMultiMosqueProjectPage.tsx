@@ -301,7 +301,6 @@ export default function NewMultiMosqueProjectPage() {
                         يوم
                       </span>
                     </div>
-                    <p className="text-[11px] text-muted-foreground">حدد عدد الأيام المتوقعة لإنجاز المشروع بالكامل</p>
                   </div>
 
                   <div className="space-y-2">
@@ -320,7 +319,6 @@ export default function NewMultiMosqueProjectPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[11px] text-muted-foreground">سيتم إسناد المشروع وإدارته للمستخدم المختار</p>
                   </div>
 
                   <div className="space-y-2 col-span-1 md:col-span-2">
@@ -333,7 +331,6 @@ export default function NewMultiMosqueProjectPage() {
                       onChange={(e) => setDescription(e.target.value)}
                       className="rounded-xl min-h-[90px] resize-y text-sm leading-relaxed"
                     />
-                    <p className="text-[11px] text-muted-foreground">تفاصيل الأعمال المخططة ومجالات الصيانة والتنفيذ للمساجد</p>
                   </div>
                 </div>
 

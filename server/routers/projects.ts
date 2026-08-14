@@ -211,6 +211,7 @@ export const projectsRouter = router({
     .input(z.object({
       search: z.string().optional(),
       status: z.string().optional(),
+      type: z.string().optional(), // 'all' | 'multi' | 'single'
       page: z.number().default(1),
       limit: z.number().default(20),
     }))
@@ -235,6 +236,13 @@ export const projectsRouter = router({
       const conditions = [];
       if (ctx.user?.role === "project_manager") {
         conditions.push(eq(projects.managerId, ctx.user.id));
+      }
+      if (input.type && input.type !== "all") {
+        if (input.type === "multi") {
+          conditions.push(eq(projects.isMultiMosque, true));
+        } else if (input.type === "single") {
+          conditions.push(or(eq(projects.isMultiMosque, false), sql`${projects.isMultiMosque} IS NULL`)!);
+        }
       }
       if (input.status && input.status !== "all") {
         if (["planning", "in_progress", "on_hold", "completed", "cancelled"].includes(input.status)) {
@@ -271,6 +279,7 @@ export const projectsRouter = router({
           projectNumber: projects.projectNumber,
           name: projects.name,
           description: projects.description,
+          isMultiMosque: projects.isMultiMosque,
           status: projects.status,
           budget: sql<string>`COALESCE(${projects.budget}, (SELECT SUM(CAST(totalPrice AS DECIMAL(15,2))) FROM quantity_schedules WHERE projectId = ${projects.id}))`.as('budget'),
           actualCost: projects.actualCost,

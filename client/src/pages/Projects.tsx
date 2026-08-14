@@ -35,6 +35,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
+import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 
 const statusLabels: Record<string, string> = {
   planning: "إعداد جدول الكميات",
@@ -52,6 +53,12 @@ const filterOptions = [
   { value: "صرف المدفوعات", label: "صرف المدفوعات" },
   { value: "المراجعة والإغلاق", label: "المراجعة والإغلاق" },
   { value: "completed", label: "مكتمل" },
+];
+
+const typeFilterOptions = [
+  { value: "all", label: "جميع أنواع المشاريع" },
+  { value: "multi", label: "مشاريع متعددة المساجد" },
+  { value: "single", label: "مشاريع مفردة (مسجد واحد)" },
 ];
 
 const statusColors: Record<string, string> = {
@@ -76,6 +83,7 @@ export default function Projects() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const limit = 20;
 
@@ -90,6 +98,7 @@ export default function Projects() {
   const { data, isLoading } = trpc.projects.search.useQuery({
     search: search || undefined,
     status: statusFilter !== "all" ? statusFilter as any : undefined,
+    type: typeFilter !== "all" ? typeFilter : undefined,
     page,
     limit,
   });
@@ -193,7 +202,7 @@ export default function Projects() {
         {/* فلاتر البحث */}
         <Card className="border-0 shadow-sm">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -203,17 +212,32 @@ export default function Projects() {
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="pr-10"
+                  className="pr-10 h-10"
                 />
               </div>
+              <Select value={typeFilter} onValueChange={(v) => {
+                setTypeFilter(v);
+                setPage(1);
+              }}>
+                <SelectTrigger className="w-full sm:w-[210px] h-10">
+                  <SelectValue placeholder="نوع المشروع" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  {typeFilterOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={(v) => {
                 setStatusFilter(v);
                 setPage(1);
               }}>
-                <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px] h-10">
                   <SelectValue placeholder="حالة المشروع" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent dir="rtl">
                   {filterOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>
                       {opt.label}
@@ -259,13 +283,19 @@ export default function Projects() {
                         <TableRow key={project.id} className="group">
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                <FolderKanban className="w-5 h-5 text-primary" />
-                              </div>
+                              {project.isMultiMosque ? (
+                                <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs shrink-0" title="مشروع مباشر لعدة مساجد">
+                                  <MultiMosquesIcon className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                  <FolderKanban className="w-5 h-5 text-primary" />
+                                </div>
+                              )}
                               <div className="min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <p className="font-medium text-foreground group-hover:text-primary transition-colors">{project.name}</p>
-                                  {(!project.requestId || project.isMultiMosque) && (
+                                  {project.isMultiMosque && (
                                     <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] py-0 px-1.5 font-semibold">
                                       عدّة مساجد
                                     </Badge>
