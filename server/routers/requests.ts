@@ -680,6 +680,13 @@ export const requestsRouter = router({
         projectId: projects.id,
         projectNumber: projects.projectNumber,
         projectName: projects.name,
+        isMultiMosque: projects.isMultiMosque,
+        multiMosqueNames: sql<string | null>`(
+          SELECT GROUP_CONCAT(m.name SEPARATOR '، ') 
+          FROM project_mosques pm 
+          JOIN mosques m ON pm.mosqueId = m.id 
+          WHERE pm.projectId = projects.id
+        )`,
         evaluationNotes: sql<string | null>`(select notes from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
@@ -747,7 +754,8 @@ export const requestsRouter = router({
           } else if (ctx.user.role === "quick_response" && !hasViewDetailsPermission) {
             effectiveStatus = r.hasQuickReport ? "completed" as any : "in_progress" as any;
           }
-          let mosqueName = r.mosqueName;
+          let isMultiMosque = Boolean(r.isMultiMosque || (typeof r.request.programData === 'object' && (r.request.programData as any)?.isMultiMosque));
+          let mosqueName = r.multiMosqueNames || r.mosqueName;
           let mosqueCity = r.mosqueCity;
           if (!r.request.mosqueId && r.request.programData) {
             let progData: any = null;
@@ -774,6 +782,8 @@ export const requestsRouter = router({
             status: effectiveStatus,
             mosqueName,
             mosqueCity,
+            multiMosqueNames: r.multiMosqueNames,
+            isMultiMosque,
             requesterName: r.requesterName,
             programName: r.programName,
             projectId: r.projectId,

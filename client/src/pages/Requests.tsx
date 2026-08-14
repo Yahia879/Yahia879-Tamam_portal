@@ -433,25 +433,41 @@ export default function Requests({
                     >
                       {/* Desktop: Program Icon */}
                       <div className="hidden md:flex w-8 justify-center">
-                        <ProgramIcon program={request.programType} size="md" />
+                        {request.isMultiMosque || request.programData?.isMultiMosque ? (
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
+                            <Building2 className="w-4.5 h-4.5" />
+                          </div>
+                        ) : (
+                          <ProgramIcon program={request.programType} size="md" />
+                        )}
                       </div>
 
                       {/* Request Info (Mobile & Desktop) */}
                       <div className="flex items-start justify-between md:block gap-3">
                         <div className="flex items-center gap-3 md:block min-w-0">
                            <div className="md:hidden shrink-0">
-                            <ProgramIcon program={request.programType} size="md" />
+                            {request.isMultiMosque || request.programData?.isMultiMosque ? (
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                                <Building2 className="w-4.5 h-4.5" />
+                              </div>
+                            ) : (
+                              <ProgramIcon program={request.programType} size="md" />
+                            )}
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold text-foreground text-sm md:text-sm">
-                              {request.programType === "bunyan" 
-                                ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                : (isEn 
-                                    ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
-                                    : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
+                              {request.isMultiMosque || request.programData?.isMultiMosque
+                                ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                                : request.programType === "bunyan" 
+                                  ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                                  : (isEn 
+                                      ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                                      : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
-                              {request.programName && !isEn ? request.programName : translateProgram(request.programType)} ({request.requestNumber})
+                              {request.isMultiMosque || request.programData?.isMultiMosque
+                                ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
+                                : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
                             </p>
                           </div>
                         </div>
@@ -477,7 +493,9 @@ export default function Requests({
                       {/* Mosque (Desktop & Tablet) */}
                       <div className="hidden md:flex items-center gap-2 min-w-0">
                         <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm text-foreground truncate">{request.mosqueName || "—"}</span>
+                        <span className="text-sm text-foreground truncate" title={request.multiMosqueNames || request.mosqueName || "—"}>
+                          {request.multiMosqueNames || request.mosqueName || "—"}
+                        </span>
                       </div>
 
                       {/* Stage (Desktop) */}
