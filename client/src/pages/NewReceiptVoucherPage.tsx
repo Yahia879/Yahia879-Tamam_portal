@@ -39,6 +39,7 @@ import {
   DollarSign,
   Briefcase,
   PenLine,
+  HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -68,7 +69,10 @@ export default function NewReceiptVoucherPage() {
   const [notes, setNotes] = useState<string>("");
   const [bankName, setBankName] = useState<string>("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
 
-  // Unrestricted custom payer helpers
+  // Restricted donation purpose (مصارف التبرعات)
+  const [donationPurpose, setDonationPurpose] = useState<string>("بناء المساجد");
+
+  // Unrestricted / Restricted custom payer helpers
   const [unrestrictedPayerSelect, setUnrestrictedPayerSelect] = useState<string>("__custom__");
   const [unrestrictedCustomPayer, setUnrestrictedCustomPayer] = useState<string>("");
 
@@ -159,7 +163,7 @@ export default function NewReceiptVoucherPage() {
       } else {
         setPayerName("");
       }
-    } else if (category === "unrestricted") {
+    } else if (category === "unrestricted" || category === "restricted") {
       if (!["السادة", "السيد", "السيدة"].includes(honorificTitle)) {
         setHonorificTitle("السادة");
       }
@@ -218,7 +222,11 @@ export default function NewReceiptVoucherPage() {
         toast.error("يرجى إدخال البيان أو سبب القبض");
         return;
       }
-    } else if (category === "unrestricted") {
+    } else if (category === "restricted" || category === "unrestricted") {
+      if (category === "restricted" && !donationPurpose) {
+        toast.error("يرجى تحديد مصرف التبرع");
+        return;
+      }
       const currentPayer = (unrestrictedPayerSelect === "__custom__" ? unrestrictedCustomPayer : unrestrictedPayerSelect).trim();
       if (!currentPayer) {
         toast.error("يرجى تحديد أو كتابة اسم الجهة الداعمة / المسدد");
@@ -243,12 +251,16 @@ export default function NewReceiptVoucherPage() {
   };
 
   const handleFinalSubmit = () => {
-    const finalPayerName = category === "unrestricted" && unrestrictedPayerSelect === "__custom__"
+    const finalPayerName = (category === "unrestricted" || category === "restricted") && unrestrictedPayerSelect === "__custom__"
       ? unrestrictedCustomPayer.trim()
       : payerName.trim();
 
     const fullPayerName = honorificTitle ? `${honorificTitle} / ${finalPayerName}` : finalPayerName;
     
+    const finalNotes = category === "restricted"
+      ? (notes.trim().startsWith("مصرف التبرع:") ? notes.trim() : `مصرف التبرع: ${donationPurpose} | ${notes.trim()}`)
+      : notes.trim();
+
     createVoucherMutation.mutate({
       projectId: category === "project_linked" ? activeProjectId : null,
       amount: parseFloat(amount),
@@ -256,7 +268,7 @@ export default function NewReceiptVoucherPage() {
       payerName: fullPayerName,
       paymentMethod: "bank_transfer",
       bankName: bankName.trim(),
-      notes: notes.trim(),
+      notes: finalNotes,
     });
   };
 
@@ -731,7 +743,186 @@ export default function NewReceiptVoucherPage() {
               </Card>
             )}
 
-            {/* 2. في حال اختيار سند قبض غير مقيد */}
+            {/* 2. في حال اختيار سند قبض مقيد */}
+            {category === "restricted" && (
+              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                    <FileCheck className="h-4.5 w-4.5 text-blue-600" />
+                    الخطوة 2: بيانات سند القبض المقيد
+                  </CardTitle>
+                  <CardDescription className="text-right text-xs text-muted-foreground">
+                    تحديد مصرف التبرع والجهة الداعمة والمبالغ والبيانات المالية لسند القبض المقيد
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6 text-right">
+                  
+                  {/* 1. مصرف التبرع في البداية */}
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-primary" />
+                      مصارف التبرعات *
+                    </Label>
+                    <Select value={donationPurpose} onValueChange={setDonationPurpose}>
+                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectValue placeholder="اختر مصرف التبرع..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="بناء المساجد" className="text-right">بناء المساجد</SelectItem>
+                        <SelectItem value="الترميم" className="text-right">الترميم</SelectItem>
+                        <SelectItem value="سقية الماء" className="text-right">سقية الماء</SelectItem>
+                        <SelectItem value="التجهيزات" className="text-right">التجهيزات</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* 2. اختيار اللقب والجهة الداعمة / المسدد مع إمكانية كتابة جهة أخرى */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-border/40 pt-4">
+                    <div className="col-span-1 space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اللقب / الصفة *</Label>
+                      <Select value={honorificTitle} onValueChange={setHonorificTitle}>
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
+                          <SelectValue placeholder="اللقب..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="السادة" className="text-right">السادة</SelectItem>
+                          <SelectItem value="السيد" className="text-right">السيد</SelectItem>
+                          <SelectItem value="السيدة" className="text-right">السيدة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2 space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الجهة الداعمة / المسدد *</Label>
+                      <Select
+                        value={unrestrictedPayerSelect}
+                        onValueChange={(val) => {
+                          setUnrestrictedPayerSelect(val);
+                          if (val !== "__custom__") {
+                            setPayerName(val);
+                          } else {
+                            setPayerName(unrestrictedCustomPayer);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                          <SelectValue placeholder="اختر من تصنيفات التمويل والدعم أو أضف جهة أخرى..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl" className="max-h-60">
+                          <SelectItem value="__custom__" className="text-right font-bold text-primary">
+                            ✍️ إضافة جهة أخرى / إدخال يدوي
+                          </SelectItem>
+                          {fundingSupportCategories.map((sup, idx) => (
+                            <SelectItem key={idx} value={sup} className="text-right">
+                              {sup}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* حقل إدخال اسم الجهة يدوياً عند اختيار أخرى */}
+                  {unrestrictedPayerSelect === "__custom__" && (
+                    <div className="space-y-2 text-right animate-in fade-in duration-200">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <PenLine className="w-4 h-4 text-primary" />
+                        اسم الجهة الداعمة أو المتبرع *
+                      </Label>
+                      <Input
+                        type="text"
+                        value={unrestrictedCustomPayer}
+                        onChange={(e) => {
+                          setUnrestrictedCustomPayer(e.target.value);
+                          setPayerName(e.target.value);
+                        }}
+                        placeholder="أدخل اسم الجهة الداعمة أو المتبرع..."
+                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
+                      />
+                    </div>
+                  )}
+
+                  {/* تفاصيل سند القبض: المبلغ والتاريخ */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4">
+                    {/* مبلغ الدفعة المقبوضة */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                      <Input
+                        type="number"
+                        min={0.01}
+                        step={0.01}
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="مثال: 50000"
+                        className="text-left [direction:ltr] border-border focus:ring-primary rounded-xl h-11 font-bold text-emerald-800 dark:text-emerald-300 bg-background"
+                      />
+                    </div>
+
+                    {/* تاريخ القبض */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تاريخ القبض *</Label>
+                      <Input
+                        type="date"
+                        value={receiptDate}
+                        onChange={(e) => setReceiptDate(e.target.value)}
+                        className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  {/* البيان / الملاحظات */}
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">وذلك مقابل (سبب المقبوض / البيان) *</Label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder={`أدخل البيان أو سبب القبض (مثال: تبرع مقيد لمصرف ${donationPurpose || "المساجد"}...)`}
+                      rows={3}
+                      className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
+                    />
+                  </div>
+
+                  {/* تفاصيل طريقة القبض والحساب البنكي */}
+                  <div className="space-y-2 text-right">
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تفاصيل طريقة القبض والحساب البنكي</Label>
+                    <Input
+                      type="text"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                      className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
+                    />
+                  </div>
+
+                </CardContent>
+                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    <span>السابق</span>
+                  </Button>
+                  <Button
+                    onClick={handleStep2Next}
+                    disabled={
+                      (unrestrictedPayerSelect === "__custom__" ? !unrestrictedCustomPayer.trim() : !unrestrictedPayerSelect.trim()) ||
+                      !donationPurpose ||
+                      !amount ||
+                      parseFloat(amount) <= 0
+                    }
+                    className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2"
+                  >
+                    <span>التالي</span>
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+
+            {/* 3. في حال اختيار سند قبض غير مقيد */}
             {category === "unrestricted" && (
               <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                 <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
@@ -889,57 +1080,6 @@ export default function NewReceiptVoucherPage() {
                 </CardFooter>
               </Card>
             )}
-
-            {/* 3. في حال اختيار سند قبض مقيد */}
-            {category === "restricted" && (
-              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                <CardHeader className="bg-muted/30 border-b border-border/40 py-4 text-right">
-                  <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                    <Layers className="h-4.5 w-4.5 text-primary" />
-                    الخطوة 2: سند قبض مقيد
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="py-12 text-center space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
-                    <Sparkles className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-base font-bold text-foreground">
-                    مسار سند القبض المقيد
-                  </h3>
-                  <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-                    جاري تجهيز حقول وبنود هذا المسار. يمكنك حالياً استخدام مسار "سند قبض مرتبط بمشروع موجود" أو "سند قبض غير مقيد".
-                  </p>
-                  <div className="flex justify-center gap-2 pt-2">
-                    <Button
-                      type="button"
-                      onClick={() => setCategory("project_linked")}
-                      className="gradient-primary text-white font-bold text-xs rounded-xl h-10 px-4"
-                    >
-                      التبديل إلى سند مرتبط بمشروع
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setCategory("unrestricted")}
-                      className="text-xs rounded-xl h-10 px-4"
-                    >
-                      التبديل إلى سند غير مقيد
-                    </Button>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t border-border/40 pt-4 flex justify-between gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="border-border text-foreground font-bold px-6 h-11 rounded-xl shadow-xs flex items-center gap-2"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                    <span>السابق</span>
-                  </Button>
-                </CardFooter>
-              </Card>
-            )}
           </div>
         )}
 
@@ -965,19 +1105,27 @@ export default function NewReceiptVoucherPage() {
                       <Receipt className="w-4 h-4" />
                       ملخص سند القبض المالي
                     </span>
-                    <Badge className={category === "project_linked" ? "bg-teal-50 text-teal-800 border-teal-200 font-bold text-xs" : "bg-amber-50 text-amber-800 border-amber-200 font-bold text-xs"}>
-                      {category === "project_linked" ? "سند قبض مرتبط بمشروع" : "سند قبض غير مقيد (عام)"}
+                    <Badge className={
+                      category === "project_linked" 
+                        ? "bg-teal-50 text-teal-800 border-teal-200 font-bold text-xs" 
+                        : category === "restricted"
+                        ? "bg-blue-50 text-blue-800 border-blue-200 font-bold text-xs"
+                        : "bg-amber-50 text-amber-800 border-amber-200 font-bold text-xs"
+                    }>
+                      {category === "project_linked" ? "سند قبض مرتبط بمشروع" : category === "restricted" ? `سند قبض مقيد (${donationPurpose})` : "سند قبض غير مقيد (عام)"}
                     </Badge>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
                       <span className="text-muted-foreground font-medium block">
-                        {category === "project_linked" ? "المشروع المرتبط:" : "نوع وتصنيف السند:"}
+                        {category === "project_linked" ? "المشروع المرتبط:" : category === "restricted" ? "مصرف التبرع (مقيد):" : "نوع وتصنيف السند:"}
                       </span>
                       <p className="font-bold text-foreground text-sm">
                         {category === "project_linked"
                           ? (selectedProject ? `${selectedProject.projectNumber || ""} - ${selectedProject.name}` : `#${selectedProjectId}`)
+                          : category === "restricted"
+                          ? `سند قبض مقيد - مصرف ${donationPurpose}`
                           : "سند قبض غير مقيد (غير مرتبط بمشروع محدد)"
                         }
                       </p>
@@ -986,7 +1134,7 @@ export default function NewReceiptVoucherPage() {
                     <div className="space-y-1">
                       <span className="text-muted-foreground font-medium block">الجهة الداعمة / المسدد:</span>
                       <p className="font-bold text-foreground text-sm">
-                        {honorificTitle} / {category === "unrestricted" && unrestrictedPayerSelect === "__custom__" ? unrestrictedCustomPayer : payerName}
+                        {honorificTitle} / {(category === "unrestricted" || category === "restricted") && unrestrictedPayerSelect === "__custom__" ? unrestrictedCustomPayer : payerName}
                       </p>
                     </div>
 
@@ -1023,7 +1171,10 @@ export default function NewReceiptVoucherPage() {
                   <div className="space-y-1 pt-1">
                     <span className="text-muted-foreground font-medium block text-xs">وذلك مقابل (البيان):</span>
                     <p className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
-                      {notes}
+                      {category === "restricted" && !notes.startsWith("مصرف التبرع:")
+                        ? `مصرف التبرع: ${donationPurpose} | ${notes}`
+                        : notes
+                      }
                     </p>
                   </div>
                 </div>
