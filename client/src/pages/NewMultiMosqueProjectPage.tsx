@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -41,7 +40,6 @@ export default function NewMultiMosqueProjectPage() {
 
   // البيانات العامة
   const [projectName, setProjectName] = useState("");
-  const [projectDescription, setProjectDescription] = useState("");
   const [durationDays, setDurationDays] = useState("");
   const [managerId, setManagerId] = useState<string>("");
 
@@ -136,7 +134,6 @@ export default function NewMultiMosqueProjectPage() {
 
     createMultiProjectMutation.mutate({
       name: projectName.trim(),
-      description: projectDescription.trim() || undefined,
       managerId: parseInt(managerId),
       durationDays: parseInt(durationDays),
       mosques: selectedMosques.map(m => ({
@@ -307,30 +304,19 @@ export default function NewMultiMosqueProjectPage() {
                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       مدير المشروع *
                     </Label>
-                    <Select value={managerId} onValueChange={setManagerId}>
-                      <SelectTrigger className="h-10 rounded-xl w-full">
+                    <Select dir="rtl" value={managerId} onValueChange={setManagerId}>
+                      <SelectTrigger dir="rtl" className="h-10 rounded-xl w-full text-right">
                         <SelectValue placeholder="اختر مدير المشروع..." />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent dir="rtl">
                         {managersList.map((m: any) => (
-                          <SelectItem key={m.id} value={m.id.toString()}>
+                          <SelectItem key={m.id} value={m.id.toString()} className="text-right justify-end">
                             {m.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <p className="text-[11px] text-muted-foreground">سيتم إسناد المشروع وإدارته للمستخدم المختار</p>
-                  </div>
-
-                  <div className="col-span-1 md:col-span-2 space-y-2">
-                    <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">وصف المشروع ونطاق العمل الإجمالي</Label>
-                    <Textarea
-                      rows={3}
-                      placeholder="ادخل وصفاً شاملاً لنطاق الأعمال المطلوبة والشروط للمساجد المشمولة..."
-                      value={projectDescription}
-                      onChange={(e) => setProjectDescription(e.target.value)}
-                      className="rounded-xl"
-                    />
                   </div>
                 </div>
 
@@ -534,7 +520,6 @@ export default function NewMultiMosqueProjectPage() {
                       <p><span className="text-muted-foreground">اسم المشروع:</span> <span className="font-bold">{projectName}</span></p>
                       <p><span className="text-muted-foreground">المدة المتوقعة للانتهاء:</span> <span className="font-bold text-primary">{durationDays} يوم</span></p>
                       <p><span className="text-muted-foreground">مدير المشروع:</span> <span className="font-bold">{selectedManager?.name || "غير محدد"}</span></p>
-                      {projectDescription && <p><span className="text-muted-foreground">الوصف:</span> <span>{projectDescription}</span></p>}
                     </div>
                   </div>
 
