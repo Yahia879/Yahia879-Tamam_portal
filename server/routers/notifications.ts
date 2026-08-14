@@ -93,9 +93,9 @@ export async function sendEmailNotification(
   const formattedMessage = message.replace(/\n/g, "<br />");
   
   const buttonHtml = actionUrl ? `
-    <div style="text-align: center; margin: 30px 0 25px 0;">
-      <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; text-decoration: none; padding: 14px 34px; font-size: 16px; font-weight: bold; border-radius: 10px; display: inline-block; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35); letter-spacing: 0.3px;">
-        ⭐ ${actionText || "تقييم الخدمة الآن"}
+    <div style="text-align: center; margin: 32px 0 28px 0;">
+      <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; text-decoration: none; padding: 15px 38px; font-size: 16px; font-weight: bold; border-radius: 12px; display: inline-block; box-shadow: 0 6px 18px rgba(217, 119, 6, 0.35); letter-spacing: 0.3px;">
+        ⭐ ${actionText || "تقييم الخدمة الآن"} ⭐
       </a>
     </div>
   ` : "";
@@ -107,18 +107,54 @@ export async function sendEmailNotification(
       subject: title,
       text: `${message}\n\n${actionUrl ? `${actionText || 'رابط التقييم'}: ${actionUrl}` : ''}`,
       html: `
-        <div style="direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; padding: 25px; border: 1px solid #e5e7eb; border-radius: 12px; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #0d9488; padding-bottom: 15px;">
-            <h2 style="color: #0d9488; margin: 0; font-size: 20px;">جمعية عمارة المساجد (منارة)</h2>
-          </div>
-          <p style="font-size: 16px; line-height: 1.6; color: #1f2937; font-weight: bold;">${title}</p>
-          <div style="font-size: 14px; line-height: 1.7; color: #374151; background-color: #f9fafb; padding: 18px; border-radius: 8px; border-right: 4px solid #d97706;">
-            ${formattedMessage}
-          </div>
-          ${buttonHtml}
-          <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 25px 0 15px 0;" />
-          <p style="font-size: 12px; color: #9ca3af; text-align: center;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لجمعية عمارة المساجد (منارة).</p>
-        </div>
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+        </head>
+        <body style="margin: 0; padding: 25px 15px; background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
+            <!-- Header -->
+            <tr>
+              <td style="background: linear-gradient(135deg, #0d9488 0%, #115e59 100%); padding: 28px 24px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">جمعية عمارة المساجد (منارة)</h1>
+                <p style="color: #ccfbf1; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">منصة تمام لخدمات المساجد</p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding: 32px 28px;">
+                <div style="background-color: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px 18px; margin-bottom: 24px; text-align: right;">
+                  <span style="font-size: 15px; font-weight: 800; color: #0f766e; display: inline-block;">
+                    ${title}
+                  </span>
+                </div>
+
+                <div style="font-size: 15px; line-height: 1.8; color: #334155; background-color: #f8fafc; padding: 22px; border-radius: 12px; border-right: 4px solid #f59e0b; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; border-left: 1px solid #f1f5f9;">
+                  ${formattedMessage}
+                </div>
+
+                ${buttonHtml}
+
+                <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+                  <p style="font-size: 14px; font-weight: 600; color: #0f766e; margin: 0;">نسعد دائماً بخدمتكم ورضاكم غايتنا</p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color: #f8fafc; padding: 20px 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p style="font-size: 12px; color: #64748b; margin: 0 0 4px 0;">جمعية عمارة المساجد (منارة) © ${new Date().getFullYear()} - جميع الحقوق محفوظة</p>
+                <p style="font-size: 11px; color: #94a3b8; margin: 0;">هذا البريد تم إرساله تلقائياً من نظام التنبيهات لمنصة تمام.</p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
     };
 
