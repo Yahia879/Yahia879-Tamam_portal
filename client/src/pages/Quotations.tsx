@@ -153,22 +153,45 @@ export default function Quotations() {
   const getMosqueDisplayName = (request: any) => {
     if (!request) return "غير محدد";
 
-    // 1. إذا كان اسم المسجد موجود وصريح ولا يساوي "غير محدد"
-    if (request.mosqueName && request.mosqueName !== "غير محدد" && request.mosqueName.trim()) {
+    // إذا كان مشروعاً متعدد المساجد
+    if (request.isMultiMosque || (request.multiMosques && request.multiMosques.length > 1)) {
+      if (request.projectName && typeof request.projectName === "string" && request.projectName.trim()) {
+        return `مشروع ${request.projectName.trim()} (عدة مساجد)`;
+      }
+      if (request.multiMosques && request.multiMosques.length > 0) {
+        return `مشروع لعدة مساجد (${request.multiMosques.map((m: any) => m.name).join("، ")})`;
+      }
+      return "مشروع مباشر لعدة مساجد";
+    }
+
+    // 1. إذا كان اسم المسجد موجود وصريح كنص
+    if (typeof request.mosqueName === "string" && request.mosqueName.trim() && request.mosqueName !== "غير محدد") {
       const mName = request.mosqueName.trim();
       return mName.startsWith("مسجد") ? mName : `مسجد ${mName}`;
     }
 
-    // 2. إذا كان الطلب من برنامج بنيان أو أي طلب بدون مسجد محدد، نأخذ اسم مقدم الطلب
-    const reqName = request.requesterName || request.requester?.name || request.userName || request.user?.name || request.applicantName || "";
-    if (reqName && reqName.trim()) {
-      const trimmed = reqName.trim();
-      return trimmed.startsWith("مسجد") ? trimmed : `مسجد ${trimmed}`;
+    // 2. إذا كان كائن المسجد موجوداً وفيه اسم
+    if (request.mosque?.name && typeof request.mosque.name === "string" && request.mosque.name.trim()) {
+      const mName = request.mosque.name.trim();
+      return mName.startsWith("مسجد") ? mName : `مسجد ${mName}`;
     }
 
-    // 3. إذا كان برنامج بنيان بدون اسم مقدم طلب، يظهر "مسجد بنيان"
+    // 3. إذا كان في multiMosques مسجد واحد
+    if (request.multiMosques && request.multiMosques.length === 1 && request.multiMosques[0]?.name) {
+      const mName = String(request.multiMosques[0].name).trim();
+      return mName.startsWith("مسجد") ? mName : `مسجد ${mName}`;
+    }
+
+    // 4. إذا كان الطلب من برنامج بنيان أو أي طلب بدون مسجد محدد، نأخذ اسم مقدم الطلب
+    const reqName = request.requesterName || request.requester?.name || request.userName || request.user?.name || request.applicantName;
+    if (typeof reqName === "string" && reqName.trim()) {
+      const trimmed = reqName.trim();
+      return `طلب ${trimmed}`;
+    }
+
+    // 5. إذا كان برنامج بنيان بدون اسم مقدم طلب
     if (request.programType === "bunyan" || request.programType === "bonyan") {
-      return "مسجد بنيان";
+      return "طلب برنامج بنيان";
     }
 
     return "غير محدد";
@@ -185,16 +208,23 @@ export default function Quotations() {
       if (targetReq && targetReq.id) {
         const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
         const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
+        const mosqueNameStr = typeof targetReq.mosqueName === "string" 
+          ? targetReq.mosqueName 
+          : (targetReq.mosque?.name || null);
+
         return [{
           ...targetReq,
           id: targetReq.id,
           requestNumber: targetReq.requestNumber || `REQ-${targetReq.id}`,
-          mosqueName: targetReq.mosqueName || targetReq.mosqueId || "غير محدد",
+          mosqueName: mosqueNameStr,
           programType: targetReq.programType || "other",
           createdAt: targetReq.createdAt || new Date().toISOString(),
           requesterName: reqName,
           user: reqUser,
           requester: reqUser,
+          isMultiMosque: (singleRequestData as any).isMultiMosque || targetReq.isMultiMosque,
+          multiMosques: (singleRequestData as any).multiMosques || targetReq.multiMosques,
+          projectName: (singleRequestData as any).projectName || targetReq.projectName,
         }];
       }
     }
