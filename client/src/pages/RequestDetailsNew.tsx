@@ -1458,12 +1458,22 @@ export default function RequestDetailsNew() {
                       </div>
 
                       {/* ملاحظات المستفيد إن وجدت */}
-                      {(request as any).evaluationNotes && (
-                        <div className="mt-2.5 p-2 px-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-foreground flex items-baseline gap-1">
-                          <span className="font-bold text-muted-foreground shrink-0">ملاحظات المستفيد:</span>
-                          <span className="text-foreground italic">"{(request as any).evaluationNotes}"</span>
-                        </div>
-                      )}
+                      {(() => {
+                        const rawNotes = (request as any).evaluationNotes;
+                        if (!rawNotes) return null;
+                        let textToDisplay = rawNotes;
+                        try {
+                          const parsed = JSON.parse(rawNotes);
+                          textToDisplay = parsed.comments || parsed.notes || "";
+                        } catch {}
+                        if (!textToDisplay) return null;
+                        return (
+                          <div className="mt-2.5 p-2 px-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-foreground flex items-baseline gap-1">
+                            <span className="font-bold text-muted-foreground shrink-0">ملاحظات المستفيد:</span>
+                            <span className="text-foreground italic">"{textToDisplay}"</span>
+                          </div>
+                        );
+                      })()}
                     </Card>
                   </div>
                 )}

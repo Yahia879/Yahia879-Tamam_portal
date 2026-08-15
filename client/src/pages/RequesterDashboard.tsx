@@ -41,6 +41,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -84,14 +86,45 @@ export default function RequesterDashboard() {
   const [, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
   
-  // حالة نافذة التقييم المنبثقة
+  // حالة استبيان تقييم رضا المستفيدين
   const [evaluatingRequest, setEvaluatingRequest] = useState<any | null>(null);
-  const [evalRating, setEvalRating] = useState<number>(5);
-  const [hoverRating, setHoverRating] = useState<number>(0);
-  const [evalNotes, setEvalNotes] = useState<string>("");
-  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+  const [beneficiaryName, setBeneficiaryName] = useState<string>("");
+  const [beneficiaryPhone, setBeneficiaryPhone] = useState<string>("");
+  const [serviceName, setServiceName] = useState<string>("");
+  const [beneficiaryEmail, setBeneficiaryEmail] = useState<string>("");
+
+  const [servicesRating, setServicesRating] = useState<number>(0);
+  const [hoverServicesRating, setHoverServicesRating] = useState<number>(0);
+
+  const [speedRating, setSpeedRating] = useState<number>(0);
+  const [hoverSpeedRating, setHoverSpeedRating] = useState<number>(0);
+
+  const [communicationRating, setCommunicationRating] = useState<number>(0);
+  const [hoverCommunicationRating, setHoverCommunicationRating] = useState<number>(0);
+
+  const [overallSatisfaction, setOverallSatisfaction] = useState<number>(0);
+  const [hoverOverallSatisfaction, setHoverOverallSatisfaction] = useState<number>(0);
+
+  const [comments, setComments] = useState<string>("");
 
   const utils = trpc.useUtils();
+
+  // دالة فتح نافذة التقييم وتهيئة البيانات الأولية
+  const openEvaluationModal = (req: any) => {
+    setEvaluatingRequest(req);
+    setBeneficiaryName(user?.name || "");
+    setBeneficiaryPhone(user?.phone || (user as any)?.mobileNumber || "");
+    const initialServiceName = req.mosqueName 
+      ? `مسجد ${req.mosqueName}` 
+      : (req.descriptiveName || req.programType || `طلب خدمة رقم #${req.requestNumber || req.id}`);
+    setServiceName(initialServiceName);
+    setBeneficiaryEmail(user?.email || "");
+    setServicesRating(0);
+    setSpeedRating(0);
+    setCommunicationRating(0);
+    setOverallSatisfaction(0);
+    setComments("");
+  };
 
   // جلب طلبات المستخدم
   const { data: myRequests, isLoading } = trpc.requests.getMyRequests.useQuery();
@@ -105,16 +138,47 @@ export default function RequesterDashboard() {
   // إجراء إرسال التقييم
   const submitEvaluationMutation = trpc.requests.submitBeneficiaryEvaluation.useMutation({
     onSuccess: (res: any) => {
-      toast.success(res.message || "تم استلام تقييمك بنجاح، شكراً لمشاركتك!");
+      toast.success(res.message || "تم استلام استبيان التقييم بنجاح، شكراً لمشاركتك!");
       setEvaluatingRequest(null);
-      setEvalNotes("");
-      setEvalRating(5);
       utils.requests.getMyRequests.invalidate();
     },
     onError: (err: any) => {
       toast.error(err.message || "حدث خطأ أثناء إرسال التقييم");
     },
   });
+
+  const handleSubmitSurvey = () => {
+    if (!evaluatingRequest) return;
+    if (!serviceName.trim()) {
+      toast.error("يرجى إدخال اسم المسجد/المشروع/الخدمة");
+      return;
+    }
+    if (speedRating === 0) {
+      toast.error("يرجى الإجابة على: ما مدى تقييمك لسرعة تلبية طلبك؟");
+      return;
+    }
+    if (communicationRating === 0) {
+      toast.error("يرجى الإجابة على: ما مدى سرعة تواصل موظفي الجمعية معك؟");
+      return;
+    }
+    if (overallSatisfaction === 0) {
+      toast.error("يرجى الإجابة على: ما مدى رضاك بشكل عام عن الجمعية؟");
+      return;
+    }
+
+    submitEvaluationMutation.mutate({
+      requestId: evaluatingRequest.id,
+      beneficiaryName: beneficiaryName.trim() || undefined,
+      beneficiaryPhone: beneficiaryPhone.trim() || undefined,
+      serviceName: serviceName.trim(),
+      beneficiaryEmail: beneficiaryEmail.trim() || undefined,
+      servicesRating: servicesRating > 0 ? servicesRating : undefined,
+      speedRating,
+      communicationRating,
+      overallSatisfaction,
+      comments: comments.trim() || undefined,
+    });
+  };
 
   const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
   const orgName = orgSettings?.organizationName || 'بوابة تمام';
@@ -140,9 +204,7 @@ export default function RequesterDashboard() {
       });
 
       if (targetReq) {
-        setEvaluatingRequest(targetReq);
-        setEvalRating(5);
-        setEvalNotes("");
+        openEvaluationModal(targetReq);
         // تسجيل أن المودال قد ظهر لهذا الطلب لكي لا يتكرر ظهوره التلقائي مجدداً
         const storageKey = `eval_modal_shown_${user.id}_${targetReq.id}`;
         localStorage.setItem(storageKey, "true");
@@ -546,7 +608,7 @@ export default function RequesterDashboard() {
         </Card>
       </main>
 
-      {/* نافذة تقييم رضا المستفيد السريعة (Modal Dialog) */}
+      {/* نافذة استبيان قياس رضا المستفيدين (Modal Dialog) */}
       <Dialog 
         open={!!evaluatingRequest} 
         onOpenChange={(open) => {
@@ -555,125 +617,248 @@ export default function RequesterDashboard() {
           }
         }}
       >
-        <DialogContent className="w-[94vw] max-w-lg rounded-3xl p-6 sm:p-8 text-right bg-card/95 backdrop-blur-xl border-border/80 shadow-2xl animate-in zoom-in-95 duration-200" dir="rtl">
-          <DialogHeader className="text-right space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shadow-inner">
-                <Sparkles className="w-6 h-6 animate-pulse" />
-              </div>
-              <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-bold text-xs px-3 py-1 rounded-full shadow-sm">
-                مكتمل ومغلق
-              </Badge>
-            </div>
-
-            <div>
-              <DialogTitle className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-                طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
-              </DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
-                تم إغلاق طلب الخدمة رقم{" "}
-                <span className="font-bold text-foreground font-mono bg-muted px-1.5 py-0.5 rounded border border-border/60">
-                  {evaluatingRequest?.requestNumber}
-                </span>{" "}
-                {evaluatingRequest?.mosqueName ? `لمسجد (${evaluatingRequest?.mosqueName})` : ''} بنجاح. نرجو مشاركتنا تقييمك لمساعدتنا في تطوير الخدمة.
-              </DialogDescription>
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* اختيار النجوم التفاعلي */}
-            <div className="text-center space-y-3 p-4 rounded-2xl bg-muted/40 border border-border/50">
-              <span className="text-xs sm:text-sm font-semibold text-foreground block">
-                ما هو مستوى رضاك عن جودة الخدمة المقدمة؟
-              </span>
-              <div className="flex items-center justify-center gap-2 sm:gap-3 py-1" dir="ltr">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const active = (hoverRating || evalRating) >= star;
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setEvalRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                    >
-                      <Star
-                        className={`w-9 h-9 sm:w-10 sm:h-10 transition-all duration-200 ${
-                          active
-                            ? "text-amber-500 fill-amber-500 drop-shadow-[0_2px_10px_rgba(245,158,11,0.5)]"
-                            : "text-muted-foreground/30 hover:text-amber-300"
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* بطاقة التعبير عن التقييم المختار */}
-              {(() => {
-                const activeVal = hoverRating || evalRating;
-                const detail = RATING_LABELS[activeVal];
-                if (!detail) return null;
-                return (
-                  <div className={`p-3 rounded-xl border text-center transition-all ${detail.color}`}>
-                    <div className="text-2xl mb-0.5">{detail.emoji}</div>
-                    <p className="font-bold text-sm">{detail.label}</p>
-                    <p className="text-[11px] opacity-90">{detail.description}</p>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* ملاحظات إضافية */}
-            <div className="space-y-2 text-right">
-              <label className="text-xs sm:text-sm font-semibold text-foreground block">
-                ملاحظات أو مقترحات إضافية (اختياري)
-              </label>
-              <Textarea
-                value={evalNotes}
-                onChange={(e) => setEvalNotes(e.target.value)}
-                placeholder="شاركنا رأيك أو أي ملاحظات تسهم في الارتقاء بخدماتنا مستقبلاً..."
-                className="rounded-xl min-h-[90px] text-sm resize-none"
-                maxLength={500}
-              />
-            </div>
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl border border-slate-200/80 shadow-2xl bg-white text-slate-900 font-sans" dir="rtl">
+          {/* 1. Header Banner مع الشعار */}
+          <div className="bg-[#14707a] text-white p-6 sm:p-7 flex flex-col items-center justify-center rounded-t-2xl relative shadow-inner">
+            <img 
+              src={mainLogoSrc} 
+              alt="شعار الجمعية" 
+              className="h-14 sm:h-16 w-auto object-contain brightness-0 invert"
+            />
           </div>
 
-          <DialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 sm:gap-2 pt-2 border-t border-border/40">
-            <Button
-              disabled={submitEvaluationMutation.isPending || evalRating === 0}
-              onClick={() => {
-                if (!evaluatingRequest) return;
-                submitEvaluationMutation.mutate({
-                  requestId: evaluatingRequest.id,
-                  rating: evalRating,
-                  notes: evalNotes.trim() || undefined,
-                });
-              }}
-              className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary text-white font-bold gap-2 rounded-xl px-7 py-2.5 shadow-md transition-all hover:scale-[1.02]"
-            >
-              {submitEvaluationMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>جاري إرسال التقييم...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>إرسال التقييم</span>
-                </>
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              disabled={submitEvaluationMutation.isPending}
-              onClick={() => setEvaluatingRequest(null)}
-              className="w-full sm:w-auto rounded-xl font-medium"
-            >
-              تقييم لاحقاً
-            </Button>
-          </DialogFooter>
+          <div className="p-5 sm:p-7 space-y-6">
+            {/* 2. العنوان والنص الترحيبي */}
+            <div className="text-center space-y-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+                قياس رضا المستفيدين من خدمات الجمعية
+              </h2>
+              <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-xl mx-auto">
+                نرحب بكم في استبيان قياس رضا المستفيدين لجمعية عمارة المساجد (منارة). نسعى من خلال هذا الاستبيان إلى فهم آرائكم واقتراحاتكم، حيث إن مشاركتكم تساعدنا في تحسين وتطوير خدماتنا لتلبية تطلعاتكم بشكل أفضل. نؤكد لكم أن إكمال الاستبيان لن يستغرق أكثر من دقيقتين من وقتكم. شكرًا لكم على وقتكم وتعاونكم
+              </p>
+            </div>
+
+            <hr className="border-t border-dotted border-slate-300" />
+
+            {/* 3. الحقول النصية */}
+            <div className="space-y-4">
+              {/* الاسم (اختياري) */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800">الاسم (اختياري)</Label>
+                <Input
+                  value={beneficiaryName}
+                  onChange={(e) => setBeneficiaryName(e.target.value)}
+                  placeholder=""
+                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
+                />
+              </div>
+
+              {/* رقم الجوال (اختياري) */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800">رقم الجوال (اختياري)</Label>
+                <Input
+                  value={beneficiaryPhone}
+                  onChange={(e) => setBeneficiaryPhone(e.target.value)}
+                  placeholder=""
+                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
+                  dir="ltr"
+                />
+              </div>
+
+              {/* اسم المسجد/المشروع/الخدمة * */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800">
+                  اسم المسجد/المشروع/الخدمة <span className="text-rose-600">*</span>
+                </Label>
+                <Input
+                  value={serviceName}
+                  onChange={(e) => setServiceName(e.target.value)}
+                  placeholder=""
+                  required
+                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right font-medium"
+                />
+              </div>
+
+              {/* البريد الإلكتروني (اختياري) */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800">البريد الإلكتروني (اختياري)</Label>
+                <Input
+                  value={beneficiaryEmail}
+                  onChange={(e) => setBeneficiaryEmail(e.target.value)}
+                  type="email"
+                  placeholder=""
+                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            {/* 4. أسئلة التقييم بالنجوم */}
+            <div className="space-y-4 pt-1">
+              {/* ما مدى تقييمك لخدمات الجمعية؟ */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
+                  ما مدى تقييمك لخدمات الجمعية؟
+                </Label>
+                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = (hoverServicesRating || servicesRating) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setServicesRating(star)}
+                        onMouseEnter={() => setHoverServicesRating(star)}
+                        onMouseLeave={() => setHoverServicesRating(0)}
+                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-all ${
+                            active
+                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
+                              : "text-slate-300 fill-none stroke-[1.2]"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ما مدى تقييمك لسرعة تلبية طلبك؟ * */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
+                  ما مدى تقييمك لسرعة تلبية طلبك؟ <span className="text-rose-600">*</span>
+                </Label>
+                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = (hoverSpeedRating || speedRating) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setSpeedRating(star)}
+                        onMouseEnter={() => setHoverSpeedRating(star)}
+                        onMouseLeave={() => setHoverSpeedRating(0)}
+                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-all ${
+                            active
+                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
+                              : "text-slate-300 fill-none stroke-[1.2]"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ما مدى سرعة تواصل موظفي الجمعية معك؟ * */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
+                  ما مدى سرعة تواصل موظفي الجمعية معك؟ <span className="text-rose-600">*</span>
+                </Label>
+                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = (hoverCommunicationRating || communicationRating) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setCommunicationRating(star)}
+                        onMouseEnter={() => setHoverCommunicationRating(star)}
+                        onMouseLeave={() => setHoverCommunicationRating(0)}
+                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-all ${
+                            active
+                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
+                              : "text-slate-300 fill-none stroke-[1.2]"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ما مدى رضاك بشكل عام عن الجمعية؟ * */}
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
+                  ما مدى رضاك بشكل عام عن الجمعية؟ <span className="text-rose-600">*</span>
+                </Label>
+                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const active = (hoverOverallSatisfaction || overallSatisfaction) >= star;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setOverallSatisfaction(star)}
+                        onMouseEnter={() => setHoverOverallSatisfaction(star)}
+                        onMouseLeave={() => setHoverOverallSatisfaction(0)}
+                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-all ${
+                            active
+                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
+                              : "text-slate-300 fill-none stroke-[1.2]"
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* 5. مساحة حرة */}
+            <div className="space-y-1.5 text-right">
+              <Label className="block text-xs sm:text-sm font-bold text-slate-800">مساحة حرة</Label>
+              <span className="block text-xs font-semibold text-slate-700">
+                (اكتب لنا ما تريد: رأي-نصيحة-اقتراح-أخرى)
+              </span>
+              <Textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={4}
+                placeholder=""
+                className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md text-sm text-right leading-relaxed"
+              />
+            </div>
+
+            {/* 6. زر إرسال */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <Button
+                variant="ghost"
+                type="button"
+                disabled={submitEvaluationMutation.isPending}
+                onClick={() => setEvaluatingRequest(null)}
+                className="text-muted-foreground text-xs hover:text-foreground"
+              >
+                إغلاق
+              </Button>
+              <Button
+                type="button"
+                disabled={submitEvaluationMutation.isPending}
+                onClick={handleSubmitSurvey}
+                className="bg-[#2a68a5] hover:bg-[#205386] text-white font-bold text-sm px-8 py-2.5 rounded-md shadow-sm transition-all"
+              >
+                {submitEvaluationMutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الإرسال...</span>
+                  </div>
+                ) : (
+                  "إرسال"
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

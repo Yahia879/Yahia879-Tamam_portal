@@ -3362,8 +3362,17 @@ export const requestsRouter = router({
     .input(
       z.object({
         requestId: z.number(),
-        rating: z.number().min(1).max(5),
+        rating: z.number().min(1).max(5).optional(),
         notes: z.string().optional(),
+        beneficiaryName: z.string().optional(),
+        beneficiaryPhone: z.string().optional(),
+        serviceName: z.string().optional(),
+        beneficiaryEmail: z.string().optional(),
+        servicesRating: z.number().min(1).max(5).optional(),
+        speedRating: z.number().min(1).max(5).optional(),
+        communicationRating: z.number().min(1).max(5).optional(),
+        overallSatisfaction: z.number().min(1).max(5).optional(),
+        comments: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -3416,12 +3425,27 @@ export const requestsRouter = router({
         });
       }
 
+      // حساب التقييم العام (من 1 إلى 5)
+      const finalRating = input.overallSatisfaction || input.rating || input.servicesRating || 5;
+
+      const surveyPayload = {
+        beneficiaryName: input.beneficiaryName || null,
+        beneficiaryPhone: input.beneficiaryPhone || null,
+        serviceName: input.serviceName || null,
+        beneficiaryEmail: input.beneficiaryEmail || null,
+        servicesRating: input.servicesRating || null,
+        speedRating: input.speedRating || null,
+        communicationRating: input.communicationRating || null,
+        overallSatisfaction: input.overallSatisfaction || null,
+        comments: input.comments || input.notes || null,
+      };
+
       await db.insert(requestEvaluations).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        rating: input.rating,
+        rating: finalRating,
         evaluationType: "beneficiary_satisfaction",
-        notes: input.notes || null,
+        notes: JSON.stringify(surveyPayload),
         createdAt: new Date(),
       });
 
@@ -3429,7 +3453,7 @@ export const requestsRouter = router({
         .update(mosqueRequests)
         .set({
           isEvaluated: true,
-          satisfactionRating: input.rating,
+          satisfactionRating: finalRating,
           evaluatedAt: new Date(),
         })
         .where(eq(mosqueRequests.id, input.requestId));
