@@ -70,7 +70,7 @@ export default function NewReceiptVoucherPage() {
   const [bankName, setBankName] = useState<string>("مصرف الراجحي");
 
   // Restricted donation purpose (مصارف التبرعات)
-  const [donationPurpose, setDonationPurpose] = useState<string>("بناء المساجد");
+  const [donationPurpose, setDonationPurpose] = useState<string>("");
 
   // Unrestricted / Restricted custom payer helpers
   const [unrestrictedPayerSelect, setUnrestrictedPayerSelect] = useState<string>("__custom__");
@@ -89,14 +89,17 @@ export default function NewReceiptVoucherPage() {
   // Categories for Donation Purposes (مصارف التبرعات) from /categories
   const { data: donationPurposesData } = trpc.categories.getCategoryByType.useQuery({ type: "donation_purposes" });
   const donationPurposes: string[] = useMemo(() => {
-    const list = (donationPurposesData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
-    return list.length > 0 ? list : ["بناء المساجد", "الترميم", "سقية الماء", "التجهيزات"];
+    return (donationPurposesData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
   }, [donationPurposesData]);
 
   // Set default donation purpose when categories load
   useEffect(() => {
-    if (donationPurposes.length > 0 && (!donationPurpose || !donationPurposes.includes(donationPurpose))) {
-      setDonationPurpose(donationPurposes[0]);
+    if (donationPurposes.length > 0) {
+      if (!donationPurpose || !donationPurposes.includes(donationPurpose)) {
+        setDonationPurpose(donationPurposes[0]);
+      }
+    } else {
+      setDonationPurpose("");
     }
   }, [donationPurposes]);
 
@@ -773,9 +776,13 @@ export default function NewReceiptVoucherPage() {
                       <Layers className="w-4 h-4 text-primary" />
                       مصارف التبرعات *
                     </Label>
-                    <Select value={donationPurpose} onValueChange={setDonationPurpose}>
+                    <Select 
+                      value={donationPurpose} 
+                      onValueChange={setDonationPurpose}
+                      disabled={donationPurposes.length === 0}
+                    >
                       <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                        <SelectValue placeholder="اختر مصرف التبرع..." />
+                        <SelectValue placeholder={donationPurposes.length > 0 ? "اختر مصرف التبرع..." : "لا توجد مصارف تبرعات مسجلة في التصنيفات"} />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
                         {donationPurposes.map((p, idx) => (
@@ -887,7 +894,7 @@ export default function NewReceiptVoucherPage() {
                     <Textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder={`أدخل البيان أو سبب القبض (مثال: تبرع مقيد لمصرف ${donationPurpose || "المساجد"}...)`}
+                      placeholder={donationPurpose ? `أدخل البيان أو سبب القبض (مثال: تبرع مقيد لمصرف ${donationPurpose}...)` : "أدخل البيان أو سبب القبض..."}
                       rows={3}
                       className="text-right border-border focus:ring-primary rounded-xl text-xs leading-relaxed bg-background"
                     />
