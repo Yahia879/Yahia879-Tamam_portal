@@ -95,7 +95,7 @@ export async function sendEmailNotification(
   const buttonHtml = actionUrl ? `
     <div style="text-align: center; margin: 30px 0 25px 0;">
       <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); color: #ffffff; text-decoration: none; padding: 14px 34px; font-size: 16px; font-weight: bold; border-radius: 10px; display: inline-block; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35); letter-spacing: 0.3px;">
-        ${actionText ? (actionText.startsWith('⭐') ? actionText : `⭐ ${actionText}`) : "⭐ تقييم الخدمة الآن"}
+        ${actionText || "⭐️ تقييم الخدمة الآن ⭐️"}
       </a>
     </div>
   ` : "";

@@ -91,7 +91,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── الطلبات ──
   "/requests": "requests.view",
   "/requests/new": "requests.create",
-  "/requests/quick-create": "requests.manage_as_quick_response",
+  "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
   "/field-visits": "requests.view",
   "/field-visits/calendar": "appointments_calendar",
 

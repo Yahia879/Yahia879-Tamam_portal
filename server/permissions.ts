@@ -29,7 +29,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.upload_final_report"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report"],
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],

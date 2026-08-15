@@ -72,7 +72,7 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
     const appBaseUrl = 
       process.env.APP_URL || 
       process.env.BASE_URL || 
-      (process.env.NODE_ENV === "production" ? "https://tamamgate.manarah.org.sa" : "http://localhost:3000");
+      "https://tamamgate.manarah.org.sa";
     const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
     const emailTitle = `📋 تقييم رضا المستفيد - تم إغلاق الطلب رقم ${request.requestNumber}`;
     const emailMessage = `السلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تحسين وتطوير خدماتنا، نأمل منكم تكرمكم بتقييم مستوى رضاكم عن الخدمة المقدمة من خلال الضغط على زر التقييم أدناه:\n\nشكراً لتعاونكم معنا.`;
@@ -94,7 +94,7 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
         emailTitle, 
         emailMessage, 
         evalUrl, 
-        "تقييم الخدمة الآن"
+        "⭐️ تقييم الخدمة الآن ⭐️"
       ).catch((e) => {
         console.error("Failed to send email survey notification in background:", e);
       });
@@ -1834,7 +1834,11 @@ export const requestsRouter = router({
       requiresProject: z.boolean().default(false),
     }))
     .mutation(async ({ input, ctx }) => {
-      const hasPermission = await checkPermission(ctx.user.id, "requests.manage_as_quick_response") || ctx.user.role === "quick_response";
+      const hasPermission = 
+        ["super_admin", "system_admin"].includes(ctx.user.role) ||
+        ctx.user.role === "quick_response" ||
+        (await checkPermission(ctx.user.id, "requests.create_quick_request")) ||
+        (await checkPermission(ctx.user.id, "requests.manage_as_quick_response"));
       if (!hasPermission) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإضافة طلب استجابة سريعة" });
       }
