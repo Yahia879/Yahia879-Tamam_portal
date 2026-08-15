@@ -1375,7 +1375,7 @@ export const permissionsRouter = router({
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
         financial: ["financial", "quotations", "disbursements", "suppliers.view", "financial_reports"],
         financial_manager: ["financial", "quotations", "disbursements", "suppliers", "reports.view", "financial_reports"],
-        project_manager: ["projects.view", "projects.edit", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
+        project_manager: ["projects.view", "projects.edit", "projects.assign_as_manager", "reports", "disbursements.view", "disbursements.create", "disbursements.edit", "contracts.view", "contracts.create", "contracts.edit", "suppliers.view", "handovers"],
         corporate_comm: ["requests.view", "requests.upload_final_report", "reports.view", "settings.view", "analytics.view"],
         service_requester: ["requests.view", "requests.create", "mosques.view"]
       };

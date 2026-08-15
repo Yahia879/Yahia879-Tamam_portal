@@ -49,15 +49,14 @@ export default function NewMultiMosqueProjectPage() {
   const [mosqueSearchQuery, setMosqueSearchQuery] = useState("");
   const [selectedMosques, setSelectedMosques] = useState<SelectedMosqueItem[]>([]);
 
-  // جلب مدراء المشاريع فقط
+  // جلب مدراء المشاريع (المستخدمين الذين يحملون دور مدير مشروع أو صلاحية تعيين كمدير للمشاريع)
   const { data: usersResponse, isLoading: loadingUsers } = trpc.users.getAll.useQuery({
-    role: "project_manager",
+    roles: ["project_manager"],
+    permission: "projects.assign_as_manager",
     limit: 100,
     includeAll: true,
   });
-  const managersList = ((usersResponse as any)?.items || (usersResponse as any)?.users || []).filter(
-    (m: any) => m.role === "project_manager"
-  );
+  const managersList = (usersResponse as any)?.items || (usersResponse as any)?.users || [];
 
   // جلب قائمة المساجد
   const { data: mosquesResponse, isLoading: loadingMosques } = trpc.mosques.search.useQuery({

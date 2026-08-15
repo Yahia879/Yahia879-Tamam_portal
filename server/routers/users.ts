@@ -82,7 +82,8 @@ export const usersRouter = router({
         for (const u of allActiveStaff) {
           const userPerms = await calculateUserPermissions(u.id);
           const hasRole = inputRoles && inputRoles.length > 0 && inputRoles.includes(u.role);
-          if (userPerms.includes(permission) || hasRole) {
+          const isPmRole = permission === "projects.assign_as_manager" && u.role === "project_manager";
+          if (userPerms.includes(permission) || hasRole || isPmRole) {
             matchedUsers.push(u);
           }
         }
