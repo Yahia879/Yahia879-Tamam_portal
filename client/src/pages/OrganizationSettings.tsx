@@ -852,6 +852,7 @@ export default function OrganizationSettings() {
     onSuccess: () => {
       toast.success("تم حفظ الإعدادات بنجاح");
       refetch();
+      utils.organization.getSettings.invalidate();
       utils.auth.me.invalidate();
       utils.organization.getSignatories.invalidate();
     },

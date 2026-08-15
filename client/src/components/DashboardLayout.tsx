@@ -72,7 +72,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
       label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
     });
   }
 
@@ -197,7 +197,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
       label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
     });
   }
 
@@ -427,11 +427,6 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme, switchable } = useTheme();
   
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
-  useEffect(() => {
-    if (orgSettings?.metaTitle && orgSettings.metaTitle.trim()) {
-      document.title = orgSettings.metaTitle.trim();
-    }
-  }, [orgSettings?.metaTitle]);
 
   const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
@@ -570,11 +565,6 @@ function DashboardLayoutContent({
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
-  useEffect(() => {
-    if (orgSettings?.metaTitle && orgSettings.metaTitle.trim()) {
-      document.title = orgSettings.metaTitle.trim();
-    }
-  }, [orgSettings?.metaTitle]);
   const { data: unreadCount } = trpc.notifications.getUnreadCount.useQuery(undefined, {
     enabled: !!user,
     refetchInterval: 10000,
