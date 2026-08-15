@@ -115,14 +115,25 @@ const isGeneralAccountName = (name?: string | null) => {
 
 const getCleanVoucherNotes = (notes?: string | null): string => {
   if (!notes) return "-";
-  if (notes.includes(" | ")) {
-    const parts = notes.split(" | ");
-    return parts[0].trim() || "-";
+  let clean = notes.trim();
+
+  if (clean.includes(" | تم إلغاء الاعتماد:") || clean.includes(" | مبررات إلغاء الاعتماد:") || clean.includes(" | مرفوض")) {
+    clean = clean.split(/\s*\|\s*(?:تم إلغاء الاعتماد|مبررات إلغاء الاعتماد|مرفوض):/)[0].trim();
   }
-  if (notes.startsWith("تم إلغاء الاعتماد:") || notes.startsWith("مبررات إلغاء الاعتماد:") || notes.startsWith("مرفوض")) {
+
+  if (clean.startsWith("تم إلغاء الاعتماد:") || clean.startsWith("مبررات إلغاء الاعتماد:") || clean.startsWith("مرفوض")) {
     return "-";
   }
-  return notes;
+
+  if (clean.startsWith("مصرف التبرع:") && clean.includes(" | ")) {
+    const parts = clean.split(" | ");
+    const userNote = parts.slice(1).join(" | ").trim();
+    if (userNote) {
+      return userNote;
+    }
+  }
+
+  return clean || "-";
 };
 
 

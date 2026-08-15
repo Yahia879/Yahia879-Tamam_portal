@@ -1108,7 +1108,7 @@ export default function NewReceiptVoucherPage() {
                         ? "bg-blue-50 text-blue-800 border-blue-200 font-bold text-xs"
                         : "bg-amber-50 text-amber-800 border-amber-200 font-bold text-xs"
                     }>
-                      {category === "project_linked" ? "سند قبض مرتبط بمشروع" : category === "restricted" ? `سند قبض مقيد (${donationPurpose})` : "سند قبض غير مقيد (عام)"}
+                      {category === "project_linked" ? "سند قبض مرتبط بمشروع" : category === "restricted" ? `سند قبض مقيد (${donationPurpose})` : "سند قبض غير مقيد"}
                     </Badge>
                   </div>
 
