@@ -69,7 +69,11 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
 
     if (!beneficiary) return;
 
-    const evalUrl = "https://tamamgate.manarah.org.sa/requester";
+    const appBaseUrl = 
+      process.env.APP_URL || 
+      process.env.BASE_URL || 
+      (process.env.NODE_ENV === "production" ? "https://tamamgate.manarah.org.sa" : "http://localhost:3000");
+    const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
     const emailTitle = `📋 تقييم رضا المستفيد - تم إغلاق الطلب رقم ${request.requestNumber}`;
     const emailMessage = `السلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تحسين وتطوير خدماتنا، نأمل منكم تكرمكم بتقييم مستوى رضاكم عن الخدمة المقدمة من خلال الضغط على زر التقييم أدناه:\n\nشكراً لتعاونكم معنا.`;
 
