@@ -3053,6 +3053,9 @@ export const requestsRouter = router({
       fvReports.forEach(fv => {
         if (fv.visitedBy) userIds.add(fv.visitedBy);
       });
+      fnReports.forEach(fn => {
+        if (fn.preparedBy) userIds.add(fn.preparedBy);
+      });
 
       let usersList: any[] = [];
       if (userIds.size > 0) {
@@ -3095,6 +3098,7 @@ export const requestsRouter = router({
 
         // 1. Check Field Visit Report
         const hasFvReport = fvReportMap.has(request.id);
+        const fvReportData = fvReports.find(r => r.requestId === request.id);
         if (request.fieldVisitAssignedTo && (request.currentStage === 'field_visit' || hasFvReport)) {
           let isLate = false;
           if (!hasFvReport && request.fieldVisitScheduledDate) {
@@ -3113,7 +3117,7 @@ export const requestsRouter = router({
             requestNumber: request.requestNumber,
             mosqueName: displayMosqueName,
             mosqueCity: displayMosqueCity,
-            assignedTo: userMap.get(request.fieldVisitAssignedTo) || null,
+            assignedTo: userMap.get(request.fieldVisitAssignedTo) || (fvReportData?.visitedBy ? userMap.get(fvReportData.visitedBy) : null) || null,
             scheduledDate: request.fieldVisitScheduledDate,
             scheduledTime: request.fieldVisitScheduledTime,
             isLate,
@@ -3187,6 +3191,7 @@ export const requestsRouter = router({
 
         // 3. Check Corporate Communication Final Report
         const hasFnReport = fnReportMap.has(request.id);
+        const fnReportData = fnReports.find(r => r.requestId === request.id);
         if (request.finalReportAssignedTo || hasFnReport) {
           let isLate = false;
           if (!hasFnReport && request.finalReportScheduledDate) {
@@ -3205,7 +3210,7 @@ export const requestsRouter = router({
             requestNumber: request.requestNumber,
             mosqueName: displayMosqueName,
             mosqueCity: displayMosqueCity,
-            assignedTo: userMap.get(request.finalReportAssignedTo) || null,
+            assignedTo: userMap.get(request.finalReportAssignedTo) || (fnReportData?.preparedBy ? userMap.get(fnReportData.preparedBy) : null) || null,
             scheduledDate: request.finalReportScheduledDate,
             scheduledTime: request.finalReportScheduledTime,
             isLate,
