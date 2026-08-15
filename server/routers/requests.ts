@@ -1843,7 +1843,10 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       let mosqueId = input.mosqueId;
-      const programData: Record<string, any> = {};
+      const programData: Record<string, any> = {
+        isQuickCreate: true,
+        source: "quick_create",
+      };
 
       if (!mosqueId && input.newMosqueName) {
         // Do NOT insert into mosques table. Just store custom name in programData.
@@ -2990,7 +2993,7 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض هذه الصفحة" });
       }
 
-      // Fetch all requests that might have reports
+      // Fetch all requests that might have reports or completed reports
       const activeRequests = await db.select({
         request: mosqueRequests,
         mosque: mosques,
@@ -3005,9 +3008,11 @@ export const requestsRouter = router({
               eq(mosqueRequests.requestTrack, 'quick_response'),
               sql`${mosqueRequests.assignedTo} IS NOT NULL`
             ),
-            sql`${mosqueRequests.finalReportAssignedTo} IS NOT NULL`
+            sql`${mosqueRequests.finalReportAssignedTo} IS NOT NULL`,
+            sql`EXISTS (SELECT 1 FROM quick_response_reports WHERE quick_response_reports.requestId = ${mosqueRequests.id})`,
+            sql`EXISTS (SELECT 1 FROM field_visit_reports WHERE field_visit_reports.requestId = ${mosqueRequests.id})`,
+            sql`EXISTS (SELECT 1 FROM final_reports WHERE final_reports.requestId = ${mosqueRequests.id})`
           ),
-          sql`${mosqueRequests.currentStage} != 'closed'`,
           sql`${mosqueRequests.status} != 'rejected'`
         )
       );
@@ -3021,6 +3026,7 @@ export const requestsRouter = router({
             pendingCount: 0,
             fieldVisitsCount: 0,
             quickResponsesCount: 0,
+            quickRequestsCount: 0,
             finalReportsCount: 0,
             lateCount: 0,
           }
@@ -3040,6 +3046,12 @@ export const requestsRouter = router({
         if (r.request.fieldVisitAssignedTo) userIds.add(r.request.fieldVisitAssignedTo);
         if (r.request.assignedTo) userIds.add(r.request.assignedTo);
         if (r.request.finalReportAssignedTo) userIds.add(r.request.finalReportAssignedTo);
+      });
+      qrReports.forEach(qr => {
+        if (qr.respondedBy) userIds.add(qr.respondedBy);
+      });
+      fvReports.forEach(fv => {
+        if (fv.visitedBy) userIds.add(fv.visitedBy);
       });
 
       let usersList: any[] = [];
@@ -3064,6 +3076,23 @@ export const requestsRouter = router({
       const now = new Date();
 
       activeRequests.forEach(({ request, mosque }) => {
+        let pData: any = {};
+        try {
+          pData = typeof request.programData === 'string' ? JSON.parse(request.programData) : request.programData || {};
+        } catch (e) {}
+
+        let displayMosqueName = mosque?.name;
+        if (!displayMosqueName || displayMosqueName === "مسجد غير محدد") {
+          if (pData?.customMosqueName) displayMosqueName = pData.customMosqueName;
+        }
+        if (!displayMosqueName) displayMosqueName = "مسجد غير محدد";
+
+        let displayMosqueCity = mosque?.city;
+        if (!displayMosqueCity || displayMosqueCity === "غير محدد") {
+          if (pData?.customMosqueCity) displayMosqueCity = pData.customMosqueCity;
+        }
+        if (!displayMosqueCity) displayMosqueCity = "غير محدد";
+
         // 1. Check Field Visit Report
         const hasFvReport = fvReportMap.has(request.id);
         if (request.fieldVisitAssignedTo && (request.currentStage === 'field_visit' || hasFvReport)) {
@@ -3082,8 +3111,8 @@ export const requestsRouter = router({
           allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
-            mosqueName: mosque?.name || "مسجد غير محدد",
-            mosqueCity: mosque?.city || "غير محدد",
+            mosqueName: displayMosqueName,
+            mosqueCity: displayMosqueCity,
             assignedTo: userMap.get(request.fieldVisitAssignedTo) || null,
             scheduledDate: request.fieldVisitScheduledDate,
             scheduledTime: request.fieldVisitScheduledTime,
@@ -3095,10 +3124,37 @@ export const requestsRouter = router({
           });
         }
 
-        // 2. Check Quick Response Report
+        // 2. Check Quick Request / Quick Response Report
         const isQuickResponseTrack = request.requestTrack === 'quick_response';
         const hasQrReport = qrReportMap.has(request.id);
-        if (isQuickResponseTrack && request.assignedTo && (request.currentStage === 'execution' || hasQrReport)) {
+        const qrReportData = qrReports.find(r => r.requestId === request.id);
+
+        const isQuickCreate = Boolean(
+          pData?.isQuickCreate || 
+          pData?.source === 'quick_create' ||
+          (isQuickResponseTrack && (pData?.customMosqueName || (request.currentStage === 'closed' && hasQrReport)))
+        );
+
+        if (isQuickCreate && hasQrReport) {
+          // تقرير طلب سريع مرفوع عن طريق صفحة إنشاء طلب سريع
+          const respondent = qrReportData?.respondedBy ? userMap.get(qrReportData.respondedBy) : (request.assignedTo ? userMap.get(request.assignedTo) : null);
+          allReportsList.push({
+            id: request.id,
+            requestNumber: request.requestNumber,
+            mosqueName: displayMosqueName,
+            mosqueCity: displayMosqueCity,
+            assignedTo: respondent || { name: qrReportData?.technicianName || "فريق الاستجابة السريعة" },
+            startDate: request.quickResponseStartDate || qrReportData?.responseDate,
+            endDate: request.quickResponseEndDate || qrReportData?.responseDate,
+            scheduledDate: request.quickResponseScheduledDate || qrReportData?.responseDate,
+            scheduledTime: request.quickResponseScheduledTime,
+            isLate: false,
+            isCompleted: true,
+            reportType: "quick_request",
+            dueDate: qrReportData?.responseDate ? new Date(qrReportData.responseDate).toLocaleDateString("ar-SA") : (request.createdAt ? new Date(request.createdAt).toLocaleDateString("ar-SA") : "غير محدد"),
+            actionUrl: `/requests/${request.id}`,
+          });
+        } else if (isQuickResponseTrack && (request.assignedTo || hasQrReport) && (request.currentStage === 'execution' || hasQrReport)) {
           let isLate = false;
           if (!hasQrReport && request.quickResponseScheduledDate) {
             const scheduledDate = new Date(request.quickResponseScheduledDate);
@@ -3114,9 +3170,9 @@ export const requestsRouter = router({
           allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
-            mosqueName: mosque?.name || "مسجد غير محدد",
-            mosqueCity: mosque?.city || "غير محدد",
-            assignedTo: userMap.get(request.assignedTo) || null,
+            mosqueName: displayMosqueName,
+            mosqueCity: displayMosqueCity,
+            assignedTo: userMap.get(request.assignedTo) || (qrReportData?.respondedBy ? userMap.get(qrReportData.respondedBy) : null) || { name: qrReportData?.technicianName || "غير مسند" },
             startDate: request.quickResponseStartDate,
             endDate: request.quickResponseEndDate,
             scheduledDate: request.quickResponseScheduledDate,
@@ -3124,14 +3180,14 @@ export const requestsRouter = router({
             isLate,
             isCompleted: hasQrReport,
             reportType: "quick_response",
-            dueDate: request.quickResponseScheduledDate ? `${new Date(request.quickResponseScheduledDate).toLocaleDateString("ar-SA")} ${request.quickResponseScheduledTime || ""}` : "غير محدد",
+            dueDate: request.quickResponseScheduledDate ? `${new Date(request.quickResponseScheduledDate).toLocaleDateString("ar-SA")} ${request.quickResponseScheduledTime || ""}` : (qrReportData?.responseDate ? new Date(qrReportData.responseDate).toLocaleDateString("ar-SA") : "غير محدد"),
             actionUrl: `/requests/${request.id}/quick-response`,
           });
         }
 
         // 3. Check Corporate Communication Final Report
         const hasFnReport = fnReportMap.has(request.id);
-        if (request.finalReportAssignedTo) {
+        if (request.finalReportAssignedTo || hasFnReport) {
           let isLate = false;
           if (!hasFnReport && request.finalReportScheduledDate) {
             const scheduledDate = new Date(request.finalReportScheduledDate);
@@ -3147,8 +3203,8 @@ export const requestsRouter = router({
           allReportsList.push({
             id: request.id,
             requestNumber: request.requestNumber,
-            mosqueName: mosque?.name || "مسجد غير محدد",
-            mosqueCity: mosque?.city || "غير محدد",
+            mosqueName: displayMosqueName,
+            mosqueCity: displayMosqueCity,
             assignedTo: userMap.get(request.finalReportAssignedTo) || null,
             scheduledDate: request.finalReportScheduledDate,
             scheduledTime: request.finalReportScheduledTime,
@@ -3193,6 +3249,7 @@ export const requestsRouter = router({
       // Calculate statistics over filtered list
       const fieldVisitsCount = filteredList.filter(r => r.reportType === "field_visit" && !r.isCompleted).length;
       const quickResponsesCount = filteredList.filter(r => r.reportType === "quick_response" && !r.isCompleted).length;
+      const quickRequestsCount = filteredList.filter(r => r.reportType === "quick_request").length;
       const finalReportsCount = filteredList.filter(r => r.reportType === "final_report" && !r.isCompleted).length;
       const pendingCount = filteredList.filter(r => !r.isCompleted).length;
       const totalCount = filteredList.length;
@@ -3210,6 +3267,7 @@ export const requestsRouter = router({
           pendingCount,
           fieldVisitsCount,
           quickResponsesCount,
+          quickRequestsCount,
           finalReportsCount,
           lateCount,
         }

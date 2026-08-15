@@ -50,12 +50,14 @@ import { ColoredDialog } from "@/components/ColoredDialog";
 const typeLabels: Record<string, string> = {
   field_visit: "زيارة ميدانية",
   quick_response: "استجابة سريعة",
+  quick_request: "تقرير طلب سريع",
   final_report: "تقرير ختامي",
 };
 
 const typeColors: Record<string, string> = {
   field_visit: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900",
   quick_response: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900",
+  quick_request: "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800",
   final_report: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900",
 };
 
@@ -108,7 +110,7 @@ export default function PendingReports() {
   const hasRequestViewDetails = isAdmin || userPermissions.includes("requests.view_details");
 
   const [selectedRequestIdForView, setSelectedRequestIdForView] = useState<number | null>(null);
-  const [selectedReportTypeForView, setSelectedReportTypeForView] = useState<"field_visit" | "quick_response" | null>(null);
+  const [selectedReportTypeForView, setSelectedReportTypeForView] = useState<"field_visit" | "quick_response" | "quick_request" | null>(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
@@ -148,6 +150,7 @@ export default function PendingReports() {
     pendingCount: 0,
     fieldVisitsCount: 0,
     quickResponsesCount: 0,
+    quickRequestsCount: 0,
     finalReportsCount: 0,
     lateCount: 0,
   };
@@ -277,10 +280,11 @@ export default function PendingReports() {
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="نوع التقرير" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent dir="rtl">
                     <SelectItem value="all">جميع الأنواع</SelectItem>
                     <SelectItem value="field_visit">زيارة ميدانية</SelectItem>
                     <SelectItem value="quick_response">استجابة سريعة</SelectItem>
+                    <SelectItem value="quick_request">تقرير طلب سريع</SelectItem>
                     <SelectItem value="final_report">تقرير ختامي</SelectItem>
                   </SelectContent>
                 </Select>
@@ -288,7 +292,7 @@ export default function PendingReports() {
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="الحالة الزمنية" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent dir="rtl">
                     <SelectItem value="all">جميع الحالات</SelectItem>
                     <SelectItem value="late">متأخر فقط</SelectItem>
                     <SelectItem value="pending">بانتظار الرفع</SelectItem>
@@ -332,13 +336,23 @@ export default function PendingReports() {
                         <TableRow key={`${item.reportType}-${item.id}`}>
                           <TableCell>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                {item.reportType === "quick_response" ? (
-                                  <Zap className="w-5 h-5 text-purple-600" />
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                                item.reportType === "quick_request"
+                                  ? "bg-amber-100 dark:bg-amber-950/40"
+                                  : item.reportType === "quick_response"
+                                  ? "bg-purple-100 dark:bg-purple-950/40"
+                                  : item.reportType === "field_visit"
+                                  ? "bg-blue-100 dark:bg-blue-950/40"
+                                  : "bg-emerald-100 dark:bg-emerald-950/40"
+                              }`}>
+                                {item.reportType === "quick_request" ? (
+                                  <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                ) : item.reportType === "quick_response" ? (
+                                  <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                 ) : item.reportType === "field_visit" ? (
-                                  <Building2 className="w-5 h-5 text-blue-600" />
+                                  <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                 ) : (
-                                  <FileText className="w-5 h-5 text-emerald-600" />
+                                  <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                                 )}
                               </div>
                               <div className="min-w-0">
@@ -449,13 +463,23 @@ export default function PendingReports() {
                     <div key={`${item.reportType}-${item.id}`} className="p-4 space-y-4">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            {item.reportType === "quick_response" ? (
-                              <Zap className="w-5 h-5 text-purple-600" />
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                            item.reportType === "quick_request"
+                              ? "bg-amber-100 dark:bg-amber-950/40"
+                              : item.reportType === "quick_response"
+                              ? "bg-purple-100 dark:bg-purple-950/40"
+                              : item.reportType === "field_visit"
+                              ? "bg-blue-100 dark:bg-blue-950/40"
+                              : "bg-emerald-100 dark:bg-emerald-950/40"
+                          }`}>
+                            {item.reportType === "quick_request" ? (
+                              <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            ) : item.reportType === "quick_response" ? (
+                              <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                             ) : item.reportType === "field_visit" ? (
-                              <Building2 className="w-5 h-5 text-blue-600" />
+                              <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             ) : (
-                              <FileText className="w-5 h-5 text-emerald-600" />
+                              <FileText className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -631,9 +655,25 @@ export default function PendingReports() {
           setSelectedReportTypeForView(null);
         }
       }}
-      title={selectedReportTypeForView === "field_visit" ? "تقرير المعاينة الميدانية الرسمي" : "تقرير الاستجابة السريعة المعتمد"}
-      color={selectedReportTypeForView === "field_visit" ? "indigo" : "purple"}
-      icon={selectedReportTypeForView === "field_visit" ? <FileText className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+      title={
+        selectedReportTypeForView === "field_visit" 
+          ? "تقرير المعاينة الميدانية الرسمي" 
+          : selectedReportTypeForView === "quick_request"
+          ? "تقرير طلب سريع معتمد"
+          : "تقرير الاستجابة السريعة المعتمد"
+      }
+      color={
+        selectedReportTypeForView === "field_visit" 
+          ? "indigo" 
+          : selectedReportTypeForView === "quick_request"
+          ? "orange"
+          : "purple"
+      }
+      icon={
+        selectedReportTypeForView === "field_visit" 
+          ? <FileText className="w-6 h-6" /> 
+          : <Zap className="w-6 h-6" />
+      }
     >
       {singleRequestLoading ? (
         <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
@@ -915,7 +955,7 @@ export default function PendingReports() {
             })
           )}
         </div>
-      ) : selectedReportTypeForView === "quick_response" ? (
+      ) : (selectedReportTypeForView === "quick_response" || selectedReportTypeForView === "quick_request") ? (
         <div className="space-y-6 text-right" dir="rtl">
           {(!singleRequestData.quickReports || singleRequestData.quickReports.length === 0) ? (
             <p className="text-center text-muted-foreground py-6">لا توجد تقارير استجابة سريعة مسجلة لهذا الطلب.</p>
