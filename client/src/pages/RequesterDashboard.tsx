@@ -445,9 +445,7 @@ export default function RequesterDashboard() {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    setEvaluatingRequest(request);
-                                    setEvalRating(5);
-                                    setEvalNotes("");
+                                    openEvaluationModal(request);
                                   }}
                                   className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm gap-1.5 transition-all hover:scale-105"
                                 >
