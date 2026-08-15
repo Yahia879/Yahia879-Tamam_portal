@@ -61,6 +61,7 @@ export default function Branding() {
   const adminLogoRef = useRef<HTMLInputElement>(null);
 
   // جلب إعدادات الجمعية
+  const utils = trpc.useUtils();
   const { data: orgSettings, refetch } = trpc.organization.getSettings.useQuery();
   const uploadLogoMutation = trpc.organization.uploadLogo.useMutation();
   const updateSettingsMutation = trpc.organization.updateSettings.useMutation();
@@ -112,11 +113,9 @@ export default function Branding() {
         colorSecondary5,
         metaTitle,
       });
-      if (metaTitle && metaTitle.trim()) {
-        document.title = metaTitle.trim();
-      }
       toast.success("تم حفظ إعدادات الهوية وعنوان الموقع بنجاح");
       refetch();
+      utils.organization.getSettings.invalidate();
     } catch (error) {
       toast.error("فشل في حفظ الألوان");
     } finally {

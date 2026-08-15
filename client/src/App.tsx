@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { DocumentTitleProvider } from "./contexts/DocumentTitleContext";
 
 // الصفحات العامة
 import Home from "./pages/Home";
@@ -396,7 +397,9 @@ function App() {
           <BrandColorApplier />
           <SuspensionNotifier />
           <Toaster />
-          <Router />
+          <DocumentTitleProvider>
+            <Router />
+          </DocumentTitleProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

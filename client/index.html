@@ -7,6 +7,46 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>بوابة تمام للعناية بالمساجد</title>
+    <script>
+      (function() {
+        try {
+          var savedTitle = localStorage.getItem("app_meta_title");
+          if (savedTitle && savedTitle.trim()) {
+            var path = window.location.pathname.replace(/\/$/, "") || "/";
+            if (path === "/") {
+              document.title = savedTitle.trim();
+            } else {
+              var routeNames = {
+                "/login": "تسجيل الدخول",
+                "/admin/login": "تسجيل دخول المشرفين",
+                "/register": "إنشاء حساب جديد",
+                "/dashboard": "لوحة التحكم",
+                "/requester": "لوحة تحكم طالب الخدمة",
+                "/mosques": "المساجد",
+                "/requests": "الطلبات",
+                "/projects": "المشاريع",
+                "/organization-settings": "إعدادات الجمعية",
+                "/branding": "الهوية البصرية",
+                "/suppliers": "الموردون",
+                "/contracts": "العقود",
+                "/disbursements": "طلبات الصرف",
+                "/disbursement-orders": "أوامر الصرف",
+                "/receipt-vouchers": "سندات القبض",
+                "/staff": "إدارة المستخدمين والأدوار",
+                "/users": "إدارة المستخدمين",
+                "/roles": "إدارة الأدوار"
+              };
+              var pageName = routeNames[path];
+              if (pageName) {
+                document.title = pageName + " - " + savedTitle.trim();
+              } else {
+                document.title = savedTitle.trim();
+              }
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!-- Favicon / Browser Tab Logo -->
     <link rel="icon" type="image/png" href="/logo-1779000301419-m8mhso.png" />
     <link rel="apple-touch-icon" href="/logo-1779000301419-m8mhso.png" />

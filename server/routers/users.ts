@@ -397,15 +397,12 @@ export const usersRouter = router({
         }
 
         if (emailTitle && updatedUser.email) {
-          import("./notifications")
-            .then(({ sendEmailNotification }) => {
-              sendEmailNotification(updatedUser.email, emailTitle, emailMessage).catch((e) => {
-                console.error("Failed to send email notification in background:", e);
-              });
-            })
-            .catch((e) => {
-              console.error("Failed to import notifications module:", e);
-            });
+          try {
+            const { sendEmailNotification } = await import("./notifications");
+            await sendEmailNotification(updatedUser.email, emailTitle, emailMessage);
+          } catch (e) {
+            console.error("Failed to send email notification:", e);
+          }
         }
       }
 
@@ -443,15 +440,12 @@ export const usersRouter = router({
       if (updatedUser && updatedUser.status === "pending" && updatedUser.email) {
         const emailTitle = "ملاحظات جديدة على طلب التسجيل الخاص بك";
         const emailMessage = `مرحباً ${updatedUser.name}،\n\nتمت إضافة ملاحظات جديدة على طلب التسجيل الخاص بك في بوابة تمام.\n\nالملاحظات: ${input.notes}\n\nيرجى تسجيل الدخول لتحديث البيانات ورفع المرفق المطلوب.`;
-        import("./notifications")
-          .then(({ sendEmailNotification }) => {
-            sendEmailNotification(updatedUser.email, emailTitle, emailMessage).catch((e) => {
-              console.error("Failed to send email notification in background:", e);
-            });
-          })
-          .catch((e) => {
-            console.error("Failed to import notifications module:", e);
-          });
+        try {
+          const { sendEmailNotification } = await import("./notifications");
+          await sendEmailNotification(updatedUser.email, emailTitle, emailMessage);
+        } catch (e) {
+          console.error("Failed to send email notification:", e);
+        }
       }
 
       return { success: true };
