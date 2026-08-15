@@ -482,9 +482,15 @@ export default function ReceiptVouchers() {
                            v.status === "approval_revoked" ? "ملغى الاعتماد" :
                            v.status === "rejected" ? "مرفوض" : "قيد الاعتماد";
 
+        const projectOrType = v.projectId 
+          ? (v.projectName || `مشروع #${v.projectId}`)
+          : v.notes?.startsWith("مصرف التبرع:")
+          ? v.notes.split(" | ")[0].replace("مصرف التبرع:", "سند مقيد:").trim()
+          : "سند قبض غير مقيد";
+
         worksheet.addRow([
           v.voucherNumber || "-",
-          v.projectName || `مشروع #${v.projectId}`,
+          projectOrType,
           v.projectNumber || "-",
           v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("ar-SA") : "-",
           stripPayerTitle(v.payerName),
@@ -733,7 +739,7 @@ export default function ReceiptVouchers() {
                             </div>
                           </TableCell>
 
-                          {/* اسم المشروع */}
+                          {/* اسم المشروع / نوع السند */}
                           <TableCell className="py-3.5 px-4 text-right">
                             {voucher.projectId ? (
                               <button
@@ -749,6 +755,10 @@ export default function ReceiptVouchers() {
                                   </span>
                                 )}
                               </button>
+                            ) : voucher.notes?.startsWith("مصرف التبرع:") ? (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 text-[11px] font-semibold">
+                                {voucher.notes.split(" | ")[0].replace("مصرف التبرع:", "سند مقيد:").trim()}
+                              </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-200 text-[11px] font-semibold">
                                 سند قبض غير مقيد
