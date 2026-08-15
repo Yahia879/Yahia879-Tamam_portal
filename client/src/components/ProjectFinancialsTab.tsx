@@ -419,7 +419,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     setCustomVoucherPayerName("");
     setVoucherPaymentMethod("bank_transfer");
     setVoucherRefNumber("");
-    setVoucherBankName("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setVoucherBankName("مصرف الراجحي");
     setVoucherAttachmentUrl("");
     setVoucherNotes((data as any)?.project?.name || "");
     setIsVoucherModalOpen(true);
@@ -458,7 +458,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     }
     setVoucherPaymentMethod(voucher.paymentMethod || "bank_transfer");
     setVoucherRefNumber(voucher.referenceNumber || "");
-    setVoucherBankName(voucher.bankName || "حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setVoucherBankName(voucher.bankName || "مصرف الراجحي");
     setVoucherAttachmentUrl(voucher.attachmentUrl || "");
     const cleanNote = getCleanVoucherNotes(voucher.notes);
     setVoucherNotes(cleanNote && cleanNote !== "-" ? cleanNote : (voucher.notes && voucher.notes !== "-" ? voucher.notes : ((data as any)?.project?.name || "")));
@@ -1586,7 +1586,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 type="text"
                 value={voucherBankName}
                 onChange={(e) => setVoucherBankName(e.target.value)}
-                placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                placeholder="مثال: مصرف الراجحي"
                 className="h-10 text-xs bg-white border-slate-200 font-medium"
               />
             </div>

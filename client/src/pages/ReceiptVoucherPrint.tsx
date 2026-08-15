@@ -194,35 +194,30 @@ export default function ReceiptVoucherPrint() {
 
   // Payment Method details string
   const getPaymentMethodDetails = () => {
-    if (voucher.bankName && voucher.bankName.trim()) {
-      const bn = voucher.bankName.trim();
-      if (bn.startsWith("حوالة") || bn.startsWith("استلام") || bn.startsWith("شيك") || bn.length > 15) {
-        return bn;
-      }
-      const bank = `في ${bn}`;
-      const refDateStr = formatGregorianDate(receiptDateObj);
+    let cleanBank = (voucher.bankName || "").trim();
+    // إزالة العبارة الثابتة "حوالة بنكية على حساب الجمعية في" أو "حوالة بنكية على حساب الجمعية"
+    cleanBank = cleanBank
+      .replace(/^حوالة بنكية على حساب الجمعية في\s*/g, "")
+      .replace(/^حوالة بنكية على حساب الجمعية\s*/g, "")
+      .replace(/^حوالة بنكية في\s*/g, "")
+      .trim();
 
-      if (voucher.paymentMethod === "cash") {
-        return "استلام نقدي بالحساب المالي للجمعية";
-      }
-      if (voucher.paymentMethod === "check") {
-        return `شيك مسحوب ${bank} ${voucher.referenceNumber ? `برقم (${voucher.referenceNumber})` : ""} بتاريخ ${refDateStr}`;
-      }
-      return `حوالة بنكية على حساب الجمعية ${bank} ${voucher.referenceNumber ? `بتاريخ ${refDateStr}` : ""}`;
+    if (!cleanBank) {
+      cleanBank = "مصرف الراجحي";
     }
 
-    const pMethod = voucher.paymentMethod;
-    const bank = "في مصرف الراجحي";
     const refDateStr = formatGregorianDate(receiptDateObj);
 
-    if (pMethod === "cash") {
+    if (voucher.paymentMethod === "cash") {
       return "استلام نقدي بالحساب المالي للجمعية";
     }
-    if (pMethod === "check") {
-      return `شيك مسحوب ${bank} ${voucher.referenceNumber ? `برقم (${voucher.referenceNumber})` : ""} بتاريخ ${refDateStr}`;
+    if (voucher.paymentMethod === "check") {
+      return `شيك مسحوب ${cleanBank.startsWith("في") ? cleanBank : `في ${cleanBank}`} ${voucher.referenceNumber ? `برقم (${voucher.referenceNumber})` : ""} بتاريخ ${refDateStr}`;
     }
-    // Default bank transfer
-    return `حوالة بنكية على حساب الجمعية ${bank} ${voucher.referenceNumber ? `بتاريخ ${refDateStr}` : ""}`;
+
+    // حوالة بنكية: عرض اسم الحساب/البنك مباشرة دون العبارة الثابتة
+    const refPart = voucher.referenceNumber ? ` برقم مرجعي (${voucher.referenceNumber})` : "";
+    return `${cleanBank}${refPart}`;
   };
 
   return (

@@ -67,7 +67,7 @@ export default function NewReceiptVoucherPage() {
   const [amount, setAmount] = useState<string>("");
   const [receiptDate, setReceiptDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState<string>("");
-  const [bankName, setBankName] = useState<string>("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+  const [bankName, setBankName] = useState<string>("مصرف الراجحي");
 
   // Restricted donation purpose (مصارف التبرعات)
   const [donationPurpose, setDonationPurpose] = useState<string>("بناء المساجد");
@@ -711,7 +711,7 @@ export default function NewReceiptVoucherPage() {
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                      placeholder="مثال: مصرف الراجحي"
                       className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
                     />
                   </div>
@@ -885,7 +885,7 @@ export default function NewReceiptVoucherPage() {
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                      placeholder="مثال: مصرف الراجحي"
                       className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
                     />
                   </div>
@@ -1045,7 +1045,7 @@ export default function NewReceiptVoucherPage() {
                       type="text"
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
-                      placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                      placeholder="مثال: مصرف الراجحي"
                       className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
                     />
                   </div>

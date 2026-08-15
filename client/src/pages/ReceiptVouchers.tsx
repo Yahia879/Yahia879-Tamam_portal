@@ -288,7 +288,7 @@ export default function ReceiptVouchers() {
     setModalPayerName("");
     setModalNotes("");
     setModalPaymentMethod("bank_transfer");
-    setModalBankName("حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setModalBankName("مصرف الراجحي");
     setModalReferenceNumber("");
   };
 
@@ -337,7 +337,7 @@ export default function ReceiptVouchers() {
 
     setModalNotes(loadedNote);
     setModalPaymentMethod(voucher.paymentMethod || "bank_transfer");
-    setModalBankName(voucher.bankName || "حوالة بنكية على حساب الجمعية في مصرف الراجحي");
+    setModalBankName(voucher.bankName || "مصرف الراجحي");
     setModalReferenceNumber(voucher.referenceNumber || "");
     setIsAddVoucherModalOpen(true);
   };
@@ -1091,7 +1091,7 @@ export default function ReceiptVouchers() {
                   type="text"
                   value={modalBankName}
                   onChange={(e) => setModalBankName(e.target.value)}
-                  placeholder="حوالة بنكية على حساب الجمعية في مصرف الراجحي"
+                  placeholder="مثال: مصرف الراجحي"
                   className="h-10 text-xs bg-white border-slate-200 font-medium"
                 />
               </div>
