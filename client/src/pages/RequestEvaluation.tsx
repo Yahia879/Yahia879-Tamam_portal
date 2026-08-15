@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "wouter";
-import DashboardLayout from "@/components/DashboardLayout";
+import { useParams, Link, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,13 +14,24 @@ import {
   Loader2, 
   ArrowRight,
   Sparkles,
-  Calendar
+  Calendar,
+  LogOut,
+  User,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const RATING_LABELS: Record<number, { label: string; description: string; emoji: string; color: string }> = {
   1: { label: "غير راضي جداً", description: "تجربة غير مرضية ولم نتمكن من تلبيتها بالشكل المطلوب", emoji: "😞", color: "text-red-500 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900/50" },
@@ -34,7 +44,9 @@ const RATING_LABELS: Record<number, { label: string; description: string; emoji:
 export default function RequestEvaluation() {
   const params = useParams<{ requestId: string }>();
   const requestId = parseInt(params.requestId || "0", 10);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [, setLocation] = useLocation();
+  const { theme, toggleTheme, switchable } = useTheme();
 
   const [beneficiaryName, setBeneficiaryName] = useState<string>("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState<string>("");
@@ -64,6 +76,8 @@ export default function RequestEvaluation() {
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
+  const orgName = orgSettings?.organizationName || 'بوابة تمام';
+  const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
   useEffect(() => {
     if (data?.request) {
@@ -130,32 +144,86 @@ export default function RequestEvaluation() {
   })();
 
   return (
-    <DashboardLayout>
-      <div className="container max-w-2xl mx-auto py-8 px-4 sm:px-6" dir="rtl">
-        {/* العودة للوحة التحكم أو الطلبات */}
-        <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Link href={`/requests/${requestId}`}>
-              <Button variant="outline" size="sm" className="gap-2 text-xs font-semibold rounded-xl">
-                <ArrowRight className="w-4 h-4" />
-                العودة للطلب #{data?.request?.requestNumber || requestId}
-              </Button>
+    <div className="min-h-screen bg-slate-50 dark:bg-background text-foreground flex flex-col justify-between">
+      {/* شريط التنقل العلوي */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-xs">
+        <div className="container max-w-5xl mx-auto px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <img 
+                src={mainLogoSrc} 
+                alt="شعار الجمعية" 
+                className="h-8 w-8 sm:h-10 sm:w-auto shrink-0 object-contain"
+              />
+              <div className="min-w-0">
+                <h1 className="font-bold text-sm sm:text-lg text-foreground truncate">{orgName}</h1>
+                <p className="hidden sm:block text-[10px] text-muted-foreground truncate">{orgNameShort}</p>
+              </div>
             </Link>
 
-            <Link href="/requester">
-              <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
-                لوحة طلباتي
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2 sm:gap-3">
+              {user?.role === "service_requester" ? (
+                <Link href="/requester">
+                  <Button variant="outline" size="sm" className="gap-2 text-xs font-bold rounded-lg h-9">
+                    <ArrowRight className="w-4 h-4" />
+                    لوحة طلباتي
+                  </Button>
+                </Link>
+              ) : (
+                <Link href={`/requests/${requestId}`}>
+                  <Button variant="outline" size="sm" className="gap-2 text-xs font-bold rounded-lg h-9">
+                    <ArrowRight className="w-4 h-4" />
+                    العودة للطلب
+                  </Button>
+                </Link>
+              )}
+
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 hover:bg-muted rounded-lg px-1.5 py-1 transition-colors min-w-0">
+                      <Avatar className="h-7 w-7 sm:h-8 sm:w-8 border shrink-0">
+                        <AvatarFallback className="text-[10px] sm:text-xs bg-primary/10 text-primary">
+                          {user?.name?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs sm:text-sm font-medium hidden md:block truncate max-w-[120px]">{user?.name}</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => setLocation("/profile")}>
+                      <User className="ml-2 h-4 w-4" />
+                      <span className="truncate">{user?.name || 'الملف الشخصي'}</span>
+                    </DropdownMenuItem>
+                    {switchable && toggleTheme && (
+                      <DropdownMenuItem onClick={toggleTheme} className="cursor-pointer">
+                        {theme === 'dark' ? (
+                          <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>الوضع الفاتح</span></>
+                        ) : (
+                          <><svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>الوضع الداكن</span></>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">
+                      <LogOut className="ml-2 h-4 w-4" />
+                      <span>تسجيل الخروج</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
+      </header>
 
+      <main className="container max-w-2xl mx-auto py-8 sm:py-10 px-4 sm:px-6 flex-1" dir="rtl">
         {/* حالة التحميل */}
         {isLoading && (
-          <Card className="border-border/60 shadow-lg">
+          <Card className="border-border/60 shadow-lg bg-card">
             <CardContent className="p-12 text-center">
               <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground font-medium text-sm">جاري تحميل بيانات تقييم الطلب...</p>
+              <p className="text-muted-foreground font-medium text-sm">جاري تحميل استبيان تقييم الطلب...</p>
             </CardContent>
           </Card>
         )}
@@ -171,10 +239,15 @@ export default function RequestEvaluation() {
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 {error.message || "عفواً، لا يتاح التقييم إلا للمستفيد صاحب الطلب وللطلبات المغلقة فقط."}
               </p>
-              <div className="pt-2">
+              <div className="pt-2 flex justify-center gap-3">
                 <Link href="/requester">
-                  <Button className="gap-2">
+                  <Button className="gap-2 font-bold">
                     العودة لطلباتي
+                  </Button>
+                </Link>
+                <Link href={`/requests/${requestId}`}>
+                  <Button variant="outline" className="gap-2">
+                    عرض تفاصيل الطلب
                   </Button>
                 </Link>
               </div>
@@ -187,7 +260,7 @@ export default function RequestEvaluation() {
           <>
             {/* في حال تم التقييم سابقاً */}
             {data.request.isEvaluated || data.existingEvaluation ? (
-              <Card className="border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent shadow-xl overflow-hidden">
+              <Card className="border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent shadow-xl overflow-hidden bg-card">
                 <CardHeader className="text-center pb-4 border-b border-border/40 bg-emerald-500/10">
                   <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
                     <CheckCircle2 className="w-10 h-10" />
@@ -274,7 +347,7 @@ export default function RequestEvaluation() {
 
                 <CardFooter className="bg-muted/20 p-6 flex justify-center border-t border-border/40">
                   <Link href="/requester">
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2 font-bold">
                       <ArrowRight className="w-4 h-4" />
                       العودة للوحة تحكم المستفيد
                     </Button>
@@ -283,9 +356,9 @@ export default function RequestEvaluation() {
               </Card>
             ) : (
               /* نموذج تقديم استبيان التقييم المباشر */
-              <div className="rounded-2xl border border-slate-200 shadow-2xl bg-white text-slate-900 overflow-hidden">
+              <div className="rounded-2xl border border-slate-200/90 shadow-2xl bg-white text-slate-900 overflow-hidden font-sans">
                 {/* 1. Header Banner مع الشعار */}
-                <div className="bg-[#14707a] text-white p-6 sm:p-8 flex flex-col items-center justify-center relative">
+                <div className="bg-[#14707a] text-white p-6 sm:p-8 flex flex-col items-center justify-center relative shadow-inner">
                   <img 
                     src={mainLogoSrc} 
                     alt="شعار الجمعية" 
@@ -519,7 +592,16 @@ export default function RequestEvaluation() {
             )}
           </>
         )}
-      </div>
-    </DashboardLayout>
+      </main>
+
+      {/* تذييل الصفحة */}
+      <footer className="py-6 border-t bg-white/50 dark:bg-card/50">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            جمعية عمارة المساجد بمنطقة عسير (منارة) - بوابة تمام للعناية بالمساجد
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }

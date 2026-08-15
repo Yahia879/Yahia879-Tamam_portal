@@ -201,6 +201,10 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques" },
   { pattern: /^\/mosques\/\d+$/, permission: "mosques" },
 
+  // استبيان تقييم رضا المستفيد (مخصص لطالب الخدمة)
+  { pattern: /^\/requests\/\d+\/evaluation$/, permission: "service_requester_only" },
+  { pattern: /^\/requester\/requests\/\d+\/evaluation$/, permission: "service_requester_only" },
+
   // الطلبات
   { pattern: /^\/requests\/\d+\/edit$/, permission: "requests.view_details" },
   { pattern: /^\/requests\/\d+\/field-inspection$/, permission: ["requests.view_details", "requests.manage_as_field_team", "pending_reports.intervene"] },
@@ -364,6 +368,11 @@ export function hasRouteAccess(
 
   // السماح بالوصول لصفحة التقرير الختامي لأي مستخدم مسجل
   if (/^\/final-report\/\d+$/.test(pathname)) return true;
+
+  // السماح بالوصول لصفحة تقييم رضا المستفيد لطالب الخدمة وللمدراء فقط
+  if (/^\/requests\/\d+\/evaluation$/.test(pathname) || /^\/requester\/requests\/\d+\/evaluation$/.test(pathname)) {
+    return userRole === "service_requester" || userRole === "super_admin" || userRole === "system_admin";
+  }
 
   const required = getRequiredPermission(pathname);
 

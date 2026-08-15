@@ -243,13 +243,16 @@ function Router() {
       <Route path="/mosques/:id/edit-imam">{params => <AdminRoute component={() => <EditImam params={params} />} />}</Route>
       <Route path="/my-mosques">{() => <RequesterRoute component={MyMosques} />}</Route>
       
+      {/* صفحة تقييم رضا المستفيد (مخصصة لطالب الخدمة) */}
+      <Route path="/requests/:requestId/evaluation" component={RequestEvaluation} />
+      <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
+      
       {/* الطلبات - الصفحات الإدارية */}
       <Route path="/requests">{() => <AdminRoute component={Requests} />}</Route>
       <Route path="/requests/new">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/quick-create">{() => <AdminRoute component={QuickRequestCreate} />}</Route>
-      <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
-      <Route path="/requests/:requestId/evaluation" component={RequestEvaluation} />
+      <Route path="/requests/:id" component={RequestDetails} />
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>

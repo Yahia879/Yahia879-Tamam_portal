@@ -49,6 +49,8 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
       const sharedPaths = ["/profile", "/notifications"];
       const isDynamicSharedPath = 
         /^\/requests\/\d+$/.test(location) || 
+        /^\/requests\/\d+\/evaluation$/.test(location) ||
+        /^\/requester\/requests\/\d+\/evaluation$/.test(location) ||
         /^\/mosques\/\d+$/.test(location) || 
         /^\/final-report\/\d+$/.test(location);
       
