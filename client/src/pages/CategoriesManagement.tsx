@@ -385,44 +385,46 @@ export default function CategoriesManagement() {
                         </Button>
                       )}
                       <Dialog open={isAddValueOpen} onOpenChange={setIsAddValueOpen}>
-                        <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
-                          <DialogHeader>
-                            <DialogTitle className="text-lg sm:text-xl">إضافة قيمة جديدة</DialogTitle>
-                            <DialogDescription className="text-xs sm:text-sm">إضافة قيمة إلى {categoryTypeNames[selectedType] || selectedType}</DialogDescription>
+                        <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 text-right font-sans" dir="rtl">
+                          <DialogHeader className="text-right sm:text-right">
+                            <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200 text-right">إضافة قيمة جديدة</DialogTitle>
+                            <DialogDescription className="text-xs sm:text-sm text-muted-foreground text-right">إضافة قيمة إلى {categoryTypeNames[selectedType] || selectedType}</DialogDescription>
                           </DialogHeader>
-                          <div className="space-y-4 py-4">
+                          <div className="space-y-4 py-4 text-right">
                             <div>
-                              <label className="block text-sm font-medium mb-2">
+                              <label className="block text-sm font-medium mb-2 text-right">
                                 {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
                               </label>
                               <Input
                                 placeholder={selectedType === "sadad_billers" ? "مثال: الشركة السعودية للكهرباء" : "مثال: الرياض"}
                                 value={valueForm.nameAr}
                                 onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                                className="h-9"
+                                className="h-9 text-right"
+                                dir="rtl"
                               />
                             </div>
                             {selectedType === "sadad_billers" && (
                               <div>
-                                <label className="block text-sm font-medium mb-2">رمز/رقم المفوتر *</label>
+                                <label className="block text-sm font-medium mb-2 text-right">رمز/رقم المفوتر *</label>
                                 <Input
                                   placeholder="مثال: 002"
                                   value={valueForm.name}
                                   onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
-                                  className="h-9"
+                                  className="h-9 text-right"
+                                  dir="rtl"
                                 />
                               </div>
                             )}
                           </div>
-                          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-                            <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
+                          <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-start sm:justify-start">
                             <Button 
                               onClick={handleAddValue} 
                               disabled={createCategoryMutation.isPending} 
-                              className="w-full sm:w-auto h-9 text-sm"
+                              className="w-full sm:w-auto h-9 text-sm font-bold bg-primary text-primary-foreground"
                             >
                               {createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة"}
                             </Button>
+                            <Button variant="outline" onClick={() => setIsAddValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -588,42 +590,44 @@ export default function CategoriesManagement() {
 
         {/* Edit Value Dialog */}
         <Dialog open={isEditValueOpen} onOpenChange={setIsEditValueOpen}>
-          <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">تعديل القيمة</DialogTitle>
-              <DialogDescription className="text-xs sm:text-sm">تعديل بيانات القيمة</DialogDescription>
+          <DialogContent className="w-[95vw] max-w-md p-4 sm:p-6 text-right font-sans" dir="rtl">
+            <DialogHeader className="text-right sm:text-right">
+              <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-200 text-right">تعديل القيمة</DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground text-right">تعديل بيانات القيمة</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 text-right">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-right">
                   {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
                 </label>
                 <Input
                   value={valueForm.nameAr}
                   onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
-                  className="h-9"
+                  className="h-9 text-right"
+                  dir="rtl"
                 />
               </div>
               {selectedType === "sadad_billers" && (
                 <div>
-                  <label className="block text-sm font-medium mb-2">رمز/رقم المفوتر *</label>
+                  <label className="block text-sm font-medium mb-2 text-right">رمز/رقم المفوتر *</label>
                   <Input
                     value={valueForm.name}
                     onChange={(e) => setValueForm({ ...valueForm, name: e.target.value })}
-                    className="h-9"
+                    className="h-9 text-right"
+                    dir="rtl"
                   />
                 </div>
               )}
             </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-start sm:justify-start">
               <Button 
                 onClick={handleUpdateValue} 
                 disabled={updateCategoryMutation.isPending} 
-                className="w-full sm:w-auto h-9 text-sm"
+                className="w-full sm:w-auto h-9 text-sm font-bold bg-primary text-primary-foreground"
               >
                 {updateCategoryMutation.isPending ? "جاري الحفظ..." : "حفظ"}
               </Button>
+              <Button variant="outline" onClick={() => setIsEditValueOpen(false)} className="w-full sm:w-auto h-9 text-sm">إلغاء</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
