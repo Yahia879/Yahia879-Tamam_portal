@@ -77,10 +77,6 @@ export default function RequesterDashboard() {
   const completedRequests = myRequests?.filter((r: any) => r.status === "completed" || r.currentStage === "closed") || [];
   const unreadNotifications = notifications?.notifications?.filter((n: any) => !n.isRead) || [];
 
-  // تصفية الطلبات المكتملة/المغلقة التي لم يتم تقييمها بعد
-  const unEvaluatedClosedRequests = myRequests?.filter(
-    (r: any) => (r.currentStage === "closed" || r.status === "completed") && !r.isEvaluated
-  ) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -174,33 +170,6 @@ export default function RequesterDashboard() {
           </div>
         )}
 
-        {/* تنبيه بالطلبات المكتملة غير المقيّمة مع زر فتح صفحة الاستبيان */}
-        {unEvaluatedClosedRequests.length > 0 && (
-          <div className="mb-8 max-w-2xl mx-auto text-right" dir="rtl">
-            <Alert className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <Star className="w-5 h-5 fill-amber-400" />
-                </div>
-                <div>
-                  <AlertTitle className="font-bold text-sm sm:text-base text-foreground">
-                    طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
-                  </AlertTitle>
-                  <AlertDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    تم إنجاز طلب الخدمة ({unEvaluatedClosedRequests[0].requestNumber || `#${unEvaluatedClosedRequests[0].id}`}) بنجاح. نرجو مشاركتنا تقييمك عبر استبيان قياس رضا المستفيدين.
-                  </AlertDescription>
-                </div>
-              </div>
-
-              <Link href={`/requests/${unEvaluatedClosedRequests[0].id}/evaluation`}>
-                <Button className="bg-[#2a68a5] hover:bg-[#205386] text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl gap-2 shadow-xs shrink-0 w-full sm:w-auto">
-                  <Star className="w-4 h-4 fill-white" />
-                  <span>فتح صفحة الاستبيان</span>
-                </Button>
-              </Link>
-            </Alert>
-          </div>
-        )}
 
         {/* أزرار الإجراءات الرئيسية */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
