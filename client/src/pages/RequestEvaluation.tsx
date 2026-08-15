@@ -133,13 +133,21 @@ export default function RequestEvaluation() {
     <DashboardLayout>
       <div className="container max-w-2xl mx-auto py-8 px-4 sm:px-6" dir="rtl">
         {/* العودة للوحة التحكم أو الطلبات */}
-        <div className="mb-6">
-          <Link href="/requester">
-            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
-              <ArrowRight className="w-4 h-4" />
-              العودة للوحة طلباتي
-            </Button>
-          </Link>
+        <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Link href={`/requests/${requestId}`}>
+              <Button variant="outline" size="sm" className="gap-2 text-xs font-semibold rounded-xl">
+                <ArrowRight className="w-4 h-4" />
+                العودة للطلب #{data?.request?.requestNumber || requestId}
+              </Button>
+            </Link>
+
+            <Link href="/requester">
+              <Button variant="ghost" size="sm" className="gap-2 text-xs text-muted-foreground hover:text-foreground">
+                لوحة طلباتي
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* حالة التحميل */}

@@ -1401,6 +1401,36 @@ export default function RequestDetailsNew() {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* كرت دعوة لتقييم رضا المستفيد (إذا لم يتم التقييم بعد والطلب في الاستلام أو مغلق) */}
+                {['handover', 'closed'].includes(request.currentStage) && !request.isEvaluated && (
+                  <div className="flex justify-center w-full" dir="rtl">
+                    <Card className="w-full max-w-2xl p-4 sm:p-5 rounded-2xl border-2 border-primary/20 bg-gradient-to-r from-primary/5 via-teal-500/5 to-emerald-500/5 shadow-md">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 text-right">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Star className="w-6 h-6 fill-amber-400 text-amber-500" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm sm:text-base font-bold text-foreground">
+                              استبيان قياس رضا المستفيدين
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              شاركنا رأيك في جودة الخدمة وسرعة تنفيذ الطلب من خلال استبيان قصير
+                            </p>
+                          </div>
+                        </div>
+
+                        <Link href={`/requests/${requestId}/evaluation`}>
+                          <Button className="bg-[#2a68a5] hover:bg-[#205386] text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl gap-2 shadow-sm shrink-0">
+                            <Star className="w-4 h-4 fill-white" />
+                            <span>فتح صفحة الاستبيان والتقييم</span>
+                          </Button>
+                        </Link>
+                      </div>
+                    </Card>
+                  </div>
+                )}
+
                 {/* كرت تقييم رضا المستفيد للمسؤولين - مدمج ومضغوط ومتناسق */}
                 {request.isEvaluated && request.satisfactionRating && (
                   <div className="flex justify-center w-full" dir="rtl">

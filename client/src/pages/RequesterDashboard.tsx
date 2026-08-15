@@ -8,17 +8,12 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  ChevronLeft,
   LogOut,
   User,
   Bell,
   Percent,
   ArrowLeft,
-  ArrowRight,
   Star,
-  Sparkles,
-  HeartHandshake,
-  Loader2,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -32,23 +27,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
@@ -56,15 +38,6 @@ const statusColors: Record<string, string> = {
   completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-};
-
-// تسميات التقييم وتعبيرات الرضا
-const RATING_LABELS: Record<number, { label: string; description: string; emoji: string; color: string }> = {
-  1: { label: "غير راضي جداً", description: "تجربة غير مرضية", emoji: "😞", color: "text-red-500 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40" },
-  2: { label: "غير راضي", description: "هناك ملاحظات على جودة الخدمة", emoji: "🙁", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/40" },
-  3: { label: "محايد", description: "الخدمة مقبولة وتحتاج لتحسين", emoji: "😐", color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900/40" },
-  4: { label: "راضي", description: "خدمة ممتازة وتم إنجاز العمل بالشكل المناسب", emoji: "🙂", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/40" },
-  5: { label: "راضي جداً", description: "تجربة استثنائية وجودة عالية تفوق التوقعات", emoji: "😍", color: "text-teal-600 bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-900/40" },
 };
 
 // حساب نسبة التقدم بناءً على المرحلة
@@ -85,46 +58,6 @@ export default function RequesterDashboard() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
-  
-  // حالة استبيان تقييم رضا المستفيدين
-  const [evaluatingRequest, setEvaluatingRequest] = useState<any | null>(null);
-  const [beneficiaryName, setBeneficiaryName] = useState<string>("");
-  const [beneficiaryPhone, setBeneficiaryPhone] = useState<string>("");
-  const [serviceName, setServiceName] = useState<string>("");
-  const [beneficiaryEmail, setBeneficiaryEmail] = useState<string>("");
-
-  const [servicesRating, setServicesRating] = useState<number>(0);
-  const [hoverServicesRating, setHoverServicesRating] = useState<number>(0);
-
-  const [speedRating, setSpeedRating] = useState<number>(0);
-  const [hoverSpeedRating, setHoverSpeedRating] = useState<number>(0);
-
-  const [communicationRating, setCommunicationRating] = useState<number>(0);
-  const [hoverCommunicationRating, setHoverCommunicationRating] = useState<number>(0);
-
-  const [overallSatisfaction, setOverallSatisfaction] = useState<number>(0);
-  const [hoverOverallSatisfaction, setHoverOverallSatisfaction] = useState<number>(0);
-
-  const [comments, setComments] = useState<string>("");
-
-  const utils = trpc.useUtils();
-
-  // دالة فتح نافذة التقييم وتهيئة البيانات الأولية
-  const openEvaluationModal = (req: any) => {
-    setEvaluatingRequest(req);
-    setBeneficiaryName(user?.name || "");
-    setBeneficiaryPhone(user?.phone || (user as any)?.mobileNumber || "");
-    const initialServiceName = req.mosqueName 
-      ? `مسجد ${req.mosqueName}` 
-      : (req.descriptiveName || req.programType || `طلب خدمة رقم #${req.requestNumber || req.id}`);
-    setServiceName(initialServiceName);
-    setBeneficiaryEmail(user?.email || "");
-    setServicesRating(0);
-    setSpeedRating(0);
-    setCommunicationRating(0);
-    setOverallSatisfaction(0);
-    setComments("");
-  };
 
   // جلب طلبات المستخدم
   const { data: myRequests, isLoading } = trpc.requests.getMyRequests.useQuery();
@@ -134,51 +67,6 @@ export default function RequesterDashboard() {
   const { data: notifications } = trpc.notifications.getMyNotifications.useQuery({ limit: 10 });
   // جلب إعدادات الجمعية (الشعار والاسم)
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
-
-  // إجراء إرسال التقييم
-  const submitEvaluationMutation = trpc.requests.submitBeneficiaryEvaluation.useMutation({
-    onSuccess: (res: any) => {
-      toast.success(res.message || "تم استلام استبيان التقييم بنجاح، شكراً لمشاركتك!");
-      setEvaluatingRequest(null);
-      utils.requests.getMyRequests.invalidate();
-    },
-    onError: (err: any) => {
-      toast.error(err.message || "حدث خطأ أثناء إرسال التقييم");
-    },
-  });
-
-  const handleSubmitSurvey = () => {
-    if (!evaluatingRequest) return;
-    if (!serviceName.trim()) {
-      toast.error("يرجى إدخال اسم المسجد/المشروع/الخدمة");
-      return;
-    }
-    if (speedRating === 0) {
-      toast.error("يرجى الإجابة على: ما مدى تقييمك لسرعة تلبية طلبك؟");
-      return;
-    }
-    if (communicationRating === 0) {
-      toast.error("يرجى الإجابة على: ما مدى سرعة تواصل موظفي الجمعية معك؟");
-      return;
-    }
-    if (overallSatisfaction === 0) {
-      toast.error("يرجى الإجابة على: ما مدى رضاك بشكل عام عن الجمعية؟");
-      return;
-    }
-
-    submitEvaluationMutation.mutate({
-      requestId: evaluatingRequest.id,
-      beneficiaryName: beneficiaryName.trim() || undefined,
-      beneficiaryPhone: beneficiaryPhone.trim() || undefined,
-      serviceName: serviceName.trim(),
-      beneficiaryEmail: beneficiaryEmail.trim() || undefined,
-      servicesRating: servicesRating > 0 ? servicesRating : undefined,
-      speedRating,
-      communicationRating,
-      overallSatisfaction,
-      comments: comments.trim() || undefined,
-    });
-  };
 
   const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
   const orgName = orgSettings?.organizationName || 'بوابة تمام';
@@ -193,24 +81,6 @@ export default function RequesterDashboard() {
   const unEvaluatedClosedRequests = myRequests?.filter(
     (r: any) => (r.currentStage === "closed" || r.status === "completed") && !r.isEvaluated
   ) || [];
-
-  // فتح نافذة الـ Modal تلقائياً لمرة واحدة فقط لكل طلب عند إغلاقه
-  useEffect(() => {
-    if (!isLoading && myRequests && unEvaluatedClosedRequests.length > 0 && !evaluatingRequest && user?.id) {
-      // البحث عن أول طلب مغلق لم يسبق إظهار النافذة التلقائية له للمستخدم
-      const targetReq = unEvaluatedClosedRequests.find((req: any) => {
-        const storageKey = `eval_modal_shown_${user.id}_${req.id}`;
-        return !localStorage.getItem(storageKey);
-      });
-
-      if (targetReq) {
-        openEvaluationModal(targetReq);
-        // تسجيل أن المودال قد ظهر لهذا الطلب لكي لا يتكرر ظهوره التلقائي مجدداً
-        const storageKey = `eval_modal_shown_${user.id}_${targetReq.id}`;
-        localStorage.setItem(storageKey, "true");
-      }
-    }
-  }, [isLoading, myRequests, unEvaluatedClosedRequests, evaluatingRequest, user?.id]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -230,12 +100,12 @@ export default function RequesterDashboard() {
               </div>
             </Link>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
               <Link href="/notifications">
-                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-10 sm:w-10">
-                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 sm:h-9 sm:w-9">
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                   {unreadNotifications.length > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-destructive text-white text-[10px] rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
                       {unreadNotifications.length}
                     </span>
                   )}
@@ -304,6 +174,34 @@ export default function RequesterDashboard() {
           </div>
         )}
 
+        {/* تنبيه بالطلبات المكتملة غير المقيّمة مع زر فتح صفحة الاستبيان */}
+        {unEvaluatedClosedRequests.length > 0 && (
+          <div className="mb-8 max-w-2xl mx-auto text-right" dir="rtl">
+            <Alert className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <Star className="w-5 h-5 fill-amber-400" />
+                </div>
+                <div>
+                  <AlertTitle className="font-bold text-sm sm:text-base text-foreground">
+                    طلبك مكتمل وبانتظار تقييمك للخدمة ⭐
+                  </AlertTitle>
+                  <AlertDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    تم إنجاز طلب الخدمة ({unEvaluatedClosedRequests[0].requestNumber || `#${unEvaluatedClosedRequests[0].id}`}) بنجاح. نرجو مشاركتنا تقييمك عبر استبيان قياس رضا المستفيدين.
+                  </AlertDescription>
+                </div>
+              </div>
+
+              <Link href={`/requests/${unEvaluatedClosedRequests[0].id}/evaluation`}>
+                <Button className="bg-[#2a68a5] hover:bg-[#205386] text-white font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl gap-2 shadow-xs shrink-0 w-full sm:w-auto">
+                  <Star className="w-4 h-4 fill-white" />
+                  <span>فتح صفحة الاستبيان</span>
+                </Button>
+              </Link>
+            </Alert>
+          </div>
+        )}
+
         {/* أزرار الإجراءات الرئيسية */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
           <Link href="/request-form-dynamic">
@@ -338,527 +236,206 @@ export default function RequesterDashboard() {
         </div>
 
         {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-3 sm:p-4 text-center">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-              </div>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">{myRequests?.length || 0}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">إجمالي الطلبات</p>
-            </CardContent>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardDescription className="flex items-center justify-between text-xs sm:text-sm">
+                <span>إجمالي الطلبات</span>
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+              </CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-bold">{myRequests?.length || 0}</CardTitle>
+            </CardHeader>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-3 sm:p-4 text-center">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-2">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />
-              </div>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">{pendingRequests.length}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">قيد الانتظار</p>
-            </CardContent>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardDescription className="flex items-center justify-between text-xs sm:text-sm">
+                <span>قيد المراجعة</span>
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-600" />
+              </CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-yellow-600">{pendingRequests.length}</CardTitle>
+            </CardHeader>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-3 sm:p-4 text-center">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-2">
-                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">{inProgressRequests.length}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">قيد التنفيذ</p>
-            </CardContent>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardDescription className="flex items-center justify-between text-xs sm:text-sm">
+                <span>قيد التنفيذ</span>
+                <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
+              </CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-blue-600">{inProgressRequests.length}</CardTitle>
+            </CardHeader>
           </Card>
 
           <Card className="border-0 shadow-sm">
-            <CardContent className="p-3 sm:p-4 text-center">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
-                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <p className="text-xl sm:text-2xl font-bold text-foreground">{completedRequests.length}</p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">مكتملة</p>
-            </CardContent>
+            <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+              <CardDescription className="flex items-center justify-between text-xs sm:text-sm">
+                <span>مكتملة</span>
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-600" />
+              </CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-bold text-green-600">{completedRequests.length}</CardTitle>
+            </CardHeader>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* طلباتي مع نسبة التقدم */}
-          <Card className="lg:col-span-2 border-0 shadow-sm">
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <FileText className="w-5 h-5 text-primary" />
-                    طلباتي
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">متابعة تقدم طلباتك</CardDescription>
-                </div>
-                <Link href="/my-requests">
-                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                    عرض الكل
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                  </Button>
+        {/* قائمة الطلبات */}
+        <Card className="border-0 shadow-sm mb-8">
+          <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4">
+            <div>
+              <CardTitle className="text-base sm:text-lg">طلباتي</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">متابعة حالة الطلبات المقدمة</CardDescription>
+            </div>
+            <Link href="/requests">
+              <Button variant="ghost" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
+                عرض الكل
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">جاري التحميل...</div>
+            ) : myRequests?.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground mb-4 text-sm">لم تقدم أي طلبات بعد</p>
+                <Link href="/request-form-dynamic">
+                  <Button size="sm">تقديم طلب جديد</Button>
                 </Link>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
-                  ))}
-                </div>
-              ) : myRequests && myRequests.length > 0 ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {myRequests.slice(0, 5).map((request: any) => {
-                    const isClosed = request.currentStage === "closed" || request.status === "completed";
-                    const progress = isClosed ? 100 : getProgressPercentage(request.currentStage);
-                    
-                    return (
-                      <div 
-                        key={request.id}
-                        className="p-3 sm:p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-primary/20"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <Link href={`/requests/${request.id}`} className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 cursor-pointer">
-                            <ProgramIcon program={request.programType} size="md" showBackground />
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm sm:text-base text-foreground truncate hover:text-primary transition-colors">
-                                {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
-                              </p>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate font-mono">
-                                {request.requestNumber} {request.mosqueName ? `• ${request.mosqueName}` : ''}
+            ) : (
+              <div className="space-y-3 sm:space-y-4">
+                {myRequests?.slice(0, 5).map((request: any) => {
+                  const progress = getProgressPercentage(request.currentStage);
+                  const isClosed = request.currentStage === "closed" || request.status === "completed";
+                  
+                  return (
+                    <div 
+                      key={request.id}
+                      className="p-3 sm:p-4 rounded-xl border border-border/50 hover:border-border hover:shadow-md transition-all space-y-3 bg-card"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                        <Link href={`/requests/${request.id}`} className="block flex-1 min-w-0">
+                          <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <ProgramIcon program={request.programType} className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-full">
+                                  {request.mosqueName ? `مسجد ${request.mosqueName}` : request.requestNumber}
+                                </span>
+                                <Badge className={`text-[10px] sm:text-xs shrink-0 ${statusColors[request.status] || ""}`}>
+                                  {STATUS_LABELS[request.status] || request.status}
+                                </Badge>
+                              </div>
+                              <p className="text-[11px] sm:text-xs text-muted-foreground truncate mt-0.5">
+                                {PROGRAM_LABELS[request.programType] || request.programType}
                               </p>
                             </div>
-                          </Link>
+                          </div>
+                        </Link>
 
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* زر التقييم إذا كان الطلب مغلقاً */}
-                            {isClosed && (
-                              request.isEvaluated ? (
-                                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] gap-1 px-2.5 py-1">
-                                  <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                  <span>تم التقييم ({request.satisfactionRating || 5}/5)</span>
-                                </Badge>
-                              ) : (
+                        <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                          {/* زر التقييم إذا كان الطلب مغلقاً */}
+                          {isClosed && (
+                            request.isEvaluated ? (
+                              <Badge variant="outline" className="border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-[11px] gap-1 px-2.5 py-1">
+                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                <span>تم التقييم ({request.satisfactionRating || 5}/5)</span>
+                              </Badge>
+                            ) : (
+                              <Link href={`/requests/${request.id}/evaluation`}>
                                 <Button
                                   size="sm"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    openEvaluationModal(request);
-                                  }}
                                   className="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm gap-1.5 transition-all hover:scale-105"
                                 >
                                   <Star className="w-3.5 h-3.5 fill-white" />
                                   <span>قيّم الخدمة</span>
                                 </Button>
-                              )
-                            )}
+                              </Link>
+                            )
+                          )}
 
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              <Percent className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
-                              <span className="text-base sm:text-lg font-bold text-primary">{progress}%</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <Progress value={progress} className="h-1.5 sm:h-2" />
-                          <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
-                            <span>
-                              المرحلة: <strong className="text-foreground">{STAGE_LABELS[request.currentStage] || request.currentStage}</strong>
-                            </span>
-                            <span>{progress === 100 ? "مكتمل" : "جاري المعالجة..."}</span>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Percent className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                            <span className="text-base sm:text-lg font-bold text-primary">{progress}%</span>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 sm:py-12">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3 sm:mb-4">
-                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm sm:text-base text-muted-foreground mb-4">لا توجد طلبات حتى الآن</p>
-                  <Link href="/request-form-dynamic">
-                    <Button className="gradient-primary text-white w-full sm:w-auto">
-                      <Plus className="w-4 h-4 ml-2" />
-                      تقديم طلب جديد
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* الإشعارات */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Bell className="w-5 h-5 text-primary" />
-                    الإشعارات
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">آخر التحديثات</CardDescription>
-                </div>
-                <Link href="/notifications">
-                  <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                    عرض الكل
-                    <ChevronLeft className="w-4 h-4 mr-1" />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-              {notifications?.notifications && notifications.notifications.length > 0 ? (
-                <div className="space-y-3">
-                  {notifications.notifications.slice(0, 5).map((notification: any) => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-3 rounded-lg transition-colors ${
-                        notification.isRead ? 'bg-muted/30' : 'bg-primary/5 border border-primary/20'
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-foreground line-clamp-1">
-                        {notification.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                        {notification.message}
-                      </p>
-                      {!notification.isRead && (
-                        <Badge variant="secondary" className="mt-2 text-[10px] h-5">
-                          جديد
-                        </Badge>
-                      )}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[11px] sm:text-xs text-muted-foreground">
+                          <span>المرحلة الحالية: {STAGE_LABELS[request.currentStage] || request.currentStage}</span>
+                          <span>{progress}%</span>
+                        </div>
+                        <Progress value={progress} className="h-1.5 sm:h-2" />
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 sm:py-8">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                    <Bell className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">لا توجد إشعارات</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* مساجدي */}
-        <Card className="mt-6 border-0 shadow-sm">
-          <CardHeader className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <Building2 className="w-5 h-5 text-primary" />
-                  مساجدي
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">المساجد المسجلة باسمك</CardDescription>
+                  );
+                })}
               </div>
-              <Link href="/my-mosques">
-                <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-                  عرض الكل
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                </Button>
-              </Link>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* قائمة المساجد المسجلة */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6 pb-2 sm:pb-4">
+            <div>
+              <CardTitle className="text-base sm:text-lg">مساجدي</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">المساجد المسجلة تحت حسابك</CardDescription>
             </div>
+            <Link href="/requester/mosques/new">
+              <Button size="sm" variant="outline" className="text-xs sm:text-sm h-8 sm:h-9">
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" />
+                إضافة مسجد
+              </Button>
+            </Link>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            {myMosques && myMosques.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {myMosques.slice(0, 4).map((mosque) => (
-                  <Link key={mosque.id} href={`/mosques/${mosque.id}`}>
-                    <div className="p-3 sm:p-4 bg-muted/30 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer border border-transparent hover:border-primary/20">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-                        <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                      </div>
-                      <p className="font-medium text-sm sm:text-base text-foreground truncate">{mosque.name}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground truncate">{mosque.city}</p>
-                      <Badge 
-                        variant={mosque.approvalStatus === 'approved' ? 'default' : 'secondary'} 
-                        className="mt-2 text-[10px] h-5"
-                      >
-                        {mosque.approvalStatus === 'approved' ? 'معتمد' : 
-                         mosque.approvalStatus === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
+          <CardContent className="p-4 sm:p-6 pt-0">
+            {myMosques?.length === 0 ? (
+              <div className="text-center py-8">
+                <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <p className="text-muted-foreground mb-4 text-sm">لم تسجل أي مسجد بعد</p>
+                <Link href="/requester/mosques/new">
+                  <Button size="sm">تسجيل مسجد جديد</Button>
+                </Link>
               </div>
             ) : (
-              <div className="text-center py-6 sm:py-8">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-4">لا توجد مساجد مسجلة</p>
-                <Link href="/requester/mosques/new">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    <Plus className="w-4 h-4 ml-2" />
-                    تسجيل مسجد
-                  </Button>
-                </Link>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {myMosques?.map((mosque: any) => (
+                  <div 
+                    key={mosque.id}
+                    className="p-3 sm:p-4 rounded-xl border border-border/50 hover:border-border hover:shadow-md transition-all bg-card flex flex-col justify-between"
+                  >
+                    <div className="flex items-start gap-2.5 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-xs sm:text-sm text-foreground truncate">{mosque.name}</h4>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground truncate mt-0.5">
+                          {mosque.city || mosque.region || 'غير محدد'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
+                      <span className="text-[10px] sm:text-xs text-muted-foreground">
+                        {mosque.neighborhood ? `حي ${mosque.neighborhood}` : 'مسجل في البوابة'}
+                      </span>
+                      <Link href={`/request-form-dynamic?mosqueId=${mosque.id}`}>
+                        <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-primary hover:text-primary">
+                          طلب خدمة
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </main>
-
-      {/* نافذة استبيان قياس رضا المستفيدين (Modal Dialog) */}
-      <Dialog 
-        open={!!evaluatingRequest} 
-        onOpenChange={(open) => {
-          if (!submitEvaluationMutation.isPending && !open) {
-            setEvaluatingRequest(null);
-          }
-        }}
-      >
-        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl border border-slate-200/80 shadow-2xl bg-white text-slate-900 font-sans" dir="rtl">
-          {/* 1. Header Banner مع الشعار */}
-          <div className="bg-[#14707a] text-white p-6 sm:p-7 flex flex-col items-center justify-center rounded-t-2xl relative shadow-inner">
-            <img 
-              src={mainLogoSrc} 
-              alt="شعار الجمعية" 
-              className="h-14 sm:h-16 w-auto object-contain brightness-0 invert"
-            />
-          </div>
-
-          <div className="p-5 sm:p-7 space-y-6">
-            {/* 2. العنوان والنص الترحيبي */}
-            <div className="text-center space-y-2">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
-                قياس رضا المستفيدين من خدمات الجمعية
-              </h2>
-              <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed max-w-xl mx-auto">
-                نرحب بكم في استبيان قياس رضا المستفيدين لجمعية عمارة المساجد (منارة). نسعى من خلال هذا الاستبيان إلى فهم آرائكم واقتراحاتكم، حيث إن مشاركتكم تساعدنا في تحسين وتطوير خدماتنا لتلبية تطلعاتكم بشكل أفضل. نؤكد لكم أن إكمال الاستبيان لن يستغرق أكثر من دقيقتين من وقتكم. شكرًا لكم على وقتكم وتعاونكم
-              </p>
-            </div>
-
-            <hr className="border-t border-dotted border-slate-300" />
-
-            {/* 3. الحقول النصية */}
-            <div className="space-y-4">
-              {/* الاسم (اختياري) */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800">الاسم (اختياري)</Label>
-                <Input
-                  value={beneficiaryName}
-                  onChange={(e) => setBeneficiaryName(e.target.value)}
-                  placeholder=""
-                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
-                />
-              </div>
-
-              {/* رقم الجوال (اختياري) */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800">رقم الجوال (اختياري)</Label>
-                <Input
-                  value={beneficiaryPhone}
-                  onChange={(e) => setBeneficiaryPhone(e.target.value)}
-                  placeholder=""
-                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
-                  dir="ltr"
-                />
-              </div>
-
-              {/* اسم المسجد/المشروع/الخدمة * */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800">
-                  اسم المسجد/المشروع/الخدمة <span className="text-rose-600">*</span>
-                </Label>
-                <Input
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  placeholder=""
-                  required
-                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right font-medium"
-                />
-              </div>
-
-              {/* البريد الإلكتروني (اختياري) */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800">البريد الإلكتروني (اختياري)</Label>
-                <Input
-                  value={beneficiaryEmail}
-                  onChange={(e) => setBeneficiaryEmail(e.target.value)}
-                  type="email"
-                  placeholder=""
-                  className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md h-10 text-right"
-                  dir="ltr"
-                />
-              </div>
-            </div>
-
-            {/* 4. أسئلة التقييم بالنجوم */}
-            <div className="space-y-4 pt-1">
-              {/* ما مدى تقييمك لخدمات الجمعية؟ */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
-                  ما مدى تقييمك لخدمات الجمعية؟
-                </Label>
-                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const active = (hoverServicesRating || servicesRating) >= star;
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setServicesRating(star)}
-                        onMouseEnter={() => setHoverServicesRating(star)}
-                        onMouseLeave={() => setHoverServicesRating(0)}
-                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                      >
-                        <Star
-                          className={`w-8 h-8 transition-all ${
-                            active
-                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
-                              : "text-slate-300 fill-none stroke-[1.2]"
-                          }`}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ما مدى تقييمك لسرعة تلبية طلبك؟ * */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
-                  ما مدى تقييمك لسرعة تلبية طلبك؟ <span className="text-rose-600">*</span>
-                </Label>
-                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const active = (hoverSpeedRating || speedRating) >= star;
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setSpeedRating(star)}
-                        onMouseEnter={() => setHoverSpeedRating(star)}
-                        onMouseLeave={() => setHoverSpeedRating(0)}
-                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                      >
-                        <Star
-                          className={`w-8 h-8 transition-all ${
-                            active
-                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
-                              : "text-slate-300 fill-none stroke-[1.2]"
-                          }`}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ما مدى سرعة تواصل موظفي الجمعية معك؟ * */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
-                  ما مدى سرعة تواصل موظفي الجمعية معك؟ <span className="text-rose-600">*</span>
-                </Label>
-                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const active = (hoverCommunicationRating || communicationRating) >= star;
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setCommunicationRating(star)}
-                        onMouseEnter={() => setHoverCommunicationRating(star)}
-                        onMouseLeave={() => setHoverCommunicationRating(0)}
-                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                      >
-                        <Star
-                          className={`w-8 h-8 transition-all ${
-                            active
-                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
-                              : "text-slate-300 fill-none stroke-[1.2]"
-                          }`}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ما مدى رضاك بشكل عام عن الجمعية؟ * */}
-              <div className="space-y-1.5 text-right">
-                <Label className="text-xs sm:text-sm font-bold text-slate-800 block">
-                  ما مدى رضاك بشكل عام عن الجمعية؟ <span className="text-rose-600">*</span>
-                </Label>
-                <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const active = (hoverOverallSatisfaction || overallSatisfaction) >= star;
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setOverallSatisfaction(star)}
-                        onMouseEnter={() => setHoverOverallSatisfaction(star)}
-                        onMouseLeave={() => setHoverOverallSatisfaction(0)}
-                        className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                      >
-                        <Star
-                          className={`w-8 h-8 transition-all ${
-                            active
-                              ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_3px_rgba(251,191,36,0.5)]"
-                              : "text-slate-300 fill-none stroke-[1.2]"
-                          }`}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* 5. مساحة حرة */}
-            <div className="space-y-1.5 text-right">
-              <Label className="block text-xs sm:text-sm font-bold text-slate-800">مساحة حرة</Label>
-              <span className="block text-xs font-semibold text-slate-700">
-                (اكتب لنا ما تريد: رأي-نصيحة-اقتراح-أخرى)
-              </span>
-              <Textarea
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                rows={4}
-                placeholder=""
-                className="bg-[#fcfbf7] border-slate-200 focus:border-[#14707a] rounded-md text-sm text-right leading-relaxed"
-              />
-            </div>
-
-            {/* 6. زر إرسال */}
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-              <Button
-                variant="ghost"
-                type="button"
-                disabled={submitEvaluationMutation.isPending}
-                onClick={() => setEvaluatingRequest(null)}
-                className="text-muted-foreground text-xs hover:text-foreground"
-              >
-                إغلاق
-              </Button>
-              <Button
-                type="button"
-                disabled={submitEvaluationMutation.isPending}
-                onClick={handleSubmitSurvey}
-                className="bg-[#2a68a5] hover:bg-[#205386] text-white font-bold text-sm px-8 py-2.5 rounded-md shadow-sm transition-all"
-              >
-                {submitEvaluationMutation.isPending ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري الإرسال...</span>
-                  </div>
-                ) : (
-                  "إرسال"
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Footer */}
       <footer className="mt-12 py-6 border-t bg-white/50 dark:bg-card/50">
