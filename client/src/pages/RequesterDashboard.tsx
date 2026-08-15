@@ -254,7 +254,7 @@ export default function RequesterDashboard() {
               <CardTitle className="text-base sm:text-lg">طلباتي</CardTitle>
               <CardDescription className="text-xs sm:text-sm">متابعة حالة الطلبات المقدمة</CardDescription>
             </div>
-            <Link href="/requests">
+            <Link href="/my-requests">
               <Button variant="ghost" size="sm" className="text-xs sm:text-sm h-8 sm:h-9">
                 عرض الكل
               </Button>
