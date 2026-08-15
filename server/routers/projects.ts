@@ -791,6 +791,7 @@ export const projectsRouter = router({
     .input(z.object({
       requestId: z.number().optional(),
       projectId: z.number().optional(),
+      mosqueId: z.number().optional(),
       items: z.array(z.object({
         itemName: z.string().min(1),
         itemDescription: z.string().optional(),
@@ -798,6 +799,7 @@ export const projectsRouter = router({
         quantity: z.number().positive(),
         unitPrice: z.number().optional(),
         category: z.string().optional(),
+        mosqueId: z.number().optional(),
       }))
     }))
     .mutation(async ({ input, ctx }) => {
@@ -826,6 +828,7 @@ export const projectsRouter = router({
         return {
           projectId: projectId,
           requestId: input.requestId || null,
+          mosqueId: item.mosqueId || input.mosqueId || null,
           itemName: item.itemName,
           itemDescription: item.itemDescription,
           unit: item.unit,
@@ -838,15 +841,16 @@ export const projectsRouter = router({
 
       for (const itemValue of valuesToInsert) {
         const pid = itemValue.projectId ?? null;
+        const mid = itemValue.mosqueId ?? null;
         const uPrice = itemValue.unitPrice ?? null;
         const tPrice = itemValue.totalPrice ?? null;
         const desc = itemValue.itemDescription || null;
         const rId = itemValue.requestId ?? null;
         await db.execute(sql`
           INSERT INTO quantity_schedules 
-          (requestId, projectId, itemName, itemDescription, unit, quantity, unitPrice, totalPrice, category) 
+          (requestId, projectId, mosqueId, itemName, itemDescription, unit, quantity, unitPrice, totalPrice, category) 
           VALUES 
-          (${rId}, ${pid}, ${itemValue.itemName}, ${desc}, ${itemValue.unit}, ${itemValue.quantity}, ${uPrice}, ${tPrice}, ${itemValue.category})
+          (${rId}, ${pid}, ${mid}, ${itemValue.itemName}, ${desc}, ${itemValue.unit}, ${itemValue.quantity}, ${uPrice}, ${tPrice}, ${itemValue.category})
         `);
       }
 
@@ -858,6 +862,7 @@ export const projectsRouter = router({
     .input(z.object({
       projectId: z.number().optional(),
       requestId: z.number().optional(),
+      mosqueId: z.number().optional(),
       boqCode: z.string().optional(),
       boqName: z.string().optional(),
       itemName: z.string().min(1),
@@ -891,6 +896,7 @@ export const projectsRouter = router({
       const [item] = await db.insert(quantitySchedules).values({
         projectId: projectId,
         requestId: input.requestId || null,
+        mosqueId: input.mosqueId || null,
         boqCode: input.boqCode,
         boqName: input.boqName,
         itemName: input.itemName,
@@ -909,6 +915,7 @@ export const projectsRouter = router({
   updateBOQItem: protectedProcedure
     .input(z.object({
       id: z.number(),
+      mosqueId: z.number().optional().nullable(),
       itemName: z.string().optional(),
       itemDescription: z.string().optional(),
       unit: z.string().optional(),
@@ -937,6 +944,7 @@ export const projectsRouter = router({
       const totalPrice = unitPrice ? quantity * unitPrice : null;
 
       const updateValues: any = {};
+      if (updateData.mosqueId !== undefined) updateValues.mosqueId = updateData.mosqueId;
       if (updateData.itemName) updateValues.itemName = updateData.itemName;
       if (updateData.itemDescription) updateValues.itemDescription = updateData.itemDescription;
       if (updateData.unit) updateValues.unit = updateData.unit;
@@ -964,39 +972,80 @@ export const projectsRouter = router({
       return { success: true };
     }),
 
-  // جلب جدول الكميات لمشروع
+  // جلب جدول الكميات لمشروع أو طلب
   getBOQ: protectedProcedure
     .input(z.object({ 
       projectId: z.number().optional(),
-      requestId: z.number().optional()
+      requestId: z.number().optional(),
+      mosqueId: z.number().optional(),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       // البحث باستخدام requestId أو projectId
-      const whereCondition = input.requestId 
-        ? eq(quantitySchedules.requestId, input.requestId)
-        : input.projectId 
-          ? eq(quantitySchedules.projectId, input.projectId)
-          : undefined;
-
-      if (!whereCondition) {
-        return { items: [], total: 0 };
+      const conditions: any[] = [];
+      if (input.requestId) {
+        conditions.push(eq(quantitySchedules.requestId, input.requestId));
+      } else if (input.projectId) {
+        conditions.push(eq(quantitySchedules.projectId, input.projectId));
       }
 
-      const items = await db
-        .select()
+      if (input.mosqueId) {
+        conditions.push(eq(quantitySchedules.mosqueId, input.mosqueId));
+      }
+
+      if (conditions.length === 0) {
+        return { items: [], total: 0, byMosque: {} };
+      }
+
+      const rawItems = await db
+        .select({
+          id: quantitySchedules.id,
+          requestId: quantitySchedules.requestId,
+          projectId: quantitySchedules.projectId,
+          mosqueId: quantitySchedules.mosqueId,
+          boqCode: quantitySchedules.boqCode,
+          boqName: quantitySchedules.boqName,
+          itemName: quantitySchedules.itemName,
+          itemDescription: quantitySchedules.itemDescription,
+          unit: quantitySchedules.unit,
+          quantity: quantitySchedules.quantity,
+          unitPrice: quantitySchedules.unitPrice,
+          totalPrice: quantitySchedules.totalPrice,
+          category: quantitySchedules.category,
+          createdAt: quantitySchedules.createdAt,
+          updatedAt: quantitySchedules.updatedAt,
+          mosqueName: mosques.name,
+          mosqueCity: mosques.city,
+        })
         .from(quantitySchedules)
-        .where(whereCondition)
+        .leftJoin(mosques, eq(quantitySchedules.mosqueId, mosques.id))
+        .where(and(...conditions))
         .orderBy(quantitySchedules.category, quantitySchedules.itemName);
 
-      // حساب الإجمالي
-      const total = items.reduce((sum: number, item: typeof items[0]) => {
+      // حساب الإجمالي الكلي
+      const total = rawItems.reduce((sum, item) => {
         return sum + (item.totalPrice ? parseFloat(item.totalPrice) : 0);
       }, 0);
 
-      return { items, total };
+      // تجميع حسب المسجد
+      const byMosque: Record<number | string, { mosqueId: number | null; mosqueName: string | null; items: typeof rawItems; total: number }> = {};
+      for (const item of rawItems) {
+        const mKey = item.mosqueId ?? 'unassigned';
+        if (!byMosque[mKey]) {
+          byMosque[mKey] = {
+            mosqueId: item.mosqueId,
+            mosqueName: item.mosqueName || null,
+            items: [],
+            total: 0,
+          };
+        }
+        byMosque[mKey].items.push(item);
+        byMosque[mKey].total += item.totalPrice ? parseFloat(item.totalPrice) : 0;
+      }
+
+      return { items: rawItems, total, byMosque };
     }),
 
   // ==================== العقود ====================

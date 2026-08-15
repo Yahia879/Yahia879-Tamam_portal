@@ -3140,7 +3140,7 @@ export default function RequestDetailsNew() {
       <ColoredDialog
         open={boqOpen}
         onOpenChange={setBoqOpen}
-        title="جداول الكميات (BOQ)"
+        title={isMultiMosque ? "جداول كميات مساجد المشروع (BOQ)" : "جداول الكميات (BOQ)"}
         color="teal"
         fullScreen={true}
       >

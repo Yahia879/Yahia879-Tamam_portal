@@ -721,6 +721,7 @@ export const quantitySchedules = mysqlTable("quantity_schedules", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").references(() => mosqueRequests.id, { onDelete: "cascade" }),
   projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
+  mosqueId: int("mosqueId").references(() => mosques.id, { onDelete: "cascade" }),
   boqCode: varchar("boqCode", { length: 50 }).unique(), // BOQ-2025-001
   boqName: varchar("boqName", { length: 255 }), // اسم وصفي للجدول
   itemName: text("itemName").notNull(),
@@ -739,6 +740,7 @@ export const boqItems = mysqlTable("boq_items", {
   id: int("id").autoincrement().primaryKey(),
   requestId: int("requestId").references(() => mosqueRequests.id, { onDelete: "cascade" }),
   projectId: int("projectId").references(() => projects.id, { onDelete: "cascade" }),
+  mosqueId: int("mosqueId").references(() => mosques.id, { onDelete: "cascade" }),
   itemName: varchar("itemName", { length: 255 }).notNull(),
   itemDescription: text("itemDescription"),
   unit: varchar("unit", { length: 50 }).notNull(),
