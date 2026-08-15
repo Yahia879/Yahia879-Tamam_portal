@@ -52,7 +52,42 @@ async function main() {
     }
 
     // ==========================================
-    // 2. قيم اسم المشروع الرئيسي (main_projects)
+    // 2. مصارف التبرعات (donation_purposes)
+    // ==========================================
+    console.log("\nSeeding donation purposes values...");
+    const donationPurposesValues = [
+      { value: 'mosque_construction', valueAr: 'بناء المساجد', sortOrder: 1 },
+      { value: 'renovation', valueAr: 'الترميم', sortOrder: 2 },
+      { value: 'water_supply', valueAr: 'سقية الماء', sortOrder: 3 },
+      { value: 'equipment', valueAr: 'التجهيزات', sortOrder: 4 }
+    ];
+
+    for (const item of donationPurposesValues) {
+      const valCode = sanitizeText(item.value);
+      const valAr = sanitizeText(item.valueAr);
+      
+      const [existing] = await conn.execute(
+        "SELECT id FROM categories WHERE type = 'donation_purposes' AND (name = ? OR nameAr = ?)",
+        [valCode, valAr]
+      );
+
+      if (existing.length === 0) {
+        await conn.execute(
+          "INSERT INTO categories (name, nameAr, type, sortOrder, isActive) VALUES (?, ?, 'donation_purposes', ?, true)",
+          [valCode, valAr, item.sortOrder]
+        );
+        console.log(`  ➕ Added: ${valAr} (${valCode})`);
+      } else {
+        await conn.execute(
+          "UPDATE categories SET name = ?, nameAr = ?, sortOrder = ?, isActive = true WHERE id = ?",
+          [valCode, valAr, item.sortOrder, existing[0].id]
+        );
+        console.log(`  🔄 Updated/Verified: ${valAr} (${valCode})`);
+      }
+    }
+
+    // ==========================================
+    // 3. قيم اسم المشروع الرئيسي (main_projects)
     // ==========================================
     console.log("\nSeeding main project values...");
     const mainProjectsValues = [

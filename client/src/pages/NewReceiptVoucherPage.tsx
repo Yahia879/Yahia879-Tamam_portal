@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +85,20 @@ export default function NewReceiptVoucherPage() {
   // Categories for Funding / Support (التمويل / الدعم) from /categories
   const { data: fundingSupportData } = trpc.categories.getCategoryByType.useQuery({ type: "funding_support" });
   const fundingSupportCategories: string[] = (fundingSupportData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
+
+  // Categories for Donation Purposes (مصارف التبرعات) from /categories
+  const { data: donationPurposesData } = trpc.categories.getCategoryByType.useQuery({ type: "donation_purposes" });
+  const donationPurposes: string[] = useMemo(() => {
+    const list = (donationPurposesData?.values || []).map((v: any) => v.valueAr || v.value).filter(Boolean);
+    return list.length > 0 ? list : ["بناء المساجد", "الترميم", "سقية الماء", "التجهيزات"];
+  }, [donationPurposesData]);
+
+  // Set default donation purpose when categories load
+  useEffect(() => {
+    if (donationPurposes.length > 0 && (!donationPurpose || !donationPurposes.includes(donationPurpose))) {
+      setDonationPurpose(donationPurposes[0]);
+    }
+  }, [donationPurposes]);
 
   // Project financial details
   const activeProjectId = parseInt(selectedProjectId) || 0;
@@ -764,10 +778,11 @@ export default function NewReceiptVoucherPage() {
                         <SelectValue placeholder="اختر مصرف التبرع..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
-                        <SelectItem value="بناء المساجد" className="text-right">بناء المساجد</SelectItem>
-                        <SelectItem value="الترميم" className="text-right">الترميم</SelectItem>
-                        <SelectItem value="سقية الماء" className="text-right">سقية الماء</SelectItem>
-                        <SelectItem value="التجهيزات" className="text-right">التجهيزات</SelectItem>
+                        {donationPurposes.map((p, idx) => (
+                          <SelectItem key={idx} value={p} className="text-right">
+                            {p}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

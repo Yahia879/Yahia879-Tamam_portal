@@ -28,6 +28,7 @@ const categoryTypeNames: Record<string, string> = {
   city: "المدن",
   boq_unit: "الوحدات",
   funding_support: "التمويل / الدعم",
+  donation_purposes: "مصارف التبرعات",
   main_projects: "اسم المشروع الرئيسي",
   sadad_billers: "معلومات المفوتر",
 };
@@ -120,7 +121,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["boq_category", "bank", "city", "boq_unit", "funding_support", "main_projects", "sadad_billers"];
+  const categoryTypes = ["boq_category", "bank", "city", "boq_unit", "funding_support", "donation_purposes", "main_projects", "sadad_billers"];
 
   const parentCategory = useMemo(() => {
     if (!selectedType) return null;
