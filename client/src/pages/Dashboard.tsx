@@ -213,7 +213,7 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <div className="flex items-center gap-2 text-white/60 text-[10px] sm:text-xs">
                 <Activity className="w-3.5 h-3.5" />
-                <span>لوحة التحكم</span>
+                <span>الرئيسية</span>
               </div>
               <div className="hidden sm:block w-px h-4 bg-white/30" />
               <div className="flex items-center gap-2 sm:gap-4 min-w-0">

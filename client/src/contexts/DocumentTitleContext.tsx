@@ -27,7 +27,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/debug-user\/?$/, title: "فحص المستخدم" },
 
   // لوحات التحكم
-  { pattern: /^\/dashboard\/?$/, title: "لوحة التحكم" },
+  { pattern: /^\/dashboard\/?$/, title: "الرئيسية" },
   { pattern: /^\/requester\/?$/, title: "لوحة تحكم طالب الخدمة" },
   { pattern: /^\/requester\/dashboard\/?$/, title: "لوحة تحكم طالب الخدمة" },
   { pattern: /^\/supplier\/dashboard\/?$/, title: "لوحة تحكم المورد" },

@@ -72,7 +72,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
       label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
     });
   }
 
@@ -197,7 +197,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (["super_admin", "system_admin"].includes(role)) {
     groups.push({
       label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "لوحة التحكم", path: "/dashboard" }],
+      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
     });
   }
 
