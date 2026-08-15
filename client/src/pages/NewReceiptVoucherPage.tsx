@@ -558,10 +558,6 @@ export default function NewReceiptVoucherPage() {
                           <SelectItem value="السادة" className="text-right">السادة</SelectItem>
                           <SelectItem value="السيد" className="text-right">السيد</SelectItem>
                           <SelectItem value="السيدة" className="text-right">السيدة</SelectItem>
-                          <SelectItem value="الشيخ" className="text-right">الشيخ</SelectItem>
-                          <SelectItem value="المحسن الكريم" className="text-right">المحسن الكريم</SelectItem>
-                          <SelectItem value="الأستاذ" className="text-right">الأستاذ</SelectItem>
-                          <SelectItem value="الدكتور" className="text-right">الدكتور</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
