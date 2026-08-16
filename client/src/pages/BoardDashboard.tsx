@@ -225,12 +225,12 @@ export default function BoardDashboard() {
 
         {data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
-            {/* شريط التبويبات القيادي الموجه والمنسق تماماً بعرض المحتوى */}
-            <div className="flex items-center justify-start w-full overflow-x-auto pb-2 scrollbar-none" dir="rtl">
-              <TabsList className="inline-flex h-auto items-center justify-start rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 p-1.5 border border-slate-200/80 dark:border-slate-700/80 gap-1.5 shrink-0">
+            {/* شريط التبويبات الـ 5 المنسق والمتوزع بعرض الصفحة مع تباعد ممتاز */}
+            <div className="w-full" dir="rtl">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
                 <TabsTrigger
                   value="mosques"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
+                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>إحصائيات المساجد</span>
@@ -238,7 +238,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="requests"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
+                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>إحصائيات الطلبات</span>
@@ -246,7 +246,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="projects"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
+                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span>الهندسة والمشاريع</span>
@@ -254,7 +254,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="procurement"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
+                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Truck className="w-4 h-4 text-orange-500 shrink-0" />
                   <span>المشتريات والعقود</span>
@@ -262,18 +262,10 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="financials"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
+                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Wallet className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>المالية والصرف</span>
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="governance"
-                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
-                >
-                  <Handshake className="w-4 h-4 text-purple-500 shrink-0" />
-                  <span>الحوكمة والشركاء</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -855,75 +847,6 @@ export default function BoardDashboard() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* ==================== 6️⃣ تبويب الحوكمة والشركاء والدعم ==================== */}
-            <TabsContent value="governance" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">الشركاء الاستراتيجيون</p>
-                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.governance.totalPartners.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                        <Handshake className="w-3 h-3 shrink-0" /> شركاء داعمون وممولون
-                      </p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-                      <Handshake className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي بلاغات الدعم</p>
-                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.governance.totalTickets.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">تذاكر مستلمة بالنظام</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                      <LifeBuoy className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">التذاكر المحلولة والمكتملة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.governance.resolvedTickets.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 shrink-0" /> معالجة ناجحة
-                      </p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">نسبة إنجاز الدعم الفني</p>
-                      <h3 className="text-3xl font-black tracking-tight text-indigo-600 dark:text-indigo-400">
-                        {data.governance.resolutionRate}%
-                      </h3>
-                      <p className="text-xs text-muted-foreground">جودة سرعة الاستجابة</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                      <TrendingUp className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
             </TabsContent>
           </Tabs>
         )}
