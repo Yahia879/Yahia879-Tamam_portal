@@ -259,12 +259,50 @@ export const boardRouter = router({
       .from(suppliers)
       .where(eq(suppliers.approvalStatus, "approved" as any));
 
+    const suppliersByStatusRaw = await db
+      .select({
+        status: sql<string>`COALESCE(${suppliers.approvalStatus}, 'pending')`,
+        value: count(),
+      })
+      .from(suppliers)
+      .groupBy(sql`COALESCE(${suppliers.approvalStatus}, 'pending')`);
+
+    const suppliersByTypeRaw = await db
+      .select({
+        type: sql<string>`COALESCE(${suppliers.type}, 'supplier')`,
+        value: count(),
+      })
+      .from(suppliers)
+      .groupBy(sql`COALESCE(${suppliers.type}, 'supplier')`);
+
     const [totalContractsRes] = await db
       .select({
         count: count(),
         totalAmount: sum(contracts.amount),
       })
       .from(contracts);
+
+    const contractsByStatusRaw = await db
+      .select({
+        status: sql<string>`COALESCE(${contracts.status}, 'draft')`,
+        value: count(),
+        totalValue: sum(contracts.amount),
+      })
+      .from(contracts)
+      .groupBy(sql`COALESCE(${contracts.status}, 'draft')`);
+
+    const topSuppliersContractsRaw = await db
+      .select({
+        supplierId: contracts.supplierId,
+        supplierName: suppliers.name,
+        count: count(),
+        totalValue: sum(contracts.amount),
+      })
+      .from(contracts)
+      .leftJoin(suppliers, eq(contracts.supplierId, suppliers.id))
+      .groupBy(contracts.supplierId, suppliers.name)
+      .orderBy(desc(count()))
+      .limit(5);
 
     // ==================== 6️⃣ إحصائيات الأمور المالية والصرف ====================
     const [totalProjectBudgetRes] = await db
@@ -358,6 +396,25 @@ export const boardRouter = router({
         approvedSuppliers: Number(approvedSuppliersRes?.value || 0),
         totalContracts: Number(totalContractsRes?.count || 0),
         totalContractsValue: Number(totalContractsRes?.totalAmount || 0),
+        suppliersByStatus: suppliersByStatusRaw.map((s) => ({
+          name: s.status === "approved" ? "مؤهل ومعتمد" : s.status === "rejected" ? "مرفوض" : "قيد التأهيل والاعتماد",
+          value: Number(s.value),
+        })),
+        suppliersByType: suppliersByTypeRaw.map((t) => ({
+          name: t.type === "contractor" ? "مقاولون وتنفيذ" : t.type === "service_provider" ? "مقدمو خدمات" : "موردون عموميون",
+          value: Number(t.value),
+        })),
+        contractsByStatus: contractsByStatusRaw.map((c) => ({
+          name: c.status === "active" ? "عقود سارية ونشطة" : c.status === "completed" ? "عقود مكتملة" : c.status === "terminated" ? "عقود منتهية" : "قيد الإعداد والاعتماد",
+          value: Number(c.value),
+          totalValue: Number(c.totalValue || 0),
+        })),
+        topSuppliers: topSuppliersContractsRaw.map((s) => ({
+          id: s.supplierId,
+          name: s.supplierName || `مورد #${s.supplierId}`,
+          count: Number(s.count),
+          totalValue: Number(s.totalValue || 0),
+        })),
       },
       financials: {
         totalApprovedBudget: Number(totalProjectBudgetRes?.total || 0),
