@@ -72,6 +72,8 @@ export const boardRouter = router({
         paymentMethod: disbursementOrders.paymentMethod,
         orderStatus: disbursementOrders.status,
         orderCreatedAt: disbursementOrders.createdAt,
+        rejectionReason: disbursementOrders.rejectionReason,
+        approvalNotes: disbursementOrders.approvalNotes,
         requestId: disbursementRequests.id,
         requestNumber: disbursementRequests.requestNumber,
         requestTitle: disbursementRequests.title,
@@ -81,10 +83,7 @@ export const boardRouter = router({
       .from(disbursementOrders)
       .innerJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
       .where(
-        and(
-          eq(disbursementRequests.status, "approved" as any),
-          inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any)
-        )
+        inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any)
       )
       .orderBy(desc(disbursementOrders.createdAt));
 
@@ -98,6 +97,8 @@ export const boardRouter = router({
       paymentMethod: o.paymentMethod || "bank_transfer",
       orderStatus: o.orderStatus,
       orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
+      rejectionReason: o.rejectionReason || null,
+      approvalNotes: o.approvalNotes || null,
       requestId: o.requestId,
       requestNumber: o.requestNumber,
       requestTitle: o.requestTitle || `طلب صرف رقم ${o.requestNumber}`,
@@ -117,6 +118,8 @@ export const boardRouter = router({
         paymentMethod: disbursementOrders.paymentMethod,
         status: disbursementOrders.status,
         createdAt: disbursementOrders.createdAt,
+        rejectionReason: disbursementOrders.rejectionReason,
+        approvalNotes: disbursementOrders.approvalNotes,
       })
       .from(disbursementOrders)
       .where(
@@ -137,6 +140,8 @@ export const boardRouter = router({
       paymentMethod: o.paymentMethod || "bank_transfer",
       status: o.status,
       createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
+      rejectionReason: o.rejectionReason || null,
+      approvalNotes: o.approvalNotes || null,
     }));
 
     // ==================== 2️⃣ إحصائيات المساجد ====================
