@@ -2142,9 +2142,11 @@ export const disbursementsRouter = router({
         await db
           .update(disbursementOrders)
           .set({
-            status: "approved" as any,
+            status: "executed" as any,
             approvedBy: ctx.user.id,
             approvedAt: new Date(),
+            executedBy: ctx.user.id,
+            executedAt: new Date(),
             approvalNotes: input.notes,
             updatedAt: new Date(),
           })
@@ -2152,7 +2154,7 @@ export const disbursementsRouter = router({
 
         return {
           success: true,
-          status: "approved",
+          status: "executed",
           message: "تم الاعتماد النهائي والمباشر لأمر الصرف وتحويله بنكياً بواسطة رئيس مجلس الإدارة بنجاح",
         };
       }
@@ -2170,13 +2172,15 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "board_chairman");
 
       if (isChairmanUser) {
-        // رئيس مجلس الإدارة أو الأدمن يعتمد مباشرة
+        // رئيس مجلس الإدارة أو الأدمن يعتمد وتحول حالته إلى executed (تم التحويل البنكي)
         await db
           .update(disbursementOrders)
           .set({
-            status: "approved" as any,
+            status: "executed" as any,
             approvedBy: ctx.user.id,
             approvedAt: new Date(),
+            executedBy: ctx.user.id,
+            executedAt: new Date(),
             approvalNotes: input.notes,
             updatedAt: new Date(),
           })
