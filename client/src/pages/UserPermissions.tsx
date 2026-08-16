@@ -313,23 +313,8 @@ export default function UserPermissions() {
         updated[permId] = newState;
       }
 
-      // منع اختيار الصلاحيتين معاً لرئيس مجلس الإدارة وعضو مجلس الإدارة
       if (newState) {
-        if (permId === "board_chairman") {
-          const defaultMember = rolePermissions?.includes("board_member") || false;
-          if (defaultMember) {
-            updated["board_member"] = false;
-          } else {
-            delete updated["board_member"];
-          }
-        } else if (permId === "board_member") {
-          const defaultChairman = rolePermissions?.includes("board_chairman") || false;
-          if (defaultChairman) {
-            updated["board_chairman"] = false;
-          } else {
-            delete updated["board_chairman"];
-          }
-        } else if (permId === "appointments.view_all") {
+        if (permId === "appointments.view_all") {
           const defaultOwn = rolePermissions?.includes("appointments.view_own") || false;
           if (defaultOwn) {
             updated["appointments.view_own"] = false;
