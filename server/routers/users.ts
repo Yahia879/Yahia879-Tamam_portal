@@ -342,15 +342,21 @@ export const usersRouter = router({
         });
       }
 
-      // تعيين الأدوار المخصصة إذا وُجدت
+      // تعيين الأدوار بجدول userRoleAssignments لضمان ربط الصلاحيات بالكامل في النظام
+      const rolesToAssign = new Set<string>();
+      if (effectiveRole && effectiveRole.trim() !== "") {
+        rolesToAssign.add(effectiveRole);
+      }
       if (input.roleIds && input.roleIds.length > 0) {
-        for (const roleId of input.roleIds) {
-          await db.insert(userRoleAssignments).values({
-            userId: newUserId,
-            roleId,
-            assignedBy: ctx.user.id,
-          }).catch(() => {}); // تجاهل التكرار
-        }
+        input.roleIds.forEach((r) => rolesToAssign.add(r));
+      }
+
+      for (const roleId of Array.from(rolesToAssign)) {
+        await db.insert(userRoleAssignments).values({
+          userId: newUserId,
+          roleId,
+          assignedBy: ctx.user.id,
+        }).catch(() => {}); // تجاهل التكرار
       }
 
       return { success: true, userId: newUserId };
@@ -669,6 +675,20 @@ export const usersRouter = router({
       }
 
       await db.update(users).set({ role: input.role as any }).where(eq(users.id, input.userId));
+
+      if (input.role && input.role.trim() !== "") {
+        const [existingAssignment] = await db.select()
+          .from(userRoleAssignments)
+          .where(and(eq(userRoleAssignments.userId, input.userId), eq(userRoleAssignments.roleId, input.role)))
+          .limit(1);
+        if (!existingAssignment) {
+          await db.insert(userRoleAssignments).values({
+            userId: input.userId,
+            roleId: input.role,
+            assignedBy: ctx.user.id,
+          }).catch(() => {});
+        }
+      }
       return { success: true };
     }),
 
