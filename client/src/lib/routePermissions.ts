@@ -90,6 +90,10 @@ export interface RoutePermission {
  * المسارات غير الموجودة هنا تعتبر عامة أو محمية فقط بالتسجيل (لا تحتاج صلاحية إضافية).
  */
 export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
+  // ── لوحة التحكم للمجلس ──
+  "/board-dashboard": ["board_chairman", "board_member"],
+  "/board-analytics": ["board_chairman", "board_member"],
+
   // ── لوحة التحكم ──
   "/dashboard": ["mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
 
