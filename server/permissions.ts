@@ -279,6 +279,8 @@ async function ensureRequestsPermissionsExist(db: any) {
     // نقوم بذلك فقط في المرة الأولى (إذا كانت الصلاحيات غير موجودة مسبقاً) لتجنب الكتابة فوق اختيارات المستخدمين لاحقاً
     if (isFirstTime) {
       const defaultMappings: Record<string, string[]> = {
+        board_chairman: ["board_chairman"],
+        board_member: ["board_member"],
         projects_office: ["requests.view", "requests.create", "requests.view_details"],
         field_team: ["requests.view", "requests.manage_as_field_team"],
         quick_response: ["requests.view", "requests.manage_as_quick_response"],
@@ -653,6 +655,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   // إسناد صلاحيات تلقائية للأدوار الأساسية إذا لزم الأمر
   if (userData?.role === "service_requester" && !hasCustomRole) {
     rolePermissionsData.push("requests.create", "requests.view");
+  }
+
+  if (userData?.role === "board_chairman" || roleIds.includes("board_chairman")) {
+    rolePermissionsData.push("board_chairman");
+  }
+
+  if (userData?.role === "board_member" || roleIds.includes("board_member")) {
+    rolePermissionsData.push("board_member");
   }
 
   if (roleIds.length > 0) {
