@@ -7,6 +7,10 @@ import {
   disbursementOrders,
   projects,
   receiptVouchers,
+  suppliers,
+  contracts,
+  partners,
+  supportTickets,
 } from "../../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -83,7 +87,7 @@ export const boardRouter = router({
       .groupBy(sql`COALESCE(${mosques.city}, 'غير محدد')`)
       .limit(6);
 
-    // توزيع المساجد حسب الفئات أو الحالات
+    // توزيع المساجد حسب الحالات
     const mosquesByStatus = await db
       .select({
         status: sql<string>`COALESCE(${mosques.approvalStatus}, 'approved')`,
@@ -145,19 +149,70 @@ export const boardRouter = router({
       .orderBy(desc(count()))
       .limit(5);
 
-    // ==================== 3️⃣ إحصائيات الأمور المالية والصرف ====================
-    // إجمالي الميزانيات المعتمدة للمشاريع
+    // ==================== 3️⃣ إحصائيات الهندسة والمشاريع ====================
+    const [totalProjectsRes] = await db
+      .select({ value: count() })
+      .from(projects);
+
+    const [activeProjectsRes] = await db
+      .select({ value: count() })
+      .from(projects)
+      .where(inArray(projects.status, ["in_progress", "active", "executing"] as any));
+
+    const [completedProjectsRes] = await db
+      .select({ value: count() })
+      .from(projects)
+      .where(inArray(projects.status, ["completed", "delivered"] as any));
+
+    const projectsByStatusRaw = await db
+      .select({
+        status: sql<string>`COALESCE(${projects.status}, 'active')`,
+        value: count(),
+      })
+      .from(projects)
+      .groupBy(sql`COALESCE(${projects.status}, 'active')`);
+
+    // ==================== 4️⃣ إحصائيات المشتريات والعقود والموردين ====================
+    const [totalSuppliersRes] = await db
+      .select({ value: count() })
+      .from(suppliers);
+
+    const [approvedSuppliersRes] = await db
+      .select({ value: count() })
+      .from(suppliers)
+      .where(eq(suppliers.approvalStatus, "approved" as any));
+
+    const [totalContractsRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(contracts.amount),
+      })
+      .from(contracts);
+
+    // ==================== 5️⃣ إحصائيات الحوكمة والشركاء والدعم ====================
+    const [totalPartnersRes] = await db
+      .select({ value: count() })
+      .from(partners);
+
+    const [totalSupportTicketsRes] = await db
+      .select({ value: count() })
+      .from(supportTickets);
+
+    const [resolvedTicketsRes] = await db
+      .select({ value: count() })
+      .from(supportTickets)
+      .where(eq(supportTickets.status, "resolved" as any));
+
+    // ==================== 6️⃣ إحصائيات الأمور المالية والصرف ====================
     const [totalProjectBudgetRes] = await db
       .select({ total: sum(projects.budget) })
       .from(projects);
 
-    // إجمالي المبالغ المصروفة المعتمدة
     const [totalDisbursedOrdersRes] = await db
       .select({ total: sum(disbursementOrders.amount) })
       .from(disbursementOrders)
       .where(inArray(disbursementOrders.status, ["approved", "executed"] as any));
 
-    // التحويلات البنكية المكتملة
     const [completedBankTransfersRes] = await db
       .select({
         count: count(),
@@ -171,12 +226,10 @@ export const boardRouter = router({
         )
       );
 
-    // إجمالي مبالغ سندات القبض
     const [totalReceiptVouchersRes] = await db
       .select({ total: sum(receiptVouchers.amount) })
       .from(receiptVouchers);
 
-    // أمر أو طلبات الصرف بانتظار الاعتماد (مؤشر مهم لرئيس مجلس الإدارة)
     const pendingOrdersRaw = await db
       .select({
         id: disbursementOrders.id,
@@ -206,7 +259,6 @@ export const boardRouter = router({
       createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
     }));
 
-    // التدفق المالي المعتمد الشهري (آخر 6 أشهر)
     const monthlyFlowRaw = await db
       .select({
         month: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m')`,
@@ -235,7 +287,7 @@ export const boardRouter = router({
         recent: Number(recentMosquesRes?.value || 0),
         byCity: mosquesByCity.map((c) => ({ name: c.name, value: Number(c.value) })),
         byStatus: mosquesByStatus.map((s) => ({
-          name: s.status === "active" ? "نشط" : "غير نشط",
+          name: s.status === "approved" ? "نشط" : "قيد الدراسة",
           value: Number(s.value),
         })),
       },
@@ -251,6 +303,30 @@ export const boardRouter = router({
           name: m.mosqueName || `مسجد #${m.mosqueId}`,
           count: Number(m.count),
         })),
+      },
+      projects: {
+        total: Number(totalProjectsRes?.value || 0),
+        active: Number(activeProjectsRes?.value || 0),
+        completed: Number(completedProjectsRes?.value || 0),
+        totalBudget: Number(totalProjectBudgetRes?.total || 0),
+        byStatus: projectsByStatusRaw.map((p) => ({
+          name: p.status === "completed" ? "مكتمل" : p.status === "in_progress" ? "قيد التنفيذ" : "مخطط",
+          value: Number(p.value),
+        })),
+      },
+      procurement: {
+        totalSuppliers: Number(totalSuppliersRes?.value || 0),
+        approvedSuppliers: Number(approvedSuppliersRes?.value || 0),
+        totalContracts: Number(totalContractsRes?.count || 0),
+        totalContractsValue: Number(totalContractsRes?.totalAmount || 0),
+      },
+      governance: {
+        totalPartners: Number(totalPartnersRes?.value || 0),
+        totalTickets: Number(totalSupportTicketsRes?.value || 0),
+        resolvedTickets: Number(resolvedTicketsRes?.value || 0),
+        resolutionRate: Number(totalSupportTicketsRes?.value || 0) > 0
+          ? Math.round((Number(resolvedTicketsRes?.value || 0) / Number(totalSupportTicketsRes?.value || 1)) * 100)
+          : 100,
       },
       financials: {
         totalApprovedBudget: Number(totalProjectBudgetRes?.total || 0),
