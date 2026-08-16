@@ -44,6 +44,22 @@ const PERMISSIONS_TO_SEED: PermissionConfig[] = [
     nameEn: "Sign Final Reports",
     targetRoles: ["super_admin", "system_admin", "corporate_comm"],
   },
+  {
+    id: "board_chairman",
+    moduleId: "board",
+    action: "board_chairman",
+    nameAr: "صلاحية رئيس مجلس الإدارة (عرض لوحة الإحصائيات القيادية و اعتماد التحويل البنكي والاعتمادات العليا)",
+    nameEn: "Board Chairman Permission",
+    targetRoles: ["super_admin", "system_admin", "board_chairman"],
+  },
+  {
+    id: "board_member",
+    moduleId: "board",
+    action: "board_member",
+    nameAr: "صلاحية عضو مجلس الإدارة (عرض لوحة الإحصائيات القيادية)",
+    nameEn: "Board Member Permission",
+    targetRoles: ["super_admin", "system_admin", "board_chairman", "board_member"],
+  },
 ];
 
 async function seed() {
@@ -108,11 +124,19 @@ async function seed() {
         .limit(1);
 
       if (!existingRole) {
+        const roleNamesAr: Record<string, string> = {
+          board_chairman: "رئيس مجلس الإدارة",
+          board_member: "عضو مجلس الإدارة",
+        };
+        const roleNamesEn: Record<string, string> = {
+          board_chairman: "Board Chairman",
+          board_member: "Board Member",
+        };
         // إنشاء الدور الافتراضي إن لم يكن موجوداً
         await db.insert(roles).values({
           id: roleId,
-          nameAr: roleId,
-          nameEn: roleId,
+          nameAr: roleNamesAr[roleId] || roleId,
+          nameEn: roleNamesEn[roleId] || roleId,
           isSystem: true,
           isActive: true,
         });
