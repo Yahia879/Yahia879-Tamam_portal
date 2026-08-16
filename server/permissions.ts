@@ -1875,20 +1875,33 @@ export const permissionsRouter = router({
           .where(inArray(permissions.id, permIds));
         const existingSet = new Set(existingPerms.map((p: any) => p.id));
 
+        const validModules = new Set(
+          (await db.select({ id: modules.id }).from(modules)).map((m: any) => m.id)
+        );
+
         for (const p of input.permissions) {
           if (!existingSet.has(p.permissionId)) {
             const parts = p.permissionId.split(".");
             const rawMod = parts[0] || "general";
-            const modId = ["disbursement_orders", "receipt_vouchers", "financial_reports", "progress_reports", "pending_reports"].includes(rawMod)
-              ? (rawMod === "financial_reports" || rawMod === "progress_reports" || rawMod === "pending_reports" ? "reports" : "disbursements")
-              : rawMod;
+            let modId = rawMod;
+
+            if (["disbursement_orders", "receipt_vouchers", "financial_reports", "progress_reports", "pending_reports"].includes(rawMod)) {
+              modId = (rawMod === "financial_reports" || rawMod === "progress_reports" || rawMod === "pending_reports") ? "reports" : "disbursements";
+            } else if (rawMod.startsWith("board")) {
+              modId = "board";
+            }
+
+            if (!validModules.has(modId)) {
+              modId = "general";
+            }
+
             await db.insert(permissions).values({
               id: p.permissionId,
               moduleId: modId,
               action: parts[1] || "manage",
               nameAr: p.permissionId,
               nameEn: p.permissionId
-            });
+            }).catch(() => {});
             existingSet.add(p.permissionId);
           }
         }
