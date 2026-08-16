@@ -938,19 +938,44 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
+      const hasBoardChairmanPerm = 
+        ctx.user.role === "board_chairman" ||
+        await checkPermission(ctx.user.id, "board_chairman");
+
       const hasApprovePerm = 
+        hasBoardChairmanPerm ||
         await checkPermission(ctx.user.id, "disbursements.approve") ||
         await checkPermission(ctx.user.id, "disbursements.sign") ||
         await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
         await checkPermission(ctx.user.id, "disbursement_orders.sign");
 
-      const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const isExecDirector = ["general_manager", "executive_director", "board_chairman"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+      // الاعتماد البنكي المباشر لرئيس مجلس الإدارة بدون دورة صرف اعتيادية
+      if (hasBoardChairmanPerm) {
+        await db
+          .update(disbursementRequests)
+          .set({
+            status: "approved",
+            approvedBy: ctx.user.id,
+            approvedAt: new Date(),
+            approvalNotes: input.notes || request.approvalNotes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementRequests.id, input.id));
+
+        return {
+          success: true,
+          status: "approved",
+          message: "تم الاعتماد النهائي والمباشر لطلب الصرف بواسطة رئيس مجلس الإدارة بنجاح",
+        };
+      }
 
       // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
         const isPreparer = request.requestedBy === ctx.user.id;
         
-        if (!isPreparer) {
+        if (!isPreparer && !isExecDirector && !hasApprovePerm) {
           throw new TRPCError({ 
             code: "FORBIDDEN", 
             message: "فقط مُعدّ الطلب يمتلك صلاحية اعتماد المرحلة الأولى لطلبات الصرف" 
@@ -972,7 +997,7 @@ export const disbursementsRouter = router({
           .from(users)
           .where(
             and(
-              inArray(users.role, ["general_manager", "executive_director"]),
+              inArray(users.role, ["general_manager", "executive_director", "board_chairman"] as any),
               isNull(users.deletedAt)
             )
           );
@@ -2090,11 +2115,15 @@ export const disbursementsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const allowedRoles = ["super_admin", "system_admin", "general_manager"];
-      if (!allowedRoles.includes(ctx.user.role)) {
+      const hasBoardChairmanOrderPerm = 
+        ctx.user.role === "board_chairman" ||
+        await checkPermission(ctx.user.id, "board_chairman");
+
+      const allowedRoles = ["super_admin", "system_admin", "general_manager", "board_chairman"];
+      if (!allowedRoles.includes(ctx.user.role) && !hasBoardChairmanOrderPerm) {
         const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
-        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.approve")) {
+        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.approve") && !userPermissions.includes("board_chairman")) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد أمر الصرف" });
         }
       }
@@ -2106,6 +2135,26 @@ export const disbursementsRouter = router({
 
       if (!order) {
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      // الاعتماد البنكي المباشر لأوامر الصرف بواسطة رئيس مجلس الإدارة
+      if (hasBoardChairmanOrderPerm) {
+        await db
+          .update(disbursementOrders)
+          .set({
+            status: "approved" as any,
+            approvedBy: ctx.user.id,
+            approvedAt: new Date(),
+            approvalNotes: input.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.id));
+
+        return {
+          success: true,
+          status: "approved",
+          message: "تم الاعتماد النهائي والمباشر لأمر الصرف وتحويله بنكياً بواسطة رئيس مجلس الإدارة بنجاح",
+        };
       }
 
       const hasApprovePermOrder = 
