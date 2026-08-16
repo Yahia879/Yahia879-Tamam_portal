@@ -58,7 +58,7 @@ const PERMISSIONS_TO_SEED: PermissionConfig[] = [
     action: "board_member",
     nameAr: "صلاحية عضو مجلس الإدارة (عرض لوحة الإحصائيات القيادية)",
     nameEn: "Board Member Permission",
-    targetRoles: ["super_admin", "system_admin", "board_chairman", "board_member"],
+    targetRoles: ["super_admin", "system_admin", "board_member"],
   },
 ];
 
