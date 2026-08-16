@@ -68,11 +68,16 @@ type MenuGroup = { label: string; items: MenuItem[] };
 const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   const groups: MenuGroup[] = [];
 
-  // الرئيسية - متاحة فقط للإدارة العليا
-  if (["super_admin", "system_admin"].includes(role)) {
+  // الرئيسية - متاحة للإدارة العليا والمجلس
+  if (["super_admin", "system_admin", "board_chairman", "board_member"].includes(role)) {
+    const items: MenuItem[] = [];
+    if (["super_admin", "system_admin"].includes(role)) {
+      items.push({ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" });
+    }
+    items.push({ icon: Shield, label: "اللوحة القيادية للمجلس", path: "/board-dashboard" });
     groups.push({
-      label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
+      label: "مجلس الإدارة والقيادة العليا",
+      items,
     });
   }
 
@@ -193,11 +198,16 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
-  // الرئيسية - متاحة فقط للإدارة العليا
-  if (["super_admin", "system_admin"].includes(role)) {
+  // الرئيسية واللوحة القيادية للمجلس
+  if (has("board_chairman") || has("board_member") || ["super_admin", "system_admin", "board_chairman", "board_member"].includes(role)) {
+    const items: MenuItem[] = [];
+    if (["super_admin", "system_admin"].includes(role)) {
+      items.push({ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" });
+    }
+    items.push({ icon: Shield, label: "اللوحة القيادية للمجلس", path: "/board-dashboard" });
     groups.push({
-      label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
+      label: "مجلس الإدارة والقيادة العليا",
+      items,
     });
   }
 
