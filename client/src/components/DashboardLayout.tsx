@@ -101,7 +101,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     if (role === "board_chairman") {
       items.push({ icon: Crown, label: "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
     }
-    if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
+    if (role === "board_member") {
       items.push({ icon: PieChart, label: "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
     }
     if (["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
