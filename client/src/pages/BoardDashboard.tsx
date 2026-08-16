@@ -1101,6 +1101,153 @@ export default function BoardDashboard() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* 📊 تشارتات المشتريات والعقود والموردين */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 1. تشارت حالات تأهيل الموردين */}
+                <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardHeader className="p-0 mb-6 text-right">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <PieIcon className="w-5 h-5 text-orange-500 shrink-0" />
+                      <span>توزيع الموردين حسب حالة الاعتماد والتأهيل</span>
+                    </CardTitle>
+                    <CardDescription>نسب الموردين المعتمدين والمؤهلين مقابل الطلبات الجديدة</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 h-72 flex items-center justify-center">
+                    {data.procurement.suppliersByStatus && data.procurement.suppliersByStatus.length > 0 ? (
+                      <div className="w-full flex flex-col sm:flex-row items-center gap-6">
+                        <div className="w-full sm:w-1/2 h-56">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={data.procurement.suppliersByStatus}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={85}
+                                paddingAngle={5}
+                                dataKey="value"
+                              >
+                                {data.procurement.suppliersByStatus.map((entry, index) => (
+                                  <Cell key={`cell-proc-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any, name: any) => [`${value} مورد`, name]}
+                                contentStyle={TOOLTIP_CONTENT_STYLE}
+                                itemStyle={TOOLTIP_ITEM_STYLE}
+                                labelStyle={TOOLTIP_LABEL_STYLE}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="w-full sm:w-1/2 space-y-3 text-right">
+                          {data.procurement.suppliersByStatus.map((item, index) => {
+                            const total = data.procurement.totalSuppliers || 1;
+                            const percent = Math.round((item.value / total) * 100);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2.5">
+                                  <div
+                                    className="w-3.5 h-3.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                                  />
+                                  <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                                    {item.name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                                    {item.value}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-semibold">
+                                    ({percent}%)
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-sm">لا توجد بيانات موردين متاحة</div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 2. تشارت توزيع العقود حسب الحالات التشغيلية */}
+                <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardHeader className="p-0 mb-6 text-right">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-500 shrink-0" />
+                      <span>توزيع العقود المبرمة حسب الحالة</span>
+                    </CardTitle>
+                    <CardDescription>العقود السارية والمكتملة والمستقبلية بالمنظومة</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 h-72">
+                    {data.procurement.contractsByStatus && data.procurement.contractsByStatus.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={data.procurement.contractsByStatus} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
+                          <Tooltip
+                            formatter={(value: any) => [`${value} عقد`, "عدد العقود"]}
+                            contentStyle={TOOLTIP_CONTENT_STYLE}
+                            itemStyle={TOOLTIP_ITEM_STYLE}
+                            labelStyle={TOOLTIP_LABEL_STYLE}
+                          />
+                          <Bar dataKey="value" name="عدد العقود" fill="#3b82f6" radius={[10, 10, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات عقود مبرمة حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* 3. أكثر الموردين شراكة وتعاقداً */}
+              {data.procurement.topSuppliers && data.procurement.topSuppliers.length > 0 && (
+                <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardHeader className="p-0 mb-6 text-right">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-emerald-500 shrink-0" />
+                      <span>أعلى الموردين والشركاء تعاقداً بالمنظومة</span>
+                    </CardTitle>
+                    <CardDescription>المنشآت الأكثر فوزاً بالعقود وأعلى قيمة ماليّة مُسندة</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {data.procurement.topSuppliers.map((supplier, i) => (
+                      <div
+                        key={i}
+                        className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-right"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center shrink-0">
+                              {i + 1}
+                            </span>
+                            <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate max-w-[160px]">
+                              {supplier.name}
+                            </h4>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            عدد العقود: <span className="font-bold text-slate-700 dark:text-slate-300">{supplier.count} عقود</span>
+                          </p>
+                        </div>
+                        <div className="text-left">
+                          <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 block">
+                            {formatCurrency(supplier.totalValue)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* 5️⃣ تبويب الأمور المالية والصرف */}
