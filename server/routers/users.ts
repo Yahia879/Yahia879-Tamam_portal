@@ -168,7 +168,7 @@ export const usersRouter = router({
           .offset(offset);
       }
 
-      // جلب الأدوار المخصصة لكل مستخدم (من جدول user_roles مربوطاً بجدول roles)
+      // جلب الأدوار المخصصة والأساسية لكل مستخدم
       const userIds = items.map((u) => u.id);
       let customRoleMap: Record<number, { id: string; nameAr: string }> = {};
 
@@ -176,23 +176,40 @@ export const usersRouter = router({
         const assignments = await db
           .select({
             userId: userRoleAssignments.userId,
-            roleId: roles.id,
+            roleId: userRoleAssignments.roleId,
             roleNameAr: roles.nameAr,
           })
           .from(userRoleAssignments)
-          .innerJoin(roles, eq(userRoleAssignments.roleId, roles.id))
+          .leftJoin(roles, eq(userRoleAssignments.roleId, roles.id))
           .where(
             sql`${userRoleAssignments.userId} IN (${sql.join(userIds.map((id) => sql`${id}`), sql`, `)})`
           );
 
+        const builtinRoleLabels: Record<string, string> = {
+          board_chairman: "رئيس مجلس الإدارة",
+          board_member: "عضو مجلس الإدارة",
+          general_manager: "المدير التنفيذي",
+          executive_director: "المدير التنفيذي",
+          system_admin: "مدير نظام",
+          super_admin: "المدير العام",
+          projects_office: "مكتب المشاريع",
+          project_manager: "مدير المشاريع",
+          financial: "الإدارة المالية",
+          field_team: "فريق ميداني",
+          quick_response: "فريق الاستجابة السريعة",
+          corporate_comm: "الاتصال المؤسسي",
+          service_requester: "طالب خدمة",
+        };
+
         for (const a of assignments) {
           if (a.userId !== null) {
-            customRoleMap[a.userId] = { id: a.roleId, nameAr: a.roleNameAr };
+            const resolvedName = a.roleNameAr || builtinRoleLabels[a.roleId] || a.roleId;
+            customRoleMap[a.userId] = { id: a.roleId, nameAr: resolvedName };
           }
         }
       }
 
-      // إثراء كل مستخدم ببيانات الدور المخصص إن وُجد
+      // إثراء كل مستخدم ببيانات الدور إن وُجد
       const enrichedItems = items.map((user) => ({
         ...user,
         customRole: customRoleMap[user.id] ?? null,
@@ -292,7 +309,9 @@ export const usersRouter = router({
 
       // عند اختيار دور مخصص فقط (بدون دور أساسي)، نستخدم "projects_office" كقيمة محايدة
       // للحقل role في جدول users (المطلوب من DB)، ويُعدّ الدور الفعلي هو roleIds
-      const effectiveRole = input.role ?? "projects_office";
+      const effectiveRole = (input.role && input.role.trim() !== "")
+        ? input.role
+        : (input.roleIds && input.roleIds.length > 0 ? input.roleIds[0] : "projects_office");
 
       // إنشاء المستخدم
       const [result] = await db.insert(users).values({
