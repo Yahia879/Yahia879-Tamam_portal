@@ -381,10 +381,13 @@ export default function ProgressReports() {
     limit: 1000,
   });
   
-  const isPeriodicProjectReport = (r: any) => {
+  const isExcludedProjectReport = (r: any) => {
     const titleLower = (r.title || "").toLowerCase();
     const reportNumUpper = (r.reportNumber || "").toUpperCase();
     return (
+      titleLower.includes("زيارة") ||
+      titleLower.includes("visit") ||
+      reportNumUpper.includes("VISIT") ||
       titleLower.includes("نصف") ||
       titleLower.includes("شهري") ||
       titleLower.includes("ربعي") ||
@@ -397,9 +400,9 @@ export default function ProgressReports() {
     );
   };
 
-  // إحصائيات تقارير الإنجاز (باستثناء تقارير المشاريع الدورية التي تتبع لمركز تقارير المشاريع)
+  // إحصائيات تقارير الإنجاز (باستثناء تقارير المشاريع الدورية وتقارير الزيارات التي تتبع لمركز تقارير المشاريع)
   const statsData = (() => {
-    const validReports = (allReportsData || []).filter((r: any) => !isPeriodicProjectReport(r));
+    const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r));
     if (validReports.length === 0) {
       return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
     }
@@ -523,7 +526,8 @@ export default function ProgressReports() {
       const budget = parseFloat(projectDetails?.budget || "0") || 0;
       const otherReports = allReportsData?.filter((r: any) => 
         r.projectId === newReport.projectId && 
-        r.id !== editingReportId
+        r.id !== editingReportId &&
+        !isExcludedProjectReport(r)
       ) || [];
       const spentInOtherReports = otherReports.reduce((sum: number, r: any) => sum + (parseFloat(r.budgetSpent || "0") || 0), 0);
       const spentOnThisReport = parseFloat(newReport.budgetSpent || "0") || 0;
@@ -843,8 +847,8 @@ export default function ProgressReports() {
     return "text-gray-500";
   };
 
-  // تصفية التقارير (إبراز تقارير الإنجاز الخاصة بالصرف والزيارات وفصل تقارير المشاريع الدورية)
-  const filteredReports = (reportsData || []).filter((r: any) => !isPeriodicProjectReport(r));
+  // تصفية التقارير (إظهار تقارير الإنجاز فقط واستبعاد تقارير الزيارات والتقارير الدورية التي تتبع لمركز تقارير المشاريع)
+  const filteredReports = (reportsData || []).filter((r: any) => !isExcludedProjectReport(r));
   const total = filteredReports.length;
   const totalPages = Math.ceil(total / limit);
   const paginatedReports = filteredReports.slice((page - 1) * limit, page * limit);
