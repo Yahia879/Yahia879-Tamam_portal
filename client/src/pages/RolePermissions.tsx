@@ -907,6 +907,17 @@ export default function RolePermissions() {
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
+    },
+    {
+      title: "مجلس الإدارة والقيادة العليا",
+      modules: [
+        {
+          id: "board_leadership",
+          nameAr: "مجلس الإدارة والقيادة العليا",
+          icon: Shield,
+          perms: ["board_chairman", "board_member"]
+        }
+      ]
     }
   ];
 
@@ -921,6 +932,10 @@ export default function RolePermissions() {
   // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      board_leadership: {
+        board_chairman: "رئيس مجلس الإدارة",
+        board_member: "عضو مجلس الإدارة",
+      },
       pending_reports: {
         view: "عرض التقارير",
         intervene: "تدخل لرفع التقرير"
@@ -1163,6 +1178,13 @@ export default function RolePermissions() {
         icon: m.icon,
         permissions: perms.map(p => {
           let id = `${m.id}.${p}`;
+          if (m.id === "board_leadership") {
+            const boardIds: Record<string, string> = {
+              board_chairman: "board_chairman",
+              board_member: "board_member",
+            };
+            id = boardIds[p] || id;
+          }
           if (m.id === "technical_support") {
             id = p === "view" ? "View_Tickets" : "Create_Ticket";
           }
