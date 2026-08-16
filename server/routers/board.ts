@@ -83,11 +83,10 @@ export const boardRouter = router({
       .where(
         and(
           eq(disbursementRequests.status, "approved" as any),
-          inArray(disbursementOrders.status, ["approved", "executed", "pending_executive", "edited"] as any)
+          inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any)
         )
       )
-      .orderBy(desc(disbursementOrders.createdAt))
-      .limit(30);
+      .orderBy(desc(disbursementOrders.createdAt));
 
     const linkedApprovedOrders = linkedApprovedOrdersRaw.map((o) => ({
       orderId: o.orderId,
@@ -106,7 +105,7 @@ export const boardRouter = router({
       requestStatus: o.requestStatus,
     }));
 
-    // 1.2 أمر صرف مخصص (غير مرتبط بطلب صرف): يظهر فقط إذا كانت حالة أمر الصرف المخصص معتمد
+    // 1.2 أمر صرف مخصص (غير مرتبط بطلب صرف): يظهر كافة الأوامر المخصصة (معتمدة، مرفوضة، أو بانتظار الاعتماد)
     const customApprovedOrdersRaw = await db
       .select({
         id: disbursementOrders.id,
@@ -122,12 +121,11 @@ export const boardRouter = router({
       .from(disbursementOrders)
       .where(
         and(
-          inArray(disbursementOrders.status, ["approved", "executed", "pending_executive", "edited"] as any),
+          inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any),
           sql`(${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0)`
         )
       )
-      .orderBy(desc(disbursementOrders.createdAt))
-      .limit(30);
+      .orderBy(desc(disbursementOrders.createdAt));
 
     const customApprovedOrders = customApprovedOrdersRaw.map((o) => ({
       id: o.id,
