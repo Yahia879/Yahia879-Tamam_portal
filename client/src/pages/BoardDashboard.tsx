@@ -14,7 +14,7 @@ import {
   Building2, CheckCircle2, Clock, Crown, Wallet, TrendingUp,
   FileText, Activity, RefreshCw, ShieldCheck,
   ArrowUpRight, AlertCircle, Banknote, Receipt, MapPin, Layers,
-  Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Handshake, LifeBuoy
+  Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -84,7 +84,7 @@ export default function BoardDashboard() {
   return (
     <DashboardLayout>
       <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
-        {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي الفاخر ==================== */}
+        {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
         <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all">
           <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-blue-600" />
           
@@ -109,13 +109,13 @@ export default function BoardDashboard() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-                اللوحة الإحصائية القيادية لمجلس الإدارة
+                {isChairman ? "مركز الاعتماد والتحويل البنكي المباشر" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
               
               <p className="text-sm sm:text-base text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairman
-                  ? "مرحباً بك رئيس مجلس الإدارة، واجهة قيادية تُتيح لك الاطلاع الشامل والعميق على كافة المؤشرات التشغيلية والهندسية والمالية والحوكمة وإجراء الاعتماد البنكي المباشر لأوامر الصرف."
-                  : "مرحباً بك عضو مجلس الإدارة، واجهة تنفيذية متكاملة توفر لك رؤية استراتيجية دقيقة ومتابعة مستمرة لجميع إحصائيات ومشاريع منصة وبوابة عمارة المساجد."}
+                  ? "مرحباً بك رئيس مجلس الإدارة. تتيح لك هذه الشاشة الاطلاع الشامل على طلبات الصرف المعتمدة المرتبطة بأوامر الصرف وكذلك أوامر الصرف المخصصة، وتحديد إجراء الاعتماد البنكي المباشر عليها."
+                  : "مرحباً بك عضو مجلس الإدارة. واجهة تنفيذية متكاملة توفر لك الاطلاع الشامل والعميق على كافة إحصائيات ومؤشرات المساجد والطلبات والمشاريع والمالية."}
               </p>
             </div>
 
@@ -134,96 +134,168 @@ export default function BoardDashboard() {
           </div>
         </div>
 
-        {/* ==================== ⚡ قسم الاعتماد البنكي المباشر (رئيس مجلس الإدارة) ==================== */}
-        {isChairman && data?.financials?.pendingOrders && data.financials.pendingOrders.length > 0 && (
-          <div className="rounded-3xl border border-amber-300/80 dark:border-amber-900/60 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg shadow-amber-500/5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 dark:border-amber-900/40 pb-4">
-              <div className="flex items-center gap-3 text-right">
-                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300">
-                  <Crown className="w-6 h-6" />
+        {/* ==================== 👑 واجهة رئيس مجلس الإدارة (الاعتماد البنكي المباشر) ==================== */}
+        {isChairman && data?.chairmanData && (
+          <div className="space-y-8 animate-in fade-in-50 duration-300">
+            {/* 1. قسم طلبات الصرف المعتمدة المرتبطة بأوامر صرف */}
+            <div className="rounded-3xl border border-emerald-300/80 dark:border-emerald-900/60 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/60 dark:border-emerald-900/40 pb-4">
+                <div className="flex items-center gap-3 text-right">
+                  <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
+                    <Link2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
+                      طلبات الصرف المعتمدة المرتبطة بأوامر صرف
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      طلبات صرف معتمدة تم تحويلها لأوامر صرف وبانتظار قرار التحويل البنكي المباشر
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
-                    أوامر الصرف بانتظار الاعتماد البنكي المباشر
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    يتوفر لديك {data.financials.pendingOrders.length} أمر صرف يتطلب اعتمادك البنكي المباشر
-                  </p>
-                </div>
+
+                <Badge className="bg-emerald-500 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0">
+                  {data.chairmanData.linkedPendingOrders.length} طلبات مرتبطة
+                </Badge>
               </div>
 
-              <Link href="/disbursement-orders">
-                <Button variant="ghost" size="sm" className="rounded-xl font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 gap-1 text-xs">
-                  <span>كافة أوامر الصرف</span>
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </Link>
-            </div>
+              {data.chairmanData.linkedPendingOrders.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {data.chairmanData.linkedPendingOrders.map((item) => (
+                    <div
+                      key={item.orderId}
+                      className="p-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-200/80 dark:border-emerald-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="text-xs font-bold border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                              طلب صرف معتمد: {item.requestNumber}
+                            </Badge>
+                            <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 line-clamp-1">
+                              {item.requestTitle}
+                            </h3>
+                          </div>
+                          <Badge className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-300/40 text-xs font-bold shrink-0">
+                            أمر صرف: {item.orderNumber}
+                          </Badge>
+                        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {data.financials.pendingOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-amber-200/70 dark:border-amber-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                      <span className="font-black text-sm text-slate-900 dark:text-slate-100">
-                        {order.orderNumber}
-                      </span>
-                      <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300/40 text-[11px] font-bold">
-                        {order.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}
-                      </Badge>
+                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                          <div>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 block">المستفيد:</span>
+                            <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryName}</span>
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-700 dark:text-slate-300 block">المصرف والآيبان:</span>
+                            <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryBank} - {item.beneficiaryIban}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs text-muted-foreground">قيمة أمر الصرف:</span>
+                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                            {formatCurrency(item.amount)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex items-center gap-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleDirectApprove(item.orderId)}
+                          disabled={approvingId === item.orderId}
+                          className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-emerald-500/20"
+                        >
+                          <Check className="w-4 h-4 shrink-0" />
+                          <span>{approvingId === item.orderId ? "جاري التحويل البنكي..." : "اعتماد تحويل بنكي مباشر"}</span>
+                        </Button>
+                      </div>
                     </div>
-
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <p><span className="font-bold text-slate-700 dark:text-slate-300">المستفيد:</span> {order.beneficiaryName}</p>
-                      <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف:</span> {order.beneficiaryBank}</p>
-                    </div>
-
-                    <div className="pt-1">
-                      <p className="text-xl font-black text-amber-600 dark:text-amber-400">
-                        {formatCurrency(order.amount)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    onClick={() => handleDirectApprove(order.id)}
-                    disabled={approvingId === order.id}
-                    className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-amber-500/20"
-                  >
-                    <Check className="w-4 h-4 shrink-0" />
-                    <span>{approvingId === order.id ? "جاري الاعتماد البنكي..." : "اعتماد بنكي مباشر"}</span>
-                  </Button>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-emerald-200 dark:border-emerald-900">
+                  لا توجد طلبات صرف معتمدة بانتظار الاعتماد البنكي المباشر حالياً
+                </div>
+              )}
+            </div>
+
+            {/* 2. قسم أوامر الصرف المخصصة/المباشرة (غير المرتبطة بطلب صرف) */}
+            <div className="rounded-3xl border border-amber-300/80 dark:border-amber-900/60 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 dark:border-amber-900/40 pb-4">
+                <div className="flex items-center gap-3 text-right">
+                  <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
+                    <FileSpreadsheet className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
+                      أوامر الصرف المخصصة والمباشرة
+                    </h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      أوامر صرف مخصصة غير مرتبطة بطلب صرف وبانتظار تحديد الاعتماد والتحويل البنكي
+                    </p>
+                  </div>
+                </div>
+
+                <Badge className="bg-amber-500 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0">
+                  {data.chairmanData.customPendingOrders.length} أوامر مخصصة
+                </Badge>
+              </div>
+
+              {data.chairmanData.customPendingOrders.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {data.chairmanData.customPendingOrders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-amber-200/70 dark:border-amber-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                          <span className="font-black text-sm text-slate-900 dark:text-slate-100">
+                            أمر مخصص: {order.orderNumber}
+                          </span>
+                          <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300/40 text-[11px] font-bold">
+                            {order.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <p><span className="font-bold text-slate-700 dark:text-slate-300">المستفيد:</span> {order.beneficiaryName}</p>
+                          <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف:</span> {order.beneficiaryBank}</p>
+                          <p><span className="font-bold text-slate-700 dark:text-slate-300">الآيبان:</span> {order.beneficiaryIban}</p>
+                        </div>
+
+                        <div className="pt-1">
+                          <p className="text-xl font-black text-amber-600 dark:text-amber-400">
+                            {formatCurrency(order.amount)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        onClick={() => handleDirectApprove(order.id)}
+                        disabled={approvingId === order.id}
+                        className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-amber-500/20"
+                      >
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>{approvingId === order.id ? "جاري الاعتماد البنكي..." : "اعتماد تحويل بنكي مباشر"}</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-amber-200 dark:border-amber-900">
+                  لا توجد أوامر صرف مخصصة معلقة حالياً
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ==================== حالة التحميل والأخطاء ==================== */}
-        {isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="h-32 rounded-2xl border-slate-200/80 animate-pulse bg-slate-100/60 dark:bg-slate-800/40" />
-            ))}
-          </div>
-        )}
-
-        {isError && (
-          <Card className="border-red-200 bg-red-50/50 dark:bg-red-950/20 rounded-2xl p-6 text-center">
-            <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-red-700 dark:text-red-400">حدث خطأ أثناء جلب البيانات القيادية</h3>
-            <p className="text-sm text-red-600 dark:text-red-300 mt-1">{error?.message}</p>
-            <Button variant="outline" className="mt-4 rounded-xl border-red-300 font-bold" onClick={() => refetch()}>
-              إعادة المحاولة
-            </Button>
-          </Card>
-        )}
-
-        {data && (
+        {/* ==================== 📊 واجهة عضو مجلس الإدارة (التبويبات الـ 5 للإحصائيات) ==================== */}
+        {!isChairman && data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
             {/* شريط التبويبات الـ 5 المنسق والمتوزع بعرض الصفحة مع تباعد ممتاز */}
             <div className="w-full" dir="rtl">
@@ -270,7 +342,7 @@ export default function BoardDashboard() {
               </TabsList>
             </div>
 
-            {/* ==================== 1️⃣ تبويب إحصائيات المساجد ==================== */}
+            {/* 1️⃣ تبويب إحصائيات المساجد */}
             <TabsContent value="mosques" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
@@ -443,7 +515,7 @@ export default function BoardDashboard() {
               </div>
             </TabsContent>
 
-            {/* ==================== 2️⃣ تبويب إحصائيات الطلبات ==================== */}
+            {/* 2️⃣ تبويب إحصائيات الطلبات */}
             <TabsContent value="requests" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
@@ -575,7 +647,7 @@ export default function BoardDashboard() {
               </div>
             </TabsContent>
 
-            {/* ==================== 3️⃣ تبويب الهندسة والمشاريع ==================== */}
+            {/* 3️⃣ تبويب الهندسة والمشاريع */}
             <TabsContent value="projects" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
@@ -641,7 +713,6 @@ export default function BoardDashboard() {
                 </Card>
               </div>
 
-              {/* Projects Chart */}
               <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                 <CardHeader className="p-0 mb-6 text-right">
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -674,7 +745,7 @@ export default function BoardDashboard() {
               </Card>
             </TabsContent>
 
-            {/* ==================== 4️⃣ تبويب المشتريات والعقود والموردين ==================== */}
+            {/* 4️⃣ تبويب المشتريات والعقود والموردين */}
             <TabsContent value="procurement" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
@@ -741,7 +812,7 @@ export default function BoardDashboard() {
               </div>
             </TabsContent>
 
-            {/* ==================== 5️⃣ تبويب الأمور المالية والصرف ==================== */}
+            {/* 5️⃣ تبويب الأمور المالية والصرف */}
             <TabsContent value="financials" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
