@@ -216,6 +216,8 @@ export default function UsersManagement() {
 
   const getRoleBadge = (role: string) => {
     const roleMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
+      board_chairman: { label: "رئيس مجلس الإدارة", variant: "default" },
+      board_member: { label: "عضو مجلس الإدارة", variant: "default" },
       general_manager: { label: "المدير التنفيذي", variant: "default" },
       executive_director: { label: "المدير التنفيذي", variant: "default" },
       super_admin: { label: "مدير النظام", variant: "default" },
