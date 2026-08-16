@@ -25,9 +25,13 @@ import { analyticsRouter } from "./routers/analytics";
 import { jobPositionsRouter } from "./routers/jobPositions";
 import { programsRouter } from "./routers/programs";
 import { supportTicketsRouter } from "./routers/supportTickets";
+import { boardRouter } from "./routers/board";
 
 export const appRouter = router({
   system: systemRouter,
+
+  // اللوحة القيادية للمجلس
+  board: boardRouter,
 
   // نظام المصادقة
   auth: authRouter,
