@@ -225,12 +225,12 @@ export default function BoardDashboard() {
 
         {data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
-            {/* شريط التبويبات القيادي الموجه كاملاً من اليمين إلى اليسار */}
-            <div className="flex justify-start w-full overflow-x-auto pb-1" dir="rtl">
-              <TabsList className="bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-wrap gap-2 text-right">
+            {/* شريط التبويبات القيادي الموجه والمنسق تماماً بعرض المحتوى */}
+            <div className="flex items-center justify-start w-full overflow-x-auto pb-2 scrollbar-none" dir="rtl">
+              <TabsList className="inline-flex h-auto items-center justify-start rounded-2xl bg-slate-100/90 dark:bg-slate-800/90 p-1.5 border border-slate-200/80 dark:border-slate-700/80 gap-1.5 shrink-0">
                 <TabsTrigger
                   value="mosques"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>إحصائيات المساجد</span>
@@ -238,7 +238,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="requests"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>إحصائيات الطلبات</span>
@@ -246,7 +246,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="projects"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span>الهندسة والمشاريع</span>
@@ -254,7 +254,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="procurement"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Truck className="w-4 h-4 text-orange-500 shrink-0" />
                   <span>المشتريات والعقود</span>
@@ -262,7 +262,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="financials"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Wallet className="w-4 h-4 text-amber-500 shrink-0" />
                   <span>المالية والصرف</span>
@@ -270,7 +270,7 @@ export default function BoardDashboard() {
 
                 <TabsTrigger
                   value="governance"
-                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Handshake className="w-4 h-4 text-purple-500 shrink-0" />
                   <span>الحوكمة والشركاء</span>
