@@ -46,12 +46,14 @@ export const boardRouter = router({
     const isAdminRole = ["super_admin", "system_admin"].includes(ctx.user.role);
 
     const hasChairmanPerm = await checkPermission(ctx.user.id, "board_chairman");
+    const hasChairmanViewPerm = await checkPermission(ctx.user.id, "board_chairman_view");
     const hasMemberPerm = await checkPermission(ctx.user.id, "board_member");
 
     const isChairman = isChairmanRole || hasChairmanPerm;
-    const isMember = isChairman ? false : (isMemberRole || hasMemberPerm || isAdminRole);
+    const isChairmanView = hasChairmanViewPerm;
+    const isMember = (isChairman || isChairmanView) ? false : (isMemberRole || hasMemberPerm || isAdminRole);
 
-    if (!isChairman && !isMember && !isAdminRole) {
+    if (!isChairman && !isChairmanView && !isMember && !isAdminRole) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "صفحة اللوحة القيادية مخصصة حصراً لأعضاء ورئيس مجلس الإدارة",
