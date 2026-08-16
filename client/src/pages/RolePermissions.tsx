@@ -322,12 +322,15 @@ export default function RolePermissions() {
         return next;
       } else {
         let next = [...prev, permId];
-        // منع اختيار الصلاحيتين معاً لمواعيد تقويم المنشأة والمواعيد الخاصة
-        if (permId === "appointments.view_all") {
+        // منع اختيار الصلاحيتين معاً لرئيس مجلس الإدارة وعضو مجلس الإدارة
+        if (permId === "board_chairman") {
+          next = next.filter(id => id !== "board_member");
+        } else if (permId === "board_member") {
+          next = next.filter(id => id !== "board_chairman");
+        } else if (permId === "appointments.view_all") {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
-
         }
         return next;
       }
@@ -343,10 +346,18 @@ export default function RolePermissions() {
     } else {
       setSelectedPerms(prev => {
         let added = permIds.filter(id => !prev.includes(id));
+        if (added.includes("board_chairman") && added.includes("board_member")) {
+          added = added.filter(id => id !== "board_member");
+        }
         if (added.includes("appointments.view_all") && added.includes("appointments.view_own")) {
           added = added.filter(id => id !== "appointments.view_own");
         }
         let next = [...prev, ...added];
+        if (added.includes("board_chairman")) {
+          next = next.filter(id => id !== "board_member");
+        } else if (added.includes("board_member")) {
+          next = next.filter(id => id !== "board_chairman");
+        }
         if (added.includes("appointments.view_all")) {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (added.includes("appointments.view_own")) {
