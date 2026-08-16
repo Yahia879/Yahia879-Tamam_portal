@@ -605,7 +605,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     const excludedAdminPerms = [
       'requests.manage_as_field_team',
       'requests.manage_as_quick_response',
-      'requests.upload_final_report'
+      'requests.upload_final_report',
+      'board_chairman'
     ];
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
