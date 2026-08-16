@@ -2164,43 +2164,13 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "disbursements.sign");
 
       const userEmail = ctx.user.email;
+      const isChairmanUser = 
+        ctx.user.role === "board_chairman" || 
+        ["super_admin", "system_admin"].includes(ctx.user.role) ||
+        await checkPermission(ctx.user.id, "board_chairman");
 
-      // المرحلة الأولى: حساب الإدارة المالية (solayani@manarah.org.sa) حصراً
-      if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
-        if (userEmail !== "solayani@manarah.org.sa") {
-          throw new TRPCError({ 
-            code: "FORBIDDEN", 
-            message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
-          });
-        }
-
-        await db
-          .update(disbursementOrders)
-          .set({
-            status: "pending_executive" as any,
-            createdBy: ctx.user.id,
-            financialApprovedAt: new Date(),
-            approvalNotes: input.notes,
-            updatedAt: new Date(),
-          })
-          .where(eq(disbursementOrders.id, input.id));
-
-        return {
-          success: true,
-          status: "pending_executive",
-          message: "تم اعتماد المرحلة الأولى من أمر الصرف بنجاح، والأمر الآن بانتظار اعتماد المدير التنفيذي",
-        };
-      }
-
-      // المرحلة الثانية: حساب المدير التنفيذي (ceo@manarah.org.sa) حصراً
-      if (order.status === "pending_executive") {
-        if (userEmail !== "ceo@manarah.org.sa") {
-          throw new TRPCError({ 
-            code: "FORBIDDEN", 
-            message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
-          });
-        }
-
+      if (isChairmanUser) {
+        // رئيس مجلس الإدارة أو الأدمن يعتمد مباشرة
         await db
           .update(disbursementOrders)
           .set({
@@ -2211,6 +2181,54 @@ export const disbursementsRouter = router({
             updatedAt: new Date(),
           })
           .where(eq(disbursementOrders.id, input.id));
+      } else {
+        // المرحلة الأولى: حساب الإدارة المالية (solayani@manarah.org.sa) حصراً
+        if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
+          if (userEmail !== "solayani@manarah.org.sa") {
+            throw new TRPCError({ 
+              code: "FORBIDDEN", 
+              message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+            });
+          }
+
+          await db
+            .update(disbursementOrders)
+            .set({
+              status: "pending_executive" as any,
+              createdBy: ctx.user.id,
+              financialApprovedAt: new Date(),
+              approvalNotes: input.notes,
+              updatedAt: new Date(),
+            })
+            .where(eq(disbursementOrders.id, input.id));
+
+          return {
+            success: true,
+            status: "pending_executive",
+            message: "تم اعتماد المرحلة الأولى من أمر الصرف بنجاح، والأمر الآن بانتظار اعتماد المدير التنفيذي",
+          };
+        }
+
+        // المرحلة الثانية: حساب المدير التنفيذي (ceo@manarah.org.sa) حصراً
+        if (order.status === "pending_executive") {
+          if (userEmail !== "ceo@manarah.org.sa") {
+            throw new TRPCError({ 
+              code: "FORBIDDEN", 
+              message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
+            });
+          }
+
+          await db
+            .update(disbursementOrders)
+            .set({
+              status: "approved" as any,
+              approvedBy: ctx.user.id,
+              approvedAt: new Date(),
+              approvalNotes: input.notes,
+              updatedAt: new Date(),
+            })
+            .where(eq(disbursementOrders.id, input.id));
+        }
       }
 
       // تحديث قيمة الدفعة المجدولة في العقد وطلب الصرف إذا كان المبلغ الموافق عليه في أمر الصرف أقل من مبلغ الدفعة الأصلي
@@ -2489,26 +2507,27 @@ export const disbursementsRouter = router({
       }
 
       const userEmail = ctx.user.email;
+      const isChairmanUser = 
+        ctx.user.role === "board_chairman" || 
+        ["super_admin", "system_admin"].includes(ctx.user.role) ||
+        await checkPermission(ctx.user.id, "board_chairman");
 
-      if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
-        if (userEmail !== "solayani@manarah.org.sa") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
-          });
+      if (!isChairmanUser) {
+        if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
+          if (userEmail !== "solayani@manarah.org.sa") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+            });
+          }
+        } else if (orderData.status === "pending_executive") {
+          if (userEmail !== "ceo@manarah.org.sa") {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
+            });
+          }
         }
-      } else if (orderData.status === "pending_executive") {
-        if (userEmail !== "ceo@manarah.org.sa") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية رفض أمر الصرف في هذه المرحلة",
-          });
-        }
-      } else {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "لا يمكن رفض أمر الصرف في حالته الحالية",
-        });
       }
 
       const [order] = await db
