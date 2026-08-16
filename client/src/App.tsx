@@ -225,6 +225,7 @@ function Router() {
       {/* لوحات التحكم */}
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
       <Route path="/board-dashboard">{() => <AdminRoute component={BoardDashboard} />}</Route>
+      <Route path="/board-executive">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
