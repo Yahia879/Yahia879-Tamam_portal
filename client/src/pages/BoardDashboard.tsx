@@ -28,20 +28,23 @@ import {
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
   MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Info
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  approved: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
-  executed: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
-  edited: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
+  // بانتظار اعتماد تحويل رئيس مجلس الإدارة
+  approved: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  pending_executive: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  pending: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  edited: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  draft: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
 
-  pending: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  pending_executive: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  draft: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  // تم اعتماد التحويل
+  executed: { label: "تم اعتماد التحويل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
 
+  // مرفوض (باللون الأحمر حصراً بناء على رغبة المستخدم)
   rejected: { label: "مرفوض", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 font-extrabold" },
 };
 
@@ -96,10 +99,16 @@ export default function BoardDashboard() {
     data: any;
   }>({ open: false, title: "", type: "order", data: null });
 
+  const [viewJustificationModal, setViewJustificationModal] = useState<{
+    open: boolean;
+    orderNumber: string;
+    reason: string;
+  }>({ open: false, orderNumber: "", reason: "" });
+
   const utils = trpc.useUtils();
 
   const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery(undefined, {
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const approveOrderMutation = trpc.disbursements.approveOrder.useMutation({
@@ -386,13 +395,9 @@ export default function BoardDashboard() {
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{order.orderNumber}</span>
-                                    {order.isCustom ? (
+                                    {order.isCustom && (
                                       <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
                                         أمر مخصص
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2 py-0.5">
-                                        طلب معتمد
                                       </Badge>
                                     )}
                                   </div>
@@ -1338,44 +1343,34 @@ export default function BoardDashboard() {
           </Tabs>
         )}
 
-        {/* ==================== 💬 نافذة الرفض التفصيلية ==================== */}
+        {/* ==================== 💬 نافذة سبب ومبرر عدم اعتماد التحويل ==================== */}
         <Dialog open={!!rejectingOrder} onOpenChange={(open) => !open && setRejectingOrder(null)}>
           <DialogContent className="sm:max-w-lg rounded-3xl p-6 sm:p-7 text-right" dir="rtl">
             <DialogHeader className="text-right space-y-2 border-b pb-4 pl-8">
               <div className="flex items-center gap-2 flex-wrap">
-                <DialogTitle className="text-lg sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                  <XCircle className="w-5 h-5 shrink-0" />
-                  <span>رفض وتوجيه أمر الصرف</span>
+                <DialogTitle className="text-lg sm:text-xl font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-amber-500" />
+                  <span>مبرر عدم اعتماد التحويل البنكي</span>
                 </DialogTitle>
                 {rejectingOrder && (
-                  <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
                     {rejectingOrder.orderNumber}
                   </Badge>
                 )}
               </div>
-              <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                سيتم تسجيل سبب الرفض المالي وتوجيه أمر الصرف مع إشعار الإدارة المالية بالمنظومة.
-              </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
-              <div className="p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-2.5 text-right">
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
-                  يرجى تدوين سبب الرفض والتوثيق المالي بدقة ليتم حفظه بالسجل التاريخي لأمر الصرف.
-                </p>
-              </div>
-
               <div className="space-y-2 text-right">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  سبب الرفض والتوثيق المالي: <span className="text-rose-500">*</span>
+                  سبب عدم الاعتماد ومبرر الرفض: <span className="text-amber-600">*</span>
                 </label>
                 <Textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="اكتب سبب الرفض والتوجيه بالتفصيل هنا..."
+                  placeholder="اكتب سبب عدم اعتماد التحويل بالتفصيل..."
                   rows={4}
-                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-rose-500"
+                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-amber-500"
                 />
               </div>
             </div>
@@ -1389,13 +1384,12 @@ export default function BoardDashboard() {
                 إلغاء
               </Button>
               <Button
-                variant="destructive"
                 onClick={handleConfirmReject}
                 disabled={isRejecting || !rejectionReason.trim()}
-                className="rounded-xl font-bold text-xs gap-2 px-5 bg-rose-600 hover:bg-rose-700"
+                className="rounded-xl font-bold text-xs gap-2 px-5 bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm"
               >
                 <XCircle className="w-4 h-4 shrink-0" />
-                <span>{isRejecting ? "جاري الرفض..." : "تأكيد رفض أمر الصرف"}</span>
+                <span>{isRejecting ? "جاري الرفض..." : "تأكيد عدم الاعتماد والرفض"}</span>
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1468,6 +1462,36 @@ export default function BoardDashboard() {
                   <ArrowUpRight className="w-4 h-4" />
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 📋 نافذة عرض مبررات عدم الاعتماد (مطابقة لـ /disbursements) ==================== */}
+        <Dialog open={viewJustificationModal.open} onOpenChange={(open) => setViewJustificationModal((prev) => ({ ...prev, open }))}>
+          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
+            <DialogHeader className="text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+                <Info className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>مبررات عدم اعتماد التحويل</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                تفاصيل المبرر والسبب المدون لأمر الصرف رقم ({viewJustificationModal.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-right">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص المبرر والسبب المدون:</label>
+                <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
+                  {viewJustificationModal.reason || "لا يوجد مبرر مدون"}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs px-5">
+                إغلاق
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
