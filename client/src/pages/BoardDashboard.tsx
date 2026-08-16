@@ -14,6 +14,9 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
 } from "@/components/ui/dialog";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -24,17 +27,24 @@ import {
   FileText, Activity, RefreshCw, ShieldCheck,
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
-  MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight
+  MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  approved: { label: "معتمد وبانتظار التحويل", className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-300/40" },
-  executed: { label: "منفذ ومحوّل بنكياً", className: "bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-300/40" },
-  pending_executive: { label: "بانتظار الاعتماد البنكي", className: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300/40" },
-  edited: { label: "معتمد (معدّل)", className: "bg-purple-500/15 text-purple-800 dark:text-purple-300 border-purple-300/40" },
-  rejected: { label: "مرفوض", className: "bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-300/40" },
+  approved: { label: "معتمد وبانتظار التحويل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800" },
+  executed: { label: "منفذ ومحوّل بنكياً", className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800" },
+  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800" },
+  edited: { label: "معتمد (معدّل)", className: "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800" },
+  rejected: { label: "مرفوض", className: "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800" },
+};
+
+const PAYMENT_METHOD_MAP: Record<string, string> = {
+  bank_transfer: "تحويل بنكي",
+  check: "إصدار شيك",
+  custody: "صرف من العهدة",
+  sadad: "سداد",
 };
 
 const TOOLTIP_CONTENT_STYLE = {
@@ -65,6 +75,7 @@ export default function BoardDashboard() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("mosques");
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // حالات نافذة الرفض والمعاينة
   const [rejectingOrder, setRejectingOrder] = useState<{ id: number; orderNumber: string } | null>(null);
@@ -139,6 +150,33 @@ export default function BoardDashboard() {
     }).format(amount) + " ريال";
   };
 
+  // فلترة أوامر رئيس مجلس الإدارة بحسب البحث
+  const filteredLinkedOrders = (data?.chairmanData?.linkedApprovedOrders || []).filter((o) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      o.orderNumber.toLowerCase().includes(term) ||
+      o.requestNumber.toLowerCase().includes(term) ||
+      o.beneficiaryName.toLowerCase().includes(term) ||
+      o.requestTitle.toLowerCase().includes(term)
+    );
+  });
+
+  const filteredCustomOrders = (data?.chairmanData?.customApprovedOrders || []).filter((o) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      o.orderNumber.toLowerCase().includes(term) ||
+      o.beneficiaryName.toLowerCase().includes(term)
+    );
+  });
+
+  // حساب المبالغ الكلية للأوامر المعتمدة
+  const totalApprovedAmount = [
+    ...(data?.chairmanData?.linkedApprovedOrders || []),
+    ...(data?.chairmanData?.customApprovedOrders || []),
+  ].reduce((acc, curr) => acc + curr.amount, 0);
+
   return (
     <DashboardLayout>
       <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
@@ -167,12 +205,12 @@ export default function BoardDashboard() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-                {isChairman ? "لوحة الاعتماد والتحويل البنكي المباشر" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
+                {isChairman ? "جدول الاعتماد والتحويل البنكي المباشر" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
               
               <p className="text-sm sm:text-base text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairman
-                  ? "مرحباً بك رئيس مجلس الإدارة. تتيح لك هذه الشاشة الاطلاع الشامل على أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات صرف معتمدة أو المخصصة) وتنفيذ إجراءات الاعتماد البنكي المباشر والمتابعة."
+                  ? "مرحباً بك رئيس مجلس الإدارة. جدول تنفيذي متكامل يُظهر أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة) بتنسيق جدول المنظومة لتمكينك من اتخاذ إجراءات الاعتماد البنكي والمعاينة المباشرة."
                   : "مرحباً بك عضو مجلس الإدارة. واجهة تنفيذية متكاملة توفر لك الاطلاع الشامل والعميق على كافة إحصائيات ومؤشرات المساجد والطلبات والمشاريع والمالية."}
               </p>
             </div>
@@ -192,275 +230,359 @@ export default function BoardDashboard() {
           </div>
         </div>
 
-        {/* ==================== 👑 واجهة رئيس مجلس الإدارة (أوامر الصرف المعتمدة) ==================== */}
+        {/* ==================== 👑 واجهة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة) ==================== */}
         {isChairman && data?.chairmanData && (
           <div className="space-y-8 animate-in fade-in-50 duration-300">
-            {/* 1️⃣ قسم أوامر الصرف المرتبطة بطلب صرف معتمد */}
-            <div className="rounded-3xl border border-emerald-300/80 dark:border-emerald-900/60 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/60 dark:border-emerald-900/40 pb-4">
-                <div className="flex items-center gap-3 text-right">
-                  <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
+            {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-md">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
+                      {data.chairmanData.totalApprovedCount}
+                    </h3>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-md">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات معتمدة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">
+                      {data.chairmanData.linkedApprovedOrders.length}
+                    </h3>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600 shrink-0">
                     <Link2 className="w-6 h-6" />
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-md">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400">
+                      {data.chairmanData.customApprovedOrders.length}
+                    </h3>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 shrink-0">
+                    <FileSpreadsheet className="w-6 h-6" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-md">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">إجمالي مبالغ الصرف</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(totalApprovedAmount)}
+                    </h3>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <Banknote className="w-6 h-6" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* شريط البحث الموحد */}
+            <div className="relative max-w-md">
+              <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 rounded-2xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
+              />
+            </div>
+
+            {/* 1️⃣ جدول أوامر الصرف المعتمدة المرتبطة بطلب صرف معتمد */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg overflow-hidden p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+                <div className="flex items-center gap-3 text-right">
+                  <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <Link2 className="w-5 h-5" />
+                  </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
+                    <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
                       أوامر الصرف المعتمدة المرتبطة بطلب صرف معتمد
                     </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      طلبات صرف معتمدة صدَر لها أمر صرف معتمد وبانتظار اعتماد وتحويل المبلغ
+                    <p className="text-xs text-muted-foreground">
+                      جدول أوامر الصرف الصادرة لطلبات صرف معتمدة وبانتظار قرار التحويل البنكي المباشر
                     </p>
                   </div>
                 </div>
 
-                <Badge className="bg-emerald-600 text-white rounded-xl font-bold px-3.5 py-1.5 text-xs shrink-0">
-                  {data.chairmanData.linkedApprovedOrders.length} أوامر معتمدة
+                <Badge className="bg-emerald-600 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0 self-start sm:self-auto">
+                  {filteredLinkedOrders.length} أمر مرتبط
                 </Badge>
               </div>
 
-              {data.chairmanData.linkedApprovedOrders.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {data.chairmanData.linkedApprovedOrders.map((item) => {
-                    const statusKey = item.orderStatus || "approved";
-                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
-                    return (
-                      <div
-                        key={item.orderId}
-                        className="p-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-200/80 dark:border-emerald-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
-                      >
-                        <div className="space-y-3">
-                          {/* الهيدر العلوي للكارد مع قائمة الإجراءات الثلاث نقاط */}
-                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs font-bold border-emerald-300 text-emerald-700 dark:text-emerald-300">
-                                  طلب صرف معتمد: {item.requestNumber}
-                                </Badge>
-                                <Badge className={`text-[11px] font-bold border ${statusInfo.className}`}>
-                                  {statusInfo.label}
-                                </Badge>
-                              </div>
-                              <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 line-clamp-1 mt-1">
-                                {item.requestTitle}
-                              </h3>
-                            </div>
+              {filteredLinkedOrders.length > 0 ? (
+                <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <Table dir="rtl" className="w-full text-right">
+                    <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">رقم أمر الصرف</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">رقم طلب الصرف المعتمد</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">العنوان / البيان</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المستفيد</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المصرف والآيبان</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المبلغ</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">طريقة الدفع</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">الحالة</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-center">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLinkedOrders.map((item) => {
+                        const statusKey = item.orderStatus || "approved";
+                        const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
+                        return (
+                          <TableRow key={item.orderId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                            <TableCell className="py-3 px-4 font-mono font-bold text-xs text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                              {item.orderNumber}
+                            </TableCell>
 
-                            {/* 🎯 قائمة الإجراءات الـ 3 نقاط المخصصة لرئيس مجلس الإدارة */}
-                            <DropdownMenu dir="rtl">
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
-                                  <MoreVertical className="w-5 h-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 font-bold text-xs space-y-1">
-                                <DropdownMenuItem
-                                  onClick={() => setPreviewModal({
-                                    open: true,
-                                    title: `تفاصيل أمر الصرف (${item.orderNumber})`,
-                                    type: "order",
-                                    data: item,
-                                  })}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
-                                >
-                                  <Eye className="w-4 h-4 text-blue-500 shrink-0" />
-                                  <span>عرض أمر الصرف</span>
-                                </DropdownMenuItem>
+                            <TableCell className="py-3 px-4 font-mono font-bold text-xs text-emerald-700 dark:text-emerald-400 whitespace-nowrap">
+                              {item.requestNumber}
+                            </TableCell>
 
-                                {/* تظهر حصراً لأوامر الصرف المرتبطة بطلب صرف */}
-                                <DropdownMenuItem
-                                  onClick={() => setPreviewModal({
-                                    open: true,
-                                    title: `تفاصيل طلب الصرف المعتمد (${item.requestNumber})`,
-                                    type: "request",
-                                    data: item,
-                                  })}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
-                                >
-                                  <FileText className="w-4 h-4 text-purple-500 shrink-0" />
-                                  <span>عرض طلب الصرف المعتمد</span>
-                                </DropdownMenuItem>
+                            <TableCell className="py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-[200px] truncate">
+                              {item.requestTitle}
+                            </TableCell>
 
-                                <DropdownMenuSeparator />
+                            <TableCell className="py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-[160px] truncate">
+                              {item.beneficiaryName}
+                            </TableCell>
 
-                                <DropdownMenuItem
-                                  onClick={() => handleDirectApprove(item.orderId)}
-                                  disabled={approvingId === item.orderId}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                  <span>اعتماد وتحويل المبلغ</span>
-                                </DropdownMenuItem>
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                              <span className="font-bold text-slate-700 dark:text-slate-300">{item.beneficiaryBank}</span>
+                              <span className="block font-mono text-[11px] text-slate-500">{item.beneficiaryIban}</span>
+                            </TableCell>
 
-                                <DropdownMenuItem
-                                  onClick={() => setRejectingOrder({ id: item.orderId, orderNumber: item.orderNumber })}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
-                                >
-                                  <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                                  <span>رفض أمر الصرف</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                            <div>
-                              <span className="font-bold text-slate-700 dark:text-slate-300 block">المستفيد:</span>
-                              <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryName}</span>
-                            </div>
-                            <div>
-                              <span className="font-bold text-slate-700 dark:text-slate-300 block">المصرف والآيبان:</span>
-                              <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryBank} - {item.beneficiaryIban}</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-1">
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">أمر صرف: {item.orderNumber}</span>
-                            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                            <TableCell className="py-3 px-4 font-mono font-bold text-xs text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                               {formatCurrency(item.amount)}
-                            </span>
-                          </div>
-                        </div>
+                            </TableCell>
 
-                        <div className="pt-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleDirectApprove(item.orderId)}
-                            disabled={approvingId === item.orderId}
-                            className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-emerald-500/20"
-                          >
-                            <Check className="w-4 h-4 shrink-0" />
-                            <span>{approvingId === item.orderId ? "جاري الاعتماد والتحويل..." : "اعتماد وتحويل المبلغ"}</span>
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap font-medium">
+                              {PAYMENT_METHOD_MAP[item.paymentMethod || "bank_transfer"]}
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 whitespace-nowrap">
+                              <Badge variant="outline" className={`text-[11px] font-bold ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            </TableCell>
+
+                            {/* 🎯 قائمة الإجراءات الثلاث نقاط */}
+                            <TableCell className="py-3 px-4 text-center whitespace-nowrap">
+                              <DropdownMenu dir="rtl">
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 font-bold text-xs space-y-1">
+                                  <DropdownMenuItem
+                                    onClick={() => setPreviewModal({
+                                      open: true,
+                                      title: `تفاصيل أمر الصرف (${item.orderNumber})`,
+                                      type: "order",
+                                      data: item,
+                                    })}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                  >
+                                    <Eye className="w-4 h-4 text-blue-500 shrink-0" />
+                                    <span>عرض أمر الصرف</span>
+                                  </DropdownMenuItem>
+
+                                  {/* تظهر حصراً لأوامر الصرف المرتبطة بطلب صرف معتمد */}
+                                  <DropdownMenuItem
+                                    onClick={() => setPreviewModal({
+                                      open: true,
+                                      title: `تفاصيل طلب الصرف المعتمد (${item.requestNumber})`,
+                                      type: "request",
+                                      data: item,
+                                    })}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                  >
+                                    <FileText className="w-4 h-4 text-purple-500 shrink-0" />
+                                    <span>عرض طلب الصرف المعتمد</span>
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuSeparator />
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleDirectApprove(item.orderId)}
+                                    disabled={approvingId === item.orderId}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                  >
+                                    <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                    <span>اعتماد وتحويل المبلغ</span>
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={() => setRejectingOrder({ id: item.orderId, orderNumber: item.orderNumber })}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+                                  >
+                                    <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                    <span>رفض أمر الصرف</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-emerald-200 dark:border-emerald-900">
+                <div className="text-center py-10 text-muted-foreground text-sm bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed">
                   لا توجد أوامر صرف مرتبطة بطلبات معتمدة حالياً
                 </div>
               )}
-            </div>
+            </Card>
 
-            {/* 2️⃣ قسم أوامر الصرف المخصصة المعتمدة (غير المرتبطة بطلب صرف) */}
-            <div className="rounded-3xl border border-amber-300/80 dark:border-amber-900/60 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 dark:border-amber-900/40 pb-4">
+            {/* 2️⃣ جدول أوامر الصرف المخصصة المعتمدة (غير المرتبطة بطلب صرف) */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg overflow-hidden p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
                 <div className="flex items-center gap-3 text-right">
-                  <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
-                    <FileSpreadsheet className="w-6 h-6" />
+                  <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 shrink-0">
+                    <FileSpreadsheet className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
+                    <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
                       أوامر الصرف المخصصة المعتمدة
                     </h2>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      أوامر صرف مخصصة معتمدة غير مرتبطة بطلب صرف وبانتظار تنفيذ التحويل البنكي
+                    <p className="text-xs text-muted-foreground">
+                      جدول أوامر الصرف المخصصة المعتمدة غير المرتبطة بطلب صرف وبانتظار قرار الاعتماد البنكي
                     </p>
                   </div>
                 </div>
 
-                <Badge className="bg-amber-600 text-white rounded-xl font-bold px-3.5 py-1.5 text-xs shrink-0">
-                  {data.chairmanData.customApprovedOrders.length} أوامر مخصصة
+                <Badge className="bg-amber-600 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0 self-start sm:self-auto">
+                  {filteredCustomOrders.length} أمر مخصص
                 </Badge>
               </div>
 
-              {data.chairmanData.customApprovedOrders.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data.chairmanData.customApprovedOrders.map((order) => {
-                    const statusKey = order.status || "approved";
-                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
-                    return (
-                      <div
-                        key={order.id}
-                        className="p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-amber-200/70 dark:border-amber-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
-                      >
-                        <div className="space-y-3">
-                          {/* الهيدر مع الـ 3 نقاط لأوامر الصرف المخصصة */}
-                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2">
-                            <div>
-                              <span className="font-black text-sm text-slate-900 dark:text-slate-100 block">
-                                أمر مخصص: {order.orderNumber}
-                              </span>
-                              <Badge className={`text-[10px] font-bold border mt-1 ${statusInfo.className}`}>
+              {filteredCustomOrders.length > 0 ? (
+                <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <Table dir="rtl" className="w-full text-right">
+                    <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">رقم أمر الصرف</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">النوع</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المستفيد</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المصرف والآيبان</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">المبلغ</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">طريقة الدفع</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-right">الحالة</TableHead>
+                        <TableHead className="py-3 px-4 font-bold text-xs text-slate-700 dark:text-slate-200 text-center">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCustomOrders.map((order) => {
+                        const statusKey = order.status || "approved";
+                        const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
+                        return (
+                          <TableRow key={order.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                            <TableCell className="py-3 px-4 font-mono font-bold text-xs text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                              {order.orderNumber}
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 whitespace-nowrap">
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 font-bold text-[10px]">
+                                أمر مخصص
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-[180px] truncate">
+                              {order.beneficiaryName}
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap">
+                              <span className="font-bold text-slate-700 dark:text-slate-300">{order.beneficiaryBank}</span>
+                              <span className="block font-mono text-[11px] text-slate-500">{order.beneficiaryIban}</span>
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 font-mono font-bold text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
+                              {formatCurrency(order.amount)}
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 text-xs text-muted-foreground whitespace-nowrap font-medium">
+                              {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
+                            </TableCell>
+
+                            <TableCell className="py-3 px-4 whitespace-nowrap">
+                              <Badge variant="outline" className={`text-[11px] font-bold ${statusInfo.className}`}>
                                 {statusInfo.label}
                               </Badge>
-                            </div>
+                            </TableCell>
 
                             {/* 🎯 قائمة الإجراءات لأمر الصرف المخصص */}
-                            <DropdownMenu dir="rtl">
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 font-bold text-xs space-y-1">
-                                <DropdownMenuItem
-                                  onClick={() => setPreviewModal({
-                                    open: true,
-                                    title: `تفاصيل أمر الصرف المخصص (${order.orderNumber})`,
-                                    type: "order",
-                                    data: order,
-                                  })}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
-                                >
-                                  <Eye className="w-4 h-4 text-blue-500 shrink-0" />
-                                  <span>عرض أمر الصرف</span>
-                                </DropdownMenuItem>
+                            <TableCell className="py-3 px-4 text-center whitespace-nowrap">
+                              <DropdownMenu dir="rtl">
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 font-bold text-xs space-y-1">
+                                  <DropdownMenuItem
+                                    onClick={() => setPreviewModal({
+                                      open: true,
+                                      title: `تفاصيل أمر الصرف المخصص (${order.orderNumber})`,
+                                      type: "order",
+                                      data: order,
+                                    })}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                  >
+                                    <Eye className="w-4 h-4 text-blue-500 shrink-0" />
+                                    <span>عرض أمر الصرف</span>
+                                  </DropdownMenuItem>
 
-                                <DropdownMenuSeparator />
+                                  <DropdownMenuSeparator />
 
-                                <DropdownMenuItem
-                                  onClick={() => handleDirectApprove(order.id)}
-                                  disabled={approvingId === order.id}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                  <span>اعتماد وتحويل المبلغ</span>
-                                </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDirectApprove(order.id)}
+                                    disabled={approvingId === order.id}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                  >
+                                    <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                    <span>اعتماد وتحويل المبلغ</span>
+                                  </DropdownMenuItem>
 
-                                <DropdownMenuItem
-                                  onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
-                                  className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
-                                >
-                                  <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                                  <span>رفض أمر الصرف</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <p><span className="font-bold text-slate-700 dark:text-slate-300">المستفيد:</span> {order.beneficiaryName}</p>
-                            <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف:</span> {order.beneficiaryBank}</p>
-                            <p><span className="font-bold text-slate-700 dark:text-slate-300">الآيبان:</span> {order.beneficiaryIban}</p>
-                          </div>
-
-                          <div className="pt-1">
-                            <p className="text-xl font-black text-amber-600 dark:text-amber-400">
-                              {formatCurrency(order.amount)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Button
-                          size="sm"
-                          onClick={() => handleDirectApprove(order.id)}
-                          disabled={approvingId === order.id}
-                          className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-amber-500/20"
-                        >
-                          <Check className="w-4 h-4 shrink-0" />
-                          <span>{approvingId === order.id ? "جاري الاعتماد والتحويل..." : "اعتماد وتحويل المبلغ"}</span>
-                        </Button>
-                      </div>
-                    );
-                  })}
+                                  <DropdownMenuItem
+                                    onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                    className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+                                  >
+                                    <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                    <span>رفض أمر الصرف</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-amber-200 dark:border-amber-900">
+                <div className="text-center py-10 text-muted-foreground text-sm bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-dashed">
                   لا توجد أوامر صرف مخصصة معتمدة حالياً
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1163,7 +1285,7 @@ export default function BoardDashboard() {
                       <p><span className="font-bold text-slate-700 dark:text-slate-300">اسم المستفيد:</span> {previewModal.data.beneficiaryName}</p>
                       <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف المحول له:</span> {previewModal.data.beneficiaryBank}</p>
                       <p><span className="font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN):</span> {previewModal.data.beneficiaryIban}</p>
-                      <p><span className="font-bold text-slate-700 dark:text-slate-300">طريقة الدفع:</span> {previewModal.data.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">طريقة الدفع:</span> {PAYMENT_METHOD_MAP[previewModal.data.paymentMethod || "bank_transfer"]}</p>
                       <p><span className="font-bold text-slate-700 dark:text-slate-300">إجمالي مبلغ الصرف:</span> <span className="font-black text-amber-600">{formatCurrency(previewModal.data.amount)}</span></p>
                     </div>
                   </div>
