@@ -107,6 +107,17 @@ export default function BoardDashboard() {
 
   const utils = trpc.useUtils();
 
+  const { data: currentUser } = trpc.auth.me.useQuery();
+  const { data: userPermissions = [] } = trpc.permissions.getUserPermissions.useQuery(
+    currentUser?.id ? { userId: currentUser.id } : ({} as any)
+  );
+
+  const isChairmanRole = currentUser?.role === "board_chairman";
+  const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
+  
+  // الصلاحيات التنفيذية والمعاينة الشاملة تظهر حصراً لمن لديه صلاحية رئيس مجلس الإدارة التنفيذية
+  const canPerformActions = isChairmanRole || hasChairmanActionPerm;
+
   const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery(undefined, {
     staleTime: 0,
   });
@@ -443,52 +454,77 @@ export default function BoardDashboard() {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 font-bold text-xs space-y-1">
-                                      <DropdownMenuItem
-                                        onClick={() => setPreviewModal({
-                                          open: true,
-                                          title: `عرض أمر الصرف (${order.orderNumber})`,
-                                          type: "order",
-                                          data: order,
-                                        })}
-                                        className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
-                                      >
-                                        <Eye className="w-4 h-4 text-blue-500 shrink-0" />
-                                        <span>عرض أمر الصرف</span>
-                                      </DropdownMenuItem>
+                                      {/* خيارات عرض التفاصيل المخصصة لمن يملك صلاحية الاعتماد والرفض الكاملة */}
+                                      {canPerformActions && (
+                                        <>
+                                          <DropdownMenuItem
+                                            onClick={() => setPreviewModal({
+                                              open: true,
+                                              title: `عرض أمر الصرف (${order.orderNumber})`,
+                                              type: "order",
+                                              data: order,
+                                            })}
+                                            className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                          >
+                                            <Eye className="w-4 h-4 text-blue-500 shrink-0" />
+                                            <span>عرض أمر الصرف</span>
+                                          </DropdownMenuItem>
 
-                                      {!order.isCustom && order.requestNumber && (
+                                          {!order.isCustom && order.requestNumber && (
+                                            <DropdownMenuItem
+                                              onClick={() => setPreviewModal({
+                                                open: true,
+                                                title: `تفاصيل طلب الصرف المعتمد (${order.requestNumber})`,
+                                                type: "request",
+                                                data: order,
+                                              })}
+                                              className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                            >
+                                              <FileText className="w-4 h-4 text-purple-500 shrink-0" />
+                                              <span>عرض طلب الصرف المعتمد</span>
+                                            </DropdownMenuItem>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* خيار 'عرض المبررات' يظهر حصراً لحاملي صلاحية عرض اللوحة وكذلك للمخولين عند وجود مبرر أو رفض */}
+                                      {(order.rejectionReason || order.approvalNotes || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
                                         <DropdownMenuItem
-                                          onClick={() => setPreviewModal({
+                                          onClick={() => setViewJustificationModal({
                                             open: true,
-                                            title: `تفاصيل طلب الصرف المعتمد (${order.requestNumber})`,
-                                            type: "request",
-                                            data: order,
+                                            orderNumber: order.orderNumber,
+                                            reason: order.rejectionReason || order.approvalNotes || "لا يوجد مبرر مدون",
                                           })}
-                                          className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                          className="rounded-xl cursor-pointer gap-2 py-2 text-amber-700 dark:text-amber-400 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
                                         >
-                                          <FileText className="w-4 h-4 text-purple-500 shrink-0" />
-                                          <span>عرض طلب الصرف المعتمد</span>
+                                          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                          <span>عرض المبررات</span>
                                         </DropdownMenuItem>
                                       )}
 
-                                      <DropdownMenuSeparator />
+                                      {/* خيارات الاعتماد والرفض المباشر للمخولين فقط */}
+                                      {canPerformActions && (
+                                        <>
+                                          <DropdownMenuSeparator />
 
-                                      <DropdownMenuItem
-                                        onClick={() => handleDirectApprove(order.id)}
-                                        disabled={approvingId === order.id}
-                                        className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
-                                      >
-                                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                        <span>اعتماد وتحويل المبلغ</span>
-                                      </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => handleDirectApprove(order.id)}
+                                            disabled={approvingId === order.id}
+                                            className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                          >
+                                            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <span>اعتماد وتحويل المبلغ</span>
+                                          </DropdownMenuItem>
 
-                                      <DropdownMenuItem
-                                        onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
-                                        className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
-                                      >
-                                        <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                                        <span>رفض أمر الصرف</span>
-                                      </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                            className="rounded-xl cursor-pointer gap-2 py-2 text-amber-800 dark:text-amber-300 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
+                                          >
+                                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <span>رفض أمر الصرف</span>
+                                          </DropdownMenuItem>
+                                        </>
+                                      )}
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 </TableCell>
