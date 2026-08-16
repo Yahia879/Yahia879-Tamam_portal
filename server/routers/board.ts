@@ -177,10 +177,34 @@ export const boardRouter = router({
       .from(receiptVouchers);
 
     // أمر أو طلبات الصرف بانتظار الاعتماد (مؤشر مهم لرئيس مجلس الإدارة)
-    const [pendingDisbursementsCountRes] = await db
-      .select({ value: count() })
+    const pendingOrdersRaw = await db
+      .select({
+        id: disbursementOrders.id,
+        orderNumber: disbursementOrders.orderNumber,
+        amount: disbursementOrders.amount,
+        beneficiaryName: disbursementOrders.beneficiaryName,
+        beneficiaryBank: disbursementOrders.beneficiaryBank,
+        beneficiaryIban: disbursementOrders.beneficiaryIban,
+        paymentMethod: disbursementOrders.paymentMethod,
+        status: disbursementOrders.status,
+        createdAt: disbursementOrders.createdAt,
+      })
       .from(disbursementOrders)
-      .where(inArray(disbursementOrders.status, ["pending", "pending_executive", "edited"] as any));
+      .where(inArray(disbursementOrders.status, ["pending", "pending_executive", "edited"] as any))
+      .orderBy(desc(disbursementOrders.createdAt))
+      .limit(10);
+
+    const pendingOrders = pendingOrdersRaw.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      amount: Number(o.amount || 0),
+      beneficiaryName: o.beneficiaryName,
+      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
+      beneficiaryIban: o.beneficiaryIban || "-",
+      paymentMethod: o.paymentMethod || "bank_transfer",
+      status: o.status,
+      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
+    }));
 
     // التدفق المالي المعتمد الشهري (آخر 6 أشهر)
     const monthlyFlowRaw = await db
@@ -234,7 +258,8 @@ export const boardRouter = router({
         completedBankTransfersCount: Number(completedBankTransfersRes?.count || 0),
         completedBankTransfersAmount: Number(completedBankTransfersRes?.totalAmount || 0),
         totalReceiptVouchersAmount: Number(totalReceiptVouchersRes?.total || 0),
-        pendingApprovalsCount: Number(pendingDisbursementsCountRes?.value || 0),
+        pendingApprovalsCount: pendingOrders.length,
+        pendingOrders,
         monthlyFlow,
       },
     };
