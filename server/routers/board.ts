@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull, inArray, count, sum, desc, gt } from "drizzle-orm";
+import { eq, and, sql, isNull, inArray, count, sum, desc } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   mosques,
@@ -58,9 +58,10 @@ export const boardRouter = router({
       });
     }
 
-    // ==================== 1️⃣ طلبات وأوامر الصرف المرتبطة والمخصصة لرئيس مجلس الإدارة ====================
-    // 1.1 أوامر الصرف بانتظار الاعتماد المرتبطة بطلبات صرف معتمدة
-    const linkedPendingOrdersRaw = await db
+    // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة ====================
+    
+    // 1.1 أمر صرف مرتبط بطلب صرف: يظهر فقط إذا كانت حالة طلب الصرف معتمد وحالة أمر الصرف معتمد
+    const linkedApprovedOrdersRaw = await db
       .select({
         orderId: disbursementOrders.id,
         orderNumber: disbursementOrders.orderNumber,
@@ -79,11 +80,16 @@ export const boardRouter = router({
       })
       .from(disbursementOrders)
       .innerJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
-      .where(inArray(disbursementOrders.status, ["pending", "pending_executive", "edited", "draft"] as any))
+      .where(
+        and(
+          eq(disbursementRequests.status, "approved" as any),
+          inArray(disbursementOrders.status, ["approved", "executed", "pending_executive", "edited"] as any)
+        )
+      )
       .orderBy(desc(disbursementOrders.createdAt))
-      .limit(20);
+      .limit(30);
 
-    const linkedPendingOrders = linkedPendingOrdersRaw.map((o) => ({
+    const linkedApprovedOrders = linkedApprovedOrdersRaw.map((o) => ({
       orderId: o.orderId,
       orderNumber: o.orderNumber,
       amount: Number(o.amount || 0),
@@ -100,8 +106,8 @@ export const boardRouter = router({
       requestStatus: o.requestStatus,
     }));
 
-    // 1.2 أوامر الصرف المخصصة/المباشرة (غير المرتبطة بطلب صرف)
-    const customPendingOrdersRaw = await db
+    // 1.2 أمر صرف مخصص (غير مرتبط بطلب صرف): يظهر فقط إذا كانت حالة أمر الصرف المخصص معتمد
+    const customApprovedOrdersRaw = await db
       .select({
         id: disbursementOrders.id,
         orderNumber: disbursementOrders.orderNumber,
@@ -116,14 +122,14 @@ export const boardRouter = router({
       .from(disbursementOrders)
       .where(
         and(
-          inArray(disbursementOrders.status, ["pending", "pending_executive", "edited", "draft"] as any),
+          inArray(disbursementOrders.status, ["approved", "executed", "pending_executive", "edited"] as any),
           sql`(${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0)`
         )
       )
       .orderBy(desc(disbursementOrders.createdAt))
-      .limit(20);
+      .limit(30);
 
-    const customPendingOrders = customPendingOrdersRaw.map((o) => ({
+    const customApprovedOrders = customApprovedOrdersRaw.map((o) => ({
       id: o.id,
       orderNumber: o.orderNumber,
       amount: Number(o.amount || 0),
@@ -310,9 +316,9 @@ export const boardRouter = router({
       isChairman,
       isMember,
       chairmanData: {
-        linkedPendingOrders,
-        customPendingOrders,
-        totalPendingCount: linkedPendingOrders.length + customPendingOrders.length,
+        linkedApprovedOrders,
+        customApprovedOrders,
+        totalApprovedCount: linkedApprovedOrders.length + customApprovedOrders.length,
       },
       mosques: {
         total: Number(totalMosquesRes?.value || 0),
@@ -359,7 +365,7 @@ export const boardRouter = router({
         completedBankTransfersCount: Number(completedBankTransfersRes?.count || 0),
         completedBankTransfersAmount: Number(completedBankTransfersRes?.totalAmount || 0),
         totalReceiptVouchersAmount: Number(totalReceiptVouchersRes?.total || 0),
-        pendingApprovalsCount: linkedPendingOrders.length + customPendingOrders.length,
+        pendingApprovalsCount: linkedApprovedOrders.length + customApprovedOrders.length,
         monthlyFlow,
       },
     };
