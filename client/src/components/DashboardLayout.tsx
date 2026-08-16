@@ -231,7 +231,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("board_chairman") || role === "board_chairman") {
     engineeringItems.push({ icon: Crown, label: "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
   }
-  if (has("board_member") || role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
+  if (has("board_member") || role === "board_member") {
     engineeringItems.push({ icon: PieChart, label: "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
   }
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.financials")) {
