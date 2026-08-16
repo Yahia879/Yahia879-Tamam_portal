@@ -45,18 +45,20 @@ export const boardRouter = router({
     const isMemberRole = ctx.user.role === "board_member";
     const isAdminRole = ["super_admin", "system_admin"].includes(ctx.user.role);
 
-    const hasChairmanPerm = await checkPermission(ctx.user.id, "board_chairman");
-    const hasChairmanViewPerm = await checkPermission(ctx.user.id, "board_chairman_view");
-    const hasMemberPerm = await checkPermission(ctx.user.id, "board_member");
+    const hasChairmanPerm = await checkPermission(ctx.user.id, "board_chairman") || await checkPermission(ctx.user.id, "board_leadership.board_chairman") || await checkPermission(ctx.user.id, "board.board_chairman");
+    const hasChairmanViewPerm = await checkPermission(ctx.user.id, "board_chairman_view") || await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") || await checkPermission(ctx.user.id, "board.board_chairman_view");
+    const hasMemberPerm = await checkPermission(ctx.user.id, "board_member") || await checkPermission(ctx.user.id, "board_leadership.board_member") || await checkPermission(ctx.user.id, "board.board_member");
 
     const isChairman = isChairmanRole || hasChairmanPerm;
     const isChairmanView = hasChairmanViewPerm;
     const isMember = (isChairman || isChairmanView) ? false : (isMemberRole || hasMemberPerm || isAdminRole);
 
-    if (!isChairman && !isChairmanView && !isMember && !isAdminRole) {
+    const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm;
+
+    if (!canAccessBoard) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "صفحة اللوحة القيادية مخصصة حصراً لأعضاء ورئيس مجلس الإدارة",
+        message: "صفحة اللوحة القيادية مخصصة حصراً لأعضاء ورئيس مجلس الإدارة أو من يمتلك صلاحية عرض اللوحة",
       });
     }
 
