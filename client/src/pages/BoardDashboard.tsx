@@ -1,24 +1,41 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, AreaChart, Area, Legend
+  PieChart, Pie, Cell, AreaChart, Area
 } from "recharts";
 import {
   Building2, CheckCircle2, Clock, Crown, Wallet, TrendingUp,
   FileText, Activity, RefreshCw, ShieldCheck,
-  ArrowUpRight, AlertCircle, Banknote, Receipt, MapPin, Layers,
-  Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet
+  AlertCircle, Banknote, Receipt, MapPin, Layers,
+  Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
+  MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight
 } from "lucide-react";
-import { Link } from "wouter";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
+
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  approved: { label: "معتمد وبانتظار التحويل", className: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-300/40" },
+  executed: { label: "منفذ ومحوّل بنكياً", className: "bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-300/40" },
+  pending_executive: { label: "بانتظار الاعتماد البنكي", className: "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300/40" },
+  edited: { label: "معتمد (معدّل)", className: "bg-purple-500/15 text-purple-800 dark:text-purple-300 border-purple-300/40" },
+  rejected: { label: "مرفوض", className: "bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-300/40" },
+};
 
 const TOOLTIP_CONTENT_STYLE = {
   borderRadius: "14px",
@@ -45,8 +62,21 @@ const TOOLTIP_LABEL_STYLE = {
 };
 
 export default function BoardDashboard() {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("mosques");
   const [approvingId, setApprovingId] = useState<number | null>(null);
+
+  // حالات نافذة الرفض والمعاينة
+  const [rejectingOrder, setRejectingOrder] = useState<{ id: number; orderNumber: string } | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const [previewModal, setPreviewModal] = useState<{
+    open: boolean;
+    title: string;
+    type: "order" | "request";
+    data: any;
+  }>({ open: false, title: "", type: "order", data: null });
 
   const utils = trpc.useUtils();
 
@@ -56,7 +86,7 @@ export default function BoardDashboard() {
 
   const approveOrderMutation = trpc.disbursements.approveOrder.useMutation({
     onSuccess: () => {
-      toast.success("تم الاعتماد البنكي المباشر لأمر الصرف بنجاح");
+      toast.success("تم الاعتماد والتحويل البنكي المباشر للمبلغ بنجاح");
       setApprovingId(null);
       refetch();
       utils.disbursements.invalidate();
@@ -67,9 +97,37 @@ export default function BoardDashboard() {
     },
   });
 
+  const rejectOrderMutation = trpc.disbursements.rejectOrder.useMutation({
+    onSuccess: () => {
+      toast.success("تم رفض وتوجيه أمر الصرف بنجاح");
+      setRejectingOrder(null);
+      setRejectionReason("");
+      setIsRejecting(false);
+      refetch();
+      utils.disbursements.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء رفض أمر الصرف");
+      setIsRejecting(false);
+    },
+  });
+
   const handleDirectApprove = (id: number) => {
     setApprovingId(id);
     approveOrderMutation.mutate({ id });
+  };
+
+  const handleConfirmReject = () => {
+    if (!rejectingOrder) return;
+    if (!rejectionReason.trim()) {
+      toast.warning("يرجى كتابة سبب الرفض أولاً");
+      return;
+    }
+    setIsRejecting(true);
+    rejectOrderMutation.mutate({
+      id: rejectingOrder.id,
+      reason: rejectionReason,
+    });
   };
 
   const isChairman = data?.isChairman ?? false;
@@ -109,12 +167,12 @@ export default function BoardDashboard() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
-                {isChairman ? "مركز الاعتماد والتحويل البنكي المباشر" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
+                {isChairman ? "لوحة الاعتماد والتحويل البنكي المباشر" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
               
               <p className="text-sm sm:text-base text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairman
-                  ? "مرحباً بك رئيس مجلس الإدارة. تتيح لك هذه الشاشة الاطلاع الشامل على طلبات الصرف المعتمدة المرتبطة بأوامر الصرف وكذلك أوامر الصرف المخصصة، وتحديد إجراء الاعتماد البنكي المباشر عليها."
+                  ? "مرحباً بك رئيس مجلس الإدارة. تتيح لك هذه الشاشة الاطلاع الشامل على أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات صرف معتمدة أو المخصصة) وتنفيذ إجراءات الاعتماد البنكي المباشر والمتابعة."
                   : "مرحباً بك عضو مجلس الإدارة. واجهة تنفيذية متكاملة توفر لك الاطلاع الشامل والعميق على كافة إحصائيات ومؤشرات المساجد والطلبات والمشاريع والمالية."}
               </p>
             </div>
@@ -134,10 +192,10 @@ export default function BoardDashboard() {
           </div>
         </div>
 
-        {/* ==================== 👑 واجهة رئيس مجلس الإدارة (الاعتماد البنكي المباشر) ==================== */}
+        {/* ==================== 👑 واجهة رئيس مجلس الإدارة (أوامر الصرف المعتمدة) ==================== */}
         {isChairman && data?.chairmanData && (
           <div className="space-y-8 animate-in fade-in-50 duration-300">
-            {/* 1. قسم طلبات الصرف المعتمدة المرتبطة بأوامر صرف */}
+            {/* 1️⃣ قسم أوامر الصرف المرتبطة بطلب صرف معتمد */}
             <div className="rounded-3xl border border-emerald-300/80 dark:border-emerald-900/60 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-200/60 dark:border-emerald-900/40 pb-4">
                 <div className="flex items-center gap-3 text-right">
@@ -146,82 +204,145 @@ export default function BoardDashboard() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
-                      طلبات الصرف المعتمدة المرتبطة بأوامر صرف
+                      أوامر الصرف المعتمدة المرتبطة بطلب صرف معتمد
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      طلبات صرف معتمدة تم تحويلها لأوامر صرف وبانتظار قرار التحويل البنكي المباشر
+                      طلبات صرف معتمدة صدَر لها أمر صرف معتمد وبانتظار اعتماد وتحويل المبلغ
                     </p>
                   </div>
                 </div>
 
-                <Badge className="bg-emerald-500 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0">
-                  {data.chairmanData.linkedPendingOrders.length} طلبات مرتبطة
+                <Badge className="bg-emerald-600 text-white rounded-xl font-bold px-3.5 py-1.5 text-xs shrink-0">
+                  {data.chairmanData.linkedApprovedOrders.length} أوامر معتمدة
                 </Badge>
               </div>
 
-              {data.chairmanData.linkedPendingOrders.length > 0 ? (
+              {data.chairmanData.linkedApprovedOrders.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {data.chairmanData.linkedPendingOrders.map((item) => (
-                    <div
-                      key={item.orderId}
-                      className="p-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-200/80 dark:border-emerald-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                          <div className="space-y-1">
-                            <Badge variant="outline" className="text-xs font-bold border-emerald-300 text-emerald-700 dark:text-emerald-300">
-                              طلب صرف معتمد: {item.requestNumber}
-                            </Badge>
-                            <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 line-clamp-1">
-                              {item.requestTitle}
-                            </h3>
+                  {data.chairmanData.linkedApprovedOrders.map((item) => {
+                    const statusKey = item.orderStatus || "approved";
+                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
+                    return (
+                      <div
+                        key={item.orderId}
+                        className="p-6 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-emerald-200/80 dark:border-emerald-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
+                      >
+                        <div className="space-y-3">
+                          {/* الهيدر العلوي للكارد مع قائمة الإجراءات الثلاث نقاط */}
+                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs font-bold border-emerald-300 text-emerald-700 dark:text-emerald-300">
+                                  طلب صرف معتمد: {item.requestNumber}
+                                </Badge>
+                                <Badge className={`text-[11px] font-bold border ${statusInfo.className}`}>
+                                  {statusInfo.label}
+                                </Badge>
+                              </div>
+                              <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 line-clamp-1 mt-1">
+                                {item.requestTitle}
+                              </h3>
+                            </div>
+
+                            {/* 🎯 قائمة الإجراءات الـ 3 نقاط المخصصة لرئيس مجلس الإدارة */}
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
+                                  <MoreVertical className="w-5 h-5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 font-bold text-xs space-y-1">
+                                <DropdownMenuItem
+                                  onClick={() => setPreviewModal({
+                                    open: true,
+                                    title: `تفاصيل أمر الصرف (${item.orderNumber})`,
+                                    type: "order",
+                                    data: item,
+                                  })}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                >
+                                  <Eye className="w-4 h-4 text-blue-500 shrink-0" />
+                                  <span>عرض أمر الصرف</span>
+                                </DropdownMenuItem>
+
+                                {/* تظهر حصراً لأوامر الصرف المرتبطة بطلب صرف */}
+                                <DropdownMenuItem
+                                  onClick={() => setPreviewModal({
+                                    open: true,
+                                    title: `تفاصيل طلب الصرف المعتمد (${item.requestNumber})`,
+                                    type: "request",
+                                    data: item,
+                                  })}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                >
+                                  <FileText className="w-4 h-4 text-purple-500 shrink-0" />
+                                  <span>عرض طلب الصرف المعتمد</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                  onClick={() => handleDirectApprove(item.orderId)}
+                                  disabled={approvingId === item.orderId}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                >
+                                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                  <span>اعتماد وتحويل المبلغ</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => setRejectingOrder({ id: item.orderId, orderNumber: item.orderNumber })}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+                                >
+                                  <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                  <span>رفض أمر الصرف</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
-                          <Badge className="bg-blue-500/15 text-blue-800 dark:text-blue-300 border-blue-300/40 text-xs font-bold shrink-0">
-                            أمر صرف: {item.orderNumber}
-                          </Badge>
+
+                          <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
+                            <div>
+                              <span className="font-bold text-slate-700 dark:text-slate-300 block">المستفيد:</span>
+                              <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryName}</span>
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-700 dark:text-slate-300 block">المصرف والآيبان:</span>
+                              <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryBank} - {item.beneficiaryIban}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">أمر صرف: {item.orderNumber}</span>
+                            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                              {formatCurrency(item.amount)}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                          <div>
-                            <span className="font-bold text-slate-700 dark:text-slate-300 block">المستفيد:</span>
-                            <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryName}</span>
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-700 dark:text-slate-300 block">المصرف والآيبان:</span>
-                            <span className="truncate block font-semibold text-slate-900 dark:text-slate-100">{item.beneficiaryBank} - {item.beneficiaryIban}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-xs text-muted-foreground">قيمة أمر الصرف:</span>
-                          <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                            {formatCurrency(item.amount)}
-                          </span>
+                        <div className="pt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleDirectApprove(item.orderId)}
+                            disabled={approvingId === item.orderId}
+                            className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-emerald-500/20"
+                          >
+                            <Check className="w-4 h-4 shrink-0" />
+                            <span>{approvingId === item.orderId ? "جاري الاعتماد والتحويل..." : "اعتماد وتحويل المبلغ"}</span>
+                          </Button>
                         </div>
                       </div>
-
-                      <div className="pt-2 flex items-center gap-3">
-                        <Button
-                          size="sm"
-                          onClick={() => handleDirectApprove(item.orderId)}
-                          disabled={approvingId === item.orderId}
-                          className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-emerald-500/20"
-                        >
-                          <Check className="w-4 h-4 shrink-0" />
-                          <span>{approvingId === item.orderId ? "جاري التحويل البنكي..." : "اعتماد تحويل بنكي مباشر"}</span>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-emerald-200 dark:border-emerald-900">
-                  لا توجد طلبات صرف معتمدة بانتظار الاعتماد البنكي المباشر حالياً
+                  لا توجد أوامر صرف مرتبطة بطلبات معتمدة حالياً
                 </div>
               )}
             </div>
 
-            {/* 2. قسم أوامر الصرف المخصصة/المباشرة (غير المرتبطة بطلب صرف) */}
+            {/* 2️⃣ قسم أوامر الصرف المخصصة المعتمدة (غير المرتبطة بطلب صرف) */}
             <div className="rounded-3xl border border-amber-300/80 dark:border-amber-900/60 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-6 sm:p-8 space-y-6 backdrop-blur-lg shadow-lg">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/60 dark:border-amber-900/40 pb-4">
                 <div className="flex items-center gap-3 text-right">
@@ -230,64 +351,113 @@ export default function BoardDashboard() {
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100">
-                      أوامر الصرف المخصصة والمباشرة
+                      أوامر الصرف المخصصة المعتمدة
                     </h2>
                     <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      أوامر صرف مخصصة غير مرتبطة بطلب صرف وبانتظار تحديد الاعتماد والتحويل البنكي
+                      أوامر صرف مخصصة معتمدة غير مرتبطة بطلب صرف وبانتظار تنفيذ التحويل البنكي
                     </p>
                   </div>
                 </div>
 
-                <Badge className="bg-amber-500 text-white rounded-xl font-bold px-3 py-1 text-xs shrink-0">
-                  {data.chairmanData.customPendingOrders.length} أوامر مخصصة
+                <Badge className="bg-amber-600 text-white rounded-xl font-bold px-3.5 py-1.5 text-xs shrink-0">
+                  {data.chairmanData.customApprovedOrders.length} أوامر مخصصة
                 </Badge>
               </div>
 
-              {data.chairmanData.customPendingOrders.length > 0 ? (
+              {data.chairmanData.customApprovedOrders.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data.chairmanData.customPendingOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-amber-200/70 dark:border-amber-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-                          <span className="font-black text-sm text-slate-900 dark:text-slate-100">
-                            أمر مخصص: {order.orderNumber}
-                          </span>
-                          <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300/40 text-[11px] font-bold">
-                            {order.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p><span className="font-bold text-slate-700 dark:text-slate-300">المستفيد:</span> {order.beneficiaryName}</p>
-                          <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف:</span> {order.beneficiaryBank}</p>
-                          <p><span className="font-bold text-slate-700 dark:text-slate-300">الآيبان:</span> {order.beneficiaryIban}</p>
-                        </div>
-
-                        <div className="pt-1">
-                          <p className="text-xl font-black text-amber-600 dark:text-amber-400">
-                            {formatCurrency(order.amount)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        onClick={() => handleDirectApprove(order.id)}
-                        disabled={approvingId === order.id}
-                        className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-amber-500/20"
+                  {data.chairmanData.customApprovedOrders.map((order) => {
+                    const statusKey = order.status || "approved";
+                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700" };
+                    return (
+                      <div
+                        key={order.id}
+                        className="p-5 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-amber-200/70 dark:border-amber-900/50 shadow-md hover:shadow-xl transition-all space-y-4 text-right flex flex-col justify-between"
                       >
-                        <Check className="w-4 h-4 shrink-0" />
-                        <span>{approvingId === order.id ? "جاري الاعتماد البنكي..." : "اعتماد تحويل بنكي مباشر"}</span>
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="space-y-3">
+                          {/* الهيدر مع الـ 3 نقاط لأوامر الصرف المخصصة */}
+                          <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <div>
+                              <span className="font-black text-sm text-slate-900 dark:text-slate-100 block">
+                                أمر مخصص: {order.orderNumber}
+                              </span>
+                              <Badge className={`text-[10px] font-bold border mt-1 ${statusInfo.className}`}>
+                                {statusInfo.label}
+                              </Badge>
+                            </div>
+
+                            {/* 🎯 قائمة الإجراءات لأمر الصرف المخصص */}
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 font-bold text-xs space-y-1">
+                                <DropdownMenuItem
+                                  onClick={() => setPreviewModal({
+                                    open: true,
+                                    title: `تفاصيل أمر الصرف المخصص (${order.orderNumber})`,
+                                    type: "order",
+                                    data: order,
+                                  })}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                >
+                                  <Eye className="w-4 h-4 text-blue-500 shrink-0" />
+                                  <span>عرض أمر الصرف</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                  onClick={() => handleDirectApprove(order.id)}
+                                  disabled={approvingId === order.id}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                >
+                                  <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                  <span>اعتماد وتحويل المبلغ</span>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                  onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                  className="rounded-xl cursor-pointer gap-2 py-2 text-rose-700 dark:text-rose-400 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+                                >
+                                  <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                                  <span>رفض أمر الصرف</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <p><span className="font-bold text-slate-700 dark:text-slate-300">المستفيد:</span> {order.beneficiaryName}</p>
+                            <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف:</span> {order.beneficiaryBank}</p>
+                            <p><span className="font-bold text-slate-700 dark:text-slate-300">الآيبان:</span> {order.beneficiaryIban}</p>
+                          </div>
+
+                          <div className="pt-1">
+                            <p className="text-xl font-black text-amber-600 dark:text-amber-400">
+                              {formatCurrency(order.amount)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleDirectApprove(order.id)}
+                          disabled={approvingId === order.id}
+                          className="w-full rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-700 hover:to-amber-600 text-white font-bold text-xs gap-2 py-2.5 shadow-md shadow-amber-500/20"
+                        >
+                          <Check className="w-4 h-4 shrink-0" />
+                          <span>{approvingId === order.id ? "جاري الاعتماد والتحويل..." : "اعتماد وتحويل المبلغ"}</span>
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-10 text-muted-foreground text-sm bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-dashed border-amber-200 dark:border-amber-900">
-                  لا توجد أوامر صرف مخصصة معلقة حالياً
+                  لا توجد أوامر صرف مخصصة معتمدة حالياً
                 </div>
               )}
             </div>
@@ -297,7 +467,6 @@ export default function BoardDashboard() {
         {/* ==================== 📊 واجهة عضو مجلس الإدارة (التبويبات الـ 5 للإحصائيات) ==================== */}
         {!isChairman && data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
-            {/* شريط التبويبات الـ 5 المنسق والمتوزع بعرض الصفحة مع تباعد ممتاز */}
             <div className="w-full" dir="rtl">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
                 <TabsTrigger
@@ -880,7 +1049,6 @@ export default function BoardDashboard() {
                 </Card>
               </div>
 
-              {/* Monthly Flow Chart */}
               <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                 <CardHeader className="p-0 mb-6 text-right">
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -921,6 +1089,122 @@ export default function BoardDashboard() {
             </TabsContent>
           </Tabs>
         )}
+
+        {/* ==================== 💬 نافذة الرفض التفصيلية ==================== */}
+        <Dialog open={!!rejectingOrder} onOpenChange={(open) => !open && setRejectingOrder(null)}>
+          <DialogContent className="sm:max-w-lg rounded-3xl p-6 text-right" dir="rtl">
+            <DialogHeader className="text-right space-y-2">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                <XCircle className="w-5 h-5 shrink-0" />
+                <span>رفض أمر الصرف ({rejectingOrder?.orderNumber})</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                يرجى تدوين سبب رفض أو إلغاء تحويل أمر الصرف ليتم تسجيله بالمنظومة وإشعار الإدارة المالية.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-3 space-y-3">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">سبب الرفض والتوثيق المالي:</label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="اكتب سبب الرفض التفصيلي هنا..."
+                rows={4}
+                className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
+              />
+            </div>
+
+            <DialogFooter className="flex-row sm:justify-start gap-2 pt-2">
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={isRejecting || !rejectionReason.trim()}
+                className="rounded-xl font-bold text-xs gap-2"
+              >
+                <XCircle className="w-4 h-4 shrink-0" />
+                <span>{isRejecting ? "جاري الرفض..." : "تأكيد رفض أمر الصرف"}</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setRejectingOrder(null)}
+                className="rounded-xl font-bold text-xs"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 👁️ نافذة المعاينة السريعة ==================== */}
+        <Dialog open={previewModal.open} onOpenChange={(open) => setPreviewModal((prev) => ({ ...prev, open }))}>
+          <DialogContent className="sm:max-w-xl rounded-3xl p-6 text-right" dir="rtl">
+            <DialogHeader className="text-right space-y-2 border-b pb-4">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <FileCode className="w-5 h-5 text-primary shrink-0" />
+                <span>{previewModal.title}</span>
+              </DialogTitle>
+            </DialogHeader>
+
+            {previewModal.data && (
+              <div className="py-4 space-y-4 text-xs">
+                {previewModal.type === "request" ? (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border space-y-2">
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">رقم طلب الصرف المعتمد:</span> {previewModal.data.requestNumber}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">عنوان الطلب:</span> {previewModal.data.requestTitle}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">المبلغ المعتمد للطلب:</span> <span className="font-black text-emerald-600">{formatCurrency(previewModal.data.requestAmount)}</span></p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">حالة طلب الصرف:</span> <Badge className="bg-emerald-500/15 text-emerald-700 text-[10px] font-bold">معتمد</Badge></p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border space-y-2">
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">رقم أمر الصرف:</span> {previewModal.data.orderNumber}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">اسم المستفيد:</span> {previewModal.data.beneficiaryName}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">المصرف المحول له:</span> {previewModal.data.beneficiaryBank}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">رقم الآيبان (IBAN):</span> {previewModal.data.beneficiaryIban}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">طريقة الدفع:</span> {previewModal.data.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}</p>
+                      <p><span className="font-bold text-slate-700 dark:text-slate-300">إجمالي مبلغ الصرف:</span> <span className="font-black text-amber-600">{formatCurrency(previewModal.data.amount)}</span></p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="flex-row sm:justify-start gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setPreviewModal((prev) => ({ ...prev, open: false }))}
+                className="rounded-xl font-bold text-xs"
+              >
+                إغلاق
+              </Button>
+              {previewModal.type === "order" ? (
+                <Button
+                  onClick={() => {
+                    setPreviewModal((prev) => ({ ...prev, open: false }));
+                    setLocation("/disbursement-orders");
+                  }}
+                  className="rounded-xl font-bold text-xs gap-1"
+                >
+                  <span>شاشة أوامر الصرف الكلية</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setPreviewModal((prev) => ({ ...prev, open: false }));
+                    setLocation("/disbursement-requests");
+                  }}
+                  className="rounded-xl font-bold text-xs gap-1"
+                >
+                  <span>شاشة طلبات الصرف الكلية</span>
+                  <ArrowUpRight className="w-4 h-4" />
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
