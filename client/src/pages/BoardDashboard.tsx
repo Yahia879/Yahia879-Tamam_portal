@@ -338,28 +338,58 @@ export default function BoardDashboard() {
                   </CardHeader>
                   <CardContent className="p-0 h-72 flex items-center justify-center">
                     {data.mosques.byStatus.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={data.mosques.byStatus}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={95}
-                            paddingAngle={5}
-                            dataKey="value"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                          >
-                            {data.mosques.byStatus.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
-                          />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
+                      <div className="w-full flex flex-col sm:flex-row items-center gap-6">
+                        <div className="w-full sm:w-1/2 h-56">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={data.mosques.byStatus}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={85}
+                                paddingAngle={5}
+                                dataKey="value"
+                              >
+                                {data.mosques.byStatus.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value: any, name: any) => [`${value} مسجد`, name]}
+                                contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="w-full sm:w-1/2 space-y-3 text-right">
+                          {data.mosques.byStatus.map((item, index) => {
+                            const total = data.mosques.total || 1;
+                            const percent = Math.round((item.value / total) * 100);
+                            return (
+                              <div key={index} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center gap-2.5">
+                                  <div
+                                    className="w-3.5 h-3.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                                  />
+                                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                                    {item.name}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                                    {item.value}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground font-semibold">
+                                    ({percent}%)
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     ) : (
                       <div className="text-muted-foreground text-sm">لا توجد بيانات حالات متاحة</div>
                     )}
