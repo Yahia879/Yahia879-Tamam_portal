@@ -228,7 +228,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 2. الهندسة والمشاريع (وتضم لوحات مجلس الإدارة)
   const engineeringItems: MenuItem[] = [];
-  if (has("board_chairman") || role === "board_chairman") {
+  if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
     engineeringItems.push({ icon: Crown, label: "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
   }
   if (has("board_member") || role === "board_member") {
