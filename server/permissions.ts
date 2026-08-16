@@ -276,6 +276,11 @@ async function ensureRequestsPermissionsExist(db: any) {
     }
 
     // 2. تحديث صلاحيات الأدوار الافتراضية
+    await db.delete(rolePermissions).where(and(
+      eq(rolePermissions.roleId, "board_chairman"),
+      eq(rolePermissions.permissionId, "board_member")
+    )).catch(() => {});
+
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
