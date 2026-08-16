@@ -27,24 +27,29 @@ import {
   FileText, Activity, RefreshCw, ShieldCheck,
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
-  MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter
+  MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  approved: { label: "معتمد وبانتظار التحويل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800" },
-  executed: { label: "منفذ ومحوّل بنكياً", className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800" },
-  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800" },
-  edited: { label: "معتمد (معدّل)", className: "bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800" },
-  rejected: { label: "مرفوض", className: "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800" },
+  approved: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
+  executed: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
+  edited: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
+
+  pending: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  pending_executive: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  draft: { label: "بانتظار الاعتماد", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+
+  rejected: { label: "مرفوض", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 font-extrabold" },
 };
 
 const PAYMENT_METHOD_MAP: Record<string, string> = {
   bank_transfer: "تحويل بنكي",
-  check: "إصدار شيك",
-  custody: "صرف من العهدة",
-  sadad: "سداد",
+  cash: "نقداً / كاش",
+  cheque: "شيك بنكي",
+  credit_card: "بطاقة ائتمان",
 };
 
 const TOOLTIP_CONTENT_STYLE = {
@@ -76,6 +81,8 @@ export default function BoardDashboard() {
   const [activeTab, setActiveTab] = useState("mosques");
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // حالات نافذة الرفض والمعاينة
   const [rejectingOrder, setRejectingOrder] = useState<{ id: number; orderNumber: string } | null>(null);
@@ -100,6 +107,7 @@ export default function BoardDashboard() {
       toast.success("تم الاعتماد والتحويل البنكي المباشر للمبلغ بنجاح");
       setApprovingId(null);
       refetch();
+      utils.board.getExecutiveStats.invalidate();
       utils.disbursements.invalidate();
     },
     onError: (err) => {
@@ -115,6 +123,7 @@ export default function BoardDashboard() {
       setRejectionReason("");
       setIsRejecting(false);
       refetch();
+      utils.board.getExecutiveStats.invalidate();
       utils.disbursements.invalidate();
     },
     onError: (err) => {
@@ -312,13 +321,16 @@ export default function BoardDashboard() {
                     <Input
                       placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
                       className="pr-10 rounded-xl"
                     />
                   </div>
                 </div>
 
-                {/* 🎯 جدول موحد ومبسط لأوامر الصرف المعتمدة */}
+                {/* 🎯 جدول موحد ومبسط لأوامر الصرف المعتمدة مع الترقيم (Pagination) */}
                 {(() => {
                   const allApprovedOrders = [
                     ...(data?.chairmanData?.linkedApprovedOrders || []).map((o) => ({
@@ -346,8 +358,16 @@ export default function BoardDashboard() {
                     );
                   });
 
+                  const totalFilteredCount = filteredOrders.length;
+                  const totalPages = Math.ceil(totalFilteredCount / ITEMS_PER_PAGE);
+
+                  const paginatedOrders = filteredOrders.slice(
+                    (currentPage - 1) * ITEMS_PER_PAGE,
+                    currentPage * ITEMS_PER_PAGE
+                  );
+
                   return filteredOrders.length > 0 ? (
-                    <Card className="border-0 shadow-sm overflow-hidden p-0">
+                    <Card className="border-0 shadow-sm overflow-hidden p-0 space-y-0">
                       <div className="overflow-x-auto">
                         <Table dir="rtl" className="w-full min-w-full">
                           <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
@@ -355,11 +375,12 @@ export default function BoardDashboard() {
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر والنوع</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">البيان والمستفيد</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                               <TableHead className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {filteredOrders.map((order) => (
+                            {paginatedOrders.map((order) => (
                               <TableRow key={order.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition-colors">
                                 {/* رقم الأمر والنوع */}
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
@@ -395,6 +416,19 @@ export default function BoardDashboard() {
                                   {formatCurrency(order.amount)}
                                 </TableCell>
 
+                                {/* الحالة */}
+                                <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
+                                  {(() => {
+                                    const statusKey = (order as any).orderStatus || (order as any).status || "approved";
+                                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700 border-slate-300" };
+                                    return (
+                                      <Badge variant="outline" className={`font-bold text-[11px] px-2.5 py-0.5 ${statusInfo.className}`}>
+                                        {statusInfo.label}
+                                      </Badge>
+                                    );
+                                  })()}
+                                </TableCell>
+
                                 {/* قائمة الإجراءات الثلاث نقاط */}
                                 <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
                                   <DropdownMenu dir="rtl">
@@ -407,14 +441,14 @@ export default function BoardDashboard() {
                                       <DropdownMenuItem
                                         onClick={() => setPreviewModal({
                                           open: true,
-                                          title: `تفاصيل أمر الصرف (${order.orderNumber})`,
+                                          title: `عرض أمر الصرف (${order.orderNumber})`,
                                           type: "order",
                                           data: order,
                                         })}
                                         className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
                                       >
                                         <Eye className="w-4 h-4 text-blue-500 shrink-0" />
-                                        <span>عرض التفاصيل الكلية (المصرف والآيبان)</span>
+                                        <span>عرض أمر الصرف</span>
                                       </DropdownMenuItem>
 
                                       {!order.isCustom && order.requestNumber && (
@@ -457,6 +491,67 @@ export default function BoardDashboard() {
                             ))}
                           </TableBody>
                         </Table>
+                      </div>
+
+                      {/* تذييل الصفحة للترقيم والتنقل (Pagination Controls) المطابق لـ /disbursement-orders */}
+                      <div className="px-4 py-3 bg-slate-50/70 dark:bg-slate-900/70 border-t flex flex-col sm:flex-row items-center justify-between gap-4 font-semibold text-xs" dir="rtl">
+                        <div className="text-[11px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
+                          يعرض {totalFilteredCount > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, totalFilteredCount)} من أصل {totalFilteredCount} أمر صرف
+                        </div>
+                        
+                        {totalPages > 1 && (
+                          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 rounded-lg"
+                              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                              disabled={currentPage === 1}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                              if (
+                                totalPages <= 5 ||
+                                p === 1 ||
+                                p === totalPages ||
+                                (p >= currentPage - 1 && p <= currentPage + 1)
+                              ) {
+                                return (
+                                  <Button
+                                    key={p}
+                                    variant={currentPage === p ? "default" : "outline"}
+                                    size="sm"
+                                    className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 rounded-lg ${currentPage === p ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-0 font-bold' : ''}`}
+                                    onClick={() => setCurrentPage(p)}
+                                  >
+                                    {p}
+                                  </Button>
+                                );
+                              }
+                              
+                              if (p === 2 || p === totalPages - 1) {
+                                return (
+                                  <span key={p} className="text-muted-foreground text-xs px-1">
+                                    ...
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })}
+
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 rounded-lg"
+                              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                              disabled={currentPage === totalPages}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   ) : (
@@ -1245,44 +1340,62 @@ export default function BoardDashboard() {
 
         {/* ==================== 💬 نافذة الرفض التفصيلية ==================== */}
         <Dialog open={!!rejectingOrder} onOpenChange={(open) => !open && setRejectingOrder(null)}>
-          <DialogContent className="sm:max-w-lg rounded-3xl p-6 text-right" dir="rtl">
-            <DialogHeader className="text-right space-y-2">
-              <DialogTitle className="text-xl font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                <XCircle className="w-5 h-5 shrink-0" />
-                <span>رفض أمر الصرف ({rejectingOrder?.orderNumber})</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                يرجى تدوين سبب رفض أو إلغاء تحويل أمر الصرف ليتم تسجيله بالمنظومة وإشعار الإدارة المالية.
+          <DialogContent className="sm:max-w-lg rounded-3xl p-6 sm:p-7 text-right" dir="rtl">
+            <DialogHeader className="text-right space-y-2 border-b pb-4 pl-8">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-lg sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <XCircle className="w-5 h-5 shrink-0" />
+                  <span>رفض وتوجيه أمر الصرف</span>
+                </DialogTitle>
+                {rejectingOrder && (
+                  <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                    {rejectingOrder.orderNumber}
+                  </Badge>
+                )}
+              </div>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                سيتم تسجيل سبب الرفض المالي وتوجيه أمر الصرف مع إشعار الإدارة المالية بالمنظومة.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-3 space-y-3">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">سبب الرفض والتوثيق المالي:</label>
-              <Textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="اكتب سبب الرفض التفصيلي هنا..."
-                rows={4}
-                className="rounded-xl border-slate-200 dark:border-slate-800 text-xs font-semibold"
-              />
+            <div className="py-4 space-y-4">
+              <div className="p-3 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-2.5 text-right">
+                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                  يرجى تدوين سبب الرفض والتوثيق المالي بدقة ليتم حفظه بالسجل التاريخي لأمر الصرف.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-right">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  سبب الرفض والتوثيق المالي: <span className="text-rose-500">*</span>
+                </label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="اكتب سبب الرفض والتوجيه بالتفصيل هنا..."
+                  rows={4}
+                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-rose-500"
+                />
+              </div>
             </div>
 
-            <DialogFooter className="flex-row sm:justify-start gap-2 pt-2">
+            <DialogFooter className="flex flex-row items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="outline"
+                onClick={() => setRejectingOrder(null)}
+                className="rounded-xl font-bold text-xs px-4"
+              >
+                إلغاء
+              </Button>
               <Button
                 variant="destructive"
                 onClick={handleConfirmReject}
                 disabled={isRejecting || !rejectionReason.trim()}
-                className="rounded-xl font-bold text-xs gap-2"
+                className="rounded-xl font-bold text-xs gap-2 px-5 bg-rose-600 hover:bg-rose-700"
               >
                 <XCircle className="w-4 h-4 shrink-0" />
                 <span>{isRejecting ? "جاري الرفض..." : "تأكيد رفض أمر الصرف"}</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setRejectingOrder(null)}
-                className="rounded-xl font-bold text-xs"
-              >
-                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>
