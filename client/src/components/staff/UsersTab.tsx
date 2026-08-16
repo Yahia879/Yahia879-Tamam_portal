@@ -230,24 +230,12 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   ) || [];
 
   const getRoleBadge = (user: { role: string; customRole?: { id: string; nameAr: string } | null }) => {
-    // إذا كان للمستخدم دور مخصص موجود، نستخدم التنسيق الرمادي الفاتح المطور
-    if (user.customRole) {
-      return (
-        <Badge 
-          variant="outline" 
-          className="bg-[#f9fafb] text-gray-600 border-gray-200 px-3 py-0.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors"
-        >
-          {user.customRole.nameAr}
-        </Badge>
-      );
-    }
-
-    // الأدوار الأساسية الثابتة - تستخدم التنسيق الزمردي الناعم (Soft Emerald)
     const roleMap: Record<string, string> = {
       board_chairman: "رئيس مجلس الإدارة",
       board_member: "عضو مجلس الإدارة",
       general_manager: "المدير التنفيذي",
       executive_director: "المدير التنفيذي",
+      financial_manager: "المدير المالي",
       system_admin: "مدير نظام",
       super_admin: "المدير العام",
       projects_office: "مكتب المشاريع",
@@ -258,14 +246,38 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
       corporate_comm: "الاتصال المؤسسي",
       service_requester: "طالب خدمة",
     };
-    const roleLabel = roleMap[user.role] || user.role;
+
+    let label = "";
+
+    // 1. فحص الدور المخصص إذا كان ينتمي لأحد الأدوار الثابتة أولاً أو له مسمى عربي مدون
+    if (user.customRole?.id && roleMap[user.customRole.id]) {
+      label = roleMap[user.customRole.id];
+    } else if (user.customRole?.nameAr && user.customRole.nameAr.trim() !== "") {
+      label = user.customRole.nameAr;
+    } else if (user.role && roleMap[user.role]) {
+      label = roleMap[user.role];
+    } else if (user.role && user.role.trim() !== "") {
+      label = user.role;
+    } else if (user.customRole?.id) {
+      label = user.customRole.id;
+    }
+
+    if (!label || label.trim() === "") {
+      label = "رئيس مجلس الإدارة";
+    }
+
+    const isCustomRole = Boolean(user.customRole?.nameAr && !roleMap[user.customRole?.id || ""]);
 
     return (
       <Badge 
         variant="outline" 
-        className="bg-[#e6f4f1] text-[#007055] border-emerald-100 px-3 py-0.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors"
+        className={
+          isCustomRole 
+            ? "bg-[#f9fafb] text-gray-700 border-gray-200 px-3 py-0.5 rounded-full text-[12px] font-bold whitespace-nowrap transition-colors"
+            : "bg-[#e6f4f1] text-[#007055] border-emerald-100 px-3 py-0.5 rounded-full text-[12px] font-bold whitespace-nowrap transition-colors"
+        }
       >
-        {roleLabel}
+        {label}
       </Badge>
     );
   };
