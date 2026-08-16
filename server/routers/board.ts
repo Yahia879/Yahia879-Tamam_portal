@@ -49,7 +49,7 @@ export const boardRouter = router({
     const hasMemberPerm = await checkPermission(ctx.user.id, "board_member");
 
     const isChairman = isChairmanRole || hasChairmanPerm;
-    const isMember = isMemberRole || hasMemberPerm;
+    const isMember = isChairman ? false : (isMemberRole || hasMemberPerm || isAdminRole);
 
     if (!isChairman && !isMember && !isAdminRole) {
       throw new TRPCError({
