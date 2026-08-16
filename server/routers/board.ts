@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull, inArray, count, sum, desc } from "drizzle-orm";
+import { eq, and, sql, isNull, inArray, count, sum, desc, gt } from "drizzle-orm";
 import { getDb } from "../db";
 import {
   mosques,
@@ -16,7 +16,6 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 
-// تسميات المراحل بالعربية
 const STAGE_LABELS: Record<string, string> = {
   submitted: "تقديم الطلب",
   initial_review: "المراجعة الأولية",
@@ -41,7 +40,7 @@ export const boardRouter = router({
       });
     }
 
-    // التحقق الصارم من الصلاحيات والأنوار
+    // التحقق الصارم من الصلاحيات والأدوار
     const isChairmanRole = ctx.user.role === "board_chairman";
     const isMemberRole = ctx.user.role === "board_member";
     const isAdminRole = ["super_admin", "system_admin"].includes(ctx.user.role);
@@ -59,7 +58,84 @@ export const boardRouter = router({
       });
     }
 
-    // ==================== 1️⃣ إحصائيات المساجد ====================
+    // ==================== 1️⃣ طلبات وأوامر الصرف المرتبطة والمخصصة لرئيس مجلس الإدارة ====================
+    // 1.1 أوامر الصرف بانتظار الاعتماد المرتبطة بطلبات صرف معتمدة
+    const linkedPendingOrdersRaw = await db
+      .select({
+        orderId: disbursementOrders.id,
+        orderNumber: disbursementOrders.orderNumber,
+        amount: disbursementOrders.amount,
+        beneficiaryName: disbursementOrders.beneficiaryName,
+        beneficiaryBank: disbursementOrders.beneficiaryBank,
+        beneficiaryIban: disbursementOrders.beneficiaryIban,
+        paymentMethod: disbursementOrders.paymentMethod,
+        orderStatus: disbursementOrders.status,
+        orderCreatedAt: disbursementOrders.createdAt,
+        requestId: disbursementRequests.id,
+        requestNumber: disbursementRequests.requestNumber,
+        requestTitle: disbursementRequests.title,
+        requestAmount: disbursementRequests.amount,
+        requestStatus: disbursementRequests.status,
+      })
+      .from(disbursementOrders)
+      .innerJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+      .where(inArray(disbursementOrders.status, ["pending", "pending_executive", "edited", "draft"] as any))
+      .orderBy(desc(disbursementOrders.createdAt))
+      .limit(20);
+
+    const linkedPendingOrders = linkedPendingOrdersRaw.map((o) => ({
+      orderId: o.orderId,
+      orderNumber: o.orderNumber,
+      amount: Number(o.amount || 0),
+      beneficiaryName: o.beneficiaryName,
+      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
+      beneficiaryIban: o.beneficiaryIban || "-",
+      paymentMethod: o.paymentMethod || "bank_transfer",
+      orderStatus: o.orderStatus,
+      orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
+      requestId: o.requestId,
+      requestNumber: o.requestNumber,
+      requestTitle: o.requestTitle || `طلب صرف رقم ${o.requestNumber}`,
+      requestAmount: Number(o.requestAmount || 0),
+      requestStatus: o.requestStatus,
+    }));
+
+    // 1.2 أوامر الصرف المخصصة/المباشرة (غير المرتبطة بطلب صرف)
+    const customPendingOrdersRaw = await db
+      .select({
+        id: disbursementOrders.id,
+        orderNumber: disbursementOrders.orderNumber,
+        amount: disbursementOrders.amount,
+        beneficiaryName: disbursementOrders.beneficiaryName,
+        beneficiaryBank: disbursementOrders.beneficiaryBank,
+        beneficiaryIban: disbursementOrders.beneficiaryIban,
+        paymentMethod: disbursementOrders.paymentMethod,
+        status: disbursementOrders.status,
+        createdAt: disbursementOrders.createdAt,
+      })
+      .from(disbursementOrders)
+      .where(
+        and(
+          inArray(disbursementOrders.status, ["pending", "pending_executive", "edited", "draft"] as any),
+          sql`(${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0)`
+        )
+      )
+      .orderBy(desc(disbursementOrders.createdAt))
+      .limit(20);
+
+    const customPendingOrders = customPendingOrdersRaw.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      amount: Number(o.amount || 0),
+      beneficiaryName: o.beneficiaryName,
+      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
+      beneficiaryIban: o.beneficiaryIban || "-",
+      paymentMethod: o.paymentMethod || "bank_transfer",
+      status: o.status,
+      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
+    }));
+
+    // ==================== 2️⃣ إحصائيات المساجد ====================
     const [totalMosquesRes] = await db
       .select({ value: count() })
       .from(mosques);
@@ -69,7 +145,6 @@ export const boardRouter = router({
       .from(mosques)
       .where(eq(mosques.approvalStatus, "approved" as any));
 
-    // مساجد جديدة آخر 30 يوماً
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const [recentMosquesRes] = await db
@@ -77,7 +152,6 @@ export const boardRouter = router({
       .from(mosques)
       .where(sql`${mosques.createdAt} >= ${thirtyDaysAgo}`);
 
-    // توزيع المساجد حسب المدن/المناطق
     const mosquesByCity = await db
       .select({
         name: sql<string>`COALESCE(${mosques.city}, 'غير محدد')`,
@@ -87,7 +161,6 @@ export const boardRouter = router({
       .groupBy(sql`COALESCE(${mosques.city}, 'غير محدد')`)
       .limit(6);
 
-    // توزيع المساجد حسب الحالات
     const mosquesByStatus = await db
       .select({
         status: sql<string>`COALESCE(${mosques.approvalStatus}, 'approved')`,
@@ -96,7 +169,7 @@ export const boardRouter = router({
       .from(mosques)
       .groupBy(sql`COALESCE(${mosques.approvalStatus}, 'approved')`);
 
-    // ==================== 2️⃣ إحصائيات الطلبات ====================
+    // ==================== 3️⃣ إحصائيات الطلبات ====================
     const [totalRequestsRes] = await db
       .select({ value: count() })
       .from(mosqueRequests);
@@ -121,7 +194,6 @@ export const boardRouter = router({
       .from(mosqueRequests)
       .where(inArray(mosqueRequests.status, ["pending", "submitted", "initial_review"] as any));
 
-    // توزيع الطلبات على مراحل العمل
     const requestsByStageRaw = await db
       .select({
         stage: sql<string>`COALESCE(${mosqueRequests.currentStage}, 'submitted')`,
@@ -136,7 +208,6 @@ export const boardRouter = router({
       value: Number(item.value),
     }));
 
-    // أكثر المساجد طلباً للخدمات
     const topMosquesRequests = await db
       .select({
         mosqueId: mosqueRequests.mosqueId,
@@ -149,7 +220,7 @@ export const boardRouter = router({
       .orderBy(desc(count()))
       .limit(5);
 
-    // ==================== 3️⃣ إحصائيات الهندسة والمشاريع ====================
+    // ==================== 4️⃣ إحصائيات الهندسة والمشاريع ====================
     const [totalProjectsRes] = await db
       .select({ value: count() })
       .from(projects);
@@ -172,7 +243,7 @@ export const boardRouter = router({
       .from(projects)
       .groupBy(sql`COALESCE(${projects.status}, 'active')`);
 
-    // ==================== 4️⃣ إحصائيات المشتريات والعقود والموردين ====================
+    // ==================== 5️⃣ إحصائيات المشتريات والعقود والموردين ====================
     const [totalSuppliersRes] = await db
       .select({ value: count() })
       .from(suppliers);
@@ -188,20 +259,6 @@ export const boardRouter = router({
         totalAmount: sum(contracts.amount),
       })
       .from(contracts);
-
-    // ==================== 5️⃣ إحصائيات الحوكمة والشركاء والدعم ====================
-    const [totalPartnersRes] = await db
-      .select({ value: count() })
-      .from(partners);
-
-    const [totalSupportTicketsRes] = await db
-      .select({ value: count() })
-      .from(supportTickets);
-
-    const [resolvedTicketsRes] = await db
-      .select({ value: count() })
-      .from(supportTickets)
-      .where(eq(supportTickets.status, "resolved" as any));
 
     // ==================== 6️⃣ إحصائيات الأمور المالية والصرف ====================
     const [totalProjectBudgetRes] = await db
@@ -230,35 +287,6 @@ export const boardRouter = router({
       .select({ total: sum(receiptVouchers.amount) })
       .from(receiptVouchers);
 
-    const pendingOrdersRaw = await db
-      .select({
-        id: disbursementOrders.id,
-        orderNumber: disbursementOrders.orderNumber,
-        amount: disbursementOrders.amount,
-        beneficiaryName: disbursementOrders.beneficiaryName,
-        beneficiaryBank: disbursementOrders.beneficiaryBank,
-        beneficiaryIban: disbursementOrders.beneficiaryIban,
-        paymentMethod: disbursementOrders.paymentMethod,
-        status: disbursementOrders.status,
-        createdAt: disbursementOrders.createdAt,
-      })
-      .from(disbursementOrders)
-      .where(inArray(disbursementOrders.status, ["pending", "pending_executive", "edited"] as any))
-      .orderBy(desc(disbursementOrders.createdAt))
-      .limit(10);
-
-    const pendingOrders = pendingOrdersRaw.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      amount: Number(o.amount || 0),
-      beneficiaryName: o.beneficiaryName,
-      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
-      beneficiaryIban: o.beneficiaryIban || "-",
-      paymentMethod: o.paymentMethod || "bank_transfer",
-      status: o.status,
-      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
-    }));
-
     const monthlyFlowRaw = await db
       .select({
         month: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m')`,
@@ -281,6 +309,11 @@ export const boardRouter = router({
       userRole: isChairman ? "board_chairman" : "board_member",
       isChairman,
       isMember,
+      chairmanData: {
+        linkedPendingOrders,
+        customPendingOrders,
+        totalPendingCount: linkedPendingOrders.length + customPendingOrders.length,
+      },
       mosques: {
         total: Number(totalMosquesRes?.value || 0),
         active: Number(activeMosquesRes?.value || 0),
@@ -320,22 +353,13 @@ export const boardRouter = router({
         totalContracts: Number(totalContractsRes?.count || 0),
         totalContractsValue: Number(totalContractsRes?.totalAmount || 0),
       },
-      governance: {
-        totalPartners: Number(totalPartnersRes?.value || 0),
-        totalTickets: Number(totalSupportTicketsRes?.value || 0),
-        resolvedTickets: Number(resolvedTicketsRes?.value || 0),
-        resolutionRate: Number(totalSupportTicketsRes?.value || 0) > 0
-          ? Math.round((Number(resolvedTicketsRes?.value || 0) / Number(totalSupportTicketsRes?.value || 1)) * 100)
-          : 100,
-      },
       financials: {
         totalApprovedBudget: Number(totalProjectBudgetRes?.total || 0),
         totalDisbursedAmount: Number(totalDisbursedOrdersRes?.total || 0),
         completedBankTransfersCount: Number(completedBankTransfersRes?.count || 0),
         completedBankTransfersAmount: Number(completedBankTransfersRes?.totalAmount || 0),
         totalReceiptVouchersAmount: Number(totalReceiptVouchersRes?.total || 0),
-        pendingApprovalsCount: pendingOrders.length,
-        pendingOrders,
+        pendingApprovalsCount: linkedPendingOrders.length + customPendingOrders.length,
         monthlyFlow,
       },
     };
