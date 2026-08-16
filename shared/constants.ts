@@ -2,6 +2,8 @@
 export const USER_ROLES = {
   super_admin: { key: 'super_admin', label: 'المدير العام', labelEn: 'Super Admin' },
   system_admin: { key: 'system_admin', label: 'مدير نظام', labelEn: 'System Admin' },
+  board_chairman: { key: 'board_chairman', label: 'رئيس مجلس الإدارة', labelEn: 'Board Chairman' },
+  board_member: { key: 'board_member', label: 'عضو مجلس الإدارة', labelEn: 'Board Member' },
   general_manager: { key: 'general_manager', label: 'المدير التنفيذي', labelEn: 'Executive Director' },
   executive_director: { key: 'executive_director', label: 'المدير التنفيذي', labelEn: 'Executive Director' },
   financial_manager: { key: 'financial_manager', label: 'المدير المالي', labelEn: 'Financial Manager' },
@@ -17,6 +19,8 @@ export const USER_ROLES = {
 export const ROLE_LABELS: Record<string, string> = {
   super_admin: 'المدير العام',
   system_admin: 'مدير نظام',
+  board_chairman: 'رئيس مجلس الإدارة',
+  board_member: 'عضو مجلس الإدارة',
   general_manager: 'المدير التنفيذي',
   executive_director: 'المدير التنفيذي',
   financial_manager: 'المدير المالي',
@@ -33,6 +37,8 @@ export const ROLE_LABELS: Record<string, string> = {
 export const INTERNAL_ROLES = [
   'super_admin',
   'system_admin',
+  'board_chairman',
+  'board_member',
   'general_manager',
   'executive_director',
   'financial_manager',
