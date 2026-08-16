@@ -190,6 +190,14 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursements.create_donation": ["disbursements.create", "disbursements.create_donation"],
   "disbursements.exception_approve": ["disbursements.exception_approve"],
   "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
+
+  // Board Leadership Permissions Expansion
+  board_chairman: ["board_chairman"],
+  board_member: ["board_member"],
+  "board.board_chairman": ["board_chairman"],
+  "board.board_member": ["board_member"],
+  "board_leadership.board_chairman": ["board_chairman"],
+  "board_leadership.board_member": ["board_member"],
 };
 
 /**
