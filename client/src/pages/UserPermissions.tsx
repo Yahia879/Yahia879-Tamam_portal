@@ -65,6 +65,8 @@ const getRoleLabelAr = (role: string) => {
     "quick_response": "استجابة سريعة",
     "corporate_comm": "الاتصال المؤسسي",
     "service_requester": "طالب خدمة",
+    "board_chairman": "رئيس مجلس الإدارة",
+    "board_member": "عضو مجلس الإدارة",
   };
   return rolesAr[role] || role;
 };
@@ -513,6 +515,10 @@ export default function UserPermissions() {
   // مسمى الصلاحيات المهنية (نفس المخرجات المعتمدة لصفحة تخصيص الدور)
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      board_leadership: {
+        board_chairman: "رئيس مجلس الإدارة",
+        board_member: "عضو مجلس الإدارة",
+      },
       pending_reports: {
         view: "عرض التقارير",
         intervene: "تدخل لرفع التقرير"
@@ -749,6 +755,17 @@ export default function UserPermissions() {
           perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
         }
       ]
+    },
+    {
+      title: "مجلس الإدارة والقيادة العليا",
+      modules: [
+        {
+          id: "board_leadership",
+          nameAr: "مجلس الإدارة والقيادة العليا",
+          icon: Shield,
+          perms: ["board_chairman", "board_member"]
+        }
+      ]
     }
   ];
 
@@ -893,6 +910,13 @@ export default function UserPermissions() {
                     let id = `${module.id}.${p}`;
                     if (module.id === "technical_support") {
                       id = p === "view" ? "View_Tickets" : "Create_Ticket";
+                    }
+                    if (module.id === "board_leadership") {
+                      const boardIds: Record<string, string> = {
+                        board_chairman: "board_chairman",
+                        board_member: "board_member",
+                      };
+                      id = boardIds[p] || id;
                     }
                     if (module.id === "signing") {
                       const signingIds: Record<string, string> = {
