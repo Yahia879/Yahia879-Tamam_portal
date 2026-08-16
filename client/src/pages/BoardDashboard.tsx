@@ -1,18 +1,10 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -21,8 +13,8 @@ import {
 import {
   Building2, CheckCircle2, Clock, Crown, Wallet, TrendingUp,
   FileText, Activity, RefreshCw, ShieldCheck,
-  AlertCircle, Banknote, Receipt, MapPin, Layers,
-  Check, CreditCard, ArrowLeft
+  ArrowUpRight, AlertCircle, Banknote, Receipt, MapPin, Layers,
+  Check, X
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -58,224 +50,228 @@ export default function BoardDashboard() {
 
   const isChairman = data?.isChairman ?? false;
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ar-SA", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(amount) + " ريال";
-  };
-
   return (
     <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl sm:text-3xl font-bold">اللوحة القيادية لمجلس الإدارة</h1>
-              {isChairman ? (
-                <Badge className="bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 font-bold px-3 py-1 text-xs flex items-center gap-1.5">
-                  <Crown className="h-4 w-4 text-amber-600 ml-1" />
-                  رئيس مجلس الإدارة
-                </Badge>
-              ) : (
-                <Badge className="bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 font-bold px-3 py-1 text-xs flex items-center gap-1.5">
-                  <ShieldCheck className="h-4 w-4 text-slate-600 ml-1" />
-                  عضو مجلس الإدارة
-                </Badge>
-              )}
-            </div>
-            <p className="text-muted-foreground text-sm sm:text-base">
-              متابعة شاملة لإحصائيات المساجد والطلبات والمؤشرات المالية والتشغيلية
-            </p>
-          </div>
+      <div className="container py-8 max-w-7xl mx-auto space-y-8" dir="rtl">
+        {/* ==================== الهيدر التنفيذي والتمييز القيادي ==================== */}
+        <div className="relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="space-y-2 text-right">
+              <div className="flex items-center gap-3">
+                {isChairman ? (
+                  <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 px-3 py-1 font-bold text-xs rounded-lg flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-amber-500" />
+                    رئيس مجلس الإدارة
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20 px-3 py-1 font-bold text-xs rounded-lg flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-slate-500" />
+                    عضو مجلس الإدارة
+                  </Badge>
+                )}
+              </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isRefetching || isLoading}
-              className="text-xs sm:text-sm"
-            >
-              <RefreshCw className={`ml-2 h-4 w-4 ${isRefetching ? "animate-spin text-primary" : ""}`} />
-              تحديث البيانات
-            </Button>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+                اللوحة الإحصائية القيادية لمجلس الإدارة
+              </h1>
+              
+              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+                {isChairman
+                  ? "مرحباً بك رئيس مجلس الإدارة، تُتيح لك هذه اللوحة الاطلاع الشامل على جميع المؤشرات التشغيلية والمالية وإجراء الاعتماد البنكي المباشر لأوامر الصرف."
+                  : "مرحباً بك عضو مجلس الإدارة، واجهة قيادية متكاملة للمتابعة والاستطلاع الشامل لكافة مؤشرات وأداء البوابة."}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isRefetching || isLoading}
+                className="rounded-xl gap-2 font-medium"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefetching ? "animate-spin text-primary" : ""}`} />
+                تحديث
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* ==================== قسم الاعتماد البنكي المباشر (رئيس مجلس الإدارة) ==================== */}
         {isChairman && data?.financials?.pendingOrders && data.financials.pendingOrders.length > 0 && (
-          <Card className="border-amber-200 dark:border-amber-900/50 bg-amber-50/30 dark:bg-amber-950/10 shadow-sm">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <Card className="rounded-3xl border-amber-200 dark:border-amber-900/50 bg-amber-50/40 dark:bg-amber-950/10 p-6 space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-amber-600" />
-                <div>
-                  <CardTitle className="text-base font-bold text-amber-950 dark:text-amber-200">
-                    أوامر الصرف بانتظار الاعتماد البنكي المباشر
-                  </CardTitle>
-                  <CardDescription className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                    يمكنك إجراء الاعتماد البنكي المباشر فوراً بنقرة واحدة
-                  </CardDescription>
-                </div>
+                <Crown className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <h2 className="text-lg font-bold text-amber-900 dark:text-amber-200">
+                  طلبات وأوامر الصرف بانتظار الاعتماد البنكي المباشر
+                </h2>
+                <Badge className="bg-amber-500 text-white rounded-lg font-bold px-2 py-0.5 text-xs">
+                  {data.financials.pendingOrders.length}
+                </Badge>
               </div>
               <Link href="/disbursement-orders">
-                <Button variant="ghost" size="sm" className="text-amber-800 dark:text-amber-300 font-bold text-xs gap-1">
-                  عرض كل الأوامر
-                  <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                <Button variant="ghost" size="sm" className="text-amber-800 dark:text-amber-300 font-bold gap-1 text-xs">
+                  عرض كافة الأوامر
+                  <ArrowUpRight className="w-4 h-4" />
                 </Button>
               </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-xl border border-amber-200/80 dark:border-amber-900/40 overflow-hidden bg-white dark:bg-slate-900">
-                <Table>
-                  <TableHeader className="bg-amber-100/50 dark:bg-amber-950/30">
-                    <TableRow>
-                      <TableHead className="text-right font-bold text-xs">رقم الأمر</TableHead>
-                      <TableHead className="text-right font-bold text-xs">المستفيد</TableHead>
-                      <TableHead className="text-right font-bold text-xs">المصرف</TableHead>
-                      <TableHead className="text-right font-bold text-xs">المبلغ</TableHead>
-                      <TableHead className="text-right font-bold text-xs">طريقة الدفع</TableHead>
-                      <TableHead className="text-center font-bold text-xs">الإجراء المباشر</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.financials.pendingOrders.map((order) => (
-                      <TableRow key={order.id} className="hover:bg-amber-50/30 dark:hover:bg-amber-950/20">
-                        <TableCell className="font-bold text-xs">{order.orderNumber}</TableCell>
-                        <TableCell className="text-xs">{order.beneficiaryName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{order.beneficiaryBank}</TableCell>
-                        <TableCell className="font-extrabold text-xs text-amber-700 dark:text-amber-400">
-                          {formatCurrency(order.amount)}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          <Badge variant="outline" className="font-normal text-[11px]">
-                            {order.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Button
-                            size="sm"
-                            onClick={() => handleDirectApprove(order.id)}
-                            disabled={approvingId === order.id}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3"
-                          >
-                            <Check className="ml-1 h-3.5 w-3.5" />
-                            {approvingId === order.id ? "جاري الاعتماد..." : "اعتماد بنكي مباشر"}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.financials.pendingOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-900/40 shadow-sm flex flex-col justify-between space-y-3 text-right"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                        {order.orderNumber}
+                      </span>
+                      <Badge variant="outline" className="text-xs font-normal">
+                        {order.paymentMethod === "bank_transfer" ? "تحويل بنكي" : "سداد"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 truncate">المستفيد: {order.beneficiaryName}</p>
+                    <p className="text-xs text-slate-500 truncate">البنك: {order.beneficiaryBank}</p>
+                    <p className="text-base font-black text-amber-600 dark:text-amber-400">
+                      {order.amount.toLocaleString("ar-SA")} ريال
+                    </p>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={() => handleDirectApprove(order.id)}
+                    disabled={approvingId === order.id}
+                    className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2 text-xs"
+                  >
+                    <Check className="w-4 h-4" />
+                    {approvingId === order.id ? "جاري الاعتماد البنكي..." : "اعتماد بنكي مباشر"}
+                  </Button>
+                </div>
+              ))}
+            </div>
           </Card>
         )}
 
         {/* ==================== حالة التحميل والأخطاء ==================== */}
         {isLoading && (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="animate-pulse h-28" />
+              <Card key={i} className="h-32 rounded-2xl animate-pulse bg-slate-100 dark:bg-slate-800" />
             ))}
           </div>
         )}
 
         {isError && (
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 p-6 text-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-            <h3 className="text-base font-bold text-red-700 dark:text-red-400">حدث خطأ أثناء جلب البيانات</h3>
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20 rounded-2xl p-6 text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+            <h3 className="text-base font-bold text-red-700 dark:text-red-400">حدث خطأ أثناء تحميل البيانات</h3>
             <p className="text-xs text-red-600 dark:text-red-300 mt-1">{error?.message}</p>
           </Card>
         )}
 
         {data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 max-w-lg">
-              <TabsTrigger value="mosques" className="text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5">
-                <Building2 className="h-4 w-4 ml-1 text-emerald-600" />
-                إحصائيات المساجد
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5">
-                <FileText className="h-4 w-4 ml-1 text-blue-600" />
-                إحصائيات الطلبات
-              </TabsTrigger>
-              <TabsTrigger value="financials" className="text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5">
-                <Wallet className="h-4 w-4 ml-1 text-amber-600" />
-                الأمور المالية والصرف
-              </TabsTrigger>
-            </TabsList>
+            {/* الشريط العلوي للتبويبات */}
+            <div className="flex justify-start">
+              <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+                <TabsTrigger
+                  value="mosques"
+                  className="rounded-lg px-4 py-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary gap-2"
+                >
+                  <Building2 className="w-4 h-4 text-emerald-600" />
+                  إحصائيات المساجد
+                </TabsTrigger>
+                <TabsTrigger
+                  value="requests"
+                  className="rounded-lg px-4 py-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary gap-2"
+                >
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  إحصائيات الطلبات
+                </TabsTrigger>
+                <TabsTrigger
+                  value="financials"
+                  className="rounded-lg px-4 py-2 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary gap-2"
+                >
+                  <Wallet className="w-4 h-4 text-amber-600" />
+                  الأمور المالية والصرف
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* ==================== 1️⃣ تبويب إحصائيات المساجد ==================== */}
             <TabsContent value="mosques" className="space-y-6">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>إجمالي المساجد المسجلة</span>
-                      <Building2 className="h-4 w-4 text-emerald-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {data.mosques.total.toLocaleString("ar-SA")}
+              {/* KPIs Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">إجمالي المساجد</p>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                        {data.mosques.total.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <Building2 className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>المساجد النشطة</span>
-                      <Activity className="h-4 w-4 text-blue-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {data.mosques.active.toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">المساجد النشطة</p>
+                      <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {data.mosques.active.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <Activity className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>المسجلة حديثاً</span>
-                      <Clock className="h-4 w-4 text-amber-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      +{data.mosques.recent.toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">المسجلة حديثاً</p>
+                      <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                        +{data.mosques.recent.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+                      <Clock className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>نسبة التغطية</span>
-                      <TrendingUp className="h-4 w-4 text-purple-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {data.mosques.total > 0 ? Math.round((data.mosques.active / data.mosques.total) * 100) : 100}%
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">نسبة التغطية</p>
+                      <h3 className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                        {data.mosques.total > 0 ? Math.round((data.mosques.active / data.mosques.total) * 100) : 100}%
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+                      <TrendingUp className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Charts Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                  <CardHeader className="p-0 mb-4 text-right">
                     <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-emerald-600 ml-1" />
+                      <MapPin className="w-4 h-4 text-emerald-600" />
                       توزيع المساجد حسب المدن
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="h-64 pt-2">
+                  <CardContent className="p-0 h-64">
                     {data.mosques.byCity.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.mosques.byCity} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
@@ -283,27 +279,27 @@ export default function BoardDashboard() {
                           <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
                           <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
                           <Tooltip
-                            contentStyle={{ borderRadius: "8px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
+                            contentStyle={{ borderRadius: "12px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
                           />
-                          <Bar dataKey="value" name="عدد المساجد" fill="#10b981" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="value" name="عدد المساجد" fill="#10b981" radius={[8, 8, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
-                        لا توجد بيانات متاحة
+                      <div className="h-full flex items-center justify-center text-slate-400 text-xs">
+                        لا توجد بيانات مدن مسجلة
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                  <CardHeader className="p-0 mb-4 text-right">
                     <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-blue-600 ml-1" />
+                      <Activity className="w-4 h-4 text-blue-600" />
                       توزيع المساجد حسب الحالة التشغيلية
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="h-64 flex items-center justify-center pt-2">
+                  <CardContent className="p-0 h-64 flex items-center justify-center">
                     {data.mosques.byStatus.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -311,8 +307,8 @@ export default function BoardDashboard() {
                             data={data.mosques.byStatus}
                             cx="50%"
                             cy="50%"
-                            innerRadius={45}
-                            outerRadius={75}
+                            innerRadius={50}
+                            outerRadius={80}
                             paddingAngle={4}
                             dataKey="value"
                           >
@@ -321,13 +317,13 @@ export default function BoardDashboard() {
                             ))}
                           </Pie>
                           <Tooltip
-                            contentStyle={{ borderRadius: "8px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
+                            contentStyle={{ borderRadius: "12px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
                           />
                           <Legend />
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="text-muted-foreground text-xs">لا توجد بيانات متاحة</div>
+                      <div className="text-slate-400 text-xs">لا توجد بيانات متاحة</div>
                     )}
                   </CardContent>
                 </Card>
@@ -336,73 +332,75 @@ export default function BoardDashboard() {
 
             {/* ==================== 2️⃣ تبويب إحصائيات الطلبات ==================== */}
             <TabsContent value="requests" className="space-y-6">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>إجمالي الطلبات</span>
-                      <FileText className="h-4 w-4 text-blue-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {data.requests.total.toLocaleString("ar-SA")}
+              {/* KPIs Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">إجمالي الطلبات</p>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                        {data.requests.total.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <FileText className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>الطلبات المعتمدة</span>
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {data.requests.approved.toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">الطلبات المعتمدة</p>
+                      <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {data.requests.approved.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <CheckCircle2 className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>قيد التنفيذ والمراجعة</span>
-                      <Clock className="h-4 w-4 text-amber-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                      {(data.requests.inProgress + data.requests.pending).toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">قيد التنفيذ والمراجعة</p>
+                      <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                        {(data.requests.inProgress + data.requests.pending).toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+                      <Clock className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>الطلبات المرفوضة</span>
-                      <AlertCircle className="h-4 w-4 text-rose-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                      {data.requests.rejected.toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">الطلبات المرفوضة</p>
+                      <h3 className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                        {data.requests.rejected.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                      <AlertCircle className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Stage chart & Top Mosques */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 border-0 shadow-sm">
-                  <CardHeader className="pb-2">
+                <Card className="lg:col-span-2 rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                  <CardHeader className="p-0 mb-4 text-right">
                     <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Layers className="h-4 w-4 text-blue-600 ml-1" />
+                      <Layers className="w-4 h-4 text-blue-600" />
                       توزيع الطلبات حسب مراحل دورة العمل
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="h-64 pt-2">
+                  <CardContent className="p-0 h-72">
                     {data.requests.byStage.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data.requests.byStage} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
@@ -410,45 +408,45 @@ export default function BoardDashboard() {
                           <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickLine={false} />
                           <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
                           <Tooltip
-                            contentStyle={{ borderRadius: "8px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
+                            contentStyle={{ borderRadius: "12px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
                           />
-                          <Bar dataKey="value" name="عدد الطلبات" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="value" name="عدد الطلبات" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
+                      <div className="h-full flex items-center justify-center text-slate-400 text-xs">
                         لا توجد طلبات مسجلة
                       </div>
                     )}
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                  <CardHeader className="p-0 mb-4 text-right">
                     <CardTitle className="text-base font-bold flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-purple-600 ml-1" />
+                      <Building2 className="w-4 h-4 text-purple-600" />
                       أكثر المساجد طلباً للخدمات
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2.5 pt-2">
+                  <CardContent className="p-0 space-y-3">
                     {data.requests.topMosques.length > 0 ? (
                       data.requests.topMosques.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 font-bold text-[11px] flex items-center justify-center">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-600 font-bold text-xs flex items-center justify-center">
                               {i + 1}
                             </span>
-                            <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate max-w-[130px]">
+                            <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate max-w-[140px]">
                               {item.name}
                             </span>
                           </div>
-                          <Badge variant="secondary" className="font-bold text-[11px]">
+                          <Badge variant="secondary" className="font-bold text-xs">
                             {item.count} طلبات
                           </Badge>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-muted-foreground text-center py-6">لا توجد بيانات متاحة</p>
+                      <p className="text-xs text-slate-400 text-center py-6">لا توجد بيانات متاحة</p>
                     )}
                   </CardContent>
                 </Card>
@@ -457,72 +455,74 @@ export default function BoardDashboard() {
 
             {/* ==================== 3️⃣ تبويب الأمور المالية والصرف ==================== */}
             <TabsContent value="financials" className="space-y-6">
-              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>إجمالي الميزانيات المعتمدة</span>
-                      <Wallet className="h-4 w-4 text-amber-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">
-                      {formatCurrency(data.financials.totalApprovedBudget)}
+              {/* KPIs Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">إجمالي الميزانيات المعتمدة</p>
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+                        {data.financials.totalApprovedBudget.toLocaleString("ar-SA")} <span className="text-xs font-normal text-slate-500">ريال</span>
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
+                      <Wallet className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>إجمالي المصروفات الفعلية</span>
-                      <Banknote className="h-4 w-4 text-emerald-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 truncate">
-                      {formatCurrency(data.financials.totalDisbursedAmount)}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">إجمالي المصروفات الفعلية</p>
+                      <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                        {data.financials.totalDisbursedAmount.toLocaleString("ar-SA")} <span className="text-xs font-normal text-slate-500">ريال</span>
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <Banknote className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>التحويلات البنكية المكتملة</span>
-                      <ShieldCheck className="h-4 w-4 text-blue-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {data.financials.completedBankTransfersCount.toLocaleString("ar-SA")}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">التحويلات البنكية المكتملة</p>
+                      <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                        {data.financials.completedBankTransfersCount.toLocaleString("ar-SA")}
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                      <ShieldCheck className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                      <span>إجمالي سندات القبض</span>
-                      <Receipt className="h-4 w-4 text-purple-600" />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400 truncate">
-                      {formatCurrency(data.financials.totalReceiptVouchersAmount)}
+                <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-slate-500">إجمالي سندات القبض</p>
+                      <h3 className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                        {data.financials.totalReceiptVouchersAmount.toLocaleString("ar-SA")} <span className="text-xs font-normal text-slate-500">ريال</span>
+                      </h3>
+                    </div>
+                    <div className="p-3 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
+                      <Receipt className="w-5 h-5" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2">
+              {/* Monthly Flow Chart */}
+              <Card className="rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+                <CardHeader className="p-0 mb-4 text-right">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-amber-600 ml-1" />
+                    <TrendingUp className="w-4 h-4 text-amber-600" />
                     التدفق المالي وتطور الصرف الشهري
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="h-64 pt-2">
+                <CardContent className="p-0 h-72">
                   {data.financials.monthlyFlow.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.financials.monthlyFlow} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
@@ -536,14 +536,14 @@ export default function BoardDashboard() {
                         <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} />
                         <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
                         <Tooltip
-                          formatter={(val: any) => [formatCurrency(Number(val)), "المبلغ المصروف"]}
-                          contentStyle={{ borderRadius: "8px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
+                          formatter={(val: any) => [`${Number(val).toLocaleString("ar-SA")} ريال`, "المبلغ المصروف"]}
+                          contentStyle={{ borderRadius: "12px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right" }}
                         />
                         <Area type="monotone" dataKey="disbursed" name="المصروفات" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorDisbursed)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs">
+                    <div className="h-full flex items-center justify-center text-slate-400 text-xs">
                       لا توجد بيانات تدفق شهري سابقة
                     </div>
                   )}
