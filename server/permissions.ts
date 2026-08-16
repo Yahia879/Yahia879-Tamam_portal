@@ -276,37 +276,59 @@ async function ensureRequestsPermissionsExist(db: any) {
     }
 
     // 2. تحديث صلاحيات الأدوار الافتراضية
-    // نقوم بذلك فقط في المرة الأولى (إذا كانت الصلاحيات غير موجودة مسبقاً) لتجنب الكتابة فوق اختيارات المستخدمين لاحقاً
-    if (isFirstTime) {
-      const defaultMappings: Record<string, string[]> = {
-        board_chairman: ["board_chairman"],
-        board_member: ["board_member"],
-        projects_office: ["requests.view", "requests.create", "requests.view_details"],
-        field_team: ["requests.view", "requests.manage_as_field_team"],
-        quick_response: ["requests.view", "requests.manage_as_quick_response"],
-        financial_manager: ["requests.view", "requests.view_details"],
-        project_manager: ["requests.view", "requests.create", "requests.view_details"],
-        corporate_comm: ["requests.view", "requests.upload_final_report"],
-      };
+    const defaultMappings: Record<string, string[]> = {
+      board_chairman: ["board_chairman"],
+      board_member: ["board_member"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details"],
+      field_team: ["requests.view", "requests.manage_as_field_team"],
+      quick_response: ["requests.view", "requests.manage_as_quick_response"],
+      financial_manager: ["requests.view", "requests.view_details"],
+      project_manager: ["requests.view", "requests.create", "requests.view_details"],
+      corporate_comm: ["requests.view", "requests.upload_final_report"],
+    };
 
-      for (const [roleId, permIds] of Object.entries(defaultMappings)) {
-        const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
-        if (!roleExists) continue;
+    const roleNamesAr: Record<string, string> = {
+      board_chairman: "رئيس مجلس الإدارة",
+      board_member: "عضو مجلس الإدارة",
+      general_manager: "المدير التنفيذي",
+      executive_director: "المدير التنفيذي",
+      financial_manager: "المدير المالي",
+      system_admin: "مدير نظام",
+      super_admin: "المدير العام",
+      projects_office: "مكتب المشاريع",
+      project_manager: "مدير المشاريع",
+      financial: "الإدارة المالية",
+      field_team: "فريق ميداني",
+      quick_response: "فريق الاستجابة السريعة",
+      corporate_comm: "الاتصال المؤسسي",
+      service_requester: "طالب خدمة",
+    };
 
+    for (const [roleId, permIds] of Object.entries(defaultMappings)) {
+      const [roleExists] = await db.select().from(roles).where(eq(roles.id, roleId)).limit(1);
+      if (!roleExists) {
+        await db.insert(roles).values({
+          id: roleId,
+          nameAr: roleNamesAr[roleId] || roleId,
+          nameEn: roleId,
+          isSystem: true,
+          isActive: true,
+        }).catch(() => {});
+      }
+
+      for (const permId of permIds) {
         const existingRolePerms = await db.select()
           .from(rolePermissions)
           .where(and(
             eq(rolePermissions.roleId, roleId),
-            inArray(rolePermissions.permissionId, ["requests.view", "requests.create", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response"])
+            eq(rolePermissions.permissionId, permId)
           ));
 
         if (existingRolePerms.length === 0) {
-          const valuesToInsert = permIds.map(permId => ({
+          await db.insert(rolePermissions).values({
             roleId,
             permissionId: permId
-          }));
-          await db.insert(rolePermissions).values(valuesToInsert);
-          console.log(`Migrated role ${roleId} with permissions: ${permIds.join(", ")}`);
+          }).catch(() => {});
         }
       }
     }
@@ -1659,6 +1681,14 @@ export const permissionsRouter = router({
       if (roleIds.includes("service_requester")) {
         permsSet.add("requests.create");
         permsSet.add("requests.view");
+      }
+
+      if (roleIds.includes("board_chairman")) {
+        permsSet.add("board_chairman");
+      }
+
+      if (roleIds.includes("board_member")) {
+        permsSet.add("board_member");
       }
 
       // جلب صلاحيات من جدول rolePermissions
