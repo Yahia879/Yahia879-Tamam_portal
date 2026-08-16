@@ -52,6 +52,8 @@ import {
   Languages,
   LifeBuoy,
   Coins,
+  Crown,
+  PieChart,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
