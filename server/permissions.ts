@@ -193,10 +193,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   // Board Leadership Permissions Expansion
   board_chairman: ["board_chairman"],
+  board_chairman_view: ["board_chairman_view"],
   board_member: ["board_member"],
   "board.board_chairman": ["board_chairman"],
+  "board.board_chairman_view": ["board_chairman_view"],
   "board.board_member": ["board_member"],
   "board_leadership.board_chairman": ["board_chairman"],
+  "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
 };
 
