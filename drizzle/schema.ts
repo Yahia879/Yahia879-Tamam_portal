@@ -7,6 +7,8 @@ import { relations } from "drizzle-orm";
 export const userRoles = [
   "super_admin",      // المدير العام
   "system_admin",     // مدير النظام
+  "board_chairman",   // رئيس مجلس الإدارة
+  "board_member",     // عضو مجلس الإدارة
   "general_manager",   // المدير التنفيذي
   "executive_director", // المدير التنفيذي
   "projects_office",  // مكتب المشاريع
