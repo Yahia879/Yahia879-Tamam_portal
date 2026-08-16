@@ -250,6 +250,27 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "upload_final_report",
         nameAr: "رفع التقرير الختامي",
         nameEn: "Upload final report"
+      },
+      {
+        id: "board_chairman",
+        moduleId: "board",
+        action: "board_chairman",
+        nameAr: "صلاحية رئيس مجلس الإدارة",
+        nameEn: "Board Chairman Permission"
+      },
+      {
+        id: "board_chairman_view",
+        moduleId: "board",
+        action: "board_chairman_view",
+        nameAr: "عرض لوحة رئيس مجلس الإدارة",
+        nameEn: "View Board Chairman Dashboard"
+      },
+      {
+        id: "board_member",
+        moduleId: "board",
+        action: "board_member",
+        nameAr: "صلاحية عضو مجلس الإدارة",
+        nameEn: "Board Member Permission"
       }
     ];
 
