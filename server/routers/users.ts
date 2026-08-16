@@ -14,6 +14,8 @@ function hashPassword(password: string, salt: string): string {
 const STAFF_ROLES = [
   "super_admin",
   "system_admin",
+  "board_chairman",
+  "board_member",
   "general_manager",
   "executive_director",
   "projects_office",
@@ -239,8 +241,8 @@ export const usersRouter = router({
         email: z.string().email("البريد الإلكتروني غير صحيح"),
         password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
         phone: z.string().optional(),
-        // role is optional when the user is assigned exclusively via a custom role (roleIds)
-        role: z.enum([...STAFF_ROLES, "service_requester"]).optional(),
+        // role accepts standard roles (including board_chairman, board_member) and custom role identifiers
+        role: z.string().optional(),
         status: z.enum(["active", "pending", "suspended"]).default("active"),
         department: z.string().optional(),
         position: z.string().optional(),
@@ -498,7 +500,7 @@ export const usersRouter = router({
         name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(60, "الاسم يجب ألا يتجاوز 60 حرف").optional(),
         email: z.string().email().optional(),
         phone: z.string().optional(),
-        role: z.enum([...STAFF_ROLES, "service_requester"]).optional(),
+        role: z.string().optional(),
         status: z.enum(["active", "pending", "suspended", "blocked"]).optional(),
         department: z.string().optional(),
         position: z.string().optional(),
@@ -611,7 +613,7 @@ export const usersRouter = router({
     .input(
       z.object({
         userId: z.number(),
-        role: z.enum([...STAFF_ROLES, "service_requester"]),
+        role: z.string(),
       })
     )
     .mutation(async ({ input, ctx }) => {
