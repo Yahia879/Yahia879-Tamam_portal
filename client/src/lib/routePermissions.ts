@@ -92,7 +92,8 @@ export interface RoutePermission {
 export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── لوحة التحكم للمجلس ──
   "/board-dashboard": ["board_chairman", "board_member"],
-  "/board-analytics": ["board_chairman", "board_member"],
+  "/board-executive": "board_chairman",
+  "/board-analytics": "board_member",
 
   // ── لوحة التحكم ──
   "/dashboard": ["mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
