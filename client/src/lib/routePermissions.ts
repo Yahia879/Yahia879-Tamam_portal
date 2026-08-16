@@ -56,6 +56,17 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
     "requests", "settings_center",
   ],
 
+  board_chairman: [
+    "board_chairman", "board_member", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
+    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "progress_reports", "financial_report", "reports",
+  ],
+
+  board_member: [
+    "board_member", "financial_report", "reports", "mosques", "requests", "projects",
+  ],
+
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
 };
 
@@ -405,10 +416,10 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
-  if (user.role === "super_admin" || user.role === "system_admin") return "/dashboard";
+  if (["super_admin", "system_admin", "board_chairman", "board_member"].includes(user.role)) return "/dashboard";
 
   const userPerms: string[] = user.permissions ?? [];
-  const isBaseRole = ["super_admin", "system_admin", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
+  const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
   const hasCustom = !!user.customRole || !isBaseRole;
 
   // 1. التحقق من المسار الافتراضي المخصص للدور أولاً
