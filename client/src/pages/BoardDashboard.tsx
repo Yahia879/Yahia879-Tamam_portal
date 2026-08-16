@@ -14,11 +14,35 @@ import {
   Building2, CheckCircle2, Clock, Crown, Wallet, TrendingUp,
   FileText, Activity, RefreshCw, ShieldCheck,
   ArrowUpRight, AlertCircle, Banknote, Receipt, MapPin, Layers,
-  Check, Sparkles, PieChart as PieIcon
+  Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Handshake, LifeBuoy
 } from "lucide-react";
 import { Link } from "wouter";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
+
+const TOOLTIP_CONTENT_STYLE = {
+  borderRadius: "14px",
+  backgroundColor: "#ffffff",
+  borderColor: "#cbd5e1",
+  boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
+  color: "#0f172a",
+  padding: "10px 14px",
+  textAlign: "right" as const,
+  direction: "rtl" as const,
+};
+
+const TOOLTIP_ITEM_STYLE = {
+  color: "#0f172a",
+  fontWeight: "bold",
+  fontSize: "13px",
+};
+
+const TOOLTIP_LABEL_STYLE = {
+  color: "#475569",
+  fontWeight: "bold",
+  fontSize: "12px",
+  marginBottom: "4px",
+};
 
 export default function BoardDashboard() {
   const [activeTab, setActiveTab] = useState("mosques");
@@ -90,8 +114,8 @@ export default function BoardDashboard() {
               
               <p className="text-sm sm:text-base text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairman
-                  ? "مرحباً بك رئيس مجلس الإدارة، واجهة قيادية تُتيح لك الاطلاع الشامل والعميق على كافة المؤشرات التشغيلية والمالية وإجراء الاعتماد البنكي المباشر لأوامر الصرف."
-                  : "مرحباً بك عضو مجلس الإدارة، واجهة تنفيذية متكاملة توفر لك رؤية استراتيجية دقيقة ومتابعة مستمرة لجميع إحصائيات منصة وبوابة عمارة المساجد."}
+                  ? "مرحباً بك رئيس مجلس الإدارة، واجهة قيادية تُتيح لك الاطلاع الشامل والعميق على كافة المؤشرات التشغيلية والهندسية والمالية والحوكمة وإجراء الاعتماد البنكي المباشر لأوامر الصرف."
+                  : "مرحباً بك عضو مجلس الإدارة، واجهة تنفيذية متكاملة توفر لك رؤية استراتيجية دقيقة ومتابعة مستمرة لجميع إحصائيات ومشاريع منصة وبوابة عمارة المساجد."}
               </p>
             </div>
 
@@ -202,38 +226,63 @@ export default function BoardDashboard() {
         {data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
             {/* شريط التبويبات القيادي الموجه كاملاً من اليمين إلى اليسار */}
-            <div className="flex justify-start w-full" dir="rtl">
+            <div className="flex justify-start w-full overflow-x-auto pb-1" dir="rtl">
               <TabsList className="bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-wrap gap-2 text-right">
                 <TabsTrigger
                   value="mosques"
-                  className="rounded-xl px-5 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
                 >
                   <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
                   <span>إحصائيات المساجد</span>
                 </TabsTrigger>
+
                 <TabsTrigger
                   value="requests"
-                  className="rounded-xl px-5 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
                 >
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>إحصائيات الطلبات</span>
                 </TabsTrigger>
+
+                <TabsTrigger
+                  value="projects"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                >
+                  <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span>الهندسة والمشاريع</span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="procurement"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                >
+                  <Truck className="w-4 h-4 text-orange-500 shrink-0" />
+                  <span>المشتريات والعقود</span>
+                </TabsTrigger>
+
                 <TabsTrigger
                   value="financials"
-                  className="rounded-xl px-5 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
                 >
                   <Wallet className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>الأمور المالية والصرف</span>
+                  <span>المالية والصرف</span>
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="governance"
+                  className="rounded-xl px-4 py-2.5 font-bold text-xs sm:text-sm data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md transition-all gap-2"
+                >
+                  <Handshake className="w-4 h-4 text-purple-500 shrink-0" />
+                  <span>الحوكمة والشركاء</span>
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* ==================== 1️⃣ تبويب إحصائيات المساجد ==================== */}
             <TabsContent value="mosques" className="space-y-8 animate-in fade-in-50 duration-300">
-              {/* KPIs Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl transition-all">
-                  <CardContent className="p-6 flex items-center justify-between text-right">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي المساجد المسجلة</p>
                       <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
@@ -249,8 +298,8 @@ export default function BoardDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl transition-all">
-                  <CardContent className="p-6 flex items-center justify-between text-right">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المساجد النشطة</p>
                       <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
@@ -264,8 +313,8 @@ export default function BoardDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl transition-all">
-                  <CardContent className="p-6 flex items-center justify-between text-right">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المسجلة خلال آخر 30 يوماً</p>
                       <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
@@ -281,8 +330,8 @@ export default function BoardDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg shadow-slate-200/30 dark:shadow-none hover:shadow-xl transition-all">
-                  <CardContent className="p-6 flex items-center justify-between text-right">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">نسبة التغطية الكلية</p>
                       <h3 className="text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400">
@@ -297,7 +346,6 @@ export default function BoardDashboard() {
                 </Card>
               </div>
 
-              {/* Charts Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardHeader className="p-0 mb-6 text-right">
@@ -315,7 +363,10 @@ export default function BoardDashboard() {
                           <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} />
                           <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                           <Tooltip
-                            contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
+                            formatter={(value: any) => [`${value} مسجد`, "عدد المساجد"]}
+                            contentStyle={TOOLTIP_CONTENT_STYLE}
+                            itemStyle={TOOLTIP_ITEM_STYLE}
+                            labelStyle={TOOLTIP_LABEL_STYLE}
                           />
                           <Bar dataKey="value" name="عدد المساجد" fill="#10b981" radius={[10, 10, 0, 0]} />
                         </BarChart>
@@ -357,7 +408,9 @@ export default function BoardDashboard() {
                               </Pie>
                               <Tooltip
                                 formatter={(value: any, name: any) => [`${value} مسجد`, name]}
-                                contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
+                                contentStyle={TOOLTIP_CONTENT_STYLE}
+                                itemStyle={TOOLTIP_ITEM_STYLE}
+                                labelStyle={TOOLTIP_LABEL_STYLE}
                               />
                             </PieChart>
                           </ResponsiveContainer>
@@ -400,7 +453,6 @@ export default function BoardDashboard() {
 
             {/* ==================== 2️⃣ تبويب إحصائيات الطلبات ==================== */}
             <TabsContent value="requests" className="space-y-8 animate-in fade-in-50 duration-300">
-              {/* KPIs Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
@@ -465,7 +517,6 @@ export default function BoardDashboard() {
                 </Card>
               </div>
 
-              {/* Stage chart & Top Mosques */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <Card className="lg:col-span-2 rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardHeader className="p-0 mb-6 text-right">
@@ -483,7 +534,10 @@ export default function BoardDashboard() {
                           <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
                           <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                           <Tooltip
-                            contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
+                            formatter={(value: any) => [`${value} طلب`, "عدد الطلبات"]}
+                            contentStyle={TOOLTIP_CONTENT_STYLE}
+                            itemStyle={TOOLTIP_ITEM_STYLE}
+                            labelStyle={TOOLTIP_LABEL_STYLE}
                           />
                           <Bar dataKey="value" name="عدد الطلبات" fill="#3b82f6" radius={[10, 10, 0, 0]} />
                         </BarChart>
@@ -529,9 +583,174 @@ export default function BoardDashboard() {
               </div>
             </TabsContent>
 
-            {/* ==================== 3️⃣ تبويب الأمور المالية والصرف ==================== */}
+            {/* ==================== 3️⃣ تبويب الهندسة والمشاريع ==================== */}
+            <TabsContent value="projects" className="space-y-8 animate-in fade-in-50 duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي المشاريع الهندسية</p>
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.projects.total.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">مشاريع مسجلة</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <ClipboardList className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">المشاريع قيد التنفيذ</p>
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.projects.active.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                        <Activity className="w-3 h-3 shrink-0" /> أعمال إنشائية جارية
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">المشاريع المكتملة</p>
+                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        {data.projects.completed.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">تم الاستلام النهائي</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">ميزانيات المشاريع</p>
+                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
+                        {data.projects.totalBudget.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+                      </h3>
+                      <p className="text-xs text-muted-foreground">ميزانية معتمدة للمشاريع</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+                      <Wallet className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Projects Chart */}
+              <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                <CardHeader className="p-0 mb-6 text-right">
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5 text-indigo-500 shrink-0" />
+                    <span>توزيع المشاريع الهندسية حسب الحالات التشغيلية</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 h-72">
+                  {data.projects.byStatus.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.projects.byStatus} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} />
+                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
+                        <Tooltip
+                          formatter={(value: any) => [`${value} مشروع`, "عدد المشاريع"]}
+                          contentStyle={TOOLTIP_CONTENT_STYLE}
+                          itemStyle={TOOLTIP_ITEM_STYLE}
+                          labelStyle={TOOLTIP_LABEL_STYLE}
+                        />
+                        <Bar dataKey="value" name="عدد المشاريع" fill="#6366f1" radius={[10, 10, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      لا توجد مشاريع مسجلة حالياً
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* ==================== 4️⃣ تبويب المشتريات والعقود والموردين ==================== */}
+            <TabsContent value="procurement" className="space-y-8 animate-in fade-in-50 duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي الموردين المسجلين</p>
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.procurement.totalSuppliers.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">موردون بالشبكة</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0">
+                      <Truck className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">الموردون المعتمدون</p>
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.procurement.approvedSuppliers.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" /> منشآت مؤهلة رسمياً
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي العقود المبرمة</p>
+                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        {data.procurement.totalContracts.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">عقود رسمية نشطة</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">قيمة العقود المبرمة</p>
+                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
+                        {data.procurement.totalContractsValue.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+                      </h3>
+                      <p className="text-xs text-muted-foreground">إجمالي قيمة العقود</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+                      <Wallet className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* ==================== 5️⃣ تبويب الأمور المالية والصرف ==================== */}
             <TabsContent value="financials" className="space-y-8 animate-in fade-in-50 duration-300">
-              {/* KPIs Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
@@ -622,7 +841,9 @@ export default function BoardDashboard() {
                         <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
                         <Tooltip
                           formatter={(val: any) => [`${Number(val).toLocaleString("ar-SA")} ريال`, "المبلغ المصروف"]}
-                          contentStyle={{ borderRadius: "16px", background: "#0f172a", color: "#fff", border: "none", textAlign: "right", direction: "rtl" }}
+                          contentStyle={TOOLTIP_CONTENT_STYLE}
+                          itemStyle={TOOLTIP_ITEM_STYLE}
+                          labelStyle={TOOLTIP_LABEL_STYLE}
                         />
                         <Area type="monotone" dataKey="disbursed" name="المصروفات" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorDisbursed)" />
                       </AreaChart>
@@ -634,6 +855,75 @@ export default function BoardDashboard() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* ==================== 6️⃣ تبويب الحوكمة والشركاء والدعم ==================== */}
+            <TabsContent value="governance" className="space-y-8 animate-in fade-in-50 duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">الشركاء الاستراتيجيون</p>
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.governance.totalPartners.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                        <Handshake className="w-3 h-3 shrink-0" /> شركاء داعمون وممولون
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+                      <Handshake className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي بلاغات الدعم</p>
+                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        {data.governance.totalTickets.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">تذاكر مستلمة بالنظام</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                      <LifeBuoy className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">التذاكر المحلولة والمكتملة</p>
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.governance.resolvedTickets.toLocaleString("ar-SA")}
+                      </h3>
+                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" /> معالجة ناجحة
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardContent className="p-0 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">نسبة إنجاز الدعم الفني</p>
+                      <h3 className="text-3xl font-black tracking-tight text-indigo-600 dark:text-indigo-400">
+                        {data.governance.resolutionRate}%
+                      </h3>
+                      <p className="text-xs text-muted-foreground">جودة سرعة الاستجابة</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                      <TrendingUp className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         )}
