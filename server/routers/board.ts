@@ -83,23 +83,21 @@ export const boardRouter = router({
       }
 
       // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة مع البحث والترقيم والفلترة ====================
-      const baseAllWhere = inArray(
+      // لا تظهر في لوحة رئيس مجلس الإدارة إلا الأوامر المعتمدة من الإدارة (approved) أو المنفذة/المرفوضة
+      const baseApprovedOrdersWhere = inArray(
         disbursementOrders.status,
-        ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any
+        ["approved", "executed", "rejected"] as any
       );
 
       let statusCondition;
       if (statusFilter === "pending_approval" || statusFilter === "pending" || statusFilter === "pending_executive") {
-        statusCondition = inArray(
-          disbursementOrders.status,
-          ["approved", "pending", "pending_executive", "edited", "draft"] as any
-        );
+        statusCondition = eq(disbursementOrders.status, "approved" as any);
       } else if (statusFilter === "executed" || statusFilter === "approved_done") {
         statusCondition = eq(disbursementOrders.status, "executed" as any);
       } else if (statusFilter === "rejected") {
         statusCondition = eq(disbursementOrders.status, "rejected" as any);
       } else {
-        statusCondition = baseAllWhere;
+        statusCondition = baseApprovedOrdersWhere;
       }
 
       let orderTypeCondition;
@@ -196,12 +194,12 @@ export const boardRouter = router({
           totalAmount: sum(disbursementOrders.amount),
         })
         .from(disbursementOrders)
-        .where(baseAllWhere);
+        .where(baseApprovedOrdersWhere);
 
       const [pendingCountRes] = await db
         .select({ count: count() })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ["approved", "pending", "pending_executive", "edited", "draft"] as any));
+        .where(eq(disbursementOrders.status, "approved" as any));
 
       const [executedCountRes] = await db
         .select({ count: count() })
