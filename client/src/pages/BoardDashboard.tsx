@@ -625,7 +625,7 @@ export default function BoardDashboard() {
         {!isChairmanView && data && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8 w-full" dir="rtl">
             <div className="w-full" dir="rtl">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto bg-slate-100/90 dark:bg-slate-800/90 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 gap-2 sm:gap-3">
                 <TabsTrigger
                   value="mosques"
                   className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
@@ -640,14 +640,6 @@ export default function BoardDashboard() {
                 >
                   <FileText className="w-4 h-4 text-blue-500 shrink-0" />
                   <span>إحصائيات الطلبات</span>
-                </TabsTrigger>
-
-                <TabsTrigger
-                  value="projects"
-                  className="rounded-xl px-3 sm:px-4 py-2.5 font-bold text-xs sm:text-sm transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                >
-                  <ClipboardList className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <span>الهندسة والمشاريع</span>
                 </TabsTrigger>
 
                 <TabsTrigger
@@ -982,105 +974,7 @@ export default function BoardDashboard() {
               </div>
             </TabsContent>
 
-            {/* 3️⃣ تبويب الهندسة والمشاريع */}
-            <TabsContent value="projects" className="space-y-8 animate-in fade-in-50 duration-300">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي المشاريع الهندسية</p>
-                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.projects.total.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">مشاريع مسجلة</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                      <ClipboardList className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">المشاريع قيد التنفيذ</p>
-                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.projects.active.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                        <Activity className="w-3 h-3 shrink-0" /> أعمال إنشائية جارية
-                      </p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                      <Activity className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">المشاريع المكتملة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.projects.completed.toLocaleString("ar-SA")}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">تم الاستلام النهائي</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                      <CheckCircle2 className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                  <CardContent className="p-0 flex items-center justify-between text-right">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">ميزانيات المشاريع</p>
-                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-                        {data.projects.totalBudget.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
-                      </h3>
-                      <p className="text-xs text-muted-foreground">ميزانية معتمدة للمشاريع</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-                      <Wallet className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                <CardHeader className="p-0 mb-6 text-right">
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-indigo-500 shrink-0" />
-                    <span>توزيع المشاريع الهندسية حسب الحالات التشغيلية</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 h-72">
-                  {data.projects.byStatus.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.projects.byStatus} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} />
-                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
-                        <Tooltip
-                          formatter={(value: any) => [`${value} مشروع`, "عدد المشاريع"]}
-                          contentStyle={TOOLTIP_CONTENT_STYLE}
-                          itemStyle={TOOLTIP_ITEM_STYLE}
-                          labelStyle={TOOLTIP_LABEL_STYLE}
-                        />
-                        <Bar dataKey="value" name="عدد المشاريع" fill="#6366f1" radius={[10, 10, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                      لا توجد مشاريع مسجلة حالياً
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* 4️⃣ تبويب المشتريات والعقود والموردين */}
+            {/* 3️⃣ تبويب المشتريات والعقود والموردين */}
             <TabsContent value="procurement" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
@@ -1118,11 +1012,11 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي العقود المبرمة</p>
+                      <p className="text-xs font-semibold text-muted-foreground">العقود المعتمدة</p>
                       <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
                         {data.procurement.totalContracts.toLocaleString("ar-SA")}
                       </h3>
-                      <p className="text-xs text-muted-foreground">عقود رسمية نشطة</p>
+                      <p className="text-xs text-muted-foreground">عقود رسمية معتمدة</p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
                       <FileText className="w-6 h-6" />
@@ -1133,11 +1027,11 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">قيمة العقود المبرمة</p>
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي قيمة العقود</p>
                       <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
                         {data.procurement.totalContractsValue.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
                       </h3>
-                      <p className="text-xs text-muted-foreground">إجمالي قيمة العقود</p>
+                      <p className="text-xs text-muted-foreground">مجموع قيم العقود المعتمدة</p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
                       <Wallet className="w-6 h-6" />

@@ -9,7 +9,7 @@ import {
   projects,
   receiptVouchers,
   suppliers,
-  contracts,
+  contractsEnhanced,
   partners,
   supportTickets,
 } from "../../drizzle/schema";
@@ -389,32 +389,40 @@ export const boardRouter = router({
       .from(suppliers)
       .groupBy(sql`COALESCE(${suppliers.type}, 'supplier')`);
 
+    const [approvedContractsRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(contractsEnhanced.contractAmount),
+      })
+      .from(contractsEnhanced)
+      .where(eq(contractsEnhanced.status, "approved" as any));
+
     const [totalContractsRes] = await db
       .select({
         count: count(),
-        totalAmount: sum(contracts.amount),
+        totalAmount: sum(contractsEnhanced.contractAmount),
       })
-      .from(contracts);
+      .from(contractsEnhanced);
 
     const contractsByStatusRaw = await db
       .select({
-        status: sql<string>`COALESCE(${contracts.status}, 'draft')`,
+        status: sql<string>`COALESCE(${contractsEnhanced.status}, 'draft')`,
         value: count(),
-        totalValue: sum(contracts.amount),
+        totalValue: sum(contractsEnhanced.contractAmount),
       })
-      .from(contracts)
-      .groupBy(sql`COALESCE(${contracts.status}, 'draft')`);
+      .from(contractsEnhanced)
+      .groupBy(sql`COALESCE(${contractsEnhanced.status}, 'draft')`);
 
     const topSuppliersContractsRaw = await db
       .select({
-        supplierId: contracts.supplierId,
-        supplierName: suppliers.name,
+        supplierId: contractsEnhanced.supplierId,
+        supplierName: sql<string>`COALESCE(${suppliers.name}, ${contractsEnhanced.secondPartyName}, 'مورد غير محدد')`,
         count: count(),
-        totalValue: sum(contracts.amount),
+        totalValue: sum(contractsEnhanced.contractAmount),
       })
-      .from(contracts)
-      .leftJoin(suppliers, eq(contracts.supplierId, suppliers.id))
-      .groupBy(contracts.supplierId, suppliers.name)
+      .from(contractsEnhanced)
+      .leftJoin(suppliers, eq(contractsEnhanced.supplierId, suppliers.id))
+      .groupBy(contractsEnhanced.supplierId, suppliers.name, contractsEnhanced.secondPartyName)
       .orderBy(desc(count()))
       .limit(5);
 
@@ -522,8 +530,8 @@ export const boardRouter = router({
       procurement: {
         totalSuppliers: Number(totalSuppliersRes?.value || 0),
         approvedSuppliers: Number(approvedSuppliersRes?.value || 0),
-        totalContracts: Number(totalContractsRes?.count || 0),
-        totalContractsValue: Number(totalContractsRes?.totalAmount || 0),
+        totalContracts: Number(approvedContractsRes?.count || 0),
+        totalContractsValue: Number(totalContractsRes?.totalAmount || approvedContractsRes?.totalAmount || 0),
         suppliersByStatus: suppliersByStatusRaw.map((s) => ({
           name: s.status === "approved" ? "مؤهل ومعتمد" : s.status === "rejected" ? "مرفوض" : "قيد التأهيل والاعتماد",
           value: Number(s.value),
@@ -533,7 +541,7 @@ export const boardRouter = router({
           value: Number(t.value),
         })),
         contractsByStatus: contractsByStatusRaw.map((c) => ({
-          name: c.status === "active" ? "عقود سارية ونشطة" : c.status === "completed" ? "عقود مكتملة" : c.status === "terminated" ? "عقود منتهية" : "قيد الإعداد والاعتماد",
+          name: c.status === "approved" ? "عقود معتمدة وسارية" : c.status === "completed" ? "عقود مكتملة" : c.status === "cancelled" ? "عقود ملغاة" : "مسودات وقيد الإعداد",
           value: Number(c.value),
           totalValue: Number(c.totalValue || 0),
         })),
