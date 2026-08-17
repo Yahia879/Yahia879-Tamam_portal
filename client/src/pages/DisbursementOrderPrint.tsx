@@ -385,7 +385,7 @@ export default function DisbursementOrderPrint() {
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
       <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
         {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start min-h-[277mm]">
+        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[277mm]">
           {/* خط ذهبي داخلي رفيع للإطار */}
           <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
@@ -474,7 +474,7 @@ export default function DisbursementOrderPrint() {
                       </td>
                     </tr>
 
-                    <tr>
+                    <tr className={documentationLinks.length > 0 ? "border-b border-slate-300" : ""}>
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
                         وذلك مقابل/
                       </td>
@@ -482,6 +482,26 @@ export default function DisbursementOrderPrint() {
                         {descriptionText}
                       </td>
                     </tr>
+
+                    {documentationLinks.map((item, idx) => (
+                      <tr key={idx} className={idx < documentationLinks.length - 1 ? "border-b border-slate-300" : ""}>
+                        <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
+                          {item.name ? `رابط (${item.name})/` : "رابط المرفق/"}
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono text-xs text-right" colSpan={2}>
+                          <a 
+                            href={item.url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1.5 text-right"
+                            dir="ltr"
+                          >
+                            <span>{item.url}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0 no-print text-blue-500" />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -558,54 +578,6 @@ export default function DisbursementOrderPrint() {
                             : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* قسم المرفقات والروابط التوثيقية */}
-              {documentationLinks.length > 0 && (
-                <div className="mb-4 break-inside-avoid">
-                  <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <Link2 className="w-3.5 h-3.5 text-slate-600 inline" />
-                      المرفقات والروابط التوثيقية:
-                    </span>
-                    <span className="text-[11px] text-slate-500 font-normal">
-                      عدد الروابط: {documentationLinks.length}
-                    </span>
-                  </div>
-                  <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
-                    <thead>
-                      <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
-                        <th className="p-2 border-l border-slate-300 w-12 text-center">#</th>
-                        <th className="p-2 border-l border-slate-300 w-1/3 text-right">بيان المرفق / الرابط</th>
-                        <th className="p-2 text-right">الرابط الإلكتروني للمعاينة</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {documentationLinks.map((item, idx) => (
-                        <tr key={idx} className={idx < documentationLinks.length - 1 ? "border-b border-slate-300" : ""}>
-                          <td className="p-2 text-center font-bold text-slate-600 border-l border-slate-300 w-12">
-                            {idx + 1}
-                          </td>
-                          <td className="p-2.5 bg-slate-50 font-bold border-l border-slate-300 text-slate-800 text-right">
-                            {item.name || "مستند / رابط توثيقي"}
-                          </td>
-                          <td className="p-2.5 text-right font-mono text-xs">
-                            <a 
-                              href={item.url} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1.5 text-right"
-                              dir="ltr"
-                            >
-                              <span className="max-w-[450px] truncate">{item.url}</span>
-                              <ExternalLink className="w-3 h-3 shrink-0 no-print" />
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
                     </tbody>
                   </table>
                 </div>
