@@ -91,7 +91,12 @@ export default function Dashboard() {
 
     // توجيه طالب الخدمة أو أي مستخدم غير إداري إلى صفحته الوظيفية المصرحة
     if (!isAdmin) {
-      navigate(getUserHomeRoute(user), { replace: true });
+      const target = (user.role === "board_chairman" || (user.permissions as any)?.includes?.("board_chairman"))
+        ? "/board-executive"
+        : (user.role === "board_member" || (user.permissions as any)?.includes?.("board_member"))
+        ? "/board-analytics"
+        : getUserHomeRoute(user);
+      navigate(target, { replace: true });
     }
   }, [user, navigate, isAdmin]);
 

@@ -421,7 +421,13 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
-  if (["super_admin", "system_admin", "board_chairman", "board_member"].includes(user.role)) return "/dashboard";
+  if (user.role === "board_chairman" || user.permissions?.includes?.("board_chairman") || user.permissions?.includes?.("board_leadership.board_chairman")) {
+    return "/board-executive";
+  }
+  if (user.role === "board_member" || user.permissions?.includes?.("board_member") || user.permissions?.includes?.("board_leadership.board_member")) {
+    return "/board-analytics";
+  }
+  if (["super_admin", "system_admin"].includes(user.role)) return "/dashboard";
 
   const userPerms: string[] = user.permissions ?? [];
   const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
@@ -429,6 +435,8 @@ export function getUserHomeRoute(user: any): string {
 
   // 1. التحقق من المسار الافتراضي المخصص للدور أولاً
   const roleDefaultRoutes: Record<string, string> = {
+    board_chairman: "/board-executive",
+    board_member: "/board-analytics",
     projects_office: "/mosques",
     field_team: "/field-visits",
     quick_response: "/requests",
