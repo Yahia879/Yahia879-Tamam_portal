@@ -1230,10 +1230,10 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي مصاريف الجمعية</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.financials.executiveApprovedOrdersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        مجموع السجلات المعتمدة ({data.financials.executiveApprovedOrdersCount} أمر)
+                        أوامر صرف منفذة ({data.financials.executedDisbursementOrdersCount} أمر)
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">

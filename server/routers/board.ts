@@ -466,6 +466,15 @@ export const boardRouter = router({
       .from(receiptVouchers)
       .where(eq(receiptVouchers.status, "approved" as any));
 
+    // 5. أوامر الصرف المنفذة (المطابقة لحالة "منفذ" في صفحة /disbursement-orders)
+    const [executedDisbursementOrdersRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(disbursementOrders.amount),
+      })
+      .from(disbursementOrders)
+      .where(eq(disbursementOrders.status, "executed" as any));
+
     const monthlyFlowRaw = await db
       .select({
         month: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m')`,
@@ -573,6 +582,9 @@ export const boardRouter = router({
         totalDisbursementOrdersCount: Number(totalDisbursementOrdersRes?.count || 0),
         totalDisbursementOrdersAmount: Number(totalDisbursementOrdersRes?.totalAmount || 0),
         totalDisbursedAmount: Number(totalDisbursementOrdersRes?.totalAmount || 0),
+
+        executedDisbursementOrdersCount: Number(executedDisbursementOrdersRes?.count || 0),
+        executedDisbursementOrdersAmount: Number(executedDisbursementOrdersRes?.totalAmount || 0),
 
         executiveApprovedOrdersCount: Number(executiveApprovedOrdersRes?.count || 0),
         executiveApprovedOrdersAmount: Number(executiveApprovedOrdersRes?.totalAmount || 0),
