@@ -59,7 +59,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   board_chairman: [
     "board_chairman", "board_member", "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "contracts", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
   ],
 

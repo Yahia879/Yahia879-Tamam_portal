@@ -189,9 +189,18 @@ export const disbursementsRouter = router({
     }),
 
   // جلب طلب صرف بالتفصيل
-  getRequestById: permissionProcedure("disbursements.view")
+  getRequestById: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
+      const hasChairman = await checkPermission(ctx.user.id, "board_chairman");
+      const hasChairmanView = await checkPermission(ctx.user.id, "board_chairman_view");
+
+      if (!isAdmin && !hasViewRequests && !hasChairman && !hasChairmanView) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل طلب الصرف" });
+      }
+
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
