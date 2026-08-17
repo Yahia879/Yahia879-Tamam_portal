@@ -235,22 +235,9 @@ export default function BoardDashboard() {
               
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairmanView
-                  ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة) بتنسيق جدول المنظومة الموحد، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
+                  ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
                   : "صفحة إحصائية خاصة بأعضاء مجلس الإدارة توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
               </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 justify-start">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                disabled={isRefetching || isLoading}
-                className="h-9 px-4 rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-all gap-2 font-bold text-xs shadow-xs"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin text-primary" : ""}`} />
-                <span>تحديث البيانات</span>
-              </Button>
             </div>
           </div>
         </div>
@@ -259,7 +246,7 @@ export default function BoardDashboard() {
         {isChairmanView && data?.chairmanData && (
           <div className="space-y-8 animate-in fade-in-50 duration-300">
             {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
                 <CardContent className="p-5 flex items-center justify-between text-right">
                   <div className="space-y-1">
@@ -298,20 +285,6 @@ export default function BoardDashboard() {
                   </div>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 text-purple-600 shrink-0">
                     <FileSpreadsheet className="w-6 h-6" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">إجمالي مبالغ الصرف</p>
-                    <h3 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 truncate">
-                      {formatCurrency(totalApprovedAmount)}
-                    </h3>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 shrink-0">
-                    <Banknote className="w-6 h-6" />
                   </div>
                 </CardContent>
               </Card>
