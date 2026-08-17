@@ -1612,8 +1612,10 @@ export const disbursementsRouter = router({
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasViewRequests = await checkPermission(ctx.user.id, "disbursements.view");
       const hasViewOrders = await checkPermission(ctx.user.id, "disbursement_orders.view");
+      const hasChairman = await checkPermission(ctx.user.id, "board_chairman");
+      const hasChairmanView = await checkPermission(ctx.user.id, "board_chairman_view");
 
-      if (!isAdmin && !hasViewRequests && !hasViewOrders) {
+      if (!isAdmin && !hasViewRequests && !hasViewOrders && !hasChairman && !hasChairmanView) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل أمر الصرف" });
       }
 

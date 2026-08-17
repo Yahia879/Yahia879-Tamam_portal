@@ -192,14 +192,14 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
 
   // Board Leadership Permissions Expansion
-  board_chairman: ["board_chairman"],
-  board_chairman_view: ["board_chairman_view"],
+  board_chairman: ["board_chairman", "board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
+  board_chairman_view: ["board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
   board_member: ["board_member"],
-  "board.board_chairman": ["board_chairman"],
-  "board.board_chairman_view": ["board_chairman_view"],
+  "board.board_chairman": ["board_chairman", "board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
+  "board.board_chairman_view": ["board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
   "board.board_member": ["board_member"],
-  "board_leadership.board_chairman": ["board_chairman"],
-  "board_leadership.board_chairman_view": ["board_chairman_view"],
+  "board_leadership.board_chairman": ["board_chairman", "board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
+  "board_leadership.board_chairman_view": ["board_chairman_view", "disbursements.view", "disbursement_orders.view", "disbursements", "disbursement_orders", "disbursement_requests"],
   "board_leadership.board_member": ["board_member"],
 };
 

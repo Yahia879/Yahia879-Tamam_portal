@@ -271,15 +271,15 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursements\/new\/\d+$/, permission: "disbursement_requests" },
   { pattern: /^\/disbursements\/new\/contract\/\d+$/, permission: "disbursement_requests" },
   { pattern: /^\/disbursements\/requests\/\d+\/edit$/, permission: "disbursement_requests" },
-  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: "disbursement_requests" },
+  { pattern: /^\/disbursements\/requests\/\d+\/print$/, permission: ["disbursement_requests", "disbursements.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/payments\/edit\/[^/]+$/, permission: "disbursement_requests" },
 
   // أوامر الصرف
   { pattern: /^\/disbursement-orders\/new\/\d+$/, permission: "disbursement_orders" },
-  { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: "disbursement_orders" },
-  { pattern: /^\/disbursement-orders\/\d+$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursement-orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+  { pattern: /^\/disbursement-orders\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: "disbursement_orders" },
-  { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: "disbursement_orders" },
+  { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
 
   // التقارير الختامية
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
