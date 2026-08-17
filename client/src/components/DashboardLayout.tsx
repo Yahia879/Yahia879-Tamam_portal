@@ -70,11 +70,21 @@ type MenuGroup = { label: string; items: MenuItem[] };
 const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   const groups: MenuGroup[] = [];
 
-  // الرئيسية - متاحة للإدارة العليا
+  // الرئيسية
+  const mainItems: MenuItem[] = [];
   if (["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
+  }
+  if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+  }
+  if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+  }
+  if (mainItems.length > 0) {
     groups.push({
-      label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
+      label: isEn ? "Home" : "الرئيسية",
+      items: mainItems,
     });
   }
 
@@ -95,15 +105,9 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     });
   }
 
-  // 2. الهندسة والمشاريع (وتضم لوحات مجلس الإدارة)
-  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team", "board_chairman", "board_member"].includes(role)) {
+  // 2. الهندسة والمشاريع
+  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team"].includes(role)) {
     const items: MenuItem[] = [];
-    if (role === "board_chairman") {
-      items.push({ icon: Crown, label: "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
-    }
-    if (role === "board_member") {
-      items.push({ icon: PieChart, label: "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
-    }
     if (["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
     }
@@ -202,10 +206,20 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const groups: MenuGroup[] = [];
 
   // الرئيسية
+  const mainItems: MenuItem[] = [];
   if (["super_admin", "system_admin"].includes(role)) {
+    mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
+  }
+  if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
+    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+  }
+  if (has("board_member") || role === "board_member") {
+    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+  }
+  if (mainItems.length > 0) {
     groups.push({
-      label: "الرئيسية",
-      items: [{ icon: LayoutDashboard, label: "الرئيسية", path: "/dashboard" }],
+      label: isEn ? "Home" : "الرئيسية",
+      items: mainItems,
     });
   }
 
@@ -226,14 +240,8 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     });
   }
 
-  // 2. الهندسة والمشاريع (وتضم لوحات مجلس الإدارة)
+  // 2. الهندسة والمشاريع
   const engineeringItems: MenuItem[] = [];
-  if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
-    engineeringItems.push({ icon: Crown, label: "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
-  }
-  if (has("board_member") || role === "board_member") {
-    engineeringItems.push({ icon: PieChart, label: "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
-  }
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
     engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
