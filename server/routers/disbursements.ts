@@ -947,44 +947,19 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "طلب الصرف غير موجود" });
       }
 
-      const hasBoardChairmanPerm = 
-        ctx.user.role === "board_chairman" ||
-        await checkPermission(ctx.user.id, "board_chairman");
-
       const hasApprovePerm = 
-        hasBoardChairmanPerm ||
         await checkPermission(ctx.user.id, "disbursements.approve") ||
         await checkPermission(ctx.user.id, "disbursements.sign") ||
         await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
         await checkPermission(ctx.user.id, "disbursement_orders.sign");
 
-      const isExecDirector = ["general_manager", "executive_director", "board_chairman"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
-
-      // الاعتماد البنكي المباشر لرئيس مجلس الإدارة بدون دورة صرف اعتيادية
-      if (hasBoardChairmanPerm) {
-        await db
-          .update(disbursementRequests)
-          .set({
-            status: "approved",
-            approvedBy: ctx.user.id,
-            approvedAt: new Date(),
-            approvalNotes: input.notes || request.approvalNotes,
-            updatedAt: new Date(),
-          })
-          .where(eq(disbursementRequests.id, input.id));
-
-        return {
-          success: true,
-          status: "approved",
-          message: "تم الاعتماد النهائي والمباشر لطلب الصرف بواسطة رئيس مجلس الإدارة بنجاح",
-        };
-      }
+      const isExecDirector = ["general_manager", "executive_director"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
       // المرحلة الأولى: اعتماد مُعد الطلب أو المدير التنفيذي (pending / draft -> pending_executive)
       if (request.status === "pending" || request.status === "draft") {
         const isPreparer = request.requestedBy === ctx.user.id;
         
-        if (!isPreparer && !isExecDirector && !hasApprovePerm) {
+        if (!isPreparer) {
           throw new TRPCError({ 
             code: "FORBIDDEN", 
             message: "فقط مُعدّ الطلب يمتلك صلاحية اعتماد المرحلة الأولى لطلبات الصرف" 
@@ -1006,7 +981,7 @@ export const disbursementsRouter = router({
           .from(users)
           .where(
             and(
-              inArray(users.role, ["general_manager", "executive_director", "board_chairman"] as any),
+              inArray(users.role, ["general_manager", "executive_director"]),
               isNull(users.deletedAt)
             )
           );
