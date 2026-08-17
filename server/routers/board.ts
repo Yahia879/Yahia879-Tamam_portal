@@ -104,12 +104,14 @@ export const boardRouter = router({
       if (orderTypeFilter === "linked") {
         orderTypeCondition = and(
           isNotNull(disbursementOrders.disbursementRequestId),
-          sql`${disbursementOrders.disbursementRequestId} > 0`
+          sql`${disbursementOrders.disbursementRequestId} > 0`,
+          or(isNull(disbursementRequests.isDirect), eq(disbursementRequests.isDirect, false))
         );
       } else if (orderTypeFilter === "custom") {
         orderTypeCondition = or(
           isNull(disbursementOrders.disbursementRequestId),
-          eq(disbursementOrders.disbursementRequestId, 0)
+          eq(disbursementOrders.disbursementRequestId, 0),
+          eq(disbursementRequests.isDirect, true)
         );
       }
 
@@ -153,7 +155,8 @@ export const boardRouter = router({
           rejectionReason: disbursementOrders.rejectionReason,
           approvalNotes: disbursementOrders.approvalNotes,
           disbursementRequestId: disbursementOrders.disbursementRequestId,
-          isCustom: sql<boolean>`CASE WHEN ${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0 THEN TRUE ELSE FALSE END`,
+          isDirect: disbursementRequests.isDirect,
+          isCustom: sql<boolean>`CASE WHEN ${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0 OR ${disbursementRequests.isDirect} = TRUE THEN TRUE ELSE FALSE END`,
           requestId: disbursementRequests.id,
           requestNumber: disbursementRequests.requestNumber,
           requestTitle: disbursementRequests.title,
@@ -168,7 +171,7 @@ export const boardRouter = router({
         .offset(offset);
 
       const orders = ordersRaw.map((o) => {
-        const isCustom = !o.disbursementRequestId || Number(o.disbursementRequestId) === 0 || !o.requestId;
+        const isCustomOrder = !o.disbursementRequestId || Number(o.disbursementRequestId) === 0 || !o.requestId || Boolean(o.isDirect);
         return {
           id: o.orderId,
           orderId: o.orderId,
@@ -182,12 +185,12 @@ export const boardRouter = router({
           orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
           rejectionReason: o.rejectionReason || null,
           approvalNotes: o.approvalNotes || null,
-          isCustom,
-          title: isCustom ? "أمر صرف مخصص" : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
-          requestId: isCustom ? null : (o.requestId || null),
-          requestNumber: isCustom ? null : (o.requestNumber || null),
-          requestAmount: isCustom ? null : (o.requestAmount ? Number(o.requestAmount) : null),
-          requestStatus: isCustom ? null : (o.requestStatus || null),
+          isCustom: isCustomOrder,
+          title: isCustomOrder ? (o.requestTitle || "أمر صرف مخصص") : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
+          requestId: isCustomOrder ? null : (o.requestId || null),
+          requestNumber: isCustomOrder ? null : (o.requestNumber || null),
+          requestAmount: isCustomOrder ? null : (o.requestAmount ? Number(o.requestAmount) : null),
+          requestStatus: isCustomOrder ? null : (o.requestStatus || null),
         };
       });
 
