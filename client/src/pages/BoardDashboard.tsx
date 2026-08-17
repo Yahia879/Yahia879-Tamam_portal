@@ -215,34 +215,34 @@ export default function BoardDashboard() {
     <DashboardLayout>
       <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
         {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 dark:shadow-none transition-all">
-          <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-amber-500 via-emerald-500 to-blue-600" />
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-background to-emerald-500/5 dark:from-primary/10 dark:via-background dark:to-emerald-950/20 p-6 sm:p-7 shadow-xs transition-all">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary via-teal-500 to-emerald-600" />
           
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
-            <div className="space-y-3 text-right">
+            <div className="space-y-2.5 text-right">
               <div className="flex items-center gap-3 justify-start">
                 {isChairmanView ? (
-                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-400/30 px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+                  <Badge className="bg-primary/10 text-primary border border-primary/25 px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-primary/15 transition-colors">
+                    <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span>رئيس مجلس الإدارة</span>
                   </Badge>
                 ) : (
-                  <Badge className="bg-slate-500/15 text-slate-700 dark:text-slate-300 border-slate-400/30 px-3.5 py-1.5 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
+                  <Badge className="bg-muted text-muted-foreground border border-border px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span>عضو مجلس الإدارة</span>
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-primary/70 shrink-0" />
                   محدّث تلقائياً
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 {isChairmanView ? "لوحة اعتماد أوامر الصرف المعتمدة (رئيس مجلس الإدارة)" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
               
-              <p className="text-sm sm:text-base text-muted-foreground max-w-3xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairmanView
                   ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة) بتنسيق جدول المنظومة الموحد، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
                   : "صفحة إحصائية خاصة بأعضاء مجلس الإدارة توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
@@ -255,9 +255,9 @@ export default function BoardDashboard() {
                 size="sm"
                 onClick={() => refetch()}
                 disabled={isRefetching || isLoading}
-                className="rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-2 font-bold"
+                className="h-9 px-4 rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-all gap-2 font-bold text-xs shadow-xs"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefetching ? "animate-spin text-primary" : ""}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin text-primary" : ""}`} />
                 <span>تحديث البيانات</span>
               </Button>
             </div>
@@ -268,12 +268,12 @@ export default function BoardDashboard() {
         {isChairmanView && data?.chairmanData && (
           <div className="space-y-8 animate-in fade-in-50 duration-300">
             {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
                 <CardContent className="p-5 flex items-center justify-between text-right">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100">
+                    <h3 className="text-2xl sm:text-3xl font-black text-foreground">
                       {data.chairmanData.totalApprovedCount}
                     </h3>
                   </div>
@@ -327,10 +327,10 @@ export default function BoardDashboard() {
             </div>
 
             {/* أدوات البحث والتصفية المباشرة */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-0 shadow-sm rounded-2xl bg-card">
               <CardHeader className="p-4 sm:p-6 pb-2 text-right">
                 <CardTitle className="text-lg sm:text-xl font-bold">قائمة أوامر الصرف المعتمدة للتحويل البنكي</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
                   جدول موحد يضم كافة أوامر الصرف المعتمدة (المرتبطة بطلبات والمخصصة) للاعتماد والتنفيذ البنكي
                 </CardDescription>
               </CardHeader>
@@ -387,10 +387,10 @@ export default function BoardDashboard() {
                   );
 
                   return filteredOrders.length > 0 ? (
-                    <Card className="border-0 shadow-sm overflow-hidden p-0 space-y-0">
+                    <Card className="border-0 shadow-sm overflow-hidden p-0 space-y-0 rounded-xl">
                       <div className="overflow-x-auto">
                         <Table dir="rtl" className="w-full min-w-full">
-                          <TableHeader className="bg-slate-50/70 dark:bg-slate-900/70 border-b border-border">
+                          <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-border">
                             <TableRow className="hover:bg-transparent">
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر والنوع</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">البيان والمستفيد</TableHead>
@@ -405,7 +405,7 @@ export default function BoardDashboard() {
                                 {/* رقم الأمر والنوع */}
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">{order.orderNumber}</span>
+                                    <span className="font-mono text-xs font-bold text-foreground">{order.orderNumber}</span>
                                     {order.isCustom && (
                                       <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
                                         أمر مخصص
@@ -417,18 +417,18 @@ export default function BoardDashboard() {
                                 {/* البيان والمستفيد */}
                                 <TableCell className="py-3.5 px-4 text-right">
                                   <div className="space-y-0.5">
-                                    <div className="font-bold text-xs text-slate-900 dark:text-slate-100 max-w-[280px] truncate">
+                                    <div className="font-bold text-xs text-foreground max-w-[280px] truncate">
                                       {order.title}
                                     </div>
                                     <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                                       <span className="font-semibold text-slate-600 dark:text-slate-400">المستفيد:</span>
-                                      <span className="font-bold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</span>
+                                      <span className="font-bold text-foreground">{order.beneficiaryName}</span>
                                     </div>
                                   </div>
                                 </TableCell>
 
                                 {/* المبلغ */}
-                                <TableCell className="py-3.5 px-4 text-right whitespace-nowrap font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                                <TableCell className="py-3 px-4 text-right whitespace-nowrap font-mono font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
                                   {formatCurrency(order.amount)}
                                 </TableCell>
 
@@ -445,49 +445,39 @@ export default function BoardDashboard() {
                                   })()}
                                 </TableCell>
 
-                                {/* قائمة الإجراءات الثلاث نقاط */}
+                                {/* قائمة الإجراءات المتناسقة مع المنظومة */}
                                 <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
                                   <DropdownMenu dir="rtl">
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
-                                        <MoreVertical className="w-4 h-4 text-slate-600" />
+                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
+                                        <MoreVertical className="w-4 h-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 font-bold text-xs space-y-1">
-                                      {/* خيارات عرض التفاصيل المخصصة لمن يملك صلاحية الاعتماد والرفض الكاملة */}
+                                    <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 font-medium text-xs shadow-lg border border-border bg-popover text-popover-foreground space-y-0.5">
+                                      {/* خيارات عرض التفاصيل للمخولين */}
                                       {canPerformActions && (
                                         <>
                                           <DropdownMenuItem
-                                            onClick={() => setPreviewModal({
-                                              open: true,
-                                              title: `عرض أمر الصرف (${order.orderNumber})`,
-                                              type: "order",
-                                              data: order,
-                                            })}
-                                            className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                            onClick={() => window.open(`/disbursement-orders/${order.orderId || order.id}/print`, '_blank')}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                           >
-                                            <Eye className="w-4 h-4 text-blue-500 shrink-0" />
-                                            <span>عرض أمر الصرف</span>
+                                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            <span>عرض أمر الصرف المعتمد</span>
                                           </DropdownMenuItem>
 
-                                          {!order.isCustom && order.requestNumber && (
+                                          {!order.isCustom && (order.requestId || order.requestNumber) && (
                                             <DropdownMenuItem
-                                              onClick={() => setPreviewModal({
-                                                open: true,
-                                                title: `تفاصيل طلب الصرف المعتمد (${order.requestNumber})`,
-                                                type: "request",
-                                                data: order,
-                                              })}
-                                              className="rounded-xl cursor-pointer gap-2 py-2 text-slate-700 dark:text-slate-200"
+                                              onClick={() => window.open(`/disbursements/requests/${order.requestId}/print`, '_blank')}
+                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                             >
-                                              <FileText className="w-4 h-4 text-purple-500 shrink-0" />
+                                              <FileText className="w-4 h-4 text-primary shrink-0" />
                                               <span>عرض طلب الصرف المعتمد</span>
                                             </DropdownMenuItem>
                                           )}
                                         </>
                                       )}
 
-                                      {/* خيار 'عرض المبررات' يظهر حصراً لحاملي صلاحية عرض اللوحة وكذلك للمخولين عند وجود مبرر أو رفض */}
+                                      {/* خيار 'عرض المبررات' عند وجود مبرر أو رفض */}
                                       {(order.rejectionReason || order.approvalNotes || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
                                         <DropdownMenuItem
                                           onClick={() => setViewJustificationModal({
@@ -495,9 +485,9 @@ export default function BoardDashboard() {
                                             orderNumber: order.orderNumber,
                                             reason: order.rejectionReason || order.approvalNotes || "لا يوجد مبرر مدون",
                                           })}
-                                          className="rounded-xl cursor-pointer gap-2 py-2 text-amber-700 dark:text-amber-400 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
+                                          className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                         >
-                                          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                                          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                                           <span>عرض المبررات</span>
                                         </DropdownMenuItem>
                                       )}
@@ -505,22 +495,22 @@ export default function BoardDashboard() {
                                       {/* خيارات الاعتماد والرفض المباشر للمخولين فقط */}
                                       {canPerformActions && (
                                         <>
-                                          <DropdownMenuSeparator />
+                                          <DropdownMenuSeparator className="my-1 border-border/60" />
 
                                           <DropdownMenuItem
                                             onClick={() => handleDirectApprove(order.id)}
                                             disabled={approvingId === order.id}
-                                            className="rounded-xl cursor-pointer gap-2 py-2 text-emerald-700 dark:text-emerald-400 focus:bg-emerald-50 dark:focus:bg-emerald-950/40"
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
                                           >
-                                            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                             <span>اعتماد وتحويل المبلغ</span>
                                           </DropdownMenuItem>
 
                                           <DropdownMenuItem
                                             onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
-                                            className="rounded-xl cursor-pointer gap-2 py-2 text-amber-800 dark:text-amber-300 focus:bg-amber-50 dark:focus:bg-amber-950/40 font-bold"
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
                                           >
-                                            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                                            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                                             <span>رفض أمر الصرف</span>
                                           </DropdownMenuItem>
                                         </>
