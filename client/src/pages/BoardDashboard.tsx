@@ -328,14 +328,15 @@ export default function BoardDashboard() {
               <CardContent className="p-4 sm:p-6 space-y-6">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   <div className="relative flex-1">
-                    <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    {isRefetching ? (
+                      <RefreshCw className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary animate-spin" />
+                    ) : (
+                      <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    )}
                     <Input
                       placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
                       value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       className="pr-10 rounded-xl"
                     />
                   </div>
@@ -499,6 +500,7 @@ export default function BoardDashboard() {
                               className="h-8 w-8 shrink-0 rounded-lg"
                               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                               disabled={currentPage === 1}
+                              title="الصفحة السابقة"
                             >
                               <ChevronRight className="h-4 w-4" />
                             </Button>
@@ -539,6 +541,7 @@ export default function BoardDashboard() {
                               className="h-8 w-8 shrink-0 rounded-lg"
                               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                               disabled={currentPage === totalPages}
+                              title="الصفحة التالية"
                             >
                               <ChevronLeft className="h-4 w-4" />
                             </Button>
