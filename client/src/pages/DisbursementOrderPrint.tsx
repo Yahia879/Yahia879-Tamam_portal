@@ -69,7 +69,7 @@ export default function DisbursementOrderPrint() {
 
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
-  const [showLinksCard, setShowLinksCard] = useState<boolean>(true);
+  const [showLinksCard, setShowLinksCard] = useState<boolean>(false);
 
   const utils = trpc.useContext();
   const updateOrderSigVisibilityMutation = trpc.disbursements.updateOrderSignatureVisibility.useMutation({
