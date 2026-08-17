@@ -951,12 +951,15 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 space-y-4">
                     {data.requests.topMosques.length > 0 ? (
                       data.requests.topMosques.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-right">
-                          <div className="flex items-center gap-3">
+                        <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-right hover:bg-slate-100/60 dark:hover:bg-slate-800/90 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0 flex-1 ml-2">
                             <span className="w-7 h-7 rounded-xl bg-purple-500/10 text-purple-600 font-bold text-xs flex items-center justify-center shrink-0">
                               {i + 1}
                             </span>
-                            <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate max-w-[160px]">
+                            <span 
+                              className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-[280px] cursor-help"
+                              title={item.name}
+                            >
                               {item.name}
                             </span>
                           </div>

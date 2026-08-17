@@ -21,12 +21,20 @@ const STAGE_LABELS: Record<string, string> = {
   submitted: "تقديم الطلب",
   initial_review: "المراجعة الأولية",
   field_visit: "الزيارة الميدانية",
-  boq_preparation: "جدول الكميات",
-  financial_eval_and_approval: "التقييم المالي",
+  technical_eval: "التقييم الفني",
+  boq_preparation: "إعداد جدول الكميات",
+  financial_eval: "التقييم المالي",
+  financial_eval_and_approval: "التقييم المالي واعتماد العرض",
+  quotation_approval: "اعتماد العرض",
+  contracting: "التعاقد",
+  execution: "مرحلة التنفيذ",
+  handover: "الاستلام والتسليم",
+  closed: "مكتمل ومغلق",
   director_review: "مراجعة المدير التنفيذي",
   board_review: "مراجعة مجلس الإدارة",
   board_approval: "اعتماد مجلس الإدارة",
   approved: "معتمد",
+  completed: "مكتمل",
   rejected: "مرفوض",
   on_hold: "معلّق",
 };
@@ -288,7 +296,7 @@ export const boardRouter = router({
     const [approvedRequestsRes] = await db
       .select({ value: count() })
       .from(mosqueRequests)
-      .where(eq(mosqueRequests.status, "approved" as any));
+      .where(inArray(mosqueRequests.status, ["approved", "completed", "closed"] as any));
 
     const [rejectedRequestsRes] = await db
       .select({ value: count() })
@@ -326,7 +334,8 @@ export const boardRouter = router({
         count: count(),
       })
       .from(mosqueRequests)
-      .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+      .innerJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+      .where(and(isNotNull(mosqueRequests.mosqueId), isNotNull(mosques.name)))
       .groupBy(mosqueRequests.mosqueId, mosques.name)
       .orderBy(desc(count()))
       .limit(5);
