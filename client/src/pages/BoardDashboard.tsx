@@ -1333,7 +1333,7 @@ export default function BoardDashboard() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="اكتب سبب عدم اعتماد التحويل بالتفصيل..."
                   rows={4}
-                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-1 focus-visible:ring-rose-500/25 focus-visible:border-rose-400 dark:focus-visible:border-rose-500/60 transition-all"
                 />
               </div>
             </div>
