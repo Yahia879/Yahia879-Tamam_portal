@@ -862,12 +862,12 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">الطلبات المعتمدة والمكتملة</p>
+                      <p className="text-xs font-semibold text-muted-foreground">الطلبات المكتملة</p>
                       <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
                         {data.requests.approved.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 shrink-0" /> نسبة اعتماد عالية
+                        <CheckCircle2 className="w-3 h-3 shrink-0" /> تم إنجازها بنجاح
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -919,17 +919,23 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 h-80">
                     {data.requests.byStage.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data.requests.byStage} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                        <BarChart data={data.requests.byStage} margin={{ top: 10, right: 10, left: 10, bottom: 25 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
-                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
+                          <XAxis 
+                            dataKey="label" 
+                            stroke="#64748b" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            interval={0}
+                          />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
                           <Tooltip
                             formatter={(value: any) => [`${value} طلب`, "عدد الطلبات"]}
                             contentStyle={TOOLTIP_CONTENT_STYLE}
                             itemStyle={TOOLTIP_ITEM_STYLE}
                             labelStyle={TOOLTIP_LABEL_STYLE}
                           />
-                          <Bar dataKey="value" name="عدد الطلبات" fill="#3b82f6" radius={[10, 10, 0, 0]} />
+                          <Bar dataKey="value" name="عدد الطلبات" fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (

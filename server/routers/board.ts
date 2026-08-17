@@ -22,17 +22,17 @@ const STAGE_LABELS: Record<string, string> = {
   initial_review: "المراجعة الأولية",
   field_visit: "الزيارة الميدانية",
   technical_eval: "التقييم الفني",
-  boq_preparation: "إعداد جدول الكميات",
+  boq_preparation: "جدول الكميات",
   financial_eval: "التقييم المالي",
-  financial_eval_and_approval: "التقييم المالي واعتماد العرض",
+  financial_eval_and_approval: "التقييم المالي",
   quotation_approval: "اعتماد العرض",
   contracting: "التعاقد",
   execution: "مرحلة التنفيذ",
   handover: "الاستلام والتسليم",
   closed: "مكتمل ومغلق",
-  director_review: "مراجعة المدير التنفيذي",
-  board_review: "مراجعة مجلس الإدارة",
-  board_approval: "اعتماد مجلس الإدارة",
+  director_review: "مراجعة المدير",
+  board_review: "مراجعة المجلس",
+  board_approval: "اعتماد المجلس",
   approved: "معتمد",
   completed: "مكتمل",
   rejected: "مرفوض",
@@ -296,7 +296,7 @@ export const boardRouter = router({
     const [approvedRequestsRes] = await db
       .select({ value: count() })
       .from(mosqueRequests)
-      .where(inArray(mosqueRequests.status, ["approved", "completed", "closed"] as any));
+      .where(eq(mosqueRequests.status, "completed" as any));
 
     const [rejectedRequestsRes] = await db
       .select({ value: count() })
