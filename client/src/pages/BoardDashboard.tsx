@@ -1188,17 +1188,19 @@ export default function BoardDashboard() {
               )}
             </TabsContent>
 
-            {/* 5️⃣ تبويب الأمور المالية والصرف */}
+            {/* 4️⃣ تبويب الأمور المالية والصرف */}
             <TabsContent value="financials" className="space-y-8 animate-in fade-in-50 duration-300">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي الميزانيات المعتمدة</p>
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي طلبات الصرف المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.financials.totalApprovedBudget.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                        {data.financials.approvedDisbursementRequestsAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
-                      <p className="text-xs text-muted-foreground">للمشاريع والعقود المعتمدة</p>
+                      <p className="text-xs text-muted-foreground">
+                        {data.financials.approvedDisbursementRequestsCount.toLocaleString("ar-SA")} طلب صرف معتمد
+                      </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
                       <Wallet className="w-6 h-6" />
@@ -1209,12 +1211,12 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي المصروفات الفعلية</p>
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي أوامر الصرف</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.financials.totalDisbursedAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                        {data.financials.totalDisbursementOrdersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 shrink-0" /> أوامر صرف منفذة
+                        <CheckCircle2 className="w-3 h-3 shrink-0" /> {data.financials.totalDisbursementOrdersCount.toLocaleString("ar-SA")} أمر صرف صادر
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
@@ -1226,12 +1228,12 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">التحويلات البنكية المكتملة</p>
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.financials.completedBankTransfersCount.toLocaleString("ar-SA")}
+                        {data.financials.executiveApprovedOrdersCount.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        مبلغ: {data.financials.completedBankTransfersAmount.toLocaleString("ar-SA")} ريال
+                        مبلغ: {data.financials.executiveApprovedOrdersAmount.toLocaleString("ar-SA")} ريال
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
@@ -1243,11 +1245,13 @@ export default function BoardDashboard() {
                 <Card className="rounded-2xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-muted-foreground">إجمالي سندات القبض</p>
+                      <p className="text-xs font-semibold text-muted-foreground">سندات القبض المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-                        {data.financials.totalReceiptVouchersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                        {data.financials.approvedReceiptVouchersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
-                      <p className="text-xs text-muted-foreground">سندات قبض مسجلة</p>
+                      <p className="text-xs text-muted-foreground">
+                        {data.financials.approvedReceiptVouchersCount.toLocaleString("ar-SA")} سند قبض معتمد
+                      </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
                       <Receipt className="w-6 h-6" />

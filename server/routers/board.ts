@@ -355,6 +355,10 @@ export const boardRouter = router({
       .from(projects)
       .where(inArray(projects.status, ["completed", "delivered"] as any));
 
+    const [totalProjectBudgetRes] = await db
+      .select({ total: sum(projects.budget) })
+      .from(projects);
+
     const projectsByStatusRaw = await db
       .select({
         status: sql<string>`COALESCE(${projects.status}, 'active')`,
@@ -427,31 +431,40 @@ export const boardRouter = router({
       .limit(5);
 
     // ==================== 6️⃣ إحصائيات الأمور المالية والصرف ====================
-    const [totalProjectBudgetRes] = await db
-      .select({ total: sum(projects.budget) })
-      .from(projects);
+    // 1. طلبات الصرف المعتمدة
+    const [approvedDisbursementRequestsRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(disbursementRequests.amount),
+      })
+      .from(disbursementRequests)
+      .where(inArray(disbursementRequests.status, ["approved", "completed", "paid", "executing"] as any));
 
-    const [totalDisbursedOrdersRes] = await db
-      .select({ total: sum(disbursementOrders.amount) })
-      .from(disbursementOrders)
-      .where(inArray(disbursementOrders.status, ["approved", "executed"] as any));
+    // 2. إجمالي أوامر الصرف
+    const [totalDisbursementOrdersRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(disbursementOrders.amount),
+      })
+      .from(disbursementOrders);
 
-    const [completedBankTransfersRes] = await db
+    // 3. أوامر الصرف المعتمدة (المطابقة لصفحة /board-executive)
+    const [executiveApprovedOrdersRes] = await db
       .select({
         count: count(),
         totalAmount: sum(disbursementOrders.amount),
       })
       .from(disbursementOrders)
-      .where(
-        and(
-          inArray(disbursementOrders.status, ["approved", "executed"] as any),
-          eq(disbursementOrders.paymentMethod, "bank_transfer" as any)
-        )
-      );
+      .where(inArray(disbursementOrders.status, ["approved", "executed"] as any));
 
-    const [totalReceiptVouchersRes] = await db
-      .select({ total: sum(receiptVouchers.amount) })
-      .from(receiptVouchers);
+    // 4. سندات القبض المعتمدة (المطابقة لصفحة /receipt-vouchers)
+    const [approvedReceiptVouchersRes] = await db
+      .select({
+        count: count(),
+        totalAmount: sum(receiptVouchers.amount),
+      })
+      .from(receiptVouchers)
+      .where(eq(receiptVouchers.status, "approved" as any));
 
     const monthlyFlowRaw = await db
       .select({
@@ -553,11 +566,23 @@ export const boardRouter = router({
         })),
       },
       financials: {
-        totalApprovedBudget: Number(totalProjectBudgetRes?.total || 0),
-        totalDisbursedAmount: Number(totalDisbursedOrdersRes?.total || 0),
-        completedBankTransfersCount: Number(completedBankTransfersRes?.count || 0),
-        completedBankTransfersAmount: Number(completedBankTransfersRes?.totalAmount || 0),
-        totalReceiptVouchersAmount: Number(totalReceiptVouchersRes?.total || 0),
+        approvedDisbursementRequestsCount: Number(approvedDisbursementRequestsRes?.count || 0),
+        approvedDisbursementRequestsAmount: Number(approvedDisbursementRequestsRes?.totalAmount || 0),
+        totalApprovedBudget: Number(approvedDisbursementRequestsRes?.totalAmount || 0),
+
+        totalDisbursementOrdersCount: Number(totalDisbursementOrdersRes?.count || 0),
+        totalDisbursementOrdersAmount: Number(totalDisbursementOrdersRes?.totalAmount || 0),
+        totalDisbursedAmount: Number(totalDisbursementOrdersRes?.totalAmount || 0),
+
+        executiveApprovedOrdersCount: Number(executiveApprovedOrdersRes?.count || 0),
+        executiveApprovedOrdersAmount: Number(executiveApprovedOrdersRes?.totalAmount || 0),
+        completedBankTransfersCount: Number(executiveApprovedOrdersRes?.count || 0),
+        completedBankTransfersAmount: Number(executiveApprovedOrdersRes?.totalAmount || 0),
+
+        approvedReceiptVouchersCount: Number(approvedReceiptVouchersRes?.count || 0),
+        approvedReceiptVouchersAmount: Number(approvedReceiptVouchersRes?.totalAmount || 0),
+        totalReceiptVouchersAmount: Number(approvedReceiptVouchersRes?.totalAmount || 0),
+
         pendingApprovalsCount: Number(totalApprovedStatsRes?.totalCount || 0),
         monthlyFlow,
       },
