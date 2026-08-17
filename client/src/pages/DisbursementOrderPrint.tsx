@@ -103,11 +103,17 @@ export default function DisbursementOrderPrint() {
 
   if (!order) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" dir="rtl">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">أمر الصرف غير موجود</h2>
-          <Button onClick={() => navigate("/disbursements")}>
-            العودة لطلبات الصرف
+          <Button onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigate("/disbursement-orders");
+            }
+          }}>
+            العودة لأوامر الصرف
           </Button>
         </div>
       </div>

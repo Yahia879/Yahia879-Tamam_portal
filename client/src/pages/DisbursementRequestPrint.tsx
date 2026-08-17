@@ -200,7 +200,13 @@ export default function DisbursementRequestPrint() {
       <div className="flex items-center justify-center min-h-screen" dir="rtl">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">طلب الصرف غير موجود</h2>
-          <Button onClick={() => navigate("/disbursements")}>
+          <Button onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigate("/disbursements");
+            }
+          }}>
             العودة لطلبات الصرف
           </Button>
         </div>
@@ -333,7 +339,17 @@ export default function DisbursementRequestPrint() {
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم والخيارات */}
       <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
-        <Button variant="outline" onClick={() => navigate("/disbursements")} className="bg-white border shadow-sm sm:bg-white/90">
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (window.history.length > 1) {
+              window.history.back();
+            } else {
+              navigate("/disbursements");
+            }
+          }}
+          className="bg-white border shadow-sm sm:bg-white/90 font-semibold"
+        >
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
