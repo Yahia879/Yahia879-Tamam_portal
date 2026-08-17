@@ -273,7 +273,7 @@ export default function BoardDashboard() {
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات معتمدة</p>
                     <h3 className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">
-                      {data.chairmanData.linkedApprovedOrders.length}
+                      {data.chairmanData.totalLinkedApprovedCount ?? data.chairmanData.linkedApprovedOrders?.length ?? 0}
                     </h3>
                   </div>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-blue-600 shrink-0">
@@ -287,7 +287,7 @@ export default function BoardDashboard() {
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
                     <h3 className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">
-                      {data.chairmanData.customApprovedOrders.length}
+                      {data.chairmanData.totalCustomApprovedCount ?? data.chairmanData.customApprovedOrders?.length ?? 0}
                     </h3>
                   </div>
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 text-purple-600 shrink-0">

@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -147,13 +147,15 @@ export default function DisbursementOrderPrint() {
   const project = order.project;
   const orderDate = new Date(order.createdAt || new Date());
 
-  // تحليل تفاصيل المرفقات المخصصة
+  // تحليل تفاصيل المرفقات والروابط التوثيقية
   let customSupplier: any = null;
   let linkedRequestInfo: any = null;
+  let rawAttachments: any[] = [];
   if (request?.attachmentsJson) {
     try {
       const attachments = typeof request.attachmentsJson === "string" ? JSON.parse(request.attachmentsJson) : request.attachmentsJson;
       if (Array.isArray(attachments)) {
+        rawAttachments = attachments;
         const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
         if (infoAttachment && infoAttachment.url) {
           customSupplier = typeof infoAttachment.url === "string" ? JSON.parse(infoAttachment.url) : infoAttachment.url;
@@ -167,6 +169,42 @@ export default function DisbursementOrderPrint() {
       console.error("Error parsing supplier/linked print metadata:", e);
     }
   }
+
+  // تجميع كافة الروابط والمرفقات الخارجية لعرضها بشكل متناسق في التقرير
+  const documentationLinks = useMemo(() => {
+    const list: { name: string; url: string; type?: string }[] = [];
+
+    rawAttachments.forEach((a: any) => {
+      if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.type !== "metadata") {
+        const urlStr = a.url || a.link;
+        if (urlStr && typeof urlStr === "string" && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/uploads") || urlStr.startsWith("/api"))) {
+          list.push({
+            name: a.name || "مستند / رابط خارجي",
+            url: urlStr,
+            type: a.type || "link"
+          });
+        }
+      }
+    });
+
+    if (customSupplier?.linkUrl && typeof customSupplier.linkUrl === "string" && !list.some(item => item.url === customSupplier.linkUrl)) {
+      list.push({
+        name: customSupplier.linkName?.trim() || "رابط خارجي توثيقي",
+        url: customSupplier.linkUrl.trim(),
+        type: "link"
+      });
+    }
+
+    if (linkedRequestInfo?.linkUrl && typeof linkedRequestInfo.linkUrl === "string" && !list.some(item => item.url === linkedRequestInfo.linkUrl)) {
+      list.push({
+        name: linkedRequestInfo.linkName?.trim() || "رابط خارجي توثيقي",
+        url: linkedRequestInfo.linkUrl.trim(),
+        type: "link"
+      });
+    }
+
+    return list;
+  }, [rawAttachments, customSupplier, linkedRequestInfo]);
 
   // حساب جهة التمويل/الدعم
   const resolvedSupportingEntity = customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || project?.fundingSource || "—";
@@ -524,6 +562,54 @@ export default function DisbursementOrderPrint() {
                             : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* قسم المرفقات والروابط التوثيقية */}
+              {documentationLinks.length > 0 && (
+                <div className="mb-4 break-inside-avoid">
+                  <div className="text-right font-bold text-xs sm:text-sm mb-1.5 text-slate-800 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Link2 className="w-3.5 h-3.5 text-slate-600 inline" />
+                      المرفقات والروابط التوثيقية:
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-normal">
+                      عدد الروابط: {documentationLinks.length}
+                    </span>
+                  </div>
+                  <table className="w-full border-collapse border border-slate-300 text-xs sm:text-sm">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
+                        <th className="p-2 border-l border-slate-300 w-12 text-center">#</th>
+                        <th className="p-2 border-l border-slate-300 w-1/3 text-right">بيان المرفق / الرابط</th>
+                        <th className="p-2 text-right">الرابط الإلكتروني للمعاينة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documentationLinks.map((item, idx) => (
+                        <tr key={idx} className={idx < documentationLinks.length - 1 ? "border-b border-slate-300" : ""}>
+                          <td className="p-2 text-center font-bold text-slate-600 border-l border-slate-300 w-12">
+                            {idx + 1}
+                          </td>
+                          <td className="p-2.5 bg-slate-50 font-bold border-l border-slate-300 text-slate-800 text-right">
+                            {item.name || "مستند / رابط توثيقي"}
+                          </td>
+                          <td className="p-2.5 text-right font-mono text-xs">
+                            <a 
+                              href={item.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1.5 text-right"
+                              dir="ltr"
+                            >
+                              <span className="max-w-[450px] truncate">{item.url}</span>
+                              <ExternalLink className="w-3 h-3 shrink-0 no-print" />
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

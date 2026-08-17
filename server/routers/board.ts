@@ -203,6 +203,34 @@ export const boardRouter = router({
         .from(disbursementOrders)
         .where(baseApprovedOrdersWhere);
 
+      const [linkedApprovedCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .where(
+          and(
+            baseApprovedOrdersWhere,
+            isNotNull(disbursementOrders.disbursementRequestId),
+            sql`${disbursementOrders.disbursementRequestId} > 0`,
+            or(isNull(disbursementRequests.isDirect), eq(disbursementRequests.isDirect, false))
+          )
+        );
+
+      const [customApprovedCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .where(
+          and(
+            baseApprovedOrdersWhere,
+            or(
+              isNull(disbursementOrders.disbursementRequestId),
+              eq(disbursementOrders.disbursementRequestId, 0),
+              eq(disbursementRequests.isDirect, true)
+            )
+          )
+        );
+
       const [pendingCountRes] = await db
         .select({ count: count() })
         .from(disbursementOrders)
@@ -436,6 +464,8 @@ export const boardRouter = router({
         customApprovedOrders: orders.filter((o) => o.isCustom),
         totalApprovedCount: Number(totalApprovedStatsRes?.totalCount || 0),
         totalApprovedAmount: Number(totalApprovedStatsRes?.totalAmount || 0),
+        totalLinkedApprovedCount: Number(linkedApprovedCountRes?.count || 0),
+        totalCustomApprovedCount: Number(customApprovedCountRes?.count || 0),
         totalFilteredCount,
         totalPages,
         currentPage: page,
