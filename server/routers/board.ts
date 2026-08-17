@@ -152,6 +152,7 @@ export const boardRouter = router({
           orderCreatedAt: disbursementOrders.createdAt,
           rejectionReason: disbursementOrders.rejectionReason,
           approvalNotes: disbursementOrders.approvalNotes,
+          disbursementRequestId: disbursementOrders.disbursementRequestId,
           isCustom: sql<boolean>`CASE WHEN ${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0 THEN TRUE ELSE FALSE END`,
           requestId: disbursementRequests.id,
           requestNumber: disbursementRequests.requestNumber,
@@ -166,26 +167,29 @@ export const boardRouter = router({
         .limit(pageSize)
         .offset(offset);
 
-      const orders = ordersRaw.map((o) => ({
-        id: o.orderId,
-        orderId: o.orderId,
-        orderNumber: o.orderNumber,
-        amount: Number(o.amount || 0),
-        beneficiaryName: o.beneficiaryName,
-        beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
-        beneficiaryIban: o.beneficiaryIban || "-",
-        paymentMethod: o.paymentMethod || "bank_transfer",
-        orderStatus: o.orderStatus,
-        orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
-        rejectionReason: o.rejectionReason || null,
-        approvalNotes: o.approvalNotes || null,
-        isCustom: Boolean(o.isCustom),
-        title: o.isCustom ? "أمر صرف مخصص" : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
-        requestId: o.requestId || null,
-        requestNumber: o.requestNumber || null,
-        requestAmount: o.requestAmount ? Number(o.requestAmount) : null,
-        requestStatus: o.requestStatus || null,
-      }));
+      const orders = ordersRaw.map((o) => {
+        const isCustom = !o.disbursementRequestId || Number(o.disbursementRequestId) === 0 || !o.requestId;
+        return {
+          id: o.orderId,
+          orderId: o.orderId,
+          orderNumber: o.orderNumber,
+          amount: Number(o.amount || 0),
+          beneficiaryName: o.beneficiaryName,
+          beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
+          beneficiaryIban: o.beneficiaryIban || "-",
+          paymentMethod: o.paymentMethod || "bank_transfer",
+          orderStatus: o.orderStatus,
+          orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
+          rejectionReason: o.rejectionReason || null,
+          approvalNotes: o.approvalNotes || null,
+          isCustom,
+          title: isCustom ? "أمر صرف مخصص" : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
+          requestId: isCustom ? null : (o.requestId || null),
+          requestNumber: isCustom ? null : (o.requestNumber || null),
+          requestAmount: isCustom ? null : (o.requestAmount ? Number(o.requestAmount) : null),
+          requestStatus: isCustom ? null : (o.requestStatus || null),
+        };
+      });
 
       // إجمالي المبالغ والإحصائيات الكلية لكافة الأوامر وحسب الحالات
       const [totalApprovedStatsRes] = await db

@@ -476,7 +476,7 @@ export default function BoardDashboard() {
                                             <span>عرض أمر الصرف المعتمد</span>
                                           </DropdownMenuItem>
 
-                                          {!order.isCustom && (order.requestId || order.requestNumber) && (
+                                          {!order.isCustom && !!order.requestId && (
                                             <DropdownMenuItem
                                               onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
                                               className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"

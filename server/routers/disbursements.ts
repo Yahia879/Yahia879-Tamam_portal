@@ -2090,7 +2090,7 @@ export const disbursementsRouter = router({
     }),
 
   // اعتماد أمر صرف
-  approveOrder: permissionProcedure("financial.approve")
+  approveOrder: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -2103,13 +2103,21 @@ export const disbursementsRouter = router({
 
       const hasBoardChairmanOrderPerm = 
         ctx.user.role === "board_chairman" ||
-        await checkPermission(ctx.user.id, "board_chairman");
+        await checkPermission(ctx.user.id, "board_chairman") ||
+        await checkPermission(ctx.user.id, "board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
 
-      const allowedRoles = ["super_admin", "system_admin", "general_manager", "board_chairman"];
+      const allowedRoles = ["super_admin", "system_admin", "general_manager", "board_chairman", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role) && !hasBoardChairmanOrderPerm) {
         const { calculateUserPermissions } = await import("../permissions");
         const userPermissions = await calculateUserPermissions(ctx.user.id);
-        if (!userPermissions.includes("financial.approve") && !userPermissions.includes("disbursement_orders.approve") && !userPermissions.includes("board_chairman")) {
+        if (
+          !userPermissions.includes("financial.approve") && 
+          !userPermissions.includes("disbursement_orders.approve") && 
+          !userPermissions.includes("board_chairman") &&
+          !userPermissions.includes("board_chairman_view")
+        ) {
           throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية اعتماد أمر الصرف" });
         }
       }
@@ -2155,7 +2163,10 @@ export const disbursementsRouter = router({
       const isChairmanUser = 
         ctx.user.role === "board_chairman" || 
         ["super_admin", "system_admin"].includes(ctx.user.role) ||
-        await checkPermission(ctx.user.id, "board_chairman");
+        await checkPermission(ctx.user.id, "board_chairman") ||
+        await checkPermission(ctx.user.id, "board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
 
       if (isChairmanUser) {
         // رئيس مجلس الإدارة أو الأدمن يعتمد وتحول حالته إلى executed (تم التحويل البنكي)
@@ -2476,7 +2487,7 @@ export const disbursementsRouter = router({
     }),
 
   // رفض أمر صرف
-  rejectOrder: permissionProcedure("financial.approve")
+  rejectOrder: protectedProcedure
     .input(
       z.object({
         id: z.number(),
@@ -2500,7 +2511,10 @@ export const disbursementsRouter = router({
       const isChairmanUser = 
         ctx.user.role === "board_chairman" || 
         ["super_admin", "system_admin"].includes(ctx.user.role) ||
-        await checkPermission(ctx.user.id, "board_chairman");
+        await checkPermission(ctx.user.id, "board_chairman") ||
+        await checkPermission(ctx.user.id, "board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
 
       if (!isChairmanUser) {
         if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
