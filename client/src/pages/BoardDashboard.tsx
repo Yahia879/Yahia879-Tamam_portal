@@ -28,7 +28,7 @@ import {
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
   MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
-  ChevronLeft, ChevronRight, Info
+  ChevronLeft, ChevronRight, Info, Printer, ExternalLink
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
@@ -104,6 +104,12 @@ export default function BoardDashboard() {
     orderNumber: string;
     reason: string;
   }>({ open: false, orderNumber: "", reason: "" });
+
+  const [reportModal, setReportModal] = useState<{
+    open: boolean;
+    title: string;
+    url: string;
+  }>({ open: false, title: "", url: "" });
 
   const utils = trpc.useUtils();
 
@@ -463,7 +469,11 @@ export default function BoardDashboard() {
                                       {canPerformActions && (
                                         <>
                                           <DropdownMenuItem
-                                            onClick={() => window.open(`/disbursement-orders/${order.orderId || order.id}/print`, '_blank')}
+                                            onClick={() => setReportModal({
+                                              open: true,
+                                              title: `عرض أمر الصرف المعتمد (${order.orderNumber})`,
+                                              url: `/disbursement-orders/${order.orderId || order.id}/print`,
+                                            })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                           >
                                             <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -472,7 +482,11 @@ export default function BoardDashboard() {
 
                                           {!order.isCustom && (order.requestId || order.requestNumber) && (
                                             <DropdownMenuItem
-                                              onClick={() => window.open(`/disbursements/requests/${order.requestId}/print`, '_blank')}
+                                              onClick={() => setReportModal({
+                                                open: true,
+                                                title: `عرض طلب الصرف المعتمد (${order.requestNumber})`,
+                                                url: `/disbursements/requests/${order.requestId}/print`,
+                                              })}
                                               className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                             >
                                               <FileText className="w-4 h-4 text-primary shrink-0" />
@@ -1524,6 +1538,40 @@ export default function BoardDashboard() {
                 إغلاق
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 📄 نافذة عرض تقرير أمر / طلب الصرف المعتمد داخل نفس الصفحة ==================== */}
+        <Dialog open={reportModal.open} onOpenChange={(open) => setReportModal((prev) => ({ ...prev, open }))}>
+          <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0 rounded-3xl overflow-hidden flex flex-col bg-background border shadow-2xl" dir="rtl">
+            <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between text-right space-y-0 bg-slate-50/80 dark:bg-slate-900/80">
+              <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2.5 text-foreground">
+                <Printer className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{reportModal.title}</span>
+              </DialogTitle>
+              <div className="flex items-center gap-2 pl-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(reportModal.url, '_blank')}
+                  className="rounded-xl text-xs gap-1.5 h-8 font-semibold hover:bg-muted"
+                  title="فتح في علامة تبويب جديدة"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">فتح في صفحة جديدة</span>
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 w-full h-full bg-slate-100 dark:bg-slate-950 overflow-hidden relative">
+              {reportModal.url && (
+                <iframe
+                  src={reportModal.url}
+                  title={reportModal.title}
+                  className="w-full h-full border-0 bg-white"
+                />
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
