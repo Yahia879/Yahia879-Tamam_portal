@@ -192,13 +192,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
 
   // Board Leadership Permissions Expansion
-  board_chairman: ["board_chairman"],
+  board_chairman: ["board_chairman", "board_chairman_view"],
   board_chairman_view: ["board_chairman_view"],
   board_member: ["board_member"],
-  "board.board_chairman": ["board_chairman"],
+  "board.board_chairman": ["board_chairman", "board_chairman_view"],
   "board.board_chairman_view": ["board_chairman_view"],
   "board.board_member": ["board_member"],
-  "board_leadership.board_chairman": ["board_chairman"],
+  "board_leadership.board_chairman": ["board_chairman", "board_chairman_view"],
   "board_leadership.board_chairman_view": ["board_chairman_view"],
   "board_leadership.board_member": ["board_member"],
 };
@@ -255,13 +255,6 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "board_chairman",
         moduleId: "board",
         action: "board_chairman",
-        nameAr: "صلاحية رئيس مجلس الإدارة",
-        nameEn: "Board Chairman Permission"
-      },
-      {
-        id: "board_chairman_view",
-        moduleId: "board",
-        action: "board_chairman_view",
         nameAr: "عرض لوحة رئيس مجلس الإدارة",
         nameEn: "View Board Chairman Dashboard"
       },
@@ -269,8 +262,8 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "board_member",
         moduleId: "board",
         action: "board_member",
-        nameAr: "صلاحية عضو مجلس الإدارة",
-        nameEn: "Board Member Permission"
+        nameAr: "عرض لوحة عضو مجلس الإدارة",
+        nameEn: "View Board Member Dashboard"
       }
     ];
 

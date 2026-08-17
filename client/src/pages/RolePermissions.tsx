@@ -913,7 +913,7 @@ export default function RolePermissions() {
           id: "board_leadership",
           nameAr: "مجلس الإدارة والقيادة العليا",
           icon: Shield,
-          perms: ["board_chairman", "board_chairman_view", "board_member"]
+          perms: ["board_chairman", "board_member"]
         }
       ]
     }
@@ -931,9 +931,8 @@ export default function RolePermissions() {
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
       board_leadership: {
-        board_chairman: "رئيس مجلس الإدارة",
-        board_chairman_view: "عرض لوحة رئيس مجلس الإدارة",
-        board_member: "عضو مجلس الإدارة",
+        board_chairman: "عرض لوحة رئيس مجلس الإدارة",
+        board_member: "عرض لوحة عضو مجلس الإدارة",
       },
       pending_reports: {
         view: "عرض التقارير",
@@ -1180,7 +1179,6 @@ export default function RolePermissions() {
           if (m.id === "board_leadership") {
             const boardIds: Record<string, string> = {
               board_chairman: "board_chairman",
-              board_chairman_view: "board_chairman_view",
               board_member: "board_member",
             };
             id = boardIds[p] || id;
