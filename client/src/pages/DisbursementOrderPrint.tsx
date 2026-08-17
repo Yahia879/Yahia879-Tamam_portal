@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ExternalLink, Link2 } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
+import { toast } from "sonner";
 
 
 // دالة تحويل التاريخ الميلادي إلى هجري
@@ -382,12 +383,14 @@ export default function DisbursementOrderPrint() {
         </Button>
       </div>
 
-      {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
-        {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[277mm]">
-          {/* خط ذهبي داخلي رفيع للإطار */}
-          <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+      {/* منطقة المستند والروابط الجانبية خارج إطار التقرير */}
+      <div className="max-w-[1400px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-6 px-4 print:p-0 print:m-0 print:max-w-none print:block">
+        {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
+        <div className="print-container w-full max-w-[210mm] bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start shrink-0">
+          {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
+          <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[277mm]">
+            {/* خط ذهبي داخلي رفيع للإطار */}
+            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
           {/* محتوى المستند */}
           <div className="relative z-10 flex-1 flex flex-col justify-start space-y-4">
@@ -474,7 +477,7 @@ export default function DisbursementOrderPrint() {
                       </td>
                     </tr>
 
-                    <tr className={documentationLinks.length > 0 ? "border-b border-slate-300" : ""}>
+                    <tr>
                       <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
                         وذلك مقابل/
                       </td>
@@ -482,26 +485,6 @@ export default function DisbursementOrderPrint() {
                         {descriptionText}
                       </td>
                     </tr>
-
-                    {documentationLinks.map((item, idx) => (
-                      <tr key={idx} className={idx < documentationLinks.length - 1 ? "border-b border-slate-300" : ""}>
-                        <td className="p-2.5 bg-slate-100 font-bold w-36 border-l border-slate-300 text-slate-700 text-right">
-                          {item.name ? `رابط (${item.name})/` : "رابط المرفق/"}
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-mono text-xs text-right" colSpan={2}>
-                          <a 
-                            href={item.url} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1.5 text-right"
-                            dir="ltr"
-                          >
-                            <span>{item.url}</span>
-                            <ExternalLink className="w-3 h-3 shrink-0 no-print text-blue-500" />
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
@@ -711,6 +694,76 @@ export default function DisbursementOrderPrint() {
             </div>
           </div>
         </div>
+      </div>
+
+        {/* كرت المرفقات والروابط الجانبية خارج إطار التقرير (يظهر في الشاشة فقط بجانب التقرير في المكان المخصص) */}
+        {documentationLinks.length > 0 && (
+          <div className="w-full xl:w-80 shrink-0 print:hidden xl:sticky xl:top-6">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <Link2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      الروابط والمرفقات المرفقة
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      روابط خارجية تابعة لأمر الصرف
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  {documentationLinks.length}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {documentationLinks.map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors space-y-2.5 text-right"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {item.name || `رابط مرفق #${idx + 1}`}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate text-left bg-white dark:bg-slate-800 p-1.5 rounded border border-slate-100 dark:border-slate-700" dir="ltr">
+                      {item.url}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-colors shadow-sm"
+                      >
+                        <span>فتح الرابط</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                        onClick={() => {
+                          navigator.clipboard.writeText(item.url);
+                          toast.success("تم نسخ الرابط للحافظة");
+                        }}
+                        title="نسخ الرابط"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* أنماط الطباعة المتقدمة للجمعية */}
