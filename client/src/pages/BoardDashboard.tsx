@@ -356,11 +356,16 @@ export default function BoardDashboard() {
                     ...(data?.chairmanData?.linkedApprovedOrders || []).map((o) => ({
                       ...o,
                       id: o.orderId,
+                      orderId: o.orderId,
+                      requestId: o.requestId,
                       isCustom: false,
                       title: o.requestTitle || "طلب صرف معتمد",
                     })),
                     ...(data?.chairmanData?.customApprovedOrders || []).map((o) => ({
                       ...o,
+                      id: (o as any).id || (o as any).orderId,
+                      orderId: (o as any).id || (o as any).orderId,
+                      requestId: null,
                       isCustom: true,
                       title: "أمر صرف مخصص",
                       requestNumber: null,
