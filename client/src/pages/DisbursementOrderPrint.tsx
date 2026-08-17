@@ -171,40 +171,36 @@ export default function DisbursementOrderPrint() {
   }
 
   // تجميع كافة الروابط والمرفقات الخارجية لعرضها بشكل متناسق في التقرير
-  const documentationLinks = useMemo(() => {
-    const list: { name: string; url: string; type?: string }[] = [];
+  const documentationLinks: { name: string; url: string; type?: string }[] = [];
 
-    rawAttachments.forEach((a: any) => {
-      if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.type !== "metadata") {
-        const urlStr = a.url || a.link;
-        if (urlStr && typeof urlStr === "string" && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/uploads") || urlStr.startsWith("/api"))) {
-          list.push({
-            name: a.name || "مستند / رابط خارجي",
-            url: urlStr,
-            type: a.type || "link"
-          });
-        }
+  rawAttachments.forEach((a: any) => {
+    if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.type !== "metadata") {
+      const urlStr = a.url || a.link;
+      if (urlStr && typeof urlStr === "string" && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/uploads") || urlStr.startsWith("/api"))) {
+        documentationLinks.push({
+          name: a.name || "مستند / رابط خارجي",
+          url: urlStr,
+          type: a.type || "link"
+        });
       }
+    }
+  });
+
+  if (customSupplier?.linkUrl && typeof customSupplier.linkUrl === "string" && !documentationLinks.some(item => item.url === customSupplier.linkUrl)) {
+    documentationLinks.push({
+      name: customSupplier.linkName?.trim() || "رابط خارجي توثيقي",
+      url: customSupplier.linkUrl.trim(),
+      type: "link"
     });
+  }
 
-    if (customSupplier?.linkUrl && typeof customSupplier.linkUrl === "string" && !list.some(item => item.url === customSupplier.linkUrl)) {
-      list.push({
-        name: customSupplier.linkName?.trim() || "رابط خارجي توثيقي",
-        url: customSupplier.linkUrl.trim(),
-        type: "link"
-      });
-    }
-
-    if (linkedRequestInfo?.linkUrl && typeof linkedRequestInfo.linkUrl === "string" && !list.some(item => item.url === linkedRequestInfo.linkUrl)) {
-      list.push({
-        name: linkedRequestInfo.linkName?.trim() || "رابط خارجي توثيقي",
-        url: linkedRequestInfo.linkUrl.trim(),
-        type: "link"
-      });
-    }
-
-    return list;
-  }, [rawAttachments, customSupplier, linkedRequestInfo]);
+  if (linkedRequestInfo?.linkUrl && typeof linkedRequestInfo.linkUrl === "string" && !documentationLinks.some(item => item.url === linkedRequestInfo.linkUrl)) {
+    documentationLinks.push({
+      name: linkedRequestInfo.linkName?.trim() || "رابط خارجي توثيقي",
+      url: linkedRequestInfo.linkUrl.trim(),
+      type: "link"
+    });
+  }
 
   // حساب جهة التمويل/الدعم
   const resolvedSupportingEntity = customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || project?.fundingSource || "—";
