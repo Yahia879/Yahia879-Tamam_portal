@@ -41,8 +41,25 @@ export default function DisbursementRequestPrint() {
   const hasApprovePermission = usePermission("disbursements.approve");
   const hasSignPermission = usePermission("disbursements.sign");
   const hasViewPermission = usePermission("disbursements.view");
-  const hasRequestViewPermission = hasViewPermission || hasApprovePermission || hasSignPermission;
+  const hasChairmanPerm = usePermission("board_chairman");
+  const hasChairmanViewPerm = usePermission("board_chairman_view");
+  const hasLeadershipChairmanView = usePermission("board_leadership.board_chairman_view");
+  const hasBoardChairmanView = usePermission("board.board_chairman_view");
   const { user: currentUser } = useAuth();
+  const isChairmanRole = currentUser?.role === "board_chairman";
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const hasChairmanInPerms = 
+    isChairmanRole ||
+    hasChairmanPerm || 
+    hasChairmanViewPerm || 
+    hasLeadershipChairmanView || 
+    hasBoardChairmanView ||
+    userPermissionsList.includes("board_chairman") || 
+    userPermissionsList.includes("board_chairman_view") ||
+    userPermissionsList.includes("board_leadership.board_chairman_view") ||
+    userPermissionsList.includes("board.board_chairman_view");
+
+  const hasRequestViewPermission = hasViewPermission || hasApprovePermission || hasSignPermission || hasChairmanInPerms;
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
@@ -56,7 +73,6 @@ export default function DisbursementRequestPrint() {
   });
 
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
-  const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
   const isExecutiveDirectorRole = 
     currentUser?.role === "general_manager" ||

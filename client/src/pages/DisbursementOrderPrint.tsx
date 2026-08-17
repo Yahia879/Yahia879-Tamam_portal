@@ -46,7 +46,25 @@ export default function DisbursementOrderPrint() {
   const params = useParams<{ id: string }>();
   const orderId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
-  const hasOrderViewPermission = usePermission("disbursement_orders.view");
+  const hasOrderDirectView = usePermission("disbursement_orders.view");
+  const hasChairmanPerm = usePermission("board_chairman");
+  const hasChairmanViewPerm = usePermission("board_chairman_view");
+  const hasLeadershipChairmanView = usePermission("board_leadership.board_chairman_view");
+  const hasBoardChairmanView = usePermission("board.board_chairman_view");
+  const isChairmanRole = currentUser?.role === "board_chairman";
+  const userPermissionsList = (currentUser as any)?.permissions || [];
+  const hasChairmanInPerms = 
+    isChairmanRole ||
+    hasChairmanPerm || 
+    hasChairmanViewPerm || 
+    hasLeadershipChairmanView || 
+    hasBoardChairmanView ||
+    userPermissionsList.includes("board_chairman") || 
+    userPermissionsList.includes("board_chairman_view") ||
+    userPermissionsList.includes("board_leadership.board_chairman_view") ||
+    userPermissionsList.includes("board.board_chairman_view");
+
+  const hasOrderViewPermission = hasOrderDirectView || hasChairmanInPerms;
 
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
@@ -252,7 +270,6 @@ export default function DisbursementOrderPrint() {
     currentUser?.role === "executive_director" ||
     (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
 
-  const userPermissionsList = (currentUser as any)?.permissions || [];
   const isExceptionApprover = (order as any)?.exceptionApprovedBy
     ? currentUser?.id === (order as any)?.exceptionApprovedBy
     : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursement_orders.exception_approve"));
