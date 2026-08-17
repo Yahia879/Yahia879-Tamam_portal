@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import {
@@ -34,17 +37,17 @@ import {
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
-  // بانتظار اعتماد تحويل رئيس مجلس الإدارة
-  approved: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  pending_executive: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  pending: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  edited: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
-  draft: { label: "بانتظار اعتماد التحويل", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  // بانتظار اعتماد صاحب الصلاحية
+  approved: { label: "بانتظار اعتماد صاحب الصلاحية", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  pending_executive: { label: "بانتظار اعتماد صاحب الصلاحية", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  pending: { label: "بانتظار اعتماد صاحب الصلاحية", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  edited: { label: "بانتظار اعتماد صاحب الصلاحية", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
+  draft: { label: "بانتظار اعتماد صاحب الصلاحية", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800 font-extrabold" },
 
-  // تم اعتماد التحويل
-  executed: { label: "تم اعتماد التحويل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
+  // معتمد
+  executed: { label: "معتمد", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 font-extrabold" },
 
-  // مرفوض (باللون الأحمر حصراً بناء على رغبة المستخدم)
+  // مرفوض (باللون الأحمر المعتمد)
   rejected: { label: "مرفوض", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800 font-extrabold" },
 };
 
@@ -85,6 +88,7 @@ export default function BoardDashboard() {
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
@@ -124,7 +128,7 @@ export default function BoardDashboard() {
 
   const isChairmanRole = currentUser?.role === "board_chairman";
   const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
-  
+
   // الصلاحيات التنفيذية والمعاينة الشاملة تظهر حصراً لمن لديه صلاحية رئيس مجلس الإدارة التنفيذية
   const canPerformActions = isChairmanRole || hasChairmanActionPerm;
 
@@ -132,6 +136,7 @@ export default function BoardDashboard() {
     page: currentPage,
     pageSize: ITEMS_PER_PAGE,
     search: debouncedSearch,
+    status: selectedStatus,
   }, {
     staleTime: 0,
     placeholderData: (prev) => prev,
@@ -188,7 +193,7 @@ export default function BoardDashboard() {
   // تحديد نوع الصفحات والتوجيه بناءً على المسار والصلاحيات
   const isExecutiveRoute = location === "/board-executive";
   const isAnalyticsRoute = location === "/board-analytics";
-  
+
   // إذا دخل على المسار العام /board-dashboard نحدد الصفحة حسب صلاحياته
   const isChairmanView = isExecutiveRoute || (!isAnalyticsRoute && data?.isChairman);
 
@@ -208,7 +213,7 @@ export default function BoardDashboard() {
         {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
         <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-background to-emerald-500/5 dark:from-primary/10 dark:via-background dark:to-emerald-950/20 p-6 sm:p-7 shadow-xs transition-all">
           <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary via-teal-500 to-emerald-600" />
-          
+
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
             <div className="space-y-2.5 text-right">
               <div className="flex items-center gap-3 justify-start">
@@ -232,7 +237,7 @@ export default function BoardDashboard() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 {isChairmanView ? "لوحة اعتماد أوامر الصرف المعتمدة (رئيس مجلس الإدارة)" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
-              
+
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairmanView
                   ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
@@ -299,7 +304,7 @@ export default function BoardDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="relative flex-1">
                     {isRefetching ? (
                       <RefreshCw className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary animate-spin" />
@@ -310,8 +315,59 @@ export default function BoardDashboard() {
                       placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pr-10 rounded-xl"
+                      className="pr-10 rounded-xl text-xs sm:text-sm"
                     />
+                  </div>
+
+                  <div className="w-full sm:w-64">
+                    <Select
+                      value={selectedStatus}
+                      onValueChange={(val) => {
+                        setSelectedStatus(val);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-full rounded-xl border-border bg-background text-xs font-bold h-10">
+                        <div className="flex items-center gap-2">
+                          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                          <SelectValue placeholder="تصفية حسب الحالة" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent align="end" className="rounded-xl text-xs font-semibold">
+                        <SelectItem value="all">
+                          جميع الحالات
+                          {data?.chairmanData?.statusCounts?.all !== undefined && (
+                            <span className="mr-2 text-[11px] text-muted-foreground font-mono">
+                              ({data.chairmanData.statusCounts.all})
+                            </span>
+                          )}
+                        </SelectItem>
+                        <SelectItem value="pending_approval">
+                          بانتظار اعتماد صاحب الصلاحية
+                          {data?.chairmanData?.statusCounts?.pending_approval !== undefined && (
+                            <span className="mr-2 text-[11px] text-amber-600 font-mono font-bold">
+                              ({data.chairmanData.statusCounts.pending_approval})
+                            </span>
+                          )}
+                        </SelectItem>
+                        <SelectItem value="executed">
+                          معتمد
+                          {data?.chairmanData?.statusCounts?.executed !== undefined && (
+                            <span className="mr-2 text-[11px] text-emerald-600 font-mono font-bold">
+                              ({data.chairmanData.statusCounts.executed})
+                            </span>
+                          )}
+                        </SelectItem>
+                        <SelectItem value="rejected">
+                          مرفوض
+                          {data?.chairmanData?.statusCounts?.rejected !== undefined && (
+                            <span className="mr-2 text-[11px] text-rose-600 font-mono font-bold">
+                              ({data.chairmanData.statusCounts.rejected})
+                            </span>
+                          )}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -438,7 +494,7 @@ export default function BoardDashboard() {
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
                                           >
                                             <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <span>اعتماد وتحويل المبلغ</span>
+                                            <span>الاعتماد من صاحب الصلاحية</span>
                                           </DropdownMenuItem>
 
                                           <DropdownMenuItem
@@ -464,7 +520,7 @@ export default function BoardDashboard() {
                         <div className="text-[11px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
                           يعرض {totalFilteredCount > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} - {Math.min(currentPage * ITEMS_PER_PAGE, totalFilteredCount)} من أصل {totalFilteredCount} أمر صرف
                         </div>
-                        
+
                         {totalPages > 1 && (
                           <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
                             <Button
@@ -477,7 +533,7 @@ export default function BoardDashboard() {
                             >
                               <ChevronRight className="h-4 w-4" />
                             </Button>
-                            
+
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
                               if (
                                 totalPages <= 5 ||
@@ -497,7 +553,7 @@ export default function BoardDashboard() {
                                   </Button>
                                 );
                               }
-                              
+
                               if (p === 2 || p === totalPages - 1) {
                                 return (
                                   <span key={p} className="text-muted-foreground text-xs px-1">

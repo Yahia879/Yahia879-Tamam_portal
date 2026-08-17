@@ -39,6 +39,7 @@ export const boardRouter = router({
           page: z.number().optional().default(1),
           pageSize: z.number().optional().default(20),
           search: z.string().optional().default(""),
+          status: z.string().optional().default("all"),
         })
         .optional()
     )
@@ -46,6 +47,7 @@ export const boardRouter = router({
       const page = Math.max(Number(input?.page) || 1, 1);
       const pageSize = Math.max(Number(input?.pageSize) || 20, 1);
       const search = input?.search?.trim() || "";
+      const statusFilter = input?.status || "all";
       const offset = (page - 1) * pageSize;
 
       const db = await getDb();
@@ -78,11 +80,25 @@ export const boardRouter = router({
         });
       }
 
-      // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة مع البحث والترقيم ====================
-      const baseWhere = inArray(
+      // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة مع البحث والترقيم والفلترة ====================
+      const baseAllWhere = inArray(
         disbursementOrders.status,
         ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any
       );
+
+      let statusCondition;
+      if (statusFilter === "pending_approval" || statusFilter === "pending" || statusFilter === "pending_executive") {
+        statusCondition = inArray(
+          disbursementOrders.status,
+          ["approved", "pending", "pending_executive", "edited", "draft"] as any
+        );
+      } else if (statusFilter === "executed" || statusFilter === "approved_done") {
+        statusCondition = eq(disbursementOrders.status, "executed" as any);
+      } else if (statusFilter === "rejected") {
+        statusCondition = eq(disbursementOrders.status, "rejected" as any);
+      } else {
+        statusCondition = baseAllWhere;
+      }
 
       const searchCondition = search
         ? or(
@@ -93,9 +109,9 @@ export const boardRouter = router({
           )
         : undefined;
 
-      const finalWhere = searchCondition ? and(baseWhere, searchCondition) : baseWhere;
+      const finalWhere = searchCondition ? and(statusCondition, searchCondition) : statusCondition;
 
-      // إجمالي العدد المفلتر بحسب البحث
+      // إجمالي العدد المفلتر بحسب البحث والحالة
       const [filteredCountRes] = await db
         .select({ count: count() })
         .from(disbursementOrders)
@@ -105,7 +121,7 @@ export const boardRouter = router({
       const totalFilteredCount = Number(filteredCountRes?.count || 0);
       const totalPages = Math.max(Math.ceil(totalFilteredCount / pageSize), 1);
 
-      // استعلام أوامر الصرف مع الترقيم والبحث في MySQL
+      // استعلام أوامر الصرف مع الترقيم والبحث والفلترة في MySQL
       const ordersRaw = await db
         .select({
           orderId: disbursementOrders.id,
@@ -154,14 +170,29 @@ export const boardRouter = router({
         requestStatus: o.requestStatus || null,
       }));
 
-      // إجمالي المبالغ والإحصائيات الكلية لكافة الأوامر
+      // إجمالي المبالغ والإحصائيات الكلية لكافة الأوامر وحسب الحالات
       const [totalApprovedStatsRes] = await db
         .select({
           totalCount: count(),
           totalAmount: sum(disbursementOrders.amount),
         })
         .from(disbursementOrders)
-        .where(baseWhere);
+        .where(baseAllWhere);
+
+      const [pendingCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .where(inArray(disbursementOrders.status, ["approved", "pending", "pending_executive", "edited", "draft"] as any));
+
+      const [executedCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "executed" as any));
+
+      const [rejectedCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.status, "rejected" as any));
 
     // ==================== 2️⃣ إحصائيات المساجد ====================
     const [totalMosquesRes] = await db
@@ -385,6 +416,12 @@ export const boardRouter = router({
         totalPages,
         currentPage: page,
         pageSize,
+        statusCounts: {
+          all: Number(totalApprovedStatsRes?.totalCount || 0),
+          pending_approval: Number(pendingCountRes?.count || 0),
+          executed: Number(executedCountRes?.count || 0),
+          rejected: Number(rejectedCountRes?.count || 0),
+        },
       },
       mosques: {
         total: Number(totalMosquesRes?.value || 0),
