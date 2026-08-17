@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -84,8 +84,18 @@ export default function BoardDashboard() {
   const [activeTab, setActiveTab] = useState("mosques");
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  // مؤقت البحث الذكي مع إلغاء الارتداد
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // حالات نافذة الرفض والمعاينة
   const [rejectingOrder, setRejectingOrder] = useState<{ id: number; orderNumber: string } | null>(null);
@@ -118,8 +128,13 @@ export default function BoardDashboard() {
   // الصلاحيات التنفيذية والمعاينة الشاملة تظهر حصراً لمن لديه صلاحية رئيس مجلس الإدارة التنفيذية
   const canPerformActions = isChairmanRole || hasChairmanActionPerm;
 
-  const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery(undefined, {
+  const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery({
+    page: currentPage,
+    pageSize: ITEMS_PER_PAGE,
+    search: debouncedSearch,
+  }, {
     staleTime: 0,
+    placeholderData: (prev) => prev,
   });
 
   const approveOrderMutation = trpc.disbursements.approveOrder.useMutation({
@@ -184,32 +199,8 @@ export default function BoardDashboard() {
     }).format(amount) + " ريال";
   };
 
-  // فلترة أوامر رئيس مجلس الإدارة بحسب البحث
-  const filteredLinkedOrders = (data?.chairmanData?.linkedApprovedOrders || []).filter((o) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      o.orderNumber.toLowerCase().includes(term) ||
-      o.requestNumber.toLowerCase().includes(term) ||
-      o.beneficiaryName.toLowerCase().includes(term) ||
-      o.requestTitle.toLowerCase().includes(term)
-    );
-  });
-
-  const filteredCustomOrders = (data?.chairmanData?.customApprovedOrders || []).filter((o) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      o.orderNumber.toLowerCase().includes(term) ||
-      o.beneficiaryName.toLowerCase().includes(term)
-    );
-  });
-
-  // حساب المبالغ الكلية للأوامر المعتمدة
-  const totalApprovedAmount = [
-    ...(data?.chairmanData?.linkedApprovedOrders || []),
-    ...(data?.chairmanData?.customApprovedOrders || []),
-  ].reduce((acc, curr) => acc + curr.amount, 0);
+  // حساب المبالغ الكلية للأوامر المعتمدة من الاستجابة المباشرة
+  const totalApprovedAmount = data?.chairmanData?.totalApprovedAmount || 0;
 
   return (
     <DashboardLayout>
@@ -350,48 +341,13 @@ export default function BoardDashboard() {
                   </div>
                 </div>
 
-                {/* 🎯 جدول موحد ومبسط لأوامر الصرف المعتمدة مع الترقيم (Pagination) */}
+                {/* 🎯 جدول موحد ومبسط لأوامر الصرف المعتمدة مع الترقيم والبحث من الخادم */}
                 {(() => {
-                  const allApprovedOrders = [
-                    ...(data?.chairmanData?.linkedApprovedOrders || []).map((o) => ({
-                      ...o,
-                      id: o.orderId,
-                      orderId: o.orderId,
-                      requestId: o.requestId,
-                      isCustom: false,
-                      title: o.requestTitle || "طلب صرف معتمد",
-                    })),
-                    ...(data?.chairmanData?.customApprovedOrders || []).map((o) => ({
-                      ...o,
-                      id: (o as any).id || (o as any).orderId,
-                      orderId: (o as any).id || (o as any).orderId,
-                      requestId: null,
-                      isCustom: true,
-                      title: "أمر صرف مخصص",
-                      requestNumber: null,
-                    })),
-                  ];
+                  const paginatedOrders = data?.chairmanData?.orders || [];
+                  const totalFilteredCount = data?.chairmanData?.totalFilteredCount || 0;
+                  const totalPages = data?.chairmanData?.totalPages || 1;
 
-                  const filteredOrders = allApprovedOrders.filter((o) => {
-                    if (!searchTerm.trim()) return true;
-                    const term = searchTerm.toLowerCase();
-                    return (
-                      o.orderNumber.toLowerCase().includes(term) ||
-                      (o.requestNumber && o.requestNumber.toLowerCase().includes(term)) ||
-                      o.beneficiaryName.toLowerCase().includes(term) ||
-                      o.title.toLowerCase().includes(term)
-                    );
-                  });
-
-                  const totalFilteredCount = filteredOrders.length;
-                  const totalPages = Math.ceil(totalFilteredCount / ITEMS_PER_PAGE);
-
-                  const paginatedOrders = filteredOrders.slice(
-                    (currentPage - 1) * ITEMS_PER_PAGE,
-                    currentPage * ITEMS_PER_PAGE
-                  );
-
-                  return filteredOrders.length > 0 ? (
+                  return paginatedOrders.length > 0 ? (
                     <Card className="border-0 shadow-sm overflow-hidden p-0 space-y-0 rounded-xl">
                       <div className="overflow-x-auto">
                         <Table dir="rtl" className="w-full min-w-full">

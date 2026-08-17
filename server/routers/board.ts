@@ -1,4 +1,5 @@
-import { eq, and, sql, isNull, inArray, count, sum, desc } from "drizzle-orm";
+import { eq, and, or, like, sql, isNull, inArray, count, sum, desc } from "drizzle-orm";
+import { z } from "zod";
 import { getDb } from "../db";
 import {
   mosques,
@@ -31,122 +32,136 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export const boardRouter = router({
-  getExecutiveStats: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "قاعدة البيانات غير متاحة",
-      });
-    }
+  getExecutiveStats: protectedProcedure
+    .input(
+      z
+        .object({
+          page: z.number().optional().default(1),
+          pageSize: z.number().optional().default(20),
+          search: z.string().optional().default(""),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const page = Math.max(Number(input?.page) || 1, 1);
+      const pageSize = Math.max(Number(input?.pageSize) || 20, 1);
+      const search = input?.search?.trim() || "";
+      const offset = (page - 1) * pageSize;
 
-    // التحقق الصارم من الصلاحيات والأدوار
-    const isChairmanRole = ctx.user.role === "board_chairman";
-    const isMemberRole = ctx.user.role === "board_member";
-    const isAdminRole = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "قاعدة البيانات غير متاحة",
+        });
+      }
 
-    const hasChairmanPerm = await checkPermission(ctx.user.id, "board_chairman") || await checkPermission(ctx.user.id, "board_leadership.board_chairman") || await checkPermission(ctx.user.id, "board.board_chairman");
-    const hasChairmanViewPerm = await checkPermission(ctx.user.id, "board_chairman_view") || await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") || await checkPermission(ctx.user.id, "board.board_chairman_view");
-    const hasMemberPerm = await checkPermission(ctx.user.id, "board_member") || await checkPermission(ctx.user.id, "board_leadership.board_member") || await checkPermission(ctx.user.id, "board.board_member");
+      // التحقق الصارم من الصلاحيات والأدوار
+      const isChairmanRole = ctx.user.role === "board_chairman";
+      const isMemberRole = ctx.user.role === "board_member";
+      const isAdminRole = ["super_admin", "system_admin"].includes(ctx.user.role);
 
-    const isChairman = isChairmanRole || hasChairmanPerm;
-    const isChairmanView = hasChairmanViewPerm;
-    const isMember = (isChairman || isChairmanView) ? false : (isMemberRole || hasMemberPerm || isAdminRole);
+      const hasChairmanPerm = await checkPermission(ctx.user.id, "board_chairman") || await checkPermission(ctx.user.id, "board_leadership.board_chairman") || await checkPermission(ctx.user.id, "board.board_chairman");
+      const hasChairmanViewPerm = await checkPermission(ctx.user.id, "board_chairman_view") || await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") || await checkPermission(ctx.user.id, "board.board_chairman_view");
+      const hasMemberPerm = await checkPermission(ctx.user.id, "board_member") || await checkPermission(ctx.user.id, "board_leadership.board_member") || await checkPermission(ctx.user.id, "board.board_member");
 
-    const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm;
+      const isChairman = isChairmanRole || hasChairmanPerm;
+      const isChairmanView = hasChairmanViewPerm;
+      const isMember = (isChairman || isChairmanView) ? false : (isMemberRole || hasMemberPerm || isAdminRole);
 
-    if (!canAccessBoard) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "صفحة اللوحة القيادية مخصصة حصراً لأعضاء ورئيس مجلس الإدارة أو من يمتلك صلاحية عرض اللوحة",
-      });
-    }
+      const canAccessBoard = isChairman || isChairmanView || isMember || isAdminRole || hasMemberPerm;
 
-    // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة ====================
-    
-    // 1.1 أمر صرف مرتبط بطلب صرف: يظهر فقط إذا كانت حالة طلب الصرف معتمد وحالة أمر الصرف معتمد
-    const linkedApprovedOrdersRaw = await db
-      .select({
-        orderId: disbursementOrders.id,
-        orderNumber: disbursementOrders.orderNumber,
-        amount: disbursementOrders.amount,
-        beneficiaryName: disbursementOrders.beneficiaryName,
-        beneficiaryBank: disbursementOrders.beneficiaryBank,
-        beneficiaryIban: disbursementOrders.beneficiaryIban,
-        paymentMethod: disbursementOrders.paymentMethod,
-        orderStatus: disbursementOrders.status,
-        orderCreatedAt: disbursementOrders.createdAt,
-        rejectionReason: disbursementOrders.rejectionReason,
-        approvalNotes: disbursementOrders.approvalNotes,
-        requestId: disbursementRequests.id,
-        requestNumber: disbursementRequests.requestNumber,
-        requestTitle: disbursementRequests.title,
-        requestAmount: disbursementRequests.amount,
-        requestStatus: disbursementRequests.status,
-      })
-      .from(disbursementOrders)
-      .innerJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
-      .where(
-        inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any)
-      )
-      .orderBy(desc(disbursementOrders.createdAt));
+      if (!canAccessBoard) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "صفحة اللوحة القيادية مخصصة حصراً لأعضاء ورئيس مجلس الإدارة أو من يمتلك صلاحية عرض اللوحة",
+        });
+      }
 
-    const linkedApprovedOrders = linkedApprovedOrdersRaw.map((o) => ({
-      orderId: o.orderId,
-      orderNumber: o.orderNumber,
-      amount: Number(o.amount || 0),
-      beneficiaryName: o.beneficiaryName,
-      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
-      beneficiaryIban: o.beneficiaryIban || "-",
-      paymentMethod: o.paymentMethod || "bank_transfer",
-      orderStatus: o.orderStatus,
-      orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
-      rejectionReason: o.rejectionReason || null,
-      approvalNotes: o.approvalNotes || null,
-      requestId: o.requestId,
-      requestNumber: o.requestNumber,
-      requestTitle: o.requestTitle || `طلب صرف رقم ${o.requestNumber}`,
-      requestAmount: Number(o.requestAmount || 0),
-      requestStatus: o.requestStatus,
-    }));
+      // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة مع البحث والترقيم ====================
+      const baseWhere = inArray(
+        disbursementOrders.status,
+        ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any
+      );
 
-    // 1.2 أمر صرف مخصص (غير مرتبط بطلب صرف): يظهر كافة الأوامر المخصصة (معتمدة، مرفوضة، أو بانتظار الاعتماد)
-    const customApprovedOrdersRaw = await db
-      .select({
-        id: disbursementOrders.id,
-        orderNumber: disbursementOrders.orderNumber,
-        amount: disbursementOrders.amount,
-        beneficiaryName: disbursementOrders.beneficiaryName,
-        beneficiaryBank: disbursementOrders.beneficiaryBank,
-        beneficiaryIban: disbursementOrders.beneficiaryIban,
-        paymentMethod: disbursementOrders.paymentMethod,
-        status: disbursementOrders.status,
-        createdAt: disbursementOrders.createdAt,
-        rejectionReason: disbursementOrders.rejectionReason,
-        approvalNotes: disbursementOrders.approvalNotes,
-      })
-      .from(disbursementOrders)
-      .where(
-        and(
-          inArray(disbursementOrders.status, ["approved", "executed", "pending", "pending_executive", "edited", "rejected", "draft"] as any),
-          sql`(${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0)`
-        )
-      )
-      .orderBy(desc(disbursementOrders.createdAt));
+      const searchCondition = search
+        ? or(
+            like(disbursementOrders.orderNumber, `%${search}%`),
+            like(disbursementOrders.beneficiaryName, `%${search}%`),
+            like(disbursementRequests.requestNumber, `%${search}%`),
+            like(disbursementRequests.title, `%${search}%`)
+          )
+        : undefined;
 
-    const customApprovedOrders = customApprovedOrdersRaw.map((o) => ({
-      id: o.id,
-      orderNumber: o.orderNumber,
-      amount: Number(o.amount || 0),
-      beneficiaryName: o.beneficiaryName,
-      beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
-      beneficiaryIban: o.beneficiaryIban || "-",
-      paymentMethod: o.paymentMethod || "bank_transfer",
-      status: o.status,
-      createdAt: o.createdAt ? new Date(o.createdAt).toISOString() : new Date().toISOString(),
-      rejectionReason: o.rejectionReason || null,
-      approvalNotes: o.approvalNotes || null,
-    }));
+      const finalWhere = searchCondition ? and(baseWhere, searchCondition) : baseWhere;
+
+      // إجمالي العدد المفلتر بحسب البحث
+      const [filteredCountRes] = await db
+        .select({ count: count() })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .where(finalWhere);
+
+      const totalFilteredCount = Number(filteredCountRes?.count || 0);
+      const totalPages = Math.max(Math.ceil(totalFilteredCount / pageSize), 1);
+
+      // استعلام أوامر الصرف مع الترقيم والبحث في MySQL
+      const ordersRaw = await db
+        .select({
+          orderId: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          amount: disbursementOrders.amount,
+          beneficiaryName: disbursementOrders.beneficiaryName,
+          beneficiaryBank: disbursementOrders.beneficiaryBank,
+          beneficiaryIban: disbursementOrders.beneficiaryIban,
+          paymentMethod: disbursementOrders.paymentMethod,
+          orderStatus: disbursementOrders.status,
+          orderCreatedAt: disbursementOrders.createdAt,
+          rejectionReason: disbursementOrders.rejectionReason,
+          approvalNotes: disbursementOrders.approvalNotes,
+          isCustom: sql<boolean>`CASE WHEN ${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0 THEN TRUE ELSE FALSE END`,
+          requestId: disbursementRequests.id,
+          requestNumber: disbursementRequests.requestNumber,
+          requestTitle: disbursementRequests.title,
+          requestAmount: disbursementRequests.amount,
+          requestStatus: disbursementRequests.status,
+        })
+        .from(disbursementOrders)
+        .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .where(finalWhere)
+        .orderBy(desc(disbursementOrders.createdAt))
+        .limit(pageSize)
+        .offset(offset);
+
+      const orders = ordersRaw.map((o) => ({
+        id: o.orderId,
+        orderId: o.orderId,
+        orderNumber: o.orderNumber,
+        amount: Number(o.amount || 0),
+        beneficiaryName: o.beneficiaryName,
+        beneficiaryBank: o.beneficiaryBank || "مصرف الراجحي",
+        beneficiaryIban: o.beneficiaryIban || "-",
+        paymentMethod: o.paymentMethod || "bank_transfer",
+        orderStatus: o.orderStatus,
+        orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
+        rejectionReason: o.rejectionReason || null,
+        approvalNotes: o.approvalNotes || null,
+        isCustom: Boolean(o.isCustom),
+        title: o.isCustom ? "أمر صرف مخصص" : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
+        requestId: o.requestId || null,
+        requestNumber: o.requestNumber || null,
+        requestAmount: o.requestAmount ? Number(o.requestAmount) : null,
+        requestStatus: o.requestStatus || null,
+      }));
+
+      // إجمالي المبالغ والإحصائيات الكلية لكافة الأوامر
+      const [totalApprovedStatsRes] = await db
+        .select({
+          totalCount: count(),
+          totalAmount: sum(disbursementOrders.amount),
+        })
+        .from(disbursementOrders)
+        .where(baseWhere);
 
     // ==================== 2️⃣ إحصائيات المساجد ====================
     const [totalMosquesRes] = await db
@@ -361,9 +376,15 @@ export const boardRouter = router({
       isChairman,
       isMember,
       chairmanData: {
-        linkedApprovedOrders,
-        customApprovedOrders,
-        totalApprovedCount: linkedApprovedOrders.length + customApprovedOrders.length,
+        orders,
+        linkedApprovedOrders: orders.filter((o) => !o.isCustom),
+        customApprovedOrders: orders.filter((o) => o.isCustom),
+        totalApprovedCount: Number(totalApprovedStatsRes?.totalCount || 0),
+        totalApprovedAmount: Number(totalApprovedStatsRes?.totalAmount || 0),
+        totalFilteredCount,
+        totalPages,
+        currentPage: page,
+        pageSize,
       },
       mosques: {
         total: Number(totalMosquesRes?.value || 0),
@@ -429,7 +450,7 @@ export const boardRouter = router({
         completedBankTransfersCount: Number(completedBankTransfersRes?.count || 0),
         completedBankTransfersAmount: Number(completedBankTransfersRes?.totalAmount || 0),
         totalReceiptVouchersAmount: Number(totalReceiptVouchersRes?.total || 0),
-        pendingApprovalsCount: linkedApprovedOrders.length + customApprovedOrders.length,
+        pendingApprovalsCount: Number(totalApprovedStatsRes?.totalCount || 0),
         monthlyFlow,
       },
     };
