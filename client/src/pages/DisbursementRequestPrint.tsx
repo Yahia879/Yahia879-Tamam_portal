@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, PenTool, ShieldAlert } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 
 function toHijriDate(date: Date): string {
@@ -112,20 +113,17 @@ export default function DisbursementRequestPrint() {
     (request as any)?.executiveDirectorSignatureUrl ||
     (isExecutiveDirectorSigner ? (currentUser as any)?.signatureUrl : null);
 
-  // تغيير عنوان المستند ليطابق رقم طلب الصرف عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
+  // تحديث عنوان الصفحة بسلاسة عبر سياق عناوين المستندات
+  useDocumentTitle(request?.requestNumber ? `طباعة طلب صرف رقم ${request.requestNumber}` : "طباعة طلب الصرف");
+
   useEffect(() => {
     if (request) {
-      const originalTitle = document.title;
-      document.title = `طلب صرف رقم ${request.requestNumber}`;
       if ((request as any).showCreatorSignature !== undefined && (request as any).showCreatorSignature !== null) {
         setShowCreatorSignature(Boolean((request as any).showCreatorSignature));
       }
       if ((request as any).showExecutiveDirectorSignature !== undefined && (request as any).showExecutiveDirectorSignature !== null) {
         setShowExecutiveDirectorSignature(Boolean((request as any).showExecutiveDirectorSignature));
       }
-      return () => {
-        document.title = originalTitle;
-      };
     }
   }, [request?.showCreatorSignature, request?.showExecutiveDirectorSignature]);
 
@@ -176,7 +174,14 @@ export default function DisbursementRequestPrint() {
   })();
 
   const handlePrint = () => {
+    const prevTitle = document.title;
+    if (request?.requestNumber) {
+      document.title = `طلب صرف رقم ${request.requestNumber}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
   };
 
   if (isLoading) {

@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, Loader2, AlertCircle } from "lucide-react";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 
 function numberToArabicText(num: number): string {
@@ -91,15 +92,11 @@ export default function ReceiptVoucherPrint() {
     ? voucher.voucherNumber.split("-").pop() || ""
     : "";
 
-  useEffect(() => {
-    if (voucher) {
-      const originalTitle = document.title;
-      document.title = voucher.status === "approved" ? `سند قبض رقم ${voucherNumDisplay}` : `معاينة سند قبض (غير معتمد)`;
-      return () => {
-        document.title = originalTitle;
-      };
-    }
-  }, [voucher, voucherNumDisplay]);
+  useDocumentTitle(
+    voucher
+      ? (voucher.status === "approved" ? `سند قبض رقم ${voucherNumDisplay}` : `معاينة سند قبض (غير معتمد)`)
+      : "طباعة سند القبض"
+  );
 
   // Main Logo, Stamp & Signature URLs
   const mainLogoUrl = orgSettings?.logoUrl;
@@ -113,6 +110,7 @@ export default function ReceiptVoucherPrint() {
     if (isPreparingPrint) return;
     setIsPreparingPrint(true);
 
+    const prevTitle = document.title;
     if (voucher) {
       document.title = `سند قبض رقم ${voucherNumDisplay}`;
     }

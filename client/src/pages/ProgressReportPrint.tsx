@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import {
   Dialog,
@@ -179,18 +180,17 @@ export default function ProgressReportPrint() {
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // تغيير عنوان التوثيق ليتطابق مع اسم التقرير عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
-  useEffect(() => {
-    if (report) {
-      const originalTitle = document.title;
-      document.title = `${report.reportNumber} - ${report.title}`;
-      return () => {
-        document.title = originalTitle;
-      };
-    }
-  }, [report]);
+  useDocumentTitle(report ? `${report.reportNumber} - ${report.title}` : "طباعة تقرير الإنجاز");
 
   const handlePrint = () => {
+    const prevTitle = document.title;
+    if (report) {
+      document.title = `${report.reportNumber} - ${report.title}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
   };
 
   if (isReportLoading || isProjectLoading) {

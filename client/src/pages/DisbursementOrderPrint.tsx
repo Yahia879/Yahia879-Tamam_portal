@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, PenTool } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 
 
@@ -62,27 +63,31 @@ export default function DisbursementOrderPrint() {
     { enabled: !!params.id }
   );
 
-  // تغيير عنوان المستند ليطابق رقم أمر الصرف عند الطباعة والتنزيل (يحدد اسم ملف الـ PDF)
+  // تحديث عنوان الصفحة بسلاسة عبر سياق عناوين المستندات
+  useDocumentTitle(order?.orderNumber ? `طباعة أمر صرف رقم ${order.orderNumber}` : "طباعة أمر الصرف");
+
   useEffect(() => {
     if (order) {
-      const originalTitle = document.title;
-      document.title = `أمر صرف رقم ${order.orderNumber}`;
       if ((order as any).showCreatorSignature !== undefined && (order as any).showCreatorSignature !== null) {
         setShowCreatorSignature(Boolean((order as any).showCreatorSignature));
       }
       if ((order as any).showExecutiveDirectorSignature !== undefined && (order as any).showExecutiveDirectorSignature !== null) {
         setShowExecutiveDirectorSignature(Boolean((order as any).showExecutiveDirectorSignature));
       }
-      return () => {
-        document.title = originalTitle;
-      };
     }
   }, [(order as any)?.showCreatorSignature, (order as any)?.showExecutiveDirectorSignature]);
 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const handlePrint = () => {
+    const prevTitle = document.title;
+    if (order?.orderNumber) {
+      document.title = `أمر صرف رقم ${order.orderNumber}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
   };
 
   if (isLoading) {

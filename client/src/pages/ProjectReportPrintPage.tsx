@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, Clock, Target, Activity, Eye, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import {
   Dialog,
   DialogContent,
@@ -151,18 +152,17 @@ export default function ProjectReportPrintPage() {
   // جلب إعدادات الجمعية
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
-  useEffect(() => {
-    if (report) {
-      const originalTitle = document.title;
-      document.title = `${report.reportNumber || report.id} - ${report.title}`;
-      return () => {
-        document.title = originalTitle;
-      };
-    }
-  }, [report]);
+  useDocumentTitle(report ? `${report.reportNumber || report.id} - ${report.title}` : "طباعة تقرير المشروع");
 
   const handlePrint = () => {
+    const prevTitle = document.title;
+    if (report) {
+      document.title = `${report.reportNumber || report.id} - ${report.title}`;
+    }
     window.print();
+    setTimeout(() => {
+      document.title = prevTitle;
+    }, 1000);
   };
 
   if (isReportLoading) {
