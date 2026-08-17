@@ -1306,17 +1306,17 @@ export default function BoardDashboard() {
           </Tabs>
         )}
 
-        {/* ==================== 💬 نافذة سبب ومبرر عدم اعتماد التحويل ==================== */}
+        {/* ==================== 💬 نافذة سبب ومبرر عدم اعتماد التحويل (باللون الأحمر المعتمد للمنصة) ==================== */}
         <Dialog open={!!rejectingOrder} onOpenChange={(open) => !open && setRejectingOrder(null)}>
-          <DialogContent className="sm:max-w-lg rounded-3xl p-6 sm:p-7 text-right" dir="rtl">
-            <DialogHeader className="text-right space-y-2 border-b pb-4 pl-8">
+          <DialogContent className="sm:max-w-lg rounded-3xl p-6 sm:p-7 text-right border-rose-100 dark:border-rose-900/40" dir="rtl">
+            <DialogHeader className="text-right space-y-2 border-b border-rose-100 dark:border-rose-950/60 pb-4 pl-8">
               <div className="flex items-center gap-2 flex-wrap">
-                <DialogTitle className="text-lg sm:text-xl font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-amber-500" />
+                <DialogTitle className="text-lg sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" />
                   <span>مبرر عدم اعتماد التحويل البنكي</span>
                 </DialogTitle>
                 {rejectingOrder && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                  <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
                     {rejectingOrder.orderNumber}
                   </Badge>
                 )}
@@ -1326,14 +1326,14 @@ export default function BoardDashboard() {
             <div className="py-4 space-y-4">
               <div className="space-y-2 text-right">
                 <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                  سبب عدم الاعتماد ومبرر الرفض: <span className="text-amber-600">*</span>
+                  سبب عدم الاعتماد ومبرر الرفض: <span className="text-rose-600 font-bold">*</span>
                 </label>
                 <Textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="اكتب سبب عدم اعتماد التحويل بالتفصيل..."
                   rows={4}
-                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-amber-500"
+                  className="rounded-2xl border-slate-200 dark:border-slate-800 text-xs sm:text-sm font-semibold p-3 focus-visible:ring-rose-500 focus-visible:border-rose-500"
                 />
               </div>
             </div>
@@ -1349,7 +1349,7 @@ export default function BoardDashboard() {
               <Button
                 onClick={handleConfirmReject}
                 disabled={isRejecting || !rejectionReason.trim()}
-                className="rounded-xl font-bold text-xs gap-2 px-5 bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm"
+                className="rounded-xl font-bold text-xs gap-2 px-5 bg-rose-600 hover:bg-rose-700 text-white border-0 shadow-sm transition-all"
               >
                 <XCircle className="w-4 h-4 shrink-0" />
                 <span>{isRejecting ? "جاري الرفض..." : "تأكيد عدم الاعتماد والرفض"}</span>
