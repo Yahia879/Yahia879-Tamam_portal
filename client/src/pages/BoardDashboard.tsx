@@ -1260,43 +1260,107 @@ export default function BoardDashboard() {
                 </Card>
               </div>
 
-              <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
-                <CardHeader className="p-0 mb-6 text-right">
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-amber-500 shrink-0" />
-                    <span>التدفق المالي وتطور الصرف الشهري المعتمد</span>
-                  </CardTitle>
-                  <CardDescription>التغيرات والمبالغ المصروفة عبر أوامر الصرف المعتمدة شهرياً</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0 h-80">
-                  {data.financials.monthlyFlow.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data.financials.monthlyFlow} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
-                        <defs>
-                          <linearGradient id="colorDisbursed" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="month" stroke="#64748b" fontSize={12} tickLine={false} />
-                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
-                        <Tooltip
-                          formatter={(val: any) => [`${Number(val).toLocaleString("ar-SA")} ريال`, "المبلغ المصروف"]}
-                          contentStyle={TOOLTIP_CONTENT_STYLE}
-                          itemStyle={TOOLTIP_ITEM_STYLE}
-                          labelStyle={TOOLTIP_LABEL_STYLE}
-                        />
-                        <Area type="monotone" dataKey="disbursed" name="المصروفات" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorDisbursed)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                      لا توجد بيانات تدفق شهري سابقة
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* 1. سير طلبات الصرف */}
+                <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardHeader className="p-0 mb-6 text-right">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-500 shrink-0" />
+                      <span>سير طلبات الصرف</span>
+                    </CardTitle>
+                    <CardDescription>عدد طلبات الصرف التي تم عملها خلال الأيام الماضية</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 h-72">
+                    {data.financials.requestsTimeline && data.financials.requestsTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={data.financials.requestsTimeline}
+                          margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorBoardRequests" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
+                          <Tooltip
+                            formatter={(val: any) => [`${val} طلب`, "الطلبات المنشأة"]}
+                            contentStyle={TOOLTIP_CONTENT_STYLE}
+                            itemStyle={TOOLTIP_ITEM_STYLE}
+                            labelStyle={TOOLTIP_LABEL_STYLE}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="count"
+                            name="الطلبات"
+                            stroke="#3b82f6"
+                            strokeWidth={2.5}
+                            fillOpacity={1}
+                            fill="url(#colorBoardRequests)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 2. سير أوامر الصرف */}
+                <Card className="rounded-3xl border-slate-200/70 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 shadow-lg p-6">
+                  <CardHeader className="p-0 mb-6 text-right">
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-purple-500 shrink-0" />
+                      <span>سير أوامر الصرف</span>
+                    </CardTitle>
+                    <CardDescription>عدد أوامر الصرف التي تم عملها خلال الأيام الماضية</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 h-72">
+                    {data.financials.ordersTimeline && data.financials.ordersTimeline.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={data.financials.ordersTimeline}
+                          margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                        >
+                          <defs>
+                            <linearGradient id="colorBoardOrders" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} allowDecimals={false} />
+                          <Tooltip
+                            formatter={(val: any) => [`${val} أمر`, "الأوامر المنشأة"]}
+                            contentStyle={TOOLTIP_CONTENT_STYLE}
+                            itemStyle={TOOLTIP_ITEM_STYLE}
+                            labelStyle={TOOLTIP_LABEL_STYLE}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="count"
+                            name="الأوامر"
+                            stroke="#8b5cf6"
+                            strokeWidth={2.5}
+                            fillOpacity={1}
+                            fill="url(#colorBoardOrders)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                        لا توجد بيانات مخطط كافية حالياً
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         )}

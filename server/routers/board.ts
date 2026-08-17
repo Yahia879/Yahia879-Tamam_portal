@@ -475,6 +475,40 @@ export const boardRouter = router({
       .from(disbursementOrders)
       .where(eq(disbursementOrders.status, "executed" as any));
 
+    // 6. مخطط سير طلبات الصرف عبر الأيام (مطابق لصفحة /financial-report)
+    const requestsTimelineRaw = await db
+      .select({
+        date: sql<string>`DATE_FORMAT(${disbursementRequests.createdAt}, '%Y-%m-%d')`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(disbursementRequests)
+      .where(inArray(disbursementRequests.status, ["pending", "approved", "rejected"]))
+      .groupBy(sql`DATE(${disbursementRequests.createdAt})`)
+      .orderBy(sql`DATE(${disbursementRequests.createdAt})`)
+      .limit(30);
+
+    const requestsTimeline = requestsTimelineRaw.map((item) => ({
+      date: item.date,
+      count: Number(item.count || 0),
+    }));
+
+    // 7. مخطط سير أوامر الصرف عبر الأيام (مطابق لصفحة /financial-report)
+    const ordersTimelineRaw = await db
+      .select({
+        date: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m-%d')`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(disbursementOrders)
+      .where(inArray(disbursementOrders.status, ["approved", "pending", "rejected", "edited"]))
+      .groupBy(sql`DATE(${disbursementOrders.createdAt})`)
+      .orderBy(sql`DATE(${disbursementOrders.createdAt})`)
+      .limit(30);
+
+    const ordersTimeline = ordersTimelineRaw.map((item) => ({
+      date: item.date,
+      count: Number(item.count || 0),
+    }));
+
     const monthlyFlowRaw = await db
       .select({
         month: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m')`,
@@ -597,6 +631,8 @@ export const boardRouter = router({
 
         pendingApprovalsCount: Number(totalApprovedStatsRes?.totalCount || 0),
         monthlyFlow,
+        requestsTimeline,
+        ordersTimeline,
       },
     };
   }),
