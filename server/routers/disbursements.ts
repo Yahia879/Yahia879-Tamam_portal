@@ -2842,7 +2842,7 @@ export const disbursementsRouter = router({
         .groupBy(sql`f.paymentType`) as any)
         .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
-      // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل)
+      // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل، منفذ)
       const ordersByStatus = await db
         .select({
           status: disbursementOrders.status,
@@ -2850,7 +2850,7 @@ export const disbursementsRouter = router({
           totalAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']))
         .groupBy(disbursementOrders.status);
 
       // إجماليات عامة (مصفاة حسب الحالات النشطة: قيد الاعتماد، معتمد، مرفوض)
@@ -2877,7 +2877,7 @@ export const disbursementsRouter = router({
           executedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementOrders.status} IN ('executed', 'paid') THEN ${disbursementOrders.amount} ELSE 0 END), 0)`,
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']));
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']));
 
       // إجماليات العقود (مع استبعاد حالة "نشط")
       const [contractTotals] = await db
@@ -2978,14 +2978,14 @@ export const disbursementsRouter = router({
         .where(inArray(disbursementRequests.status, ['pending', 'approved', 'rejected']))
         .groupBy(disbursementRequests.status);
 
-      // إحصائيات أوامر الصرف للرسم البياني (فقط الحالات: معتمد، قيد الاعتماد، مرفوض، تم التعديل)
+      // إحصائيات أوامر الصرف للرسم البياني (الحالات: معتمد، قيد الاعتماد، مرفوض، تم التعديل، منفذ)
       const ordersTimeline = await db
         .select({
           date: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m-%d')`,
           count: sql<number>`COUNT(*)`
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']))
         .groupBy(sql`DATE(${disbursementOrders.createdAt})`)
         .orderBy(sql`DATE(${disbursementOrders.createdAt})`)
         .limit(30);
