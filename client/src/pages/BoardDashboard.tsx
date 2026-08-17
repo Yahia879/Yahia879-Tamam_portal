@@ -89,6 +89,7 @@ export default function BoardDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [orderTypeFilter, setOrderTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
@@ -137,6 +138,7 @@ export default function BoardDashboard() {
     pageSize: ITEMS_PER_PAGE,
     search: debouncedSearch,
     status: selectedStatus,
+    orderType: orderTypeFilter,
   }, {
     staleTime: 0,
     placeholderData: (prev) => prev,
@@ -304,7 +306,8 @@ export default function BoardDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 space-y-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {/* الفلاتر */}
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   <div className="relative flex-1">
                     {isRefetching ? (
                       <RefreshCw className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary animate-spin" />
@@ -315,11 +318,30 @@ export default function BoardDashboard() {
                       placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pr-10 rounded-xl text-xs sm:text-sm"
+                      className="pr-10 text-right font-medium"
+                      dir="rtl"
                     />
                   </div>
 
-                  <div className="w-full sm:w-64">
+                  <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                    <Select
+                      value={orderTypeFilter}
+                      onValueChange={(val) => {
+                        setOrderTypeFilter(val);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-full lg:w-[180px]">
+                        <Filter className="ml-2 h-4 w-4" />
+                        <SelectValue placeholder="نوع الأمر" />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="all">جميع الأوامر</SelectItem>
+                        <SelectItem value="linked">أمر مرتبط بطلب</SelectItem>
+                        <SelectItem value="custom">أمر صرف مخصص</SelectItem>
+                      </SelectContent>
+                    </Select>
+
                     <Select
                       value={selectedStatus}
                       onValueChange={(val) => {
@@ -327,13 +349,11 @@ export default function BoardDashboard() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-full rounded-xl border-border bg-background text-xs font-bold h-10">
-                        <div className="flex items-center gap-2">
-                          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-                          <SelectValue placeholder="تصفية حسب الحالة" />
-                        </div>
+                      <SelectTrigger className="w-full lg:w-[220px]">
+                        <Filter className="ml-2 h-4 w-4" />
+                        <SelectValue placeholder="الحالة" />
                       </SelectTrigger>
-                      <SelectContent align="end" className="rounded-xl text-xs font-semibold">
+                      <SelectContent dir="rtl">
                         <SelectItem value="all">
                           جميع الحالات
                           {data?.chairmanData?.statusCounts?.all !== undefined && (

@@ -1,4 +1,4 @@
-import { eq, and, or, like, sql, isNull, inArray, count, sum, desc } from "drizzle-orm";
+import { eq, and, or, like, sql, isNull, isNotNull, inArray, count, sum, desc } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "../db";
 import {
@@ -23,10 +23,10 @@ const STAGE_LABELS: Record<string, string> = {
   field_visit: "الزيارة الميدانية",
   boq_preparation: "جدول الكميات",
   financial_eval_and_approval: "التقييم المالي",
-  contracting: "التعاقد",
-  execution: "التنفيذ",
-  handover: "الاستلام والإنهاء",
-  completed: "مكتمل",
+  director_review: "مراجعة المدير التنفيذي",
+  board_review: "مراجعة مجلس الإدارة",
+  board_approval: "اعتماد مجلس الإدارة",
+  approved: "معتمد",
   rejected: "مرفوض",
   on_hold: "معلّق",
 };
@@ -40,6 +40,7 @@ export const boardRouter = router({
           pageSize: z.number().optional().default(20),
           search: z.string().optional().default(""),
           status: z.string().optional().default("all"),
+          orderType: z.string().optional().default("all"),
         })
         .optional()
     )
@@ -48,6 +49,7 @@ export const boardRouter = router({
       const pageSize = Math.max(Number(input?.pageSize) || 20, 1);
       const search = input?.search?.trim() || "";
       const statusFilter = input?.status || "all";
+      const orderTypeFilter = input?.orderType || "all";
       const offset = (page - 1) * pageSize;
 
       const db = await getDb();
@@ -100,6 +102,19 @@ export const boardRouter = router({
         statusCondition = baseAllWhere;
       }
 
+      let orderTypeCondition;
+      if (orderTypeFilter === "linked") {
+        orderTypeCondition = and(
+          isNotNull(disbursementOrders.disbursementRequestId),
+          sql`${disbursementOrders.disbursementRequestId} > 0`
+        );
+      } else if (orderTypeFilter === "custom") {
+        orderTypeCondition = or(
+          isNull(disbursementOrders.disbursementRequestId),
+          eq(disbursementOrders.disbursementRequestId, 0)
+        );
+      }
+
       const searchCondition = search
         ? or(
             like(disbursementOrders.orderNumber, `%${search}%`),
@@ -109,7 +124,11 @@ export const boardRouter = router({
           )
         : undefined;
 
-      const finalWhere = searchCondition ? and(statusCondition, searchCondition) : statusCondition;
+      const conditions = [statusCondition];
+      if (orderTypeCondition) conditions.push(orderTypeCondition);
+      if (searchCondition) conditions.push(searchCondition);
+
+      const finalWhere = conditions.length === 1 ? conditions[0] : and(...conditions);
 
       // إجمالي العدد المفلتر بحسب البحث والحالة
       const [filteredCountRes] = await db
