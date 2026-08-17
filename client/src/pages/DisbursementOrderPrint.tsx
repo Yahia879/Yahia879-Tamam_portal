@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -69,6 +69,7 @@ export default function DisbursementOrderPrint() {
 
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
+  const [showLinksCard, setShowLinksCard] = useState<boolean>(true);
 
   const utils = trpc.useContext();
   const updateOrderSigVisibilityMutation = trpc.disbursements.updateOrderSignatureVisibility.useMutation({
@@ -383,14 +384,12 @@ export default function DisbursementOrderPrint() {
         </Button>
       </div>
 
-      {/* منطقة المستند والروابط الجانبية خارج إطار التقرير */}
-      <div className="max-w-[1400px] mx-auto flex flex-col xl:flex-row items-start justify-center gap-6 px-4 print:p-0 print:m-0 print:max-w-none print:block">
-        {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-        <div className="print-container w-full max-w-[210mm] bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start shrink-0">
-          {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
-          <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[277mm]">
-            {/* خط ذهبي داخلي رفيع للإطار */}
-            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+      {/* صفحة الطباعة - متموضعة في منتصف الصفحة تماماً */}
+      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
+        {/* إطار مزدوج فاخر للمستند يشبه قالب العقود */}
+        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-between min-h-[277mm]">
+          {/* خط ذهبي داخلي رفيع للإطار */}
+          <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
 
           {/* محتوى المستند */}
           <div className="relative z-10 flex-1 flex flex-col justify-start space-y-4">
@@ -696,75 +695,90 @@ export default function DisbursementOrderPrint() {
         </div>
       </div>
 
-        {/* كرت المرفقات والروابط الجانبية خارج إطار التقرير (يظهر في الشاشة فقط بجانب التقرير في المكان المخصص) */}
-        {documentationLinks.length > 0 && (
-          <div className="w-full xl:w-80 shrink-0 print:hidden xl:sticky xl:top-6">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                    <Link2 className="w-4 h-4" />
+      {/* كرت المرفقات والروابط الجانبية خارج إطار التقرير في أقصى اليمين */}
+      {documentationLinks.length > 0 && (
+        <div className="fixed top-24 right-4 sm:right-6 z-30 print:hidden text-right" dir="rtl">
+          {showLinksCard ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-64 max-w-[260px] animate-in fade-in-50 slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Link2 className="w-3.5 h-3.5" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                      الروابط والمرفقات المرفقة
-                    </h3>
-                    <p className="text-[11px] text-slate-500">
-                      روابط خارجية تابعة لأمر الصرف
-                    </p>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block">
+                      الروابط المرفقة
+                    </span>
                   </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                    {documentationLinks.length}
+                  </span>
                 </div>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                  {documentationLinks.length}
-                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full shrink-0"
+                  onClick={() => setShowLinksCard(false)}
+                  title="إغلاق"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2.5 max-h-64 overflow-y-auto pl-0.5">
                 {documentationLinks.map((item, idx) => (
                   <div 
                     key={idx}
-                    className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors space-y-2.5 text-right"
+                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/60 space-y-1.5 text-right text-xs"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                        {item.name || `رابط مرفق #${idx + 1}`}
-                      </span>
+                    <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                      {item.name || `رابط مرفق #${idx + 1}`}
                     </div>
 
-                    <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 truncate text-left bg-white dark:bg-slate-800 p-1.5 rounded border border-slate-100 dark:border-slate-700" dir="ltr">
+                    <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate bg-white dark:bg-slate-800 p-1 rounded border border-slate-100 dark:border-slate-700/50 dir-ltr text-left" dir="ltr">
                       {item.url}
-                    </p>
+                    </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-semibold transition-colors shadow-sm"
+                        className="flex-1 inline-flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-[11px] font-medium transition-colors shadow-xs"
                       >
                         <span>فتح الرابط</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <ExternalLink className="w-3 h-3" />
                       </a>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                        className="h-6.5 w-6.5 p-0 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shrink-0"
                         onClick={() => {
                           navigator.clipboard.writeText(item.url);
                           toast.success("تم نسخ الرابط للحافظة");
                         }}
                         title="نسخ الرابط"
                       >
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLinksCard(true)}
+              className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200/90 dark:border-slate-700 rounded-full px-3.5 py-1.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-all animate-in fade-in-50"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>الروابط المرفقة ({documentationLinks.length})</span>
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* أنماط الطباعة المتقدمة للجمعية */}
       <style>{`
