@@ -483,8 +483,8 @@ export default function BoardDashboard() {
                                         </DropdownMenuItem>
                                       )}
 
-                                      {/* خيارات الاعتماد والرفض المباشر للمخولين فقط */}
-                                      {canPerformActions && (
+                                      {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
+                                      {canPerformActions && order.orderStatus !== "executed" && (
                                         <>
                                           <DropdownMenuSeparator className="my-1 border-border/60" />
 
@@ -502,7 +502,7 @@ export default function BoardDashboard() {
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
                                           >
                                             <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                            <span>رفض أمر الصرف</span>
+                                            <span>رفض الطلب</span>
                                           </DropdownMenuItem>
                                         </>
                                       )}
