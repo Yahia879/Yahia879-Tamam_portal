@@ -403,8 +403,9 @@ export default function BoardDashboard() {
                         <Table dir="rtl" className="w-full min-w-full">
                           <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-border">
                             <TableRow className="hover:bg-transparent">
-                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر والنوع</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">رقم أمر الصرف</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">البيان والمستفيد</TableHead>
+                              <TableHead className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-200">ارتباط الطلب</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
                               <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                               <TableHead className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
@@ -413,16 +414,9 @@ export default function BoardDashboard() {
                           <TableBody>
                             {paginatedOrders.map((order) => (
                               <TableRow key={order.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition-colors">
-                                {/* رقم الأمر والنوع */}
+                                {/* رقم أمر الصرف */}
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs font-bold text-foreground">{order.orderNumber}</span>
-                                    {order.isCustom && (
-                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5">
-                                        أمر مخصص
-                                      </Badge>
-                                    )}
-                                  </div>
+                                  <span className="font-mono text-xs font-bold text-foreground">{order.orderNumber}</span>
                                 </TableCell>
 
                                 {/* البيان والمستفيد */}
@@ -436,6 +430,24 @@ export default function BoardDashboard() {
                                       <span className="font-bold text-foreground">{order.beneficiaryName}</span>
                                     </div>
                                   </div>
+                                </TableCell>
+
+                                {/* ارتباط الطلب */}
+                                <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
+                                  {!order.isCustom && !!order.requestId ? (
+                                    <div className="inline-flex flex-col items-center gap-0.5">
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap">
+                                        مرتبط بطلب صرف
+                                      </Badge>
+                                      {order.requestNumber && (
+                                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap">
+                                      أمر مخصص (غير مرتبط)
+                                    </Badge>
+                                  )}
                                 </TableCell>
 
                                 {/* المبلغ */}
@@ -482,7 +494,7 @@ export default function BoardDashboard() {
                                               className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                             >
                                               <FileText className="w-4 h-4 text-primary shrink-0" />
-                                              <span>عرض طلب الصرف المعتمد</span>
+                                              <span>عرض تقرير طلب الصرف المعتمد</span>
                                             </DropdownMenuItem>
                                           )}
                                         </>
