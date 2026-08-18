@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { PermissionGuard } from "@/components/PermissionGuard";
+import { usePermission } from "@/hooks/usePermission";
 
 // حالات الاعتماد
 const APPROVAL_STATUS = {
@@ -68,6 +69,12 @@ const APPROVAL_STATUS = {
 
 export default function Mosques() {
   const { user } = useAuth();
+  const canApproveMosques = usePermission("mosques.approve");
+  const canEditMosques = usePermission("mosques.edit");
+  const canDeleteMosques = usePermission("mosques.delete");
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
+  const hasMosqueActions = canApproveMosques || canEditMosques || canDeleteMosques || isSuperAdmin;
+
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -333,7 +340,9 @@ export default function Mosques() {
                         <PermissionGuard permission="mosques.approve">
                           <TableHead className="text-right">الحالة</TableHead>
                         </PermissionGuard>
-                        <TableHead className="text-right">الإجراءات</TableHead>
+                        {hasMosqueActions && (
+                          <TableHead className="text-right">الإجراءات</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -371,69 +380,71 @@ export default function Mosques() {
                                 </Badge>
                               </TableCell>
                             </PermissionGuard>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <PermissionGuard permission="mosques.approve">
-                                  {mosque.approvalStatus === "pending" && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-green-600 border-green-300 hover:bg-green-50"
-                                        onClick={() => handleApprove(mosque.id)}
-                                        disabled={approveMutation.isPending}
-                                      >
-                                        <CheckCircle className="w-4 h-4 ml-1" />
-                                        اعتماد
+                            {hasMosqueActions && (
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <PermissionGuard permission="mosques.approve">
+                                    {mosque.approvalStatus === "pending" && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-green-600 border-green-300 hover:bg-green-50"
+                                          onClick={() => handleApprove(mosque.id)}
+                                          disabled={approveMutation.isPending}
+                                        >
+                                          <CheckCircle className="w-4 h-4 ml-1" />
+                                          اعتماد
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="text-red-600 border-red-300 hover:bg-red-50"
+                                          onClick={() => openRejectDialog(mosque.id)}
+                                          disabled={rejectMutation.isPending}
+                                        >
+                                          <XCircle className="w-4 h-4 ml-1" />
+                                          رفض
+                                        </Button>
+                                      </>
+                                    )}
+                                  </PermissionGuard>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="w-4 h-4" />
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="text-red-600 border-red-300 hover:bg-red-50"
-                                        onClick={() => openRejectDialog(mosque.id)}
-                                        disabled={rejectMutation.isPending}
-                                      >
-                                        <XCircle className="w-4 h-4 ml-1" />
-                                        رفض
-                                      </Button>
-                                    </>
-                                  )}
-                                </PermissionGuard>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreVertical className="w-4 h-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <Link href={`/mosques/${mosque.id}`}>
-                                      <DropdownMenuItem className="cursor-pointer">
-                                        <Eye className="w-4 h-4 ml-2" />
-                                        عرض التفاصيل
-                                      </DropdownMenuItem>
-                                    </Link>
-                                    <PermissionGuard permission="mosques.edit">
-                                      <Link href={`/mosques/${mosque.id}/edit`}>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <Link href={`/mosques/${mosque.id}`}>
                                         <DropdownMenuItem className="cursor-pointer">
-                                          <Edit className="w-4 h-4 ml-2" />
-                                          تعديل
+                                          <Eye className="w-4 h-4 ml-2" />
+                                          عرض التفاصيل
                                         </DropdownMenuItem>
                                       </Link>
-                                    </PermissionGuard>
-                                    <PermissionGuard permission="mosques.delete">
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-destructive focus:text-destructive"
-                                        onClick={() => openDeleteDialog(mosque.id)}
-                                      >
-                                        <Trash2 className="w-4 h-4 ml-2" />
-                                        حذف
-                                      </DropdownMenuItem>
-                                    </PermissionGuard>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </TableCell>
+                                      <PermissionGuard permission="mosques.edit">
+                                        <Link href={`/mosques/${mosque.id}/edit`}>
+                                          <DropdownMenuItem className="cursor-pointer">
+                                            <Edit className="w-4 h-4 ml-2" />
+                                            تعديل
+                                          </DropdownMenuItem>
+                                        </Link>
+                                      </PermissionGuard>
+                                      <PermissionGuard permission="mosques.delete">
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          className="cursor-pointer text-destructive focus:text-destructive"
+                                          onClick={() => openDeleteDialog(mosque.id)}
+                                        >
+                                          <Trash2 className="w-4 h-4 ml-2" />
+                                          حذف
+                                        </DropdownMenuItem>
+                                      </PermissionGuard>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })}
@@ -470,39 +481,41 @@ export default function Mosques() {
                               </div>
                             </div>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <Link href={`/mosques/${mosque.id}`}>
-                                <DropdownMenuItem className="cursor-pointer text-sm">
-                                  <Eye className="w-4 h-4 ml-2" />
-                                  عرض التفاصيل
-                                </DropdownMenuItem>
-                              </Link>
-                              <PermissionGuard permission="mosques.edit">
-                                <Link href={`/mosques/${mosque.id}/edit`}>
+                          {hasMosqueActions && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <Link href={`/mosques/${mosque.id}`}>
                                   <DropdownMenuItem className="cursor-pointer text-sm">
-                                    <Edit className="w-4 h-4 ml-2" />
-                                    تعديل
+                                    <Eye className="w-4 h-4 ml-2" />
+                                    عرض التفاصيل
                                   </DropdownMenuItem>
                                 </Link>
-                              </PermissionGuard>
-                              <PermissionGuard permission="mosques.delete">
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="cursor-pointer text-destructive focus:text-destructive text-sm"
-                                  onClick={() => openDeleteDialog(mosque.id)}
-                                >
-                                  <Trash2 className="w-4 h-4 ml-2" />
-                                  حذف
-                                </DropdownMenuItem>
-                              </PermissionGuard>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                                <PermissionGuard permission="mosques.edit">
+                                  <Link href={`/mosques/${mosque.id}/edit`}>
+                                    <DropdownMenuItem className="cursor-pointer text-sm">
+                                      <Edit className="w-4 h-4 ml-2" />
+                                      تعديل
+                                    </DropdownMenuItem>
+                                  </Link>
+                                </PermissionGuard>
+                                <PermissionGuard permission="mosques.delete">
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-destructive focus:text-destructive text-sm"
+                                    onClick={() => openDeleteDialog(mosque.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 ml-2" />
+                                    حذف
+                                  </DropdownMenuItem>
+                                </PermissionGuard>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
