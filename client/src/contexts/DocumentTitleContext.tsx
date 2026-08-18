@@ -29,7 +29,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   // لوحات التحكم
   { pattern: /^\/dashboard\/?$/, title: "الرئيسية" },
   { pattern: /^\/board-executive\/?$/, title: "مركز الاعتماد المالي" },
-  { pattern: /^\/board-analytics\/?$/, title: "اللوحة الإحصائية لمجلس الإدارة" },
+  { pattern: /^\/board-analytics\/?$/, title: "لوحة الإدارة العليا" },
   { pattern: /^\/board-dashboard\/?$/, title: "لوحة مجلس الإدارة" },
   { pattern: /^\/requester\/?$/, title: "لوحة تحكم طالب الخدمة" },
   { pattern: /^\/requester\/dashboard\/?$/, title: "لوحة تحكم طالب الخدمة" },
