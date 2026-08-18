@@ -76,7 +76,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+    mainItems.push({ icon: Crown, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
     mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
@@ -211,7 +211,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
-    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+    mainItems.push({ icon: Crown, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (has("board_member") || role === "board_member") {
     mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
