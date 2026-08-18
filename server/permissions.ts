@@ -262,8 +262,8 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "board_member",
         moduleId: "board",
         action: "board_member",
-        nameAr: "عرض لوحة عضو مجلس الإدارة",
-        nameEn: "View Board Member Dashboard"
+        nameAr: "عرض لوحة الإدارة العليا",
+        nameEn: "View Executive Management Dashboard"
       }
     ];
 
@@ -308,7 +308,7 @@ async function ensureRequestsPermissionsExist(db: any) {
 
     const roleNamesAr: Record<string, string> = {
       board_chairman: "رئيس مجلس الإدارة",
-      board_member: "عضو مجلس الإدارة",
+      board_member: "الإدارة العليا",
       general_manager: "المدير التنفيذي",
       executive_director: "المدير التنفيذي",
       financial_manager: "المدير المالي",
