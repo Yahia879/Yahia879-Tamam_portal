@@ -1917,13 +1917,17 @@ export const permissionsRouter = router({
         }
 
         // 3. تسجيل الإجراء في سجل التدقيق
-        await tx.insert(permissionsAuditLog).values({
-          actionType: "sync_user_permissions",
-          targetUserId: input.userId,
-          performedBy: ctx.user.id,
-          reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
-          newValue: JSON.stringify(input.permissions)
-        });
+        try {
+          await tx.insert(permissionsAuditLog).values({
+            actionType: "sync_user_permissions",
+            targetUserId: input.userId,
+            performedBy: ctx.user.id,
+            reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
+            newValue: JSON.stringify(input.permissions)
+          });
+        } catch (auditErr) {
+          console.warn("[Permissions] Failed to write audit log for sync_user_permissions:", auditErr);
+        }
       });
 
       return { success: true };
