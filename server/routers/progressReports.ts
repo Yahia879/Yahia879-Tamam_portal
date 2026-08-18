@@ -197,13 +197,25 @@ export const progressReportsRouter = router({
       if (!db) throw new Error("Database not available");
 
       try {
-        // توليد رقم التقرير
+        // توليد رقم التقرير بشكل فريد ودقيق
         const year = new Date().getFullYear();
-        const [countResult] = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(progressReports);
-        const sequence = (countResult?.count || 0) + 1;
-        const reportNumber = `RPT-${year}-${String(sequence).padStart(4, "0")}`;
+        const prefix = `RPT-${year}-`;
+        const [lastReport] = await db
+          .select({ reportNumber: progressReports.reportNumber })
+          .from(progressReports)
+          .where(like(progressReports.reportNumber, `${prefix}%`))
+          .orderBy(desc(progressReports.reportNumber))
+          .limit(1);
+
+        let sequence = 1;
+        if (lastReport && lastReport.reportNumber) {
+          const parts = lastReport.reportNumber.split("-");
+          const lastSeq = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastSeq)) {
+            sequence = lastSeq + 1;
+          }
+        }
+        const reportNumber = `${prefix}${String(sequence).padStart(4, "0")}`;
 
         // حساب الانحراف
         const variance = input.actualProgress - input.plannedProgress;
