@@ -213,114 +213,84 @@ export default function BoardDashboard() {
     <DashboardLayout>
       <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
         {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-l from-emerald-500/10 via-teal-500/5 to-primary/5 dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-background p-6 sm:p-8 shadow-sm transition-all">
-          <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-500" />
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-background to-emerald-500/5 dark:from-primary/10 dark:via-background dark:to-emerald-950/20 p-6 sm:p-7 shadow-xs transition-all">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary via-teal-500 to-emerald-600" />
 
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 relative z-10">
             <div className="space-y-2.5 text-right">
               <div className="flex items-center gap-3 justify-start">
                 {isChairmanView ? (
-                  <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3.5 py-1 text-xs font-black rounded-lg flex items-center gap-1.5 shadow-xs">
-                    <Crown className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Badge className="bg-primary/10 text-primary border border-primary/25 px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5 hover:bg-primary/15 transition-colors">
+                    <Crown className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span>رئيس مجلس الإدارة</span>
                   </Badge>
                 ) : (
-                  <Badge className="bg-muted text-muted-foreground border border-border px-3.5 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-                    <span>الإدارة العليا</span>
+                  <Badge className="bg-muted text-muted-foreground border border-border px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>عضو مجلس الإدارة</span>
                   </Badge>
                 )}
-                <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium bg-background/60 dark:bg-slate-900/60 backdrop-blur px-2.5 py-0.5 rounded-md border border-border/40">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                  <Sparkles className="w-3.5 h-3.5 text-primary/70 shrink-0" />
                   محدّث تلقائياً
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-                {isChairmanView ? "مركز الاعتماد المالي" : "لوحة الإدارة العليا"}
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                {isChairmanView ? "لوحة اعتماد أوامر الصرف المعتمدة (رئيس مجلس الإدارة)" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
 
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairmanView
                   ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
-                  : "صفحة إحصائية خاصة بالإدارة العليا توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
+                  : "صفحة إحصائية خاصة بأعضاء مجلس الإدارة توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
               </p>
             </div>
-
-            {/* بطاقة إجمالي المبالغ المالية المعتمدة في الهيدر */}
-            {isChairmanView && (
-              <div className="flex items-center gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur border border-emerald-500/30 dark:border-emerald-500/40 rounded-2xl p-4 sm:px-6 sm:py-4 shadow-md shadow-emerald-500/5 shrink-0">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 shrink-0">
-                  <Wallet className="w-6 h-6" />
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-muted-foreground">إجمالي المبالغ المعتمدة</p>
-                  <h2 className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
-                    {formatCurrency(totalApprovedAmount)}
-                  </h2>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* ==================== 👑 1. صفحة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة المطابق لـ /disbursement-orders) ==================== */}
         {isChairmanView && data?.chairmanData && (
-          <div className="space-y-6 animate-in fade-in-50 duration-300">
-            {/* كروت المؤشرات السريعة لأوامر مركز الاعتماد المالي بتصميم حيوي وجذاب */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
-              {/* 1. إجمالي الأوامر المعتمدة */}
-              <Card className="rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 py-0 gap-0 shadow-xs bg-gradient-to-br from-emerald-500/10 via-emerald-500/[0.03] to-background hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
-                <CardContent className="p-4 sm:p-4.5 flex items-center justify-between text-right">
-                  <div className="space-y-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-emerald-800 dark:text-emerald-300">إجمالي الأوامر المعتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-emerald-950 dark:text-emerald-100 font-mono">
+          <div className="space-y-8 animate-in fade-in-50 duration-300">
+            {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-foreground">
                       {data.chairmanData.totalApprovedCount}
                     </h3>
-                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> جاهزة للصرف والتحويل
-                    </p>
                   </div>
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 shrink-0">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* 2. أوامر مرتبطة بطلبات معتمدة */}
-              <Card className="rounded-2xl border border-blue-200/80 dark:border-blue-800/60 py-0 gap-0 shadow-xs bg-gradient-to-br from-blue-500/10 via-blue-500/[0.03] to-background hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-blue-500" />
-                <CardContent className="p-4 sm:p-4.5 flex items-center justify-between text-right">
-                  <div className="space-y-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-blue-800 dark:text-blue-300">أوامر مرتبطة بطلبات معتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300 font-mono">
+              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات معتمدة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">
                       {data.chairmanData.totalLinkedApprovedCount ?? data.chairmanData.linkedApprovedOrders?.length ?? 0}
                     </h3>
-                    <p className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
-                      <Link2 className="w-3.5 h-3.5 shrink-0" /> موثقة بطلبات نظامية
-                    </p>
                   </div>
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-blue-600 shrink-0">
                     <Link2 className="w-6 h-6" />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* 3. أوامر صرف مخصصة */}
-              <Card className="rounded-2xl border border-purple-200/80 dark:border-purple-800/60 py-0 gap-0 shadow-xs bg-gradient-to-br from-purple-500/10 via-purple-500/[0.03] to-background hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-purple-500" />
-                <CardContent className="p-4 sm:p-4.5 flex items-center justify-between text-right">
-                  <div className="space-y-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-bold text-purple-800 dark:text-purple-300">أوامر صرف مخصصة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300 font-mono">
+              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1">
+                    <p className="text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
+                    <h3 className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">
                       {data.chairmanData.totalCustomApprovedCount ?? data.chairmanData.customApprovedOrders?.length ?? 0}
                     </h3>
-                    <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
-                      <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" /> أوامر صرف مستقلة
-                    </p>
                   </div>
-                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-purple-500 to-violet-600 text-white shadow-md shadow-purple-500/25 shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 text-purple-600 shrink-0">
                     <FileSpreadsheet className="w-6 h-6" />
                   </div>
                 </CardContent>
@@ -328,24 +298,14 @@ export default function BoardDashboard() {
             </div>
 
             {/* أدوات البحث والتصفية المباشرة */}
-            <Card className="border border-slate-200/80 dark:border-slate-800 shadow-md rounded-3xl bg-white/95 dark:bg-slate-900/95 backdrop-blur overflow-hidden">
-              <CardHeader className="p-5 sm:p-6 pb-3 text-right border-b border-border/50 bg-slate-50/50 dark:bg-slate-800/30">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl font-black flex items-center gap-2 text-foreground">
-                      <Banknote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                      <span>قائمة أوامر الصرف المعتمدة للتحويل البنكي</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      جدول موحد يضم كافة أوامر الصرف المعتمدة (المرتبطة بطلبات والمخصصة) للاعتماد والتنفيذ البنكي
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline" className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-bold px-3 py-1 text-xs self-start sm:self-center">
-                    {data.chairmanData.totalFilteredCount ?? data.chairmanData.orders?.length ?? 0} أمر صرف
-                  </Badge>
-                </div>
+            <Card className="border-0 shadow-sm rounded-2xl bg-card">
+              <CardHeader className="p-4 sm:p-6 pb-2 text-right">
+                <CardTitle className="text-lg sm:text-xl font-bold">قائمة أوامر الصرف المعتمدة للتحويل البنكي</CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                  جدول موحد يضم كافة أوامر الصرف المعتمدة (المرتبطة بطلبات والمخصصة) للاعتماد والتنفيذ البنكي
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 sm:p-6 space-y-6">
+              <CardContent className="p-4 sm:p-6 space-y-6">
                 {/* الفلاتر */}
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
                   <div className="relative flex-1">
@@ -358,7 +318,7 @@ export default function BoardDashboard() {
                       placeholder="بحث برقم الأمر، رقم طلب الصرف، أو اسم المستفيد..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pr-10 text-right font-medium rounded-xl border-border/70 focus-visible:ring-emerald-500"
+                      className="pr-10 text-right font-medium"
                       dir="rtl"
                     />
                   </div>
@@ -371,8 +331,8 @@ export default function BoardDashboard() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-full lg:w-[180px] rounded-xl font-semibold">
-                        <Filter className="ml-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <SelectTrigger className="w-full lg:w-[180px]">
+                        <Filter className="ml-2 h-4 w-4" />
                         <SelectValue placeholder="نوع الأمر" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
@@ -389,8 +349,8 @@ export default function BoardDashboard() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-full lg:w-[220px] rounded-xl font-semibold">
-                        <Filter className="ml-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <SelectTrigger className="w-full lg:w-[220px]">
+                        <Filter className="ml-2 h-4 w-4" />
                         <SelectValue placeholder="الحالة" />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
@@ -438,35 +398,35 @@ export default function BoardDashboard() {
                   const totalPages = data?.chairmanData?.totalPages || 1;
 
                   return paginatedOrders.length > 0 ? (
-                    <Card className="border border-border/60 shadow-xs overflow-hidden p-0 space-y-0 rounded-2xl">
+                    <Card className="border-0 shadow-sm overflow-hidden p-0 space-y-0 rounded-xl">
                       <div className="overflow-x-auto">
                         <Table dir="rtl" className="w-full min-w-full">
-                          <TableHeader className="bg-slate-100/90 dark:bg-slate-800/90 border-b border-border">
+                          <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-border">
                             <TableRow className="hover:bg-transparent">
-                              <TableHead className="py-3.5 px-4 text-right font-black text-slate-800 dark:text-slate-200">رقم أمر الصرف</TableHead>
-                              <TableHead className="py-3.5 px-4 text-right font-black text-slate-800 dark:text-slate-200">البيان والمستفيد</TableHead>
-                              <TableHead className="py-3.5 px-4 text-center font-black text-slate-800 dark:text-slate-200">نوع الارتباط</TableHead>
-                              <TableHead className="py-3.5 px-4 text-right font-black text-slate-800 dark:text-slate-200">المبلغ</TableHead>
-                              <TableHead className="py-3.5 px-4 text-right font-black text-slate-800 dark:text-slate-200">الحالة</TableHead>
-                              <TableHead className="py-3.5 px-4 text-center font-black text-slate-800 dark:text-slate-200">الإجراءات</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">رقم أمر الصرف</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">البيان والمستفيد</TableHead>
+                              <TableHead className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-200">ارتباط الطلب</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                              <TableHead className="py-3 px-4 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
+                              <TableHead className="py-3 px-4 text-center font-bold text-slate-700 dark:text-slate-200">الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {paginatedOrders.map((order) => (
-                              <TableRow key={order.id} className="hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-colors border-b border-border/40">
+                              <TableRow key={order.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/50 transition-colors">
                                 {/* رقم أمر الصرف */}
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
-                                  <span className="font-mono text-xs font-bold text-foreground bg-muted/70 px-2.5 py-1 rounded-md border border-border/50">{order.orderNumber}</span>
+                                  <span className="font-mono text-xs font-bold text-foreground">{order.orderNumber}</span>
                                 </TableCell>
 
                                 {/* البيان والمستفيد */}
                                 <TableCell className="py-3.5 px-4 text-right">
                                   <div className="space-y-0.5">
-                                    <div className="font-bold text-xs sm:text-sm text-foreground max-w-[280px] truncate">
+                                    <div className="font-bold text-xs text-foreground max-w-[280px] truncate">
                                       {order.title}
                                     </div>
                                     <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                      <span className="font-semibold text-slate-500 dark:text-slate-400">المستفيد:</span>
+                                      <span className="font-semibold text-slate-600 dark:text-slate-400">المستفيد:</span>
                                       <span className="font-bold text-foreground">{order.beneficiaryName}</span>
                                     </div>
                                   </div>
@@ -476,27 +436,23 @@ export default function BoardDashboard() {
                                 <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
                                   {!order.isCustom && !!order.requestId ? (
                                     <div className="inline-flex flex-col items-center gap-0.5">
-                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2.5 py-0.5 whitespace-nowrap flex items-center gap-1">
-                                        <Link2 className="w-3 h-3 shrink-0" />
-                                        <span>مرتبط بطلب صرف</span>
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap">
+                                        مرتبط بطلب صرف
                                       </Badge>
                                       {order.requestNumber && (
                                         <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
                                       )}
                                     </div>
                                   ) : (
-                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2.5 py-0.5 whitespace-nowrap flex items-center gap-1">
-                                      <FileSpreadsheet className="w-3 h-3 shrink-0" />
-                                      <span>أمر مخصص</span>
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap">
+                                      أمر مخصص (غير مرتبط)
                                     </Badge>
                                   )}
                                 </TableCell>
 
                                 {/* المبلغ */}
-                                <TableCell className="py-3 px-4 text-right whitespace-nowrap">
-                                  <span className="font-mono font-black text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/60 px-2.5 py-1 rounded-lg inline-block">
-                                    {formatCurrency(order.amount)}
-                                  </span>
+                                <TableCell className="py-3 px-4 text-right whitespace-nowrap font-mono font-bold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
+                                  {formatCurrency(order.amount)}
                                 </TableCell>
 
                                 {/* الحالة */}
