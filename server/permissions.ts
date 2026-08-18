@@ -255,8 +255,8 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "board_chairman",
         moduleId: "board",
         action: "board_chairman",
-        nameAr: "عرض لوحة رئيس مجلس الإدارة",
-        nameEn: "View Board Chairman Dashboard"
+        nameAr: "عرض مركز الاعتماد المالي",
+        nameEn: "View Financial Approval Center"
       },
       {
         id: "board_member",
