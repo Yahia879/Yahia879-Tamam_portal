@@ -94,9 +94,7 @@ export default function Projects() {
   const canAccessProjectPage = canViewDetails || canViewFinancials;
   const canCreateProject = 
     isAdmin || 
-    serverPermissions.includes("projects.create_multi_mosque") || 
-    serverPermissions.includes("projects.create") || 
-    serverPermissions.includes("projects");
+    serverPermissions.includes("projects.create_multi_mosque");
 
   // جلب المشاريع من قاعدة البيانات
   const { data, isLoading } = trpc.projects.search.useQuery({
