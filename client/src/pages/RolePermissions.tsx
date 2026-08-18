@@ -400,6 +400,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "projects.view", nameAr: "عرض سجل المشاريع" },
             { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.delete", nameAr: "حذف مشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
@@ -643,6 +644,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "projects.view", nameAr: "عرض سجل المشاريع" },
             { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
           ]
@@ -787,7 +789,7 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       ]
@@ -846,7 +848,7 @@ export default function RolePermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
@@ -964,6 +966,7 @@ export default function RolePermissions() {
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
+        create_multi_mosque: "إضافة مشروع لعدة مساجد",
         assign_as_manager: "تعيين كمدير للمشاريع",
         financials: "مالية المشاريع"
       },

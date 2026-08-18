@@ -546,6 +546,7 @@ export default function UserPermissions() {
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
+        create_multi_mosque: "إضافة مشروع لعدة مساجد",
         assign_as_manager: "تعيين كمدير للمشاريع",
         financials: "مالية المشاريع"
       },

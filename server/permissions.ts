@@ -36,9 +36,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.view_details", "projects.assign_as_manager", "projects.financials"],
+  projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials"],
   "projects.view": ["projects.view"],
   "projects.view_details": ["projects.view", "projects.view_details"],
+  "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
   "projects.financials": ["projects.view", "projects.financials"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
@@ -264,6 +265,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "board_member",
         nameAr: "عرض لوحة الإدارة العليا",
         nameEn: "View Executive Management Dashboard"
+      },
+      {
+        id: "projects.create_multi_mosque",
+        moduleId: "projects",
+        action: "create_multi_mosque",
+        nameAr: "إضافة مشروع لعدة مساجد",
+        nameEn: "Create Multi-Mosque Project"
       }
     ];
 
@@ -600,6 +608,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
       { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
+      { id: "projects.create_multi_mosque", moduleId: "projects", action: "create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد", nameEn: "Create Multi-Mosque Project" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },

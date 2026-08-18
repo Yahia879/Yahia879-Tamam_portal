@@ -253,7 +253,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 2. الهندسة والمشاريع
   const engineeringItems: MenuItem[] = [];
-  if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.financials")) {
+  if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
     engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
   }
