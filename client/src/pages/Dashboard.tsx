@@ -83,8 +83,13 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   
-  // حماية الصفحة: متاحة فقط للمدير العام ومدير النظام
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  // حماية الصفحة: متاحة للمدير العام ومدير النظام والمدير التنفيذي
+  const isExecDirector = 
+    ["general_manager", "executive_director"].includes(user?.role || "") ||
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+  const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(user?.role || "") || isExecDirector;
 
   useEffect(() => {
     if (!user) return;
@@ -100,10 +105,10 @@ export default function Dashboard() {
   const { data: requestStats } = trpc.requests.getStats.useQuery();
   const { data: mosqueStats } = trpc.mosques.getStats.useQuery();
   const { data: pendingUsers } = trpc.auth.getPendingUsers.useQuery(undefined, {
-    enabled: ["super_admin", "system_admin", "projects_office"].includes(user?.role || ""),
+    enabled: ["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(user?.role || "") || isExecDirector,
   });
   const { data: growthStats } = trpc.analytics.getMonthlyGrowth.useQuery(undefined, {
-    enabled: ["super_admin", "system_admin", "projects_office"].includes(user?.role || ""),
+    enabled: ["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(user?.role || "") || isExecDirector,
   });
 
   // اسم الدور المعروض في الواجهة: يعطي الأولوية للدور المخصص إن وُجد
@@ -159,14 +164,14 @@ export default function Dashboard() {
   const getQuickLinks = () => {
     const links = [];
     
-    if (["super_admin", "system_admin"].includes(user?.role || "")) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(user?.role || "") || isExecDirector) {
       links.push(
         { title: "إدارة المستخدمين", href: "/users", icon: Users, color: "text-purple-600", bg: "bg-purple-50" },
         { title: "إعدادات النظام", href: "/settings", icon: Settings, color: "text-gray-600", bg: "bg-gray-50" },
       );
     }
     
-    if (["super_admin", "system_admin", "projects_office"].includes(user?.role || "")) {
+    if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(user?.role || "") || isExecDirector) {
       links.push(
         { title: "جميع الطلبات", href: "/requests", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
         { title: "المساجد", href: "/mosques", icon: Building2, color: "text-emerald-600", bg: "bg-emerald-50" },

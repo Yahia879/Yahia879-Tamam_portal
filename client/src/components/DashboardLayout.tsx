@@ -68,12 +68,17 @@ import { useTheme } from "@/contexts/ThemeContext";
 type MenuItem = { icon: any; label: string; path: string };
 type MenuGroup = { label: string; items: MenuItem[] };
 
-const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
+const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
   const groups: MenuGroup[] = [];
+
+  const isExecDirector =
+    ["general_manager", "executive_director"].includes(role) ||
+    customRoleNameAr === "المدير التنفيذي" ||
+    customRoleNameEn?.toLowerCase() === "executive director";
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin"].includes(role) || isExecDirector) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
@@ -90,13 +95,13 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 1. المساجد والطلبات
-  if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
     ];
-    if (["super_admin", "system_admin"].includes(role)) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
     }
     items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
@@ -107,12 +112,12 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 2. الهندسة والمشاريع
-  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items: MenuItem[] = [];
-    if (["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
+    if (["super_admin", "system_admin", "projects_office", "project_manager", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
     }
-    if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+    if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
       items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
     }
@@ -129,7 +134,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 3. المشتريات والمالية
-  if (["super_admin", "system_admin", "projects_office", "financial"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "financial", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Truck, label: "الموردون", path: "/suppliers" },
       { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
@@ -156,7 +161,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // الاتصال المؤسسي
-  if (["super_admin", "system_admin", "corporate_comm"].includes(role)) {
+  if (["super_admin", "system_admin", "corporate_comm", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Handshake, label: "الشركاء", path: "/partners" },
     ];
@@ -171,7 +176,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 4. إدارة المستخدمين (للمدراء)
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     groups.push({
       label: isEn ? "User Management" : "إدارة المستخدمين",
       items: [
@@ -202,13 +207,18 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
 
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
-const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean): MenuGroup[] => {
+const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
+  const isExecDirector =
+    ["general_manager", "executive_director"].includes(role) ||
+    customRoleNameAr === "المدير التنفيذي" ||
+    customRoleNameEn?.toLowerCase() === "executive director";
+
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view")) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
@@ -574,9 +584,12 @@ function DashboardLayoutContent({
   const isServiceRequester = user?.role === "service_requester";
   const hasDynamicPermissions = !isServiceRequester;
  
+  const customRoleNameAr = (user as any)?.customRole?.nameAr;
+  const customRoleNameEn = (user as any)?.customRole?.nameEn;
+
   const menuGroups = (hasDynamicPermissions
-    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn)
-    : getMenuGroups(user?.role || "", isEn)
+    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
+    : getMenuGroups(user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);

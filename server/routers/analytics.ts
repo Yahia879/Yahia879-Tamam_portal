@@ -197,8 +197,13 @@ export const analyticsRouter = router({
    */
   getMonthlyGrowth: permissionProcedure("reports.view")
     .query(async ({ ctx }) => {
+      const isExecDirector =
+        ["general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
       // التأكد من أن المستخدم لديه الصلاحية
-      if (!["super_admin", "system_admin", "projects_office", "financial_manager", "corporate_comm"].includes(ctx.user.role)) {
+      if (!["super_admin", "system_admin", "projects_office", "financial_manager", "corporate_comm", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector) {
         return null;
       }
       
