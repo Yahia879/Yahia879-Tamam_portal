@@ -135,7 +135,7 @@ const superAdminGroups = [
 const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
     board_leadership: {
-      board_chairman: "عرض لوحة رئيس مجلس الإدارة",
+      board_chairman: "عرض مركز الاعتماد المالي",
       board_member: "عرض لوحة الإدارة العليا",
     },
     pending_reports: {
