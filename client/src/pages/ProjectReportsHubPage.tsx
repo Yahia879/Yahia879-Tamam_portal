@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import {
   Select,
   SelectContent,
@@ -82,6 +84,20 @@ const formatPeriodArabic = (startVal: any, endVal: any, reportDateVal: any): str
 };
 
 export default function ProjectReportsHubPage() {
+  const { user } = useAuth();
+  const serverPermissions = useUserPermissions();
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+
+  const canCreateReports = 
+    isAdmin || 
+    serverPermissions.includes("progress_reports.create") || 
+    serverPermissions.includes("progress_reports.add");
+
+  const canEditOrApprove = 
+    isAdmin || 
+    serverPermissions.includes("progress_reports.approve") || 
+    serverPermissions.includes("progress_reports.edit");
+
   const [filterType, setFilterType] = useState<string>("all");
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [selectedReportForPreview, setSelectedReportForPreview] = useState<any>(null);
@@ -279,14 +295,16 @@ export default function ProjectReportsHubPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Link href="/project-reports/new">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-sm flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                <span>تقرير جديد</span>
-              </Button>
-            </Link>
-          </div>
+          {canCreateReports && (
+            <div className="flex items-center gap-2">
+              <Link href="/project-reports/new">
+                <Button className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-sm flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  <span>تقرير جديد</span>
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* 4 Pure Statistics Cards */}
@@ -443,19 +461,25 @@ export default function ProjectReportsHubPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Select
-                        value={report.status}
-                        onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
-                      >
-                        <SelectTrigger className="h-8 border-border/80 w-28 text-xs font-semibold bg-background mx-auto">
-                          <SelectValue placeholder="حالة التقرير" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
-                          <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
-                          <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {canEditOrApprove ? (
+                        <Select
+                          value={report.status}
+                          onValueChange={(newStatus) => handleUpdateReportStatus(report.id, newStatus)}
+                        >
+                          <SelectTrigger className="h-8 border-border/80 w-28 text-xs font-semibold bg-background mx-auto">
+                            <SelectValue placeholder="حالة التقرير" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="مسودة" className="text-xs font-semibold">مسودة</SelectItem>
+                            <SelectItem value="تم الاطلاع" className="text-xs font-semibold text-teal-600">تم الاطلاع</SelectItem>
+                            <SelectItem value="معتمد" className="text-xs font-semibold text-emerald-600">معتمد</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className="text-xs font-semibold">
+                          {report.status}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       <DropdownMenu>
@@ -473,7 +497,7 @@ export default function ProjectReportsHubPage() {
                               </Link>
                             </DropdownMenuItem>
                           )}
-                          {report.status === "مسودة" && (
+                          {report.status === "مسودة" && (canCreateReports || canEditOrApprove) && (
                             <DropdownMenuItem asChild>
                               <Link href={`/project-reports/${report.typeKey}?editId=${report.id}`} className="gap-2 cursor-pointer flex items-center w-full font-semibold text-amber-700 dark:text-amber-400">
                                 <CheckCircle2 className="w-4 h-4 text-amber-600" />

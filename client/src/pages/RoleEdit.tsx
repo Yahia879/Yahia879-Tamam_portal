@@ -61,7 +61,7 @@ const superAdminGroups = [
     title: "الهندسة والمشاريع",
     modules: [
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-      { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+      { id: "progress_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
     ]
   },
@@ -232,10 +232,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       exception_approve: "استثناء اعتماد مُعد الأمر",
     },
     progress_reports: {
-      view: "عرض تقارير الإنجاز",
-      add: "إضافة تقرير إنجاز",
-      edit: "تعديل التقرير",
-      approve: "اعتماد التقارير"
+      view: "عرض تقارير المشاريع",
+      create: "إنشاء تقارير مشاريع",
+      add: "إنشاء تقارير مشاريع",
+      edit: "تعديل تقارير المشاريع",
+      approve: "اعتماد تقارير المشاريع"
     },
     financial_reports: {
       view: "عرض تقرير المالية والإحصائيات",
@@ -489,6 +490,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لتقارير المشاريع إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("progress_reports.") && permId !== "progress_reports.view") {
+      if (!selectedPerms.includes("progress_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقارير المشاريع' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
       if (!selectedPerms.includes("financial_reports.view")) {
@@ -580,6 +589,9 @@ export default function RoleEdit() {
         }
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
+        }
+        if (permId === "progress_reports.view") {
+          next = next.filter(id => !id.startsWith("progress_reports."));
         }
         if (permId === "requesters.view") {
           next = next.filter(id => !id.startsWith("requesters."));
@@ -822,6 +834,7 @@ export default function RoleEdit() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                              (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                               (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                               (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
