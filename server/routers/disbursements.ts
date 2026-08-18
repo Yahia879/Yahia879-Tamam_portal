@@ -2106,7 +2106,9 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "board_chairman") ||
         await checkPermission(ctx.user.id, "board_chairman_view") ||
         await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
-        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board.board_chairman") ||
+        await checkPermission(ctx.user.id, "board.board_chairman_view");
 
       const allowedRoles = ["super_admin", "system_admin", "general_manager", "board_chairman", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role) && !hasBoardChairmanOrderPerm) {

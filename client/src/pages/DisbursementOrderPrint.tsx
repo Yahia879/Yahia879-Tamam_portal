@@ -55,7 +55,9 @@ export default function DisbursementOrderPrint() {
   const hasChairmanPerm = usePermission("board_chairman");
   const hasChairmanViewPerm = usePermission("board_chairman_view");
   const hasLeadershipChairmanView = usePermission("board_leadership.board_chairman_view");
+  const hasLeadershipChairman = usePermission("board_leadership.board_chairman");
   const hasBoardChairmanView = usePermission("board.board_chairman_view");
+  const hasBoardChairman = usePermission("board.board_chairman");
   const isChairmanRole = currentUser?.role === "board_chairman";
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasChairmanInPerms = 
@@ -63,10 +65,14 @@ export default function DisbursementOrderPrint() {
     hasChairmanPerm || 
     hasChairmanViewPerm || 
     hasLeadershipChairmanView || 
+    hasLeadershipChairman ||
     hasBoardChairmanView ||
+    hasBoardChairman ||
     userPermissionsList.includes("board_chairman") || 
     userPermissionsList.includes("board_chairman_view") ||
+    userPermissionsList.includes("board_leadership.board_chairman") ||
     userPermissionsList.includes("board_leadership.board_chairman_view") ||
+    userPermissionsList.includes("board.board_chairman") ||
     userPermissionsList.includes("board.board_chairman_view");
 
   const hasOrderViewPermission = hasOrderDirectView || hasChairmanInPerms;
@@ -338,10 +344,7 @@ export default function DisbursementOrderPrint() {
 
   const canApproveOrder = (() => {
     if (!order || !currentUser) return false;
-    if (order.status === "approved" || order.status === "executed" || order.status === "rejected") return false;
-    
-    // رئيس مجلس الإدارة يمكنه الاعتماد والتحويل المباشر
-    if (isChairman) return true;
+    if (order.status === "executed" || order.status === "rejected") return false;
 
     // المرحلة الأولى: بانتظار اعتماد الإدارة المالية
     if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
@@ -351,6 +354,11 @@ export default function DisbursementOrderPrint() {
     // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي حصراً
     if (order.status === "pending_executive") {
       return isExecDirector;
+    }
+
+    // المرحلة النهائية (بعد اعتماد المدير التنفيذي): يظهر وفقط للشخص الذي يملك صلاحية "عرض مركز الاعتماد المالي"
+    if (order.status === "approved") {
+      return hasChairmanInPerms;
     }
 
     return false;
