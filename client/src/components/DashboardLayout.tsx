@@ -79,7 +79,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
     mainItems.push({ icon: Crown, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {
     groups.push({
@@ -214,7 +214,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     mainItems.push({ icon: Crown, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (has("board_member") || role === "board_member") {
-    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {
     groups.push({
