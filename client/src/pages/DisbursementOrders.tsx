@@ -64,6 +64,7 @@ import {
   ExternalLink,
   ShieldAlert,
   Info,
+  BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -301,6 +302,7 @@ export default function DisbursementOrders() {
   // إحصائيات عامة وعالمية دقيقة من الخادم
   const pendingCount = ordersData?.stats?.pendingCount || 0;
   const approvedCount = ordersData?.stats?.approvedCount || 0;
+  const executedCount = ordersData?.stats?.executedCount || 0;
   const rejectedCount = ordersData?.stats?.rejectedCount || 0;
   const totalAmount = ordersData?.stats?.totalAmount || 0;
 
@@ -330,7 +332,7 @@ export default function DisbursementOrders() {
         </div>
 
         {/* بطاقات الإحصائيات المحدثة والأنيقة */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5" dir="rtl">
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
             <CardContent className="p-4 sm:p-5 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
@@ -351,6 +353,18 @@ export default function DisbursementOrders() {
               <div className="min-w-0 text-right">
                 <p className="text-xs text-muted-foreground font-semibold">معتمدة</p>
                 <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{approvedCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">منفذة</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{executedCount}</p>
               </div>
             </CardContent>
           </Card>
