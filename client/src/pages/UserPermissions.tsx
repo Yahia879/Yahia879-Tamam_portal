@@ -66,7 +66,7 @@ const getRoleLabelAr = (role: string) => {
     "corporate_comm": "الاتصال المؤسسي",
     "service_requester": "طالب خدمة",
     "board_chairman": "رئيس مجلس الإدارة",
-    "board_member": "عضو مجلس الإدارة",
+    "board_member": "الإدارة العليا",
   };
   return rolesAr[role] || role;
 };
@@ -516,7 +516,7 @@ export default function UserPermissions() {
     const mapping: Record<string, Record<string, string>> = {
       board_leadership: {
         board_chairman: "عرض لوحة رئيس مجلس الإدارة",
-        board_member: "عرض لوحة عضو مجلس الإدارة",
+        board_member: "عرض لوحة الإدارة العليا",
       },
       pending_reports: {
         view: "عرض التقارير",
