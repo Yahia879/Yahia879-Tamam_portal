@@ -252,46 +252,46 @@ export default function BoardDashboard() {
         {/* ==================== 👑 1. صفحة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة المطابق لـ /disbursement-orders) ==================== */}
         {isChairmanView && data?.chairmanData && (
           <div className="space-y-8 animate-in fade-in-50 duration-300">
-            {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-foreground">
+            {/* كروت المؤشرات السريعة لأوامر مركز الاعتماد المالي */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <Card className="rounded-xl sm:rounded-2xl border-0 shadow-xs bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-3.5 sm:p-4 flex items-center justify-between text-right">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-foreground">
                       {data.chairmanData.totalApprovedCount}
                     </h3>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 shrink-0">
-                    <CheckCircle2 className="w-6 h-6" />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 shrink-0">
+                    <CheckCircle2 className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات معتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-blue-600 dark:text-blue-400">
+              <Card className="rounded-xl sm:rounded-2xl border-0 shadow-xs bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-3.5 sm:p-4 flex items-center justify-between text-right">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات معتمدة</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400">
                       {data.chairmanData.totalLinkedApprovedCount ?? data.chairmanData.linkedApprovedOrders?.length ?? 0}
                     </h3>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-blue-600 shrink-0">
-                    <Link2 className="w-6 h-6" />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 text-blue-600 shrink-0">
+                    <Link2 className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl border-0 shadow-sm bg-background hover:shadow-md transition-shadow relative overflow-hidden">
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400">
+              <Card className="rounded-xl sm:rounded-2xl border-0 shadow-xs bg-background hover:shadow-md transition-shadow relative overflow-hidden">
+                <CardContent className="p-3.5 sm:p-4 flex items-center justify-between text-right">
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] sm:text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
+                    <h3 className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">
                       {data.chairmanData.totalCustomApprovedCount ?? data.chairmanData.customApprovedOrders?.length ?? 0}
                     </h3>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 text-purple-600 shrink-0">
-                    <FileSpreadsheet className="w-6 h-6" />
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900/50 text-purple-600 shrink-0">
+                    <FileSpreadsheet className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                   </div>
                 </CardContent>
               </Card>
