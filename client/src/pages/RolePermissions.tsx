@@ -932,7 +932,7 @@ export default function RolePermissions() {
     const mapping: Record<string, Record<string, string>> = {
       board_leadership: {
         board_chairman: "عرض لوحة رئيس مجلس الإدارة",
-        board_member: "عرض لوحة عضو مجلس الإدارة",
+        board_member: "عرض لوحة الإدارة العليا",
       },
       pending_reports: {
         view: "عرض التقارير",
