@@ -13,6 +13,10 @@ const parseDateInput = (val: any): Date | null => {
   if (typeof val === "string") {
     const trimmed = val.trim();
     if (trimmed === "") return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split("-").map(Number);
+      return new Date(y, m - 1, d, 12, 0, 0);
+    }
     const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -207,18 +211,18 @@ export const progressReportsRouter = router({
         const [result] = await db.insert(progressReports).values({
           reportNumber,
           projectId: input.projectId,
-          title: input.title || "",
+          title: input.title || `تقرير متابعة - ${reportNumber}`,
           reportDate: parseDateInput(input.reportDate) || new Date(),
-          reportPeriodStart: parseDateInput(input.reportPeriodStart),
-          reportPeriodEnd: parseDateInput(input.reportPeriodEnd),
-          overallProgress: input.overallProgress,
-          plannedProgress: input.plannedProgress,
-          actualProgress: input.actualProgress,
+          reportPeriodStart: parseDateInput(input.reportPeriodStart) || null,
+          reportPeriodEnd: parseDateInput(input.reportPeriodEnd) || null,
+          overallProgress: input.overallProgress ?? 0,
+          plannedProgress: input.plannedProgress ?? 0,
+          actualProgress: input.actualProgress ?? 0,
           variance,
-          workSummary: input.workSummary,
-          challenges: input.challenges,
-          nextSteps: input.nextSteps,
-          recommendations: input.recommendations,
+          workSummary: input.workSummary || null,
+          challenges: input.challenges || null,
+          nextSteps: input.nextSteps || null,
+          recommendations: input.recommendations || null,
           budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
           budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
           milestones: input.milestones || null,
@@ -284,23 +288,23 @@ export const progressReportsRouter = router({
           if (d) updateData.reportDate = d;
         }
         if (input.reportPeriodStart !== undefined) {
-          updateData.reportPeriodStart = parseDateInput(input.reportPeriodStart);
+          updateData.reportPeriodStart = parseDateInput(input.reportPeriodStart) || null;
         }
         if (input.reportPeriodEnd !== undefined) {
-          updateData.reportPeriodEnd = parseDateInput(input.reportPeriodEnd);
+          updateData.reportPeriodEnd = parseDateInput(input.reportPeriodEnd) || null;
         }
         if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
         if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
         if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
-        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary;
-        if (input.challenges !== undefined) updateData.challenges = input.challenges;
-        if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps;
-        if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
-        if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
-        if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
-        if (input.milestones !== undefined) updateData.milestones = input.milestones;
-        if (input.attachments !== undefined) updateData.attachments = input.attachments;
-        if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
+        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary || null;
+        if (input.challenges !== undefined) updateData.challenges = input.challenges || null;
+        if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps || null;
+        if (input.recommendations !== undefined) updateData.recommendations = input.recommendations || null;
+        if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent || "0";
+        if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining || "0";
+        if (input.milestones !== undefined) updateData.milestones = input.milestones || null;
+        if (input.attachments !== undefined) updateData.attachments = input.attachments || null;
+        if (input.photos !== undefined) updateData.photos = input.photos ? JSON.stringify(input.photos) : null;
 
         // حساب الانحراف إذا تم تحديث النسب
         if (input.actualProgress !== undefined && input.plannedProgress !== undefined) {
