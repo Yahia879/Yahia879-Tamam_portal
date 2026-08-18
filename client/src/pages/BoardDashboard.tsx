@@ -237,7 +237,7 @@ export default function BoardDashboard() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                {isChairmanView ? "لوحة اعتماد أوامر الصرف المعتمدة (رئيس مجلس الإدارة)" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
+                {isChairmanView ? "مركز الاعتماد المالي" : "اللوحة الإحصائية القيادية لمجلس الإدارة"}
               </h1>
 
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
