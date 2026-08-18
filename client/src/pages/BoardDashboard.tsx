@@ -227,7 +227,7 @@ export default function BoardDashboard() {
                 ) : (
                   <Badge className="bg-muted text-muted-foreground border border-border px-3 py-1 text-xs font-bold rounded-lg flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>عضو مجلس الإدارة</span>
+                    <span>الإدارة العليا</span>
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
@@ -243,7 +243,7 @@ export default function BoardDashboard() {
               <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
                 {isChairmanView
                   ? "صفحة تنفيذية خاصة برئيس مجلس الإدارة تُظهر جميع أوامر الصرف المعتمدة (سواءً المرتبطة بطلبات معتمدة أو المخصصة، وتتيح إجراء الاعتماد والتحويل البنكي المباشر والمعاينة."
-                  : "صفحة إحصائية خاصة بأعضاء مجلس الإدارة توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
+                  : "صفحة إحصائية خاصة بالإدارة العليا توفر اطلاعاً شاملاً وعميقاً على مؤشرات المساجد والطلبات والمشاريع والمشتريات والمالية."}
               </p>
             </div>
           </div>
