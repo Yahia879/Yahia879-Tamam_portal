@@ -3,11 +3,12 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ShieldAlert } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ShieldAlert, Check, Loader2 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
+import { toast } from "sonner";
 
 function toHijriDate(date: Date): string {
   let formatted = "";
@@ -72,6 +73,18 @@ export default function DisbursementRequestPrint() {
     },
   });
 
+  const approveRequestMutation = trpc.disbursements.approveRequest.useMutation({
+    onSuccess: async (data) => {
+      toast.success(data?.message || "تم اعتماد طلب الصرف بنجاح");
+      await refetchRequest();
+      utils.disbursements.getRequestById.invalidate();
+      utils.disbursements.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد طلب الصرف");
+    },
+  });
+
   // التحقق من أن المستخدم الحالي هو المدير التنفيذي ولديه توقيع رقمي
   const hasUserSignPerm = hasSignPermission || userPermissionsList.includes("disbursements.sign");
   const isExecutiveDirectorRole = 
@@ -95,7 +108,7 @@ export default function DisbursementRequestPrint() {
     !!(currentUser as any)?.signatureUrl &&
     currentUserShowSig;
 
-  const { data: request, isLoading } = trpc.disbursements.getRequestById.useQuery(
+  const { data: request, isLoading, refetch: refetchRequest } = trpc.disbursements.getRequestById.useQuery(
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
@@ -356,6 +369,36 @@ export default function DisbursementRequestPrint() {
     neighborhoodName ||
     "—";
 
+  const isSuperAdmin = currentUser?.role === "super_admin" || currentUser?.role === "system_admin";
+  const isPreparer = currentUser?.id === request?.requestedBy;
+  const isExecDirector = 
+    currentUser?.role === "general_manager" ||
+    currentUser?.role === "executive_director" ||
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    currentUser?.email === "ceo@manarah.org.sa";
+
+  const hasRequestApprovePerm = 
+    hasApprovePermission || 
+    userPermissionsList.includes("disbursements.approve") || 
+    userPermissionsList.includes("disbursements.exception_approve");
+
+  const canApproveRequest = (() => {
+    if (!request || !currentUser) return false;
+    if (request.status === "approved" || request.status === "paid" || request.status === "rejected") return false;
+
+    // المرحلة الأولى: طلب الصرف بانتظار اعتماد مُعد الطلب
+    if (request.status === "draft" || request.status === "pending") {
+      return isPreparer || isSuperAdmin || hasChairmanInPerms;
+    }
+
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي حصراً
+    if (request.status === "pending_executive") {
+      return isExecDirector || (isSuperAdmin && !isPreparer);
+    }
+
+    return false;
+  })();
+
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم والخيارات */}
@@ -374,6 +417,27 @@ export default function DisbursementRequestPrint() {
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
+
+        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
+          <Printer className="ml-2 h-4 w-4" />
+          تنزيل PDF / طباعة
+        </Button>
+
+        {/* زر اعتماد طلب الصرف لصاحبي الاعتماد */}
+        {canApproveRequest && (
+          <Button
+            onClick={() => approveRequestMutation.mutate({ id: requestId })}
+            disabled={approveRequestMutation.isPending}
+            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+          >
+            {approveRequestMutation.isPending ? (
+              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4 ml-2" />
+            )}
+            اعتماد طلب الصرف
+          </Button>
+        )}
 
         {/* تحديد صلاحية التحكم لكل زر توقيع - كل مستخدم يتحكم بتوقيعه فقط */}
         {(() => {
@@ -442,11 +506,6 @@ export default function DisbursementRequestPrint() {
             </>
           );
         })()}
-
-        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
-          <Printer className="ml-2 h-4 w-4" />
-          تنزيل PDF / طباعة
-        </Button>
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}

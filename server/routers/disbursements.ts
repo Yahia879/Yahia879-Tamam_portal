@@ -2149,7 +2149,7 @@ export const disbursementsRouter = router({
         return {
           success: true,
           status: "executed",
-          message: "تم الاعتماد النهائي والمباشر لأمر الصرف وتحويله بنكياً بواسطة رئيس مجلس الإدارة بنجاح",
+          message: "تم اعتماد أمر الصرف بنجاح",
         };
       }
 
