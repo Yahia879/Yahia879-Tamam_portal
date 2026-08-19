@@ -1,21 +1,10 @@
 -- =========================================================================
--- ملف Seed لإسناد الصلاحيات الجديدة للأدوار المستهدفة على السيرفر
--- متوافق مع كافة إصدارات MySQL و MariaDB
---
--- الصلاحيات:
---   1. projects.create_multi_mosque (إضافة مشروع لعدة مساجد)
---   2. project_reports.view (عرض تقارير المشاريع)
---   3. project_reports.create (إنشاء تقارير مشاريع)
---
--- الأدوار المستهدفة:
---   - super_admin (المدير العام)
---   - system_admin (مدير نظام)
---   - projects_office (مكتب المشاريع)
+-- ملف Seed الشامل (SQL) لتحديث الصلاحيات وإسنادها للأدوار على السيرفر
 -- =========================================================================
 
 START TRANSACTION;
 
--- 1. التأكد من وجود موديولي 'projects' و 'reports' في جدول modules
+-- 1. التأكد من وجود موديولي 'projects' و 'reports'
 INSERT INTO `modules` (`id`, `name_ar`, `name_en`, `description`, `icon`, `display_order`, `is_active`)
 VALUES 
   ('projects', 'المشاريع', 'Projects', 'إدارة ومتابعة المشاريع', 'FolderKanban', 2, 1),
@@ -25,33 +14,16 @@ ON DUPLICATE KEY UPDATE
   `name_en` = VALUES(`name_en`),
   `is_active` = 1;
 
--- 2. إدراج/تحديث الصلاحيات الثلاث في جدول permissions
+-- 2. إدراج/تحديث الصلاحيات في جدول permissions
 INSERT INTO `permissions` (`id`, `module_id`, `action`, `name_ar`, `name_en`, `description`)
 VALUES 
-  (
-    'projects.create_multi_mosque', 
-    'projects', 
-    'create_multi_mosque', 
-    'إضافة مشروع لعدة مساجد', 
-    'Create Multi-Mosque Project', 
-    'صلاحية إنشاء مشروع واحد مخصص لأكثر من مسجد في نفس الوقت'
-  ),
-  (
-    'project_reports.view', 
-    'reports', 
-    'view', 
-    'عرض تقارير المشاريع', 
-    'View Project Reports', 
-    'صلاحية عرض مركز تقارير المشاريع والإحصائيات والاطلاع على التقارير وطباعتها'
-  ),
-  (
-    'project_reports.create', 
-    'reports', 
-    'create', 
-    'إنشاء تقارير مشاريع', 
-    'Create Project Reports', 
-    'صلاحية إنشاء تقارير جديدة وتعديلها وإكمال المسودات وتغيير حالة تقارير المشاريع'
-  )
+  ('projects.create_multi_mosque', 'projects', 'create_multi_mosque', 'إضافة مشروع لعدة مساجد', 'Create Multi-Mosque Project', 'صلاحية إنشاء مشروع واحد مخصص لأكثر من مسجد في نفس الوقت'),
+  ('project_reports.view', 'reports', 'view', 'عرض تقارير المشاريع', 'View Project Reports', 'صلاحية عرض مركز تقارير المشاريع والإحصائيات والاطلاع على التقارير وطباعتها'),
+  ('project_reports.create', 'reports', 'create', 'إنشاء تقارير مشاريع', 'Create Project Reports', 'صلاحية إنشاء تقارير جديدة وتعديلها وإكمال المسودات وتغيير حالة تقارير المشاريع'),
+  ('progress_reports.view', 'reports', 'view', 'عرض تقارير الإنجاز', 'View Progress Reports', NULL),
+  ('progress_reports.add', 'reports', 'add', 'إضافة تقرير إنجاز', 'Add Progress Report', NULL),
+  ('progress_reports.edit', 'reports', 'edit', 'تعديل تقرير إنجاز', 'Edit Progress Report', NULL),
+  ('progress_reports.approve', 'reports', 'approve', 'اعتماد تقرير إنجاز', 'Approve Progress Report', NULL)
 ON DUPLICATE KEY UPDATE 
   `module_id` = VALUES(`module_id`),
   `action` = VALUES(`action`),
@@ -59,7 +31,15 @@ ON DUPLICATE KEY UPDATE
   `name_en` = VALUES(`name_en`),
   `description` = VALUES(`description`);
 
--- 3. إسناد الصلاحيات للأدوار المستهدفة في جدول role_permissions (بدون تكرار أو حذف بيانات سابقة)
+-- 3. تحديث مسمى صلاحية مركز الاعتماد المالي
+UPDATE `permissions` 
+SET 
+  `name_ar` = 'عرض مركز الاعتماد المالي', 
+  `name_en` = 'View Financial Approval Center',
+  `description` = 'صلاحية مركز الاعتماد المالي (عرض لوحة الإحصائيات القيادية واعتماد أوامر الصرف)'
+WHERE `id` = 'board_chairman';
+
+-- 4. إسناد الصلاحيات للأدوار المستهدفة في جدول role_permissions
 INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 VALUES
   -- super_admin
