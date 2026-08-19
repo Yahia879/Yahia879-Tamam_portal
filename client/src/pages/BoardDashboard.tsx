@@ -227,7 +227,7 @@ export default function BoardDashboard() {
                 ) : (
                   <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-400/40 px-3.5 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 hover:bg-amber-500/20 transition-colors shadow-xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>عضو مجلس الإدارة</span>
+                    <span>الإدارة العليا</span>
                   </Badge>
                 )}
                 <span className="text-xs text-teal-700 dark:text-teal-300 flex items-center gap-1 font-medium bg-teal-500/10 dark:bg-teal-950/30 px-2.5 py-0.5 rounded-full border border-teal-400/30">
