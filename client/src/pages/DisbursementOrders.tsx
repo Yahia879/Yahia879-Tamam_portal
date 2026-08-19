@@ -539,13 +539,52 @@ export default function DisbursementOrders() {
                                 <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
                               )}
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 max-w-[220px] truncate text-right text-xs" title={(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}>
-                              <span className="font-medium text-slate-800 dark:text-slate-200">
-                                {(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}
-                              </span>
+                            <TableCell className="py-2.5 px-3 max-w-[220px] text-right text-xs">
+                              <TooltipProvider delayDuration={150}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate font-medium text-slate-800 dark:text-slate-200 cursor-default">
+                                      {(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-xl border border-slate-700/60 max-w-sm text-right z-50">
+                                    {(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
-                            <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
+                            <TableCell className="py-2.5 px-3 max-w-[180px] text-right text-xs">
+                              {order.projectName ? (
+                                <TooltipProvider delayDuration={150}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block truncate cursor-default">
+                                        {order.projectName}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-xl border border-slate-700/60 max-w-xs text-right z-50">
+                                      {order.projectName}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                "-"
+                              )}
+                            </TableCell>
+                            <TableCell className="py-2.5 px-3 max-w-[180px] text-right text-xs font-semibold text-slate-800 dark:text-slate-200">
+                              <TooltipProvider delayDuration={150}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate cursor-default">
+                                      {order.beneficiaryName}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="bg-slate-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-xl border border-slate-700/60 max-w-xs text-right z-50">
+                                    {order.beneficiaryName}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
                             <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</TableCell>
                             <TableCell className="py-2.5 px-3 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
                             <TableCell className="py-2.5 px-3 text-right">
