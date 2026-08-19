@@ -167,6 +167,8 @@ export default function NewLinkedDisbursementRequest() {
     billerName: string;
     sadadNumber: string;
     billerCode: string;
+    linkName: string;
+    linkUrl: string;
     actualProjectValue?: number;
     amountsSpent?: number;
     fundingSourceName?: string;
@@ -195,11 +197,16 @@ export default function NewLinkedDisbursementRequest() {
     billerName: "",
     sadadNumber: "",
     billerCode: "",
+    linkName: "",
+    linkUrl: "",
     actualProjectValue: 0,
     amountsSpent: 0,
     fundingSourceName: "",
   });
   
+  const [showAttachmentFields, setShowAttachmentFields] = useState<boolean>(() => {
+    return Boolean(savedState?.formData?.linkUrl || savedState?.showAttachmentFields);
+  });
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
   const [billerSearch, setBillerSearch] = useState("");
@@ -230,6 +237,7 @@ export default function NewLinkedDisbursementRequest() {
         selectedReportId,
         suppliers,
         isTamamLinked,
+        showAttachmentFields,
       };
       sessionStorage.setItem("new-linked-disbursement-state", JSON.stringify(stateToSave));
       navigate(`/progress-reports/${selectedReport.id}/print`);
@@ -1178,11 +1186,17 @@ export default function NewLinkedDisbursementRequest() {
         }]
       : [];
 
+    const linkAttachment = (showAttachmentFields && formData.linkUrl && formData.linkUrl.trim()) ? [{
+      name: formData.linkName?.trim() || "رابط خارجي",
+      url: formData.linkUrl.trim(),
+      type: "link"
+    }] : [];
+
     const baseAttachments = isCustom 
       ? customSupplierMetadata 
       : (linkedMetadata.length > 0 ? linkedMetadata : []);
 
-    const finalAttachments = [...baseAttachments, ...generalAccountMetadata];
+    const finalAttachments = [...baseAttachments, ...generalAccountMetadata, ...linkAttachment];
 
     createMutation.mutate({
       projectId: formData.projectId && formData.projectId > 0 ? formData.projectId : null,
@@ -2115,6 +2129,50 @@ export default function NewLinkedDisbursementRequest() {
                     )}
                   </div>
                 )}
+
+                {/* إضافة رابط لطلب الصرف */}
+                <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 mt-4 space-y-4 text-right">
+                  <div className="flex items-center gap-2 justify-start">
+                    <Checkbox 
+                      id="add-external-link" 
+                      checked={showAttachmentFields}
+                      onCheckedChange={(checked) => {
+                        setShowAttachmentFields(!!checked);
+                        if (!checked) {
+                          setFormData(prev => ({ ...prev, linkName: "", linkUrl: "" }));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="add-external-link" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      إضافة رابط لطلب الصرف
+                    </Label>
+                  </div>
+
+                  {showAttachmentFields && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-200/60 dark:border-slate-800/50">
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">اسم الرابط (اختياري)</Label>
+                        <Input
+                          placeholder="مثال: عرض سعر شركة الأعمال"
+                          value={formData.linkName}
+                          onChange={(e) => setFormData({ ...formData, linkName: e.target.value })}
+                          className="border-border rounded-xl h-11 text-right bg-background"
+                        />
+                      </div>
+
+                      <div className="space-y-2 text-right">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">الرابط (اختياري)</Label>
+                        <Input
+                          placeholder="https://example.com/quotation"
+                          value={formData.linkUrl}
+                          onChange={(e) => setFormData({ ...formData, linkUrl: e.target.value })}
+                          className="border-border rounded-xl h-11 text-left bg-background"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </CardContent>
               <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center">
                 <Button
