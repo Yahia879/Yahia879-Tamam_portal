@@ -51,9 +51,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
-  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "reports.view"],
-  project_reports: ["project_reports.view", "project_reports.create", "reports.view"],
-  financial_report: ["reports.view"],
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve"],
+  project_reports: ["project_reports.view", "project_reports.create"],
+  financial_report: ["financial_reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
   "reports.view_stats": ["reports.view_stats", "reports.view"],
   "reports.export_data": ["reports.export_data", "reports.view"],
@@ -174,12 +174,12 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_reports.export": ["financial_reports.export"],
   "financial_reports.analytics": ["financial_reports.analytics"],
 
-  "progress_reports.view": ["progress_reports.view", "reports.view"],
+  "progress_reports.view": ["progress_reports.view"],
   "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
   "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
   "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
 
-  "project_reports.view": ["project_reports.view", "reports.view"],
+  "project_reports.view": ["project_reports.view"],
   "project_reports.create": ["project_reports.create", "project_reports.view"],
 
   boq: ["boq.add", "boq.edit", "boq.delete"],
@@ -905,7 +905,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("projects");
   }
-  if (allPermissions.has("reports.view") || allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
+  if (allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
     allPermissions.add("reports");
   } else {
     allPermissions.delete("reports");

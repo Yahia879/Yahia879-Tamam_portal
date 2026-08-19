@@ -262,7 +262,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
     engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
   }
-  if (has("reports")) {
+  if (has("reports.view_stats") || has("reports.export_data")) {
     engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
   }
   if (engineeringItems.length > 0) {

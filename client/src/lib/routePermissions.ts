@@ -180,7 +180,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/kpi-dashboard": ["projects", "requests.view_details"],
 
   // ── التقارير ──
-  "/reports": ["reports.view_stats", "reports.export_data", "reports.view", "progress_reports", "financial_report", "requests.view"],
+  "/reports": ["reports.view_stats", "reports.export_data"],
   "/pending-reports": ["pending_reports.view"],
   "/financial-report": "financial_report",
 
