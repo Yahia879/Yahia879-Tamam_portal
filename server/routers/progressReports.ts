@@ -42,12 +42,12 @@ export const progressReportsRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير المشاريع" });
       }
 
       const db = await getDb();
@@ -114,12 +114,12 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير المشاريع" });
       }
 
       const db = await getDb();
@@ -186,11 +186,11 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasAdd && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير إنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -281,11 +281,11 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasEdit && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير إنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -343,12 +343,12 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -373,11 +373,11 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -394,7 +394,7 @@ export const progressReportsRouter = router({
         .limit(1);
 
       if (!report) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير المشاريع غير موجود" });
       }
 
       await db
@@ -424,7 +424,7 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
@@ -447,12 +447,12 @@ export const progressReportsRouter = router({
     .input(z.object({ projectId: z.number().optional() }).optional())
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض إحصائيات تقارير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض إحصائيات تقارير المشاريع" });
       }
 
       const db = await getDb();
