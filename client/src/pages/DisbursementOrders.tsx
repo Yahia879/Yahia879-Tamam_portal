@@ -111,10 +111,11 @@ export default function DisbursementOrders() {
       });
 
       // Add headers
-      worksheet.addRow(["رقم الأمر", "رقم طلب الصرف المرتبط", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
+      worksheet.addRow(["رقم الأمر", "رقم طلب الصرف المرتبط", "العنوان", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
 
       // Add rows
       (allData?.orders || []).forEach((order: any) => {
+        const isCustomOrder = order.isDirect || !order.requestNumber;
         const paymentMethodText = order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
                                   order.paymentMethod === "check" ? "شيك" :
                                   order.paymentMethod === "custody" ? "عهدة" : 
@@ -128,11 +129,13 @@ export default function DisbursementOrders() {
         const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
         const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
 
-        const reqNumText = (order.isDirect || !order.requestNumber) ? "مخصص" : order.requestNumber;
+        const reqNumText = isCustomOrder ? "مخصص" : order.requestNumber;
+        const orderTitle = (order.requestTitle || order.requestDescription || (isCustomOrder ? "أمر صرف مخصص" : "-")).trim();
 
         worksheet.addRow([
           order.orderNumber || "-",
           reqNumText,
+          orderTitle,
           order.projectName || "-",
           order.beneficiaryName || "-",
           Number(order.amount) || 0,
@@ -143,8 +146,8 @@ export default function DisbursementOrders() {
         ]);
       });
 
-      // Set column widths to 30 for A through I
-      ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
+      // Set column widths to 30 for A through J
+      ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'].forEach(col => {
         worksheet.getColumn(col).width = 30;
       });
 
@@ -467,6 +470,7 @@ export default function DisbursementOrders() {
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم الأمر</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">رقم طلب الصرف المرتبط</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">العنوان</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
@@ -534,6 +538,11 @@ export default function DisbursementOrders() {
                               ) : (
                                 <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{order.requestNumber}</span>
                               )}
+                            </TableCell>
+                            <TableCell className="py-2.5 px-3 max-w-[220px] truncate text-right text-xs" title={(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}>
+                              <span className="font-medium text-slate-800 dark:text-slate-200">
+                                {(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "-")).trim()}
+                              </span>
                             </TableCell>
                             <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs">{order.projectName || "-"}</TableCell>
                             <TableCell className="py-2.5 px-3 max-w-[180px] truncate text-right text-xs font-semibold text-slate-800 dark:text-slate-200">{order.beneficiaryName}</TableCell>
@@ -700,6 +709,16 @@ export default function DisbursementOrders() {
                           <div>
                             <p className="text-[10px] text-muted-foreground mb-0.5 font-medium">المستفيد</p>
                             <h4 className="font-bold text-sm text-foreground leading-tight">{order.beneficiaryName}</h4>
+                          </div>
+
+                          <div className="flex items-start gap-2 bg-muted/30 p-2 rounded-lg">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 shrink-0" />
+                            <div className="min-w-0 text-right">
+                              <p className="text-[9px] text-muted-foreground font-medium">العنوان</p>
+                              <p className="text-xs text-foreground font-semibold truncate">
+                                {(order.requestTitle || order.requestDescription || (order.isDirect || !order.requestNumber ? "أمر صرف مخصص" : "—")).trim()}
+                              </p>
+                            </div>
                           </div>
 
                           <div className="flex items-start gap-2 bg-muted/30 p-2 rounded-lg">
@@ -1074,6 +1093,18 @@ export default function DisbursementOrders() {
 
               {/* قسم تفاصيل المورد والبنك */}
               <div className="border border-border/80 rounded-xl overflow-hidden divide-y divide-border/60">
+                <div className="p-3 flex justify-between items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-semibold shrink-0">العنوان:</span>
+                  <span className="text-sm font-bold text-foreground text-left truncate max-w-[280px]">
+                    {selectedOrder?.requestTitle || selectedOrder?.requestDescription || (selectedOrder?.isDirect || !selectedOrder?.requestNumber ? "أمر صرف مخصص" : "—")}
+                  </span>
+                </div>
+                {selectedOrder?.projectName && (
+                  <div className="p-3 flex justify-between items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-semibold shrink-0">المشروع:</span>
+                    <span className="text-sm font-bold text-foreground text-left">{selectedOrder.projectName}</span>
+                  </div>
+                )}
                 <div className="p-3 flex justify-between items-center gap-2">
                   <span className="text-xs text-muted-foreground font-semibold shrink-0">اسم المستفيد (المورد):</span>
                   <span className="text-sm font-bold text-foreground text-left">{selectedOrder?.beneficiaryName || "—"}</span>

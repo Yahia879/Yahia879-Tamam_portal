@@ -735,8 +735,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي المساجد المسجلة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                        {data.mosques.total.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.mosques.total.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> مسجلة رسمياً بالبوابة
@@ -752,8 +752,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المساجد النشطة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                        {data.mosques.active.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.mosques.active.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">تتلقى الخدمات والزيارات</p>
                     </div>
@@ -767,8 +767,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المسجلة خلال آخر 30 يوماً</p>
-                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 font-mono">
-                        +{data.mosques.recent.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        +{data.mosques.recent.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <TrendingUp className="w-3 h-3 shrink-0" /> نمو مستمر
@@ -908,8 +908,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي الطلبات المقدمة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                        {data.requests.total.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.requests.total.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">كافة طلبات الخدمات</p>
                     </div>
@@ -923,8 +923,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات المكتملة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                        {data.requests.approved.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.requests.approved.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> تم إنجازها بنجاح
@@ -940,8 +940,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات قيد التنفيذ والمراجعة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400 font-mono">
-                        {(data.requests.inProgress + data.requests.pending).toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+                        {(data.requests.inProgress + data.requests.pending).toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">مرحلية العمل جارية</p>
                     </div>
@@ -955,8 +955,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات المرفوضة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-rose-600 dark:text-rose-400 font-mono">
-                        {data.requests.rejected.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-rose-600 dark:text-rose-400">
+                        {data.requests.rejected.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">لعدم اكتمال المتطلبات</p>
                     </div>
@@ -1049,8 +1049,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي الموردين المسجلين</p>
-                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                        {data.procurement.totalSuppliers.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.procurement.totalSuppliers.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">موردون بالشبكة</p>
                     </div>
@@ -1064,8 +1064,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الموردون المعتمدون</p>
-                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                        {data.procurement.approvedSuppliers.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.procurement.approvedSuppliers.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> منشآت مؤهلة رسمياً
@@ -1081,8 +1081,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">العقود المعتمدة</p>
-                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 font-mono">
-                        {data.procurement.totalContracts.toLocaleString("en-US")}
+                      <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        {data.procurement.totalContracts.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">عقود رسمية معتمدة</p>
                     </div>
@@ -1096,8 +1096,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي قيمة العقود</p>
-                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400 font-mono">
-                        {data.procurement.totalContractsValue.toLocaleString("en-US")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
+                        {data.procurement.totalContractsValue.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">مجموع قيم العقود المعتمدة</p>
                     </div>
@@ -1263,8 +1263,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">طلبات الصرف المعتمدة</p>
-                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-                        {data.financials.approvedDisbursementRequestsCount.toLocaleString("en-US")}
+                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                        {data.financials.approvedDisbursementRequestsCount.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">
                         طلبات معتمدة رسمياً
@@ -1280,8 +1280,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">أوامر الصرف المعتمدة</p>
-                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 font-mono">
-                        {data.financials.executiveApprovedOrdersCount.toLocaleString("en-US")}
+                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                        {data.financials.executiveApprovedOrdersCount.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> أوامر معتمدة وجاهزة للصرف
@@ -1297,8 +1297,8 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي مصاريف الجمعية</p>
-                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 font-mono">
-                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">
                         أوامر صرف منفذة ({data.financials.executedDisbursementOrdersCount} أمر)
@@ -1314,11 +1314,11 @@ export default function BoardDashboard() {
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">سندات القبض المعتمدة</p>
-                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400 font-mono">
-                        {data.financials.approvedReceiptVouchersCount.toLocaleString("en-US")}
+                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400">
+                        {data.financials.approvedReceiptVouchersCount.toLocaleString("ar-SA")}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("en-US")} ريال
+                        مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("ar-SA")} ريال
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">

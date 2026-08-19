@@ -1429,6 +1429,8 @@ export const disbursementsRouter = router({
           or(
             like(sql`LOWER(${disbursementOrders.orderNumber})`, searchPattern),
             like(sql`LOWER(${disbursementOrders.beneficiaryName})`, searchPattern),
+            like(sql`LOWER(${disbursementRequests.title})`, searchPattern),
+            like(sql`LOWER(${disbursementRequests.description})`, searchPattern),
             like(sql`LOWER(${projects.name})`, searchPattern)
           )
         );
@@ -1457,7 +1459,8 @@ export const disbursementsRouter = router({
           exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           requestNumber: disbursementRequests.requestNumber,
           isDirect: disbursementRequests.isDirect,
-          requestTitle: disbursementRequests.description,
+          requestTitle: sql<string>`COALESCE(NULLIF(${disbursementRequests.title}, ''), ${disbursementRequests.description}, '')`,
+          requestDescription: disbursementRequests.description,
           attachmentsJson: disbursementRequests.attachmentsJson,
           projectId: projects.id,
           projectName: projects.name,
