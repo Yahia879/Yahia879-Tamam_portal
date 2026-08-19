@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { eq, desc, and, sql, or, like } from "drizzle-orm";
+import { eq, desc, and, sql, or, like, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
 import { progressReports, projects, users } from "../../drizzle/schema";
-import { notifyProgressReportCreation, notifyProgressReportApproval } from "./notifications";
+import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
 
 const parseDateInput = (val: any): Date | null => {
   if (!val) return null;
@@ -34,7 +35,7 @@ export const progressReportsRouter = router({
     .input(
       z.object({
         projectId: z.number().optional(),
-        status: z.enum(["draft", "submitted", "reviewed", "approved"]).optional(),
+        status: z.string().optional(),
         search: z.string().optional(),
         limit: z.number().default(50),
         offset: z.number().default(0),
@@ -58,19 +59,21 @@ export const progressReportsRouter = router({
       if (input?.projectId) {
         conditions.push(eq(progressReports.projectId, input.projectId));
       }
-      if (input?.status) {
-        conditions.push(eq(progressReports.status, input.status));
+      if (input?.status && input.status !== "all") {
+        conditions.push(eq(progressReports.status, input.status as any));
       }
       if (input?.search) {
-        const searchPattern = `%${input.search}%`;
+        const searchPattern = `%${input.search.toLowerCase()}%`;
         conditions.push(
           or(
-            like(progressReports.reportNumber, searchPattern),
-            like(progressReports.title, searchPattern),
-            like(projects.name, searchPattern)
+            like(sql`LOWER(${progressReports.reportNumber})`, searchPattern),
+            like(sql`LOWER(${progressReports.title})`, searchPattern),
+            like(sql`LOWER(${projects.name})`, searchPattern)
           )
         );
       }
+
+      const reviewerUser = alias(users, "reviewerUser");
 
       const reports = await db
         .select({
@@ -96,13 +99,28 @@ export const progressReportsRouter = router({
           attachments: sql<any>`(CASE WHEN ${progressReports.attachments} IS NOT NULL THEN JSON_EXTRACT(${progressReports.attachments}, '$') ELSE NULL END)`,
           photos: sql<any>`(CASE WHEN ${progressReports.photos} IS NOT NULL THEN JSON_EXTRACT(${progressReports.photos}, '$') ELSE NULL END)`,
           projectName: projects.name,
+          createdBy: progressReports.createdBy,
           createdByName: users.name,
+          reviewedBy: progressReports.reviewedBy,
+          reviewedByName: reviewerUser.name,
+          reviewedAt: progressReports.reviewedAt,
+          reviewNotes: progressReports.reviewNotes,
         })
         .from(progressReports)
         .leftJoin(projects, eq(progressReports.projectId, projects.id))
         .leftJoin(users, eq(progressReports.createdBy, users.id))
+        .leftJoin(reviewerUser, eq(progressReports.reviewedBy, reviewerUser.id))
         .where(conditions.length > 0 ? and(...conditions) : undefined)
-        .orderBy(desc(progressReports.createdAt))
+        .orderBy(
+          sql`CASE 
+            WHEN ${progressReports.status} = 'pending_executive' THEN 0
+            WHEN ${progressReports.status} = 'pending' THEN 1
+            WHEN ${progressReports.status} = 'submitted' THEN 1
+            WHEN ${progressReports.status} = 'draft' THEN 2
+            ELSE 3
+          END ASC`,
+          desc(progressReports.createdAt)
+        )
         .limit(input?.limit || 50)
         .offset(input?.offset || 0);
 
@@ -124,6 +142,8 @@ export const progressReportsRouter = router({
 
       const db = await getDb();
       if (!db) return null;
+
+      const reviewerUser = alias(users, "reviewerUser");
 
       const [report] = await db
         .select({
@@ -148,14 +168,19 @@ export const progressReportsRouter = router({
           attachments: progressReports.attachments,
           photos: progressReports.photos,
           status: progressReports.status,
+          createdBy: progressReports.createdBy,
+          createdByName: users.name,
+          reviewedBy: progressReports.reviewedBy,
+          reviewedByName: reviewerUser.name,
+          reviewedAt: progressReports.reviewedAt,
           reviewNotes: progressReports.reviewNotes,
           createdAt: progressReports.createdAt,
           projectName: projects.name,
-          createdByName: users.name,
         })
         .from(progressReports)
         .leftJoin(projects, eq(progressReports.projectId, projects.id))
         .leftJoin(users, eq(progressReports.createdBy, users.id))
+        .leftJoin(reviewerUser, eq(progressReports.reviewedBy, reviewerUser.id))
         .where(eq(progressReports.id, input.id));
 
       return report;
@@ -182,6 +207,7 @@ export const progressReportsRouter = router({
         milestones: z.string().optional(),
         attachments: z.string().optional(),
         photos: z.array(z.string()).optional(),
+        status: z.enum(["draft", "pending", "pending_executive", "submitted", "reviewed", "approved", "rejected"]).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -220,6 +246,8 @@ export const progressReportsRouter = router({
         // حساب الانحراف
         const variance = input.actualProgress - input.plannedProgress;
 
+        const initialStatus = input.status || "pending";
+
         const [result] = await db.insert(progressReports).values({
           reportNumber,
           projectId: input.projectId,
@@ -240,13 +268,13 @@ export const progressReportsRouter = router({
           milestones: input.milestones || null,
           attachments: input.attachments || null,
           photos: input.photos ? JSON.stringify(input.photos) : null,
-          status: "draft",
+          status: initialStatus,
           createdBy: ctx.user.id,
         });
 
         await notifyProgressReportCreation(result.insertId, reportNumber, input.title || "", input.projectId);
 
-        return { id: result.insertId, reportNumber };
+        return { id: result.insertId, reportNumber, status: initialStatus };
       } catch (error: any) {
         console.error("Error creating progress report:", error);
         if (error.message?.includes("packet for query is too large") || error.code === 'ER_NET_PACKET_TOO_LARGE') {
@@ -356,38 +384,168 @@ export const progressReportsRouter = router({
 
       await db
         .update(progressReports)
-        .set({ status: "submitted" })
+        .set({ status: "pending" })
         .where(eq(progressReports.id, input.id));
 
       return { success: true };
     }),
 
-  // مراجعة التقرير
+  // اعتماد تقرير الإنجاز (سلسلة الاعتماد: المرحلة 1 منشئ التقرير والمرحلة 2 المدير التنفيذي)
+  approve: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [report] = await db
+        .select({
+          id: progressReports.id,
+          reportNumber: progressReports.reportNumber,
+          title: progressReports.title,
+          projectId: progressReports.projectId,
+          status: progressReports.status,
+          createdBy: progressReports.createdBy,
+          reviewNotes: progressReports.reviewNotes,
+        })
+        .from(progressReports)
+        .where(eq(progressReports.id, input.id))
+        .limit(1);
+
+      if (!report) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+      }
+
+      const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isExecDirector = 
+        ["general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      
+      const hasApprovePerm = 
+        await checkPermission(ctx.user.id, "progress_reports.approve") ||
+        await checkPermission(ctx.user.id, "project_reports.create");
+
+      // المرحلة الأولى: اعتماد مُعد التقرير (draft / pending / submitted -> pending_executive)
+      if (report.status === "pending" || report.status === "draft" || report.status === "submitted") {
+        const isPreparer = report.createdBy === ctx.user.id;
+        if (!isPreparer && !isSuperAdmin) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط مُعدّ التقرير يمتلك صلاحية اعتماد المرحلة الأولى لتقارير الإنجاز",
+          });
+        }
+
+        await db
+          .update(progressReports)
+          .set({
+            status: "pending_executive",
+            reviewNotes: input.notes || report.reviewNotes,
+            updatedAt: new Date(),
+          })
+          .where(eq(progressReports.id, input.id));
+
+        // إرسال إشعار للمدير التنفيذي
+        const executiveUsers = await db
+          .select({ id: users.id })
+          .from(users)
+          .where(
+            and(
+              inArray(users.role, ["general_manager", "executive_director"]),
+              sql`${users.deletedAt} IS NULL`
+            )
+          );
+
+        for (const execUser of executiveUsers) {
+          await createNotification({
+            userId: execUser.id,
+            title: "تقرير إنجاز بانتظار الاعتماد",
+            message: `تم اعتماد تقرير الإنجاز رقم ${report.reportNumber} من قِبَل مُعد التقرير، وهو الآن بانتظار اعتماد المدير التنفيذي`,
+            type: "warning",
+            relatedType: "progress_report",
+            relatedId: input.id,
+          });
+        }
+
+        return {
+          success: true,
+          status: "pending_executive",
+          message: "تم اعتماد المرحلة الأولى بنجاح من قِبل مُعد التقرير، والتقرير الآن بانتظار اعتماد المدير التنفيذي",
+        };
+      }
+
+      // المرحلة الثانية: اعتماد المدير التنفيذي (pending_executive / reviewed -> approved)
+      if (report.status === "pending_executive" || report.status === "reviewed") {
+        if (!isExecDirector && !isSuperAdmin && !hasApprovePerm) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لتقارير الإنجاز",
+          });
+        }
+
+        await db
+          .update(progressReports)
+          .set({
+            status: "approved",
+            reviewedBy: ctx.user.id,
+            reviewedAt: new Date(),
+            reviewNotes: input.notes || report.reviewNotes,
+            updatedAt: new Date(),
+          })
+          .where(eq(progressReports.id, input.id));
+
+        await notifyProgressReportApproval(input.id, report.reportNumber, report.title, report.projectId);
+
+        if (report.createdBy) {
+          await createNotification({
+            userId: report.createdBy,
+            title: "اعتماد تقرير الإنجاز",
+            message: `تم اعتماد تقرير الإنجاز رقم ${report.reportNumber} من قِبَل المدير التنفيذي بنجاح`,
+            type: "success",
+            relatedType: "progress_report",
+            relatedId: input.id,
+          });
+        }
+
+        return {
+          success: true,
+          status: "approved",
+          message: "تم اعتماد تقرير الإنجاز بنجاح من قِبل المدير التنفيذي",
+        };
+      }
+
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "حالة تقرير الإنجاز الحالية لا تقبل الاعتماد",
+      });
+    }),
+
+  // مراجعة التقرير (متوافقة مع الإجراء السابق)
   review: protectedProcedure
     .input(
       z.object({
         id: z.number(),
-        status: z.enum(["reviewed", "approved"]),
+        status: z.enum(["draft", "pending", "pending_executive", "submitted", "reviewed", "approved", "rejected"]).optional(),
         reviewNotes: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
-      const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
-
-      if (!isAdmin && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير مشاريع" });
-      }
-
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       const [report] = await db
         .select({
+          id: progressReports.id,
           reportNumber: progressReports.reportNumber,
           title: progressReports.title,
           projectId: progressReports.projectId,
+          status: progressReports.status,
+          createdBy: progressReports.createdBy,
+          reviewNotes: progressReports.reviewNotes,
         })
         .from(progressReports)
         .where(eq(progressReports.id, input.id))
@@ -397,21 +555,111 @@ export const progressReportsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "تقرير المشاريع غير موجود" });
       }
 
+      const targetStatus = input.status || (
+        (report.status === "pending" || report.status === "draft" || report.status === "submitted")
+          ? "pending_executive"
+          : "approved"
+      );
+
+      const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isExecDirector = 
+        ["general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const hasApprovePerm = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
+
+      if (targetStatus === "pending_executive") {
+        const isPreparer = report.createdBy === ctx.user.id;
+        if (!isPreparer && !isSuperAdmin) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط مُعدّ التقرير يمتلك صلاحية اعتماد المرحلة الأولى لتقارير الإنجاز",
+          });
+        }
+      } else if (targetStatus === "approved") {
+        if (!isExecDirector && !isSuperAdmin && !hasApprovePerm) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لتقارير الإنجاز",
+          });
+        }
+      }
+
       await db
         .update(progressReports)
         .set({
-          status: input.status,
+          status: targetStatus,
           reviewedBy: ctx.user.id,
           reviewedAt: new Date(),
-          reviewNotes: input.reviewNotes,
+          reviewNotes: input.reviewNotes || report.reviewNotes,
+          updatedAt: new Date(),
         })
         .where(eq(progressReports.id, input.id));
 
-      if (input.status === "approved") {
+      if (targetStatus === "approved") {
         await notifyProgressReportApproval(input.id, report.reportNumber, report.title, report.projectId);
       }
 
-      return { success: true };
+      return { success: true, status: targetStatus };
+    }),
+
+  // رفض تقرير الإنجاز
+  reject: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        reason: z.string().min(1, "يرجى كتابة سبب الرفض"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [report] = await db
+        .select()
+        .from(progressReports)
+        .where(eq(progressReports.id, input.id))
+        .limit(1);
+
+      if (!report) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+      }
+
+      const isSuperAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isPreparer = report.createdBy === ctx.user.id;
+      const isExecDirector = 
+        ["general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+      const hasApprovePerm = await checkPermission(ctx.user.id, "progress_reports.approve");
+
+      if (!isSuperAdmin && !isPreparer && !isExecDirector && !hasApprovePerm) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لرفض تقرير الإنجاز" });
+      }
+
+      await db
+        .update(progressReports)
+        .set({
+          status: "rejected",
+          reviewedBy: ctx.user.id,
+          reviewedAt: new Date(),
+          reviewNotes: input.reason,
+          updatedAt: new Date(),
+        })
+        .where(eq(progressReports.id, input.id));
+
+      if (report.createdBy && report.createdBy !== ctx.user.id) {
+        await createNotification({
+          userId: report.createdBy,
+          title: "رفض تقرير الإنجاز",
+          message: `تم رفض تقرير الإنجاز رقم ${report.reportNumber} لسبب: ${input.reason}`,
+          type: "error",
+          relatedType: "progress_report",
+          relatedId: input.id,
+        });
+      }
+
+      return { success: true, message: "تم رفض تقرير الإنجاز بنجاح" };
     }),
 
   // تحديث حالة التقرير
@@ -419,7 +667,7 @@ export const progressReportsRouter = router({
     .input(
       z.object({
         id: z.number(),
-        status: z.enum(["draft", "submitted", "reviewed", "approved"]),
+        status: z.enum(["draft", "pending", "pending_executive", "submitted", "reviewed", "approved", "rejected"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -436,7 +684,7 @@ export const progressReportsRouter = router({
 
       await db
         .update(progressReports)
-        .set({ status: input.status })
+        .set({ status: input.status, updatedAt: new Date() })
         .where(eq(progressReports.id, input.id));
 
       return { success: true };
@@ -456,7 +704,7 @@ export const progressReportsRouter = router({
       }
 
       const db = await getDb();
-      if (!db) return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
+      if (!db) return { total: 0, draft: 0, pending: 0, pending_executive: 0, approved: 0, rejected: 0, avgProgress: 0 };
 
       const conditions = [];
       if (input?.projectId) {
@@ -467,9 +715,10 @@ export const progressReportsRouter = router({
         .select({
           total: sql<number>`COUNT(*)`,
           draft: sql<number>`SUM(CASE WHEN status = 'draft' THEN 1 ELSE 0 END)`,
-          submitted: sql<number>`SUM(CASE WHEN status = 'submitted' THEN 1 ELSE 0 END)`,
-          reviewed: sql<number>`SUM(CASE WHEN status = 'reviewed' THEN 1 ELSE 0 END)`,
+          pending: sql<number>`SUM(CASE WHEN status IN ('pending', 'submitted') THEN 1 ELSE 0 END)`,
+          pending_executive: sql<number>`SUM(CASE WHEN status IN ('pending_executive', 'reviewed') THEN 1 ELSE 0 END)`,
           approved: sql<number>`SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)`,
+          rejected: sql<number>`SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END)`,
           avgProgress: sql<number>`AVG(overallProgress)`,
         })
         .from(progressReports)
@@ -478,9 +727,10 @@ export const progressReportsRouter = router({
       return {
         total: stats?.total || 0,
         draft: stats?.draft || 0,
-        submitted: stats?.submitted || 0,
-        reviewed: stats?.reviewed || 0,
+        pending: stats?.pending || 0,
+        pending_executive: stats?.pending_executive || 0,
         approved: stats?.approved || 0,
+        rejected: stats?.rejected || 0,
         avgProgress: Math.round(stats?.avgProgress || 0),
       };
     }),

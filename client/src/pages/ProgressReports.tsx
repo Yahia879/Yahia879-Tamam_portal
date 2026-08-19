@@ -41,6 +41,8 @@ import {
   Eye,
   FileText,
   CheckCircle,
+  CheckCircle2,
+  XCircle,
   Clock,
   AlertCircle,
   TrendingUp,
@@ -63,6 +65,10 @@ import {
   Upload,
   X,
   Loader2,
+  ShieldCheck,
+  PenTool,
+  UserCheck,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -70,13 +76,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
-  submitted: { label: "مقدم للمراجعة", variant: "default" },
-  reviewed: { label: "تمت المراجعة", variant: "outline" },
+  pending: { label: "بانتظار اعتماد مُعد التقرير", variant: "default" },
+  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
+  submitted: { label: "بانتظار اعتماد مُعد التقرير", variant: "default" },
+  reviewed: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
   approved: { label: "معتمد", variant: "outline" },
+  rejected: { label: "مرفوض", variant: "destructive" },
 };
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode; badgeIcon: React.ReactNode; iconBg: string }> = {
@@ -88,29 +98,53 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
     badgeIcon: <FileText className="w-3 h-3" />,
     iconBg: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800",
   },
-  submitted: {
-    label: "مقدم للمراجعة",
+  pending: {
+    label: "بانتظار اعتماد مُعد التقرير",
     color: "text-amber-700 dark:text-amber-400",
     bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
     icon: <Clock className="w-5 h-5 text-amber-500" />,
     badgeIcon: <Clock className="w-3 h-3" />,
     iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800",
   },
+  submitted: {
+    label: "بانتظار اعتماد مُعد التقرير",
+    color: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="w-5 h-5 text-amber-500" />,
+    badgeIcon: <Clock className="w-3 h-3" />,
+    iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  },
+  pending_executive: {
+    label: "بانتظار اعتماد المدير التنفيذي",
+    color: "text-orange-700 dark:text-orange-400 font-bold",
+    bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800",
+    icon: <Clock className="w-5 h-5 text-orange-500 animate-pulse" />,
+    badgeIcon: <Clock className="w-3 h-3 animate-pulse" />,
+    iconBg: "bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 border-orange-200 dark:border-orange-800",
+  },
   reviewed: {
-    label: "تمت المراجعة",
-    color: "text-blue-700 dark:text-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
-    icon: <TrendingUp className="w-5 h-5 text-blue-500" />,
-    badgeIcon: <TrendingUp className="w-3 h-3" />,
-    iconBg: "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+    label: "بانتظار اعتماد المدير التنفيذي",
+    color: "text-orange-700 dark:text-orange-400 font-bold",
+    bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800",
+    icon: <Clock className="w-5 h-5 text-orange-500 animate-pulse" />,
+    badgeIcon: <Clock className="w-3 h-3 animate-pulse" />,
+    iconBg: "bg-orange-100 text-orange-600 dark:bg-orange-950/40 dark:text-orange-400 border-orange-200 dark:border-orange-800",
   },
   approved: {
     label: "معتمد",
     color: "text-emerald-700 dark:text-emerald-400",
     bg: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800",
-    icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
-    badgeIcon: <CheckCircle className="w-3 h-3" />,
+    icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />,
+    badgeIcon: <CheckCircle2 className="w-3 h-3" />,
     iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  },
+  rejected: {
+    label: "مرفوض",
+    color: "text-red-700 dark:text-red-400",
+    bg: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800",
+    icon: <XCircle className="w-5 h-5 text-red-500" />,
+    badgeIcon: <XCircle className="w-3 h-3" />,
+    iconBg: "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 border-red-200 dark:border-red-800",
   },
 };
 
@@ -404,18 +438,19 @@ export default function ProgressReports() {
   const statsData = (() => {
     const validReports = (allReportsData || []).filter((r: any) => !isExcludedProjectReport(r));
     if (validReports.length === 0) {
-      return { total: 0, draft: 0, submitted: 0, reviewed: 0, approved: 0, avgProgress: 0 };
+      return { total: 0, draft: 0, pending: 0, pending_executive: 0, approved: 0, rejected: 0, avgProgress: 0 };
     }
     const total = validReports.length;
     const draft = validReports.filter((r: any) => r.status === "draft").length;
-    const submitted = validReports.filter((r: any) => r.status === "submitted").length;
-    const reviewed = validReports.filter((r: any) => r.status === "reviewed").length;
+    const pending = validReports.filter((r: any) => r.status === "pending" || r.status === "submitted").length;
+    const pending_executive = validReports.filter((r: any) => r.status === "pending_executive" || r.status === "reviewed").length;
     const approved = validReports.filter((r: any) => r.status === "approved").length;
+    const rejected = validReports.filter((r: any) => r.status === "rejected").length;
     
     const sumProgress = validReports.reduce((sum: number, r: any) => sum + (r.overallProgress || 0), 0);
     const avgProgress = Math.round(sumProgress / total);
 
-    return { total, draft, submitted, reviewed, approved, avgProgress };
+    return { total, draft, pending, pending_executive, approved, rejected, avgProgress };
   })();
 
   const { data: projectsData } = trpc.projects.getAll.useQuery({});
@@ -430,6 +465,11 @@ export default function ProgressReports() {
   const totalScheduledPayments = projectDetails?.payments?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
 
   const hasIncompleteSchedule = newReport.projectId > 0 && !isProjectDetailsLoading && (totalContractAmount === 0 || Math.abs(totalContractAmount - totalScheduledPayments) > 0.01);
+
+  // حالة نافذة رفض التقرير
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [reportToReject, setReportToReject] = useState<any>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   // Mutations
   const createMutation = trpc.progressReports.create.useMutation({
@@ -453,6 +493,34 @@ export default function ProgressReports() {
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ");
+    },
+  });
+
+  // اعتماد التقرير (المرحلة 1 والمرحلة 2)
+  const approveMutation = trpc.progressReports.approve.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم اعتماد التقرير بنجاح");
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء اعتماد التقرير");
+    },
+  });
+
+  const rejectMutation = trpc.progressReports.reject.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم رفض تقرير الإنجاز بنجاح");
+      setShowRejectDialog(false);
+      setReportToReject(null);
+      setRejectionReason("");
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء رفض التقرير");
     },
   });
 
@@ -802,6 +870,10 @@ export default function ProgressReports() {
 
   // اعتماد التقرير والتحويل المباشر لطلب صرف
   const handleApproveAndConvert = (report: any) => {
+    if (report.status !== "approved") {
+      toast.error("يجب اعتماد تقرير الإنجاز أولاً من المدير التنفيذي قبل تحويله لطلب صرف");
+      return;
+    }
     const paymentIdMatch = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
     if (!paymentIdMatch) return;
     const paymentIdRaw = paymentIdMatch[1];
@@ -810,28 +882,16 @@ export default function ProgressReports() {
     const amountVal = parseFloat(report.budgetSpent || "0");
     const amount = amountVal > 0 ? amountVal : 1;
 
-    const performConversion = () => {
-      convertToDisbursementMutation.mutate({
-        projectId: report.projectId,
-        title: report.title, // اسم الدفعة
-        amount: amount,
-        paymentType: "progress",
-        completionPercentage: report.plannedProgress || report.overallProgress || 0,
-        contractPaymentId: isManual ? undefined : parsedPaymentId,
-        paymentId: isManual ? parsedPaymentId : undefined,
-        description: report.workSummary || "",
-      });
-    };
-
-    if (report.status === "approved") {
-      performConversion();
-    } else {
-      reviewMutation.mutate({ id: report.id, status: "approved" }, {
-        onSuccess: () => {
-          performConversion();
-        }
-      });
-    }
+    convertToDisbursementMutation.mutate({
+      projectId: report.projectId,
+      title: report.title, // اسم الدفعة
+      amount: amount,
+      paymentType: "progress",
+      completionPercentage: report.plannedProgress || report.overallProgress || 0,
+      contractPaymentId: isManual ? undefined : parsedPaymentId,
+      paymentId: isManual ? parsedPaymentId : undefined,
+      description: report.workSummary || "",
+    });
   };
 
   // حساب الانحراف
@@ -858,13 +918,51 @@ export default function ProgressReports() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // التحقق من الصلاحيات
+  // التحقق من الصلاحيات والأدوار
   const hasAddPermission = usePermission("progress_reports.add");
   const hasEditPermission = usePermission("progress_reports.edit");
   const hasApprovePermission = usePermission("progress_reports.approve");
-  const canCreateReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasAddPermission;
-  const canEditReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasEditPermission;
-  const canReviewReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasApprovePermission;
+  const isSuperAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const isExecDirector = 
+    user?.role === "general_manager" || 
+    user?.role === "executive_director" || 
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" || 
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
+    user?.email === "ceo@manarah.org.sa";
+
+  const canCreateReport = isSuperAdmin || hasAddPermission;
+  const canEditReport = isSuperAdmin || hasEditPermission;
+  const canReviewReport = isSuperAdmin || hasApprovePermission || isExecDirector;
+
+  // التحقق من صلاحية اعتماد المرحلة الأولى (مُعد التقرير أو الآدمن)
+  const canApproveStage1 = (report: any) => {
+    if (!report || !user) return false;
+    const isStage1 = report.status === "pending" || report.status === "draft" || report.status === "submitted";
+    if (!isStage1) return false;
+    const isPreparer = report.createdBy === user.id;
+    return isPreparer || isSuperAdmin;
+  };
+
+  // التحقق من صلاحية اعتماد المرحلة الثانية (المدير التنفيذي أو الآدمن)
+  const canApproveStage2 = (report: any) => {
+    if (!report || !user) return false;
+    const isStage2 = report.status === "pending_executive" || report.status === "reviewed";
+    if (!isStage2) return false;
+    return isExecDirector || isSuperAdmin || hasApprovePermission;
+  };
+
+  // التحقق من صلاحية رفض التقرير
+  const canRejectReport = (report: any) => {
+    if (!report || !user) return false;
+    if (report.status === "approved" || report.status === "rejected") return false;
+    if (report.status === "pending" || report.status === "draft" || report.status === "submitted") {
+      return report.createdBy === user.id || isSuperAdmin;
+    }
+    if (report.status === "pending_executive" || report.status === "reviewed") {
+      return isExecDirector || isSuperAdmin || hasApprovePermission;
+    }
+    return false;
+  };
 
   if (activeTab === "create" || activeTab === "edit") {
     return (
@@ -1338,7 +1436,7 @@ export default function ProgressReports() {
         </div>
 
         {/* الإحصائيات - بطاقات عصرية خلفية بيضاء مطابقة لصفحة الطلبات */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
           {[
             {
               label: "إجمالي التقارير",
@@ -1347,15 +1445,21 @@ export default function ProgressReports() {
               iconBg: "bg-primary/10 text-primary",
             },
             {
-              label: "مسودات",
-              value: statsData.draft,
-              icon: <Edit className="w-4 h-4 md:w-5 md:h-5" />,
-              iconBg: "bg-slate-100 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400",
+              label: "بانتظار اعتماد مُعد التقرير",
+              value: statsData.pending,
+              icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
+              iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
+            },
+            {
+              label: "بانتظار اعتماد المدير التنفيذي",
+              value: statsData.pending_executive,
+              icon: <Clock className="w-4 h-4 md:w-5 md:h-5 animate-pulse" />,
+              iconBg: "bg-orange-100 dark:bg-orange-950/40 text-orange-600",
             },
             {
               label: "معتمدة",
               value: statsData.approved,
-              icon: <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />,
               iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
             },
             {
@@ -1399,14 +1503,17 @@ export default function ProgressReports() {
             setStatusFilter(v);
             setPage(1);
           }}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[200px]">
               <Filter className="w-4 h-4 ml-2" />
               <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="pending">بانتظار اعتماد مُعد التقرير</SelectItem>
+              <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
               <SelectItem value="approved">معتمد</SelectItem>
+              <SelectItem value="rejected">مرفوض</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1471,7 +1578,7 @@ export default function ProgressReports() {
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
+                                <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
                                   {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
                                     <DropdownMenuItem 
                                       onClick={() => {
@@ -1484,17 +1591,57 @@ export default function ProgressReports() {
                                     </DropdownMenuItem>
                                   )}
 
-                                  {report.status !== "approved" && (
+                                  {canApproveStage1(report) && (
                                     <DropdownMenuItem 
                                       onClick={() => {
-                                        reviewMutation.mutate({ id: report.id, status: "approved" });
+                                        approveMutation.mutate({ id: report.id });
+                                      }}
+                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-amber-600 focus:text-amber-700 font-bold"
+                                    >
+                                      <PenTool className="w-3.5 h-3.5 text-amber-600" />
+                                      <span>اعتماد مُعد التقرير</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {canApproveStage2(report) && (
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        approveMutation.mutate({ id: report.id });
                                       }}
                                       className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
                                     >
-                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                      <span>اعتماد التقرير</span>
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>اعتماد المدير التنفيذي</span>
                                     </DropdownMenuItem>
                                   )}
+
+                                  {canRejectReport(report) && (
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        setReportToReject(report);
+                                        setRejectionReason("");
+                                        setShowRejectDialog(true);
+                                      }}
+                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-destructive/10 text-destructive rounded-md transition-colors font-medium"
+                                    >
+                                      <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                      <span>رفض التقرير</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  {report.status === "approved" && !isReportConverted(report) && (
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        handleApproveAndConvert(report);
+                                      }}
+                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-primary font-bold"
+                                    >
+                                      <Coins className="w-3.5 h-3.5 text-primary" />
+                                      <span>تحويل لطلب صرف</span>
+                                    </DropdownMenuItem>
+                                  )}
+
+                                  <DropdownMenuSeparator />
 
                                   <DropdownMenuItem 
                                     onClick={() => {
@@ -1570,7 +1717,7 @@ export default function ProgressReports() {
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
+                            <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
                               {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
                                 <DropdownMenuItem 
                                   onClick={() => {
@@ -1583,17 +1730,57 @@ export default function ProgressReports() {
                                 </DropdownMenuItem>
                               )}
 
-                              {report.status !== "approved" && (
+                              {canApproveStage1(report) && (
                                 <DropdownMenuItem 
                                   onClick={() => {
-                                    reviewMutation.mutate({ id: report.id, status: "approved" });
+                                    approveMutation.mutate({ id: report.id });
+                                  }}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-amber-600 focus:text-amber-700 font-bold"
+                                >
+                                  <PenTool className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>اعتماد مُعد التقرير</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              {canApproveStage2(report) && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    approveMutation.mutate({ id: report.id });
                                   }}
                                   className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>اعتماد التقرير</span>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>اعتماد المدير التنفيذي</span>
                                 </DropdownMenuItem>
                               )}
+
+                              {canRejectReport(report) && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setReportToReject(report);
+                                    setRejectionReason("");
+                                    setShowRejectDialog(true);
+                                  }}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-destructive/10 text-destructive rounded-md transition-colors font-medium"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 text-destructive" />
+                                  <span>رفض التقرير</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              {report.status === "approved" && !isReportConverted(report) && (
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    handleApproveAndConvert(report);
+                                  }}
+                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-primary font-bold"
+                                >
+                                  <Coins className="w-3.5 h-3.5 text-primary" />
+                                  <span>تحويل لطلب صرف</span>
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuSeparator />
 
                               <DropdownMenuItem 
                                 onClick={() => {
@@ -1688,7 +1875,10 @@ export default function ProgressReports() {
         <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>تفاصيل تقرير الإنجاز</DialogTitle>
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                تفاصيل تقرير الإنجاز
+              </DialogTitle>
               <DialogDescription>
                 {selectedReport?.reportNumber} - {selectedReport?.title}
               </DialogDescription>
@@ -1696,6 +1886,101 @@ export default function ProgressReports() {
             
             {selectedReport && (
               <div className="space-y-6 py-4">
+                {/* سلسلة مراحل الاعتماد (مُعد التقرير والمدير التنفيذي) */}
+                <div className="border border-border/80 rounded-xl p-4 bg-muted/20 space-y-3">
+                  <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-primary" />
+                    سلسلة مراحل الاعتماد
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* المرحلة 1: اعتماد مُعد التقرير */}
+                    <div className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
+                      selectedReport.status === "pending_executive" || selectedReport.status === "reviewed" || selectedReport.status === "approved"
+                        ? "bg-emerald-50/60 border-emerald-200 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+                        : selectedReport.status === "rejected"
+                        ? "bg-red-50/60 border-red-200 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300"
+                        : "bg-amber-50/60 border-amber-200 text-amber-900 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300"
+                    }`}>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 rounded-full ${
+                          selectedReport.status === "pending_executive" || selectedReport.status === "reviewed" || selectedReport.status === "approved"
+                            ? "bg-emerald-500 text-white"
+                            : selectedReport.status === "rejected"
+                            ? "bg-red-500 text-white"
+                            : "bg-amber-500 text-white animate-pulse"
+                        }`}>
+                          {selectedReport.status === "pending_executive" || selectedReport.status === "reviewed" || selectedReport.status === "approved" ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <Clock className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold">1. اعتماد مُعد التقرير</p>
+                          <p className="text-[10px] text-muted-foreground">{selectedReport.createdByName || "مُنشئ التقرير"}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        {selectedReport.status === "pending_executive" || selectedReport.status === "reviewed" || selectedReport.status === "approved"
+                          ? "تم الاعتماد"
+                          : selectedReport.status === "rejected"
+                          ? "مرفوض"
+                          : "بانتظار الاعتماد"}
+                      </Badge>
+                    </div>
+
+                    {/* المرحلة 2: اعتماد المدير التنفيذي */}
+                    <div className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
+                      selectedReport.status === "approved"
+                        ? "bg-emerald-50/60 border-emerald-200 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
+                        : selectedReport.status === "rejected"
+                        ? "bg-red-50/60 border-red-200 text-red-900 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300"
+                        : selectedReport.status === "pending_executive" || selectedReport.status === "reviewed"
+                        ? "bg-orange-50/60 border-orange-200 text-orange-900 dark:bg-orange-950/30 dark:border-orange-800 dark:text-orange-300 font-bold"
+                        : "bg-muted/40 border-border text-muted-foreground"
+                    }`}>
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-1.5 rounded-full ${
+                          selectedReport.status === "approved"
+                            ? "bg-emerald-500 text-white"
+                            : selectedReport.status === "rejected"
+                            ? "bg-red-500 text-white"
+                            : selectedReport.status === "pending_executive" || selectedReport.status === "reviewed"
+                            ? "bg-orange-500 text-white animate-pulse"
+                            : "bg-muted text-muted-foreground border"
+                        }`}>
+                          {selectedReport.status === "approved" ? (
+                            <Check className="w-3.5 h-3.5" />
+                          ) : (
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold">2. اعتماد المدير التنفيذي</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {selectedReport.reviewedByName ? selectedReport.reviewedByName : "المدير التنفيذي"}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        {selectedReport.status === "approved"
+                          ? "معتمد"
+                          : selectedReport.status === "rejected"
+                          ? "مرفوض"
+                          : selectedReport.status === "pending_executive" || selectedReport.status === "reviewed"
+                          ? "بانتظار الاعتماد"
+                          : "معلق"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {selectedReport.reviewNotes && (
+                    <div className="text-xs p-2.5 rounded-lg bg-background border text-muted-foreground mt-2">
+                      <span className="font-bold text-foreground">ملاحظات الاعتماد / سبب الرفض: </span>
+                      {selectedReport.reviewNotes}
+                    </div>
+                  )}
+                </div>
+
                 {/* المعلومات الأساسية */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1830,25 +2115,152 @@ export default function ProgressReports() {
               </div>
             )}
             
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-                إغلاق
-              </Button>
+            <DialogFooter className="gap-2 sm:gap-0 flex-wrap justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                  إغلاق
+                </Button>
+                {selectedReport && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigate(`/progress-reports/${selectedReport.id}/print`);
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <Printer className="w-3.5 h-3.5 ml-1.5" />
+                    عرض الطباعة
+                  </Button>
+                )}
+              </div>
               
-              {selectedReport?.status !== "approved" && (
-                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
+              <div className="flex items-center gap-2">
+                {selectedReport && canRejectReport(selectedReport) && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setReportToReject(selectedReport);
+                      setRejectionReason("");
+                      setShowRejectDialog(true);
+                    }}
+                  >
+                    <XCircle className="w-4 h-4 ml-1.5" />
+                    رفض التقرير
+                  </Button>
+                )}
+
+                {selectedReport && canApproveStage1(selectedReport) && (
                   <Button
                     onClick={() => {
-                      setShowDetailsDialog(false);
-                      reviewMutation.mutate({ id: selectedReport.id, status: "approved" });
+                      approveMutation.mutate({ id: selectedReport.id });
                     }}
+                    disabled={approveMutation.isPending}
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                  >
+                    {approveMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    ) : (
+                      <PenTool className="w-4 h-4 ml-2" />
+                    )}
+                    اعتماد مُعد التقرير
+                  </Button>
+                )}
+
+                {selectedReport && canApproveStage2(selectedReport) && (
+                  <Button
+                    onClick={() => {
+                      approveMutation.mutate({ id: selectedReport.id });
+                    }}
+                    disabled={approveMutation.isPending}
                     className="gradient-primary text-white font-bold"
                   >
-                    <CheckCircle className="w-4 h-4 ml-2" />
-                    اعتماد التقرير
+                    {approveMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 ml-2" />
+                    )}
+                    اعتماد المدير التنفيذي
                   </Button>
-                )
-              )}
+                )}
+
+                {selectedReport?.status === "approved" && !isReportConverted(selectedReport) && (
+                  <Button
+                    onClick={() => {
+                      handleApproveAndConvert(selectedReport);
+                    }}
+                    disabled={convertToDisbursementMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  >
+                    {convertToDisbursementMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    ) : (
+                      <Coins className="w-4 h-4 ml-2" />
+                    )}
+                    تحويل لطلب صرف
+                  </Button>
+                )}
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة حوار رفض التقرير */}
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                رفض تقرير الإنجاز
+              </DialogTitle>
+              <DialogDescription>
+                يرجى كتابة سبب رفض تقرير الإنجاز رقم {reportToReject?.reportNumber} لإشعار مُعد التقرير به:
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+              <Textarea
+                placeholder="أدخل سبب الرفض بالتفصيل..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px] text-right"
+              />
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRejectDialog(false);
+                  setReportToReject(null);
+                  setRejectionReason("");
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!rejectionReason.trim() || rejectMutation.isPending}
+                onClick={() => {
+                  if (reportToReject) {
+                    rejectMutation.mutate({
+                      id: reportToReject.id,
+                      reason: rejectionReason.trim(),
+                    });
+                  }
+                }}
+              >
+                {rejectMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    جاري الرفض...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4 ml-2" />
+                    تأكيد الرفض
+                  </>
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
