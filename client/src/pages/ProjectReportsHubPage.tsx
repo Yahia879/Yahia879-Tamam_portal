@@ -90,16 +90,11 @@ export default function ProjectReportsHubPage() {
 
   const canCreateReports = 
     isAdmin || 
-    serverPermissions.includes("project_reports.create") ||
-    serverPermissions.includes("project_reports") ||
-    serverPermissions.includes("progress_reports.create") || 
-    serverPermissions.includes("progress_reports.add");
+    serverPermissions.includes("project_reports.create");
 
   const canEditOrApprove = 
     isAdmin || 
-    serverPermissions.includes("project_reports.create") ||
-    serverPermissions.includes("progress_reports.approve") || 
-    serverPermissions.includes("progress_reports.edit");
+    serverPermissions.includes("project_reports.create");
 
   const [filterType, setFilterType] = useState<string>("all");
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
