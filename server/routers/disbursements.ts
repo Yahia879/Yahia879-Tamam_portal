@@ -77,6 +77,88 @@ async function generateDisbursementOrderNumber(db: NonNullable<Awaited<ReturnTyp
 }
 
 export const disbursementsRouter = router({
+  // عدد المعاملات المعلقة التي تتطلب إجراء/اعتماد من المستخدم الحالي
+  getPendingActionCounts: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { pendingRequestsCount: 0, pendingOrdersCount: 0, hasPendingRequests: false, hasPendingOrders: false };
+
+      const user = ctx.user;
+      const userRole = user.role;
+      const userEmail = user.email || "";
+
+      // التحقق من الأدوار والمسؤوليات
+      const isExecDirector =
+        ["general_manager", "executive_director"].includes(userRole) ||
+        userEmail === "ceo@manarah.org.sa" ||
+        userEmail === "test10@gmail.com" ||
+        (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي";
+
+      const isFinancial =
+        ["financial", "financial_manager"].includes(userRole) ||
+        userEmail === "solayani@manarah.org.sa" ||
+        userEmail === "test2@gmail.com" ||
+        (user as any)?.customRole?.nameAr === "الإدارة المالية" ||
+        (user as any)?.customRole?.nameAr === "المدير المالي";
+
+      // 1. طلبات الصرف المعلقة:
+      // - تظهر النقطة الحمراء لمُعد/منشئ الطلب في المرحلة الأولى (pending / draft)
+      // - تظهر للمدير التنفيذي بعد اعتماد منشئ الطلب في المرحلة الثانية (pending_executive)
+      let pendingRequestsCount = 0;
+
+      // أ) طلبات منشئ الطلب في المرحلة الأولى
+      const [creatorPendingReq] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(disbursementRequests)
+        .where(
+          and(
+            inArray(disbursementRequests.status, ["pending", "draft"]),
+            eq(disbursementRequests.requestedBy, user.id)
+          )
+        );
+      pendingRequestsCount += Number(creatorPendingReq?.value || 0);
+
+      // ب) طلبات بانتظار اعتماد المدير التنفيذي
+      if (isExecDirector) {
+        const [execPendingReq] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementRequests)
+          .where(eq(disbursementRequests.status, "pending_executive"));
+        pendingRequestsCount += Number(execPendingReq?.value || 0);
+      }
+
+      // 2. أوامر الصرف المعلقة:
+      // - تظهر النقطة الحمراء للمسؤول المالي في المرحلة الأولى (pending / draft / edited)
+      // - تظهر للمدير التنفيذي بعد اعتماد المسؤول المالي في المرحلة الثانية (pending_executive)
+      let pendingOrdersCount = 0;
+
+      // أ) أوامر بانتظار اعتماد المسؤول المالي
+      if (isFinancial) {
+        const [finPendingOrders] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementOrders)
+          .where(inArray(disbursementOrders.status, ["pending", "draft", "edited"]));
+        pendingOrdersCount += Number(finPendingOrders?.value || 0);
+      }
+
+      // ب) أوامر بانتظار اعتماد المدير التنفيذي
+      if (isExecDirector) {
+        const [execPendingOrders] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.status, "pending_executive"));
+        pendingOrdersCount += Number(execPendingOrders?.value || 0);
+      }
+
+      return {
+        pendingRequestsCount,
+        pendingOrdersCount,
+        hasPendingRequests: pendingRequestsCount > 0,
+        hasPendingOrders: pendingOrdersCount > 0,
+      };
+    }),
+
   // ==================== طلبات الصرف ====================
 
   // جلب قائمة طلبات الصرف

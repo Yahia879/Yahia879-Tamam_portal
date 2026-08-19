@@ -607,6 +607,10 @@ function DashboardLayoutContent({
     enabled: !!user,
     refetchInterval: 10000,
   });
+  const { data: pendingDisbursements } = trpc.disbursements.getPendingActionCounts.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
   // الشعار الأبيض (أيقونة) للقائمة الجانبية والهيدر
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الأبيض (للهيدر في الموبايل)
@@ -690,18 +694,32 @@ function DashboardLayoutContent({
                 <SidebarMenu className="px-2 py-0.5">
                   {group.items.map(item => {
                     const isActive = location === item.path;
+                    const isOrdersPath = item.path === "/disbursement-orders";
+                    const isRequestsPath = item.path === "/disbursements";
+                    const hasActionBadge = 
+                      (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
+                      (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests));
+
                     return (
                       <SidebarMenuItem key={item.path}>
                         <SidebarMenuButton
                           isActive={isActive}
                           onClick={() => setLocation(item.path)}
                           tooltip={item.label}
-                          className={`h-9 transition-all font-normal text-sm ${isActive ? 'bg-white/20 !text-white' : ''}`}
+                          className={`h-9 transition-all font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
                         >
-                          <item.icon
-                            className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
-                          />
+                          <div className="relative shrink-0 flex items-center justify-center">
+                            <item.icon
+                              className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-sidebar-foreground/70"}`}
+                            />
+                            {hasActionBadge ? (
+                              <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
+                            ) : null}
+                          </div>
                           <span className={isActive ? "text-white font-bold" : "text-sidebar-foreground"}>{item.label}</span>
+                          {hasActionBadge && !isCollapsed ? (
+                            <span className="mr-auto block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-sidebar shrink-0 animate-pulse shadow-sm" />
+                          ) : null}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
