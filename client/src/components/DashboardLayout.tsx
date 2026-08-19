@@ -696,9 +696,11 @@ function DashboardLayoutContent({
                     const isActive = location === item.path;
                     const isOrdersPath = item.path === "/disbursement-orders";
                     const isRequestsPath = item.path === "/disbursements";
+                    const isBoardExecutivePath = item.path === "/board-executive";
                     const hasActionBadge = 
                       (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
-                      (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests));
+                      (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
+                      (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive));
 
                     return (
                       <SidebarMenuItem key={item.path}>

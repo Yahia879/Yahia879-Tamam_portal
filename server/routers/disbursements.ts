@@ -151,11 +151,36 @@ export const disbursementsRouter = router({
         pendingOrdersCount += Number(execPendingOrders?.value || 0);
       }
 
+      // 3. مركز الاعتماد المالي (رئيس مجلس الإدارة / صاحب الصلاحية):
+      // عندما يملك المستخدم الصلاحية ويوجد على الأقل طلب بحالة "بانتظار اعتماد صاحب الصلاحية"
+      const hasBoardChairmanPerm =
+        userRole === "board_chairman" ||
+        ["super_admin", "system_admin"].includes(userRole) ||
+        userEmail === "othmanb35@hotmail.com" ||
+        userEmail === "test12@gmail.com" ||
+        (await checkPermission(user.id, "board_chairman")) ||
+        (await checkPermission(user.id, "board_chairman_view")) ||
+        (await checkPermission(user.id, "board_leadership.board_chairman")) ||
+        (await checkPermission(user.id, "board_leadership.board_chairman_view")) ||
+        (await checkPermission(user.id, "board.board_chairman")) ||
+        (await checkPermission(user.id, "board.board_chairman_view"));
+
+      let pendingBoardExecutiveCount = 0;
+      if (hasBoardChairmanPerm) {
+        const [boardPendingRes] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.status, "approved" as any));
+        pendingBoardExecutiveCount = Number(boardPendingRes?.value || 0);
+      }
+
       return {
         pendingRequestsCount,
         pendingOrdersCount,
+        pendingBoardExecutiveCount,
         hasPendingRequests: pendingRequestsCount > 0,
         hasPendingOrders: pendingOrdersCount > 0,
+        hasPendingBoardExecutive: pendingBoardExecutiveCount > 0,
       };
     }),
 
