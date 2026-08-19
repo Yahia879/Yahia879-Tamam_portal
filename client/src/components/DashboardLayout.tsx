@@ -53,6 +53,7 @@ import {
   LifeBuoy,
   Coins,
   Crown,
+  BadgeCheck,
   PieChart,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -67,19 +68,24 @@ import { useTheme } from "@/contexts/ThemeContext";
 type MenuItem = { icon: any; label: string; path: string };
 type MenuGroup = { label: string; items: MenuItem[] };
 
-const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
+const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
   const groups: MenuGroup[] = [];
+
+  const isExecDirector =
+    ["general_manager", "executive_director"].includes(role) ||
+    customRoleNameAr === "المدير التنفيذي" ||
+    customRoleNameEn?.toLowerCase() === "executive director";
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin"].includes(role) || isExecDirector) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+    mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {
     groups.push({
@@ -89,13 +95,13 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 1. المساجد والطلبات
-  if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
     ];
-    if (["super_admin", "system_admin"].includes(role)) {
+    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
     }
     items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
@@ -106,12 +112,12 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 2. الهندسة والمشاريع
-  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "project_manager", "field_team", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items: MenuItem[] = [];
-    if (["super_admin", "system_admin", "projects_office", "project_manager"].includes(role)) {
+    if (["super_admin", "system_admin", "projects_office", "project_manager", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
     }
-    if (["super_admin", "system_admin", "projects_office"].includes(role)) {
+    if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
       items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
     }
@@ -128,7 +134,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 3. المشتريات والمالية
-  if (["super_admin", "system_admin", "projects_office", "financial"].includes(role)) {
+  if (["super_admin", "system_admin", "projects_office", "financial", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Truck, label: "الموردون", path: "/suppliers" },
       { icon: Calculator, label: "إعداد جداول الكميات", path: "/boq-preparations" },
@@ -155,7 +161,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // الاتصال المؤسسي
-  if (["super_admin", "system_admin", "corporate_comm"].includes(role)) {
+  if (["super_admin", "system_admin", "corporate_comm", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     const items = [
       { icon: Handshake, label: "الشركاء", path: "/partners" },
     ];
@@ -170,7 +176,7 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
   }
 
   // 4. إدارة المستخدمين (للمدراء)
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
     groups.push({
       label: isEn ? "User Management" : "إدارة المستخدمين",
       items: [
@@ -201,20 +207,25 @@ const getMenuGroups = (role: string, isEn?: boolean): MenuGroup[] => {
 
 // بناء قائمة التنقل للمستخدمين ذوي الأدوار المخصصة بناءً على صلاحياتهم الفعلية
 // معرّفات الصلاحيات مطابقة لـ PERMISSIONS_STRUCTURE في RoleEdit.tsx
-const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean): MenuGroup[] => {
+const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?: boolean, customRoleNameAr?: string, customRoleNameEn?: string): MenuGroup[] => {
   const has = (p: string) => permissions.includes(p);
   const groups: MenuGroup[] = [];
 
+  const isExecDirector =
+    ["general_manager", "executive_director"].includes(role) ||
+    customRoleNameAr === "المدير التنفيذي" ||
+    customRoleNameEn?.toLowerCase() === "executive director";
+
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role)) {
+  if (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view")) {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
-    mainItems.push({ icon: Crown, label: isEn ? "Board Chairman Dashboard" : "لوحة رئيس مجلس الإدارة", path: "/board-executive" });
+    mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
   if (has("board_member") || role === "board_member") {
-    mainItems.push({ icon: PieChart, label: isEn ? "Board Analytics Dashboard" : "اللوحة الإحصائية لمجلس الإدارة", path: "/board-analytics" });
+    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
   }
   if (mainItems.length > 0) {
     groups.push({
@@ -242,14 +253,16 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // 2. الهندسة والمشاريع
   const engineeringItems: MenuItem[] = [];
-  if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.financials")) {
+  if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
-    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
   }
-  if (has("progress_reports")) {
+  if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.add")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
   }
-  if (has("reports")) {
+  if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
+    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
+  }
+  if (has("reports.view_stats") || has("reports.export_data")) {
     engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
   }
   if (engineeringItems.length > 0) {
@@ -573,9 +586,12 @@ function DashboardLayoutContent({
   const isServiceRequester = user?.role === "service_requester";
   const hasDynamicPermissions = !isServiceRequester;
  
+  const customRoleNameAr = (user as any)?.customRole?.nameAr;
+  const customRoleNameEn = (user as any)?.customRole?.nameEn;
+
   const menuGroups = (hasDynamicPermissions
-    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn)
-    : getMenuGroups(user?.role || "", isEn)
+    ? getMenuGroupsFromPermissions(userPermissions, user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
+    : getMenuGroups(user?.role || "", isEn, customRoleNameAr, customRoleNameEn)
   ).filter(group => group.items && group.items.length > 0);
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);

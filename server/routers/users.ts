@@ -187,7 +187,7 @@ export const usersRouter = router({
 
         const builtinRoleLabels: Record<string, string> = {
           board_chairman: "رئيس مجلس الإدارة",
-          board_member: "عضو مجلس الإدارة",
+          board_member: "الإدارة العليا",
           general_manager: "المدير التنفيذي",
           executive_director: "المدير التنفيذي",
           system_admin: "مدير نظام",

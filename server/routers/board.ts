@@ -499,7 +499,7 @@ export const boardRouter = router({
         count: sql<number>`COUNT(*)`,
       })
       .from(disbursementOrders)
-      .where(inArray(disbursementOrders.status, ["approved", "pending", "rejected", "edited"]))
+      .where(inArray(disbursementOrders.status, ["approved", "pending", "rejected", "edited", "executed", "pending_executive"] as any))
       .groupBy(sql`DATE(${disbursementOrders.createdAt})`)
       .orderBy(sql`DATE(${disbursementOrders.createdAt})`)
       .limit(30);

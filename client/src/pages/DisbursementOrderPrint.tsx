@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2 } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
@@ -48,10 +48,16 @@ export default function DisbursementOrderPrint() {
   const orderId = parseInt(params.id || "0");
   const [, navigate] = useLocation();
   const hasOrderDirectView = usePermission("disbursement_orders.view");
+  const permOrdersApprove = usePermission("disbursement_orders.approve");
+  const permOrdersSign = usePermission("disbursement_orders.sign");
+  const permDisbursementsApprove = usePermission("disbursements.approve");
+  const permDisbursementsSign = usePermission("disbursements.sign");
   const hasChairmanPerm = usePermission("board_chairman");
   const hasChairmanViewPerm = usePermission("board_chairman_view");
   const hasLeadershipChairmanView = usePermission("board_leadership.board_chairman_view");
+  const hasLeadershipChairman = usePermission("board_leadership.board_chairman");
   const hasBoardChairmanView = usePermission("board.board_chairman_view");
+  const hasBoardChairman = usePermission("board.board_chairman");
   const isChairmanRole = currentUser?.role === "board_chairman";
   const userPermissionsList = (currentUser as any)?.permissions || [];
   const hasChairmanInPerms = 
@@ -59,10 +65,14 @@ export default function DisbursementOrderPrint() {
     hasChairmanPerm || 
     hasChairmanViewPerm || 
     hasLeadershipChairmanView || 
+    hasLeadershipChairman ||
     hasBoardChairmanView ||
+    hasBoardChairman ||
     userPermissionsList.includes("board_chairman") || 
     userPermissionsList.includes("board_chairman_view") ||
+    userPermissionsList.includes("board_leadership.board_chairman") ||
     userPermissionsList.includes("board_leadership.board_chairman_view") ||
+    userPermissionsList.includes("board.board_chairman") ||
     userPermissionsList.includes("board.board_chairman_view");
 
   const hasOrderViewPermission = hasOrderDirectView || hasChairmanInPerms;
@@ -78,7 +88,19 @@ export default function DisbursementOrderPrint() {
     },
   });
 
-  const { data: order, isLoading } = trpc.disbursements.getOrderById.useQuery(
+  const approveOrderMutation = trpc.disbursements.approveOrder.useMutation({
+    onSuccess: async (data) => {
+      toast.success(data?.message || "تم اعتماد أمر الصرف بنجاح");
+      await refetchOrder();
+      utils.disbursements.getOrderById.invalidate();
+      utils.disbursements.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الصرف");
+    },
+  });
+
+  const { data: order, isLoading, refetch: refetchOrder } = trpc.disbursements.getOrderById.useQuery(
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
@@ -310,13 +332,45 @@ export default function DisbursementOrderPrint() {
     ? currentUser?.id === (order as any)?.exceptionApprovedBy
     : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursement_orders.exception_approve"));
 
+  const isSuperAdmin = currentUser?.role === "super_admin" || currentUser?.role === "system_admin";
+  const isChairman = isChairmanRole || hasChairmanInPerms;
+  const isExecDirector = isExecutiveDirector;
+  const isFinancialApprover = 
+    currentUser?.email === "solayani@manarah.org.sa" || 
+    (currentUser as any)?.role === "financial" || 
+    (currentUser as any)?.role === "financial_manager" ||
+    (currentUser as any)?.customRole?.nameAr === "الإدارة المالية" ||
+    currentUser?.id === order?.createdBy;
+
+  const canApproveOrder = (() => {
+    if (!order || !currentUser) return false;
+    if (order.status === "executed" || order.status === "rejected") return false;
+
+    // المرحلة الأولى: بانتظار اعتماد الإدارة المالية
+    if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
+      return isFinancialApprover || isSuperAdmin;
+    }
+
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي حصراً
+    if (order.status === "pending_executive") {
+      return isExecDirector;
+    }
+
+    // المرحلة النهائية (بعد اعتماد المدير التنفيذي): يظهر وفقط للشخص الذي يملك صلاحية "عرض مركز الاعتماد المالي"
+    if (order.status === "approved") {
+      return hasChairmanInPerms;
+    }
+
+    return false;
+  })();
+
   const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : (currentUser?.email === "solayani@manarah.org.sa" || isCreator)) && !!creatorSignatureUrl && isOrderStage1Approved;
   const canControlExecSig = (currentUser?.email === "ceo@manarah.org.sa" || isExecutiveDirector) && !!executiveDirectorSignatureUrl && isOrderStage2Approved;
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex justify-between items-center sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end sm:gap-2">
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
         <Button 
           variant="outline" 
           onClick={() => {
@@ -331,6 +385,27 @@ export default function DisbursementOrderPrint() {
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
+
+        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
+          <Printer className="ml-2 h-4 w-4" />
+          تنزيل PDF / طباعة
+        </Button>
+
+        {/* زر اعتماد أمر الصرف لصاحبي الاعتماد */}
+        {canApproveOrder && (
+          <Button
+            onClick={() => approveOrderMutation.mutate({ id: orderId })}
+            disabled={approveOrderMutation.isPending}
+            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+          >
+            {approveOrderMutation.isPending ? (
+              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4 ml-2" />
+            )}
+            اعتماد أمر الصرف
+          </Button>
+        )}
 
         {/* التحكم بالتوقيع الخاص بمعد أمر الصرف - لمعد الأمر فقط */}
         {canControlCreatorSig && (
@@ -377,11 +452,6 @@ export default function DisbursementOrderPrint() {
             />
           </label>
         )}
-
-        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
-          <Printer className="ml-2 h-4 w-4" />
-          تنزيل PDF / طباعة
-        </Button>
       </div>
 
       {/* صفحة الطباعة - متموضعة في منتصف الصفحة تماماً */}

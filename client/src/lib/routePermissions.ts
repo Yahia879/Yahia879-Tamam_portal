@@ -20,6 +20,20 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   super_admin: ["*"], // كل الصلاحيات
   system_admin: ["*"], // كل الصلاحيات
 
+  general_manager: [
+    "dashboard", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
+    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
+  ],
+
+  executive_director: [
+    "dashboard", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
+    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
+  ],
+
   projects_office: [
     "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts",
@@ -96,7 +110,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/board-analytics": ["board_member", "board_chairman", "board_chairman_view"],
 
   // ── لوحة التحكم ──
-  "/dashboard": ["mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
+  "/dashboard": ["dashboard", "dashboard.view", "mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
 
   // ── المساجد ──
   "/mosques": "mosques",
@@ -112,7 +126,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/field-visits/calendar": "appointments_calendar",
 
   // ── المشاريع ──
-  "/projects": ["projects.view", "projects.view_details", "projects.financials"],
+  "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials"],
+  "/projects/new": ["projects.create_multi_mosque", "projects.create", "projects"],
   "/project-management": ["projects.view", "projects.view_details"],
 
   // ── إدارة المستخدمين ──
@@ -149,13 +164,13 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.edit"],
 
   // ── تقارير الإنجاز والمشاريع ──
-  "/progress-reports": "progress_reports",
-  "/project-reports": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
-  "/project-reports/new": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
-  "/project-reports/semi-monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
-  "/project-reports/monthly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
-  "/project-reports/quarterly": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
-  "/project-reports/visit": ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"],
+  "/progress-reports": ["progress_reports", "progress_reports.view"],
+  "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
+  "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/semi-monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/quarterly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/visit": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
@@ -165,7 +180,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/kpi-dashboard": ["projects", "requests.view_details"],
 
   // ── التقارير ──
-  "/reports": ["reports.view_stats", "reports.export_data", "reports.view", "progress_reports", "financial_report", "requests.view"],
+  "/reports": ["reports.view_stats", "reports.export_data"],
   "/pending-reports": ["pending_reports.view"],
   "/financial-report": "financial_report",
 
@@ -287,7 +302,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   // تقارير الإنجاز والمشاريع
   { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit"] },
   { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
-  { pattern: /^\/project-reports\/.*$/, permission: ["projects", "projects.view", "projects.view_details", "progress_reports", "reports"] },
+  { pattern: /^\/project-reports\/.*$/, permission: ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"] },
 ];
 
 /**
@@ -421,13 +436,14 @@ export function hasRouteAccess(
 export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
-  if (user.role === "board_chairman" || user.permissions?.includes?.("board_chairman") || user.permissions?.includes?.("board_leadership.board_chairman")) {
-    return "/board-executive";
-  }
-  if (user.role === "board_member" || user.permissions?.includes?.("board_member") || user.permissions?.includes?.("board_leadership.board_member")) {
-    return "/board-analytics";
-  }
-  if (["super_admin", "system_admin"].includes(user.role)) return "/dashboard";
+
+  const isExecDirector =
+    user.role === "general_manager" ||
+    user.role === "executive_director" ||
+    user?.customRole?.nameAr === "المدير التنفيذي" ||
+    user?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+  if (user.role === "super_admin" || user.role === "system_admin" || isExecDirector) return "/dashboard";
 
   const userPerms: string[] = user.permissions ?? [];
   const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
@@ -435,6 +451,8 @@ export function getUserHomeRoute(user: any): string {
 
   // 1. التحقق من المسار الافتراضي المخصص للدور أولاً
   const roleDefaultRoutes: Record<string, string> = {
+    general_manager: "/dashboard",
+    executive_director: "/dashboard",
     board_chairman: "/board-executive",
     board_member: "/board-analytics",
     projects_office: "/mosques",

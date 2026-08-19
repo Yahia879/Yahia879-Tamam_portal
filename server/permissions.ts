@@ -36,9 +36,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.view_details", "projects.assign_as_manager", "projects.financials"],
+  projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials"],
   "projects.view": ["projects.view"],
   "projects.view_details": ["projects.view", "projects.view_details"],
+  "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
   "projects.financials": ["projects.view", "projects.financials"],
   service_requester_accounts: ["users.view", "users.edit"],
   suppliers: [
@@ -50,8 +51,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
-  progress_reports: ["reports.view", "reports.create"],
-  financial_report: ["reports.view"],
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve"],
+  project_reports: ["project_reports.view", "project_reports.create"],
+  financial_report: ["financial_reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
   "reports.view_stats": ["reports.view_stats", "reports.view"],
   "reports.export_data": ["reports.export_data", "reports.view"],
@@ -173,9 +175,12 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_reports.analytics": ["financial_reports.analytics"],
 
   "progress_reports.view": ["progress_reports.view"],
-  "progress_reports.add": ["progress_reports.add"],
-  "progress_reports.edit": ["progress_reports.edit"],
-  "progress_reports.approve": ["progress_reports.approve"],
+  "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
+  "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
+  "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
+
+  "project_reports.view": ["project_reports.view"],
+  "project_reports.create": ["project_reports.create", "project_reports.view"],
 
   boq: ["boq.add", "boq.edit", "boq.delete"],
   "boq.add": ["boq.add"],
@@ -255,15 +260,36 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "board_chairman",
         moduleId: "board",
         action: "board_chairman",
-        nameAr: "عرض لوحة رئيس مجلس الإدارة",
-        nameEn: "View Board Chairman Dashboard"
+        nameAr: "عرض مركز الاعتماد المالي",
+        nameEn: "View Financial Approval Center"
       },
       {
         id: "board_member",
         moduleId: "board",
         action: "board_member",
-        nameAr: "عرض لوحة عضو مجلس الإدارة",
-        nameEn: "View Board Member Dashboard"
+        nameAr: "عرض لوحة الإدارة العليا",
+        nameEn: "View Executive Management Dashboard"
+      },
+      {
+        id: "projects.create_multi_mosque",
+        moduleId: "projects",
+        action: "create_multi_mosque",
+        nameAr: "إضافة مشروع لعدة مساجد",
+        nameEn: "Create Multi-Mosque Project"
+      },
+      {
+        id: "project_reports.view",
+        moduleId: "reports",
+        action: "view",
+        nameAr: "عرض تقارير المشاريع",
+        nameEn: "View Project Reports"
+      },
+      {
+        id: "project_reports.create",
+        moduleId: "reports",
+        action: "create",
+        nameAr: "إنشاء تقارير مشاريع",
+        nameEn: "Create Project Reports"
       }
     ];
 
@@ -298,6 +324,8 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details"],
       projects_office: ["requests.view", "requests.create", "requests.view_details"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
@@ -308,7 +336,7 @@ async function ensureRequestsPermissionsExist(db: any) {
 
     const roleNamesAr: Record<string, string> = {
       board_chairman: "رئيس مجلس الإدارة",
-      board_member: "عضو مجلس الإدارة",
+      board_member: "الإدارة العليا",
       general_manager: "المدير التنفيذي",
       executive_director: "المدير التنفيذي",
       financial_manager: "المدير المالي",
@@ -551,6 +579,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
       { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
       { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
+      { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
+      { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
       { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
       { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير البيانات", nameEn: "Export Financial Reports" },
       { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
@@ -598,6 +628,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.sign", moduleId: "disbursements", action: "sign_order", nameAr: "توقيع أوامر الصرف", nameEn: "Sign Disbursement Orders" },
       { id: "contracts.sign", moduleId: "contracts", action: "sign", nameAr: "توقيع العقود", nameEn: "Sign Contracts" },
       { id: "final_reports.sign", moduleId: "requests", action: "sign_final_report", nameAr: "توقيع التقارير الختامية", nameEn: "Sign Final Reports" },
+      { id: "projects.create_multi_mosque", moduleId: "projects", action: "create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد", nameEn: "Create Multi-Mosque Project" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
@@ -874,7 +905,7 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("projects");
   }
-  if (allPermissions.has("reports.view") || allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
+  if (allPermissions.has("reports.view_stats") || allPermissions.has("reports.export_data")) {
     allPermissions.add("reports");
   } else {
     allPermissions.delete("reports");
@@ -959,6 +990,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("progress_reports.approve")
   ) {
     allPermissions.add("progress_reports");
+  }
+  if (
+    allPermissions.has("project_reports.view") ||
+    allPermissions.has("project_reports.create")
+  ) {
+    allPermissions.add("project_reports");
   }
   if (
     allPermissions.has("financial_reports.view") ||
@@ -1433,6 +1470,8 @@ export const permissionsRouter = router({
       const rolePermissionsMapping: Record<string, string[] | string> = {
         super_admin: "*",
         system_admin: "*",
+        general_manager: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval"],
+        executive_director: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports", "signing", "requesters", "disbursement_orders", "progress_reports", "financial_approval"],
         projects_office: ["requests", "mosques", "projects", "reports", "suppliers", "quotations", "contracts", "disbursements", "field_visits", "financial_reports"],
         field_team: ["mosques.view", "requests.view", "requests.edit", "requests.manage_as_field_team", "field_visits"],
         quick_response: ["requests.view", "requests.manage_as_quick_response", "field_visits.view", "reports.create"],
@@ -1917,13 +1956,17 @@ export const permissionsRouter = router({
         }
 
         // 3. تسجيل الإجراء في سجل التدقيق
-        await tx.insert(permissionsAuditLog).values({
-          actionType: "sync_user_permissions",
-          targetUserId: input.userId,
-          performedBy: ctx.user.id,
-          reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
-          newValue: JSON.stringify(input.permissions)
-        });
+        try {
+          await tx.insert(permissionsAuditLog).values({
+            actionType: "sync_user_permissions",
+            targetUserId: input.userId,
+            performedBy: ctx.user.id,
+            reason: "تحديث الصلاحيات الفردية المخصصة للمستخدم بالكامل",
+            newValue: JSON.stringify(input.permissions)
+          });
+        } catch (auditErr) {
+          console.warn("[Permissions] Failed to write audit log for sync_user_permissions:", auditErr);
+        }
       });
 
       return { success: true };

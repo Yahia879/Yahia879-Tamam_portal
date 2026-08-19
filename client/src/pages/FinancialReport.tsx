@@ -63,9 +63,12 @@ const REQUEST_STATUS_MAP: Record<string, { label: string; color: string }> = {
 
 const ORDER_STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: "قيد الاعتماد", color: "#eab308" },
+  pending_executive: { label: "قيد اعتماد الإدارة", color: "#f59e0b" },
   approved: { label: "معتمد", color: "#3b82f6" },
+  executed: { label: "منفذ", color: "#10b981" },
   rejected: { label: "مرفوض", color: "#ef4444" },
   edited: { label: "تم التعديل", color: "#f97316" },
+  draft: { label: "مسودة", color: "#64748b" },
 };
 
 const RECEIPT_STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -275,7 +278,7 @@ export default function FinancialReport() {
     csvContent += `"أوامر الصرف حسب الحالة"\n`;
     csvContent += `"الحالة","عدد أوامر الصرف","إجمالي المبالغ"\n`;
     const filteredOrders = (reportData.ordersByStatus || [])
-      .filter((item: any) => ["approved", "pending", "rejected", "edited"].includes(item.status));
+      .filter((item: any) => ["approved", "pending", "rejected", "edited", "executed", "pending_executive"].includes(item.status));
     if (filteredOrders.length > 0) {
       filteredOrders.forEach((item: any) => {
         const label = ORDER_STATUS_MAP[item.status]?.label || item.status;
@@ -377,7 +380,7 @@ export default function FinancialReport() {
   const ordersByStatusData = useMemo(() => {
     if (!reportData?.ordersByStatus) return [];
     return reportData.ordersByStatus
-      .filter((item: any) => ["approved", "pending", "rejected", "edited"].includes(item.status))
+      .filter((item: any) => ["approved", "pending", "rejected", "edited", "executed", "pending_executive"].includes(item.status))
       .map((item: any) => {
         const statusInfo = ORDER_STATUS_MAP[item.status || "pending"] || { label: item.status, color: "#cbd5e1" };
         return {

@@ -593,7 +593,7 @@ export const suppliersRouter = router({
       // التحقق من عدم تكرار السجل التجاري لمورد آخر عند التحديث
       if (updateData.commercialRegister) {
         const cleanCR = updateData.commercialRegister.trim();
-        const existing = await db
+        const [existing] = await db
           .select({ id: suppliers.id })
           .from(suppliers)
           .where(and(eq(suppliers.commercialRegister, cleanCR), ne(suppliers.id, id)))

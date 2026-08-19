@@ -193,6 +193,22 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لتقارير الإنجاز إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("progress_reports.") && permId !== "progress_reports.view") {
+      if (!selectedPerms.includes("progress_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقارير الإنجاز' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لتقارير المشاريع إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("project_reports.") && permId !== "project_reports.view") {
+      if (!selectedPerms.includes("project_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقارير المشاريع' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
       if (!selectedPerms.includes("financial_reports.view")) {
@@ -292,6 +308,12 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض سجل المشاريع'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المشاريع الأخرى
         if (permId === "projects.view") {
           next = next.filter(id => !id.startsWith("projects."));
+        }
+        if (permId === "progress_reports.view") {
+          next = next.filter(id => !id.startsWith("progress_reports."));
+        }
+        if (permId === "project_reports.view") {
+          next = next.filter(id => !id.startsWith("project_reports."));
         }
         // عند إلغاء تفعيل صلاحية 'عرض بيانات طالبي الخدمة'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات طالبي الخدمة الأخرى
         if (permId === "requesters.view") {
@@ -400,6 +422,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "projects.view", nameAr: "عرض سجل المشاريع" },
             { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.delete", nameAr: "حذف مشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
@@ -643,6 +666,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "projects.view", nameAr: "عرض سجل المشاريع" },
             { id: "projects.create", nameAr: "إضافة مشروع جديد" },
+            { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
           ]
@@ -745,9 +769,18 @@ export default function RolePermissions() {
           icon: ClipboardCheck,
           permissions: [
             { id: "progress_reports.view", nameAr: "عرض تقارير الإنجاز" },
-            { id: "progress_reports.add", nameAr: "إضافة تقرير متابعة" },
-            { id: "progress_reports.edit", nameAr: "تعديل تقرير الإنجاز" },
-            { id: "progress_reports.approve", nameAr: "اعتماد تقارير التنفيذ" },
+            { id: "progress_reports.add", nameAr: "إضافة تقرير إنجاز" },
+            { id: "progress_reports.edit", nameAr: "تعديل التقرير" },
+            { id: "progress_reports.approve", nameAr: "اعتماد تقارير المتابعة" },
+          ]
+        },
+        {
+          id: "project_reports",
+          nameAr: "تقارير المشاريع",
+          icon: FileText,
+          permissions: [
+            { id: "project_reports.view", nameAr: "عرض تقارير المشاريع" },
+            { id: "project_reports.create", nameAr: "إنشاء تقارير مشاريع" },
           ]
         },
         {
@@ -787,7 +820,7 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       ]
@@ -803,6 +836,7 @@ export default function RolePermissions() {
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
@@ -846,8 +880,9 @@ export default function RolePermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
     },
@@ -931,8 +966,8 @@ export default function RolePermissions() {
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
       board_leadership: {
-        board_chairman: "عرض لوحة رئيس مجلس الإدارة",
-        board_member: "عرض لوحة عضو مجلس الإدارة",
+        board_chairman: "عرض مركز الاعتماد المالي",
+        board_member: "عرض لوحة الإدارة العليا",
       },
       pending_reports: {
         view: "عرض التقارير",
@@ -964,6 +999,7 @@ export default function RolePermissions() {
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
+        create_multi_mosque: "إضافة مشروع لعدة مساجد",
         assign_as_manager: "تعيين كمدير للمشاريع",
         financials: "مالية المشاريع"
       },
@@ -1029,7 +1065,11 @@ export default function RolePermissions() {
         view: "عرض تقارير الإنجاز",
         add: "إضافة تقرير إنجاز",
         edit: "تعديل التقرير",
-        approve: "اعتماد التقارير"
+        approve: "اعتماد تقارير المتابعة"
+      },
+      project_reports: {
+        view: "عرض تقارير المشاريع",
+        create: "إنشاء تقارير مشاريع"
       },
       financial_reports: {
         view: "عرض تقرير المالية والإحصائيات",
@@ -1141,6 +1181,7 @@ export default function RolePermissions() {
         { id: "disbursement_requests", nameAr: "طلبات الصرف" },
         { id: "disbursement_orders", nameAr: "أوامر الصرف" },
         { id: "progress_reports", nameAr: "تقارير الإنجاز" },
+        { id: "project_reports", nameAr: "تقارير المشاريع" },
         { id: "financial_report", nameAr: "التقرير المالي" },
       ],
     },
@@ -1388,6 +1429,8 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("services.") && perm.id !== "services.view" && !selectedPerms.includes("services.view")) ||
                                  (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !selectedPerms.includes("requests.view")) ||
                                  (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !selectedPerms.includes("projects.view")) ||
+                                 (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !selectedPerms.includes("progress_reports.view")) ||
+                                 (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
                                  (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                                  (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));

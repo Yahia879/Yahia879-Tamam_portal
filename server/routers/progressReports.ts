@@ -13,6 +13,10 @@ const parseDateInput = (val: any): Date | null => {
   if (typeof val === "string") {
     const trimmed = val.trim();
     if (trimmed === "") return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      const [y, m, d] = trimmed.split("-").map(Number);
+      return new Date(y, m - 1, d, 12, 0, 0);
+    }
     const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -38,12 +42,12 @@ export const progressReportsRouter = router({
     )
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير المشاريع" });
       }
 
       const db = await getDb();
@@ -110,12 +114,12 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض تفاصيل تقرير المشاريع" });
       }
 
       const db = await getDb();
@@ -182,24 +186,36 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasAdd && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير إنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير مشاريع" });
       }
 
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
       try {
-        // توليد رقم التقرير
+        // توليد رقم التقرير بشكل فريد ودقيق
         const year = new Date().getFullYear();
-        const [countResult] = await db
-          .select({ count: sql<number>`COUNT(*)` })
-          .from(progressReports);
-        const sequence = (countResult?.count || 0) + 1;
-        const reportNumber = `RPT-${year}-${String(sequence).padStart(4, "0")}`;
+        const prefix = `RPT-${year}-`;
+        const [lastReport] = await db
+          .select({ reportNumber: progressReports.reportNumber })
+          .from(progressReports)
+          .where(like(progressReports.reportNumber, `${prefix}%`))
+          .orderBy(desc(progressReports.reportNumber))
+          .limit(1);
+
+        let sequence = 1;
+        if (lastReport && lastReport.reportNumber) {
+          const parts = lastReport.reportNumber.split("-");
+          const lastSeq = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastSeq)) {
+            sequence = lastSeq + 1;
+          }
+        }
+        const reportNumber = `${prefix}${String(sequence).padStart(4, "0")}`;
 
         // حساب الانحراف
         const variance = input.actualProgress - input.plannedProgress;
@@ -207,18 +223,18 @@ export const progressReportsRouter = router({
         const [result] = await db.insert(progressReports).values({
           reportNumber,
           projectId: input.projectId,
-          title: input.title || "",
+          title: input.title || `تقرير متابعة - ${reportNumber}`,
           reportDate: parseDateInput(input.reportDate) || new Date(),
-          reportPeriodStart: parseDateInput(input.reportPeriodStart),
-          reportPeriodEnd: parseDateInput(input.reportPeriodEnd),
-          overallProgress: input.overallProgress,
-          plannedProgress: input.plannedProgress,
-          actualProgress: input.actualProgress,
+          reportPeriodStart: parseDateInput(input.reportPeriodStart) || null,
+          reportPeriodEnd: parseDateInput(input.reportPeriodEnd) || null,
+          overallProgress: input.overallProgress ?? 0,
+          plannedProgress: input.plannedProgress ?? 0,
+          actualProgress: input.actualProgress ?? 0,
           variance,
-          workSummary: input.workSummary,
-          challenges: input.challenges,
-          nextSteps: input.nextSteps,
-          recommendations: input.recommendations,
+          workSummary: input.workSummary || null,
+          challenges: input.challenges || null,
+          nextSteps: input.nextSteps || null,
+          recommendations: input.recommendations || null,
           budgetSpent: (input.budgetSpent && input.budgetSpent.trim() !== "") ? input.budgetSpent : "0",
           budgetRemaining: (input.budgetRemaining && input.budgetRemaining.trim() !== "") ? input.budgetRemaining : "0",
           milestones: input.milestones || null,
@@ -265,11 +281,11 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
+      const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasEdit && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير إنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -284,23 +300,23 @@ export const progressReportsRouter = router({
           if (d) updateData.reportDate = d;
         }
         if (input.reportPeriodStart !== undefined) {
-          updateData.reportPeriodStart = parseDateInput(input.reportPeriodStart);
+          updateData.reportPeriodStart = parseDateInput(input.reportPeriodStart) || null;
         }
         if (input.reportPeriodEnd !== undefined) {
-          updateData.reportPeriodEnd = parseDateInput(input.reportPeriodEnd);
+          updateData.reportPeriodEnd = parseDateInput(input.reportPeriodEnd) || null;
         }
         if (input.overallProgress !== undefined) updateData.overallProgress = input.overallProgress;
         if (input.plannedProgress !== undefined) updateData.plannedProgress = input.plannedProgress;
         if (input.actualProgress !== undefined) updateData.actualProgress = input.actualProgress;
-        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary;
-        if (input.challenges !== undefined) updateData.challenges = input.challenges;
-        if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps;
-        if (input.recommendations !== undefined) updateData.recommendations = input.recommendations;
-        if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent;
-        if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining;
-        if (input.milestones !== undefined) updateData.milestones = input.milestones;
-        if (input.attachments !== undefined) updateData.attachments = input.attachments;
-        if (input.photos !== undefined) updateData.photos = JSON.stringify(input.photos);
+        if (input.workSummary !== undefined) updateData.workSummary = input.workSummary || null;
+        if (input.challenges !== undefined) updateData.challenges = input.challenges || null;
+        if (input.nextSteps !== undefined) updateData.nextSteps = input.nextSteps || null;
+        if (input.recommendations !== undefined) updateData.recommendations = input.recommendations || null;
+        if (input.budgetSpent !== undefined) updateData.budgetSpent = input.budgetSpent || "0";
+        if (input.budgetRemaining !== undefined) updateData.budgetRemaining = input.budgetRemaining || "0";
+        if (input.milestones !== undefined) updateData.milestones = input.milestones || null;
+        if (input.attachments !== undefined) updateData.attachments = input.attachments || null;
+        if (input.photos !== undefined) updateData.photos = input.photos ? JSON.stringify(input.photos) : null;
 
         // حساب الانحراف إذا تم تحديث النسب
         if (input.actualProgress !== undefined && input.plannedProgress !== undefined) {
@@ -327,12 +343,12 @@ export const progressReportsRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add");
+      const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
       if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -357,11 +373,11 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لمراجعة أو اعتماد تقرير مشاريع" });
       }
 
       const db = await getDb();
@@ -378,7 +394,7 @@ export const progressReportsRouter = router({
         .limit(1);
 
       if (!report) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير المشاريع غير موجود" });
       }
 
       await db
@@ -408,7 +424,7 @@ export const progressReportsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
+      const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasApprove && !hasGeneric) {
@@ -431,12 +447,12 @@ export const progressReportsRouter = router({
     .input(z.object({ projectId: z.number().optional() }).optional())
     .query(async ({ input, ctx }) => {
       const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
-      const hasView = await checkPermission(ctx.user.id, "progress_reports.view");
+      const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
       if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض إحصائيات تقارير الإنجاز" });
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض إحصائيات تقارير المشاريع" });
       }
 
       const db = await getDb();

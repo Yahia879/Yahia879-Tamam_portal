@@ -2106,7 +2106,9 @@ export const disbursementsRouter = router({
         await checkPermission(ctx.user.id, "board_chairman") ||
         await checkPermission(ctx.user.id, "board_chairman_view") ||
         await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
-        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
+        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view") ||
+        await checkPermission(ctx.user.id, "board.board_chairman") ||
+        await checkPermission(ctx.user.id, "board.board_chairman_view");
 
       const allowedRoles = ["super_admin", "system_admin", "general_manager", "board_chairman", "financial", "financial_manager"];
       if (!allowedRoles.includes(ctx.user.role) && !hasBoardChairmanOrderPerm) {
@@ -2122,6 +2124,13 @@ export const disbursementsRouter = router({
         }
       }
 
+      const userEmail = ctx.user.email;
+      const hasApprovePermOrder = 
+        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
+        await checkPermission(ctx.user.id, "disbursement_orders.sign") ||
+        await checkPermission(ctx.user.id, "disbursements.approve") ||
+        await checkPermission(ctx.user.id, "disbursements.sign");
+
       const [order] = await db
         .select()
         .from(disbursementOrders)
@@ -2131,8 +2140,12 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
-      // الاعتماد البنكي المباشر لأوامر الصرف بواسطة رئيس مجلس الإدارة
-      if (hasBoardChairmanOrderPerm) {
+      // 1. إذا كان أمر الصرف معتمداً مسبقاً (approved)، ورئيس مجلس الإدارة أو الأدمن يعتمده في لوحة القيادة -> يصبح منفذاً (executed)
+      if (order.status === "approved") {
+        if (!hasBoardChairmanOrderPerm && !["super_admin", "system_admin", "board_chairman"].includes(ctx.user.role)) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "فقط رئيس مجلس الإدارة يمتلك صلاحية التحويل البنكي والتنفيذ لأوامر الصرف المعتمدة" });
+        }
+
         await db
           .update(disbursementOrders)
           .set({
@@ -2149,87 +2162,58 @@ export const disbursementsRouter = router({
         return {
           success: true,
           status: "executed",
-          message: "تم الاعتماد النهائي والمباشر لأمر الصرف وتحويله بنكياً بواسطة رئيس مجلس الإدارة بنجاح",
+          message: "تم الاعتماد والتحويل البنكي المباشر لأمر الصرف بنجاح",
         };
       }
 
-      const hasApprovePermOrder = 
-        await checkPermission(ctx.user.id, "disbursement_orders.approve") ||
-        await checkPermission(ctx.user.id, "disbursement_orders.sign") ||
-        await checkPermission(ctx.user.id, "disbursements.approve") ||
-        await checkPermission(ctx.user.id, "disbursements.sign");
+      // 2. المرحلة الأولى: حساب الإدارة المالية (pending / draft / edited -> pending_executive)
+      if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
+        const isFinancialUser = userEmail === "solayani@manarah.org.sa" || ["financial", "financial_manager", "super_admin", "system_admin"].includes(ctx.user.role) || hasApprovePermOrder;
+        if (!isFinancialUser) {
+          throw new TRPCError({ 
+            code: "FORBIDDEN", 
+            message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
+          });
+        }
 
-      const userEmail = ctx.user.email;
-      const isChairmanUser = 
-        ctx.user.role === "board_chairman" || 
-        ["super_admin", "system_admin"].includes(ctx.user.role) ||
-        await checkPermission(ctx.user.id, "board_chairman") ||
-        await checkPermission(ctx.user.id, "board_chairman_view") ||
-        await checkPermission(ctx.user.id, "board_leadership.board_chairman") ||
-        await checkPermission(ctx.user.id, "board_leadership.board_chairman_view");
-
-      if (isChairmanUser) {
-        // رئيس مجلس الإدارة أو الأدمن يعتمد وتحول حالته إلى executed (تم التحويل البنكي)
         await db
           .update(disbursementOrders)
           .set({
-            status: "executed" as any,
-            approvedBy: ctx.user.id,
-            approvedAt: new Date(),
-            executedBy: ctx.user.id,
-            executedAt: new Date(),
+            status: "pending_executive" as any,
+            createdBy: ctx.user.id,
+            financialApprovedAt: new Date(),
             approvalNotes: input.notes,
             updatedAt: new Date(),
           })
           .where(eq(disbursementOrders.id, input.id));
-      } else {
-        // المرحلة الأولى: حساب الإدارة المالية (solayani@manarah.org.sa) حصراً
-        if (order.status === "pending" || order.status === "draft" || order.status === "edited") {
-          if (userEmail !== "solayani@manarah.org.sa") {
-            throw new TRPCError({ 
-              code: "FORBIDDEN", 
-              message: "فقط حساب الإدارة المالية (solayani@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الأولى لأوامر الصرف" 
-            });
-          }
 
-          await db
-            .update(disbursementOrders)
-            .set({
-              status: "pending_executive" as any,
-              createdBy: ctx.user.id,
-              financialApprovedAt: new Date(),
-              approvalNotes: input.notes,
-              updatedAt: new Date(),
-            })
-            .where(eq(disbursementOrders.id, input.id));
+        return {
+          success: true,
+          status: "pending_executive",
+          message: "تم اعتماد المرحلة الأولى من أمر الصرف بنجاح، والأمر الآن بانتظار اعتماد المدير التنفيذي",
+        };
+      }
 
-          return {
-            success: true,
-            status: "pending_executive",
-            message: "تم اعتماد المرحلة الأولى من أمر الصرف بنجاح، والأمر الآن بانتظار اعتماد المدير التنفيذي",
-          };
+      // 3. المرحلة الثانية: حساب المدير التنفيذي (pending_executive -> approved)
+      if (order.status === "pending_executive") {
+        const isExecUser = userEmail === "ceo@manarah.org.sa" || ["general_manager", "executive_director", "super_admin", "system_admin"].includes(ctx.user.role) || (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" || hasApprovePermOrder;
+        if (!isExecUser) {
+          throw new TRPCError({ 
+            code: "FORBIDDEN", 
+            message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
+          });
         }
 
-        // المرحلة الثانية: حساب المدير التنفيذي (ceo@manarah.org.sa) حصراً
-        if (order.status === "pending_executive") {
-          if (userEmail !== "ceo@manarah.org.sa") {
-            throw new TRPCError({ 
-              code: "FORBIDDEN", 
-              message: "فقط حساب المدير التنفيذي (ceo@manarah.org.sa) يمتلك صلاحية اعتماد المرحلة الثانية لأوامر الصرف" 
-            });
-          }
-
-          await db
-            .update(disbursementOrders)
-            .set({
-              status: "approved" as any,
-              approvedBy: ctx.user.id,
-              approvedAt: new Date(),
-              approvalNotes: input.notes,
-              updatedAt: new Date(),
-            })
-            .where(eq(disbursementOrders.id, input.id));
-        }
+        await db
+          .update(disbursementOrders)
+          .set({
+            status: "approved" as any,
+            approvedBy: ctx.user.id,
+            approvedAt: new Date(),
+            approvalNotes: input.notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, input.id));
       }
 
       // تحديث قيمة الدفعة المجدولة في العقد وطلب الصرف إذا كان المبلغ الموافق عليه في أمر الصرف أقل من مبلغ الدفعة الأصلي
@@ -2842,7 +2826,7 @@ export const disbursementsRouter = router({
         .groupBy(sql`f.paymentType`) as any)
         .orderBy(desc(sql`COALESCE(SUM(CAST(f.amount AS DECIMAL(15,2))), 0)`));
 
-      // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل)
+      // إجمالي أوامر الصرف حسب الحالة (معتمد، قيد الاعتماد، مرفوض، تم التعديل، منفذ)
       const ordersByStatus = await db
         .select({
           status: disbursementOrders.status,
@@ -2850,7 +2834,7 @@ export const disbursementsRouter = router({
           totalAmount: sql<number>`COALESCE(SUM(${disbursementOrders.amount}), 0)`,
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']))
         .groupBy(disbursementOrders.status);
 
       // إجماليات عامة (مصفاة حسب الحالات النشطة: قيد الاعتماد، معتمد، مرفوض)
@@ -2877,7 +2861,7 @@ export const disbursementsRouter = router({
           executedAmount: sql<number>`COALESCE(SUM(CASE WHEN ${disbursementOrders.status} IN ('executed', 'paid') THEN ${disbursementOrders.amount} ELSE 0 END), 0)`,
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']));
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']));
 
       // إجماليات العقود (مع استبعاد حالة "نشط")
       const [contractTotals] = await db
@@ -2978,14 +2962,14 @@ export const disbursementsRouter = router({
         .where(inArray(disbursementRequests.status, ['pending', 'approved', 'rejected']))
         .groupBy(disbursementRequests.status);
 
-      // إحصائيات أوامر الصرف للرسم البياني (فقط الحالات: معتمد، قيد الاعتماد، مرفوض، تم التعديل)
+      // إحصائيات أوامر الصرف للرسم البياني (الحالات: معتمد، قيد الاعتماد، مرفوض، تم التعديل، منفذ)
       const ordersTimeline = await db
         .select({
           date: sql<string>`DATE_FORMAT(${disbursementOrders.createdAt}, '%Y-%m-%d')`,
           count: sql<number>`COUNT(*)`
         })
         .from(disbursementOrders)
-        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited']))
+        .where(inArray(disbursementOrders.status, ['approved', 'pending', 'rejected', 'edited', 'executed', 'pending_executive']))
         .groupBy(sql`DATE(${disbursementOrders.createdAt})`)
         .orderBy(sql`DATE(${disbursementOrders.createdAt})`)
         .limit(30);

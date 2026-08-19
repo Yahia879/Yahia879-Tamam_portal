@@ -602,7 +602,12 @@ export const authRouter = router({
 
   // الحصول على قائمة المستخدمين قيد الانتظار
   getPendingUsers: protectedProcedure.query(async ({ ctx }) => {
-    if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+    const isExecDirector =
+      ["general_manager", "executive_director"].includes(ctx.user.role) ||
+      (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+      (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+    if (!["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector) {
       throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المستخدمين" });
     }
 
@@ -619,7 +624,12 @@ export const authRouter = router({
       status: z.string().optional(),
     }).optional())
     .query(async ({ ctx, input }) => {
-      if (!["super_admin", "system_admin", "projects_office"].includes(ctx.user.role)) {
+      const isExecDirector =
+        ["general_manager", "executive_director"].includes(ctx.user.role) ||
+        (ctx.user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (ctx.user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+      if (!["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(ctx.user.role) && !isExecDirector) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض المستخدمين" });
       }
 

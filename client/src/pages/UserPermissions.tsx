@@ -66,7 +66,7 @@ const getRoleLabelAr = (role: string) => {
     "corporate_comm": "الاتصال المؤسسي",
     "service_requester": "طالب خدمة",
     "board_chairman": "رئيس مجلس الإدارة",
-    "board_member": "عضو مجلس الإدارة",
+    "board_member": "الإدارة العليا",
   };
   return rolesAr[role] || role;
 };
@@ -241,6 +241,22 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لتقارير الإنجاز إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("progress_reports.") && permId !== "progress_reports.view") {
+      if (!isChecked("progress_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقارير الإنجاز' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل أي صلاحية فرعية لتقارير المشاريع إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("project_reports.") && permId !== "project_reports.view") {
+      if (!isChecked("project_reports.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض تقارير المشاريع' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير المالية إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("financial_reports.") && permId !== "financial_reports.view") {
       if (!isChecked("financial_reports.view")) {
@@ -363,6 +379,8 @@ export default function UserPermissions() {
           });
         }
         if (permId === "projects.view") cascadeRevoke("projects.");
+        if (permId === "progress_reports.view") cascadeRevoke("progress_reports.");
+        if (permId === "project_reports.view") cascadeRevoke("project_reports.");
         if (permId === "requesters.view") cascadeRevoke("requesters.");
         if (permId === "financial_reports.view") cascadeRevoke("financial_reports.");
         if (permId === "reports.view_stats") cascadeRevoke("reports.");
@@ -515,8 +533,8 @@ export default function UserPermissions() {
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
       board_leadership: {
-        board_chairman: "عرض لوحة رئيس مجلس الإدارة",
-        board_member: "عرض لوحة عضو مجلس الإدارة",
+        board_chairman: "عرض مركز الاعتماد المالي",
+        board_member: "عرض لوحة الإدارة العليا",
       },
       pending_reports: {
         view: "عرض التقارير",
@@ -546,6 +564,7 @@ export default function UserPermissions() {
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
+        create_multi_mosque: "إضافة مشروع لعدة مساجد",
         assign_as_manager: "تعيين كمدير للمشاريع",
         financials: "مالية المشاريع"
       },
@@ -602,6 +621,10 @@ export default function UserPermissions() {
         add: "إضافة تقرير إنجاز",
         edit: "تعديل التقرير",
         approve: "اعتماد تقارير المتابعة"
+      },
+      project_reports: {
+        view: "عرض تقارير المشاريع",
+        create: "إنشاء تقارير مشاريع"
       },
       financial_reports: {
         view: "عرض تقرير المالية والإحصائيات",
@@ -695,8 +718,9 @@ export default function UserPermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
     },
@@ -983,6 +1007,8 @@ export default function UserPermissions() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
+                              (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
+                              (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));
 

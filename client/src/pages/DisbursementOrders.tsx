@@ -64,6 +64,7 @@ import {
   ExternalLink,
   ShieldAlert,
   Info,
+  BadgeCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -301,6 +302,7 @@ export default function DisbursementOrders() {
   // إحصائيات عامة وعالمية دقيقة من الخادم
   const pendingCount = ordersData?.stats?.pendingCount || 0;
   const approvedCount = ordersData?.stats?.approvedCount || 0;
+  const executedCount = ordersData?.stats?.executedCount || 0;
   const rejectedCount = ordersData?.stats?.rejectedCount || 0;
   const totalAmount = ordersData?.stats?.totalAmount || 0;
 
@@ -330,7 +332,7 @@ export default function DisbursementOrders() {
         </div>
 
         {/* بطاقات الإحصائيات المحدثة والأنيقة */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4" dir="rtl">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5" dir="rtl">
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
             <CardContent className="p-4 sm:p-5 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-amber-600 dark:text-amber-400">
@@ -357,6 +359,18 @@ export default function DisbursementOrders() {
 
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
             <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 text-right">
+                <p className="text-xs text-muted-foreground font-semibold">منفذة</p>
+                <p className="text-lg sm:text-2xl font-black text-foreground mt-0.5">{executedCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400">
                 <XCircle className="w-5 h-5" />
               </div>
@@ -368,15 +382,23 @@ export default function DisbursementOrders() {
           </Card>
 
           <Card className="border-0 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow relative">
-            <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <CardContent className="p-3.5 sm:p-5 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                 <Banknote className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1 text-right">
                 <p className="text-xs text-muted-foreground font-semibold">إجمالي المبالغ</p>
-                <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
-                  {totalAmount.toLocaleString()} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
-                </p>
+                <div 
+                  className="mt-0.5 flex flex-wrap items-baseline gap-1"
+                  title={`${Number(totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال`}
+                >
+                  <span className="text-base sm:text-lg xl:text-xl font-mono font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                    {Number(totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                    ريال
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
