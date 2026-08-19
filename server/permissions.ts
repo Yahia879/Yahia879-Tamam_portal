@@ -51,7 +51,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
-  progress_reports: ["progress_reports.view", "progress_reports.create", "progress_reports.add", "reports.view", "reports.create"],
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "reports.view"],
+  project_reports: ["project_reports.view", "project_reports.create", "reports.view"],
   financial_report: ["reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
   "reports.view_stats": ["reports.view_stats", "reports.view"],
@@ -174,10 +175,12 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "financial_reports.analytics": ["financial_reports.analytics"],
 
   "progress_reports.view": ["progress_reports.view", "reports.view"],
-  "progress_reports.create": ["progress_reports.create", "progress_reports.add", "progress_reports.view"],
-  "progress_reports.add": ["progress_reports.add", "progress_reports.create", "progress_reports.view"],
+  "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
   "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
   "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
+
+  "project_reports.view": ["project_reports.view", "reports.view"],
+  "project_reports.create": ["project_reports.create", "project_reports.view"],
 
   boq: ["boq.add", "boq.edit", "boq.delete"],
   "boq.add": ["boq.add"],
@@ -273,6 +276,20 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "create_multi_mosque",
         nameAr: "إضافة مشروع لعدة مساجد",
         nameEn: "Create Multi-Mosque Project"
+      },
+      {
+        id: "project_reports.view",
+        moduleId: "reports",
+        action: "view",
+        nameAr: "عرض تقارير المشاريع",
+        nameEn: "View Project Reports"
+      },
+      {
+        id: "project_reports.create",
+        moduleId: "reports",
+        action: "create",
+        nameAr: "إنشاء تقارير مشاريع",
+        nameEn: "Create Project Reports"
       }
     ];
 
@@ -558,11 +575,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "disbursement_orders.view", moduleId: "disbursements", action: "view", nameAr: "عرض أوامر الصرف", nameEn: "View Disbursement Orders" },
       { id: "disbursement_orders.approve", moduleId: "disbursements", action: "approve", nameAr: "اعتماد أوامر الصرف", nameEn: "Approve Disbursement Orders" },
       { id: "disbursement_orders.reject", moduleId: "disbursements", action: "reject", nameAr: "رفض أوامر الصرف", nameEn: "Reject Disbursement Orders" },
-      { id: "progress_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
-      { id: "progress_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
-      { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
-      { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل تقارير المشاريع", nameEn: "Edit Project Reports" },
-      { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المشاريع", nameEn: "Approve Project Reports" },
+      { id: "progress_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير الإنجاز", nameEn: "View Progress Reports" },
+      { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
+      { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
+      { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
+      { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
+      { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
       { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
       { id: "financial_reports.export", moduleId: "reports", action: "export", nameAr: "تصدير البيانات", nameEn: "Export Financial Reports" },
       { id: "financial_reports.analytics", moduleId: "reports", action: "analytics", nameAr: "تحليل مؤشرات الأداء", nameEn: "Analyze Financial Performance" },
@@ -972,6 +990,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("progress_reports.approve")
   ) {
     allPermissions.add("progress_reports");
+  }
+  if (
+    allPermissions.has("project_reports.view") ||
+    allPermissions.has("project_reports.create")
+  ) {
+    allPermissions.add("project_reports");
   }
   if (
     allPermissions.has("financial_reports.view") ||

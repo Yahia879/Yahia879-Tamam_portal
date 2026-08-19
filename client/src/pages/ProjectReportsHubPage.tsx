@@ -90,11 +90,14 @@ export default function ProjectReportsHubPage() {
 
   const canCreateReports = 
     isAdmin || 
+    serverPermissions.includes("project_reports.create") ||
+    serverPermissions.includes("project_reports") ||
     serverPermissions.includes("progress_reports.create") || 
     serverPermissions.includes("progress_reports.add");
 
   const canEditOrApprove = 
     isAdmin || 
+    serverPermissions.includes("project_reports.create") ||
     serverPermissions.includes("progress_reports.approve") || 
     serverPermissions.includes("progress_reports.edit");
 

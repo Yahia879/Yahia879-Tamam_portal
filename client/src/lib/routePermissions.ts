@@ -165,12 +165,12 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
 
   // ── تقارير الإنجاز والمشاريع ──
   "/progress-reports": ["progress_reports", "progress_reports.view"],
-  "/project-reports": ["progress_reports", "progress_reports.view", "progress_reports.create", "progress_reports.add", "reports.view"],
-  "/project-reports/new": ["progress_reports.create", "progress_reports.add", "progress_reports"],
-  "/project-reports/semi-monthly": ["progress_reports.create", "progress_reports.add", "progress_reports"],
-  "/project-reports/monthly": ["progress_reports.create", "progress_reports.add", "progress_reports"],
-  "/project-reports/quarterly": ["progress_reports.create", "progress_reports.add", "progress_reports"],
-  "/project-reports/visit": ["progress_reports.create", "progress_reports.add", "progress_reports"],
+  "/project-reports": ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"],
+  "/project-reports/new": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/semi-monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/monthly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/quarterly": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
+  "/project-reports/visit": ["project_reports.create", "project_reports", "progress_reports.add", "progress_reports"],
 
   // ── الاستلامات ──
   "/handovers": ["projects", "contracts"],
@@ -302,7 +302,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   // تقارير الإنجاز والمشاريع
   { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit"] },
   { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
-  { pattern: /^\/project-reports\/.*$/, permission: ["progress_reports", "progress_reports.view", "progress_reports.create", "progress_reports.add", "reports.view"] },
+  { pattern: /^\/project-reports\/.*$/, permission: ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"] },
 ];
 
 /**

@@ -256,11 +256,11 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
   }
-  if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.create") || has("progress_reports.add")) {
-    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
-  }
-  if (has("progress_reports")) {
+  if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.add")) {
     engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
+  }
+  if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
+    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
   }
   if (has("reports")) {
     engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
