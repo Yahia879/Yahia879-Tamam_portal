@@ -717,9 +717,6 @@ function DashboardLayoutContent({
                             ) : null}
                           </div>
                           <span className={isActive ? "text-white font-bold" : "text-sidebar-foreground"}>{item.label}</span>
-                          {hasActionBadge && !isCollapsed ? (
-                            <span className="mr-auto block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-sidebar shrink-0 animate-pulse shadow-sm" />
-                          ) : null}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
