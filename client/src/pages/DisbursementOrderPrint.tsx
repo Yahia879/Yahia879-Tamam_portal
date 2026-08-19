@@ -179,7 +179,7 @@ export default function DisbursementOrderPrint() {
     try {
       const attachments = typeof request.attachmentsJson === "string" ? JSON.parse(request.attachmentsJson) : request.attachmentsJson;
       if (Array.isArray(attachments)) {
-        rawAttachments = attachments;
+        rawAttachments.push(...attachments);
         const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
         if (infoAttachment && infoAttachment.url) {
           customSupplier = typeof infoAttachment.url === "string" ? JSON.parse(infoAttachment.url) : infoAttachment.url;
@@ -194,18 +194,32 @@ export default function DisbursementOrderPrint() {
     }
   }
 
+  if (order?.attachmentsJson) {
+    try {
+      const orderAtts = typeof order.attachmentsJson === "string" ? JSON.parse(order.attachmentsJson) : order.attachmentsJson;
+      if (Array.isArray(orderAtts)) {
+        rawAttachments.push(...orderAtts);
+      }
+    } catch (e) {
+      console.error("Error parsing order attachments for print:", e);
+    }
+  }
+
   // تجميع كافة الروابط والمرفقات الخارجية لعرضها بشكل متناسق في التقرير
   const documentationLinks: { name: string; url: string; type?: string }[] = [];
 
   rawAttachments.forEach((a: any) => {
-    if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.type !== "metadata") {
-      const urlStr = a.url || a.link;
-      if (urlStr && typeof urlStr === "string" && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/uploads") || urlStr.startsWith("/api"))) {
-        documentationLinks.push({
-          name: a.name || "مستند / رابط خارجي",
-          url: urlStr,
-          type: a.type || "link"
-        });
+    if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.name !== "general_account_coverage" && a.type !== "metadata") {
+      const urlStr = (a.url || a.link || "").trim();
+      if (urlStr && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/") || urlStr.includes("."))) {
+        const fullUrl = (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/")) ? urlStr : `https://${urlStr}`;
+        if (!documentationLinks.some(item => item.url === fullUrl)) {
+          documentationLinks.push({
+            name: a.name || "مستند / رابط خارجي",
+            url: fullUrl,
+            type: a.type || "link"
+          });
+        }
       }
     }
   });

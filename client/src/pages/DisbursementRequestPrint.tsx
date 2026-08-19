@@ -3,7 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, PenTool, ShieldAlert, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Printer, PenTool, ShieldAlert, Check, Loader2, Link2, X, ExternalLink, Copy } from "lucide-react";
 import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -65,6 +65,7 @@ export default function DisbursementRequestPrint() {
 
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState<boolean>(true);
   const [showCreatorSignature, setShowCreatorSignature] = useState<boolean>(true);
+  const [showLinksCard, setShowLinksCard] = useState<boolean>(false);
 
   const utils = trpc.useContext();
   const updateRequestSigVisibilityMutation = trpc.disbursements.updateRequestSignatureVisibility.useMutation({
@@ -254,22 +255,59 @@ export default function DisbursementRequestPrint() {
   
   let customSupplier: any = null;
   let linkedRequestInfo: any = null;
+  let rawAttachments: any[] = [];
   if (request?.attachmentsJson) {
     try {
-      const attachments = JSON.parse(request.attachmentsJson);
+      const attachments = typeof request.attachmentsJson === "string" ? JSON.parse(request.attachmentsJson) : request.attachmentsJson;
       if (Array.isArray(attachments)) {
+        rawAttachments = attachments;
         const infoAttachment = attachments.find((a: any) => a.name === "custom_supplier_info");
         if (infoAttachment && infoAttachment.url) {
-          customSupplier = JSON.parse(infoAttachment.url);
+          customSupplier = typeof infoAttachment.url === "string" ? JSON.parse(infoAttachment.url) : infoAttachment.url;
         }
         const linkedAttachment = attachments.find((a: any) => a.name === "linked_request_info");
         if (linkedAttachment && linkedAttachment.url) {
-          linkedRequestInfo = JSON.parse(linkedAttachment.url);
+          linkedRequestInfo = typeof linkedAttachment.url === "string" ? JSON.parse(linkedAttachment.url) : linkedAttachment.url;
         }
       }
     } catch (e) {
       console.error("Error parsing supplier/linked print metadata:", e);
     }
+  }
+
+  // تجميع كافة الروابط والمرفقات الخارجية لعرضها في زر الروابط المرفقة
+  const documentationLinks: { name: string; url: string; type?: string }[] = [];
+
+  rawAttachments.forEach((a: any) => {
+    if (a && a.name !== "custom_supplier_info" && a.name !== "linked_request_info" && a.name !== "general_account_coverage" && a.type !== "metadata") {
+      const urlStr = (a.url || a.link || "").trim();
+      if (urlStr && (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/") || urlStr.includes("."))) {
+        const fullUrl = (urlStr.startsWith("http://") || urlStr.startsWith("https://") || urlStr.startsWith("/")) ? urlStr : `https://${urlStr}`;
+        if (!documentationLinks.some(item => item.url === fullUrl)) {
+          documentationLinks.push({
+            name: a.name || "مستند / رابط خارجي",
+            url: fullUrl,
+            type: a.type || "link"
+          });
+        }
+      }
+    }
+  });
+
+  if (customSupplier?.linkUrl && typeof customSupplier.linkUrl === "string" && !documentationLinks.some(item => item.url === customSupplier.linkUrl)) {
+    documentationLinks.push({
+      name: customSupplier.linkName?.trim() || "رابط خارجي توثيقي",
+      url: customSupplier.linkUrl.trim(),
+      type: "link"
+    });
+  }
+
+  if (linkedRequestInfo?.linkUrl && typeof linkedRequestInfo.linkUrl === "string" && !documentationLinks.some(item => item.url === linkedRequestInfo.linkUrl)) {
+    documentationLinks.push({
+      name: linkedRequestInfo.linkName?.trim() || "رابط خارجي توثيقي",
+      url: linkedRequestInfo.linkUrl.trim(),
+      type: "link"
+    });
   }
 
   const isCustomType = !!customSupplier && ["supplier_one_time", "sadad_invoice", "misc_expenses"].includes(customSupplier.requestType);
@@ -739,6 +777,91 @@ export default function DisbursementRequestPrint() {
           </div>
         </div>
       </div>
+
+      {/* نافذة / زر الروابط المرفقة العائم */}
+      {documentationLinks.length > 0 && (
+        <div className="fixed top-24 right-4 sm:right-6 z-30 print:hidden text-right" dir="rtl">
+          {showLinksCard ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-64 max-w-[260px] animate-in fade-in-50 slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Link2 className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate block">
+                      الروابط المرفقة
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shrink-0">
+                    {documentationLinks.length}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full shrink-0"
+                  onClick={() => setShowLinksCard(false)}
+                  title="إغلاق"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              <div className="space-y-2.5 max-h-64 overflow-y-auto pl-0.5">
+                {documentationLinks.map((item, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-900/60 space-y-1.5 text-right text-xs"
+                  >
+                    <div className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate">
+                      {item.name || `رابط مرفق #${idx + 1}`}
+                    </div>
+
+                    <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate bg-white dark:bg-slate-800 p-1 rounded border border-slate-100 dark:border-slate-700/50 dir-ltr text-left" dir="ltr">
+                      {item.url}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-[11px] font-medium transition-colors shadow-xs"
+                      >
+                        <span>فتح الرابط</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6.5 w-6.5 p-0 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg shrink-0"
+                        onClick={() => {
+                          navigator.clipboard.writeText(item.url);
+                          toast.success("تم نسخ الرابط للحافظة");
+                        }}
+                        title="نسخ الرابط"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLinksCard(true)}
+              className="bg-white dark:bg-slate-800 shadow-lg border border-slate-200/90 dark:border-slate-700 rounded-full px-3.5 py-1.5 flex items-center gap-2 text-xs font-bold text-primary hover:bg-primary/5 transition-all animate-in fade-in-50"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+              <span>الروابط المرفقة ({documentationLinks.length})</span>
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* أنماط الطباعة المتقدمة */}
       <style>{`
