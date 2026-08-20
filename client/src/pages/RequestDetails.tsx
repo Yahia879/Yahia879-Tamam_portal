@@ -1,4 +1,6 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import BeneficiaryLayout from "@/components/BeneficiaryLayout";
+import { BeneficiaryRequestDetails } from "@/components/BeneficiaryRequestDetails";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -420,6 +422,17 @@ export default function RequestDetails() {
   };
 
   if (isLoading) {
+    if (user?.role === "service_requester") {
+      return (
+        <BeneficiaryRequestDetails
+          request={null}
+          isLoading={true}
+          comment={comment}
+          setComment={setComment}
+          addCommentMutation={addCommentMutation}
+        />
+      );
+    }
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -430,6 +443,19 @@ export default function RequestDetails() {
   }
 
   if (!request) {
+    if (user?.role === "service_requester") {
+      return (
+        <BeneficiaryLayout activeTab="requests" title="الطلب غير موجود" backUrl="/my-requests">
+          <div className="text-center py-16">
+            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground font-bold">الطلب المطلوب غير موجود أو ليس لديك صلاحية للوصول إليه</p>
+            <Link href="/my-requests">
+              <Button variant="outline" className="mt-4 rounded-xl font-bold">العودة لطلباتي</Button>
+            </Link>
+          </div>
+        </BeneficiaryLayout>
+      );
+    }
     return (
       <DashboardLayout>
         <div className="text-center py-12">
@@ -440,6 +466,20 @@ export default function RequestDetails() {
           </Link>
         </div>
       </DashboardLayout>
+    );
+  }
+
+  // إذا كان المستخدم طالب خدمة، عرض الواجهة المخصصة والحديثة للمستفيد
+  if (user?.role === "service_requester") {
+    return (
+      <BeneficiaryRequestDetails
+        request={request}
+        attachments={attachments}
+        isLoading={false}
+        comment={comment}
+        setComment={setComment}
+        addCommentMutation={addCommentMutation}
+      />
     );
   }
 
@@ -529,7 +569,7 @@ export default function RequestDetails() {
 
   const stageChecklist = getStageChecklist();
 
-  const isBeneficiaryUser = !!user && (user.id === request.userId || user.role === "service_requester" || ["super_admin", "system_admin"].includes(user.role));
+  const isBeneficiaryUser = !!user && (user.id === request.userId || ["super_admin", "system_admin"].includes(user.role));
 
   return (
     <DashboardLayout>
@@ -589,8 +629,8 @@ export default function RequestDetails() {
           </div>
         )}
 
-        {/* شريط المراحل - للموظفين الداخليين فقط */}
-        {user?.role !== "service_requester" && !isDirectQuickRequest ? (
+        {/* شريط المراحل - للموظفين الداخليين */}
+        {!isDirectQuickRequest ? (
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center justify-between overflow-x-auto pb-2">
@@ -630,40 +670,9 @@ export default function RequestDetails() {
           </Card>
         ) : null}
 
-        {/* بطاقة التقدم - للموظفين فقط */}
-        {user?.role !== "service_requester" && !isDirectQuickRequest && (
+        {/* بطاقة التقدم - للموظفين */}
+        {!isDirectQuickRequest && (
           <RequestProgressCard stage={request.currentStage} checklist={stageChecklist} />
-        )}
-
-        {/* شريط التقدم بالنسبة المئوية - لطالب الخدمة */}
-        {user?.role === "service_requester" && !isDirectQuickRequest && (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-6">
-              <div className="text-center mb-4">
-                <h3 className="text-lg font-bold text-foreground mb-2">نسبة التقدم في الطلب</h3>
-                <p className="text-muted-foreground text-sm">يتم معالجة طلبك حالياً</p>
-              </div>
-              <div className="relative">
-                <div className="w-full bg-muted rounded-full h-6 overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-green-500 rounded-full transition-all duration-500 flex items-center justify-center"
-                    style={{ width: `${request.progressPercentage || 0}%` }}
-                  >
-                    {(request.progressPercentage || 0) >= 20 && (
-                      <span className="text-white text-xs font-bold">{request.progressPercentage}%</span>
-                    )}
-                  </div>
-                </div>
-                {(request.progressPercentage || 0) < 20 && (
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-foreground">{request.progressPercentage || 0}%</span>
-                )}
-              </div>
-              <div className="flex justify-between mt-3 text-sm">
-                <span className="text-muted-foreground">تم التقديم</span>
-                <span className="text-muted-foreground">مكتمل</span>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* شريط الحالة الذكي */}
@@ -715,23 +724,18 @@ export default function RequestDetails() {
             </Card>
 
             {/* التبويبات */}
-            <Tabs defaultValue={user?.role === "service_requester" ? "comments" : "history"} className="space-y-4">
+            <Tabs defaultValue="history" className="space-y-4">
               <TabsList className="flex-wrap h-auto gap-1">
-                {/* سجل الطلب - للموظفين فقط */}
-                {user?.role !== "service_requester" && (
-                  <TabsTrigger value="history">سجل الطلب</TabsTrigger>
-                )}
+                <TabsTrigger value="history">سجل الطلب</TabsTrigger>
                 <TabsTrigger value="comments">التعليقات</TabsTrigger>
                 <TabsTrigger value="attachments">المرفقات</TabsTrigger>
-                {/* التقييم المالي - للموظفين فقط */}
-                {user?.role !== "service_requester" && (request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+                {/* التقييم المالي */}
+                {(request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                   <TabsTrigger value="financial">التقييم المالي</TabsTrigger>
                 )}
               </TabsList>
 
-              {/* سجل الطلب - للموظفين فقط */}
-              {user?.role !== "service_requester" && (
-                <TabsContent value="history">
+              <TabsContent value="history">
                   <Card className="border-0 shadow-sm">
                     <CardContent className="p-4">
                       {request.history && request.history.length > 0 ? (
@@ -778,60 +782,50 @@ export default function RequestDetails() {
                     </CardContent>
                   </Card>
                 </TabsContent>
-              )}
 
               <TabsContent value="comments">
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-4 space-y-4">
-                    {/* إضافة تعليق - للموظفين فقط */}
-                    {user?.role !== "service_requester" && (
-                      <div className="flex gap-3">
-                        <Textarea
-                          placeholder="أضف تعليقاً..."
-                          value={comment}
-                          onChange={(e) => setComment(e.target.value)}
-                          className="flex-1"
-                        />
-                        <Button 
-                          onClick={() => addCommentMutation.mutate({ requestId, comment: comment })}
-                          disabled={!comment.trim() || addCommentMutation.isPending}
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )}
+                    {/* إضافة تعليق */}
+                    <div className="flex gap-3">
+                      <Textarea
+                        placeholder="أضف تعليقاً..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={() => addCommentMutation.mutate({ requestId, comment: comment })}
+                        disabled={!comment.trim() || addCommentMutation.isPending}
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
 
-                    {/* قائمة التعليقات - للموظفين فقط */}
-                    {user?.role !== "service_requester" ? (
-                      request.comments && request.comments.length > 0 ? (
-                        <div className="space-y-4 pt-4 border-t">
-                          {request.comments.map((c: any) => (
-                            <div key={c.id} className="flex gap-3">
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                                <User className="w-5 h-5 text-muted-foreground" />
-                              </div>
-                              <div className="flex-1 bg-muted/50 rounded-lg p-3">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-medium text-sm">{c.userName || "مستخدم"}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(c.createdAt).toLocaleString("ar-SA")}
-                                  </p>
-                                </div>
-                                <p className="text-sm mt-1">{c.content}</p>
-                              </div>
+                    {/* قائمة التعليقات */}
+                    {request.comments && request.comments.length > 0 ? (
+                      <div className="space-y-4 pt-4 border-t">
+                        {request.comments.map((c: any) => (
+                          <div key={c.id} className="flex gap-3">
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                              <User className="w-5 h-5 text-muted-foreground" />
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">لا توجد تعليقات</p>
-                        </div>
-                      )
+                            <div className="flex-1 bg-muted/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-sm">{c.userName || "مستخدم"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(c.createdAt).toLocaleString("ar-SA")}
+                                </p>
+                              </div>
+                              <p className="text-sm mt-1">{c.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div className="text-center py-8">
                         <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">التعليقات متاحة للموظفين فقط</p>
+                        <p className="text-muted-foreground">لا توجد تعليقات</p>
                       </div>
                     )}
                   </CardContent>
@@ -841,12 +835,7 @@ export default function RequestDetails() {
               <TabsContent value="attachments">
                 <Card className="border-0 shadow-sm">
                   <CardContent className="p-4">
-                    {user?.role === "service_requester" ? (
-                      <div className="text-center py-8">
-                        <Paperclip className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">المرفقات متاحة للموظفين فقط</p>
-                      </div>
-                    ) : attachments && attachments.length > 0 ? (
+                    {attachments && attachments.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {attachments.map((attachment: any) => (
                           <div key={attachment.id} className="border rounded-lg overflow-hidden">
@@ -904,8 +893,8 @@ export default function RequestDetails() {
                 </Card>
               </TabsContent>
 
-              {/* تبويب التقييم المالي - للموظفين فقط */}
-              {user?.role !== "service_requester" && (request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
+              {/* تبويب التقييم المالي */}
+              {(request.currentStage === 'financial_eval_and_approval' || request.currentStage === 'contracting' || request.currentStage === 'execution' || request.currentStage === 'closed') && (
                 <TabsContent value="financial">
                   <div className="space-y-6">
                     {/* تفاصيل الاعتماد المالي - يظهر فقط بعد الاعتماد */}
@@ -1291,9 +1280,8 @@ export default function RequestDetails() {
               </Card>
             )}
 
-            {/* الإجراءات - للموظفين فقط */}
-            {user?.role !== "service_requester" && (
-              <Card className="border-0 shadow-sm">
+            {/* الإجراءات */}
+            <Card className="border-0 shadow-sm">
                 <CardHeader>
                   <CardTitle>الإجراءات</CardTitle>
                 </CardHeader>
@@ -1732,7 +1720,6 @@ export default function RequestDetails() {
                 })()}
                 </CardContent>
               </Card>
-            )}
           </div>
         </div>
       </div>
