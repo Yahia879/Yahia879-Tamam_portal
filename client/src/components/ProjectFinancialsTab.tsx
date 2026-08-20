@@ -378,7 +378,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Receipts Calculations
   const receiptVouchers = data?.receiptVouchers || [];
-  const vouchersTotalReceived = receiptVouchers.reduce((sum, v) => sum + parseFloat((v as any).amount || "0"), 0);
+  const validReceiptVouchers = receiptVouchers.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+  const vouchersTotalReceived = validReceiptVouchers.reduce((sum, v) => sum + parseFloat((v as any).amount || "0"), 0);
 
   const generalAccountReceivedAmount = validSupportSources
     .filter(s => {
@@ -1146,7 +1147,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     );
                   });
 
-                  const receivedAmt = isGenAcc ? targetAmt : sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                  const validSVouchers = sVouchers.filter(v => v.status === "approved" || v.status === "pending_approval");
+                  const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                   const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
                   const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
                   const sPct = sRawPct > 0 && sRawPct < 1
@@ -1225,7 +1227,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   );
                 });
 
-                const receivedAmt = isGenAcc ? targetAmt : sVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
+                const validSVouchers = sVouchers.filter(v => v.status === "approved" || v.status === "pending_approval");
+                const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                 const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
                 const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
                 const sPct = sRawPct > 0 && sRawPct < 1
@@ -1290,7 +1293,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                             </TableHeader>
                             <TableBody>
                               {sVouchers.map((voucher) => (
-                                <TableRow key={voucher.id} className="hover:bg-slate-50/60">
+                                <TableRow 
+                                  key={voucher.id} 
+                                  className={
+                                    voucher.status === "approval_revoked"
+                                      ? "bg-amber-50/40 hover:bg-amber-50/60"
+                                      : voucher.status === "rejected"
+                                      ? "bg-rose-50/30 hover:bg-rose-50/50"
+                                      : "hover:bg-slate-50/60"
+                                  }
+                                >
                                    <TableCell className="font-bold text-xs font-mono">
                                      {voucher.status === "approved" ? (
                                        <span className="text-primary">{voucher.voucherNumber}</span>
@@ -1301,8 +1313,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                   <TableCell className="text-xs">
                                     {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}
                                   </TableCell>
-                                  <TableCell className="font-bold text-emerald-700 text-xs">
+                                  <TableCell className={`font-bold text-xs ${
+                                    voucher.status === "approval_revoked" || voucher.status === "rejected"
+                                      ? "text-slate-400 line-through"
+                                      : "text-emerald-700"
+                                  }`}>
                                     {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                                    {voucher.status === "approval_revoked" && (
+                                      <span className="text-[10px] text-amber-700 font-normal mr-1 block">(ملغى الاعتماد - غير محتسب)</span>
+                                    )}
                                   </TableCell>
                                   <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
                                      {getCleanVoucherNotes(voucher.notes)}

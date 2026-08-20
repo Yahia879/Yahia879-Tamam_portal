@@ -601,7 +601,7 @@ export default function ProgressReportPrint() {
                   {/* الطرف الأول */}
                   <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
                     <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
-                      الطرف الأول (الجمعية):
+                      الطرف الأول : 
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
@@ -617,7 +617,7 @@ export default function ProgressReportPrint() {
                         <span className="text-gray-900">{orgSettings?.signatoryTitle || "مفوض التوقيع"}</span>
                       </div>
                       <div className="pt-6">
-                        <span className="font-semibold text-gray-600">التوقيع والختم الرسمي: </span>
+                        <span className="font-semibold text-gray-600">التوقيع : </span>
                         <span className="text-gray-400 font-serif">..........................................</span>
                       </div>
                     </div>
@@ -626,7 +626,7 @@ export default function ProgressReportPrint() {
                   {/* الطرف الثاني */}
                   <div className="border border-[#d4a574]/20 rounded-lg p-4 bg-gray-50/50">
                     <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-sm">
-                      الطرف الثاني (المقاول):
+                      الطرف الثاني :
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
@@ -642,7 +642,7 @@ export default function ProgressReportPrint() {
                         <span className="text-gray-900 font-mono">{contract?.contractNumber || "—"}</span>
                       </div>
                       <div className="pt-6">
-                        <span className="font-semibold text-gray-600">التوقيع والختم: </span>
+                        <span className="font-semibold text-gray-600">التوقيع : </span>
                         <span className="text-gray-400 font-serif">..........................................</span>
                       </div>
                     </div>
