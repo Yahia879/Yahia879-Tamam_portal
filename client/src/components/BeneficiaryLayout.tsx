@@ -23,6 +23,7 @@ import {
   LifeBuoy,
   Sun,
   Moon,
+  ArrowRight,
 } from "lucide-react";
 
 interface BeneficiaryLayoutProps {
@@ -31,6 +32,8 @@ interface BeneficiaryLayoutProps {
   title?: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
+  backUrl?: string;
+  backLabel?: string;
 }
 
 export default function BeneficiaryLayout({
@@ -39,6 +42,8 @@ export default function BeneficiaryLayout({
   title,
   subtitle,
   headerActions,
+  backUrl,
+  backLabel,
 }: BeneficiaryLayoutProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
@@ -271,11 +276,21 @@ export default function BeneficiaryLayout({
 
       {/* Main Content Body */}
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
-        {(title || headerActions) && (
+        {(title || subtitle || headerActions || backUrl) && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
-            <div>
-              {title && <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
-              {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {backUrl && (
+                <Link href={backUrl}>
+                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
+                    <ArrowRight className="w-4 h-4" />
+                    <span>{backLabel || "رجوع"}</span>
+                  </Button>
+                </Link>
+              )}
+              <div className="min-w-0 flex-1">
+                {title && <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
+                {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
+              </div>
             </div>
             {headerActions && <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">{headerActions}</div>}
           </div>
