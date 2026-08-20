@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   Bell,
   Star,
-  Sparkles,
   TrendingUp,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -72,15 +71,11 @@ export default function RequesterDashboard() {
 
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-white text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>مرحباً بك في البوابة الإلكترونية</span>
-            </div>
             <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
               أهلاً بك، {user?.name} 👋
             </h1>
             <p className="text-white/85 text-xs sm:text-base leading-relaxed font-normal">
-              يسعدنا خدمتك في بوابة تمام لتطوير ورعاية بيوت الله. يمكنك من هنا متابعة طلباتك وتسجيل المساجد بكل سهولة.
+              يسعدنا خدمتك في بوابة منارة لتطوير ورعاية بيوت الله. يمكنك من هنا متابعة طلباتك وتسجيل المساجد بكل سهولة.
             </p>
           </div>
 

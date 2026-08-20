@@ -53,7 +53,7 @@ export default function BeneficiaryLayout({
   );
 
   const mainLogoSrc = orgSettings?.logoUrl || "/logo.svg";
-  const orgName = orgSettings?.organizationName || "بوابة تمام";
+  const orgName = orgSettings?.organizationName || "بوابة منارة";
   const orgNameShort = orgSettings?.organizationNameShort || "للعناية بالمساجد";
 
   const unreadNotificationsCount =
@@ -287,7 +287,7 @@ export default function BeneficiaryLayout({
       <footer className="mt-auto border-t border-border/60 bg-background/50 py-6 sm:py-8 text-center">
         <div className="container mx-auto px-4">
           <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-            {orgName} - خدمة وتطوير المساجد بمنطقة عسير
+            {orgName || "بوابة منارة"} - {orgNameShort || "للعناية بالمساجد"}
           </p>
           <p className="text-[11px] text-muted-foreground/70 mt-1">
             جميع الحقوق محفوظة © {new Date().getFullYear()}
