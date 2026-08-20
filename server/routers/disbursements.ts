@@ -1796,9 +1796,6 @@ export const disbursementsRouter = router({
                   const names = filtered
                     .map((e: any) => {
                       const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : (e.entity || e.customEntity);
-                      if (filtered.length > 1 && e.amount) {
-                        return `${name} (${Number(e.amount).toLocaleString()} ريال)`;
-                      }
                       return name;
                     })
                     .filter(Boolean);
@@ -1852,9 +1849,6 @@ export const disbursementsRouter = router({
                 const fdNames = filteredFd
                   .map((e: any) => {
                     const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : (e.entity || e.customEntity);
-                    if (filteredFd.length > 1 && e.amount) {
-                      return `${name} (${Number(e.amount).toLocaleString()} ريال)`;
-                    }
                     return name;
                   })
                   .filter(Boolean);

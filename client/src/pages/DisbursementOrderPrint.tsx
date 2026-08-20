@@ -249,9 +249,6 @@ export default function DisbursementOrderPrint() {
         const filtered = parsed.filter((s: any) => (s.entity && s.entity.trim() !== "") || (s.customEntity && s.customEntity.trim() !== ""));
         const names = filtered.map((s: any) => {
           const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "اخرى") : (s.entity || s.customEntity);
-          if (filtered.length > 1 && s.amount > 0) {
-            return `${name} (${Number(s.amount).toLocaleString()} ريال)`;
-          }
           return name;
         }).filter(Boolean);
         if (names.length > 0) {

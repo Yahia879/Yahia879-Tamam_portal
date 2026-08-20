@@ -393,9 +393,6 @@ export default function DisbursementRequestPrint() {
   const resolvedSupportingEntitiesText = (supportSources.length > 0
     ? supportSources.map(s => {
         const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "اخرى") : (s.entity || s.customEntity);
-        if (supportSources.length > 1 && s.amount > 0) {
-          return `${name} (${s.amount.toLocaleString()} ريال)`;
-        }
         return name;
       }).filter(Boolean).join("، ")
     : (financialDetail?.customSupportEntity || financialDetail?.supportEntity || (request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
