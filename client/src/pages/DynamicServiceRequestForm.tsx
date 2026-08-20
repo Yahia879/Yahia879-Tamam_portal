@@ -827,7 +827,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 className="gap-2 font-bold rounded-2xl h-11 px-5 border-primary/30 text-primary hover:bg-primary/5 shadow-xs self-start sm:self-center"
               >
                 <Printer className="w-4 h-4" />
-                <span>طباعة مسودة الطلب / PDF</span>
+                <span>طباعة مسودة الطلب</span>
               </Button>
             </div>
 
@@ -1008,15 +1008,6 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <div className="flex items-center justify-end gap-2">
               <span className="font-bold text-slate-600">التاريخ:</span>
               <span className="font-bold text-slate-900">{formatGregorianDate(new Date())}</span>
-            </div>
-            <div className="flex items-center justify-end gap-2">
-              <span className="font-bold text-slate-600">الموافق:</span>
-              <span className="font-bold text-slate-900">{toHijriDate(new Date())}</span>
-            </div>
-            <div className="flex items-center justify-end gap-2 pt-0.5">
-              <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded border border-emerald-200">
-                استمارة تقديم طلب خدمة
-              </span>
             </div>
           </div>
         </div>
