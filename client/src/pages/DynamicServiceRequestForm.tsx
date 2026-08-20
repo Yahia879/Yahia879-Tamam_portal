@@ -350,6 +350,493 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     }
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank', 'width=950,height=1100');
+    if (!printWindow) {
+      alert('يرجى السماح بالنوافذ المنبثقة لإتمام عملية الطباعة');
+      return;
+    }
+
+    const selectedMosque = userMosques?.find((m: any) => m.id === formData.mosqueId);
+    const mosqueNameStr = selectedMosque ? selectedMosque.name : (formData.mosqueId ? `مسجد #${formData.mosqueId}` : '—');
+    const mosqueCityStr = selectedMosque?.city || orgSettings?.city || '—';
+
+    // بناء صفوف الحقول الفنية
+    let fieldsRows = '';
+    visibleFields.forEach((field) => {
+      if (field.name === 'mosqueId') return;
+      const val = formData[field.name];
+      let displayVal = val ? String(val) : '—';
+      if (val === 'yes') displayVal = 'نعم';
+      if (val === 'no') displayVal = 'لا';
+      if (field.name === 'landOwnership') {
+        displayVal = val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : (val || '—');
+      }
+      if (field.name === 'mosqueArea' && val) displayVal = `${val} م²`;
+      if (field.name === 'landArea' && val) displayVal = `${val} م²`;
+      if (field.name === 'actualWorshippers' && val) displayVal = `${val} مصلي`;
+      if (field.name === 'distanceToNearestMosque' && val) displayVal = `${val} كم`;
+
+      const isLongText = field.name === 'workDescription' || field.name === 'fundingProposals' || (displayVal && displayVal.length > 60);
+
+      if (isLongText) {
+        fieldsRows += `
+          <tr>
+            <td class="td-label" style="width: 25%; vertical-align: top;">${field.label}:</td>
+            <td class="td-value-full" style="width: 75%;" colspan="3">${displayVal.replace(/\\n/g, '<br/>')}</td>
+          </tr>
+        `;
+      } else {
+        fieldsRows += `
+          <tr>
+            <td class="td-label" style="width: 25%;">${field.label}:</td>
+            <td class="td-value" style="width: 75%;" colspan="3">${displayVal}</td>
+          </tr>
+        `;
+      }
+    });
+
+    if (selectedService === 'bunyan' && formData.hasPrayerHall !== undefined) {
+      const womenHallText = formData.hasPrayerHall
+        ? `يوجد مصلى للنساء (السعة: ${formData.womenPrayerCapacity || '—'} مصلي | المساحة: ${formData.womenPrayerArea || '—'} م²)`
+        : 'لا يوجد مصلى للنساء';
+      fieldsRows += `
+        <tr>
+          <td class="td-label" style="width: 25%;">مصلى النساء:</td>
+          <td class="td-value" style="width: 75%;" colspan="3">${womenHallText}</td>
+        </tr>
+      `;
+    }
+
+    if (selectedFile) {
+      fieldsRows += `
+        <tr>
+          <td class="td-label" style="width: 25%;">المرفقات المرفوعة:</td>
+          <td class="td-value" style="width: 75%;" colspan="3">${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</td>
+        </tr>
+      `;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="utf-8" />
+        <title>استمارة طلب خدمة - ${selectedProgramConfig?.name || 'بوابة منارة'}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <style>
+          * {
+            box-sizing: border-box;
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+            margin: 0;
+            padding: 0;
+          }
+          @page {
+            size: A4 portrait;
+            margin: 10mm 8mm;
+          }
+          body {
+            background-color: #f8fafc;
+            color: #0f172a;
+            direction: rtl;
+            padding: 20px 10px;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .page-container {
+            width: 100%;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-radius: 12px;
+          }
+          .doc-border {
+            border: 3px solid #1a5f4a;
+            border-radius: 10px;
+            padding: 20px 22px;
+            position: relative;
+            background: white;
+          }
+          .doc-border-inner {
+            position: absolute;
+            inset: 5px;
+            border: 1px solid #d4a574;
+            border-radius: 7px;
+            pointer-events: none;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 14px;
+          }
+          .header-logo-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+          }
+          .header-logo {
+            height: 64px;
+            width: auto;
+            max-width: 160px;
+            object-fit: contain;
+          }
+          .header-org-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1a5f4a;
+          }
+          .header-org-sub {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+          }
+          .header-meta {
+            text-align: left;
+            font-size: 11px;
+            line-height: 1.7;
+          }
+          .header-meta-item {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+          }
+          .header-meta-label {
+            font-weight: 700;
+            color: #475569;
+          }
+          .header-meta-value {
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .badge-draft {
+            display: inline-block;
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            font-size: 10.5px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 6px;
+          }
+          .banner {
+            background: #1a5f4a;
+            color: white;
+            text-align: center;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+          }
+          .banner h1 {
+            font-size: 17px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+          }
+          .banner p {
+            font-size: 11.5px;
+            opacity: 0.92;
+            margin-top: 3px;
+          }
+          .section-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+            background: white;
+          }
+          .section-title {
+            background: #f1f5f9;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 7px 14px;
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #1a5f4a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          table.grid-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+          }
+          table.grid-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          table.grid-table tr:last-child td {
+            border-bottom: none;
+          }
+          .td-label {
+            background: #f8fafc;
+            font-weight: 700;
+            color: #475569;
+            border-left: 1px solid #e2e8f0;
+          }
+          .td-value {
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .td-value-full {
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.7;
+          }
+          .declaration-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #166534;
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+          }
+          .declaration-box strong {
+            font-weight: 800;
+          }
+          .signatures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            border-top: 1px solid #cbd5e1;
+            padding-top: 14px;
+            margin-top: 14px;
+            text-align: center;
+            font-size: 11.5px;
+            page-break-inside: avoid;
+          }
+          .sig-title {
+            font-weight: 800;
+            color: #475569;
+            margin-bottom: 4px;
+          }
+          .sig-name {
+            font-weight: 700;
+            color: #0f172a;
+          }
+          .sig-line {
+            font-size: 10px;
+            color: #94a3b8;
+            margin-top: 28px;
+          }
+          .stamp-badge {
+            display: inline-block;
+            border: 1.5px dashed #1a5f4a;
+            color: #1a5f4a;
+            font-weight: 800;
+            font-size: 10.5px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            margin-top: 6px;
+            background: #f0fdf4;
+          }
+          .footer {
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10px;
+            color: #94a3b8;
+          }
+          .print-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+          }
+          .btn-print {
+            background: #1a5f4a;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(26,95,74,0.25);
+          }
+          .btn-close {
+            background: white;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+          }
+          @media print {
+            body {
+              padding: 0;
+              background: white;
+            }
+            .page-container {
+              box-shadow: none;
+              border-radius: 0;
+              max-width: 100%;
+            }
+            .no-print {
+              display: none !important;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-actions no-print">
+          <button class="btn-print" onclick="window.print()">طباعة التقرير / تنزيل PDF</button>
+          <button class="btn-close" onclick="window.close()">إغلاق</button>
+        </div>
+
+        <div class="page-container">
+          <div class="doc-border">
+            <div class="doc-border-inner"></div>
+
+            <!-- ترويسة التقرير -->
+            <div class="header">
+              <div class="header-logo-section">
+                ${orgSettings?.logoUrl ? `<img src="${orgSettings.logoUrl}" class="header-logo" alt="شعار الجمعية" />` : `<div style="width:54px;height:54px;background:#1a5f4a15;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#1a5f4a;font-weight:900;font-size:18px;">منارة</div>`}
+                <div>
+                  <div class="header-org-title">${orgSettings?.officialReportsName || "بوابة منارة - للعناية بالمساجد"}</div>
+                  <div class="header-org-sub">إدارة شؤون وخدمات المساجد والمشاريع</div>
+                  <div class="header-org-sub" style="font-size: 9.5px; color: #94a3b8;">منصة تمام لخدمة ورعاية بيوت الله</div>
+                </div>
+              </div>
+              <div class="header-meta">
+                <div class="header-meta-item">
+                  <span class="header-meta-label">التاريخ:</span>
+                  <span class="header-meta-value">${formatGregorianDate(new Date())}</span>
+                </div>
+                <div class="header-meta-item">
+                  <span class="header-meta-label">الموافق:</span>
+                  <span class="header-meta-value">${toHijriDate(new Date())}</span>
+                </div>
+                <div class="header-meta-item" style="margin-top: 4px;">
+                  <span class="badge-draft">استمارة تقديم طلب خدمة إلكتروني</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- بانر العنوان -->
+            <div class="banner">
+              <h1>استمارة طلب خدمة: ${selectedProgramConfig?.name || 'خدمة مساجد'}</h1>
+              <p>${selectedProgramConfig?.description || 'تفاصيل وبيانات الطلب المقدم عبر البوابة'}</p>
+            </div>
+
+            <!-- أولاً: بيانات مقدم الطلب -->
+            <div class="section-box">
+              <div class="section-title">أولاً: بيانات مقدم الطلب</div>
+              <table class="grid-table">
+                <tr>
+                  <td class="td-label" style="width: 22%;">الاسم الكامل:</td>
+                  <td class="td-value" style="width: 28%;">${user?.name || '—'}</td>
+                  <td class="td-label" style="width: 22%;">الصفة / نوع الحساب:</td>
+                  <td class="td-value" style="width: 28%;">${user?.requesterType === 'imam' ? 'إمام / مؤذن مسجد' : 'طالب خدمة مساجد'}</td>
+                </tr>
+                <tr>
+                  <td class="td-label">البريد الإلكتروني:</td>
+                  <td class="td-value">${user?.email || '—'}</td>
+                  <td class="td-label">رقم الجوال:</td>
+                  <td class="td-value" dir="ltr" style="text-align: right;">${user?.phone || '—'}</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- ثانياً: بيانات المسجد والموقع -->
+            <div class="section-box">
+              <div class="section-title">ثانياً: بيانات المسجد والموقع</div>
+              <table class="grid-table">
+                ${selectedService === 'bunyan' ? `
+                  <tr>
+                    <td class="td-label" style="width: 22%;">حالة المسجد:</td>
+                    <td class="td-value" style="width: 28%;">بناء جديد / استكمال متعثر</td>
+                    <td class="td-label" style="width: 22%;">اسم الحي / المنطقة:</td>
+                    <td class="td-value" style="width: 28%;">${formData.district || '—'}</td>
+                  </tr>
+                  <tr>
+                    <td class="td-label">أقرب مسجد موجود:</td>
+                    <td class="td-value">${formData.nearestMosque || '—'}</td>
+                    <td class="td-label">المسافة من أقرب مسجد:</td>
+                    <td class="td-value">${formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '—'}</td>
+                  </tr>
+                ` : `
+                  <tr>
+                    <td class="td-label" style="width: 22%;">اسم المسجد:</td>
+                    <td class="td-value" style="width: 28%;">${mosqueNameStr}</td>
+                    <td class="td-label" style="width: 22%;">المدينة / المنطقة:</td>
+                    <td class="td-value" style="width: 28%;">${mosqueCityStr}</td>
+                  </tr>
+                `}
+              </table>
+            </div>
+
+            <!-- ثالثاً: تفاصيل ونطاق الطلب -->
+            <div class="section-box">
+              <div class="section-title">ثالثاً: تفاصيل ونطاق الطلب</div>
+              <table class="grid-table">
+                ${fieldsRows}
+              </table>
+            </div>
+
+            <!-- رابعاً: الإقرار والتعهد -->
+            <div class="declaration-box">
+              <strong>إقرار وتعهد مقدم الطلب:</strong><br>
+              أقر أنا مقدم الطلب الموضحة بياناتي أعلاه بصحة ودقة كافة البيانات والمعلومات والمرفقات الواردة في هذه الاستمارة، وأوافق على خضوع هذا الطلب للضوابط والمعايير والتقييم الميداني والفني المعتمد لدى جمعية عمارة المساجد (منارة).
+            </div>
+
+            <!-- خامساً: التواقيع والاعتماد -->
+            <div class="signatures-grid">
+              <div>
+                <div class="sig-title">مقدم الطلب</div>
+                <div class="sig-name">${user?.name || '—'}</div>
+                <div class="sig-line">التوقيع: ...........................</div>
+              </div>
+              <div>
+                <div class="sig-title">تاريخ إعداد الاستمارة</div>
+                <div class="sig-name">${formatGregorianDate(new Date())}</div>
+                <div class="sig-line">${toHijriDate(new Date())}</div>
+              </div>
+              <div>
+                <div class="sig-title">اعتماد البوابة الإلكترونية</div>
+                <div class="stamp-badge">
+                  منارة - تم الإنشاء إلكترونياً
+                </div>
+              </div>
+            </div>
+
+            <!-- التذييل الرسمي -->
+            <div class="footer">
+              <span>${orgSettings?.address || "المملكة العربية السعودية"}</span>
+              <span>${orgSettings?.website || "www.manarah.org.sa"} | ${orgSettings?.email || "info@manarah.org.sa"}</span>
+              <span>صفحة 1 من 1</span>
+            </div>
+          </div>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 400);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleExceptionSubmit = async () => {
     if (!exceptionReason.trim()) {
       alert("يرجى كتابة سبب طلب الاستثناء");
@@ -811,7 +1298,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="gap-2 font-bold rounded-2xl h-11 px-5 border-primary/30 text-primary hover:bg-primary/5 shadow-xs self-start sm:self-center"
               >
                 <Printer className="w-4 h-4" />
@@ -851,15 +1338,15 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
                   <div>
                     <p className="text-muted-foreground mb-0.5 font-medium">الاسم</p>
-                    <p className="font-bold text-foreground">{currentUser?.name || '-'}</p>
+                    <p className="font-bold text-foreground">{user?.name || '-'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-0.5 font-medium">البريد الإلكتروني</p>
-                    <p className="font-bold text-foreground truncate">{currentUser?.email || '-'}</p>
+                    <p className="font-bold text-foreground truncate">{user?.email || '-'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-0.5 font-medium">رقم الجوال</p>
-                    <p className="font-bold text-foreground font-mono" dir="ltr">{currentUser?.phone || '-'}</p>
+                    <p className="font-bold text-foreground font-mono" dir="ltr">{user?.phone || '-'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-0.5 font-medium">نوع الحساب / الصفة</p>
@@ -922,251 +1409,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           </div>
         )}
 
-        {/* تنسيقات الطباعة المتوافقة مع تقارير المنصة الرسمية */}
-        <style>{`
-          @media print {
-            @page {
-              size: A4 portrait;
-              margin: 8mm 6mm !important;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-sizing: border-box !important;
-            }
-            html, body {
-              width: 100% !important;
-              height: auto !important;
-              background-color: white !important;
-              color: black !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: visible !important;
-            }
-            header, nav, footer, .print\\:hidden {
-              display: none !important;
-            }
-            .printable-report-container {
-              display: block !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            .section-block, tr, .break-inside-avoid {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-          }
-        `}</style>
 
-        {/* قالب التقرير الرسمي المخصص للطباعة A4 */}
-        <div className="hidden print:block printable-report-container font-sans text-black" dir="rtl">
-          <div className="w-full border-[3px] border-[#1a5f4a] p-6 rounded-lg relative overflow-hidden bg-white">
-            {/* خط ذهبي داخلي رفيع للإطار مثل تقارير العقود والإنجاز */}
-            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
-
-            <div className="relative z-10">
-              {/* ترويسة التقرير: الشعار، اسم الجمعية، وتاريخ الطلب */}
-              <div className="flex justify-between items-start gap-4 mb-5 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto object-contain" />
-                  ) : (
-                    <div className="w-16 h-16 bg-[#1a5f4a]/10 rounded-lg flex items-center justify-center border border-[#1a5f4a]/20">
-                      <span className="text-[#1a5f4a] font-bold text-xl">منارة</span>
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="text-base font-extrabold text-[#1a5f4a]">
-                      {orgSettings?.officialReportsName || "بوابة منارة - للعناية بالمساجد"}
-                    </h3>
-                    <p className="text-xs text-gray-500 font-medium">إدارة شؤون وخدمات المساجد والمشاريع</p>
-                    <p className="text-[11px] text-gray-400">منصة تمام لخدمة ورعاية بيوت الله</p>
-                  </div>
-                </div>
-
-                <div className="text-xs space-y-1.5 text-left pl-2">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-bold text-gray-700">التاريخ:</span>
-                    <span className="font-semibold text-gray-900">{formatGregorianDate(new Date())}</span>
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-bold text-gray-700">الموافق:</span>
-                    <span className="font-semibold text-gray-900">{toHijriDate(new Date())}</span>
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
-                    <span className="font-bold text-gray-700">نوع الوثيقة:</span>
-                    <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
-                      مسودة طلب خدمة إلكتروني
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* البانر الرئيسي للتقرير */}
-              <div className="text-center py-3.5 px-4 mb-5 rounded-lg bg-[#1a5f4a] text-white shadow-xs">
-                <h1 className="text-xl font-bold">
-                  استمارة تقديم طلب خدمة مساجد - {selectedProgramConfig?.name}
-                </h1>
-                <p className="text-xs text-emerald-100 mt-1">
-                  {selectedProgramConfig?.description}
-                </p>
-              </div>
-
-              {/* القسم 1: بيانات مقدم الطلب */}
-              <div className="mb-4 section-block">
-                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
-                  أولاً: بيانات مقدم الطلب
-                </div>
-                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
-                  <tbody>
-                    <tr className="border-b border-gray-200 bg-gray-50/50">
-                      <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">الاسم الكامل:</td>
-                      <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">{currentUser?.name || '-'}</td>
-                      <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">الصفة / نوع الحساب:</td>
-                      <td className="p-2 text-gray-900 w-1/4">طالب خدمة مساجد</td>
-                    </tr>
-                    <tr className="bg-white">
-                      <td className="p-2 font-bold text-gray-600 border-l border-gray-200">البريد الإلكتروني:</td>
-                      <td className="p-2 text-gray-900 border-l border-gray-200">{currentUser?.email || '-'}</td>
-                      <td className="p-2 font-bold text-gray-600 border-l border-gray-200">رقم الجوال:</td>
-                      <td className="p-2 text-gray-900" dir="ltr">{currentUser?.phone || '-'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* القسم 2: بيانات المسجد والموقع */}
-              <div className="mb-4 section-block">
-                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
-                  ثانياً: بيانات المسجد والموقع
-                </div>
-                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
-                  <tbody>
-                    {selectedService === 'bunyan' ? (
-                      <>
-                        <tr className="border-b border-gray-200 bg-gray-50/50">
-                          <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">حالة المسجد:</td>
-                          <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">بناء جديد / استكمال متعثر</td>
-                          <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">اسم الحي:</td>
-                          <td className="p-2 text-gray-900 w-1/4">{formData.district || '-'}</td>
-                        </tr>
-                        <tr className="bg-white">
-                          <td className="p-2 font-bold text-gray-600 border-l border-gray-200">أقرب مسجد موجود:</td>
-                          <td className="p-2 text-gray-900 border-l border-gray-200">{formData.nearestMosque || '-'}</td>
-                          <td className="p-2 font-bold text-gray-600 border-l border-gray-200">المسافة من أقرب مسجد:</td>
-                          <td className="p-2 text-gray-900">{formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '-'}</td>
-                        </tr>
-                      </>
-                    ) : (
-                      <tr className="bg-white">
-                        <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">اسم المسجد:</td>
-                        <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">
-                          {(() => {
-                            const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
-                            return found ? found.name : `مسجد #${formData.mosqueId || '-'}`;
-                          })()}
-                        </td>
-                        <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">المدينة / المنطقة:</td>
-                        <td className="p-2 text-gray-900 w-1/4">
-                          {(() => {
-                            const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
-                            return found ? (found.city || orgSettings?.city || '-') : (orgSettings?.city || '-');
-                          })()}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* القسم 3: التفاصيل الفنية ونطاق الأعمال */}
-              <div className="mb-4 section-block">
-                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
-                  ثالثاً: تفاصيل ونطاق الطلب
-                </div>
-                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
-                  <tbody>
-                    {visibleFields.map((field, idx) => {
-                      const val = formData[field.name];
-                      let displayVal = val ? String(val) : '-';
-                      if (val === 'yes') displayVal = 'نعم';
-                      if (val === 'no') displayVal = 'لا';
-                      if (field.name === 'landOwnership') {
-                        displayVal = val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : (val || '-');
-                      }
-                      if (field.name === 'mosqueId' && (userMosques?.length ?? 0) > 0) {
-                        const m = userMosques?.find((item: any) => item.id === val);
-                        if (m) displayVal = `${m.name} ${m.city ? `(${m.city})` : ''}`;
-                      }
-
-                      return (
-                        <tr key={field.name} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
-                          <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">{field.label}:</td>
-                          <td className="p-2 text-gray-900 whitespace-pre-wrap leading-relaxed">{displayVal}</td>
-                        </tr>
-                      );
-                    })}
-                    {selectedService === 'bunyan' && (
-                      <tr className="border-b border-gray-200 bg-white">
-                        <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">مصلى النساء:</td>
-                        <td className="p-2 text-gray-900">
-                          {formData.hasPrayerHall
-                            ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || '-'} مصلي | المساحة: ${formData.womenPrayerArea || '-'} م²)`
-                            : 'لا يتضمن مصلى للنساء'}
-                        </td>
-                      </tr>
-                    )}
-                    <tr className="bg-gray-50/50">
-                      <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">المرفقات المرفوعة:</td>
-                      <td className="p-2 text-gray-900 font-semibold">
-                        {selectedFile ? `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'لا يوجد مرفقات'}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* القسم 4: الإقرار والتعهد */}
-              <div className="mb-5 p-3 border border-emerald-200 bg-emerald-50/50 rounded-lg text-xs leading-relaxed section-block">
-                <p className="font-bold text-emerald-900 mb-1">إقرار وتعهد مقدم الطلب:</p>
-                <p className="text-emerald-800 text-[11px]">
-                  أقر أنا مقدم الطلب الموضحة بياناتي أعلاه بصحة ودقة كافة البيانات والمعلومات والمرفقات الواردة في هذه الاستمارة، وأوافق على خضوع الطلب للضوابط والمعايير والتقييم الميداني والفني المعتمد لدى جمعية عمارة المساجد (منارة).
-                </p>
-              </div>
-
-              {/* القسم 5: التواقيع والاعتماد */}
-              <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-300 text-center text-xs section-block">
-                <div>
-                  <p className="font-bold text-gray-700 mb-1">مقدم الطلب</p>
-                  <p className="text-gray-900 font-bold">{currentUser?.name || '-'}</p>
-                  <p className="text-[10px] text-gray-400 mt-6">التوقيع: ...........................</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-gray-700 mb-1">تاريخ إعداد الاستمارة</p>
-                  <p className="font-mono text-gray-900">{formatGregorianDate(new Date())}</p>
-                  <p className="text-[10px] text-gray-400 mt-6">{toHijriDate(new Date())}</p>
-                </div>
-
-                <div>
-                  <p className="font-bold text-gray-700 mb-1">اعتماد البوابة الإلكترونية</p>
-                  <div className="inline-block px-3 py-1 border-2 border-dashed border-[#1a5f4a]/40 text-[#1a5f4a] rounded font-bold text-[11px] mt-1">
-                    منارة - تم الإنشاء إلكترونياً
-                  </div>
-                </div>
-              </div>
-
-              {/* التذييل الرسمي */}
-              <div className="mt-6 pt-3 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-500">
-                <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
-                <span>{orgSettings?.website || "www.manarah.org.sa"} | {orgSettings?.email || "info@manarah.org.sa"}</span>
-                <span>صفحة 1 من 1</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* أزرار التنقل */}
         <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border/60">
