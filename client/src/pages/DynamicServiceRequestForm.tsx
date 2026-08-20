@@ -642,7 +642,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                             </div>
                             <div>
                               <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المشروع مصلى للنساء؟</p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا كان التصميم أو البناء يشمل قسماً مخصصاً لمصلى النساء</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
                             </div>
                           </div>
                           <Checkbox
