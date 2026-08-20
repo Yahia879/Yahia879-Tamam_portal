@@ -167,7 +167,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
           
           return (
             <Select value={value?.toString() || ''} onValueChange={(val) => onChange(parseInt(val))} disabled={disabled}>
-              <SelectTrigger className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
+              <SelectTrigger className={`w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder={field.placeholder || 'اختر المسجد...'} />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-border shadow-lg">
@@ -184,7 +184,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         // الحقول الأخرى
         return (
           <Select value={value || ''} onValueChange={onChange} disabled={disabled}>
-            <SelectTrigger className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
+            <SelectTrigger className={`w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
               <SelectValue placeholder={field.placeholder || 'اختر...'} />
             </SelectTrigger>
             <SelectContent className="rounded-xl border-border shadow-lg">
