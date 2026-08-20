@@ -14,6 +14,7 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,11 @@ import {
   Droplets, 
   GlassWater,
   Info,
-  ArrowRight
+  ArrowRight,
+  Users,
+  Ruler,
+  Trash2,
+  UploadCloud,
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, any> = {
@@ -424,7 +429,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       </div>
 
       {/* محتوى الخطوات */}
-      <Card className="p-4 sm:p-8 shadow-xl border-0 sm:border rounded-2xl sm:rounded-3xl">
+      <Card className="p-5 sm:p-8 lg:p-10 shadow-xl border border-border/60 rounded-3xl bg-background overflow-hidden">
         {/* الخطوة 1: اختيار الخدمة */}
         {currentStep === 'service-selection' && (
           <div className="space-y-5 sm:space-y-6">
@@ -544,26 +549,39 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         {/* الخطوة 4: تفاصيل الطلب */}
         {currentStep === 'details' && (
-          <div className="space-y-5 sm:space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">
-                تفاصيل الطلب - {selectedProgramConfig?.name}
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">{selectedProgramConfig?.description}</p>
+          <div className="space-y-6 sm:space-y-8">
+            {/* بطاقة رأس تفاصيل البرنامج */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent border border-primary/20">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground truncate">
+                    تفاصيل الطلب - {selectedProgramConfig?.name}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    {selectedProgramConfig?.description}
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="self-start sm:self-center border-primary/30 text-primary font-bold text-xs px-3 py-1 bg-background/80 rounded-xl">
+                الخطوة 2 من 3
+              </Badge>
             </div>
 
             {/* حالة تحميل المساجد */}
             {mosquesLoading && (
-              <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/40 text-muted-foreground text-xs sm:text-sm">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 جاري تحميل بيانات المساجد...
               </div>
             )}
 
-            <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               {/* حقل التسمية التوضيحية الاختياري (يظهر للموظفين فقط وليس للمستفيد) */}
               {currentUser?.role !== "service_requester" && (
-                <div className="space-y-1.5 bg-muted/20 p-4 rounded-xl border border-border">
+                <div className="col-span-1 sm:col-span-2 space-y-1.5 bg-muted/20 p-4 sm:p-5 rounded-2xl border border-border">
                   <label htmlFor="descriptiveName" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
                     <Tag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     التسمية التوضيحية (اختياري)
@@ -574,36 +592,44 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     value={formData.descriptiveName || ''}
                     onChange={(e) => handleFieldChange("descriptiveName", e.target.value)}
                     placeholder="مثال: ترميم المصلى الرئيسي، صيانة التكييف، مظلات الخارجية..."
-                    className="h-10 text-xs sm:text-sm bg-background border-border"
+                    className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
                   />
                   <p className="text-[11px] text-muted-foreground">اسم توضيحي يسهل التمييز والتنظيم في جدول الطلبات والمشاريع.</p>
                 </div>
               )}
+
               {(selectedService === 'bunyan'
                 ? visibleFields.filter(f => f.name !== 'womenPrayerArea' && f.name !== 'womenPrayerCapacity')
                 : visibleFields
-              ).map((field) => (
-                <React.Fragment key={field.name}>
-                  <div className="space-y-4">
-                    <ConditionalField
-                      field={field}
-                      formData={formData}
-                      value={formData[field.name]}
-                      onChange={(value) => handleFieldChange(field.name, value)}
-                      error={errors[field.name]}
-                      mosqueOptions={userMosques}
-                      onAddMosque={() => navigate('/requester/mosques/new')}
-                      disabled={selectedService !== 'bunyan' && ['mosqueArea', 'actualWorshippers', 'womenPrayerArea', 'womenPrayerCapacity'].includes(field.name)}
-                    />
-                  </div>
-                  {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
-                    <>
-                      <div className="flex items-center gap-2 py-2 mt-2 mb-4 animate-in fade-in duration-200">
-                        <Checkbox
-                          id="hasPrayerHall"
-                          checked={!!formData.hasPrayerHall}
-                          onCheckedChange={(checked) => {
-                            const isChecked = checked as boolean;
+              ).map((field) => {
+                const isFullWidth =
+                  field.type === 'textarea' ||
+                  field.type === 'radio' ||
+                  field.name === 'mosqueId' ||
+                  field.name === 'workDescription' ||
+                  field.name === 'fundingProposals' ||
+                  field.name === 'willingToVolunteer';
+
+                return (
+                  <React.Fragment key={field.name}>
+                    <div className={isFullWidth ? 'col-span-1 sm:col-span-2' : 'col-span-1'}>
+                      <ConditionalField
+                        field={field}
+                        formData={formData}
+                        value={formData[field.name]}
+                        onChange={(value) => handleFieldChange(field.name, value)}
+                        error={errors[field.name]}
+                        mosqueOptions={userMosques}
+                        onAddMosque={() => navigate('/requester/mosques/new')}
+                        disabled={selectedService !== 'bunyan' && ['mosqueArea', 'actualWorshippers', 'womenPrayerArea', 'womenPrayerCapacity'].includes(field.name)}
+                      />
+                    </div>
+
+                    {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
+                      <div className="col-span-1 sm:col-span-2 space-y-4">
+                        <div
+                          onClick={() => {
+                            const isChecked = !formData.hasPrayerHall;
                             setFormData((prev) => {
                               const updated = { ...prev, hasPrayerHall: isChecked } as any;
                               if (!isChecked) {
@@ -621,60 +647,87 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                               });
                             }
                           }}
-                        />
-                        <label htmlFor="hasPrayerHall" className="cursor-pointer text-xs sm:text-sm select-none font-medium text-foreground">
-                          هل يوجد مصلى نساء؟
-                        </label>
-                      </div>
-
-                      {formData.hasPrayerHall && (
-                        <div className="mt-4 p-4 border rounded-lg bg-muted/30 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <h4 className="font-semibold text-xs sm:text-sm text-primary flex items-center gap-1.5 border-b pb-2">
-                            <Building2 className="w-4 h-4" />
-                            معلومات مصلى النساء
-                          </h4>
-                          <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                            <div className="space-y-1.5">
-                              <label htmlFor="womenPrayerCapacity" className="text-[11px] sm:text-xs font-medium text-foreground">سعة مصلى النساء (مصلي) *</label>
-                              <Input
-                                id="womenPrayerCapacity"
-                                type="number"
-                                value={formData.womenPrayerCapacity || ''}
-                                onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
-                                placeholder="مثال: 50"
-                                className={`h-9 sm:h-10 text-xs sm:text-sm bg-white ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
-                              />
-                              {errors.womenPrayerCapacity && (
-                                <p className="text-[11px] sm:text-xs text-red-500">{errors.womenPrayerCapacity}</p>
-                              )}
+                          className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
+                            formData.hasPrayerHall
+                              ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20'
+                              : 'border-border/60 bg-muted/20 hover:bg-muted/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                              formData.hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                            }`}>
+                              <Building2 className="w-5 h-5" />
                             </div>
-                            <div className="space-y-1.5">
-                              <label htmlFor="womenPrayerArea" className="text-[11px] sm:text-xs font-medium text-foreground">المساحة (م²) *</label>
-                              <Input
-                                id="womenPrayerArea"
-                                type="number"
-                                value={formData.womenPrayerArea || ''}
-                                onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
-                                placeholder="مثال: 50"
-                                className={`h-9 sm:h-10 text-xs sm:text-sm bg-white ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
-                              />
-                              {errors.womenPrayerArea && (
-                                <p className="text-[11px] sm:text-xs text-red-500">{errors.womenPrayerArea}</p>
-                              )}
+                            <div>
+                              <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المشروع مصلى للنساء؟</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا كان التصميم أو البناء يشمل قسماً مخصصاً لمصلى النساء</p>
                             </div>
                           </div>
+                          <Checkbox
+                            id="hasPrayerHall"
+                            checked={!!formData.hasPrayerHall}
+                            className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                          />
                         </div>
-                      )}
-                    </>
-                  )}
-                </React.Fragment>
-              ))}
+
+                        {formData.hasPrayerHall && (
+                          <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
+                              <Building2 className="w-4 h-4" />
+                              بيانات مصلى النساء
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label htmlFor="womenPrayerCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                  <Users className="w-4 h-4 text-primary/70" />
+                                  <span>سعة مصلى النساء (مصلي)</span>
+                                  <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <Input
+                                  id="womenPrayerCapacity"
+                                  type="number"
+                                  value={formData.womenPrayerCapacity || ''}
+                                  onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
+                                  placeholder="مثال: 50"
+                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
+                                />
+                                {errors.womenPrayerCapacity && (
+                                  <p className="text-xs text-red-500 font-medium">{errors.womenPrayerCapacity}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <label htmlFor="womenPrayerArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                  <Ruler className="w-4 h-4 text-primary/70" />
+                                  <span>المساحة (م²)</span>
+                                  <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <Input
+                                  id="womenPrayerArea"
+                                  type="number"
+                                  value={formData.womenPrayerArea || ''}
+                                  onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
+                                  placeholder="مثال: 50"
+                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
+                                />
+                                {errors.womenPrayerArea && (
+                                  <p className="text-xs text-red-500 font-medium">{errors.womenPrayerArea}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
 
               {/* حقل رفع المرفق الاختياري */}
-              <div className="pt-5 sm:pt-6 border-t border-border">
-                <label className="flex items-center gap-2 text-sm sm:text-base font-bold mb-3 text-foreground">
+              <div className="col-span-1 sm:col-span-2 pt-4 border-t border-border/60">
+                <label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
                   <Paperclip className="w-4 h-4 text-primary" />
-                  رفع مرفق (اختياري)
+                  <span>المرفقات والوثائق الداعمة (اختياري)</span>
                 </label>
                 <div className="flex flex-col gap-3">
                   <input
@@ -701,31 +754,46 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       setSelectedFile(file);
                     }}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 sm:h-14 border-2 border-dashed hover:border-primary/50 hover:bg-primary/5 transition-all rounded-xl"
-                    onClick={() => document.getElementById('request-attachment')?.click()}
-                  >
-                    {selectedFile ? (
-                      <span className="flex items-center gap-2 text-primary font-bold">
-                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="truncate max-w-[200px] sm:max-w-none">{selectedFile.name}</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2 text-muted-foreground font-medium">
-                        <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                        اضغط لاختيار ملف (PDF, Image, Word)
-                      </span>
-                    )}
-                  </Button>
-                  {selectedFile && (
-                    <button 
-                      onClick={() => setSelectedFile(null)}
-                      className="text-xs sm:text-sm text-destructive hover:underline self-start font-medium px-1"
+
+                  {selectedFile ? (
+                    <div className="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs sm:text-sm text-foreground truncate">{selectedFile.name}</p>
+                          <p className="text-[11px] text-muted-foreground font-mono">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                        className="rounded-xl text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>إزالة</span>
+                      </Button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => document.getElementById('request-attachment')?.click()}
+                      className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group"
                     >
-                      إزالة الملف
-                    </button>
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <p className="font-bold text-xs sm:text-sm text-foreground">
+                        اضغط لرفع ملف أو اسحبه إلى هنا
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -816,31 +884,47 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         )}
 
         {/* أزرار التنقل */}
-        <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border">
+        <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border/60">
           {currentStep !== 'service-selection' ? (
-            <Button variant="outline" onClick={handlePreviousStep} className="flex items-center gap-1 sm:gap-2 h-10 sm:h-11 px-3 sm:px-5 rounded-xl font-bold">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handlePreviousStep}
+              className="rounded-2xl font-bold h-11 sm:h-12 px-4 sm:px-6 gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
+            >
               <ChevronRight className="w-4 h-4" />
-              <span className="text-xs sm:text-sm">السابق</span>
+              <span>السابق</span>
             </Button>
           ) : (
             <div /> // Placeholder to keep Next button on the left (RTL)
           )}
           
           {currentStep !== 'review' ? (
-            <Button onClick={handleNextStep} className="flex items-center gap-1 sm:gap-2 h-10 sm:h-11 px-6 sm:px-8 rounded-xl font-bold bg-primary hover:bg-primary/90">
-              <span className="text-xs sm:text-sm">التالي</span>
+            <Button
+              size="lg"
+              onClick={handleNextStep}
+              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
+            >
+              <span>التالي</span>
               <ChevronLeft className="w-4 h-4" />
             </Button>
           ) : (
             <Button
+              size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending}
-              className="flex items-center gap-2 h-10 sm:h-11 px-5 sm:px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-md shadow-primary/20"
+              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
             >
               {isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> <span className="text-xs sm:text-sm">جاري الإرسال...</span></>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري الإرسال...</span>
+                </>
               ) : (
-                <><CheckCircle2 className="w-4 h-4" /> <span className="text-xs sm:text-sm">إرسال الطلب</span></>
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>إرسال الطلب</span>
+                </>
               )}
             </Button>
           )}

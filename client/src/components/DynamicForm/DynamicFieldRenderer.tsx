@@ -7,7 +7,22 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { 
+  Plus, 
+  AlertTriangle, 
+  FileText, 
+  Ruler, 
+  Users, 
+  MapPin, 
+  Building2, 
+  Coins, 
+  Check, 
+  HelpCircle,
+  Clock,
+  Sparkles,
+  Phone,
+  Mail,
+} from 'lucide-react';
 
 interface DynamicFieldRendererProps {
   field: FormField;
@@ -19,6 +34,56 @@ interface DynamicFieldRendererProps {
   onAddMosque?: () => void;
 }
 
+const getFieldIcon = (fieldName: string) => {
+  switch (fieldName) {
+    case 'workDescription':
+    case 'fundingProposals':
+    case 'notes':
+      return FileText;
+    case 'mosqueArea':
+    case 'womenPrayerArea':
+      return Ruler;
+    case 'actualWorshippers':
+    case 'womenPrayerCapacity':
+      return Users;
+    case 'district':
+    case 'city':
+    case 'address':
+      return MapPin;
+    case 'mosqueId':
+    case 'nearestMosque':
+      return Building2;
+    case 'hasDonor':
+    case 'hasDonorForMaintenance':
+    case 'hasLand':
+      return Coins;
+    case 'distanceToNearestMosque':
+      return MapPin;
+    case 'phone':
+    case 'mobile':
+      return Phone;
+    case 'email':
+      return Mail;
+    default:
+      return null;
+  }
+};
+
+const getUnitSuffix = (fieldName: string) => {
+  switch (fieldName) {
+    case 'mosqueArea':
+    case 'womenPrayerArea':
+      return 'م²';
+    case 'actualWorshippers':
+    case 'womenPrayerCapacity':
+      return 'مصلي';
+    case 'distanceToNearestMosque':
+      return 'كم';
+    default:
+      return null;
+  }
+};
+
 export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   field,
   value,
@@ -28,31 +93,47 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   options,
   onAddMosque,
 }) => {
+  const Icon = getFieldIcon(field.name);
+  const unitSuffix = getUnitSuffix(field.name);
+
   const renderField = () => {
     switch (field.type) {
       case 'text':
       case 'email':
       case 'number':
         return (
-          <Input
-            type={field.type}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder}
-            disabled={disabled}
-            className={`${error ? 'border-red-500' : ''} ${disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-slate-50/80 font-bold border-slate-300 text-slate-900 shadow-none' : ''}`}
-          />
+          <div className="relative flex items-center">
+            <Input
+              type={field.type}
+              value={value !== undefined && value !== null ? value : ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={field.placeholder}
+              disabled={disabled}
+              className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+                unitSuffix ? 'pl-12' : ''
+              } ${error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''} ${
+                disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-muted/40 font-bold' : ''
+              }`}
+            />
+            {unitSuffix && (
+              <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                {unitSuffix}
+              </span>
+            )}
+          </div>
         );
 
       case 'textarea':
         return (
           <Textarea
-            value={value || ''}
+            value={value !== undefined && value !== null ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
             disabled={disabled}
             rows={4}
-            className={error ? 'border-red-500' : ''}
+            className={`min-h-[110px] rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5 ${
+              error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''
+            }`}
           />
         );
 
@@ -61,21 +142,24 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         if (field.name === 'mosqueId') {
           if (!options || options.length === 0) {
             return (
-              <div className="space-y-3">
-                <Alert className="bg-amber-50 border-amber-200">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
-                    <p className="font-medium mb-2">لا توجد مساجد مسجلة</p>
-                    <p className="text-sm">هل تريد إضافة مسجد جديد؟</p>
-                  </AlertDescription>
-                </Alert>
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200">لا توجد مساجد مسجلة في حسابك</p>
+                    <p className="text-[11px] sm:text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
+                      لتقديم هذا الطلب، يرجى تسجيل المسجد أولاً.
+                    </p>
+                  </div>
+                </div>
                 <Button
                   type="button"
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                  size="sm"
+                  className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-1.5 h-10 shadow-xs"
                   onClick={onAddMosque}
                 >
-                  <Plus className="w-4 h-4 ml-2" />
-                  إضافة مسجد جديد
+                  <Plus className="w-4 h-4" />
+                  <span>تسجيل مسجد جديد الآن</span>
                 </Button>
               </div>
             );
@@ -83,13 +167,13 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
           
           return (
             <Select value={value?.toString() || ''} onValueChange={(val) => onChange(parseInt(val))} disabled={disabled}>
-              <SelectTrigger className={error ? 'border-red-500' : ''}>
-                <SelectValue placeholder={field.placeholder || 'اختر...'} />
+              <SelectTrigger className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
+                <SelectValue placeholder={field.placeholder || 'اختر المسجد...'} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl border-border shadow-lg">
                 {options.map((option) => (
-                  <SelectItem key={option.id} value={option.id.toString()}>
-                    {option.name} {option.city ? `- ${option.city}` : ''}
+                  <SelectItem key={option.id} value={option.id.toString()} className="text-xs sm:text-sm rounded-lg my-0.5">
+                    <span className="font-bold">{option.name}</span> {option.city ? <span className="text-muted-foreground">({option.city})</span> : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -100,12 +184,12 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         // الحقول الأخرى
         return (
           <Select value={value || ''} onValueChange={onChange} disabled={disabled}>
-            <SelectTrigger className={error ? 'border-red-500' : ''}>
+            <SelectTrigger className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 ${error ? 'border-red-500' : ''}`}>
               <SelectValue placeholder={field.placeholder || 'اختر...'} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl border-border shadow-lg">
               {field.options?.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="text-xs sm:text-sm rounded-lg my-0.5 font-medium">
                   {option.label}
                 </SelectItem>
               ))}
@@ -115,21 +199,57 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
       case 'radio':
         return (
-          <div className="space-y-4">
-            <RadioGroup value={value || ''} onValueChange={onChange} disabled={disabled}>
-              {field.options?.map((option) => (
-                <div key={option.value} className="flex items-center gap-2">
-                  <RadioGroupItem value={option.value} id={`${field.name}-${option.value}`} disabled={disabled} />
-                  <Label htmlFor={`${field.name}-${option.value}`} className="cursor-pointer">
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
+          <div className="space-y-3">
+            <RadioGroup
+              value={value !== undefined && value !== null ? value : ''}
+              onValueChange={onChange}
+              disabled={disabled}
+              className={`grid ${field.options && field.options.length > 2 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-3`}
+              dir="rtl"
+            >
+              {field.options?.map((option) => {
+                const isSelected = value === option.value;
+                const isYes = option.value === 'yes';
+                const isNo = option.value === 'no';
+
+                return (
+                  <label
+                    key={option.value}
+                    htmlFor={`${field.name}-${option.value}`}
+                    className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                      isSelected
+                        ? isYes
+                          ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20'
+                          : isNo
+                          ? 'border-rose-500 bg-rose-50/70 dark:bg-rose-950/30 text-rose-900 dark:text-rose-200 shadow-xs ring-2 ring-rose-500/20'
+                          : 'border-primary bg-primary/10 text-primary shadow-xs ring-2 ring-primary/20'
+                        : 'border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground'
+                    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem
+                        value={option.value}
+                        id={`${field.name}-${option.value}`}
+                        disabled={disabled}
+                        className="border-muted-foreground/40 text-primary"
+                      />
+                      <span className="font-bold text-xs sm:text-sm">
+                        {option.label}
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs ${isYes ? 'bg-emerald-600' : isNo ? 'bg-rose-600' : 'bg-primary'}`}>
+                        <Check className="w-3 h-3 stroke-[3]" />
+                      </div>
+                    )}
+                  </label>
+                );
+              })}
             </RadioGroup>
             {field.name === 'willingToVolunteer' && value === 'no' && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200">
-                <AlertTriangle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800 font-medium">
+              <Alert variant="destructive" className="bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50 rounded-2xl p-4 animate-in fade-in duration-200">
+                <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                <AlertDescription className="text-rose-800 dark:text-rose-300 font-medium text-xs sm:text-sm leading-relaxed">
                   عذراً، لا يمكن إكمال إنشاء الطلب دون وجود فريق تطوعي. يرجى تأمين الفريق للمتابعة.
                 </AlertDescription>
               </Alert>
@@ -144,14 +264,21 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label className="flex items-center gap-1">
-        {field.label}
-        {field.required && <span className="text-red-500">*</span>}
+      <Label className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
+        {Icon && <Icon className="w-4 h-4 text-primary/75 shrink-0" />}
+        <span>{field.label}</span>
+        {field.required && <span className="text-red-500 font-bold">*</span>}
       </Label>
       {renderField()}
-      {field.help && <p className="text-sm text-gray-500">{field.help}</p>}
+      {field.help && (
+        <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+          {field.help}
+        </p>
+      )}
       {error && (field.name !== 'willingToVolunteer' || value !== 'no') && (
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+          <span>{error}</span>
+        </p>
       )}
     </div>
   );
