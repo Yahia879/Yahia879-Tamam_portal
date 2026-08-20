@@ -36,6 +36,13 @@ import {
   Lock,
   AlertTriangle,
   X,
+  Sparkles,
+  TrendingUp,
+  Layers,
+  MapPin,
+  UserCheck,
+  CheckCircle,
+  Tag,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -44,21 +51,10 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { getStageOrder, getNextStage } from "@shared/constants";
+import { getStageOrder } from "@shared/constants";
 import BoqTab, { BoqTabHandle } from "@/components/BoqTab";
 import ProjectProgressMilestonesTab from "@/components/ProjectProgressMilestonesTab";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -77,11 +73,11 @@ import {
 } from "@/components/ui/table";
 
 const statusColors: Record<string, string> = {
-  planning: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  in_progress: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  on_hold: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  completed: "bg-green-100 text-green-800 border-green-200",
-  cancelled: "bg-red-100 text-red-800 border-red-200",
+  planning: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 font-bold",
+  in_progress: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-bold",
+  on_hold: "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30 font-bold",
+  completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 font-bold",
+  cancelled: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30 font-bold",
 };
 
 const statusLabels: Record<string, string> = {
@@ -93,9 +89,9 @@ const statusLabels: Record<string, string> = {
 };
 
 const phaseStatusColors: Record<string, string> = {
-  pending: "bg-gray-100 text-gray-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
+  pending: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300",
+  in_progress: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300",
+  completed: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300",
 };
 
 const phaseStatusLabels: Record<string, string> = {
@@ -125,15 +121,11 @@ export default function ProjectDetailsPage() {
   const [isEditingManager, setIsEditingManager] = useState(false);
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  // جلب الصلاحيات المحسوبة من السيرفر (تأخذ بالاعتبار الأدوار + الحجب الخاص والحظر)
   const serverPermissions = useUserPermissions();
   const canChangeManager = isAdmin || user?.role === 'projects_office';
-  // صلاحية عرض تفاصيل المشروع → تعرض جميع الأقسام (إلا إذا تم حجبها خاصاً)
   const canViewDetails = serverPermissions.includes("projects.view_details");
   const canEditProjectName = canViewDetails || isAdmin;
-  // صلاحية مالية المشاريع → تعرض قسم المالية
   const canViewFinancials = serverPermissions.includes("projects.financials");
-  // إذا كان المستخدم يملك فقط صلاحية المالية بدون صلاحية عرض التفاصيل
   const financialsOnly = canViewFinancials && !canViewDetails;
 
   useEffect(() => {
@@ -164,7 +156,7 @@ export default function ProjectDetailsPage() {
   );
   const projectManagers = managersResult?.items || [];
 
-  // شرط إلغاء قفل وتفعيل قسم "المالية": بعد وصول المشروع إلى مرحلة "اعتماد عرض السعر" وتصبح حالتها مكتملة (100%)
+  // شرط إلغاء قفل وتفعيل قسم "المالية"
   const currentRequestStage = project?.request?.currentStage || "";
   const quotationApprovalStageOrder = getStageOrder("quotation_approval");
   const currentStageOrder = getStageOrder(currentRequestStage);
@@ -192,17 +184,6 @@ export default function ProjectDetailsPage() {
     projectId: parseInt(id || "0") 
   }, { enabled: !!id });
 
-  // تحديث مرحلة المشروع
-  const updatePhaseMutation = trpc.projects.updatePhase.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث المرحلة بنجاح");
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تحديث المرحلة");
-    },
-  });
-
   // تحديث بيانات المشروع
   const updateProjectMutation = trpc.projects.update.useMutation({
     onSuccess: () => {
@@ -217,14 +198,13 @@ export default function ProjectDetailsPage() {
     }, {
       onSuccess: () => {
         toast.success("تم تحديث مدير المشروع بنجاح");
+        setIsEditingManager(false);
       },
       onError: (err) => {
         toast.error(err.message || "حدث خطأ أثناء تحديث مدير المشروع");
       }
     });
   };
-
-
 
   // تحديث مرحلة الطلب
   const updateRequestStageMutation = trpc.requests.updateStage.useMutation({
@@ -234,17 +214,6 @@ export default function ProjectDetailsPage() {
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث المرحلة");
-    },
-  });
-
-  // تكرار عقد
-  const duplicateContractMutation = trpc.contracts.duplicate.useMutation({
-    onSuccess: (data) => {
-      toast.success(`تم تكرار العقد بنجاح - رقم العقد الجديد: ${data.contractNumber}`);
-      navigate(`/contracts/${data.id}/preview`);
-    },
-    onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء تكرار العقد");
     },
   });
 
@@ -259,12 +228,6 @@ export default function ProjectDetailsPage() {
     },
   });
 
-  const handleDuplicateContract = (contractId: number) => {
-    if (confirm("هل تريد تكرار هذا العقد؟ \nسيتم إنشاء نسخة جديدة برقم عقد مختلف.")) {
-      duplicateContractMutation.mutate({ id: contractId });
-    }
-  };
-
   const formatCurrency = (amount: string | null) => {
     if (!amount) return "غير محدد";
     return new Intl.NumberFormat("ar-SA", {
@@ -274,45 +237,33 @@ export default function ProjectDetailsPage() {
     }).format(parseFloat(amount));
   };
 
-  // التحقق مما إذا كان جدول الكميات مقفلاً (إذا اكتملت المرحلة الثانية أو بدأت مراحل بعدها)
+  // شروط القفل
   const isBOQLocked = project?.phases?.some(p => 
     (p.phaseOrder === 2 && p.status === "completed") || 
     (p.phaseOrder > 2 && (p.status === "in_progress" || p.status === "completed"))
   );
 
-  // التحقق مما إذا كانت العقود مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
   const isContractsLocked = !project?.phases?.some(p => 
     p.phaseOrder === 3 && p.status === "completed"
   );
 
-  // التحقق مما إذا كان قد بدأ التنفيذ (المرحلة الخامسة: صرف المدفوعات)
-  // إذا بدأت هذه المرحلة أو ما بعدها، يتم قفل التعديل على العقود
   const isExecutionStarted = project?.phases?.some(p => 
     p.phaseOrder >= 5 && (p.status === "in_progress" || p.status === "completed")
   );
 
-  // التحقق من مرحلة التعاقد (المرحلة الرابعة)
   const isContractingPhase = project?.phases?.some(p => 
     p.phaseOrder === 4 && p.status === "in_progress"
   );
 
-  // التحقق من مرحلة إعداد جدول الكميات (المرحلة الثانية)
   const isBOQPreparationPhase = project?.phases?.some(p => 
     p.phaseOrder === 2 && p.status === "in_progress"
   );
 
   const hasBOQItems = (boqData?.items?.length || 0) > 0;
-  
-  // شرط ظهور زر اعتماد جدول الكميات: في مرحلة إعداد جدول الكميات (المرحلة الثانية) ويوجد بنود في الجدول ولديه الصلاحية
   const isAllowedToApproveBOQ = ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
-  
-  // شرط أكثر مرونة للتحقق من المرحلة (المرحلة 2 قيد التنفيذ أو قيد التخطيط)
   const showApproveBOQButton = (isBOQPreparationPhase || project?.status === "planning") && hasBOQItems && isAllowedToApproveBOQ;
-
-  // شرط ظهور زر اعتماد العقد: في مرحلة التعاقد ويوجد عقد واحد فقط بانتظار الاعتماد
   const showApproveContractButton = isContractingPhase && project?.contracts?.length === 1 && (project?.contracts[0].status === "draft" || project?.contracts[0].status === "pending_approval");
 
-  // التحقق مما إذا كانت الدفعات مقفلة (إذا لم تكتمل المرحلة الرابعة بعد)
   const isPaymentsLocked = !project?.phases?.some(p => 
     p.phaseOrder === 4 && p.status === "completed"
   );
@@ -320,9 +271,14 @@ export default function ProjectDetailsPage() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-          <div className="h-64 bg-muted animate-pulse rounded-lg" />
+        <div className="space-y-6 container mx-auto px-4 py-8">
+          <div className="h-36 bg-muted/60 animate-pulse rounded-3xl" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-24 bg-muted/60 animate-pulse rounded-2xl" />
+            ))}
+          </div>
+          <div className="h-96 bg-muted/60 animate-pulse rounded-3xl" />
         </div>
       </DashboardLayout>
     );
@@ -348,14 +304,10 @@ export default function ProjectDetailsPage() {
               ? "ليس لديك صلاحية لعرض هذا المشروع" 
               : isUnconvertedRequest
                 ? "الطلب غير مرتبط بمشروع بعد"
-                : "المشروع غير موجود"}
+                : "حدث خطأ أثناء تحميل بيانات المشروع"}
           </h2>
-          <p className="text-muted-foreground text-sm mb-6 leading-relaxed">
-            {isForbidden 
-              ? "تواصل مع مدير النظام لمنحك الصلاحية المطلوبة"
-              : errorMessage}
-          </p>
-          <div className="flex justify-center gap-3">
+          <p className="text-muted-foreground text-sm mb-6">{errorMessage}</p>
+          <div className="flex items-center justify-center gap-3">
             <Button variant="outline" onClick={() => navigate("/project-management")}>
               العودة للمشاريع
             </Button>
@@ -384,23 +336,19 @@ export default function ProjectDetailsPage() {
     );
   }
 
-  // تحديد تسمية الحالة بناءً على المرحلة النشطة
   const getStatusLabel = () => {
     if (project.status === "completed") return "مكتمل";
     if (project.status === "cancelled") return "ملغي";
     if (project.status === "on_hold") return "متوقف";
     
-    // البحث عن أول مرحلة غير مكتملة
     const activePhase = project.phases?.find(p => p.status !== "completed");
     if (activePhase) {
-      // إزالة مقدمة "المرحلة X : " للحصول على المسمى فقط إذا رغبت، أو استخدامه كما هو
       return activePhase.phaseName.replace(/^المرحلة .* : /, "");
     }
     
     return statusLabels[project.status || "planning"];
   };
 
-  // 1. الدفعات المسددة فعلياً (تظهر في البار بالأسفل)
   const paidPaymentsSum = project?.payments
     ?.filter(p => p.status === "paid" || p.status === "executed" || !!p.paidAt)
     ?.reduce((sum, p) => {
@@ -408,7 +356,6 @@ export default function ProjectDetailsPage() {
       return sum + (isNaN(amt) ? 0 : amt);
     }, 0) || 0;
 
-  // 2. كـافة الدفعات المخصصة بالجدول (لمعرفة هل تم تخصيص العقد بالكامل)
   const allPaymentsSum = project?.payments
     ?.filter(p => p.status !== "rejected" && p.status !== "cancelled")
     ?.reduce((sum, p) => {
@@ -426,359 +373,348 @@ export default function ProjectDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 container mx-auto px-4 md:px-0" dir="rtl">
-        {/* العنوان */}
-        <div className="flex items-center gap-4 text-right">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => {
-              if (window.history.length > 1) {
-                window.history.back();
-              } else {
-                navigate("/project-management");
-              }
-            }}
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground">{project.projectNumber}</h1>
-              <Badge variant="outline" className={statusColors[project.status || "planning"]}>
-                {getStatusLabel()}
-              </Badge>
-            </div>
-            {isEditingName ? (
-              <div className="flex items-center gap-2 mt-1 max-w-md">
-                <Input
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="h-8 py-1 px-2 text-sm text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary"
-                  autoFocus
-                />
+      <div className="space-y-6 container mx-auto px-4 md:px-0 dir-rtl" dir="rtl">
+        
+        {/* Unified Executive Project Hero Panel */}
+        <Card className="py-0 border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+          <CardContent className="p-4 sm:p-4.5 space-y-3.5">
+            {/* Top Row: Navigation, Project Number, Badges & Editable Title */}
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <Button
-                  size="sm"
-                  variant="default"
-                  className="h-8 px-3 text-xs gradient-primary text-white font-semibold"
-                  onClick={() => {
-                    if (!editedName.trim()) {
-                      toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
-                      return;
-                    }
-                    updateProjectMutation.mutate({
-                      id: project.id,
-                      name: editedName,
-                    }, {
-                      onSuccess: () => {
-                        toast.success("تم تحديث اسم المشروع بنجاح");
-                        setIsEditingName(false);
-                      },
-                      onError: (err) => {
-                        toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
-                      }
-                    });
-                  }}
-                  disabled={updateProjectMutation.isPending}
-                >
-                  حفظ
-                </Button>
-                <Button
-                  size="sm"
                   variant="outline"
-                  className="h-8 px-3 text-xs"
+                  size="icon"
+                  className="rounded-xl h-8 w-8 shrink-0 border-border/70 text-muted-foreground hover:text-foreground"
                   onClick={() => {
-                    setIsEditingName(false);
-                    setEditedName(project.name || "");
+                    if (window.history.length > 1) {
+                      window.history.back();
+                    } else {
+                      navigate("/project-management");
+                    }
                   }}
+                  title="العودة"
                 >
-                  إلغاء
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-muted-foreground">{project.name}</p>
-                {canEditProjectName && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0"
-                    onClick={() => {
-                      setEditedName(project.name || "");
-                      setIsEditingName(true);
-                    }}
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                  </Button>
+
+                <span className="font-extrabold text-xs font-mono bg-primary/10 text-primary px-2.5 py-1 rounded-lg border border-primary/20">
+                  #{project.projectNumber}
+                </span>
+
+                <Badge variant="outline" className={`rounded-lg font-bold text-xs px-2.5 py-0.5 ${statusColors[project.status || "planning"]}`}>
+                  {getStatusLabel()}
+                </Badge>
+
+                {project.donorName && (
+                  <Badge variant="secondary" className="rounded-lg font-bold text-xs bg-muted/60 text-muted-foreground border border-border/40 px-2.5 py-0.5">
+                    المانح: {project.donorName}
+                  </Badge>
                 )}
+
+                {project.isMultiMosque && (
+                  <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-lg border border-indigo-500/20 px-2.5 py-0.5">
+                    مشروع مباشر (عدة مساجد)
+                  </Badge>
+                )}
+              </div>
+
+              {/* Editable Project Name */}
+              <div>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 max-w-xl">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="h-9 rounded-xl text-sm font-bold text-foreground bg-background border-primary"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      className="h-9 rounded-xl px-3 text-xs gradient-primary text-white font-bold shrink-0"
+                      onClick={() => {
+                        if (!editedName.trim()) {
+                          toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
+                          return;
+                        }
+                        updateProjectMutation.mutate({
+                          id: project.id,
+                          name: editedName,
+                        }, {
+                          onSuccess: () => {
+                            toast.success("تم تحديث اسم المشروع بنجاح");
+                            setIsEditingName(false);
+                          },
+                          onError: (err) => {
+                            toast.error(err.message || "حدث خطأ أثناء تحديث اسم المشروع");
+                          }
+                        });
+                      }}
+                      disabled={updateProjectMutation.isPending}
+                    >
+                      حفظ
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-xl px-2.5 text-xs shrink-0"
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setEditedName(project.name || "");
+                      }}
+                    >
+                      إلغاء
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-base sm:text-xl font-extrabold text-foreground tracking-tight leading-snug">
+                      {project.name}
+                    </h1>
+                    {canEditProjectName && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg shrink-0"
+                        onClick={() => {
+                          setEditedName(project.name || "");
+                          setIsEditingName(true);
+                        }}
+                        title="تعديل اسم المشروع"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Intermediate Row: Completion Progress Bar Widget (Positioned Directly Above Statistics Cards) */}
+            {!financialsOnly && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 sm:px-4 rounded-xl border border-border/50">
+                <div className="flex items-center gap-2 shrink-0 text-xs sm:text-sm font-bold text-foreground">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <span>نسبة الإنجاز الكلي للمشروع:</span>
+                </div>
+                <div className="flex items-center gap-3 flex-1 w-full sm:w-auto">
+                  <Progress value={project.completionPercentage || 0} className="h-2.5 rounded-full flex-1" />
+                  <span className="text-primary font-mono text-sm sm:text-base font-black shrink-0">
+                    {project.completionPercentage || 0}%
+                  </span>
+                </div>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* بطاقات المعلومات الرئيسية وشريط التقدم - تظهر فقط لمن يملك صلاحية التفاصيل كاملة */}
-        {!financialsOnly && (
-          <>
-            <TooltipProvider delayDuration={300}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* الميزانية - تظهر للمشاريع المباشرة أو عندما تكون حالة الطلب المرتبط هي "التقييم المالي واعتماد العرض" أو بعدها */}
-                {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage)) ? (
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-4 text-right">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <p className="font-bold text-foreground">
-                            {boqData && boqData.total > 0
-                              ? formatCurrency(boqData.total.toString())
-                              : formatCurrency(project.budget)
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="border-0 shadow-sm">
-                    <CardContent className="p-4 text-right">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                          <DollarSign className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top">
-                                <p>الميزانية تظهر بعد وصول الطلب لمرحلة التقييم المالي واعتماد العرض</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                          <p className="font-bold text-muted-foreground text-sm">لم تُحدد بعد</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+            {/* Bottom Embedded Metrics Bar */}
+            {!financialsOnly && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                {/* Metric 1: Budget */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">الميزانية الإجمالية</span>
+                    <p className="font-black text-foreground font-mono text-sm sm:text-base">
+                      {boqData && boqData.total > 0
+                        ? formatCurrency(boqData.total.toString())
+                        : formatCurrency(project.budget)
+                      }
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <DollarSign className="w-4.5 h-4.5" />
+                  </div>
+                </div>
 
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-4 text-right">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-emerald-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm text-muted-foreground font-bold">التكلفة الفعلية</p>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>هي التكلفة النهائية المتفقة عليها في العقد والتي تشمل نسبة الجمعية</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <p className="font-bold text-foreground">{formatCurrency(project.actualCost)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Metric 2: Actual Cost */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">التكلفة الفعلية</span>
+                    <p className="font-black text-primary font-mono text-sm sm:text-base">{formatCurrency(project.actualCost)}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4.5 h-4.5" />
+                  </div>
+                </div>
 
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-4 text-right">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <BarChart3 className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm text-muted-foreground font-bold">نسبة الإنجاز</p>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>النسبة تزداد بشكل تلقائي اعتماداً على اكتمال مراحل المشروع</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <p className="font-bold text-foreground">{project.completionPercentage || 0}%</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* Metric 3: Status */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5">
+                    <span className="text-muted-foreground font-semibold text-[11px]">حالة المشروع</span>
+                    <p className="font-bold text-foreground text-xs sm:text-sm">{getStatusLabel()}</p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <BarChart3 className="w-4.5 h-4.5" />
+                  </div>
+                </div>
 
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="p-4 text-right">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Users className="w-5 h-5 text-purple-600" />
+                {/* Metric 4: Project Manager */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/40 hover:border-border/60 transition-colors">
+                  <div className="space-y-0.5 min-w-0 flex-1 ml-2">
+                    <span className="text-muted-foreground font-semibold text-[11px] block">مدير المشروع</span>
+                    {isEditingManager ? (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Select
+                          value={project.managerId?.toString() || ""}
+                          onValueChange={(val) => handleUpdateManager(parseInt(val))}
+                        >
+                          <SelectTrigger className="h-7 rounded-lg text-xs font-bold border-border/60 bg-background">
+                            <SelectValue placeholder="اختر..." />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            {projectManagers.map((m: any) => (
+                              <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
+                                {m.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setIsEditingManager(false)} 
+                          className="h-7 w-7 text-red-500 rounded-lg shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-sm text-muted-foreground font-bold">مدير المشروع</p>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>هو المسؤول عن إدارة المشروع</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        {isEditingManager ? (
-                          <div className="mt-1 flex items-center gap-2">
-                            <div className="flex-1">
-                              <Select
-                                value={project.managerId?.toString() || ""}
-                                onValueChange={(val) => handleUpdateManager(parseInt(val))}
-                              >
-                                <SelectTrigger className="h-9 w-full border-slate-200 text-xs font-semibold focus:ring-indigo-500/20 bg-white dark:bg-slate-950">
-                                  <SelectValue placeholder="اختر مدير المشروع..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {projectManagers.map((m: any) => (
-                                    <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
-                                      {m.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => setIsEditingManager(false)} 
-                              className="h-8 w-8 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-500 rounded-lg shrink-0"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-foreground">{project.managerName || "غير محدد"}</p>
-                            {canChangeManager && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0"
-                                onClick={() => setIsEditingManager(true)} 
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </Button>
-                            )}
-                          </div>
+                    ) : (
+                      <div className="flex items-center gap-1 truncate">
+                        <span className="font-extrabold text-foreground text-xs sm:text-sm truncate">
+                          {project.managerName || "غير محدد"}
+                        </span>
+                        {canChangeManager && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-5 w-5 text-muted-foreground hover:text-primary rounded-full p-0 shrink-0"
+                            onClick={() => setIsEditingManager(true)} 
+                            title="تغيير مدير المشروع"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
                         )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TooltipProvider>
-
-            {/* شريط التقدم */}
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-4 text-right">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">تقدم المشروع</span>
-                  <span className="text-sm text-muted-foreground">{project.completionPercentage || 0}%</span>
+                    )}
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                    <Users className="w-4.5 h-4.5" />
+                  </div>
                 </div>
-                <Progress value={project.completionPercentage || 0} className="h-3" />
-              </CardContent>
-            </Card>
-          </>
-        )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* التبويبات */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
+        {/* Tab Navigation & Content Container */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="space-y-6">
           {!financialsOnly && (
-            <TabsList className={`flex items-center justify-start overflow-x-auto pb-1 scrollbar-hide flex-nowrap w-full md:grid ${canViewFinancials ? 'md:grid-cols-7' : 'md:grid-cols-6'} h-auto p-1 bg-muted`}>
-              <TabsTrigger value="overview" className="shrink-0">نظرة عامة</TabsTrigger>
-              <TabsTrigger value="progress_milestones" className="shrink-0">الإنجاز والمعالم</TabsTrigger>
-              <TabsTrigger value="phases" className="shrink-0">المراحل</TabsTrigger>
-              <TabsTrigger value="boq" className="shrink-0">جدول الكميات</TabsTrigger>
-              {canViewFinancials && <TabsTrigger value="financials" className="shrink-0">المالية</TabsTrigger>}
-              <TabsTrigger value="contracts" className="shrink-0">العقود</TabsTrigger>
-              <TabsTrigger value="payments" className="shrink-0">الدفعات</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="w-full">
+                <TabsTrigger value="overview">
+                  <FolderOpen />
+                  <span>نظرة عامة</span>
+                </TabsTrigger>
+                <TabsTrigger value="progress_milestones">
+                  <TrendingUp />
+                  <span>الإنجاز والمعالم</span>
+                </TabsTrigger>
+                <TabsTrigger value="phases">
+                  <Layers />
+                  <span>المراحل</span>
+                </TabsTrigger>
+                <TabsTrigger value="boq">
+                  <ClipboardList />
+                  <span>جدول الكميات</span>
+                </TabsTrigger>
+                {canViewFinancials && (
+                  <TabsTrigger value="financials">
+                    <DollarSign />
+                    <span>المالية</span>
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="contracts">
+                  <FileSignature />
+                  <span>العقود</span>
+                </TabsTrigger>
+                <TabsTrigger value="payments">
+                  <CreditCard />
+                  <span>الدفعات</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
           )}
 
-          {/* نظرة عامة */}
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid lg:grid-cols-2 gap-4">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="text-right">
-                  <CardTitle className="text-lg">معلومات المشروع</CardTitle>
+          {/* TAB 1: OVERVIEW */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Project Main Specs Card */}
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-primary" />
+                    <span>معلومات المشروع الأساسية</span>
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 text-right">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">رقم المشروع</p>
-                      <p className="font-medium">{project.projectNumber}</p>
+                <CardContent className="p-5 space-y-4 text-xs sm:text-sm">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Tag className="w-3.5 h-3.5 text-primary/70" />
+                        <span>رقم المشروع</span>
+                      </p>
+                      <p className="font-extrabold text-foreground font-mono text-sm">{project.projectNumber}</p>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">الحالة</p>
-                      <Badge variant="outline" className={statusColors[project.status || "planning"]}>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-primary/70" />
+                        <span>حالة المشروع</span>
+                      </p>
+                      <Badge variant="outline" className={`rounded-lg ${statusColors[project.status || "planning"]}`}>
                         {getStatusLabel()}
                       </Badge>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">تاريخ البدء</p>
-                      <p className="font-medium">
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                        <span>تاريخ البدء</span>
+                      </p>
+                      <p className="font-bold text-foreground">
                         {project.startDate 
                           ? new Date(project.startDate).toLocaleDateString("ar-SA")
                           : "لم يبدأ بعد"
                         }
                       </p>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">تاريخ الانتهاء المتوقع</p>
-                      <p className="font-medium">
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                      <p className="text-muted-foreground text-[11px] font-semibold flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-primary/70" />
+                        <span>تاريخ الانتهاء المتوقع</span>
+                      </p>
+                      <p className="font-bold text-foreground">
                         {project.expectedEndDate 
                           ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA")
                           : "غير محدد"
                         }
                       </p>
                     </div>
+
                     {project.donorName && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">اسم المانح / الجهة الداعمة</p>
-                        <p className="font-bold text-primary">{project.donorName}</p>
-                      </div>
-                    )}
-                    {project.isMultiMosque && (
-                      <div className="col-span-2">
-                        <p className="text-sm text-muted-foreground">نوع المشروع</p>
-                        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 mt-1 font-bold">
-                          مشروع مباشر لعدة مساجد
-                        </Badge>
+                      <div className="col-span-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <p className="text-amber-700 dark:text-amber-300 text-[11px] font-semibold">اسم المانح / الجهة الداعمة</p>
+                        <p className="font-extrabold text-amber-800 dark:text-amber-200 text-sm">{project.donorName}</p>
                       </div>
                     )}
                   </div>
+
                   {project.description && (
                     <div className="pt-3 border-t border-border/50">
-                      <p className="text-xs text-muted-foreground font-bold mb-1.5 flex items-center gap-1.5">
+                      <p className="text-muted-foreground text-xs font-bold mb-1.5 flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-primary" />
                         وصف الأعمال التي ستنجز خلال المشروع
                       </p>
-                      <p className="font-medium text-xs sm:text-sm text-foreground bg-muted/40 p-3 rounded-xl border border-border/40 whitespace-pre-wrap leading-relaxed">
+                      <p className="font-medium text-foreground leading-relaxed bg-muted/40 p-3.5 rounded-xl border border-border/50 text-xs sm:text-sm whitespace-pre-wrap">
                         {project.description}
                       </p>
                     </div>
@@ -786,42 +722,43 @@ export default function ProjectDetailsPage() {
                 </CardContent>
               </Card>
 
+              {/* Multi-Mosque Management Card or Linked Request Card */}
               {project.isMultiMosque ? (
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="text-right">
-                    <CardTitle className="text-lg flex items-center gap-2">
+                <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                  <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <Briefcase className="w-5 h-5 text-primary" />
-                      إدارة ومساجد المشروع
+                      <span>إدارة ومساجد المشروع</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4 text-right">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">مدير المشروع</p>
-                        <p className="font-bold text-foreground flex items-center gap-1.5 mt-0.5">
-                          <Users className="w-4 h-4 text-primary" />
-                          {project.managerName || "غير محدد"}
+                  <CardContent className="p-5 space-y-4 text-xs sm:text-sm">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">مدير المشروع</p>
+                        <p className="font-bold text-foreground flex items-center gap-1.5 text-sm">
+                          <Users className="w-4 h-4 text-primary shrink-0" />
+                          <span>{project.managerName || "غير محدد"}</span>
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">عدد المساجد المشمولة</p>
-                        <p className="font-bold text-primary flex items-center gap-1.5 mt-0.5">
-                          <Building className="w-4 h-4 text-primary" />
-                          {(project as any).linkedMosques?.length || 0} مساجد
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">عدد المساجد المشمولة</p>
+                        <p className="font-bold text-primary flex items-center gap-1.5 text-sm">
+                          <Building className="w-4 h-4 text-primary shrink-0" />
+                          <span>{(project as any).linkedMosques?.length || 0} مساجد</span>
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">المدة المخططة</p>
-                        <p className="font-medium text-foreground">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">المدة المخططة</p>
+                        <p className="font-bold text-foreground">
                           {project.startDate && project.expectedEndDate
                             ? `${Math.round((new Date(project.expectedEndDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} يوم`
                             : "غير محددة"
                           }
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">المرحلة الحالية</p>
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 mt-1 font-bold">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">المرحلة الحالية</p>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 mt-1 font-bold text-xs">
                           إعداد جدول الكميات (مباشر)
                         </Badge>
                       </div>
@@ -829,28 +766,38 @@ export default function ProjectDetailsPage() {
                   </CardContent>
                 </Card>
               ) : project.request ? (
-                <Card className="border-0 shadow-sm">
-                  <CardHeader className="text-right">
-                    <CardTitle className="text-lg">الطلب المرتبط</CardTitle>
+                <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                  <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      <span>بيانات الطلب المرتبط</span>
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4 text-right">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">رقم الطلب</p>
+                  <CardContent className="p-5 space-y-4 text-xs sm:text-sm">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">رقم الطلب</p>
                         <Link href={`/requests/${project.request.id}`}>
-                          <p className="font-medium text-primary hover:underline cursor-pointer">
+                          <span className="font-mono font-extrabold text-primary hover:underline cursor-pointer flex items-center gap-1 text-sm">
                             {project.request.requestNumber}
-                          </p>
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </span>
                         </Link>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">البرنامج</p>
-                        <p className="font-medium">{project.request.programType}</p>
+
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40 space-y-1">
+                        <p className="text-muted-foreground text-[11px] font-semibold">البرنامج الفني</p>
+                        <p className="font-bold text-foreground">{project.request.programType}</p>
                       </div>
+
                       {project.request.mosqueName && (
-                        <div className="col-span-2">
-                          <p className="text-sm text-muted-foreground">المسجد</p>
-                          <p className="font-medium">{project.request.mosqueName} - {project.request.mosqueCity}</p>
+                        <div className="col-span-2 p-3 rounded-xl bg-primary/5 border border-primary/20 space-y-1">
+                          <p className="text-primary text-[11px] font-semibold">المسجد المستفيد</p>
+                          <p className="font-extrabold text-foreground flex items-center gap-1.5 text-sm">
+                            <Building2 className="w-4 h-4 text-primary shrink-0" />
+                            <span>{project.request.mosqueName}</span>
+                            {project.request.mosqueCity && <span className="text-xs text-muted-foreground">({project.request.mosqueCity})</span>}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -859,91 +806,97 @@ export default function ProjectDetailsPage() {
               ) : null}
             </div>
 
-            {/* بطاقة المساجد المشمولة في حالة مشروع عدة مساجد المباشر */}
+            {/* Linked Mosques Table (Multi-Mosque Direct Projects) */}
             {(project as any).linkedMosques && (project as any).linkedMosques.length > 0 && (
-              <Card className="border-0 shadow-sm mt-6">
-                <CardHeader className="text-right flex flex-row items-center justify-between">
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-lg flex items-center gap-2" dir="rtl">
+                    <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                       <Building className="w-5 h-5 text-primary" />
-                      المساجد المشمولة بالمشروع (عدة مساجد)
+                      <span>المساجد المشمولة بالمشروع (عدة مساجد)</span>
                     </CardTitle>
-                    <CardDescription className="text-xs mt-1">
-                      قائمة المساجد المعتمدة والمشمولة ضمن هذا المشروع المباشر
+                    <CardDescription className="text-xs mt-0.5">
+                      قائمة المساجد المخصصة ضمن هذا المشروع والميزانية المخصصة وشروط الأعمال
                     </CardDescription>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1">
+                  <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-3 py-1 rounded-xl shrink-0">
                     {(project as any).linkedMosques.length} مساجد
                   </Badge>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Table dir="rtl">
-                    <TableHeader className="bg-muted/40">
-                      <TableRow>
-                        <TableHead className="text-center font-bold w-16 pr-6 pl-2 py-3.5">#</TableHead>
-                        <TableHead className="text-right font-bold px-4 py-3.5">اسم المسجد</TableHead>
-                        <TableHead className="text-right font-bold px-4 py-3.5">المدينة / المنطقة</TableHead>
-                        <TableHead className="text-right font-bold px-4 py-3.5">الحي</TableHead>
-                        <TableHead className="text-left font-bold pl-6 pr-4 py-3.5">الحالة</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(project as any).linkedMosques.map((item: any, idx: number) => (
-                        <TableRow key={item.id} className="hover:bg-muted/20">
-                          <TableCell className="text-center font-bold text-muted-foreground text-xs pr-6 pl-2 py-3.5">
-                            {idx + 1}
-                          </TableCell>
-                          <TableCell className="font-bold text-foreground px-4 py-3.5">
-                            {item.mosqueName || `مسجد #${item.mosqueId}`}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
-                            {item.mosqueCity || "—"}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-xs px-4 py-3.5">
-                            {item.mosqueDistrict || "—"}
-                          </TableCell>
-                          <TableCell className="text-left pl-6 pr-4 py-3.5">
-                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-semibold">
-                              مشمول بالمشروع
-                            </Badge>
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/30">
+                        <TableRow>
+                          <TableHead className="text-right font-bold text-xs">المسجد</TableHead>
+                          <TableHead className="text-right font-bold text-xs">المدينة / الحي</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الميزانية المخصصة</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الإمام / التواصل</TableHead>
+                          <TableHead className="text-right font-bold text-xs">الشروط والملاحظات</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(project as any).linkedMosques.map((item: any) => (
+                          <TableRow key={item.id} className="hover:bg-muted/20">
+                            <TableCell className="font-bold text-foreground text-xs">
+                              {item.mosqueName || `مسجد #${item.mosqueId}`}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-xs">
+                              {item.mosqueCity || "—"} {item.mosqueDistrict ? ` - ${item.mosqueDistrict}` : ""}
+                            </TableCell>
+                            <TableCell className="font-extrabold text-primary font-mono text-xs">
+                              {item.allocatedBudget ? `${parseFloat(item.allocatedBudget).toLocaleString()} ريال` : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {item.imamName ? (
+                                <div>
+                                  <span className="font-bold block text-foreground">{item.imamName}</span>
+                                  <span className="text-muted-foreground font-mono text-[11px]">{item.imamPhone || ""}</span>
+                                </div>
+                              ) : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-xs">
+                              {item.notes || "لا توجد ملاحظات خاصة"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
+            {/* Technical Evaluation Notes */}
             {(project as any).evaluations && (project as any).evaluations.length > 0 && (
-              <Card className="border-0 shadow-sm mt-6">
-                <CardHeader className="text-right">
-                  <CardTitle className="text-lg flex items-center gap-2" dir="rtl">
+              <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+                <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+                  <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
-                    ملاحظات التقييم الفني
+                    <span>ملاحظات ومبررات التقييم الفني</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
+                <CardContent className="p-5">
+                  <div className="space-y-3">
                     {(project as any).evaluations.map((evalNote: any) => (
-                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-lg space-y-2 border border-muted/50 text-right" dir="rtl">
-                        <div className="flex justify-between items-center w-full">
-                          <span className="font-semibold text-primary">{evalNote.userName || "موظف التقييم"}</span>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div key={evalNote.id} className="p-4 bg-muted/30 rounded-xl space-y-2 border border-border/40">
+                        <div className="flex justify-between items-center w-full text-xs">
+                          <span className="font-extrabold text-primary">{evalNote.userName || "موظف التقييم"}</span>
+                          <span className="text-muted-foreground font-mono text-[11px]">
                             {new Date(evalNote.createdAt).toLocaleString("ar-SA")}
                           </span>
                         </div>
-                        <div className="text-sm space-y-2">
+                        <div className="text-xs space-y-2 pt-1">
                           {evalNote.justification && (
                             <div>
-                              <span className="text-muted-foreground block text-xs mb-1">المبررات:</span>
-                              <p className="whitespace-pre-wrap text-foreground font-medium leading-relaxed">{evalNote.justification}</p>
+                              <span className="text-muted-foreground font-bold block mb-1">المبررات:</span>
+                              <p className="whitespace-pre-wrap text-foreground font-medium leading-relaxed bg-background p-3 rounded-xl border border-border/40">{evalNote.justification}</p>
                             </div>
                           )}
                           {evalNote.notes && (
                             <div>
-                              <span className="text-muted-foreground block text-xs mb-1">ملاحظات إضافية:</span>
-                              <p className="whitespace-pre-wrap text-foreground leading-relaxed">{evalNote.notes}</p>
+                              <span className="text-muted-foreground font-bold block mb-1">ملاحظات إضافية:</span>
+                              <p className="whitespace-pre-wrap text-foreground leading-relaxed bg-background p-3 rounded-xl border border-border/40">{evalNote.notes}</p>
                             </div>
                           )}
                         </div>
@@ -955,8 +908,8 @@ export default function ProjectDetailsPage() {
             )}
           </TabsContent>
 
-          {/* الإنجاز والمعالم */}
-          <TabsContent value="progress_milestones" className="space-y-4">
+          {/* TAB 2: PROGRESS & MILESTONES */}
+          <TabsContent value="progress_milestones" className="space-y-6">
             <ProjectProgressMilestonesTab
               projectId={project.id}
               initialPlannedProgress={project.plannedProgress}
@@ -967,94 +920,96 @@ export default function ProjectDetailsPage() {
             />
           </TabsContent>
 
-          {/* المراحل */}
-          <TabsContent value="phases" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="text-right">
-                <CardTitle className="text-lg">مراحل المشروع</CardTitle>
-                <CardDescription>متابعة تقدم مراحل المشروع</CardDescription>
+          {/* TAB 3: PHASES */}
+          <TabsContent value="phases" className="space-y-6">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+                <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-primary" />
+                  <span>مراحل المشروع والدورة المستندية</span>
+                </CardTitle>
+                <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                  متابعة تقدم وتتبع مراحل المشروع عبر الخط الزمني المستندي التفاعلي
+                </CardDescription>
               </CardHeader>
-              <CardContent className="text-right">
+              <CardContent className="p-5 sm:p-6">
                 {project.phases && project.phases.length > 0 ? (
-                  <div className="space-y-4">
-                    {project.phases.map((phase, index) => (
-                      <div key={phase.id} className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          phase.status === "completed" ? "bg-green-500 text-white" :
-                          phase.status === "in_progress" ? "bg-blue-500 text-white" :
-                          "bg-gray-200 text-gray-600"
-                        }`}>
-                          {phase.status === "completed" ? (
-                            <CheckCircle2 className="w-5 h-5" />
-                          ) : (
-                            <span className="font-bold">{index + 1}</span>
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{phase.phaseName}</h4>
-                            <Badge variant="outline" className={phaseStatusColors[phase.status || "pending"]}>
-                              {phaseStatusLabels[phase.status || "pending"]}
-                            </Badge>
+                  <div className="relative pr-6 border-r-2 border-border/60 mr-3 space-y-6">
+                    {project.phases.map((phase, index) => {
+                      const isCompleted = phase.status === "completed";
+                      const isInProgress = phase.status === "in_progress";
+
+                      return (
+                        <div key={phase.id} className="relative group">
+                          {/* Timeline Step Circle Icon */}
+                          <div className={`absolute -right-[31px] top-1 w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs transition-all ${
+                            isCompleted ? "bg-primary text-white shadow-sm ring-4 ring-primary/15" :
+                            isInProgress ? "bg-primary text-white shadow-md ring-4 ring-primary/25 animate-pulse" :
+                            "bg-muted text-muted-foreground border border-border/70"
+                          }`}>
+                            {isCompleted ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              <span>{index + 1}</span>
+                            )}
                           </div>
-                          {phase.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{phase.description}</p>
-                          )}
-                            <div className="flex items-center gap-4 mt-2">
-                              <Progress value={phase.completionPercentage || 0} className="flex-1 h-2" />
-                              <span className="text-sm text-muted-foreground font-medium">
-                                {phase.completionPercentage || 0}%
-                                {phase.completionPercentage === 100 && " (مكتمل)"}
+
+                          {/* Phase Content Box */}
+                          <div className={`p-4 rounded-xl border transition-all ${
+                            isInProgress ? "bg-primary/5 border-primary/30 shadow-xs" :
+                            isCompleted ? "bg-muted/20 border-border/50" :
+                            "bg-muted/10 border-border/40 opacity-75"
+                          }`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-sm sm:text-base text-foreground">{phase.phaseName}</h4>
+                                <Badge variant="outline" className={`rounded-lg text-[11px] px-2.5 py-0.5 font-bold ${phaseStatusColors[phase.status || "pending"]}`}>
+                                  {phaseStatusLabels[phase.status || "pending"]}
+                                </Badge>
+                              </div>
+                              <span className="text-xs font-mono font-extrabold text-primary shrink-0">
+                                {phase.completionPercentage || 0}% الإنجاز
                               </span>
                             </div>
+
+                            {phase.description && (
+                              <p className="text-xs text-muted-foreground leading-relaxed mb-3">{phase.description}</p>
+                            )}
+
+                            <div className="flex items-center gap-3 pt-1">
+                              <Progress 
+                                value={phase.completionPercentage || 0} 
+                                className="h-2 rounded-full flex-1 [&>div]:bg-primary" 
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد مراحل محددة</p>
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+                    <p className="text-xs text-muted-foreground">لا توجد مراحل محددة لهذا المشروع</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* جدول الكميات */}
-          <TabsContent value="boq" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">جداول الكميات (BOQ)</CardTitle>
-                  <CardDescription>
-                    {project.isMultiMosque
-                      ? "إدارة جداول الكميات لمشروع عدة مساجد"
-                      : "إدارة جداول الكميات المرتبطة بهذا المشروع"}
-                  </CardDescription>
-                </div>
-                {!isBOQLocked && (
-                  <Button 
-                    className="gradient-primary text-white" 
-                    onClick={() => boqTabRef.current?.openAddDialog()}
-                  >
-                    <Plus className="w-4 h-4 ml-2" />
-                    إضافة بند جديد
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                <BoqTab 
-                  requestId={project.requestId || undefined} 
-                  projectId={project.id} 
-                  isLocked={isBOQLocked} 
-                  ref={boqTabRef} 
-                  hideAddButton={true} 
-                />
+          {/* TAB 4: BOQ */}
+          <TabsContent value="boq" className="space-y-6">
+            <BoqTab 
+              requestId={project.requestId || undefined} 
+              projectId={project.id} 
+              isLocked={isBOQLocked} 
+              ref={boqTabRef} 
+              hideAddButton={false} 
+            />
                 {showApproveBOQButton && project.requestId && (
-                  <div className="mt-6 flex justify-center">
+                  <div className="mt-6 flex justify-center border-t border-border/40 pt-6">
                     <Button 
-                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
+                      className="rounded-2xl gradient-primary text-white font-bold shadow-lg hover:shadow-xl transition-all gap-2 px-8 h-11"
                       onClick={() => {
                         if (confirm("هل أنت متأكد من اعتماد جدول الكميات؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التقييم المالي واعتماد العرض.")) {
                           updateRequestStageMutation.mutate({ 
@@ -1066,40 +1021,30 @@ export default function ProjectDetailsPage() {
                       disabled={updateRequestStageMutation.isPending}
                     >
                       {updateRequestStageMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-5 h-5" />
                       )}
-                      اعتماد جداول الكميات
+                      <span>اعتماد جداول الكميات ونقل المرحلة</span>
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* المالية */}
+          {/* TAB 5: FINANCIALS */}
           {canViewFinancials && (
-            <TabsContent value="financials" className="space-y-4 pt-2">
+            <TabsContent value="financials" className="space-y-6">
               {isFinancialsLocked ? (
-                <Card className="border-0 shadow-sm">
-                  <CardContent className="pt-6">
-                    <div className="text-center py-12">
-                      <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
-                        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
-                          <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
-                        </div>
-                        <h3 className="text-xl font-bold text-amber-900 mb-3">قسم المالية مقفل حالياً</h3>
-                        <p className="text-amber-700 text-sm leading-relaxed mb-6">
-                          هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم المالية وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الثالثة: التقييم المالي والاعتماد** للمشروع.
-                        </p>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
-                          <AlertCircle className="w-4 h-4 text-amber-600" />
-                          يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
-                        </div>
-                      </div>
+                <Card className="border border-border/60 shadow-xs rounded-3xl bg-background overflow-hidden text-center p-8 sm:p-12">
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
+                      <Lock className="w-8 h-8" />
                     </div>
-                  </CardContent>
+                    <h3 className="text-lg font-bold text-foreground">قسم المالية مقفل حالياً</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      سيتم إلغاء قفل وتفعيل هذا القسم تلقائياً فور وصول المشروع لمرحلة اعتماد عرض السعر والتقييم المالي.
+                    </p>
+                  </div>
                 </Card>
               ) : (
                 <ProjectFinancialsTab projectId={parseInt(id || "0")} />
@@ -1107,187 +1052,220 @@ export default function ProjectDetailsPage() {
             </TabsContent>
           )}
 
-          {/* العقود */}
-          <TabsContent value="contracts" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">العقود</CardTitle>
-                  </div>
-                  <CardDescription>
+          {/* TAB 6: CONTRACTS */}
+          <TabsContent value="contracts" className="space-y-6">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <FileSignature className="w-5 h-5 text-primary" />
+                    <span>عقود المقاولين والموردين</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1">
                     {isExecutionStarted 
                       ? "تم قفل التعديل على العقود بسبب بدء مرحلة التنفيذ وصرف المدفوعات"
-                      : "عقود المقاولين والموردين"
+                      : "توثيق وإدارة العروض والعقود المبرمة للمشروع"
                     }
                   </CardDescription>
                 </div>
                 {!isContractsLocked && !isExecutionStarted && (!project.contracts || project.contracts.length === 0) && (
                   <Button 
-                    className="gradient-primary text-white" 
+                    className="rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-9 px-4 shrink-0" 
                     onClick={() => navigate(`/contracts/new/request/${project.requestId}?projectId=${project.id}`)}
                   >
-                    <Plus className="w-4 h-4 ml-2" />
-                    إضافة عقد
+                    <Plus className="w-4 h-4" />
+                    <span>إضافة عقد جديد</span>
                   </Button>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-5 space-y-5">
                 {isContractsLocked ? (
-                  <div className="text-center py-12">
-                    <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
-                      <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
-                        <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-amber-900 mb-3">قسم العقود مقفل حالياً</h3>
-                      <p className="text-amber-700 text-sm leading-relaxed mb-6">
-                        هذا القسم غير متاح للعرض أو الإضافة حالياً. سيتم إلغاء قفل قسم العقود وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الثالثة: التقييم المالي والاعتماد** للمشروع.
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
-                        <AlertCircle className="w-4 h-4 text-amber-600" />
-                        يتطلب اكتمال مرحلة التقييم المالي واعتماد عروض الأسعار أولاً
-                      </div>
+                  <div className="text-center py-12 max-w-md mx-auto space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
+                      <Lock className="w-8 h-8" />
                     </div>
+                    <h3 className="text-base font-bold text-foreground">قسم العقود مقفل حالياً</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      سيتم فتح قسم العقود بمجرد اكتمال مرحلة التقييم المالي واعتماد عرض السعر المخصص للمشروع.
+                    </p>
                   </div>
                 ) : project.contracts && project.contracts.length > 0 ? (
-                  <div className="overflow-x-auto w-full scrollbar-hide">
-                    <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">رقم العقد</TableHead>
-                        <TableHead className="text-right">المورد</TableHead>
-                        <TableHead className="text-right">نوع العقد</TableHead>
-                        <TableHead className="text-right">القيمة</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-center">الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {project.contracts.map((contract) => (
-                        <TableRow key={contract.id}>
-                          <TableCell className="font-medium text-right">{contract.contractNumber}</TableCell>
-                          <TableCell className="text-right">{contract.supplierName || "غير محدد"}</TableCell>
-                          <TableCell className="text-right">{contract.contractType || "-"}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(contract.amount)}</TableCell>
-                          <TableCell className="text-right">
-                            <Badge 
-                              variant="outline"
-                              className={
-                                contract.status === "approved" || contract.status === "active" ? "bg-green-100 text-green-800 border-green-200" :
-                                contract.status === "draft" ? "bg-gray-100 text-gray-800 border-gray-200" :
-                                contract.status === "pending_approval" ? "bg-blue-100 text-blue-800 border-blue-200" :
-                                "bg-gray-100 text-gray-800 border-gray-200"
-                              }
-                            >
-                              {contract.status === "draft" ? "مسودة" :
-                               contract.status === "pending_approval" ? "بانتظار الاعتماد" :
-                               contract.status === "approved" ? "معتمد" :
-                               contract.status === "active" ? "نشط" :
-                               contract.status === "completed" ? "مكتمل" : 
-                               contract.status === "terminated" ? "منتهي" : 
-                               contract.status === "cancelled" ? "ملغي" : "غير محدد"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center gap-2 justify-center">
-                              {/* زر التعديل - يظهر فقط إذا كان العقد مسودة ولم تبدأ مرحلة التنفيذ */}
-                              {contract.status === "draft" && !isExecutionStarted && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/contracts/${contract.id}/edit`)}
-                                  title="تعديل العقد"
-                                >
-                                  <Edit className="h-4 w-4 text-blue-600" />
-                                </Button>
-                              )}
-                              {/* زر المعاينة - يظهر فقط إذا تجاوز العقد مرحلة المسودة (أي تم الضغط على إنشاء واعتماد العقد) */}
-                              {contract.status !== "draft" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                                  title="معاينة العقد"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <FileSignature className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">لا توجد عقود مسجلة</p>
-                    </div>
-                  )}
-
-                {showApproveContractButton && (
-                  <div className="mt-6 flex justify-center">
-                    <Button 
-                      className="gradient-primary text-white shadow-md hover:shadow-lg transition-all gap-2"
-                      onClick={() => {
-                        if (confirm("هل أنت متأكد من اعتماد هذا العقد؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التنفيذ وصرف المدفوعات.")) {
-                          approveContractMutation.mutate({ id: project.contracts![0].id });
-                        }
-                      }}
-                      disabled={approveContractMutation.isPending}
-                    >
-                      {approveContractMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="w-4 h-4" />
-                      )}
-                      اعتماد العقد
-                      </Button>
+                  <div className="space-y-5">
+                    {/* Metrics Bar for Contracts */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">عدد العقود المبرمة</span>
+                        <p className="font-extrabold text-foreground font-mono text-base">{project.contracts.length} عقد</p>
                       </div>
-                      )}              </CardContent>
+                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 space-y-1">
+                        <span className="text-primary font-semibold text-[11px]">إجمالي قيمة العقود</span>
+                        <p className="font-extrabold text-primary font-mono text-base">
+                          {formatCurrency(project.contracts.reduce((sum, c) => sum + parseFloat((c.amount || "0").toString()), 0).toString())}
+                        </p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">المورد الرئيسي</span>
+                        <p className="font-bold text-foreground truncate">{project.contracts[0]?.supplierName || "غير محدد"}</p>
+                      </div>
+                    </div>
+
+                    {/* Table View */}
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                      <Table>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow>
+                            <TableHead className="text-right font-bold text-xs">رقم العقد</TableHead>
+                            <TableHead className="text-right font-bold text-xs">المورد / المقاول</TableHead>
+                            <TableHead className="text-right font-bold text-xs">نوع العقد</TableHead>
+                            <TableHead className="text-right font-bold text-xs">القيمة الإجمالية</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الحالة</TableHead>
+                            <TableHead className="text-center font-bold text-xs">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {project.contracts.map((contract) => (
+                            <TableRow key={contract.id} className="hover:bg-muted/20">
+                              <TableCell className="font-mono font-bold text-foreground text-xs">{contract.contractNumber}</TableCell>
+                              <TableCell className="font-bold text-xs text-foreground">{contract.supplierName || "غير محدد"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{contract.contractType || "-"}</TableCell>
+                              <TableCell className="font-mono font-extrabold text-primary text-xs">{formatCurrency(contract.amount)}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant="outline"
+                                  className={`rounded-lg text-[11px] font-bold px-2.5 py-0.5 ${
+                                    contract.status === "approved" || contract.status === "active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                    contract.status === "draft" ? "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300" :
+                                    contract.status === "pending_approval" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
+                                    "bg-slate-100 text-slate-700"
+                                  }`}
+                                >
+                                  {contract.status === "draft" ? "مسودة" :
+                                   contract.status === "pending_approval" ? "بانتظار الاعتماد" :
+                                   contract.status === "approved" ? "معتمد" :
+                                   contract.status === "active" ? "نشط" :
+                                   contract.status === "completed" ? "مكتمل" : 
+                                   contract.status === "terminated" ? "منتهي" : 
+                                   contract.status === "cancelled" ? "ملغي" : "غير محدد"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex items-center gap-1 justify-center">
+                                  {contract.status === "draft" && !isExecutionStarted && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="rounded-lg h-7 w-7 text-blue-600 hover:bg-blue-50"
+                                      onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                                      title="تعديل العقد"
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                  {contract.status !== "draft" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="rounded-lg h-7 w-7 text-foreground hover:bg-muted"
+                                      onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                      title="معاينة العقد"
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {showApproveContractButton && (
+                      <div className="flex justify-center pt-3 border-t border-border/40">
+                        <Button 
+                          className="rounded-xl gradient-primary text-white font-bold shadow-lg hover:shadow-xl transition-all gap-2 px-8 h-10 text-xs"
+                          onClick={() => {
+                            if (confirm("هل أنت متأكد من اعتماد هذا العقد؟\nعند الاعتماد سيتم تحويل المشروع لمرحلة التنفيذ وصرف المدفوعات.")) {
+                              approveContractMutation.mutate({ id: project.contracts![0].id });
+                            }
+                          }}
+                          disabled={approveContractMutation.isPending}
+                        >
+                          {approveContractMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                          <span>اعتماد العقد وبدء التنفيذ</span>
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileSignature className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-foreground">لا توجد عقود مسجلة لهذا المشروع بعد</p>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
 
-          {/* الدفعات */}
-          <TabsContent value="payments" className="space-y-4">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="flex items-center justify-between text-right">
-                <div className="flex-1">
-                  <CardTitle className="text-lg">الدفعات</CardTitle>
-                  <CardDescription>سجل الدفعات المالية للمشروع</CardDescription>
+          {/* TAB 7: PAYMENTS */}
+          <TabsContent value="payments" className="space-y-6">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-5 border-b border-border/50 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <CreditCard className="w-5 h-5 text-primary" />
+                    <span>سجل الدفعات المالية للمشروع</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1">
+                    متابعة كشوفات الصرف والتحويلات المالية المخصصة
+                  </CardDescription>
                 </div>
                 {!isPaymentsLocked && (
                   <Button 
-                    className="gradient-primary text-white" 
+                    className="rounded-xl gradient-primary text-white font-bold text-xs gap-1.5 shadow-md h-9 px-4 shrink-0" 
                     onClick={() => navigate(`/disbursements/new/${project.id}`)}
                     disabled={isContractFullyAllocated}
                     title={isContractFullyAllocated ? "تم الوصول للحد الأقصى لقيمة العقد" : ""}
                   >
-                    <Plus className="w-4 h-4 ml-2" />
-                    إضافة دفعة
+                    <Plus className="w-4 h-4" />
+                    <span>إضافة دفعة</span>
                   </Button>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-5 space-y-5">
                 {isPaymentsLocked ? (
-                  <div className="text-center py-12">
-                    <div className="bg-amber-50/50 p-8 rounded-xl border border-amber-100/60 max-w-lg mx-auto shadow-sm backdrop-blur-sm">
-                      <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/40 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200">
-                        <Lock className="w-8 h-8 text-amber-600 dark:text-amber-500" />
-                      </div>
-                      <h3 className="text-xl font-bold text-amber-900 mb-3">قسم الدفعات مقفل حالياً</h3>
-                      <p className="text-amber-700 text-sm leading-relaxed mb-6">
-                        هذا القسم غير متاح للصرف أو العرض حالياً. سيتم إلغاء قفل قسم الدفعات وتفعيله بالكامل تلقائياً بمجرد اكتمال **المرحلة الرابعة: التعاقد** للمشروع.
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-100/40 border border-amber-200/50 rounded-lg text-amber-800 text-xs font-semibold">
-                        <AlertCircle className="w-4 h-4 text-amber-600" />
-                        يتطلب اكتمال مرحلة التعاقد وتوثيق العقد أولاً
-                      </div>
+                  <div className="text-center py-12 max-w-md mx-auto space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20">
+                      <Lock className="w-8 h-8" />
                     </div>
+                    <h3 className="text-base font-bold text-foreground">قسم الدفعات مقفل حالياً</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      هذا القسم غير متاح الصرف أو الإضافة فيه حالياً. سيتم إلغاء القفل بمجرد توثيق واعتماد العقد لمرحلة التنفيذ.
+                    </p>
                   </div>
                 ) : project.payments && project.payments.length > 0 ? (
-                  <>
+                  <div className="space-y-5">
+                    {/* Financial Summary Top Metrics */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-semibold">
+                      <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-1">
+                        <span className="text-emerald-700 font-semibold text-[11px]">إجمالي المسدد فعلياً</span>
+                        <p className="font-extrabold text-emerald-700 font-mono text-base">{formatCurrency(paidPaymentsSum.toString())}</p>
+                      </div>
+                      <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 space-y-1">
+                        <span className="text-amber-700 font-semibold text-[11px]">المتبقي للصرف</span>
+                        <p className="font-extrabold text-amber-700 font-mono text-base">{formatCurrency(remainingContractSum.toString())}</p>
+                      </div>
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border/40 space-y-1">
+                        <span className="text-muted-foreground font-semibold text-[11px]">قيمة العقد الكلية</span>
+                        <p className="font-extrabold text-foreground font-mono text-base">{formatCurrency(totalContractsSum.toString())}</p>
+                      </div>
+                    </div>
+
+                    {/* Alert for incomplete payment details */}
                     {project.payments.some(payment => payment.source !== "manual" && (
                       payment.completionPercentage === null || 
                       payment.completionPercentage === undefined || 
@@ -1295,138 +1273,110 @@ export default function ProjectDetailsPage() {
                       !payment.workDescription || 
                       payment.workDescription.trim() === ""
                     )) && (
-                      <Alert className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/20 dark:border-amber-900/50 mb-6 text-right">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                        <AlertTitle className="font-bold text-amber-800 dark:text-amber-400">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
-                        <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs mt-1 leading-relaxed">
-                          بعض الدفعات المضافة تفتقر إلى "نسبة الإنجاز المطلوبة" أو "وصف الأعمال التي سوف تنجز". يرجى استكمال هذه البيانات من خلال الضغط على أيقونة التعديل (📝) بجانب الدفعة المعنية لتجنب أي عوائق في مسار الاعتماد المالي.
+                      <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 rounded-xl p-3.5 text-xs">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <AlertTitle className="font-bold text-xs">تنبيه: توجد دفعات بمعلومات ناقصة</AlertTitle>
+                        <AlertDescription className="mt-1 leading-relaxed text-[11px]">
+                          بعض الدفعات تفتقر إلى "نسبة الإنجاز المطلوبة" أو "وصف الأعمال الإنجازية". يُرجى استكمال البيانات عبر أيقونة التعديل (📝).
                         </AlertDescription>
                       </Alert>
                     )}
-                    <div className="overflow-x-auto w-full scrollbar-hide">
+
+                    {/* Payments Table */}
+                    <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
                       <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right">رقم الدفعة</TableHead>
-                        <TableHead className="text-right">عنوان الدفعة</TableHead>
-                        <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-center">الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {project.payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell className="font-medium text-right">{payment.paymentNumber}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex flex-col text-right">
-                              <span className="font-semibold text-foreground">{payment.description || "-"}</span>
-                              {payment.source !== "manual" && (
-                                payment.completionPercentage === null || 
-                                payment.completionPercentage === undefined || 
-                                payment.completionPercentage === 0 ||
-                                !payment.workDescription || 
-                                payment.workDescription.trim() === ""
-                              ) && (
-                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
-                                  <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
-                                  <span>بيانات غير مكتملة:</span>
-                                  {(payment.completionPercentage === null || payment.completionPercentage === undefined || payment.completionPercentage === 0) && (
-                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
-                                      نسبة الإنجاز ناقصة
-                                    </span>
-                                  )}
-                                  {(!payment.workDescription || payment.workDescription.trim() === "") && (
-                                    <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
-                                      وصف الأعمال ناقص
-                                    </span>
+                        <TableHeader className="bg-muted/40">
+                          <TableRow>
+                            <TableHead className="text-right font-bold text-xs">رقم الدفعة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">عنوان الدفعة والتفاصيل</TableHead>
+                            <TableHead className="text-right font-bold text-xs">المبلغ</TableHead>
+                            <TableHead className="text-right font-bold text-xs">الحالة</TableHead>
+                            <TableHead className="text-right font-bold text-xs">التاريخ</TableHead>
+                            <TableHead className="text-center font-bold text-xs">الإجراءات</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {project.payments.map((payment) => (
+                            <TableRow key={payment.id} className="hover:bg-muted/20">
+                              <TableCell className="font-mono font-bold text-foreground text-xs">{payment.paymentNumber}</TableCell>
+                              <TableCell className="text-xs">
+                                <div className="space-y-0.5">
+                                  <span className="font-bold text-foreground block">{payment.description || "-"}</span>
+                                  {payment.source !== "manual" && (
+                                    payment.completionPercentage === null || 
+                                    payment.completionPercentage === undefined || 
+                                    payment.completionPercentage === 0 ||
+                                    !payment.workDescription || 
+                                    payment.workDescription.trim() === ""
+                                  ) && (
+                                    <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold text-amber-600">
+                                      <AlertTriangle className="h-3 w-3 shrink-0" />
+                                      <span>بيانات غير مكتملة</span>
+                                    </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="font-bold">{formatCurrency(payment.amount)}</span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant="outline" className={
-                              payment.status === "paid" ? "bg-green-100 text-green-800" :
-                              payment.status === "approved" ? "bg-blue-100 text-blue-800" :
-                              payment.status === "rejected" ? "bg-red-100 text-red-800" :
-                              payment.status === "due" ? "bg-orange-100 text-orange-800" :
-                              "bg-yellow-100 text-yellow-800"
-                            }>
-                              {payment.status === "pending" ? "قيد الانتظار" :
-                               payment.status === "approved" ? "معتمد" :
-                               payment.status === "paid" ? "مسدد" : 
-                               payment.status === "due" ? "مستحق" : "مرفوض"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {(() => {
-                              const raw = payment.paidAt || payment.date;
-                              if (!raw) return "-";
-                              if (typeof raw === 'string') {
-                                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-                                if (match) return `${match[1]}-${match[2]}-${match[3]}`;
-                              }
-                              const d = new Date(raw);
-                              if (isNaN(d.getTime())) return "-";
-                              const year = d.getFullYear();
-                              const month = String(d.getMonth() + 1).padStart(2, '0');
-                              const day = String(d.getDate()).padStart(2, '0');
-                              return `${year}-${month}-${day}`;
-                            })()}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center gap-2 justify-center">
-                              {payment.id && payment.status !== "paid" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => navigate(`/payments/edit/${payment.id}`)}
-                                  title="تعديل الدفعة"
-                                >
-                                  <Edit className="h-4 w-4 text-blue-600" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  </div>
-                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between border border-dashed border-slate-200 dark:border-slate-800 gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium text-sm sm:text-base">إجمالي قيم المدفوعات:</span>
-                      <span className="font-bold text-base sm:text-lg text-emerald-600 dark:text-emerald-400">{formatCurrency(paidPaymentsSum.toString())}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium text-sm sm:text-base">المتبقي:</span>
-                      <span className="font-bold text-base sm:text-lg text-amber-600 dark:text-amber-400">{formatCurrency(remainingContractSum.toString())}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground font-medium text-sm sm:text-base">من إجمالي قيمة العقد:</span>
-                      <span className="font-bold text-base sm:text-lg text-foreground">{formatCurrency(totalContractsSum.toString())}</span>
+                              </TableCell>
+                              <TableCell className="font-mono font-extrabold text-emerald-600 text-xs">{formatCurrency(payment.amount)}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`rounded-lg text-[11px] font-bold px-2.5 py-0.5 ${
+                                  payment.status === "paid" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                  payment.status === "approved" ? "bg-blue-500/10 text-blue-600 border-blue-500/20" :
+                                  payment.status === "rejected" ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                                  "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                }`}>
+                                  {payment.status === "pending" ? "قيد الانتظار" :
+                                   payment.status === "approved" ? "معتمد" :
+                                   payment.status === "paid" ? "مسدد" : 
+                                   payment.status === "due" ? "مستحق" : "مرفوض"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {(() => {
+                                  const raw = payment.paidAt || payment.date;
+                                  if (!raw) return "-";
+                                  if (typeof raw === 'string') {
+                                    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                                    if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+                                  }
+                                  const d = new Date(raw);
+                                  if (isNaN(d.getTime())) return "-";
+                                  const year = d.getFullYear();
+                                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                                  const day = String(d.getDate()).padStart(2, '0');
+                                  return `${year}-${month}-${day}`;
+                                })()}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex items-center justify-center">
+                                  {payment.id && payment.status !== "paid" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="rounded-lg h-7 w-7 text-blue-600 hover:bg-blue-50"
+                                      onClick={() => navigate(`/payments/edit/${payment.id}`)}
+                                      title="تعديل الدفعة"
+                                    >
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   </div>
-                </>
                 ) : (
-                  <div className="text-center py-8">
-                    <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">لا توجد دفعات مسجلة</p>
+                  <div className="text-center py-12">
+                    <CreditCard className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-sm font-bold text-foreground">لا توجد دفعات مالية مسجلة بعد</p>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
-
-
 
       </div>
     </DashboardLayout>

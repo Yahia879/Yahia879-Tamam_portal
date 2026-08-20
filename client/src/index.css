@@ -88,16 +88,16 @@
   --card-foreground: oklch(0.20 0.015 65);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.20 0.015 65);
-  --secondary: oklch(0.96 0.005 175);       /* تركواز فاتح جداً */
+  --secondary: oklch(0.95 0.006 175);       /* تركواز مريح */
   --secondary-foreground: oklch(0.35 0.10 174);
-  --muted: oklch(0.965 0.003 175);          /* رمادي مائل للتركواز */
-  --muted-foreground: oklch(0.52 0.015 174);
-  --accent: oklch(0.94 0.01 174);           /* تركواز خفيف */
+  --muted: oklch(0.942 0.005 174);          /* رمادي ناعم وواضح للحقول والبطاقات */
+  --muted-foreground: oklch(0.48 0.015 174);  /* نص رمادي واصل ومتناسق */
+  --accent: oklch(0.93 0.01 174);           /* تركواز خفيف */
   --accent-foreground: oklch(0.35 0.12 174);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.90 0.006 174);          /* حدود مائلة للتركواز */
-  --input: oklch(0.90 0.006 174);
+  --border: oklch(0.875 0.008 174);         /* حدود واضحة ومحددة ومريحة */
+  --input: oklch(0.875 0.008 174);
   --ring: oklch(0.55 0.14 174);             /* تركواز للتركيز */
 
   /* القائمة الجانبية - لون #09707e حسب طلب المستخدم */

@@ -121,26 +121,52 @@ export default function ProjectProgressMilestonesTab({
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* قسم تاريخ البدء الفعلي */}
-      <Card className="border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b border-border/60">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-teal-600" />
+      {/* قسم تاريخ البدء الفعلي والإنجاز المخطط */}
+      <Card className="border border-border/70 shadow-xs rounded-2xl bg-card overflow-hidden">
+        <CardHeader className="p-5 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Target className="w-5 h-5" />
+            </div>
             <div>
-              <CardTitle className="text-base font-bold">تاريخ البدأ الفعلي للمشروع</CardTitle>
-              <CardDescription className="text-xs">تحديد تاريخ البدأ الفعلي للمشروع لتنعكس التواريخ تلقائياً في حساب فترات التنفيذ والتقارير</CardDescription>
+              <CardTitle className="text-base font-bold text-foreground">تاريخ البدء الفعلي للمشروع والإنجاز</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                تحديد تاريخ البدء الفعلي للمشروع وتتبع مؤشرات الأداء والجدول الزمني التقديري
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-4 pb-4">
-          <div className="flex items-center gap-3">
-            <Label className="text-xs font-bold text-foreground whitespace-nowrap">تاريخ البدأ الفعلي:</Label>
-            <Input
-              type="date"
-              value={actualStartDate}
-              onChange={(e) => setActualStartDate(e.target.value)}
-              className="h-9 w-48 text-xs font-semibold border-border/80 bg-background"
-            />
+        <CardContent className="p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-2">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span>تاريخ البدء الفعلي:</span>
+              </Label>
+              <Input
+                type="date"
+                value={actualStartDate}
+                onChange={(e) => setActualStartDate(e.target.value)}
+                className="h-10 text-xs font-semibold border-border/70 bg-background rounded-xl focus-visible:ring-primary"
+              />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                يُستخدم تاريخ البدء الفعلي لحساب مدة التنفيذ ومقارنتها بالخطة المستهدفة تلقائياً.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/40 space-y-2">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>نسبة الإنجاز الفعلي الحالية:</span>
+              </Label>
+              <div className="h-10 px-3.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">مقرونة بالتقارير الميدانية</span>
+                <span className="font-extrabold text-emerald-700 dark:text-emerald-300 font-mono text-sm">{actualProgress || 0}%</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                يتم تحديث نسبة الإنجاز الفعلي تلقائياً بناءً على تقارير متابعة مراحل وحالات التنفيذ.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -151,14 +177,14 @@ export default function ProjectProgressMilestonesTab({
           type="button"
           onClick={handleSave}
           disabled={updateMutation.isPending}
-          className="gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold px-6 shadow-md"
+          className="gap-2 gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-md hover:shadow-lg transition-all text-xs"
         >
           {updateMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Save className="w-4 h-4" />
           )}
-          حفظ تاريخ البدء الفعلي
+          <span>حفظ التغييرات والمعلومات</span>
         </Button>
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
+import BeneficiaryLayout from '@/components/BeneficiaryLayout';
 import { 
   getAllFieldsForProgram,
   getVisibleFieldsForProgram,
@@ -1005,6 +1006,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       );
     }
 
+    if (user?.role === "service_requester") {
+      return (
+        <BeneficiaryLayout activeTab="new-request" title="تقديم طلب خدمة جديد" subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية">
+          {blockContent}
+        </BeneficiaryLayout>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-background py-4 sm:py-8" dir="rtl">
         {blockContent}
@@ -1017,6 +1026,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       <div dir="rtl" className="w-full">
         {content}
       </div>
+    );
+  }
+
+  if (user?.role === "service_requester") {
+    return (
+      <BeneficiaryLayout activeTab="new-request" title="تقديم طلب خدمة جديد" subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية">
+        {content}
+      </BeneficiaryLayout>
     );
   }
 
