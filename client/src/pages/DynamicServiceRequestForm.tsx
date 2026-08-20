@@ -375,17 +375,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const content = (
     <div className="max-w-4xl mx-auto px-4">
-      {/* رأس الصفحة مع زر الرجوع */}
-      {showLayout && (
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+      {/* رأس الصفحة مع زر الرجوع للإداريين */}
+      {showLayout && user?.role !== 'service_requester' && (
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
+          <Link href="/dashboard">
             <Button variant="ghost" size="icon" className="flex-shrink-0">
               <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
           </div>
         </div>
       )}
@@ -856,17 +855,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   if (isImamBlocked) {
     const blockContent = (
       <div className="max-w-4xl mx-auto px-4">
-        {/* رأس الصفحة مع زر الرجوع */}
-        {showLayout && (
-          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-            <Link href={user?.role === 'service_requester' ? '/requester' : '/dashboard'}>
+        {/* رأس الصفحة مع زر الرجوع للإداريين */}
+        {showLayout && user?.role !== 'service_requester' && (
+          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
+            <Link href="/dashboard">
               <Button variant="ghost" size="icon" className="flex-shrink-0">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">طلبات خدمات المساجد</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">قدم طلبك للاستفادة من خدمات جمعية عمارة المساجد</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
             </div>
           </div>
         )}
@@ -1008,7 +1006,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
     if (user?.role === "service_requester") {
       return (
-        <BeneficiaryLayout activeTab="new-request" title="تقديم طلب خدمة جديد" subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية">
+        <BeneficiaryLayout
+          activeTab="new-request"
+          title="تقديم طلب خدمة جديد"
+          subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"
+          headerActions={
+            <Link href="/requester">
+              <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5">
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة للرئيسية</span>
+              </Button>
+            </Link>
+          }
+        >
           {blockContent}
         </BeneficiaryLayout>
       );
@@ -1031,7 +1041,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   if (user?.role === "service_requester") {
     return (
-      <BeneficiaryLayout activeTab="new-request" title="تقديم طلب خدمة جديد" subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية">
+      <BeneficiaryLayout
+        activeTab="new-request"
+        title="تقديم طلب خدمة جديد"
+        subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"
+        headerActions={
+          <Link href="/requester">
+            <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5">
+              <ArrowRight className="w-4 h-4" />
+              <span>العودة للرئيسية</span>
+            </Button>
+          </Link>
+        }
+      >
         {content}
       </BeneficiaryLayout>
     );
