@@ -241,7 +241,9 @@ export default function DisbursementOrderPrint() {
   }
 
   // حساب جهة التمويل/الدعم
-  const resolvedSupportingEntity = customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || project?.fundingSource || "—";
+  const resolvedSupportingEntity = (project?.fundingSource && project.fundingSource !== "لا يوجد" && project.fundingSource !== "—")
+    ? project.fundingSource
+    : (request?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—");
 
   // اسم المشروع الرئيسي
   const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
@@ -282,12 +284,17 @@ export default function DisbursementOrderPrint() {
 
   const showRequestNumber = !!request && !request.isDirect;
 
-  const descriptionText = (isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc)) ? 
+  const rawDescriptionText = (isCustomType && (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc)) ? 
                           (customSupplier?.requiredWorksDesc || linkedRequestInfo?.requiredWorksDesc) :
                           (customSupplier?.customProjectName || 
                            (request?.description ? request.description.replace(/^(?:ت?قرير\s+إنجاز\s+RPT-[A-Za-z0-9-]+(?:\s*-\s*الأعمال\s+المنفذة\s+فعلياً)?\s*:\s*)/i, "") : "") || 
                            request?.title || 
                            "—");
+
+  // إزالة أي تنبيه مالي صفري من العرض ليكون الوصف نظيفاً ومرتباً
+  const descriptionText = (rawDescriptionText || "—")
+    .replace(/\r?\n?\[تنبيه مالـ?ي:\s*تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ\s*\([٠0][٫.]?[٠0]*\s*ريال\)\s*عن مدفوعات الداعم الفعلية المقبوضة\]/g, "")
+    .trim() || "—";
 
   const descLength = descriptionText.length;
   const descFontSizeClass = descLength > 200 ? "text-[10px] leading-tight p-1.5" : 
@@ -526,7 +533,9 @@ export default function DisbursementOrderPrint() {
                         اصرفوا للمكرم/
                       </td>
                       <td className="p-2.5 text-slate-800 font-bold text-right" colSpan={2}>
-                        {order.beneficiaryName}
+                        {(order.beneficiaryName && order.beneficiaryName !== project?.name) 
+                          ? order.beneficiaryName 
+                          : ((order as any)?.contract?.secondPartyName || (request as any)?.supplierName || order.beneficiaryName || "—")}
                       </td>
                     </tr>
                     
@@ -662,7 +671,7 @@ export default function DisbursementOrderPrint() {
                           اسم الحساب
                         </td>
                         <td className="p-2.5 text-slate-800 font-bold text-right">
-                          {isSadadInvoice ? "—" : (order.beneficiaryAccountName || order.beneficiaryName || "—")}
+                          {isSadadInvoice ? "—" : (order.beneficiaryAccountName || (order as any)?.contract?.secondPartyAccountName || (order as any)?.contract?.secondPartyName || (request as any)?.supplierAccountName || (request as any)?.supplierName || order.beneficiaryName || "—")}
                         </td>
                       </tr>
                       
@@ -671,7 +680,7 @@ export default function DisbursementOrderPrint() {
                           اسم البنك
                         </td>
                         <td className="p-2.5 text-slate-800 font-semibold text-right">
-                          {isSadadInvoice ? "—" : (order.beneficiaryBank || "—")}
+                          {isSadadInvoice ? "—" : (order.beneficiaryBank || (order as any)?.contract?.secondPartyBankName || (request as any)?.supplierBank || "—")}
                         </td>
                       </tr>
 
@@ -680,7 +689,7 @@ export default function DisbursementOrderPrint() {
                           رقم الآيبان
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right tracking-wider" dir="ltr">
-                          {isSadadInvoice ? "—" : (order.beneficiaryIban || "—")}
+                          {isSadadInvoice ? "—" : (order.beneficiaryIban || (order as any)?.contract?.secondPartyIban || (request as any)?.supplierIban || "—")}
                         </td>
                       </tr>
 

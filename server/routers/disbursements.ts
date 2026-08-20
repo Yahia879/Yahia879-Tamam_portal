@@ -1731,7 +1731,8 @@ export const disbursementsRouter = router({
         .where(eq(disbursementRequests.id, order.disbursementRequestId));
 
       // جلب المشروع وتفاصيل العقد والمدفوعات لتقرير أمر الصرف
-      let project = null;
+      let project: any = null;
+      let contract: any = null;
       const projId = request?.projectId;
       if (request && projId) {
         const [projectData] = await db
@@ -1752,17 +1753,19 @@ export const disbursementsRouter = router({
             }
           }
 
-          let contract = null;
           if (contractId) {
             [contract] = await db
               .select()
               .from(contractsEnhanced)
               .where(eq(contractsEnhanced.id, contractId));
-          } else {
+          }
+          if (!contract && projectData?.id) {
             [contract] = await db
               .select()
               .from(contractsEnhanced)
-              .where(eq(contractsEnhanced.projectId, projectData.id));
+              .where(eq(contractsEnhanced.projectId, projectData.id))
+              .orderBy(desc(contractsEnhanced.createdAt))
+              .limit(1);
           }
 
           let contractAmount = 0;
@@ -1777,10 +1780,11 @@ export const disbursementsRouter = router({
                 const str = contract.supportingEntity.trim();
                 const parsedEntities = str.startsWith("[") ? JSON.parse(str) : str;
                 if (Array.isArray(parsedEntities) && parsedEntities.length > 0) {
-                  const names = parsedEntities
+                  const filtered = parsedEntities.filter((e: any) => (e.entity && e.entity.trim() !== "") || (e.customEntity && e.customEntity.trim() !== ""));
+                  const names = filtered
                     .map((e: any) => {
-                      const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : e.entity;
-                      if (parsedEntities.length > 1 && e.amount) {
+                      const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : (e.entity || e.customEntity);
+                      if (filtered.length > 1 && e.amount) {
                         return `${name} (${Number(e.amount).toLocaleString()} ريال)`;
                       }
                       return name;
@@ -1789,15 +1793,15 @@ export const disbursementsRouter = router({
                   if (names.length > 0) {
                     fundingSource = names.join("، ");
                   }
-                  const sumJsonAmounts = parsedEntities.reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+                  const sumJsonAmounts = filtered.reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
                   if (sumJsonAmounts > 0) {
                     fundingAmount = sumJsonAmounts;
                   }
-                } else if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim()) {
+                } else if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim() && contract.supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
                   fundingSource = contract.supportingEntity;
                 }
               } catch (e) {
-                if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim()) {
+                if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim() && contract.supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
                   fundingSource = contract.supportingEntity;
                 }
               }
@@ -1814,6 +1818,10 @@ export const disbursementsRouter = router({
             if (fundingAmount === 0 && totalOpportunityValue > 0) {
               fundingAmount = totalOpportunityValue;
             }
+          }
+
+          if ((!fundingSource || fundingSource === "لا يوجد") && (request?.fundingSourceName || (projectData as any)?.donorName)) {
+            fundingSource = request?.fundingSourceName || (projectData as any)?.donorName || "لا يوجد";
           }
 
           // حساب إجمالي المدفوع من واقع أوامر الصرف المعتمدة أو المنفذة للمشروع
@@ -1893,8 +1901,20 @@ export const disbursementsRouter = router({
         }
       }
 
+      const resolvedBeneficiaryName = (order.beneficiaryName && order.beneficiaryName !== project?.name)
+        ? order.beneficiaryName
+        : (contract?.secondPartyName || order.beneficiaryName);
+      const resolvedBeneficiaryAccountName = order.beneficiaryAccountName || contract?.secondPartyAccountName || contract?.secondPartyName || resolvedBeneficiaryName;
+      const resolvedBeneficiaryBank = order.beneficiaryBank || contract?.secondPartyBankName || null;
+      const resolvedBeneficiaryIban = order.beneficiaryIban || contract?.secondPartyIban || null;
+
       return {
         ...order,
+        beneficiaryName: resolvedBeneficiaryName,
+        beneficiaryAccountName: resolvedBeneficiaryAccountName,
+        beneficiaryBank: resolvedBeneficiaryBank,
+        beneficiaryIban: resolvedBeneficiaryIban,
+        contract,
         disbursementRequest: request,
         project,
         createdByUser: financialUser || null,
