@@ -45,7 +45,24 @@ import {
   Ruler,
   Trash2,
   UploadCloud,
+  Printer,
 } from 'lucide-react';
+
+function toHijriDate(date: Date): string {
+  const gregorianYear = date.getFullYear();
+  const gregorianMonth = date.getMonth() + 1;
+  const gregorianDay = date.getDate();
+  
+  const hijriYear = Math.floor((gregorianYear - 622) * (33 / 32));
+  const hijriMonth = ((gregorianMonth + 9) % 12) + 1;
+  const hijriDay = gregorianDay;
+  
+  return `${hijriDay}/${hijriMonth}/${hijriYear} هـ`;
+}
+
+function formatGregorianDate(date: Date): string {
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()} م`;
+}
 
 const ICON_MAP: Record<string, any> = {
   Building2, Hammer, Wrench, Package, Receipt, Sparkles, Sun, Droplets, GlassWater,
@@ -78,6 +95,7 @@ const parseConditions = (conditions: any): string[] => {
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // الحصول على طلبات المستخدم للتحقق من الإمام
   const { data: myRequests = [], isLoading: myRequestsLoading } = trpc.requests.getMyRequests.useQuery(undefined, {
@@ -785,27 +803,42 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         {/* الخطوة 5: المراجعة والإرسال */}
         {currentStep === 'review' && (
           <div className="space-y-5 sm:space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">المراجعة والإرسال</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">يرجى مراجعة البيانات قبل إرسال الطلب</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">المراجعة والإرسال</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">يرجى مراجعة البيانات قبل إرسال الطلب</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => window.print()}
+                className="gap-2 font-bold rounded-2xl h-11 px-5 border-primary/30 text-primary hover:bg-primary/5 shadow-xs self-start sm:self-center"
+              >
+                <Printer className="w-4 h-4" />
+                <span>طباعة مسودة الطلب / PDF</span>
+              </Button>
             </div>
-            <Alert className="bg-green-50 border-green-100 text-green-800 p-3">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription className="text-xs sm:text-sm font-medium">جميع البيانات صحيحة وكاملة. يمكنك الآن إرسال الطلب</AlertDescription>
+
+            <Alert className="bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200 p-4 rounded-2xl">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <AlertDescription className="text-xs sm:text-sm font-medium">
+                جميع البيانات صحيحة ومكتملة. يمكنك طباعة مسودة للطلب أو المتابعة لإرساله مباشرة.
+              </AlertDescription>
             </Alert>
-            <div className="bg-muted/20 p-4 sm:p-6 rounded-xl space-y-6 border border-border shadow-inner">
+
+            <div className="bg-muted/20 p-4 sm:p-6 rounded-2xl space-y-6 border border-border/80 shadow-inner">
               {/* ملخص البرنامج */}
-              <div className="bg-background p-4 rounded-xl border border-border shadow-sm">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 uppercase tracking-wider font-bold">نوع الخدمة</p>
-                <div className="flex items-center gap-3">
+              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 uppercase tracking-wider font-bold">نوع الخدمة والبرنامج</p>
+                <div className="flex items-center gap-3.5">
                   {selectedProgramConfig && (
                     <>
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${selectedProgramConfig.color || 'bg-indigo-600'} flex items-center justify-center shadow-md`}>
-                        {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-5 h-5 sm:w-6 sm:h-6 text-white" })}
+                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${selectedProgramConfig.color || 'bg-primary'} text-white flex items-center justify-center shadow-md shrink-0`}>
+                        {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-6 h-6" })}
                       </div>
                       <div>
-                        <p className="font-bold text-foreground text-sm sm:text-base">{selectedProgramConfig.name}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground">{selectedProgramConfig.description}</p>
+                        <p className="font-extrabold text-foreground text-sm sm:text-base">{selectedProgramConfig.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{selectedProgramConfig.description}</p>
                       </div>
                     </>
                   )}
@@ -813,48 +846,73 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </div>
 
               {/* بيانات مقدم الطلب */}
-              <div className="bg-background p-4 rounded-xl border border-border shadow-sm">
+              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-3 uppercase tracking-wider font-bold">بيانات مقدم الطلب</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
                   <div>
-                    <p className="text-muted-foreground mb-0.5">الاسم</p>
-                    <p className="font-bold text-foreground">{currentUser?.name}</p>
+                    <p className="text-muted-foreground mb-0.5 font-medium">الاسم</p>
+                    <p className="font-bold text-foreground">{currentUser?.name || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground mb-0.5">البريد</p>
-                    <p className="font-bold text-foreground truncate">{currentUser?.email}</p>
+                    <p className="text-muted-foreground mb-0.5 font-medium">البريد الإلكتروني</p>
+                    <p className="font-bold text-foreground truncate">{currentUser?.email || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-0.5 font-medium">رقم الجوال</p>
+                    <p className="font-bold text-foreground font-mono" dir="ltr">{currentUser?.phone || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-0.5 font-medium">نوع الحساب / الصفة</p>
+                    <p className="font-bold text-foreground">طالب خدمة مساجد</p>
                   </div>
                 </div>
               </div>
 
               {/* تفاصيل الطلب */}
-              <div className="bg-background p-4 rounded-xl border border-border shadow-sm">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-4 uppercase tracking-wider font-bold">تفاصيل الطلب</p>
+              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-4 uppercase tracking-wider font-bold">تفاصيل ونطاق الطلب</p>
                 <div className="space-y-4">
-                  {visibleFields.map((field) => (
-                    <React.Fragment key={field.name}>
-                      <div className="border-b border-border last:border-0 pb-3 last:pb-0">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">{field.label}</p>
-                        <p className="font-medium text-foreground text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
-                          {formData[field.name] ? String(formData[field.name]) : '-'}
-                        </p>
-                      </div>
-                      {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
-                        <div className="border-b border-border pb-3 last:border-0 animate-fade-in">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">مصلى النساء</p>
-                          <p className="font-medium text-foreground text-xs sm:text-sm">
-                            {formData.hasPrayerHall ? 'يوجد مصلى للنساء' : 'لا يوجد مصلى للنساء'}
+                  {visibleFields.map((field) => {
+                    const val = formData[field.name];
+                    let displayVal = val ? String(val) : '-';
+                    if (val === 'yes') displayVal = 'نعم';
+                    if (val === 'no') displayVal = 'لا';
+                    if (field.name === 'landOwnership') {
+                      displayVal = val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : (val || '-');
+                    }
+                    if (field.name === 'mosqueId' && (userMosques?.length ?? 0) > 0) {
+                      const m = userMosques?.find((item: any) => item.id === val);
+                      if (m) displayVal = `${m.name} ${m.city ? `(${m.city})` : ''}`;
+                    }
+
+                    return (
+                      <React.Fragment key={field.name}>
+                        <div className="border-b border-border/60 last:border-0 pb-3 last:pb-0">
+                          <p className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium">{field.label}</p>
+                          <p className="font-bold text-foreground text-xs sm:text-sm whitespace-pre-wrap break-words leading-relaxed">
+                            {displayVal}
                           </p>
                         </div>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
+                          <div className="border-b border-border/60 pb-3 last:border-0">
+                            <p className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium">مصلى النساء</p>
+                            <p className="font-bold text-foreground text-xs sm:text-sm">
+                              {formData.hasPrayerHall
+                                ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || '-'} مصلي | المساحة: ${formData.womenPrayerArea || '-'} م²)`
+                                : 'لا يتضمن مصلى للنساء'}
+                            </p>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                   {selectedFile && (
                     <div className="pt-1">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">المرفق</p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mb-1 font-medium">المرفقات</p>
                       <p className="font-bold text-primary flex items-center gap-1.5 text-xs sm:text-sm">
-                        <Paperclip className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {selectedFile.name}
+                        <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span>{selectedFile.name}</span>
+                        <span className="text-muted-foreground font-mono text-xs">({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
                       </p>
                     </div>
                   )}
@@ -863,6 +921,252 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             </div>
           </div>
         )}
+
+        {/* تنسيقات الطباعة المتوافقة مع تقارير المنصة الرسمية */}
+        <style>{`
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm 6mm !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              width: 100% !important;
+              height: auto !important;
+              background-color: white !important;
+              color: black !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: visible !important;
+            }
+            header, nav, footer, .print\\:hidden {
+              display: none !important;
+            }
+            .printable-report-container {
+              display: block !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .section-block, tr, .break-inside-avoid {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        `}</style>
+
+        {/* قالب التقرير الرسمي المخصص للطباعة A4 */}
+        <div className="hidden print:block printable-report-container font-sans text-black" dir="rtl">
+          <div className="w-full border-[3px] border-[#1a5f4a] p-6 rounded-lg relative overflow-hidden bg-white">
+            {/* خط ذهبي داخلي رفيع للإطار مثل تقارير العقود والإنجاز */}
+            <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+
+            <div className="relative z-10">
+              {/* ترويسة التقرير: الشعار، اسم الجمعية، وتاريخ الطلب */}
+              <div className="flex justify-between items-start gap-4 mb-5 pb-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto object-contain" />
+                  ) : (
+                    <div className="w-16 h-16 bg-[#1a5f4a]/10 rounded-lg flex items-center justify-center border border-[#1a5f4a]/20">
+                      <span className="text-[#1a5f4a] font-bold text-xl">منارة</span>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-base font-extrabold text-[#1a5f4a]">
+                      {orgSettings?.officialReportsName || "بوابة منارة - للعناية بالمساجد"}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">إدارة شؤون وخدمات المساجد والمشاريع</p>
+                    <p className="text-[11px] text-gray-400">منصة تمام لخدمة ورعاية بيوت الله</p>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-1.5 text-left pl-2">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="font-bold text-gray-700">التاريخ:</span>
+                    <span className="font-semibold text-gray-900">{formatGregorianDate(new Date())}</span>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="font-bold text-gray-700">الموافق:</span>
+                    <span className="font-semibold text-gray-900">{toHijriDate(new Date())}</span>
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="font-bold text-gray-700">نوع الوثيقة:</span>
+                    <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+                      مسودة طلب خدمة إلكتروني
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* البانر الرئيسي للتقرير */}
+              <div className="text-center py-3.5 px-4 mb-5 rounded-lg bg-[#1a5f4a] text-white shadow-xs">
+                <h1 className="text-xl font-bold">
+                  استمارة تقديم طلب خدمة مساجد - {selectedProgramConfig?.name}
+                </h1>
+                <p className="text-xs text-emerald-100 mt-1">
+                  {selectedProgramConfig?.description}
+                </p>
+              </div>
+
+              {/* القسم 1: بيانات مقدم الطلب */}
+              <div className="mb-4 section-block">
+                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
+                  أولاً: بيانات مقدم الطلب
+                </div>
+                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
+                  <tbody>
+                    <tr className="border-b border-gray-200 bg-gray-50/50">
+                      <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">الاسم الكامل:</td>
+                      <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">{currentUser?.name || '-'}</td>
+                      <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">الصفة / نوع الحساب:</td>
+                      <td className="p-2 text-gray-900 w-1/4">طالب خدمة مساجد</td>
+                    </tr>
+                    <tr className="bg-white">
+                      <td className="p-2 font-bold text-gray-600 border-l border-gray-200">البريد الإلكتروني:</td>
+                      <td className="p-2 text-gray-900 border-l border-gray-200">{currentUser?.email || '-'}</td>
+                      <td className="p-2 font-bold text-gray-600 border-l border-gray-200">رقم الجوال:</td>
+                      <td className="p-2 text-gray-900" dir="ltr">{currentUser?.phone || '-'}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* القسم 2: بيانات المسجد والموقع */}
+              <div className="mb-4 section-block">
+                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
+                  ثانياً: بيانات المسجد والموقع
+                </div>
+                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
+                  <tbody>
+                    {selectedService === 'bunyan' ? (
+                      <>
+                        <tr className="border-b border-gray-200 bg-gray-50/50">
+                          <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">حالة المسجد:</td>
+                          <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">بناء جديد / استكمال متعثر</td>
+                          <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">اسم الحي:</td>
+                          <td className="p-2 text-gray-900 w-1/4">{formData.district || '-'}</td>
+                        </tr>
+                        <tr className="bg-white">
+                          <td className="p-2 font-bold text-gray-600 border-l border-gray-200">أقرب مسجد موجود:</td>
+                          <td className="p-2 text-gray-900 border-l border-gray-200">{formData.nearestMosque || '-'}</td>
+                          <td className="p-2 font-bold text-gray-600 border-l border-gray-200">المسافة من أقرب مسجد:</td>
+                          <td className="p-2 text-gray-900">{formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '-'}</td>
+                        </tr>
+                      </>
+                    ) : (
+                      <tr className="bg-white">
+                        <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">اسم المسجد:</td>
+                        <td className="p-2 text-gray-900 font-bold w-1/4 border-l border-gray-200">
+                          {(() => {
+                            const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
+                            return found ? found.name : `مسجد #${formData.mosqueId || '-'}`;
+                          })()}
+                        </td>
+                        <td className="p-2 font-bold text-gray-600 w-1/4 border-l border-gray-200">المدينة / المنطقة:</td>
+                        <td className="p-2 text-gray-900 w-1/4">
+                          {(() => {
+                            const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
+                            return found ? (found.city || orgSettings?.city || '-') : (orgSettings?.city || '-');
+                          })()}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* القسم 3: التفاصيل الفنية ونطاق الأعمال */}
+              <div className="mb-4 section-block">
+                <div className="bg-[#1a5f4a]/10 border-r-4 border-[#1a5f4a] px-3 py-1.5 mb-2 font-bold text-xs text-[#1a5f4a] rounded-l">
+                  ثالثاً: تفاصيل ونطاق الطلب
+                </div>
+                <table className="w-full text-xs border border-gray-300 rounded overflow-hidden">
+                  <tbody>
+                    {visibleFields.map((field, idx) => {
+                      const val = formData[field.name];
+                      let displayVal = val ? String(val) : '-';
+                      if (val === 'yes') displayVal = 'نعم';
+                      if (val === 'no') displayVal = 'لا';
+                      if (field.name === 'landOwnership') {
+                        displayVal = val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : (val || '-');
+                      }
+                      if (field.name === 'mosqueId' && (userMosques?.length ?? 0) > 0) {
+                        const m = userMosques?.find((item: any) => item.id === val);
+                        if (m) displayVal = `${m.name} ${m.city ? `(${m.city})` : ''}`;
+                      }
+
+                      return (
+                        <tr key={field.name} className={`border-b border-gray-200 ${idx % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
+                          <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">{field.label}:</td>
+                          <td className="p-2 text-gray-900 whitespace-pre-wrap leading-relaxed">{displayVal}</td>
+                        </tr>
+                      );
+                    })}
+                    {selectedService === 'bunyan' && (
+                      <tr className="border-b border-gray-200 bg-white">
+                        <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">مصلى النساء:</td>
+                        <td className="p-2 text-gray-900">
+                          {formData.hasPrayerHall
+                            ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || '-'} مصلي | المساحة: ${formData.womenPrayerArea || '-'} م²)`
+                            : 'لا يتضمن مصلى للنساء'}
+                        </td>
+                      </tr>
+                    )}
+                    <tr className="bg-gray-50/50">
+                      <td className="p-2 font-bold text-gray-600 w-1/3 border-l border-gray-200">المرفقات المرفوعة:</td>
+                      <td className="p-2 text-gray-900 font-semibold">
+                        {selectedFile ? `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'لا يوجد مرفقات'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* القسم 4: الإقرار والتعهد */}
+              <div className="mb-5 p-3 border border-emerald-200 bg-emerald-50/50 rounded-lg text-xs leading-relaxed section-block">
+                <p className="font-bold text-emerald-900 mb-1">إقرار وتعهد مقدم الطلب:</p>
+                <p className="text-emerald-800 text-[11px]">
+                  أقر أنا مقدم الطلب الموضحة بياناتي أعلاه بصحة ودقة كافة البيانات والمعلومات والمرفقات الواردة في هذه الاستمارة، وأوافق على خضوع الطلب للضوابط والمعايير والتقييم الميداني والفني المعتمد لدى جمعية عمارة المساجد (منارة).
+                </p>
+              </div>
+
+              {/* القسم 5: التواقيع والاعتماد */}
+              <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-300 text-center text-xs section-block">
+                <div>
+                  <p className="font-bold text-gray-700 mb-1">مقدم الطلب</p>
+                  <p className="text-gray-900 font-bold">{currentUser?.name || '-'}</p>
+                  <p className="text-[10px] text-gray-400 mt-6">التوقيع: ...........................</p>
+                </div>
+
+                <div>
+                  <p className="font-bold text-gray-700 mb-1">تاريخ إعداد الاستمارة</p>
+                  <p className="font-mono text-gray-900">{formatGregorianDate(new Date())}</p>
+                  <p className="text-[10px] text-gray-400 mt-6">{toHijriDate(new Date())}</p>
+                </div>
+
+                <div>
+                  <p className="font-bold text-gray-700 mb-1">اعتماد البوابة الإلكترونية</p>
+                  <div className="inline-block px-3 py-1 border-2 border-dashed border-[#1a5f4a]/40 text-[#1a5f4a] rounded font-bold text-[11px] mt-1">
+                    منارة - تم الإنشاء إلكترونياً
+                  </div>
+                </div>
+              </div>
+
+              {/* التذييل الرسمي */}
+              <div className="mt-6 pt-3 border-t border-gray-200 flex justify-between items-center text-[10px] text-gray-500">
+                <span>{orgSettings?.address || "المملكة العربية السعودية"}</span>
+                <span>{orgSettings?.website || "www.manarah.org.sa"} | {orgSettings?.email || "info@manarah.org.sa"}</span>
+                <span>صفحة 1 من 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* أزرار التنقل */}
         <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border/60">
