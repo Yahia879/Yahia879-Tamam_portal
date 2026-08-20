@@ -19,6 +19,7 @@ import {
   mosques,
   userRoleAssignments,
   roles,
+  projectFinancialDetails,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -362,6 +363,16 @@ export const disbursementsRouter = router({
         project = projectData || null;
       }
 
+      // جلب تفاصيل مالية المشروع من جدول projectFinancialDetails (قسم المالية بالمشروع)
+      let financialDetail = null;
+      if (projId) {
+        const [fd] = await db
+          .select()
+          .from(projectFinancialDetails)
+          .where(eq(projectFinancialDetails.projectId, projId));
+        financialDetail = fd || null;
+      }
+
       // جلب فرصة التبرع المرتبطة بالمشروع إن وجدت
       let opportunity = null;
       if (projId) {
@@ -604,6 +615,7 @@ export const disbursementsRouter = router({
         supplierAccountName: resolvedSupplierAccountName,
         project,
         contract,
+        financialDetail,
         opportunity: opportunity || null,
         disbursementOrder: order || null,
       };
@@ -1818,6 +1830,50 @@ export const disbursementsRouter = router({
             if (fundingAmount === 0 && totalOpportunityValue > 0) {
               fundingAmount = totalOpportunityValue;
             }
+          }
+
+          // جلب تفاصيل مالية المشروع إن وجدت (قسم المالية بالمشروع)
+          let financialDetail = null;
+          if (projectData?.id) {
+            const [fd] = await db
+              .select()
+              .from(projectFinancialDetails)
+              .where(eq(projectFinancialDetails.projectId, projectData.id));
+            financialDetail = fd || null;
+          }
+
+          if (financialDetail?.supportSourcesJson && (!fundingSource || fundingSource === "لا يوجد")) {
+            try {
+              const parsedFd = typeof financialDetail.supportSourcesJson === "string" 
+                ? JSON.parse(financialDetail.supportSourcesJson) 
+                : financialDetail.supportSourcesJson;
+              if (Array.isArray(parsedFd) && parsedFd.length > 0) {
+                const filteredFd = parsedFd.filter((e: any) => (e.entity && e.entity.trim() !== "") || (e.customEntity && e.customEntity.trim() !== ""));
+                const fdNames = filteredFd
+                  .map((e: any) => {
+                    const name = e.entity === "other" || e.entity === "اخرى" ? (e.customEntity || "اخرى") : (e.entity || e.customEntity);
+                    if (filteredFd.length > 1 && e.amount) {
+                      return `${name} (${Number(e.amount).toLocaleString()} ريال)`;
+                    }
+                    return name;
+                  })
+                  .filter(Boolean);
+                if (fdNames.length > 0) {
+                  fundingSource = fdNames.join("، ");
+                }
+                const sumFdAmounts = filteredFd.reduce((sum: number, e: any) => sum + Number(e.amount || 0), 0);
+                if (sumFdAmounts > 0 && (fundingAmount === 0 || !contract?.supportedAmount)) {
+                  fundingAmount = sumFdAmounts;
+                }
+              }
+            } catch (e) {}
+          }
+
+          if ((!fundingSource || fundingSource === "لا يوجد") && (financialDetail?.customSupportEntity || financialDetail?.supportEntity)) {
+            fundingSource = financialDetail.customSupportEntity || financialDetail.supportEntity || "لا يوجد";
+          }
+          if (fundingAmount === 0 && financialDetail?.supportAmount && Number(financialDetail.supportAmount) > 0) {
+            fundingAmount = Number(financialDetail.supportAmount);
           }
 
           if ((!fundingSource || fundingSource === "لا يوجد") && (request?.fundingSourceName || (projectData as any)?.donorName)) {

@@ -240,10 +240,34 @@ export default function DisbursementOrderPrint() {
     });
   }
 
+  const financialDetail = (order as any)?.financialDetail || (project as any)?.financialDetail;
+  let projectFundingSourceFromFD = "";
+  if (financialDetail?.supportSourcesJson) {
+    try {
+      const parsed = typeof financialDetail.supportSourcesJson === "string" ? JSON.parse(financialDetail.supportSourcesJson) : financialDetail.supportSourcesJson;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const filtered = parsed.filter((s: any) => (s.entity && s.entity.trim() !== "") || (s.customEntity && s.customEntity.trim() !== ""));
+        const names = filtered.map((s: any) => {
+          const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "اخرى") : (s.entity || s.customEntity);
+          if (filtered.length > 1 && s.amount > 0) {
+            return `${name} (${Number(s.amount).toLocaleString()} ريال)`;
+          }
+          return name;
+        }).filter(Boolean);
+        if (names.length > 0) {
+          projectFundingSourceFromFD = names.join("، ");
+        }
+      }
+    } catch (e) {}
+  }
+  if (!projectFundingSourceFromFD && (financialDetail?.customSupportEntity || financialDetail?.supportEntity)) {
+    projectFundingSourceFromFD = financialDetail.customSupportEntity || financialDetail.supportEntity;
+  }
+
   // حساب جهة التمويل/الدعم
   const resolvedSupportingEntity = (project?.fundingSource && project.fundingSource !== "لا يوجد" && project.fundingSource !== "—")
     ? project.fundingSource
-    : (request?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—");
+    : (projectFundingSourceFromFD || request?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—");
 
   // اسم المشروع الرئيسي
   const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";

@@ -335,6 +335,7 @@ export default function DisbursementRequestPrint() {
                             "";
 
   // حساب بيانات الدعم والأجور الإدارية
+  const financialDetail = (request as any)?.financialDetail || (project as any)?.financialDetail;
   const supportingEntity = contract?.supportingEntity || "";
   let supportSources: { entity: string; customEntity?: string; amount: number }[] = [];
   
@@ -349,17 +350,31 @@ export default function DisbursementRequestPrint() {
     }
   }
 
+  // إذا لم تكن هناك جهات دعم معرفة في العقد، نقرأ من قسم المالية في صفحة المشروع (financialDetail)
+  if (supportSources.length === 0 && financialDetail?.supportSourcesJson && financialDetail.supportSourcesJson.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(financialDetail.supportSourcesJson);
+      if (Array.isArray(parsed)) {
+        supportSources = parsed.filter((s: any) => (s.entity && s.entity.trim() !== "") || (s.customEntity && s.customEntity.trim() !== ""));
+      }
+    } catch (e) {
+      console.error("Failed to parse financialDetail supportSourcesJson", e);
+    }
+  }
+
   const hasContract = !!contract;
   const isTamamLinked = !!customSupplier?.isTamamLinked;
   const actualProjectCost = isTamamLinked 
     ? parseFloat(customSupplier?.actualProjectValue?.toString() || "0") 
     : (hasContract ? parseFloat(contract.contractAmount || "0") : (project?.budget ? parseFloat(project.budget.toString()) : amount));
-  const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
+  const managementPercentage = hasContract 
+    ? parseFloat((contract as any).managementPercentage || "0") 
+    : (financialDetail?.adminFeeValue ? parseFloat(financialDetail.adminFeeValue.toString()) : 0);
   const adminFees = request.adminFees 
     ? parseFloat(request.adminFees.toString()) 
     : (customSupplier?.adminFees 
         ? parseFloat(customSupplier.adminFees) 
-        : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
+        : (hasContract ? (actualProjectCost * managementPercentage) / 100 : (financialDetail?.adminFeeAmount ? parseFloat(financialDetail.adminFeeAmount.toString()) : 0)));
   const totalOpportunityValue = actualProjectCost + adminFees;
 
   if (supportSources.length === 0 && supportingEntity && supportingEntity.trim() !== "" && supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
@@ -377,17 +392,17 @@ export default function DisbursementRequestPrint() {
 
   const resolvedSupportingEntitiesText = (supportSources.length > 0
     ? supportSources.map(s => {
-        const name = s.entity === "اخرى" ? s.customEntity : (s.entity || s.customEntity);
+        const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "اخرى") : (s.entity || s.customEntity);
         if (supportSources.length > 1 && s.amount > 0) {
           return `${name} (${s.amount.toLocaleString()} ريال)`;
         }
         return name;
       }).filter(Boolean).join("، ")
-    : ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
+    : (financialDetail?.customSupportEntity || financialDetail?.supportEntity || (request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
 
   const totalSupportedAmount = supportSources.length > 0 
     ? supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)
-    : totalOpportunityValue;
+    : (financialDetail?.supportAmount && parseFloat(financialDetail.supportAmount.toString()) > 0 ? parseFloat(financialDetail.supportAmount.toString()) : totalOpportunityValue);
 
   // محاولة الحصول على اسم الحي للطلبات المرتبطة ببرنامج بنيان
   const getNeighborhoodName = () => {
