@@ -865,15 +865,16 @@ export default function NewLinkedDisbursementRequest() {
     }
   }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails]);
 
-  // اختيار العقد تلقائياً إذا كان هناك عقد معتمد أو نشط واحد فقط للمشروع
+  // اختيار العقد تلقائياً إذا كان هناك عقد للمشروع (حتى لو كان قيد الاعتماد أو مسودة)
   useEffect(() => {
-    if (projectContracts && projectContracts.contracts) {
+    if (projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0) {
       const activeOrApprovedContracts = projectContracts.contracts.filter(
         c => c.status === "approved" || c.status === "active"
       );
-      if (activeOrApprovedContracts.length === 1) {
+      const targetContracts = activeOrApprovedContracts.length > 0 ? activeOrApprovedContracts : projectContracts.contracts;
+      if (targetContracts.length >= 1) {
         if (formData.contractId === 0) {
-          setFormData(prev => ({ ...prev, contractId: activeOrApprovedContracts[0].id }));
+          setFormData(prev => ({ ...prev, contractId: targetContracts[0].id }));
         }
       }
     }
@@ -915,7 +916,7 @@ export default function NewLinkedDisbursementRequest() {
   
   // حساب عجز مدفوعات الداعم مقارنة بالمبلغ المطلوب صرفه
   const funderDeficit = Math.max(0, currentDisbursementAmount - totalSupporterPayments);
-  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId !== null) && currentDisbursementAmount > 0 && (funderDeficit > 0.01 || totalSupporterPayments === 0);
+  const hasFunderPaymentDeficit = (formData.projectId > 0 || selectedReportId !== null) && currentDisbursementAmount > 0 && funderDeficit > 0.01;
 
   // حساب المتبقي للصرف (بدون خصم المبلغ الحالي - نحسب المتاح قبل هذا الطلب)
   const totalPaymentsSum = projectDetails?.payments
@@ -1170,11 +1171,11 @@ export default function NewLinkedDisbursementRequest() {
       type: "metadata"
     }] : [];
     
-    const generalAccountNote = useGeneralAccount
+    const generalAccountNote = (useGeneralAccount && funderDeficit > 0.01)
       ? `\n[تنبيه مالـي: تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ (${funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) عن مدفوعات الداعم الفعلية المقبوضة]`
       : "";
 
-    const generalAccountMetadata = useGeneralAccount
+    const generalAccountMetadata = (useGeneralAccount && funderDeficit > 0.01)
       ? [{
           name: "general_account_coverage",
           url: JSON.stringify({

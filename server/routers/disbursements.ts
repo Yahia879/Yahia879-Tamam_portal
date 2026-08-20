@@ -321,6 +321,7 @@ export const disbursementsRouter = router({
           showCreatorSignature: disbursementRequests.showCreatorSignature,
           showExecutiveDirectorSignature: disbursementRequests.showExecutiveDirectorSignature,
           dateMiladi: disbursementRequests.dateMiladi,
+          fundingSourceName: disbursementRequests.fundingSourceName,
           supplierName: contractsEnhanced.secondPartyName,
           supplierBank: contractsEnhanced.secondPartyBankName,
           supplierIban: contractsEnhanced.secondPartyIban,
@@ -349,6 +350,7 @@ export const disbursementsRouter = router({
             city: mosques.city,
             address: mosques.address,
             district: mosques.district,
+            donorName: projects.donorName,
             programType: mosqueRequests.programType,
             programData: mosqueRequests.programData,
           })
@@ -377,7 +379,7 @@ export const disbursementsRouter = router({
         opportunity = opportunityData || null;
       }
 
-      // جلب بيانات العقد إن وجد
+      // جلب بيانات العقد إن وجد (حتى لو كان غير معتمد أو لم يُربط به الطلب مباشرة)
       let contract = null;
       let targetContractId = request.contractId;
 
@@ -388,6 +390,19 @@ export const disbursementsRouter = router({
           .where(eq(contractPayments.id, request.contractPaymentId));
         if (paymentData) {
           targetContractId = paymentData.contractId;
+        }
+      }
+
+      // إذا لم يكن هناك عقد مسجل بالطلب، نبحث عن أي عقد مسجل للمشروع
+      if (!targetContractId && projId) {
+        const [projectContract] = await db
+          .select({ id: contractsEnhanced.id })
+          .from(contractsEnhanced)
+          .where(eq(contractsEnhanced.projectId, projId))
+          .orderBy(desc(contractsEnhanced.createdAt))
+          .limit(1);
+        if (projectContract) {
+          targetContractId = projectContract.id;
         }
       }
 
@@ -418,6 +433,11 @@ export const disbursementsRouter = router({
         .select()
         .from(disbursementOrders)
         .where(eq(disbursementOrders.disbursementRequestId, input.id));
+
+      const resolvedSupplierName = request.supplierName || contract?.secondPartyName || null;
+      const resolvedSupplierBank = request.supplierBank || contract?.secondPartyBankName || null;
+      const resolvedSupplierIban = request.supplierIban || contract?.secondPartyIban || null;
+      const resolvedSupplierAccountName = request.supplierAccountName || contract?.secondPartyAccountName || contract?.secondPartyName || null;
 
       let resolvedSignatureName = request.requestedBySignatureName || request.creatorSignatureName || request.requestedByName;
       let resolvedSignatureDepartment = request.requestedBySignatureDepartment || request.creatorSignatureDepartment;
@@ -578,6 +598,10 @@ export const disbursementsRouter = router({
         liveExceptionApproverSignatureUrl: liveExceptionApproverData
           ? (liveExceptionApproverData.signatureUrl || null)
           : null,
+        supplierName: resolvedSupplierName,
+        supplierBank: resolvedSupplierBank,
+        supplierIban: resolvedSupplierIban,
+        supplierAccountName: resolvedSupplierAccountName,
         project,
         contract,
         opportunity: opportunity || null,

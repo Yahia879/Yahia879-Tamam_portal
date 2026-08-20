@@ -312,17 +312,22 @@ export default function DisbursementRequestPrint() {
 
   const isCustomType = !!customSupplier && ["supplier_one_time", "sadad_invoice", "misc_expenses"].includes(customSupplier.requestType);
 
-  const resolvedSupplierName = customSupplier?.name || contract?.secondPartyName || "—";
-  const resolvedSupplierAccountName = customSupplier?.name || contract?.secondPartyAccountName || contract?.secondPartyName || "—";
-  const resolvedSupplierIban = customSupplier?.iban || contract?.secondPartyIban || "—";
-  const resolvedSupplierBankName = customSupplier?.bank || contract?.secondPartyBankName || "—";
+  const resolvedSupplierName = customSupplier?.name || (request as any)?.supplierName || contract?.secondPartyName || "—";
+  const resolvedSupplierAccountName = customSupplier?.name || (request as any)?.supplierAccountName || contract?.secondPartyAccountName || contract?.secondPartyName || "—";
+  const resolvedSupplierIban = customSupplier?.iban || (request as any)?.supplierIban || contract?.secondPartyIban || "—";
+  const resolvedSupplierBankName = customSupplier?.bank || (request as any)?.supplierBank || contract?.secondPartyBankName || "—";
   const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
 
   const requestDate = new Date(request.requestedAt || new Date());
 
-  const descriptionText = isCustomType 
+  const rawDescriptionText = isCustomType 
     ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
     : (parsedWorks.scheduled || request.description || request.title || "—");
+
+  // إزالة أي تنبيه مالي صفري من العرض ليكون الوصف نظيفاً ومرتباً
+  const descriptionText = (rawDescriptionText || "—")
+    .replace(/\r?\n?\[تنبيه مالـ?ي:\s*تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ\s*\([٠0][٫.]?[٠0]*\s*ريال\)\s*عن مدفوعات الداعم الفعلية المقبوضة\]/g, "")
+    .trim() || "—";
 
   const descLength = descriptionText.length;
   const descFontSizeClass = descLength > 200 ? "text-[10px] leading-tight p-1.5" : 
@@ -335,7 +340,10 @@ export default function DisbursementRequestPrint() {
   
   if (supportingEntity && supportingEntity.trim().startsWith('[')) {
     try {
-      supportSources = JSON.parse(supportingEntity);
+      const parsed = JSON.parse(supportingEntity);
+      if (Array.isArray(parsed)) {
+        supportSources = parsed.filter((s: any) => (s.entity && s.entity.trim() !== "") || (s.customEntity && s.customEntity.trim() !== ""));
+      }
     } catch (e) {
       console.error("Failed to parse supportingEntity JSON", e);
     }
@@ -345,7 +353,7 @@ export default function DisbursementRequestPrint() {
   const isTamamLinked = !!customSupplier?.isTamamLinked;
   const actualProjectCost = isTamamLinked 
     ? parseFloat(customSupplier?.actualProjectValue?.toString() || "0") 
-    : (hasContract ? parseFloat(contract.contractAmount || "0") : amount);
+    : (hasContract ? parseFloat(contract.contractAmount || "0") : (project?.budget ? parseFloat(project.budget.toString()) : amount));
   const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
   const adminFees = request.adminFees 
     ? parseFloat(request.adminFees.toString()) 
@@ -354,7 +362,7 @@ export default function DisbursementRequestPrint() {
         : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
   const totalOpportunityValue = actualProjectCost + adminFees;
 
-  if (supportSources.length === 0 && supportingEntity) {
+  if (supportSources.length === 0 && supportingEntity && supportingEntity.trim() !== "" && supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
     const isDonationShop = supportingEntity === "متجر التبرعات";
     const isEhsan = supportingEntity === "منصة احسان" || supportingEntity === "منصة إحسان";
     const isDirectDonation = supportingEntity === "تبرع مباشر";
@@ -367,19 +375,19 @@ export default function DisbursementRequestPrint() {
     }];
   }
 
-
-
   const resolvedSupportingEntitiesText = (supportSources.length > 0
     ? supportSources.map(s => {
-        const name = s.entity === "اخرى" ? s.customEntity : s.entity;
-        if (supportSources.length > 1) {
+        const name = s.entity === "اخرى" ? s.customEntity : (s.entity || s.customEntity);
+        if (supportSources.length > 1 && s.amount > 0) {
           return `${name} (${s.amount.toLocaleString()} ريال)`;
         }
         return name;
-      }).join("، ")
-    : (customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
+      }).filter(Boolean).join("، ")
+    : ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
 
-  const totalSupportedAmount = supportSources.reduce((sum, s) => sum + s.amount, 0);
+  const totalSupportedAmount = supportSources.length > 0 
+    ? supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)
+    : totalOpportunityValue;
 
   // محاولة الحصول على اسم الحي للطلبات المرتبطة ببرنامج بنيان
   const getNeighborhoodName = () => {
