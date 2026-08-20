@@ -550,25 +550,6 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         {/* الخطوة 4: تفاصيل الطلب */}
         {currentStep === 'details' && (
           <div className="space-y-6 sm:space-y-8">
-            {/* بطاقة رأس تفاصيل البرنامج */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-l from-primary/10 via-primary/5 to-transparent border border-primary/20">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg sm:text-xl font-extrabold text-foreground truncate">
-                    تفاصيل الطلب - {selectedProgramConfig?.name}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                    {selectedProgramConfig?.description}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="outline" className="self-start sm:self-center border-primary/30 text-primary font-bold text-xs px-3 py-1 bg-background/80 rounded-xl">
-                الخطوة 2 من 3
-              </Badge>
-            </div>
 
             {/* حالة تحميل المساجد */}
             {mosquesLoading && (
