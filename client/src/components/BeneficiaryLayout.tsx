@@ -93,9 +93,9 @@ export default function BeneficiaryLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 text-foreground flex flex-col font-sans dir-rtl" dir="rtl">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 text-foreground flex flex-col font-sans dir-rtl print:bg-white print:p-0" dir="rtl">
       {/* Top Header */}
-      <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-xs transition-all">
+      <header className="print:hidden sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-xs transition-all">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Branding Logo & Info */}
@@ -275,9 +275,9 @@ export default function BeneficiaryLayout({
       </header>
 
       {/* Main Content Body */}
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl print:p-0 print:m-0 print:max-w-none">
         {(title || subtitle || headerActions || backUrl) && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
+          <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {backUrl && (
                 <Link href={backUrl}>
@@ -304,7 +304,7 @@ export default function BeneficiaryLayout({
       </main>
 
       {/* Modern Footer */}
-      <footer className="mt-auto border-t border-border/60 bg-background/50 py-6 sm:py-8 text-center">
+      <footer className="print:hidden mt-auto border-t border-border/60 bg-background/50 py-6 sm:py-8 text-center">
         <div className="container mx-auto px-4">
           <p className="text-xs sm:text-sm text-muted-foreground font-medium">
             {orgName || "بوابة منارة"} - {orgNameShort || "للعناية بالمساجد"}
