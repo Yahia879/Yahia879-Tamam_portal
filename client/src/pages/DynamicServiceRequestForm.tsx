@@ -377,15 +377,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     <div className="max-w-4xl mx-auto px-4">
       {/* رأس الصفحة مع زر الرجوع للإداريين */}
       {showLayout && user?.role !== 'service_requester' && (
-        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="flex-shrink-0">
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
+        <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
           </div>
+          <Link href="/dashboard">
+            <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
+              <ArrowRight className="w-4 h-4" />
+              <span>العودة للوحة التحكم</span>
+            </Button>
+          </Link>
         </div>
       )}
 
@@ -857,15 +858,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       <div className="max-w-4xl mx-auto px-4">
         {/* رأس الصفحة مع زر الرجوع للإداريين */}
         {showLayout && user?.role !== 'service_requester' && (
-          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="icon" className="flex-shrink-0">
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+          <div className="flex items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">تقديم طلب خدمة</h1>
             </div>
+            <Link href="/dashboard">
+              <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة للوحة التحكم</span>
+              </Button>
+            </Link>
           </div>
         )}
 

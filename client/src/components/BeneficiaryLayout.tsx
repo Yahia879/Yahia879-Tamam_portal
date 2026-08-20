@@ -277,7 +277,7 @@ export default function BeneficiaryLayout({
               {title && <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
               {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
             </div>
-            {headerActions && <div className="flex items-center gap-2 shrink-0">{headerActions}</div>}
+            {headerActions && <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">{headerActions}</div>}
           </div>
         )}
         {children}
