@@ -281,9 +281,14 @@ export default function BeneficiaryLayout({
             <div className="flex items-center gap-3 min-w-0 flex-1">
               {backUrl && (
                 <Link href={backUrl}>
-                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
-                    <ArrowRight className="w-4 h-4" />
-                    <span>{backLabel || "رجوع"}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground"
+                    title={backLabel || "العودة"}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                    {backLabel && <span className="sr-only">{backLabel}</span>}
                   </Button>
                 </Link>
               )}

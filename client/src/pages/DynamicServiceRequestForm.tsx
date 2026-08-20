@@ -379,9 +379,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       {showLayout && user?.role !== 'service_requester' && (
         <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
           <Link href="/dashboard">
-            <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
-              <ArrowRight className="w-4 h-4" />
-              <span>العودة للوحة التحكم</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground"
+              title="العودة للوحة التحكم"
+            >
+              <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
           <div className="min-w-0 flex-1">
@@ -860,9 +864,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         {showLayout && user?.role !== 'service_requester' && (
           <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
             <Link href="/dashboard">
-              <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold gap-1.5 shrink-0">
-                <ArrowRight className="w-4 h-4" />
-                <span>العودة للوحة التحكم</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground"
+                title="العودة للوحة التحكم"
+              >
+                <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <div className="min-w-0 flex-1">
