@@ -255,7 +255,7 @@ export default function BoardDashboard() {
                   </div>
                   <div className="text-right">
                     <span className="text-[11px] text-muted-foreground block font-medium">إجمالي المبالغ المعتمدة</span>
-                    <span className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">
+                    <span className="text-sm font-black font-sans text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(totalApprovedAmount)}
                     </span>
                   </div>
@@ -296,7 +296,7 @@ export default function BoardDashboard() {
                 <CardContent className="p-5 flex items-center justify-between text-right">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-muted-foreground">إجمالي القيمة المالية</p>
-                    <h3 className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400 font-mono">
+                    <h3 className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400 font-sans">
                       {formatCurrency(totalApprovedAmount)}
                     </h3>
                     <p className="text-[11px] text-amber-600/90 dark:text-amber-400 font-medium flex items-center gap-1">
@@ -423,7 +423,7 @@ export default function BoardDashboard() {
                         <SelectItem value="all">
                           جميع الحالات
                           {data?.chairmanData?.statusCounts?.all !== undefined && (
-                            <span className="mr-2 text-[11px] text-muted-foreground font-mono font-bold bg-muted px-1.5 py-0.5 rounded">
+                            <span className="mr-2 text-[11px] text-muted-foreground font-sans font-bold bg-muted px-1.5 py-0.5 rounded">
                               ({data.chairmanData.statusCounts.all})
                             </span>
                           )}
@@ -431,7 +431,7 @@ export default function BoardDashboard() {
                         <SelectItem value="pending_approval">
                           بانتظار اعتماد صاحب الصلاحية
                           {data?.chairmanData?.statusCounts?.pending_approval !== undefined && (
-                            <span className="mr-2 text-[11px] text-amber-700 dark:text-amber-300 font-mono font-bold bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
+                            <span className="mr-2 text-[11px] text-amber-700 dark:text-amber-300 font-sans font-bold bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
                               ({data.chairmanData.statusCounts.pending_approval})
                             </span>
                           )}
@@ -439,7 +439,7 @@ export default function BoardDashboard() {
                         <SelectItem value="executed">
                           معتمد
                           {data?.chairmanData?.statusCounts?.executed !== undefined && (
-                            <span className="mr-2 text-[11px] text-emerald-700 dark:text-emerald-300 font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                            <span className="mr-2 text-[11px] text-emerald-700 dark:text-emerald-300 font-sans font-bold bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
                               ({data.chairmanData.statusCounts.executed})
                             </span>
                           )}
@@ -447,7 +447,7 @@ export default function BoardDashboard() {
                         <SelectItem value="rejected">
                           مرفوض
                           {data?.chairmanData?.statusCounts?.rejected !== undefined && (
-                            <span className="mr-2 text-[11px] text-rose-700 dark:text-rose-300 font-mono font-bold bg-rose-100 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
+                            <span className="mr-2 text-[11px] text-rose-700 dark:text-rose-300 font-sans font-bold bg-rose-100 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
                               ({data.chairmanData.statusCounts.rejected})
                             </span>
                           )}
@@ -482,7 +482,7 @@ export default function BoardDashboard() {
                               <TableRow key={order.id} className="hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-colors border-b border-border/40">
                                 {/* رقم أمر الصرف */}
                                 <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
-                                  <span className="font-mono text-xs font-bold text-foreground bg-muted/80 px-2 py-1 rounded-md border border-border/40 inline-block">{order.orderNumber}</span>
+                                  <span className="font-sans text-xs font-bold text-foreground bg-muted/80 px-2 py-1 rounded-md border border-border/40 inline-block">{order.orderNumber}</span>
                                 </TableCell>
 
                                 {/* البيان والمستفيد */}
@@ -506,7 +506,7 @@ export default function BoardDashboard() {
                                         مرتبط بطلب صرف
                                       </Badge>
                                       {order.requestNumber && (
-                                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
+                                        <span className="text-[10px] font-sans text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
                                       )}
                                     </div>
                                   ) : (
@@ -518,7 +518,7 @@ export default function BoardDashboard() {
 
                                 {/* المبلغ */}
                                 <TableCell className="py-3 px-4 text-right whitespace-nowrap">
-                                  <span className="font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 inline-block">
+                                  <span className="font-sans font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 inline-block">
                                     {formatCurrency(order.amount)}
                                   </span>
                                 </TableCell>
@@ -736,7 +736,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي المساجد المسجلة</p>
                       <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.mosques.total.toLocaleString("ar-SA")}
+                        {data.mosques.total.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> مسجلة رسمياً بالبوابة
@@ -753,7 +753,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المساجد النشطة</p>
                       <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.mosques.active.toLocaleString("ar-SA")}
+                        {data.mosques.active.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">تتلقى الخدمات والزيارات</p>
                     </div>
@@ -768,7 +768,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">المسجلة خلال آخر 30 يوماً</p>
                       <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        +{data.mosques.recent.toLocaleString("ar-SA")}
+                        +{data.mosques.recent.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <TrendingUp className="w-3 h-3 shrink-0" /> نمو مستمر
@@ -909,7 +909,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي الطلبات المقدمة</p>
                       <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.requests.total.toLocaleString("ar-SA")}
+                        {data.requests.total.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">كافة طلبات الخدمات</p>
                     </div>
@@ -924,7 +924,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات المكتملة</p>
                       <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.requests.approved.toLocaleString("ar-SA")}
+                        {data.requests.approved.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> تم إنجازها بنجاح
@@ -941,7 +941,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات قيد التنفيذ والمراجعة</p>
                       <h3 className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400">
-                        {(data.requests.inProgress + data.requests.pending).toLocaleString("ar-SA")}
+                        {(data.requests.inProgress + data.requests.pending).toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">مرحلية العمل جارية</p>
                     </div>
@@ -956,7 +956,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الطلبات المرفوضة</p>
                       <h3 className="text-3xl font-black tracking-tight text-rose-600 dark:text-rose-400">
-                        {data.requests.rejected.toLocaleString("ar-SA")}
+                        {data.requests.rejected.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">لعدم اكتمال المتطلبات</p>
                     </div>
@@ -1050,7 +1050,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي الموردين المسجلين</p>
                       <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.procurement.totalSuppliers.toLocaleString("ar-SA")}
+                        {data.procurement.totalSuppliers.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">موردون بالشبكة</p>
                     </div>
@@ -1065,7 +1065,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">الموردون المعتمدون</p>
                       <h3 className="text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.procurement.approvedSuppliers.toLocaleString("ar-SA")}
+                        {data.procurement.approvedSuppliers.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> منشآت مؤهلة رسمياً
@@ -1082,7 +1082,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">العقود المعتمدة</p>
                       <h3 className="text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.procurement.totalContracts.toLocaleString("ar-SA")}
+                        {data.procurement.totalContracts.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">عقود رسمية معتمدة</p>
                     </div>
@@ -1097,7 +1097,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي قيمة العقود</p>
                       <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-                        {data.procurement.totalContractsValue.toLocaleString("ar-SA")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+                        {data.procurement.totalContractsValue.toLocaleString("en-US")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">مجموع قيم العقود المعتمدة</p>
                     </div>
@@ -1264,7 +1264,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">طلبات الصرف المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                        {data.financials.approvedDisbursementRequestsCount.toLocaleString("ar-SA")}
+                        {data.financials.approvedDisbursementRequestsCount.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">
                         طلبات معتمدة رسمياً
@@ -1281,7 +1281,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">أوامر الصرف المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                        {data.financials.executiveApprovedOrdersCount.toLocaleString("ar-SA")}
+                        {data.financials.executiveApprovedOrdersCount.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 shrink-0" /> أوامر معتمدة وجاهزة للصرف
@@ -1298,7 +1298,7 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي مصاريف الجمعية</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("ar-SA")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
                       </h3>
                       <p className="text-xs text-muted-foreground">
                         أوامر صرف منفذة ({data.financials.executedDisbursementOrdersCount} أمر)
@@ -1315,10 +1315,10 @@ export default function BoardDashboard() {
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">سندات القبض المعتمدة</p>
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-                        {data.financials.approvedReceiptVouchersCount.toLocaleString("ar-SA")}
+                        {data.financials.approvedReceiptVouchersCount.toLocaleString("en-US")}
                       </h3>
                       <p className="text-xs text-muted-foreground">
-                        مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("ar-SA")} ريال
+                        مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("en-US")} ريال
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
@@ -1443,7 +1443,7 @@ export default function BoardDashboard() {
                   <span>مبرر عدم اعتماد التحويل البنكي</span>
                 </DialogTitle>
                 {rejectingOrder && (
-                  <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 font-mono text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                  <Badge variant="outline" className="bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 font-sans text-xs font-bold px-2.5 py-0.5 rounded-lg">
                     {rejectingOrder.orderNumber}
                   </Badge>
                 )}
