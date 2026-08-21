@@ -196,11 +196,17 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   // الحصول على بيانات المساجد
   const { data: mosquesResult, isLoading: mosquesLoading } = trpc.mosques.search.useQuery(
     { page: 1, limit: 100 },
-    { enabled: currentStep === 'details' }
+    { enabled: !!user }
   );
   // undefined = جاري التحميل، [] = لا توجد مساجد، [...] = توجد مساجد
-  const userMosques: Array<{ id: number; name: string; city?: string }> | undefined =
-    mosquesLoading ? undefined : (mosquesResult?.mosques ?? []);
+  const userMosques: Array<{ id: number; name: string; city?: string; district?: string; address?: string; mosqueType?: string; area?: any; capacity?: any; hasPrayerHall?: boolean; notes?: string }> | undefined =
+    mosquesLoading ? undefined : ((mosquesResult?.mosques as any) ?? []);
+
+  // الحصول على المسجد المختار حالياً
+  const currentMosque = useMemo(() => {
+    if (!formData.mosqueId) return null;
+    return userMosques?.find((m: any) => m.id === Number(formData.mosqueId)) || null;
+  }, [formData.mosqueId, userMosques]);
 
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
@@ -229,6 +235,21 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           }
           if (selectedMosque.capacity) {
             updated.actualWorshippers = selectedMosque.capacity.toString();
+          }
+          if (selectedMosque.district) {
+            updated.district = selectedMosque.district;
+          }
+          if (selectedMosque.city) {
+            updated.city = selectedMosque.city;
+          }
+          if (selectedMosque.address) {
+            updated.address = selectedMosque.address;
+          }
+          if (selectedMosque.mosqueType) {
+            updated.mosqueType = selectedMosque.mosqueType;
+          }
+          if (selectedMosque.name) {
+            updated.mosqueName = selectedMosque.name;
           }
 
           if (selectedMosque.hasPrayerHall) {
@@ -269,6 +290,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           delete updated.actualWorshippers;
           delete updated.womenPrayerArea;
           delete updated.womenPrayerCapacity;
+          delete updated.district;
+          delete updated.city;
+          delete updated.address;
+          delete updated.mosqueType;
+          delete updated.mosqueName;
         }
       }
       
@@ -1249,34 +1275,59 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <>
                   <tr className="border-b border-slate-200">
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">حالة المسجد:</td>
-                    <td className="p-2.5 font-bold text-slate-900 w-1/4 border-l border-slate-200">بناء جديد / استكمال متعثر</td>
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">اسم الحي / المنطقة:</td>
-                    <td className="p-2.5 text-slate-900 w-1/4">{formData.district || '—'}</td>
+                    <td className="p-2.5 font-bold text-slate-900 w-1/4 border-l border-slate-200">
+                      {formData.buildingType === 'new' ? 'بناء جديد' : formData.buildingType === 'stalled' ? 'استكمال متعثر' : 'بناء جديد / استكمال متعثر'}
+                    </td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المدينة / المحافظة:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4">{formData.city || orgSettings?.city || '—'}</td>
+                  </tr>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">اسم الحي / المنطقة:</td>
+                    <td className="p-2.5 text-slate-900 border-l border-slate-200 font-medium">{formData.district || '—'}</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">أقرب مسجد موجود:</td>
+                    <td className="p-2.5 text-slate-900">{formData.nearestMosque || '—'}</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">أقرب مسجد موجود:</td>
-                    <td className="p-2.5 text-slate-900 border-l border-slate-200">{formData.nearestMosque || '—'}</td>
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">المسافة من أقرب مسجد:</td>
-                    <td className="p-2.5 text-slate-900">{formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '—'}</td>
+                    <td className="p-2.5 text-slate-900 border-l border-slate-200">{formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '—'}</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">موقع الأرض / الإحداثيات:</td>
+                    <td className="p-2.5 text-slate-900">{formData.latitude && formData.longitude ? `${formData.latitude}, ${formData.longitude}` : (formData.address || '—')}</td>
                   </tr>
                 </>
               ) : (
-                <tr>
-                  <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">اسم المسجد:</td>
-                  <td className="p-2.5 font-bold text-slate-900 w-1/4 border-l border-slate-200">
-                    {(() => {
-                      const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
-                      return found ? found.name : (formData.mosqueId ? `مسجد #${formData.mosqueId}` : '—');
-                    })()}
-                  </td>
-                  <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المدينة / المنطقة:</td>
-                  <td className="p-2.5 text-slate-900 w-1/4">
-                    {(() => {
-                      const found = userMosques?.find((m: any) => m.id === formData.mosqueId);
-                      return found ? (found.city || orgSettings?.city || '—') : (orgSettings?.city || '—');
-                    })()}
-                  </td>
-                </tr>
+                <>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">اسم المسجد:</td>
+                    <td className="p-2.5 font-bold text-slate-900 w-1/4 border-l border-slate-200">
+                      {currentMosque?.name || formData.mosqueName || (formData.mosqueId ? `مسجد #${formData.mosqueId}` : '—')}
+                    </td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">نوع المسجد:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4">
+                      {currentMosque?.mosqueType === 'jami' ? 'جامع' : currentMosque?.mosqueType === 'masjid' ? 'مسجد' : (currentMosque?.mosqueType || formData.mosqueType || 'مسجد')}
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المدينة / المنطقة:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4 border-l border-slate-200">
+                      {currentMosque?.city || formData.city || orgSettings?.city || '—'}
+                    </td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">اسم الحي / المنطقة:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4 font-medium">
+                      {currentMosque?.district || formData.district || '—'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">العنوان / الوصف:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4 border-l border-slate-200">
+                      {currentMosque?.address || formData.address || (currentMosque?.governorate ? `محافظة ${currentMosque.governorate}` : '—')}
+                    </td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المساحة والسعة:</td>
+                    <td className="p-2.5 text-slate-900 w-1/4">
+                      {currentMosque?.area ? `${currentMosque.area} م²` : (formData.mosqueArea ? `${formData.mosqueArea} م²` : '—')}
+                      {currentMosque?.capacity ? ` • ${currentMosque.capacity} مصلٍ` : (formData.actualWorshippers ? ` • ${formData.actualWorshippers} مصلٍ` : '')}
+                    </td>
+                  </tr>
+                </>
               )}
             </tbody>
           </table>
@@ -1310,12 +1361,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   </tr>
                 );
               })}
-              {selectedService === 'bunyan' && formData.hasPrayerHall !== undefined && (
+              {(formData.hasPrayerHall !== undefined && formData.hasPrayerHall !== null) && (
                 <tr className="border-b border-slate-200 last:border-0">
                   <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/3 border-l border-slate-200">مصلى النساء:</td>
                   <td className="p-2.5 text-slate-900">
                     {formData.hasPrayerHall
-                      ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || '—'} مصلي | المساحة: ${formData.womenPrayerArea || '—'} م²)`
+                      ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || currentMosque?.womenPrayerCapacity || '—'} مصلي | المساحة: ${formData.womenPrayerArea || currentMosque?.womenPrayerArea || '—'} م²)`
                       : 'لا يتضمن مصلى للنساء'}
                   </td>
                 </tr>
@@ -1346,11 +1397,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             box-sizing: border-box !important;
             font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
-          html, html.dark, body, body.dark, #root, #root *, main, [data-slot="card"], div {
-            background-color: white !important;
-            background: white !important;
+          html, html.dark, body, body.dark, #root, main, .min-h-screen {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
             color: #0f172a !important;
-            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print\\:hidden, header, nav, aside, footer, [role="navigation"] {
             display: none !important;
@@ -1359,31 +1411,18 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             display: block !important;
             width: 100% !important;
             max-width: 100% !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 0 !important;
             background: white !important;
             color: #0f172a !important;
           }
-          .printable-report-container * {
-            color: #0f172a !important;
-          }
-          .printable-report-container .bg-\\[\\#1a5f4a\\] {
-            background-color: #1a5f4a !important;
-            color: white !important;
-          }
-          .printable-report-container .bg-\\[\\#1a5f4a\\] * {
-            color: white !important;
-          }
-          .printable-report-container .text-\\[\\#1a5f4a\\] {
-            color: #1a5f4a !important;
-          }
-          .printable-report-container .bg-slate-100\\/90,
-          .printable-report-container .bg-slate-50 {
-            background-color: #f8fafc !important;
+          .printable-report-container table {
+            width: 100% !important;
+            border-collapse: collapse !important;
           }
           .printable-report-container td,
           .printable-report-container th {
-            border-color: #e2e8f0 !important;
+            border-color: #cbd5e1 !important;
           }
           tr, .break-inside-avoid {
             page-break-inside: avoid !important;
