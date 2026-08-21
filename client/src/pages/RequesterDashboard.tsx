@@ -271,12 +271,12 @@ export default function RequesterDashboard() {
                           <span className="text-xs sm:text-sm font-extrabold text-primary">{progress}%</span>
                           <Link href={`/requests/${request.id}`}>
                             <Button
-                              variant="outline"
-                              size="sm"
-                              className="rounded-xl text-[11px] sm:text-xs font-bold gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl hover:bg-primary/10 text-primary hover:text-primary transition-all cursor-pointer shrink-0"
+                              title="عرض تفاصيل الطلب"
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>عرض التفاصيل</span>
+                              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                             </Button>
                           </Link>
                         </div>
