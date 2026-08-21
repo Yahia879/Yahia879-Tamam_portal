@@ -458,7 +458,7 @@ export default function RequesterMosqueForm() {
         </Card>
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pt-4 w-full">
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pt-4 px-3 sm:px-0 w-full">
           <Link href="/my-mosques">
             <Button type="button" variant="outline" className="rounded-2xl font-bold px-4 sm:px-6 h-11 sm:h-12 text-xs sm:text-sm cursor-pointer">
               إلغاء
