@@ -87,30 +87,30 @@ export default function RequesterDashboard() {
   return (
     <BeneficiaryLayout activeTab="dashboard">
       {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-l from-teal-700 via-emerald-600 to-teal-800 dark:from-teal-600 dark:via-emerald-600 dark:to-teal-700 text-white p-5 sm:p-8 lg:p-10 mb-6 sm:mb-8 shadow-xl border border-white/20">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-l from-teal-700 via-emerald-600 to-teal-800 dark:from-teal-600 dark:via-emerald-600 dark:to-teal-700 text-white p-4 sm:p-7 lg:p-8 mb-4 sm:mb-8 shadow-xl border border-white/20">
         <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
-          <div className="space-y-1.5 sm:space-y-2 max-w-2xl">
-            <h1 className="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3.5 sm:gap-6">
+          <div className="space-y-1 max-w-2xl">
+            <h1 className="text-lg sm:text-2xl lg:text-3xl font-black tracking-tight text-white">
               أهلاً بك، {user?.name} 👋
             </h1>
-            <p className="text-white/85 text-xs sm:text-sm lg:text-base leading-relaxed font-normal">
+            <p className="text-white/90 text-xs sm:text-sm leading-relaxed font-normal">
               يسعدنا خدمتك في بوابة منارة لتطوير ورعاية بيوت الله. يمكنك من هنا متابعة طلباتك وتسجيل المساجد بكل سهولة.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 w-full md:w-auto shrink-0 pt-2 sm:pt-0">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full md:w-auto shrink-0 pt-2 md:pt-0">
             <Link href="/request-form-dynamic" className="w-full">
-              <Button size="lg" className="w-full rounded-xl sm:rounded-2xl bg-white dark:bg-slate-100 text-emerald-950 hover:bg-white/95 dark:hover:bg-white font-extrabold shadow-lg gap-2 h-11 sm:h-12 text-xs sm:text-sm cursor-pointer">
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <Button className="w-full rounded-xl sm:rounded-2xl bg-white dark:bg-slate-100 text-emerald-950 hover:bg-white/95 dark:hover:bg-white font-extrabold shadow-md gap-1.5 sm:gap-2 h-9 sm:h-11 px-3 sm:px-5 text-[11px] sm:text-xs cursor-pointer">
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                 <span>تقديم طلب جديد</span>
               </Button>
             </Link>
             <Link href="/requester/mosques/new" className="w-full">
-              <Button size="lg" variant="outline" className="w-full rounded-xl sm:rounded-2xl border-white/40 dark:border-white/30 bg-white/10 text-white hover:bg-white/20 font-bold backdrop-blur-md gap-2 h-11 sm:h-12 text-xs sm:text-sm cursor-pointer">
-                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Button variant="outline" className="w-full rounded-xl sm:rounded-2xl border-white/40 dark:border-white/30 bg-white/10 text-white hover:bg-white/20 font-bold backdrop-blur-md gap-1.5 sm:gap-2 h-9 sm:h-11 px-3 sm:px-5 text-[11px] sm:text-xs cursor-pointer">
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span>تسجيل مسجد</span>
               </Button>
             </Link>
@@ -134,10 +134,10 @@ export default function RequesterDashboard() {
       )}
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-4 sm:mb-8">
         <Link href="/my-requests">
           <Card className="border border-border/60 dark:border-border/80 shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card dark:bg-card/95 hover:border-primary/40 dark:hover:border-primary/40">
-            <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">إجمالي الطلبات</p>
                 <p className="text-xl sm:text-3xl font-extrabold text-foreground mt-0.5 sm:mt-1">
@@ -153,7 +153,7 @@ export default function RequesterDashboard() {
 
         <Link href="/my-requests">
           <Card className="border border-border/60 dark:border-border/80 shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card dark:bg-card/95 hover:border-amber-500/40 dark:hover:border-amber-500/40">
-            <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">قيد المراجعة</p>
                 <p className="text-xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">
@@ -169,7 +169,7 @@ export default function RequesterDashboard() {
 
         <Link href="/my-requests">
           <Card className="border border-border/60 dark:border-border/80 shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card dark:bg-card/95 hover:border-blue-500/40 dark:hover:border-blue-500/40">
-            <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">قيد التنفيذ</p>
                 <p className="text-xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 mt-0.5 sm:mt-1">
@@ -185,7 +185,7 @@ export default function RequesterDashboard() {
 
         <Link href="/my-requests">
           <Card className="border border-border/60 dark:border-border/80 shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card dark:bg-card/95 hover:border-emerald-500/40 dark:hover:border-emerald-500/40">
-            <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">مكتملة بنجاح</p>
                 <p className="text-xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">
@@ -389,8 +389,8 @@ export default function RequesterDashboard() {
               ) : myMosques && myMosques.length > 0 ? (
                 <div className="space-y-3">
                   {myMosques.slice(0, 3).map((mosque) => (
-                    <Link key={mosque.id} href={`/mosques/${mosque.id}`}>
-                      <div className="p-3 sm:p-3.5 rounded-2xl bg-muted/30 hover:bg-muted/60 dark:bg-muted/20 dark:hover:bg-muted/30 transition-all cursor-pointer border border-border/40 dark:border-border/60 hover:border-primary/30 dark:hover:border-primary/40 flex items-center justify-between gap-3 group">
+                    <Link key={mosque.id} href={`/requester/mosques/${mosque.id}`}>
+                      <div className="p-2.5 sm:p-3.5 rounded-2xl bg-muted/30 hover:bg-muted/60 dark:bg-muted/20 dark:hover:bg-muted/30 transition-all cursor-pointer border border-border/40 dark:border-border/60 hover:border-primary/30 dark:hover:border-primary/40 flex items-center justify-between gap-3 group">
                         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                             <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />

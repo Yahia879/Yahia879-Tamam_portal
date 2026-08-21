@@ -270,7 +270,7 @@ export default function BeneficiaryLayout({
           >
             <div className="flex flex-col flex-1 overflow-hidden">
               {/* Drawer Header */}
-              <div className="p-4 border-b border-border/60 flex items-center justify-between">
+              <div className="p-4 pl-10 border-b border-border/60 flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <img
                     src={mainLogoSrc}
