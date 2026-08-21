@@ -84,7 +84,7 @@ export default function RequesterDashboard() {
   return (
     <BeneficiaryLayout activeTab="dashboard">
       {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-l from-primary/95 via-primary to-emerald-900 dark:from-teal-800/90 dark:via-emerald-800/80 dark:to-slate-800/90 text-white p-5 sm:p-8 lg:p-10 mb-6 sm:mb-8 shadow-xl border border-white/10 dark:border-teal-700/40">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-l from-teal-700 via-emerald-600 to-teal-800 dark:from-teal-600 dark:via-emerald-600 dark:to-teal-700 text-white p-5 sm:p-8 lg:p-10 mb-6 sm:mb-8 shadow-xl border border-white/20">
         <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-emerald-400/20 blur-2xl pointer-events-none" />
 
