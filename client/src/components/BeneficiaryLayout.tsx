@@ -234,20 +234,6 @@ export default function BeneficiaryLayout({
                     <User className="ml-2.5 h-4 w-4 text-muted-foreground" />
                     <span>الملف الشخصي والحساب</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="rounded-xl cursor-pointer py-2 text-xs font-medium"
-                    onClick={() => setLocation("/my-mosques")}
-                  >
-                    <Building2 className="ml-2.5 h-4 w-4 text-muted-foreground" />
-                    <span>مساجدي المسجلة</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="rounded-xl cursor-pointer py-2 text-xs font-medium"
-                    onClick={() => setLocation("/my-requests")}
-                  >
-                    <FileText className="ml-2.5 h-4 w-4 text-muted-foreground" />
-                    <span>سجل الطلبات</span>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator className="my-1" />
                   <DropdownMenuItem
                     onClick={logout}
