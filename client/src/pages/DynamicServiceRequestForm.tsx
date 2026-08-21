@@ -104,9 +104,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // الحصول على طلبات المستخدم للتحقق من الإمام
-  const { data: myRequests = [], isLoading: myRequestsLoading } = trpc.requests.getMyRequests.useQuery(undefined, {
+  const { data: myRequestsData, isLoading: myRequestsLoading } = trpc.requests.getMyRequests.useQuery(undefined, {
     enabled: !!user && user.role === "service_requester" && user.requesterType === "imam"
   });
+  const myRequests = myRequestsData?.requests || [];
 
   // الحصول على أحدث طلب استثناء للمستخدم
   const { data: exceptionStatus, isLoading: exceptionStatusLoading, refetch: refetchException } = trpc.requests.getLatestException.useQuery(undefined, {

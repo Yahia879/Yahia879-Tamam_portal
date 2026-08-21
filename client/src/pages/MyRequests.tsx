@@ -1,12 +1,11 @@
-import { useState, useMemo } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -17,23 +16,24 @@ import {
 import { 
   Building2, 
   FileText, 
-  Plus,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  ChevronLeft,
-  Search,
-  Filter,
-  Eye,
+  Plus, 
+  Clock, 
+  CheckCircle2, 
+  ChevronLeft, 
+  ChevronRight,
+  Search, 
+  Eye, 
   Calendar,
+  X,
+  RotateCcw,
   Sparkles,
-  ArrowRight,
-  TrendingUp,
-  XCircle,
+  Loader2,
 } from "lucide-react";
 import { PROGRAM_LABELS } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
+
+const PAGE_SIZE = 10;
 
 // حساب نسبة التقدم بناءً على المرحلة
 const getProgressPercentage = (stage: string): number => {
@@ -81,57 +81,64 @@ const getStatusBadge = (status: string) => {
 };
 
 export default function MyRequests() {
-  const [, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusTab, setStatusTab] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
-  
-  // جلب طلبات المستخدم
-  const { data: myRequests, isLoading } = trpc.requests.getMyRequests.useQuery();
+  const [page, setPage] = useState<number>(1);
 
-  // تصفية الطلبات
-  const filteredRequests = useMemo(() => {
-    if (!myRequests) return [];
-    
-    return myRequests.filter(request => {
-      const matchesSearch = searchTerm === "" || 
-        request.requestNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (request.mosqueName || "").toLowerCase().includes(searchTerm.toLowerCase());
-      
-      let matchesStatus = true;
-      if (statusTab === "pending") {
-        matchesStatus = request.status === "pending" || request.status === "under_review";
-      } else if (statusTab === "in_progress") {
-        matchesStatus = request.status === "in_progress";
-      } else if (statusTab === "completed") {
-        matchesStatus = request.status === "completed";
-      } else if (statusTab === "rejected") {
-        matchesStatus = request.status === "rejected";
-      }
+  // البحث المؤجل لتخفيف الاستعلامات على الخادم
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-      const matchesProgram = programFilter === "all" || request.programType === programFilter;
-      
-      return matchesSearch && matchesStatus && matchesProgram;
-    });
-  }, [myRequests, searchTerm, statusTab, programFilter]);
+  // إعادة الصفحة إلى الأولى عند تغيير الفلاتر أو البحث
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusTab, programFilter]);
 
-  // إحصائيات
-  const stats = useMemo(() => {
-    if (!myRequests) return { total: 0, pending: 0, inProgress: 0, completed: 0, rejected: 0 };
-    return {
-      total: myRequests.length,
-      pending: myRequests.filter(r => r.status === "pending" || r.status === "under_review").length,
-      inProgress: myRequests.filter(r => r.status === "in_progress").length,
-      completed: myRequests.filter(r => r.status === "completed").length,
-      rejected: myRequests.filter(r => r.status === "rejected").length,
-    };
-  }, [myRequests]);
+  // جلب البرامج الفعالة
+  const { data: activePrograms = [] } = trpc.programs.getActive.useQuery();
+
+  // جلب طلبات المستخدم مع الفلترة والصفحات من الباك اند مباشرة
+  const { data: myRequestsData, isLoading, isFetching } = trpc.requests.getMyRequests.useQuery({
+    search: debouncedSearch || undefined,
+    status: statusTab !== "all" ? statusTab : undefined,
+    programType: programFilter !== "all" ? programFilter : undefined,
+    page,
+    limit: PAGE_SIZE,
+  });
+
+  const requests = myRequestsData?.requests || [];
+  const total = myRequestsData?.total || 0;
+  const totalPages = myRequestsData?.totalPages || 1;
+  const stats = myRequestsData?.stats || { total: 0, pending: 0, inProgress: 0, completed: 0, rejected: 0 };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setStatusTab("all");
+    setProgramFilter("all");
+    setPage(1);
+  };
+
+  const isFiltering = debouncedSearch !== "" || statusTab !== "all" || programFilter !== "all";
 
   return (
     <BeneficiaryLayout
       activeTab="requests"
       title="سجل طلباتي"
-      subtitle="استعراض ومتابعة حالات وتطورات كافة الخدمة المطلوبة"
+      subtitle="استعراض ومتابعة حالات وتطورات كافة الخدمات المطلوبة"
       headerActions={
         <Link href="/request-form-dynamic">
           <Button className="rounded-2xl gradient-primary text-white font-bold gap-2 shadow-md hover:opacity-95">
@@ -186,6 +193,16 @@ export default function MyRequests() {
             >
               مكتملة ({stats.completed})
             </button>
+            <button
+              onClick={() => setStatusTab("rejected")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                statusTab === "rejected"
+                  ? "bg-background text-red-600 shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-red-600"
+              }`}
+            >
+              مرفوضة ({stats.rejected})
+            </button>
           </div>
         </div>
 
@@ -197,8 +214,18 @@ export default function MyRequests() {
               placeholder="ابحث برقم الطلب أو المسجد..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-9 rounded-2xl h-10 border-border/60 bg-background text-xs"
+              className="pr-9 pl-8 rounded-2xl h-10 border-border/60 bg-background text-xs"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full"
+                title="مسح البحث"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <Select value={programFilter} onValueChange={setProgramFilter}>
@@ -207,12 +234,35 @@ export default function MyRequests() {
             </SelectTrigger>
             <SelectContent className="rounded-2xl">
               <SelectItem value="all">كل الخدمات</SelectItem>
-              <SelectItem value="bunyan">بنيان (عمارة)</SelectItem>
-              <SelectItem value="siyanah">صيانة وتشغيل</SelectItem>
-              <SelectItem value="siqaya">سقاية وتأثيث</SelectItem>
-              <SelectItem value="furnishing">فرش وتطوير</SelectItem>
+              {activePrograms.length > 0 ? (
+                activePrograms.map((prog) => (
+                  <SelectItem key={prog.id} value={prog.id}>
+                    {prog.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="bunyan">بنيان (عمارة)</SelectItem>
+                  <SelectItem value="siyanah">صيانة وتشغيل</SelectItem>
+                  <SelectItem value="siqaya">سقاية وتأثيث</SelectItem>
+                  <SelectItem value="furnishing">فرش وتطوير</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
+
+          {isFiltering && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleClearFilters}
+              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-destructive shrink-0"
+              title="إعادة تعيين الفلاتر"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -223,62 +273,148 @@ export default function MyRequests() {
             <div key={i} className="h-32 bg-muted/60 animate-pulse rounded-3xl" />
           ))}
         </div>
-      ) : filteredRequests.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredRequests.map((request) => {
-            const progress = getProgressPercentage(request.currentStage);
-            const stageLabel = getStageLabelAr(request.currentStage);
+      ) : requests.length > 0 ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            {requests.map((request) => {
+              const progress = getProgressPercentage(request.currentStage);
+              const stageLabel = getStageLabelAr(request.currentStage);
+              const requestDate = request.createdAt 
+                ? new Date(request.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
+                : null;
 
-            return (
-              <Card
-                key={request.id}
-                className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden bg-background group"
-              >
-                <CardContent className="p-5 sm:p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    {/* Program & Main Info */}
-                    <div className="flex items-start sm:items-center gap-4 min-w-0">
-                      <ProgramIcon program={request.programType} size="lg" showBackground />
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
-                            {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
-                          </h3>
-                          {getStatusBadge(request.status)}
+              return (
+                <Card
+                  key={request.id}
+                  className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden bg-background group"
+                >
+                  <CardContent className="p-5 sm:p-6">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      {/* Program & Main Info */}
+                      <div className="flex items-start sm:items-center gap-4 min-w-0">
+                        <ProgramIcon program={request.programType} size="lg" showBackground />
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
+                              {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
+                            </h3>
+                            {getStatusBadge(request.status)}
+                          </div>
+                          <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-2">
+                            <span className="font-mono bg-muted/60 px-2 py-0.5 rounded-lg text-foreground font-bold">{request.requestNumber}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3.5 h-3.5 text-primary/70" />
+                              {request.mosqueName || "المسجد المحدد"}
+                            </span>
+                            {requestDate && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Calendar className="w-3 h-3 text-muted-foreground/70" />
+                                  {requestDate}
+                                </span>
+                              </>
+                            )}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground font-medium flex items-center gap-2">
-                          <span className="font-mono bg-muted/60 px-2 py-0.5 rounded-lg text-foreground font-bold">{request.requestNumber}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Building2 className="w-3.5 h-3.5 text-primary/70" />
-                            {request.mosqueName || "المسجد المحدد"}
-                          </span>
-                        </p>
+                      </div>
+
+                      {/* Progress Info & CTA */}
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0 border-t md:border-t-0 border-border/40 pt-3 md:pt-0">
+                        <div className="w-full sm:w-48 space-y-1.5">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-foreground">{stageLabel}</span>
+                            <span className="font-mono font-extrabold text-primary">{progress}%</span>
+                          </div>
+                          <Progress value={progress} className="h-2 rounded-full" />
+                        </div>
+
+                        <Link href={`/requests/${request.id}`}>
+                          <Button className="w-full sm:w-auto rounded-2xl font-bold text-xs gap-1.5 bg-muted/80 text-foreground hover:bg-primary hover:text-white transition-all h-10 px-4">
+                            <Eye className="w-4 h-4" />
+                            <span>عرض التفاصيل</span>
+                          </Button>
+                        </Link>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
 
-                    {/* Progress Info & CTA */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0 border-t md:border-t-0 border-border/40 pt-3 md:pt-0">
-                      <div className="w-full sm:w-48 space-y-1.5">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-foreground">{stageLabel}</span>
-                          <span className="font-mono font-extrabold text-primary">{progress}%</span>
-                        </div>
-                        <Progress value={progress} className="h-2 rounded-full" />
-                      </div>
+          {/* Pagination Footer */}
+          <div className="p-4 bg-muted/20 border border-border/60 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs text-muted-foreground text-center sm:text-right font-medium">
+              عرض {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} من أصل {total} طلب
+            </div>
 
-                      <Link href={`/requests/${request.id}`}>
-                        <Button className="w-full sm:w-auto rounded-2xl font-bold text-xs gap-1.5 bg-muted/80 text-foreground hover:bg-primary hover:text-white transition-all h-10 px-4">
-                          <Eye className="w-4 h-4" />
-                          <span>عرض التفاصيل</span>
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                {/* Previous button (RTL: right arrow) */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8.5 w-8.5 rounded-xl shrink-0"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1 || isFetching}
+                  title="الصفحة السابقة"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+
+                {/* Numbered Page Buttons */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                  if (
+                    totalPages <= 5 ||
+                    p === 1 ||
+                    p === totalPages ||
+                    (p >= page - 1 && p <= page + 1)
+                  ) {
+                    return (
+                      <Button
+                        key={p}
+                        variant={page === p ? "default" : "outline"}
+                        size="sm"
+                        className={`h-8.5 min-w-[34px] px-2.5 text-xs font-bold rounded-xl shrink-0 transition-all ${
+                          page === p
+                            ? "gradient-primary text-white border-0 shadow-xs"
+                            : "hover:bg-muted"
+                        }`}
+                        onClick={() => handlePageChange(p)}
+                        disabled={isFetching}
+                      >
+                        {p}
+                      </Button>
+                    );
+                  } else if (
+                    (p === page - 2 && page > 3) ||
+                    (p === page + 2 && page < totalPages - 2)
+                  ) {
+                    return (
+                      <span key={p} className="px-1 text-xs text-muted-foreground font-bold">
+                        ...
+                      </span>
+                    );
+                  }
+                  return null;
+                })}
+
+                {/* Next button (RTL: left arrow) */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8.5 w-8.5 rounded-xl shrink-0"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === totalPages || isFetching}
+                  title="الصفحة التالية"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <Card className="border border-border/60 shadow-xs rounded-3xl p-12 text-center bg-background">
@@ -286,17 +422,30 @@ export default function MyRequests() {
             <FileText className="w-8 h-8" />
           </div>
           <h3 className="font-bold text-lg text-foreground mb-1">لا توجد طلبات تطابق بحثك</h3>
-          <p className="text-xs text-muted-foreground mb-6 max-w-md mx-auto">
-            {searchTerm || programFilter !== "all" || statusTab !== "all"
-              ? "جرّب تغيير معايير البحث أو تصفية الحالة لعرض النتائج."
+          <p className="text-xs text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
+            {isFiltering
+              ? "جرّب تغيير معايير البحث أو تصفية الحالة لعرض النتائج المناسبة."
               : "لم تقم بتقديم أي طلبات خدمة بعد. يسعدنا تقديم الخدمة لمسجدك بتقديم طلب جديد."}
           </p>
-          <Link href="/request-form-dynamic">
-            <Button className="gradient-primary text-white font-bold rounded-2xl shadow-md gap-2 px-6">
-              <Plus className="w-4 h-4" />
-              <span>تقديم طلب جديد</span>
-            </Button>
-          </Link>
+          <div className="flex items-center justify-center gap-3">
+            {isFiltering ? (
+              <Button 
+                variant="outline"
+                onClick={handleClearFilters}
+                className="rounded-2xl font-bold gap-2 px-5 h-11"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>إعادة ضبط الفلاتر</span>
+              </Button>
+            ) : (
+              <Link href="/request-form-dynamic">
+                <Button className="gradient-primary text-white font-bold rounded-2xl shadow-md gap-2 px-6 h-11">
+                  <Plus className="w-4 h-4" />
+                  <span>تقديم طلب جديد</span>
+                </Button>
+              </Link>
+            )}
+          </div>
         </Card>
       )}
     </BeneficiaryLayout>

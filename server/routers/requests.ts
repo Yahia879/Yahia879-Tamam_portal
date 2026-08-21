@@ -825,60 +825,170 @@ export const requestsRouter = router({
       }
     }),
 
-  // الحصول على طلبات المستخدم الحالي
-  getMyRequests: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) return [];
+  // الحصول على طلبات المستخدم الحالي (مع الفلترة والبحث والصفحات)
+  getMyRequests: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      status: z.string().optional(),
+      programType: z.string().optional(),
+      page: z.number().default(1),
+      limit: z.number().default(10),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) {
+        return {
+          requests: [],
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          stats: { total: 0, pending: 0, inProgress: 0, completed: 0, rejected: 0 }
+        };
+      }
 
-    const results = await db.select({
-      request: mosqueRequests,
-      mosqueName: mosques.name,
-      mosqueCity: mosques.city,
-      programName: programs.name,
-      projectId: projects.id,
-      projectNumber: projects.projectNumber,
-      projectName: projects.name,
-    }).from(mosqueRequests)
-      .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-      .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
-      .leftJoin(projects, eq(mosqueRequests.id, projects.requestId))
-      .where(eq(mosqueRequests.userId, ctx.user.id))
-      .orderBy(desc(mosqueRequests.createdAt));
+      const page = Math.max(1, input?.page || 1);
+      const limit = Math.max(1, input?.limit || 10);
+      const offset = (page - 1) * limit;
 
-    return results.map(r => {
-      let mosqueName = r.mosqueName;
-      let mosqueCity = r.mosqueCity;
-      if (!r.request.mosqueId && r.request.programData) {
-        let progData: any = null;
-        try {
-          if (typeof r.request.programData === 'string') {
-            progData = JSON.parse(r.request.programData);
-          } else if (typeof r.request.programData === 'object') {
-            progData = r.request.programData;
-          }
-        } catch (e) {
-          console.error("Error parsing programData in getMyRequests:", e);
-        }
-        if (progData && typeof progData === 'object') {
-          if (progData.customMosqueName) {
-            mosqueName = progData.customMosqueName;
-          }
-          if (progData.customMosqueCity) {
-            mosqueCity = progData.customMosqueCity;
-          }
+      const conditions: any[] = [eq(mosqueRequests.userId, ctx.user.id)];
+
+      if (input?.search && input.search.trim()) {
+        const term = input.search.trim();
+        conditions.push(
+          or(
+            sql`${mosqueRequests.requestNumber} LIKE ${`%${term}%`}`,
+            sql`${mosqueRequests.descriptiveName} LIKE ${`%${term}%`}`,
+            sql`${mosques.name} LIKE ${`%${term}%`}`,
+            sql`JSON_UNQUOTE(JSON_EXTRACT(${mosqueRequests.programData}, '$.customMosqueName')) LIKE ${`%${term}%`}`
+          )!
+        );
+      }
+
+      if (input?.status && input.status !== "all") {
+        if (input.status === "pending") {
+          conditions.push(or(eq(mosqueRequests.status, "pending"), eq(mosqueRequests.status, "under_review"))!);
+        } else {
+          conditions.push(eq(mosqueRequests.status, input.status as any));
         }
       }
-      return {
-        ...r.request,
-        mosqueName,
-        mosqueCity,
-        programName: r.programName,
-        projectId: r.projectId,
-        projectNumber: r.projectNumber,
-        projectName: r.projectName,
+
+      if (input?.programType && input.programType !== "all") {
+        conditions.push(eq(mosqueRequests.programType, input.programType as any));
+      }
+
+      // 1. حساب إحصائيات المستخدم الإجمالية
+      const statsRows = await db.select({
+        status: mosqueRequests.status,
+        count: sql<number>`count(*)`,
+      }).from(mosqueRequests)
+        .where(eq(mosqueRequests.userId, ctx.user.id))
+        .groupBy(mosqueRequests.status);
+
+      const stats = {
+        total: 0,
+        pending: 0,
+        inProgress: 0,
+        completed: 0,
+        rejected: 0,
       };
-    });
-  }),
+
+      for (const row of statsRows) {
+        const count = Number(row.count) || 0;
+        stats.total += count;
+        if (row.status === "pending" || row.status === "under_review") {
+          stats.pending += count;
+        } else if (row.status === "in_progress") {
+          stats.inProgress += count;
+        } else if (row.status === "completed") {
+          stats.completed += count;
+        } else if (row.status === "rejected") {
+          stats.rejected += count;
+        }
+      }
+
+      // 2. حساب إجمالي النتائج المطابقة للفلتر
+      let countQuery = db.select({ count: sql<number>`count(*)` })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id));
+      if (conditions.length > 0) {
+        countQuery = countQuery.where(and(...conditions)) as typeof countQuery;
+      }
+      const countResult = await countQuery;
+      const total = Number(countResult[0]?.count) || 0;
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      // 3. الاستعلام عن الطلبات مع الصفحات
+      let query = db.select({
+        request: mosqueRequests,
+        mosqueName: mosques.name,
+        mosqueCity: mosques.city,
+        programName: programs.name,
+        projectId: projects.id,
+        projectNumber: projects.projectNumber,
+        projectName: projects.name,
+        evaluationNotes: sql<string | null>`(select notes from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
+        satisfactionRating: sql<number | null>`(select rating from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
+      }).from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+        .leftJoin(projects, eq(mosqueRequests.id, projects.requestId));
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as typeof query;
+      }
+
+      const results = await query
+        .orderBy(desc(mosqueRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      const requests = results.map(r => {
+        let mosqueName = r.mosqueName;
+        let mosqueCity = r.mosqueCity;
+        if (!r.request.mosqueId && r.request.programData) {
+          let progData: any = null;
+          try {
+            if (typeof r.request.programData === 'string') {
+              progData = JSON.parse(r.request.programData);
+            } else if (typeof r.request.programData === 'object') {
+              progData = r.request.programData;
+            }
+          } catch (e) {
+            console.error("Error parsing programData in getMyRequests:", e);
+          }
+          if (progData && typeof progData === 'object') {
+            if (progData.customMosqueName) {
+              mosqueName = progData.customMosqueName;
+            }
+            if (progData.customMosqueCity) {
+              mosqueCity = progData.customMosqueCity;
+            }
+          }
+        }
+        return {
+          ...r.request,
+          mosqueName,
+          mosqueCity,
+          programName: r.programName,
+          projectId: r.projectId,
+          projectNumber: r.projectNumber,
+          projectName: r.projectName,
+          evaluationNotes: r.evaluationNotes,
+          satisfactionRating: r.satisfactionRating,
+          isEvaluated: r.satisfactionRating !== null && r.satisfactionRating !== undefined,
+        };
+      });
+
+      return {
+        requests,
+        total,
+        page,
+        limit,
+        totalPages,
+        stats,
+      };
+    }),
 
   // تحديث مرحلة الطلب
   updateStage: protectedProcedure

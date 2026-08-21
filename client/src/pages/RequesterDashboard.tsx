@@ -52,15 +52,19 @@ export default function RequesterDashboard() {
   const { user } = useAuth();
   
   // جلب طلبات المستخدم
-  const { data: myRequests, isLoading: isLoadingRequests } = trpc.requests.getMyRequests.useQuery();
+  const { data: myRequestsData, isLoading: isLoadingRequests } = trpc.requests.getMyRequests.useQuery();
   // جلب مساجد المستخدم
   const { data: myMosques, isLoading: isLoadingMosques } = trpc.mosques.getMyMosques.useQuery();
   // جلب الإشعارات
   const { data: notificationsData } = trpc.notifications.getMyNotifications.useQuery({ limit: 5 });
 
-  const pendingRequests = myRequests?.filter(r => r.status === "pending" || r.status === "under_review") || [];
-  const inProgressRequests = myRequests?.filter(r => r.status === "in_progress") || [];
-  const completedRequests = myRequests?.filter(r => r.status === "completed" || r.currentStage === "closed") || [];
+  const myRequests = myRequestsData?.requests || [];
+  const stats = myRequestsData?.stats || {
+    total: myRequests.length,
+    pending: myRequests.filter(r => r.status === "pending" || r.status === "under_review").length,
+    inProgress: myRequests.filter(r => r.status === "in_progress").length,
+    completed: myRequests.filter(r => r.status === "completed" || r.currentStage === "closed").length,
+  };
 
   return (
     <BeneficiaryLayout activeTab="dashboard">
@@ -119,7 +123,7 @@ export default function RequesterDashboard() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">إجمالي الطلبات</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-foreground mt-1">
-                  {myRequests?.length || 0}
+                  {stats.total}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -135,7 +139,7 @@ export default function RequesterDashboard() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">قيد المراجعة</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1">
-                  {pendingRequests.length}
+                  {stats.pending}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
@@ -151,7 +155,7 @@ export default function RequesterDashboard() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">قيد التنفيذ</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 mt-1">
-                  {inProgressRequests.length}
+                  {stats.inProgress}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
@@ -167,7 +171,7 @@ export default function RequesterDashboard() {
               <div>
                 <p className="text-xs font-medium text-muted-foreground">مكتملة بنجاح</p>
                 <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">
-                  {completedRequests.length}
+                  {stats.completed}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">

@@ -65,13 +65,20 @@ describe("Requests Router", () => {
   });
 
   describe("getMyRequests", () => {
-    it("should return empty array when database is not available", async () => {
+    it("should return empty object when database is not available", async () => {
       const ctx = createMockContext("service_requester");
       const caller = appRouter.createCaller(ctx);
 
       const result = await caller.requests.getMyRequests();
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        requests: [],
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 0,
+        stats: { total: 0, pending: 0, inProgress: 0, completed: 0, rejected: 0 },
+      });
     });
   });
 
@@ -164,7 +171,8 @@ describe("Role-based Access", () => {
 
     // Should not throw
     const result = await caller.requests.getMyRequests();
-    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveProperty("requests");
+    expect(result).toHaveProperty("total");
   });
 
   it("should allow projects_office to access search", async () => {
