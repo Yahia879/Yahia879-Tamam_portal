@@ -362,16 +362,37 @@ export default function RequesterMosqueForm() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-6">
-            <div className="flex items-center gap-3 p-4 bg-muted/40 rounded-2xl border border-border/40">
+            <div
+              onClick={() => {
+                const isChecked = !formData.hasPrayerHall;
+                setFormData((prev) => ({
+                  ...prev,
+                  hasPrayerHall: isChecked,
+                  ...(isChecked ? {} : { womenPrayerArea: "", womenPrayerCapacity: "", womenPrayerNotes: "" }),
+                }));
+              }}
+              className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
+                formData.hasPrayerHall
+                  ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20'
+                  : 'border-border/60 bg-muted/20 hover:bg-muted/40'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                  formData.hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                }`}>
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المسجد مصلى للنساء؟</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا كان المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
+                </div>
+              </div>
               <Checkbox
                 id="hasPrayerHall"
-                checked={formData.hasPrayerHall}
-                onCheckedChange={(checked) => handleChange("hasPrayerHall", !!checked)}
-                className="rounded-lg h-5 w-5"
+                checked={!!formData.hasPrayerHall}
+                className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
               />
-              <Label htmlFor="hasPrayerHall" className="text-xs font-bold cursor-pointer">
-                يوجد مصلى للنساء في هذا المسجد
-              </Label>
             </div>
 
             {formData.hasPrayerHall && (
