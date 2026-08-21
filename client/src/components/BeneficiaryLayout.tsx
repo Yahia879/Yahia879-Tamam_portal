@@ -407,29 +407,29 @@ export default function BeneficiaryLayout({
       </header>
 
       {/* Main Content Body */}
-      <main className="flex-1 container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl print:p-0 print:m-0 print:max-w-none">
+      <main className="flex-1 container mx-auto px-3.5 sm:px-6 py-4 sm:py-8 max-w-7xl print:p-0 print:m-0 print:max-w-none">
         {(title || subtitle || headerActions || backUrl) && (
-          <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               {backUrl && (
                 <Link href={backUrl}>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-pointer"
+                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-pointer"
                     title={backLabel || "العودة"}
                   >
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     {backLabel && <span className="sr-only">{backLabel}</span>}
                   </Button>
                 </Link>
               )}
               <div className="min-w-0 flex-1">
-                {title && <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
-                {subtitle && <p className="text-xs sm:text-sm text-muted-foreground mt-1">{subtitle}</p>}
+                {title && <h1 className="text-base sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
+                {subtitle && <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate sm:whitespace-normal">{subtitle}</p>}
               </div>
             </div>
-            {headerActions && <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">{headerActions}</div>}
+            {headerActions && <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-center justify-end">{headerActions}</div>}
           </div>
         )}
         {children}
