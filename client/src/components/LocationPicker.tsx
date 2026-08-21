@@ -36,11 +36,11 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
   // Sync currentLocation with value prop
   useEffect(() => {
     if (value && (!currentLocation || value.lat !== currentLocation.lat || value.lng !== currentLocation.lng)) {
-      setCurrentLocation(value);
+      setCurrentLocation({ lat: value.lat, lng: value.lng });
       // Reverse geocode if value changes from outside
       reverseGeocode(value.lat, value.lng);
     }
-  }, [value]);
+  }, [value?.lat, value?.lng]);
 
   const reverseGeocode = async (lat: number, lng: number) => {
     try {

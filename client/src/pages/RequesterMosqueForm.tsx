@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,7 +98,7 @@ export default function RequesterMosqueForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleLocationChange = (location: { lat: number; lng: number; address?: string; region?: string; city?: string; district?: string }) => {
+  const handleLocationChange = useCallback((location: { lat: number; lng: number; address?: string; region?: string; city?: string; district?: string }) => {
     const detectedCity = location.city || "";
     const cityExists = availableCities.includes(detectedCity);
 
@@ -111,7 +111,12 @@ export default function RequesterMosqueForm() {
       city: cityExists ? detectedCity : prev.city,
       district: location.district || prev.district,
     }));
-  };
+  }, [availableCities]);
+
+  const locationValue = useMemo(() => ({
+    lat: formData.latitude ? parseFloat(formData.latitude) : 18.2164,
+    lng: formData.longitude ? parseFloat(formData.longitude) : 42.5053,
+  }), [formData.latitude, formData.longitude]);
 
   const handleCityChange = async (value: string) => {
     handleChange("city", value);
@@ -342,10 +347,7 @@ export default function RequesterMosqueForm() {
               </Label>
               <div className="rounded-3xl border border-border/60 overflow-hidden shadow-xs">
                 <LocationPicker
-                  value={{
-                    lat: formData.latitude ? parseFloat(formData.latitude) : 18.2164,
-                    lng: formData.longitude ? parseFloat(formData.longitude) : 42.5053,
-                  }}
+                  value={locationValue}
                   onChange={handleLocationChange}
                 />
               </div>
@@ -391,7 +393,7 @@ export default function RequesterMosqueForm() {
               <Checkbox
                 id="hasPrayerHall"
                 checked={!!formData.hasPrayerHall}
-                className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                className="h-5 w-5 rounded-md data-[state=checked]:bg-primary pointer-events-none"
               />
             </div>
 
