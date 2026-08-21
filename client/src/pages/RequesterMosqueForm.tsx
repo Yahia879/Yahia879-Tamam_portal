@@ -170,7 +170,12 @@ export default function RequesterMosqueForm() {
 
   if (hasExistingMosque && !canRegisterMore) {
     return (
-      <BeneficiaryLayout activeTab="mosques" title="تسجيل مسجد جديد">
+      <BeneficiaryLayout
+        activeTab="mosques"
+        title="تسجيل مسجد جديد"
+        backUrl="/my-mosques"
+        backLabel="العودة لمساجدي"
+      >
         <div className="max-w-2xl mx-auto space-y-6 text-center py-8">
           <Alert variant="destructive" className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300 rounded-3xl p-6 text-right">
             <AlertCircle className="h-6 w-6 shrink-0 mt-0.5 text-red-600" />
@@ -197,6 +202,8 @@ export default function RequesterMosqueForm() {
       activeTab="mosques"
       title="تسجيل مسجد جديد"
       subtitle="إدخال البيانات الأساسية والمكانية للمسجد المراد تسجيله في المنصة"
+      backUrl="/my-mosques"
+      backLabel="العودة لمساجدي"
     >
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
         {/* Step 1: Basic Mosque Info */}
