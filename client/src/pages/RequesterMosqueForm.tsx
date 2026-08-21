@@ -187,7 +187,7 @@ export default function RequesterMosqueForm() {
             <div className="mr-3 space-y-1">
               <AlertTitle className="text-base font-bold">لا يمكن تقديم طلب تسجيل مسجد جديد حالياً</AlertTitle>
               <AlertDescription className="text-xs sm:text-sm leading-relaxed">
-                لديك طلب تسجيل مسجد قيد المعالجة. يُسمح بتسجيل مسجد واحد فقط بحسابك، إلا إذا تم منحك استثناء خاصاً من إدارة الجمعية.
+                لديك طلب تسجيل مسجد سابق. لا يمكنك تقديم أكثر من طلب واحد إلا بعد الحصول على استثناء من الإدارة.
               </AlertDescription>
             </div>
           </Alert>
