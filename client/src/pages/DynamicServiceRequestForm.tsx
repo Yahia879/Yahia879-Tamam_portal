@@ -620,10 +620,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 </div>
               </div>
             </div>
-            <Alert className="bg-blue-50 border-blue-100 text-blue-800 p-3">
-              <CheckCircle2 className="h-4 w-4" />
-              <AlertDescription className="text-xs sm:text-sm">
-                إذا كنت تريد تعديل بيانات حسابك، يرجى الذهاب إلى صفحة المعلومات الشخصية
+            <Alert className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 text-foreground p-3.5 rounded-2xl flex items-center gap-3">
+              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm text-foreground/90 font-medium leading-relaxed">
+                إذا كنت تريد تعديل بيانات حسابك، يرجى الذهاب إلى{" "}
+                <Link href="/profile" className="text-primary font-bold underline underline-offset-4 hover:opacity-80">
+                  صفحة المعلومات الشخصية
+                </Link>
               </AlertDescription>
             </Alert>
           </div>
