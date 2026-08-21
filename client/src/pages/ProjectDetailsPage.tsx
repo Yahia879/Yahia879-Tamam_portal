@@ -758,7 +758,7 @@ export default function ProjectDetailsPage() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans ${
+                    className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans ${
                       activeTab === item.id 
                         ? "bg-background text-foreground shadow-xs border border-border/80" 
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -767,7 +767,11 @@ export default function ProjectDetailsPage() {
                     <item.icon className="w-4 h-4" />
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-muted font-bold font-mono">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold font-mono transition-colors ${
+                        activeTab === item.id 
+                          ? "bg-primary text-white" 
+                          : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
+                      }`}>
                         {item.badge}
                       </span>
                     )}
@@ -826,7 +830,7 @@ export default function ProjectDetailsPage() {
                       <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center p-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer font-sans ${
+                        className={`group w-full flex items-center p-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer font-sans ${
                           isNavCollapsed ? "justify-center h-10 w-10 mx-auto" : "justify-between"
                         } ${
                           isActive
@@ -841,8 +845,10 @@ export default function ProjectDetailsPage() {
                         {!isNavCollapsed && (
                           <div className="flex items-center gap-1.5 shrink-0">
                             {item.badge && (
-                              <span className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-bold ${
-                                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                              <span className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-bold transition-colors ${
+                                isActive 
+                                  ? "bg-primary-foreground/20 text-white" 
+                                  : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
                               }`}>
                                 {item.badge}
                               </span>
@@ -864,7 +870,9 @@ export default function ProjectDetailsPage() {
                           <TooltipContent side="left" className="flex items-center gap-2 text-xs font-bold font-sans">
                             <span>{item.label}</span>
                             {item.badge && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted font-mono">{item.badge}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary text-white font-mono font-bold">
+                                {item.badge}
+                              </span>
                             )}
                             {item.isLocked && <Lock className="w-3 h-3 text-amber-500" />}
                           </TooltipContent>
@@ -1301,7 +1309,18 @@ export default function ProjectDetailsPage() {
                 <TabsContent value="financials" className="space-y-6 mt-0">
                   {isFinancialsLocked ? (
                     <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
-                      <CardContent className="pt-6">
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
+                        <div className="flex-1">
+                          <CardTitle className="text-base font-bold flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-primary" />
+                            البيانات والتحليلات المالية
+                          </CardTitle>
+                          <CardDescription className="text-xs mt-0.5">
+                            إدارة الميزانية والمخصصات والمصروفات المالية للمشروع
+                          </CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-5">
                         <div className="text-center py-12">
                           <div className="bg-amber-500/5 p-8 rounded-2xl border border-amber-500/20 max-w-lg mx-auto shadow-xs">
                             <div className="w-14 h-14 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-amber-500/20">
