@@ -298,13 +298,18 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Populate state when data arrives
   useEffect(() => {
+    const contract = (data as any)?.contract || null;
+    const contractAdminPct = contract?.managementPercentage ? parseFloat(contract.managementPercentage.toString()) : 0;
+    const contractAmount = contract?.contractAmount ? parseFloat(contract.contractAmount.toString()) : 0;
+
     if (data?.financialDetail) {
       setApprovedQuotationId(data.financialDetail.approvedQuotationId || data.approvedQuotation?.id || null);
       setSupportEntity(data.financialDetail.supportEntity || "");
       setCustomSupportEntity(data.financialDetail.customSupportEntity || "");
       setSupportAmount(parseFloat(data.financialDetail.supportAmount || "0"));
       setAdminFeeType((data.financialDetail.adminFeeType as any) || "percentage");
-      setAdminFeeValue(parseFloat(data.financialDetail.adminFeeValue || "0"));
+      const savedFeeVal = parseFloat(data.financialDetail.adminFeeValue || "0");
+      setAdminFeeValue(savedFeeVal > 0 ? savedFeeVal : (contractAdminPct > 0 ? contractAdminPct : 0));
       setAssociationFundingAmount(parseFloat(data.financialDetail.associationFundingAmount || "0"));
       setAssociationFundingNotes(data.financialDetail.associationFundingNotes || "");
       setFinancialNotes(data.financialDetail.notes || "");
@@ -333,11 +338,41 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             amount: parseFloat(data.financialDetail.supportAmount || "0"),
           }
         ]);
+      } else if (contract?.supportingEntity) {
+        try {
+          const parsedContractSources = JSON.parse(contract.supportingEntity);
+          if (Array.isArray(parsedContractSources) && parsedContractSources.length > 0) {
+            setSupportSources(parsedContractSources);
+          }
+        } catch (e) {
+          // fallback
+        }
       } else {
         setSupportSources([]);
       }
-    } else if (data?.approvedQuotation) {
-      setApprovedQuotationId(data.approvedQuotation.id);
+    } else {
+      if (data?.approvedQuotation) {
+        setApprovedQuotationId(data.approvedQuotation.id);
+      }
+      if (contractAdminPct > 0) {
+        setAdminFeeType("percentage");
+        setAdminFeeValue(contractAdminPct);
+      }
+      if (contract?.supportingEntity) {
+        try {
+          const parsedContractSources = JSON.parse(contract.supportingEntity);
+          if (Array.isArray(parsedContractSources) && parsedContractSources.length > 0) {
+            setSupportSources(parsedContractSources);
+          }
+        } catch (e) {
+          if (typeof contract.supportingEntity === "string" && contract.supportingEntity.trim()) {
+            setSupportSources([{
+              entity: contract.supportingEntity,
+              amount: parseFloat(contract.supportedAmount?.toString() || "0") || contractAmount,
+            }]);
+          }
+        }
+      }
     }
   }, [data]);
 
@@ -362,16 +397,34 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   );
 
   const approvedQuotation = data?.approvedQuotation || null;
-  const supplierBaseAmount = approvedQuotation 
-    ? parseFloat((approvedQuotation.approvedAmount || approvedQuotation.negotiatedAmount || approvedQuotation.finalAmount || approvedQuotation.totalAmount || "0").toString())
-    : 0;
+  const contract = (data as any)?.contract || null;
+  const contractAdminPct = contract?.managementPercentage ? parseFloat(contract.managementPercentage.toString()) : 0;
+  const contractAmount = contract?.contractAmount ? parseFloat(contract.contractAmount.toString()) : 0;
 
-  // Calculated admin fee
-  const calculatedAdminFeeAmount = adminFeeType === "percentage"
-    ? (supplierBaseAmount * (adminFeeValue || 0)) / 100
-    : (adminFeeValue || 0);
+  // Base supplier amount: total agreed value (from contract if available, otherwise from approved quotation)
+  const supplierBaseAmount = contractAmount > 0 
+    ? contractAmount 
+    : (approvedQuotation 
+        ? parseFloat((approvedQuotation.approvedAmount || approvedQuotation.negotiatedAmount || approvedQuotation.finalAmount || approvedQuotation.totalAmount || "0").toString())
+        : 0);
 
-  const totalRequiredCost = supplierBaseAmount + calculatedAdminFeeAmount;
+  // Admin fee percentage: priority from contract, or from financialDetail / user state
+  const effectiveAdminPct = contractAdminPct > 0 
+    ? contractAdminPct 
+    : (adminFeeType === "percentage" ? (adminFeeValue || 0) : (supplierBaseAmount > 0 ? ((adminFeeValue || 0) / supplierBaseAmount) * 100 : 0));
+
+  // Calculated admin fee amount (حصة الجمعية المستقطعة من قيمة العقد)
+  const calculatedAdminFeeAmount = contractAdminPct > 0
+    ? (supplierBaseAmount * contractAdminPct) / 100
+    : (adminFeeType === "percentage"
+        ? (supplierBaseAmount * (adminFeeValue || 0)) / 100
+        : (adminFeeValue || 0));
+
+  // صافي حصة المورد بعد استقطاع حصة الجمعية (لا تنجمع مع قيمة المورد بل تستقطع منها)
+  const supplierNetShare = Math.max(0, supplierBaseAmount - calculatedAdminFeeAmount);
+  // إجمالي التكلفة الكلية للمشروع يطابق دائماً القيمة المتفق عليها
+  const totalRequiredCost = supplierBaseAmount;
+
   const currentSupportAmount = validSupportSources.reduce((sum, s) => sum + (s.amount || 0), 0) || supportAmount || 0;
   const coverageDifference = currentSupportAmount - totalRequiredCost;
   const isFullyCovered = coverageDifference >= -0.01;
@@ -563,8 +616,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               </div>
               <p className="text-sm text-gray-700 mt-2">
                 {isFullyCovered 
-                  ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية (المبلغ المتفق عليه مع المورد + الأجور الإدارية)."
-                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكاليف والأجور الإدارية.`
+                  ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
+                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكلفة الكلية للمشروع.`
                 }
               </p>
             </div>
@@ -572,26 +625,26 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             {/* Visual Formula summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
               <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">مبلغ المورد</span>
-                <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block">
-                  {supplierBaseAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                <span className="text-muted-foreground block">مبلغ المورد (الصافي)</span>
+                <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block font-sans">
+                  {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2 border-r last:border-r-0">
-                <span className="text-muted-foreground block">+ الأجور الإدارية</span>
-                <span className="font-bold text-orange-700 text-sm mt-0.5 inline-block">
+                <span className="text-muted-foreground block">الأجور الإدارية (الجمعية)</span>
+                <span className="font-bold text-orange-700 text-sm mt-0.5 inline-block font-sans">
                   {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2 border-r last:border-r-0 bg-slate-50 rounded-sm">
-                <span className="text-muted-foreground block">= إجمالي التكلفة</span>
-                <span className="font-bold text-primary text-sm mt-0.5 inline-block">
+                <span className="text-muted-foreground block">= إجمالي التكلفة الكلية</span>
+                <span className="font-bold text-primary text-sm mt-0.5 inline-block font-sans">
                   {totalRequiredCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2">
                 <span className="text-muted-foreground block">مبلغ الدعم المقدم</span>
-                <span className={`font-bold text-sm mt-0.5 inline-block ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
+                <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
                   {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -925,15 +978,21 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
                 <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-amber-900 font-medium">بند الأجور الإدارية:</span>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
-                      {adminFeeType === "percentage" ? `${adminFeeValue}% نسبة` : "مبلغ ثابت"}
+                    <span className="text-amber-900 font-medium">بند الأجور الإدارية (الجمعية):</span>
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-sans">
+                      {effectiveAdminPct > 0 ? `${effectiveAdminPct}% نسبة مئوية مستقطعة` : (adminFeeType === "percentage" ? `${adminFeeValue}% نسبة مستقطعة` : "مبلغ ثابت")}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between border-t border-amber-200 pt-2">
-                    <span className="text-muted-foreground">قيمة الأجور الإدارية المحسوبة:</span>
-                    <span className="font-bold text-orange-700 text-sm">
+                    <span className="text-muted-foreground">قيمة الأجور الإدارية (حصة الجمعية):</span>
+                    <span className="font-bold text-orange-700 text-sm font-sans">
                       {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-amber-200/60 pt-2 text-[11px]">
+                    <span className="text-muted-foreground">صافي حصة المورد بعد الاستقطاع:</span>
+                    <span className="font-bold text-slate-800 font-sans">
+                      {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                     </span>
                   </div>
                 </div>
