@@ -1027,19 +1027,18 @@ export const authRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // البحث عن المستخدم بشرط ألا يكون service_requester
+      // البحث عن المستخدم
       const userResult = await db.select().from(users)
         .where(
           and(
             eq(users.email, input.email),
-            ne(users.role, "service_requester"),
             isNull(users.deletedAt)
           )
         )
         .limit(1);
 
       if (userResult.length === 0) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "البريد الإلكتروني غير مسجل كحساب موظف" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "البريد الإلكتروني غير مسجل" });
       }
 
       const userObj = userResult[0];
@@ -1088,7 +1087,6 @@ export const authRouter = router({
         .where(
           and(
             eq(users.email, input.email),
-            ne(users.role, "service_requester"),
             isNull(users.deletedAt)
           )
         )
@@ -1134,7 +1132,6 @@ export const authRouter = router({
         .where(
           and(
             eq(users.email, input.email),
-            ne(users.role, "service_requester"),
             isNull(users.deletedAt)
           )
         )
