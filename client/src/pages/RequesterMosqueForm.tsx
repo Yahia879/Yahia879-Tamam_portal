@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Sparkles, CheckCircle2, ChevronLeft, Check } from "lucide-react";
+import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Sparkles, CheckCircle2, ChevronLeft, Check, Users, Ruler } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -388,8 +388,8 @@ export default function RequesterMosqueForm() {
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المسجد مصلى للنساء؟</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا كان المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
+                  <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المشروع مصلى للنساء؟</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
                 </div>
               </div>
               <div
@@ -404,27 +404,43 @@ export default function RequesterMosqueForm() {
             </div>
 
             {formData.hasPrayerHall && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-2xl bg-primary/5 border border-primary/20">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">سعة مصلى النساء (عدد المصليات)</Label>
-                  <Input
-                    type="number"
-                    placeholder="مثال: 100"
-                    value={formData.womenPrayerCapacity}
-                    onChange={(e) => handleChange("womenPrayerCapacity", e.target.value)}
-                    className="rounded-2xl h-11 border-border/60 text-xs bg-background"
-                  />
-                </div>
+              <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
+                  <Building2 className="w-4 h-4" />
+                  <span>بيانات مصلى النساء</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label htmlFor="womenPrayerCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-primary/70" />
+                      <span>سعة مصلى النساء (مصلي)</span>
+                      <span className="text-rose-500 font-bold">*</span>
+                    </label>
+                    <Input
+                      id="womenPrayerCapacity"
+                      type="number"
+                      placeholder="مثال: 50"
+                      value={formData.womenPrayerCapacity}
+                      onChange={(e) => handleChange("womenPrayerCapacity", e.target.value)}
+                      className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">مساحة مصلى النساء (م²)</Label>
-                  <Input
-                    type="number"
-                    placeholder="مثال: 120"
-                    value={formData.womenPrayerArea}
-                    onChange={(e) => handleChange("womenPrayerArea", e.target.value)}
-                    className="rounded-2xl h-11 border-border/60 text-xs bg-background"
-                  />
+                  <div className="space-y-2">
+                    <label htmlFor="womenPrayerArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <Ruler className="w-4 h-4 text-primary/70" />
+                      <span>المساحة (م²)</span>
+                      <span className="text-rose-500 font-bold">*</span>
+                    </label>
+                    <Input
+                      id="womenPrayerArea"
+                      type="number"
+                      placeholder="مثال: 50"
+                      value={formData.womenPrayerArea}
+                      onChange={(e) => handleChange("womenPrayerArea", e.target.value)}
+                      className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+                    />
+                  </div>
                 </div>
               </div>
             )}
