@@ -499,3 +499,14 @@
     display: none; /* Chrome, Safari and Opera */
   }
 }
+
+/* ═══════════════════════════════════════════════
+   قواعد الطباعة العامة - حماية من الوضع الليلي
+   ═══════════════════════════════════════════════ */
+@media print {
+  html, html.dark, body, body.dark, #root, main {
+    background: white !important;
+    background-color: white !important;
+    color: #0f172a !important;
+  }
+}

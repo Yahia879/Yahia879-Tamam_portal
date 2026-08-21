@@ -401,14 +401,24 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   };
 
   const handlePrint = () => {
+    const isDark = document.documentElement.classList.contains("dark");
+    if (isDark) {
+      document.documentElement.classList.remove("dark");
+    }
+
     const prevTitle = document.title;
     if (selectedProgramConfig?.name) {
       document.title = `استمارة طلب خدمة - ${selectedProgramConfig.name}`;
     }
+
     window.print();
+
     setTimeout(() => {
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+      }
       document.title = prevTitle;
-    }, 1000);
+    }, 600);
   };
 
   const handleExceptionSubmit = async () => {
@@ -1336,13 +1346,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             box-sizing: border-box !important;
             font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
           }
-          html, body {
+          html, html.dark, body, body.dark, #root, #root *, main, [data-slot="card"], div {
             background-color: white !important;
+            background: white !important;
             color: #0f172a !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            box-shadow: none !important;
           }
-          .print\\:hidden, header, nav, aside, footer {
+          .print\\:hidden, header, nav, aside, footer, [role="navigation"] {
             display: none !important;
           }
           .printable-report-container {
@@ -1352,6 +1362,28 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            color: #0f172a !important;
+          }
+          .printable-report-container * {
+            color: #0f172a !important;
+          }
+          .printable-report-container .bg-\\[\\#1a5f4a\\] {
+            background-color: #1a5f4a !important;
+            color: white !important;
+          }
+          .printable-report-container .bg-\\[\\#1a5f4a\\] * {
+            color: white !important;
+          }
+          .printable-report-container .text-\\[\\#1a5f4a\\] {
+            color: #1a5f4a !important;
+          }
+          .printable-report-container .bg-slate-100\\/90,
+          .printable-report-container .bg-slate-50 {
+            background-color: #f8fafc !important;
+          }
+          .printable-report-container td,
+          .printable-report-container th {
+            border-color: #e2e8f0 !important;
           }
           tr, .break-inside-avoid {
             page-break-inside: avoid !important;
