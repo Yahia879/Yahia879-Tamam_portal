@@ -20,6 +20,12 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
+import {
+  Tooltip as UiTooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -478,12 +484,39 @@ export default function BoardDashboard() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {paginatedOrders.map((order) => (
-                              <TableRow key={order.id} className="hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-colors border-b border-border/40">
-                                {/* رقم أمر الصرف */}
-                                <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
-                                  <span className="font-sans text-xs font-bold text-foreground bg-muted/80 px-2 py-1 rounded-md border border-border/40 inline-block">{order.orderNumber}</span>
-                                </TableCell>
+                            {paginatedOrders.map((order) => {
+                              const statusKey = (order as any).orderStatus || (order as any).status || "approved";
+                              const isNeedsApproval = statusKey !== "executed" && statusKey !== "rejected";
+
+                              return (
+                                <TableRow 
+                                  key={order.id} 
+                                  className={isNeedsApproval ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs border-b border-border/40" : "hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-colors border-b border-border/40"}
+                                >
+                                  {/* رقم أمر الصرف */}
+                                  <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
+                                    <div className="flex items-center gap-2 justify-start">
+                                      {isNeedsApproval && (
+                                        <TooltipProvider>
+                                          <UiTooltip delayDuration={50}>
+                                            <TooltipTrigger asChild>
+                                              <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                                <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                                  <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                                </div>
+                                              </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                              <span>بانتظار الاعتماد</span>
+                                            </TooltipContent>
+                                          </UiTooltip>
+                                        </TooltipProvider>
+                                      )}
+                                      <span className="font-sans text-xs font-bold text-foreground bg-muted/80 px-2 py-1 rounded-md border border-border/40 inline-block">{order.orderNumber}</span>
+                                    </div>
+                                  </TableCell>
 
                                 {/* البيان والمستفيد */}
                                 <TableCell className="py-3.5 px-4 text-right">
@@ -610,7 +643,8 @@ export default function BoardDashboard() {
                                   </DropdownMenu>
                                 </TableCell>
                               </TableRow>
-                            ))}
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>

@@ -482,20 +482,16 @@ export default function DisbursementOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isPendingMyAction = user?.email === "solayani@manarah.org.sa"
-                          ? (order.status === "pending" || order.status === "edited" || order.status === "draft")
-                          : user?.email === "ceo@manarah.org.sa"
-                          ? order.status === "pending_executive"
-                          : false;
+                        const isPendingAction = order.status === "pending" || order.status === "pending_executive" || order.status === "edited" || order.status === "draft";
 
                         return (
                           <TableRow 
                             key={order.id}
-                            className={isPendingMyAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
+                            className={isPendingAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
                           >
-                            <TableCell className="py-2.5 px-3 font-mono text-xs text-right font-bold whitespace-nowrap">
+                            <TableCell className="py-2.5 px-3 font-sans text-xs text-right font-bold whitespace-nowrap">
                               <div className="flex items-center gap-2 justify-start">
-                                {isPendingMyAction && (
+                                {isPendingAction && (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={50}>
                                       <TooltipTrigger asChild>
@@ -508,7 +504,7 @@ export default function DisbursementOrders() {
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                        <span>بانتظار اعتمادك</span>
+                                        <span>بانتظار الاعتماد</span>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
