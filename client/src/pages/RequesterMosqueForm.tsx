@@ -458,9 +458,9 @@ export default function RequesterMosqueForm() {
         </Card>
 
         {/* Submit Actions */}
-        <div className="flex items-center justify-end gap-4 pt-4">
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 pt-4 w-full">
           <Link href="/my-mosques">
-            <Button type="button" variant="outline" className="rounded-2xl font-bold px-6 h-12">
+            <Button type="button" variant="outline" className="rounded-2xl font-bold px-4 sm:px-6 h-11 sm:h-12 text-xs sm:text-sm cursor-pointer">
               إلغاء
             </Button>
           </Link>
@@ -468,13 +468,13 @@ export default function RequesterMosqueForm() {
           <Button
             type="submit"
             disabled={createMutation.isPending}
-            className="rounded-2xl gradient-primary text-white font-bold px-10 h-12 shadow-lg gap-2"
+            className="rounded-2xl gradient-primary text-white font-bold px-4 sm:px-10 h-11 sm:h-12 shadow-lg gap-1.5 sm:gap-2 text-xs sm:text-sm cursor-pointer"
           >
             {createMutation.isPending ? (
               <span>جاري إرسال الطلب...</span>
             ) : (
               <>
-                <Save className="w-5 h-5" />
+                <Save className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>إرسال طلب تسجيل المسجد</span>
               </>
             )}
