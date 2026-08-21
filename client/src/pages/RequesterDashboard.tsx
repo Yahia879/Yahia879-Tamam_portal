@@ -12,6 +12,8 @@ import {
   Star,
   TrendingUp,
   Eye,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -228,17 +230,25 @@ export default function RequesterDashboard() {
             ) : myRequests && myRequests.length > 0 ? (
               <div className="space-y-3 sm:space-y-4">
                 {myRequests.slice(0, 4).map((request) => {
-                  const progress = getProgressPercentage(request.currentStage);
-                  const stageLabel = getStageLabelAr(request.currentStage);
-                  const isClosed = request.currentStage === "closed" || request.status === "completed";
+                  const isRejected = request.status === "rejected" || request.technicalEvalDecision === "apologize" || request.requestTrack === "rejected";
+                  const isClosed = !isRejected && (request.currentStage === "closed" || request.status === "completed");
+                  const progress = isRejected ? 0 : getProgressPercentage(request.currentStage);
+                  const stageLabel = isRejected ? "تم رفض الطلب" : getStageLabelAr(request.currentStage);
+                  const rejectionReason = request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes;
 
                   return (
-                    <div key={request.id} className="p-3.5 sm:p-5 rounded-2xl bg-muted/40 hover:bg-muted/70 transition-all border border-border/40 hover:border-primary/30 group">
+                    <div key={request.id} className={`p-3.5 sm:p-5 rounded-2xl transition-all border group ${
+                      isRejected 
+                        ? "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/40 hover:border-rose-300"
+                        : "bg-muted/40 hover:bg-muted/70 border-border/40 hover:border-primary/30"
+                    }`}>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                         <Link href={`/requests/${request.id}`} className="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer flex-1">
                           <ProgramIcon program={request.programType} size="md" showBackground />
                           <div className="min-w-0">
-                            <h4 className="font-bold text-xs sm:text-base text-foreground truncate group-hover:text-primary transition-colors">
+                            <h4 className={`font-bold text-xs sm:text-base truncate transition-colors ${
+                              isRejected ? "text-rose-950 dark:text-rose-200 group-hover:text-rose-600" : "text-foreground group-hover:text-primary"
+                            }`}>
                               {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                             </h4>
                             <p className="text-[11px] sm:text-xs text-muted-foreground font-mono mt-0.5 truncate">
@@ -247,33 +257,46 @@ export default function RequesterDashboard() {
                           </div>
                         </Link>
                         <div className="flex flex-wrap items-center gap-2 self-start sm:self-center shrink-0">
-                          {isClosed && (
-                            (request as any).isEvaluated ? (
-                              <Badge variant="outline" className="border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] sm:text-[11px] gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1">
-                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                <span>تم التقييم ({(request as any).satisfactionRating || 5}/5)</span>
+                          {isRejected ? (
+                            <Badge variant="destructive" className="rounded-xl font-bold text-[10px] sm:text-xs bg-rose-600 hover:bg-rose-700 gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 shadow-xs">
+                              <XCircle className="w-3 h-3" />
+                              <span>مرفوض</span>
+                            </Badge>
+                          ) : (
+                            <>
+                              {isClosed && (
+                                (request as any).isEvaluated ? (
+                                  <Badge variant="outline" className="border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold text-[10px] sm:text-[11px] gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1">
+                                    <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                    <span>تم التقييم ({(request as any).satisfactionRating || 5}/5)</span>
+                                  </Badge>
+                                ) : (
+                                  <Link href={`/requests/${request.id}/evaluation`}>
+                                    <Button
+                                      size="sm"
+                                      className="bg-amber-500 hover:bg-amber-600 text-white text-[11px] sm:text-xs font-bold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg shadow-sm gap-1 transition-all hover:scale-105 cursor-pointer h-7 sm:h-8"
+                                    >
+                                      <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
+                                      <span>قيّم الخدمة</span>
+                                    </Button>
+                                  </Link>
+                                )
+                              )}
+                              <Badge variant="outline" className="rounded-xl bg-background font-semibold text-[11px] sm:text-xs border-primary/20 text-primary">
+                                {stageLabel}
                               </Badge>
-                            ) : (
-                              <Link href={`/requests/${request.id}/evaluation`}>
-                                <Button
-                                  size="sm"
-                                  className="bg-amber-500 hover:bg-amber-600 text-white text-[11px] sm:text-xs font-bold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg shadow-sm gap-1 transition-all hover:scale-105 cursor-pointer h-7 sm:h-8"
-                                >
-                                  <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
-                                  <span>قيّم الخدمة</span>
-                                </Button>
-                              </Link>
-                            )
+                              <span className="text-xs sm:text-sm font-extrabold text-primary">{progress}%</span>
+                            </>
                           )}
-                          <Badge variant="outline" className="rounded-xl bg-background font-semibold text-[11px] sm:text-xs border-primary/20 text-primary">
-                            {stageLabel}
-                          </Badge>
-                          <span className="text-xs sm:text-sm font-extrabold text-primary">{progress}%</span>
                           <Link href={`/requests/${request.id}`}>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl hover:bg-primary/10 text-primary hover:text-primary transition-all cursor-pointer shrink-0"
+                              className={`h-7 w-7 sm:h-8 sm:w-8 rounded-xl transition-all cursor-pointer shrink-0 ${
+                                isRejected 
+                                  ? "hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 hover:text-rose-700" 
+                                  : "hover:bg-primary/10 text-primary hover:text-primary"
+                              }`}
                               title="عرض تفاصيل الطلب"
                             >
                               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -282,14 +305,35 @@ export default function RequesterDashboard() {
                         </div>
                       </div>
 
-                      {/* Progress Stepper Line */}
-                      <div className="space-y-1.5 mt-2">
-                        <Progress value={progress} className="h-1.5 sm:h-2 rounded-full" />
-                        <div className="flex justify-between text-[10px] sm:text-[11px] text-muted-foreground font-medium">
-                          <span>تقديم الطلب</span>
-                          <span>{progress === 100 ? "مكتمل" : "جاري المعالجة..."}</span>
+                      {/* Progress Stepper Line or Rejection Notice */}
+                      {isRejected ? (
+                        <div className="space-y-2 mt-2 pt-2 border-t border-rose-200/60 dark:border-rose-900/40">
+                          <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-300 font-semibold">
+                            <span className="flex items-center gap-1">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                              <span>حالة الطلب: تم الاعتذار والرفض</span>
+                            </span>
+                            <span className="font-mono text-rose-600 dark:text-rose-400 font-bold">مرفوض</span>
+                          </div>
+                          {rejectionReason && (
+                            <div className="p-2.5 rounded-xl bg-rose-100/70 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/50 text-[11px] sm:text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2">
+                              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                              <div className="min-w-0 flex-1 leading-relaxed">
+                                <span className="font-bold">مبررات الرفض: </span>
+                                <span className="font-medium">{rejectionReason}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <div className="space-y-1.5 mt-2">
+                          <Progress value={progress} className="h-1.5 sm:h-2 rounded-full" />
+                          <div className="flex justify-between text-[10px] sm:text-[11px] text-muted-foreground font-medium">
+                            <span>تقديم الطلب</span>
+                            <span>{progress === 100 ? "مكتمل" : "جاري المعالجة..."}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

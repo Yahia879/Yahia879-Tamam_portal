@@ -13,6 +13,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ActiveActionCard } from "@/components/ActiveActionCard";
@@ -1230,8 +1231,43 @@ export default function RequestDetailsNew() {
           </div>
         ) : (
           <>
-            {/* بنر تقييم رضا المستفيد لطالب الخدمة */}
-            {user?.role === "service_requester" && (request.currentStage === "closed" || request.status === "completed") && !(request as any).isEvaluated && !request.satisfactionRating && (
+            {/* بنر الاعتذار والرفض مع مبررات الرفض لطالب الخدمة وكافة المستخدمين */}
+            {(request.status === "rejected" || request.technicalEvalDecision === "apologize" || request.requestTrack === "rejected") && (
+              <div className="mb-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-l from-rose-500/15 via-rose-500/10 to-red-500/5 border-2 border-rose-300 dark:border-rose-900/50 shadow-sm animate-in fade-in duration-300">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-md shrink-0 mt-0.5">
+                    <XCircle className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-black text-base sm:text-lg text-rose-900 dark:text-rose-200">
+                        تم الاعتذار عن تنفيذ الطلب (الطلب مرفوض)
+                      </h4>
+                      <Badge variant="destructive" className="rounded-lg text-xs font-bold px-2.5 py-0.5 bg-rose-600">
+                        مرفوض
+                      </Badge>
+                    </div>
+                    <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
+                      نعتذر لكم عن عدم إمكانية استكمال تنفيذ هذا الطلب وفقاً لمعايير وإجراءات الفرز والمراجعة المعتمدة لدى الجمعية.
+                    </p>
+                    {(request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes) && (
+                      <div className="mt-3 p-4 rounded-2xl bg-background/90 dark:bg-background/50 border border-rose-200/80 dark:border-rose-900/40">
+                        <p className="text-xs font-bold text-rose-900 dark:text-rose-200 mb-1.5 flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-rose-600" />
+                          <span>مبررات الاعتذار والرفض:</span>
+                        </p>
+                        <p className="text-xs sm:text-sm text-foreground font-medium whitespace-pre-wrap leading-relaxed">
+                          {request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* بنر تقييم رضا المستفيد لطالب الخدمة (فقط للطلبات الناجحة المكتملة) */}
+            {request.status !== "rejected" && request.technicalEvalDecision !== "apologize" && request.requestTrack !== "rejected" && user?.role === "service_requester" && (request.currentStage === "closed" || request.status === "completed") && !(request as any).isEvaluated && !request.satisfactionRating && (
               <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-emerald-500/10 border-2 border-amber-400/50 dark:border-amber-600/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300">
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">

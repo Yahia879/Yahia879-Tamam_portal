@@ -28,6 +28,8 @@ import {
   RotateCcw,
   Sparkles,
   Loader2,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { PROGRAM_LABELS } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
@@ -298,8 +300,10 @@ export default function MyRequests() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4">
             {requests.map((request) => {
-              const progress = getProgressPercentage(request.currentStage);
-              const stageLabel = getStageLabelAr(request.currentStage);
+              const isRejected = request.status === "rejected" || request.technicalEvalDecision === "apologize" || request.requestTrack === "rejected";
+              const progress = isRejected ? 0 : getProgressPercentage(request.currentStage);
+              const stageLabel = isRejected ? "تم رفض الطلب" : getStageLabelAr(request.currentStage);
+              const rejectionReason = request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes;
               const requestDate = request.createdAt 
                 ? new Date(request.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" })
                 : null;
@@ -307,7 +311,11 @@ export default function MyRequests() {
               return (
                 <Card
                   key={request.id}
-                  className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden bg-background group"
+                  className={`border shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden group ${
+                    isRejected 
+                      ? "border-rose-200/80 dark:border-rose-900/40 bg-rose-50/30 dark:bg-rose-950/10 hover:border-rose-300"
+                      : "border-border/60 bg-background"
+                  }`}
                 >
                   <CardContent className="p-5 sm:p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -316,10 +324,12 @@ export default function MyRequests() {
                         <ProgramIcon program={request.programType} size="lg" showBackground />
                         <div className="min-w-0 space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-extrabold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors">
+                            <h3 className={`font-extrabold text-base sm:text-lg transition-colors ${
+                              isRejected ? "text-rose-950 dark:text-rose-200 group-hover:text-rose-600" : "text-foreground group-hover:text-primary"
+                            }`}>
                               {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                             </h3>
-                            {getStatusBadge(request.status)}
+                            {getStatusBadge(isRejected ? "rejected" : request.status)}
                           </div>
                           <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-2">
                             <span className="font-mono bg-muted/60 px-2 py-0.5 rounded-lg text-foreground font-bold">{request.requestNumber}</span>
@@ -345,20 +355,45 @@ export default function MyRequests() {
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 shrink-0 border-t md:border-t-0 border-border/40 pt-3 md:pt-0">
                         <div className="w-full sm:w-48 space-y-1.5">
                           <div className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-foreground">{stageLabel}</span>
-                            <span className="font-mono font-extrabold text-primary">{progress}%</span>
+                            <span className={`font-bold ${isRejected ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
+                              {stageLabel}
+                            </span>
+                            <span className={`font-mono font-extrabold ${isRejected ? "text-rose-600 dark:text-rose-400" : "text-primary"}`}>
+                              {isRejected ? "مرفوض" : `${progress}%`}
+                            </span>
                           </div>
-                          <Progress value={progress} className="h-2 rounded-full" />
+                          {isRejected ? (
+                            <div className="h-2 rounded-full bg-rose-200 dark:bg-rose-950/60 overflow-hidden">
+                              <div className="h-full bg-rose-500 rounded-full w-full" />
+                            </div>
+                          ) : (
+                            <Progress value={progress} className="h-2 rounded-full" />
+                          )}
                         </div>
 
                         <Link href={`/requests/${request.id}`}>
-                          <Button className="w-full sm:w-auto rounded-2xl font-bold text-xs gap-1.5 bg-muted/80 text-foreground hover:bg-primary hover:text-white transition-all h-10 px-4">
+                          <Button className={`w-full sm:w-auto rounded-2xl font-bold text-xs gap-1.5 transition-all h-10 px-4 cursor-pointer ${
+                            isRejected 
+                              ? "bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 hover:bg-rose-600 hover:text-white"
+                              : "bg-muted/80 text-foreground hover:bg-primary hover:text-white"
+                          }`}>
                             <Eye className="w-4 h-4" />
                             <span>عرض التفاصيل</span>
                           </Button>
                         </Link>
                       </div>
                     </div>
+
+                    {/* Rejection Justification Notice */}
+                    {isRejected && rejectionReason && (
+                      <div className="mt-4 p-3.5 rounded-2xl bg-rose-100/70 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/40 text-xs flex items-start gap-2.5">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 leading-relaxed">
+                          <p className="font-bold text-rose-900 dark:text-rose-200">مبررات الاعتذار والرفض:</p>
+                          <p className="text-rose-800 dark:text-rose-300 font-medium mt-0.5 whitespace-pre-wrap">{rejectionReason}</p>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
