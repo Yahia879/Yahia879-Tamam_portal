@@ -34,7 +34,7 @@ function MapEvents({ onMapReady }: { onMapReady?: (map: L.Map) => void }) {
     if (onMapReady) {
       onMapReady(map);
     }
-  }, [map, onMapReady]);
+  }, [map]);
   return null;
 }
 

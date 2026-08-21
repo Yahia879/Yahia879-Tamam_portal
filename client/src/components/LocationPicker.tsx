@@ -131,9 +131,9 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
     }
   };
 
-  const handleMapReady = (map: L.Map) => {
+  const handleMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
-  };
+  }, []);
 
   return (
     <div className={className}>

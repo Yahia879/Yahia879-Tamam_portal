@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Sparkles, CheckCircle2, ChevronLeft } from "lucide-react";
+import { ArrowRight, Building2, MapPin, Save, User, AlertCircle, Sparkles, CheckCircle2, ChevronLeft, Check } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -366,12 +366,14 @@ export default function RequesterMosqueForm() {
           <CardContent className="p-6 space-y-6">
             <div
               onClick={() => {
-                const isChecked = !formData.hasPrayerHall;
-                setFormData((prev) => ({
-                  ...prev,
-                  hasPrayerHall: isChecked,
-                  ...(isChecked ? {} : { womenPrayerArea: "", womenPrayerCapacity: "", womenPrayerNotes: "" }),
-                }));
+                setFormData((prev) => {
+                  const isChecked = !prev.hasPrayerHall;
+                  return {
+                    ...prev,
+                    hasPrayerHall: isChecked,
+                    ...(isChecked ? {} : { womenPrayerArea: "", womenPrayerCapacity: "", womenPrayerNotes: "" }),
+                  };
+                });
               }}
               className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
                 formData.hasPrayerHall
@@ -390,11 +392,15 @@ export default function RequesterMosqueForm() {
                   <p className="text-[11px] text-muted-foreground mt-0.5">حدد إذا كان المسجد يشمل قسماً مخصصاً لمصلى النساء</p>
                 </div>
               </div>
-              <Checkbox
-                id="hasPrayerHall"
-                checked={!!formData.hasPrayerHall}
-                className="h-5 w-5 rounded-md data-[state=checked]:bg-primary pointer-events-none"
-              />
+              <div
+                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ${
+                  formData.hasPrayerHall
+                    ? 'bg-primary border-primary text-white shadow-xs'
+                    : 'border-input bg-background dark:bg-input/30'
+                }`}
+              >
+                {formData.hasPrayerHall && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              </div>
             </div>
 
             {formData.hasPrayerHall && (
