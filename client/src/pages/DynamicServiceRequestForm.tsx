@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
+import { ROLE_LABELS } from '@shared/constants';
 import BeneficiaryLayout from '@/components/BeneficiaryLayout';
 import { 
   getAllFieldsForProgram,
@@ -564,7 +565,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 </div>
                 <div className="bg-background p-3 rounded-lg border border-border shadow-sm">
                   <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">الدور</p>
-                  <p className="text-sm sm:text-base font-bold text-foreground">{currentUser?.role || '-'}</p>
+                  <p className="text-sm sm:text-base font-bold text-foreground">
+                    {currentUser?.role ? (ROLE_LABELS[currentUser.role] || (currentUser.role === 'service_requester' ? 'طالب الخدمة' : currentUser.role)) : '-'}
+                  </p>
                 </div>
               </div>
             </div>
