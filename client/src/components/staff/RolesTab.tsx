@@ -34,7 +34,7 @@ export const SYSTEM_ROLE_DESCRIPTIONS: Record<string, string> = {
   quick_response: "الاستجابة الفورية للبلاغات العاجلة، تشخيص الأعطال الطارئة في المساجد، وإجراء الصيانة الفورية والوقائية السريعة.",
   corporate_comm: "متابعة التقارير العامة للجمعية، تنسيق ونشر الفرص التبرعية والمساهمات المجتمعية، والتواصل العام مع المصلين والمساجد.",
   board_chairman: "دور قيادي أعلى له كامل صلاحيات الاطلاع والاعتماد البنكي المباشر لطلبات وأوامر الصرف والوصول الشامل لجميع بيانات المنصة.",
-  board_member: "دور قيادي مخصص للاطلاع الشامل على لوحة إحصائيات ومؤشرات البوابة والمنصة دون صلاحيات تنفيذية مباشرة.",
+  board_member: "دور قيادي مخصص لعضو مجلس الإدارة للاطلاع الشامل على لوحة إحصائيات ومؤشرات البوابة والمنصة دون صلاحيات تنفيذية مباشرة.",
 };
 
 export interface RolesTabProps {
@@ -61,15 +61,17 @@ export default function RolesTab({ openAddModal, setOpenAddModal }: RolesTabProp
   
   // تصفية الأدوار لإخفاء "طالب الخدمة" ولإظهار الأدوار الافتراضية فقط مع ترتيب مخصص
   const rolePriority: Record<string, number> = {
-    system_admin: 1,
-    super_admin: 2,
-    general_manager: 3,
-    projects_office: 4,
-    project_manager: 5,
-    financial: 6,
-    field_team: 7,
-    quick_response: 8,
-    corporate_comm: 9,
+    board_chairman: 1,
+    board_member: 2,
+    system_admin: 3,
+    super_admin: 4,
+    general_manager: 5,
+    projects_office: 6,
+    project_manager: 7,
+    financial: 8,
+    field_team: 9,
+    quick_response: 10,
+    corporate_comm: 11,
   };
 
   const roles = allRoles

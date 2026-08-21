@@ -12,7 +12,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 
 const ROLE_OPTIONS = [
   { value: "board_chairman", label: "رئيس مجلس الإدارة" },
-  { value: "board_member", label: "الإدارة العليا" },
+  { value: "board_member", label: "عضو مجلس الإدارة" },
   { value: "super_admin", label: "المدير العام" },
   { value: "general_manager", label: "المدير التنفيذي" },
   { value: "system_admin", label: "مدير النظام" },

@@ -66,7 +66,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 const ROLE_OPTIONS = [
   { value: "board_chairman", label: "رئيس مجلس الإدارة" },
-  { value: "board_member", label: "الإدارة العليا" },
+  { value: "board_member", label: "عضو مجلس الإدارة" },
   { value: "general_manager", label: "المدير التنفيذي" },
   { value: "system_admin", label: "مدير نظام" },
   { value: "projects_office", label: "مكتب المشاريع" },
@@ -232,7 +232,7 @@ export default function UsersTab({ openAddModal, setOpenAddModal }: UsersTabProp
   const getRoleBadge = (user: { role: string; customRole?: { id: string; nameAr: string } | null }) => {
     const roleMap: Record<string, string> = {
       board_chairman: "رئيس مجلس الإدارة",
-      board_member: "الإدارة العليا",
+      board_member: "عضو مجلس الإدارة",
       general_manager: "المدير التنفيذي",
       executive_director: "المدير التنفيذي",
       financial_manager: "المدير المالي",

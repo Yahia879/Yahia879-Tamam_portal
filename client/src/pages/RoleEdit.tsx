@@ -137,7 +137,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
   const mapping: Record<string, Record<string, string>> = {
     board_leadership: {
       board_chairman: "عرض مركز الاعتماد المالي",
-      board_member: "عرض لوحة الإدارة العليا",
+      board_member: "عرض لوحة عضو مجلس الإدارة",
     },
     pending_reports: {
       view: "عرض التقارير",
