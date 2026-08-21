@@ -264,20 +264,6 @@ export default function ReceiptVoucherPrint() {
             max-width: 100% !important;
           }
         }
-        .voucher-dotted-line {
-          background-image: linear-gradient(to right, #94a3b8 45%, transparent 0%);
-          background-position: bottom;
-          background-size: 8px 2px;
-          background-repeat: repeat-x;
-        }
-        .voucher-fixed-two-lines {
-          background-image: 
-            linear-gradient(to right, #94a3b8 45%, transparent 0%),
-            linear-gradient(to right, #94a3b8 45%, transparent 0%);
-          background-position: 0 2.1rem, 0 4.4rem;
-          background-size: 8px 2px, 8px 2px;
-          background-repeat: repeat-x, repeat-x;
-        }
       `}</style>
 
       {/* Floating Action Bar (hidden on print) matching DisbursementRequestPrint layout */}
@@ -325,18 +311,18 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Top Header Line with License Number */}
-          <div className="relative border-b-2 border-[#978457] pb-1 mb-4 flex justify-between items-center">
+          <div className="relative border-b-2 border-[#978457] pb-1 mb-3 flex justify-between items-center">
             <div></div>
             <div className="text-left">
-              <span className="text-sm font-black text-[#978457]">رقم الترخيص {licenseNo}</span>
+              <span className="text-xs font-bold text-[#978457]">رقم الترخيص {licenseNo}</span>
             </div>
           </div>
 
           {/* Top Header Row: Rectangular Box "سند قبض" & Main Logo */}
-          <div className="flex justify-between items-center mb-5 relative z-10">
+          <div className="flex justify-between items-center mb-4 relative z-10">
             <div className="flex items-center justify-start pt-1">
-              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[170px] h-[58px] rounded-xl shadow-xs flex items-center justify-center px-5">
-                <h1 className="text-2xl font-black tracking-tight leading-none text-center">
+              <div className="border-2 border-[#978457] bg-[#faf8f3] text-[#978457] min-w-[140px] h-[46px] rounded-lg shadow-xs flex items-center justify-center px-4">
+                <h1 className="text-lg font-bold tracking-tight leading-none text-center">
                   سند قبض
                 </h1>
               </div>
@@ -347,31 +333,31 @@ export default function ReceiptVoucherPrint() {
                 <img
                   src={mainLogoUrl}
                   alt={orgSettings?.organizationName || "الشعار الرئيسي"}
-                  className="max-h-20 max-w-[190px] object-contain"
+                  className="max-h-16 max-w-[170px] object-contain"
                 />
               ) : (
-                <div className="h-16 w-36"></div>
+                <div className="h-14 w-32"></div>
               )}
             </div>
           </div>
 
           {/* Title & Dates Block */}
-          <div className="relative flex items-center justify-between mb-5 pb-3 border-b border-slate-200 z-10">
-            <div className="flex items-center gap-3 text-sm sm:text-base font-bold">
-              <span className="text-[#1f7a63] font-black">التاريخ:</span>
-              <span className="font-extrabold text-slate-900">{formatGregorianDate(receiptDateObj)}</span>
+          <div className="relative flex items-center justify-between mb-4 pb-2.5 border-b border-slate-200 z-10">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+              <span className="text-[#1f7a63] font-bold">التاريخ:</span>
+              <span className="font-semibold text-slate-800 font-sans">{formatGregorianDate(receiptDateObj)}</span>
             </div>
 
             <div className="flex items-center gap-2">
               {voucher.status === "approved" ? (
                 <>
-                  <span className="text-sm sm:text-base font-black text-[#1f7a63]">رقم السند:</span>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#c5221f] tracking-wide">
+                  <span className="text-xs sm:text-sm font-bold text-[#1f7a63]">رقم السند:</span>
+                  <span className="text-xl sm:text-2xl font-bold text-[#c5221f] font-sans tracking-wide">
                     {voucherNumDisplay}
                   </span>
                 </>
               ) : (
-                <div className="px-3 py-1 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs sm:text-sm font-bold">
+                <div className="px-2.5 py-1 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs font-bold">
                   سند قيد الاعتماد (ينشأ رقم السند بعد الاعتماد)
                 </div>
               )}
@@ -379,41 +365,41 @@ export default function ReceiptVoucherPrint() {
           </div>
 
           {/* Main Document Content Body */}
-          <div className="space-y-4 text-base sm:text-lg text-slate-900 font-bold leading-relaxed mb-6 relative z-10">
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
+          <div className="space-y-3.5 text-xs sm:text-sm text-slate-900 font-medium leading-relaxed mb-5 relative z-10">
+            <div className="flex items-baseline gap-2.5 text-right">
+              <span className="text-[#1f7a63] font-bold shrink-0 min-w-[85px] text-xs sm:text-sm">
                 استلمنا من
               </span>
-              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-black text-lg sm:text-xl">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-bold text-sm sm:text-base">
                 {voucher.payerName || "المتبرع الكريم"}
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg">
+            <div className="flex items-baseline gap-2.5 text-right">
+              <span className="text-[#1f7a63] font-bold shrink-0 min-w-[85px] text-xs sm:text-sm">
                 مبلغ وقدره
               </span>
-              <div className="grow pb-1 text-slate-900 font-extrabold text-base sm:text-lg voucher-dotted-line">
-                <span className="text-emerald-800 font-black text-lg sm:text-xl ml-2">
-                  {amountVal.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-semibold text-xs sm:text-sm">
+                <span className="text-emerald-800 font-bold text-sm sm:text-base ml-2 font-sans">
+                  {amountVal.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                 </span>
-                <span className="text-slate-400 font-semibold px-2">|</span>
-                <span className="text-slate-900 font-black">{tafqeetStr}</span>
+                <span className="text-slate-400 font-normal px-2">|</span>
+                <span className="text-slate-800 font-semibold">{tafqeetStr}</span>
               </div>
             </div>
 
-            <div className="flex items-baseline gap-3 text-right">
-              <div className="w-[110px] shrink-0"></div>
-              <div className="grow pb-1 text-slate-900 font-black text-base sm:text-lg voucher-dotted-line">
+            <div className="flex items-baseline gap-2.5 text-right">
+              <div className="w-[85px] shrink-0"></div>
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-semibold text-xs sm:text-sm font-sans">
                 {getPaymentMethodDetails()}
               </div>
             </div>
 
-            <div className="flex items-start gap-3 text-right">
-              <span className="text-[#1f7a63] font-black shrink-0 min-w-[110px] text-base sm:text-lg pt-0.5">
+            <div className="flex items-baseline gap-2.5 text-right">
+              <span className="text-[#1f7a63] font-bold shrink-0 min-w-[85px] text-xs sm:text-sm">
                 وذلك مقابل
               </span>
-              <div className="grow text-slate-900 font-black text-base sm:text-lg leading-[2.3rem] h-[4.6rem] overflow-hidden voucher-fixed-two-lines">
+              <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-800 font-semibold text-xs sm:text-sm leading-relaxed">
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
@@ -421,29 +407,29 @@ export default function ReceiptVoucherPrint() {
 
           {/* Bottom Section: Signatures & Stamp */}
           <div className="grid grid-cols-12 items-end pt-2 mb-2 relative z-20">
-            <div className="col-span-6 flex justify-start items-center min-h-[75px] relative z-30">
+            <div className="col-span-6 flex justify-start items-center min-h-[65px] relative z-30">
               {officialStampUrl && (
-                <div className="relative select-none pr-6 sm:pr-10 opacity-95 pointer-events-none">
+                <div className="relative select-none pr-4 sm:pr-8 opacity-95 pointer-events-none">
                   <img
                     src={officialStampUrl}
                     alt="الختم الرسمي"
-                    className="w-40 sm:w-44 h-auto max-h-32 object-contain"
+                    className="w-36 sm:w-40 h-auto max-h-28 object-contain"
                   />
                 </div>
               )}
             </div>
 
             <div className="col-span-6 flex flex-col items-center justify-end space-y-0.5">
-              <span className="text-base font-black text-[#978457]">الإدارة المالية</span>
-              <div className="w-40 h-14 flex items-center justify-center relative">
+              <span className="text-xs sm:text-sm font-bold text-[#978457]">الإدارة المالية</span>
+              <div className="w-36 h-12 flex items-center justify-center relative">
                 {signatureUrl ? (
                   <img
                     src={signatureUrl}
                     alt="توقيع الإدارة المالية"
-                    className="max-h-14 max-w-full object-contain"
+                    className="max-h-12 max-w-full object-contain"
                   />
                 ) : (
-                  <div className="w-36 h-14"></div>
+                  <div className="w-32 h-12"></div>
                 )}
               </div>
             </div>
