@@ -9,7 +9,7 @@ interface ConditionalFieldProps {
   onChange: (value: any) => void;
   error?: string;
   disabled?: boolean;
-  mosqueOptions?: Array<{ id: number; name: string; city?: string }>;
+  mosqueOptions?: Array<{ id: number; name: string; city?: string; approvalStatus?: string }>;
   onAddMosque?: () => void;
 }
 

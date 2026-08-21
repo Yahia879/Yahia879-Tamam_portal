@@ -199,7 +199,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     { enabled: !!user }
   );
   // undefined = جاري التحميل، [] = لا توجد مساجد، [...] = توجد مساجد
-  const userMosques: Array<{ id: number; name: string; city?: string; district?: string; address?: string; mosqueType?: string; area?: any; capacity?: any; hasPrayerHall?: boolean; notes?: string }> | undefined =
+  const userMosques: Array<{ id: number; name: string; city?: string; district?: string; address?: string; mosqueType?: string; area?: any; capacity?: any; hasPrayerHall?: boolean; notes?: string; approvalStatus?: string }> | undefined =
     mosquesLoading ? undefined : ((mosquesResult?.mosques as any) ?? []);
 
   // الحصول على المسجد المختار حالياً
@@ -207,6 +207,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     if (!formData.mosqueId) return null;
     return userMosques?.find((m: any) => m.id === Number(formData.mosqueId)) || null;
   }, [formData.mosqueId, userMosques]);
+
+  // التحقق مما إذا كان المسجد المختار غير معتمد (قيد المراجعة أو مرفوض)
+  const isCurrentMosqueUnapproved = useMemo(() => {
+    if (selectedService === 'bunyan' || !currentMosque) return false;
+    return currentMosque.approvalStatus && currentMosque.approvalStatus !== 'approved';
+  }, [selectedService, currentMosque]);
 
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
@@ -338,6 +344,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     } else if (currentStep === 'requester-info') {
       setCurrentStep('details');
     } else if (currentStep === 'details') {
+      if (isCurrentMosqueUnapproved) {
+        alert(`عذراً، المسجد المختار (${currentMosque?.name}) غير معتمد بعد. لا يمكن تقديم طلب خدمة إلا للمساجد المعتمدة.`);
+        return;
+      }
       const newErrors = validateAllFields(selectedService!, formData);
       if (hasErrors(newErrors)) {
         setErrors(newErrors);
@@ -727,6 +737,24 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       />
                     </div>
 
+                    {field.name === 'mosqueId' && isCurrentMosqueUnapproved && (
+                      <div className="col-span-1 sm:col-span-2 animate-in fade-in-50 duration-200">
+                        <Alert className="border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/20 text-amber-900 dark:text-amber-200 p-4 rounded-2xl shadow-xs">
+                          <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <div className="space-y-1 text-right">
+                            <AlertTitle className="text-sm sm:text-base font-bold">لا يمكن تقديم طلب خدمة لمسجد غير معتمد</AlertTitle>
+                            <AlertDescription className="text-xs sm:text-sm leading-relaxed text-amber-800 dark:text-amber-300">
+                              المسجد المختار (<span className="font-bold">{currentMosque?.name}</span>) حالته الحالية:{" "}
+                              <span className="font-bold underline underline-offset-4">
+                                {currentMosque?.approvalStatus === 'pending' ? 'قيد المراجعة والتدقيق' : currentMosque?.approvalStatus === 'rejected' ? 'مرفوض' : 'غير معتمد'}
+                              </span>
+                              . لا يُسمح بإكمال أو إرسال طلبات الخدمات إلا للمساجد المعتمدة رسمياً من قِبل إدارة الجمعية.
+                            </AlertDescription>
+                          </div>
+                        </Alert>
+                      </div>
+                    )}
+
                     {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
                       <div className="col-span-1 sm:col-span-2 space-y-4">
                         <div
@@ -1077,7 +1105,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <Button
               size="lg"
               onClick={handleNextStep}
-              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
+              disabled={currentStep === 'details' && isCurrentMosqueUnapproved}
+              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>التالي</span>
               <ChevronLeft className="w-4 h-4" />

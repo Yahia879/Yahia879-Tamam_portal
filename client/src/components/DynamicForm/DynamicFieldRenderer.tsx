@@ -30,7 +30,7 @@ interface DynamicFieldRendererProps {
   onChange: (value: any) => void;
   error?: string;
   disabled?: boolean;
-  options?: Array<{ id: number; name: string; city?: string }>;
+  options?: Array<{ id: number; name: string; city?: string; approvalStatus?: string }>;
   onAddMosque?: () => void;
 }
 
@@ -170,10 +170,24 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               <SelectTrigger className={`w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${error ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder={field.placeholder || 'اختر المسجد...'} />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-border shadow-lg">
+              <SelectContent className="rounded-xl border-border shadow-lg max-h-72">
                 {options.map((option) => (
-                  <SelectItem key={option.id} value={option.id.toString()} className="text-xs sm:text-sm rounded-lg my-0.5">
-                    <span className="font-bold">{option.name}</span> {option.city ? <span className="text-muted-foreground">({option.city})</span> : ''}
+                  <SelectItem key={option.id} value={option.id.toString()} className="text-xs sm:text-sm rounded-lg my-1 py-2">
+                    <div className="flex items-center justify-between gap-3 w-full">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-bold truncate">{option.name}</span>
+                        {option.city && <span className="text-muted-foreground text-[11px] shrink-0">({option.city})</span>}
+                      </div>
+                      <div className="shrink-0 mr-auto">
+                        {option.approvalStatus === 'approved' ? (
+                          <span className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold px-2 py-0.5 rounded-md">معتمد</span>
+                        ) : option.approvalStatus === 'pending' ? (
+                          <span className="text-[10px] bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold px-2 py-0.5 rounded-md">قيد المراجعة</span>
+                        ) : option.approvalStatus === 'rejected' ? (
+                          <span className="text-[10px] bg-red-500/15 text-red-700 dark:text-red-300 font-semibold px-2 py-0.5 rounded-md">مرفوض</span>
+                        ) : null}
+                      </div>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
