@@ -501,7 +501,7 @@ export default function ProjectDetailsPage() {
             </Button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-foreground font-mono">{project.projectNumber}</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-foreground font-sans">{project.projectNumber}</h1>
                 <Badge variant="outline" className={`${statusColors[project.status || "planning"]} font-bold text-xs px-2.5 py-0.5 rounded-lg`}>
                   {getStatusLabel()}
                 </Badge>
@@ -767,7 +767,7 @@ export default function ProjectDetailsPage() {
                     <item.icon className="w-4 h-4" />
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold font-mono transition-colors ${
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold font-sans transition-colors ${
                         activeTab === item.id 
                           ? "bg-primary text-white" 
                           : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
@@ -845,7 +845,7 @@ export default function ProjectDetailsPage() {
                         {!isNavCollapsed && (
                           <div className="flex items-center gap-1.5 shrink-0">
                             {item.badge && (
-                              <span className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-bold transition-colors ${
+                              <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold font-sans transition-colors ${
                                 isActive 
                                   ? "bg-primary-foreground/20 text-white" 
                                   : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
@@ -870,7 +870,7 @@ export default function ProjectDetailsPage() {
                           <TooltipContent side="left" className="flex items-center gap-2 text-xs font-bold font-sans">
                             <span>{item.label}</span>
                             {item.badge && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary text-white font-mono font-bold">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary text-white font-bold font-sans">
                                 {item.badge}
                               </span>
                             )}
@@ -939,7 +939,7 @@ export default function ProjectDetailsPage() {
                       <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">رقم المشروع</p>
-                          <p className="font-mono font-black text-foreground mt-0.5">{project.projectNumber}</p>
+                          <p className="font-black text-foreground mt-0.5 font-sans">{project.projectNumber}</p>
                         </div>
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">الحالة</p>
@@ -1140,7 +1140,7 @@ export default function ProjectDetailsPage() {
                           <div key={evalNote.id} className="p-4 bg-muted/20 rounded-xl space-y-2 border border-border/40 text-right" dir="rtl">
                             <div className="flex justify-between items-center w-full">
                               <span className="font-bold text-primary text-xs sm:text-sm">{evalNote.userName || "موظف التقييم"}</span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                              <span className="text-xs text-muted-foreground flex items-center gap-1 font-sans">
                                 {new Date(evalNote.createdAt).toLocaleString("ar-SA-u-nu-latn")}
                               </span>
                             </div>
@@ -1195,7 +1195,7 @@ export default function ProjectDetailsPage() {
                       <div className="space-y-3.5">
                         {project.phases.map((phase, index) => (
                           <div key={phase.id} className="flex items-center gap-4 p-4 bg-muted/20 hover:bg-muted/30 transition-all rounded-xl border border-border/40">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs font-mono font-bold ${
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs font-sans font-bold ${
                               phase.status === "completed" ? "bg-emerald-500 text-white" :
                               phase.status === "in_progress" ? "bg-blue-600 text-white" :
                               "bg-muted text-muted-foreground border border-border/60"
@@ -1225,7 +1225,7 @@ export default function ProjectDetailsPage() {
                                     style={{ width: `${Math.min(100, Math.max(0, phase.completionPercentage || 0))}%` }}
                                   />
                                 </div>
-                                <span className="text-xs text-muted-foreground font-mono font-bold shrink-0">
+                                <span className="text-xs text-muted-foreground font-sans font-bold shrink-0">
                                   {phase.completionPercentage || 0}%
                                   {phase.completionPercentage === 100 && " (مكتمل)"}
                                 </span>
@@ -1403,10 +1403,10 @@ export default function ProjectDetailsPage() {
                           <TableBody>
                             {project.contracts.map((contract) => (
                               <TableRow key={contract.id} className="hover:bg-muted/20">
-                                <TableCell className="font-bold text-right font-mono py-3.5 px-4">{contract.contractNumber}</TableCell>
+                                <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{contract.contractNumber}</TableCell>
                                 <TableCell className="text-right font-medium py-3.5 px-4">{contract.supplierName || "غير محدد"}</TableCell>
                                 <TableCell className="text-right text-muted-foreground text-xs py-3.5 px-4">{contract.contractType || "-"}</TableCell>
-                                <TableCell className="text-right font-bold font-mono py-3.5 px-4">{formatCurrency(contract.amount)}</TableCell>
+                                <TableCell className="text-right font-bold py-3.5 px-4 font-sans">{formatCurrency(contract.amount)}</TableCell>
                                 <TableCell className="text-right py-3.5 px-4">
                                   <Badge 
                                     variant="outline"
@@ -1562,7 +1562,7 @@ export default function ProjectDetailsPage() {
                             <TableBody>
                               {project.payments.map((payment) => (
                                 <TableRow key={payment.id} className="hover:bg-muted/20">
-                                  <TableCell className="font-bold text-right font-mono py-3.5 px-4">{payment.paymentNumber}</TableCell>
+                                  <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{payment.paymentNumber}</TableCell>
                                   <TableCell className="text-right py-3.5 px-4">
                                     <div className="flex flex-col text-right">
                                       <span className="font-bold text-foreground text-xs sm:text-sm">{payment.description || "-"}</span>
@@ -1590,7 +1590,7 @@ export default function ProjectDetailsPage() {
                                       )}
                                     </div>
                                   </TableCell>
-                                  <TableCell className="text-right py-3.5 px-4 font-mono font-black text-foreground">
+                                  <TableCell className="text-right py-3.5 px-4 font-bold text-foreground font-sans">
                                     {formatCurrency(payment.amount)}
                                   </TableCell>
                                   <TableCell className="text-right py-3.5 px-4">
@@ -1607,7 +1607,7 @@ export default function ProjectDetailsPage() {
                                        payment.status === "due" ? "مستحق" : "مرفوض"}
                                     </Badge>
                                   </TableCell>
-                                  <TableCell className="text-right font-medium text-xs font-mono py-3.5 px-4">
+                                  <TableCell className="text-right font-medium text-xs py-3.5 px-4 font-sans">
                                     {(() => {
                                       const raw = payment.paidAt || payment.date;
                                       if (!raw) return "-";
@@ -1646,17 +1646,17 @@ export default function ProjectDetailsPage() {
                         <div className="mt-5 p-4 sm:p-5 bg-muted/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between border border-border/50 gap-4">
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي قيم المدفوعات:</span>
-                            <span className="font-black text-sm sm:text-base font-mono text-emerald-600 dark:text-emerald-400">{formatCurrency(paidPaymentsSum.toString())}</span>
+                            <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-sans">{formatCurrency(paidPaymentsSum.toString())}</span>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground font-semibold text-xs sm:text-sm">المتبقي:</span>
-                            <span className="font-black text-sm sm:text-base font-mono text-amber-600 dark:text-amber-400">{formatCurrency(remainingContractSum.toString())}</span>
+                            <span className="font-bold text-sm sm:text-base text-amber-600 dark:text-amber-400 font-sans">{formatCurrency(remainingContractSum.toString())}</span>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground font-semibold text-xs sm:text-sm">من إجمالي قيمة العقد:</span>
-                            <span className="font-black text-sm sm:text-base font-mono text-foreground">{formatCurrency(totalContractsSum.toString())}</span>
+                            <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency(totalContractsSum.toString())}</span>
                           </div>
                         </div>
                       </>

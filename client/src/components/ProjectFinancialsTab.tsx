@@ -1039,7 +1039,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       <TableBody>
                         {assocData.requests.map((req: any) => (
                           <TableRow key={req.id}>
-                            <TableCell className="font-mono text-xs font-bold">{req.requestNumber}</TableCell>
+                            <TableCell className="font-sans text-xs font-bold">{req.requestNumber}</TableCell>
                             <TableCell className="text-xs font-medium">{req.title || "طلب صرف مرتبط"}</TableCell>
                             <TableCell className="text-xs">{req.amount.toLocaleString()} ريال</TableCell>
                             <TableCell className="text-xs font-bold text-amber-700 dark:text-amber-400">
@@ -1303,7 +1303,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                       : "hover:bg-slate-50/60"
                                   }
                                 >
-                                   <TableCell className="font-bold text-xs font-mono">
+                                   <TableCell className="font-bold text-xs font-sans">
                                      {voucher.status === "approved" ? (
                                        <span className="text-primary">{voucher.voucherNumber}</span>
                                      ) : (
