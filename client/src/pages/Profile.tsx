@@ -579,15 +579,17 @@ export default function Profile() {
 
       {/* Dialog تغيير كلمة المرور */}
       <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
-        <DialogContent className="sm:max-w-[500px] w-[95vw] p-5 sm:p-6 rounded-2xl" dir="rtl">
-          <DialogHeader className="text-right flex flex-col gap-1 pb-2 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                <Lock className="w-4 h-4" />
+        <DialogContent className="sm:max-w-[620px] w-[95vw] p-6 sm:p-8 rounded-2xl" dir="rtl">
+          <DialogHeader className="text-right sm:text-right flex flex-col gap-1 pb-3 border-b border-border/60">
+            <div className="flex items-center gap-3 text-right">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+                <Lock className="w-5 h-5" />
               </div>
-              <div>
-                <DialogTitle className="text-base font-bold text-foreground">تغيير كلمة المرور</DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              <div className="text-right">
+                <DialogTitle className="text-base sm:text-lg font-bold text-foreground text-right">
+                  تغيير كلمة المرور
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5 text-right">
                   يرجى إدخال كلمة المرور الحالية لتأكيد هويتك، ثم تعيين كلمة مرور جديدة قوية.
                 </DialogDescription>
               </div>
@@ -596,7 +598,7 @@ export default function Profile() {
 
           <form onSubmit={handleChangePassword} className="space-y-4 py-2 text-right">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">كلمة المرور الحالية *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">كلمة المرور الحالية *</Label>
               <div className="relative">
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
@@ -604,20 +606,20 @@ export default function Profile() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="أدخل كلمة المرور السابقة"
-                  className="rounded-xl h-10 border-border/70 text-xs sm:text-sm pl-10 pr-3 bg-background"
+                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showCurrentPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">كلمة المرور الجديدة *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">كلمة المرور الجديدة *</Label>
               <div className="relative">
                 <Input
                   type={showNewPassword ? "text" : "password"}
@@ -625,20 +627,20 @@ export default function Profile() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="أدخل كلمة المرور الجديدة (8 أحرف على الأقل)"
-                  className="rounded-xl h-10 border-border/70 text-xs sm:text-sm pl-10 pr-3 bg-background"
+                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showNewPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">تأكيد كلمة المرور الجديدة *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">تأكيد كلمة المرور الجديدة *</Label>
               <div className="relative">
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
@@ -646,27 +648,27 @@ export default function Profile() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="أعد إدخال كلمة المرور الجديدة لتأكيدها"
-                  className="rounded-xl h-10 border-border/70 text-xs sm:text-sm pl-10 pr-3 bg-background"
+                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row-reverse gap-2 pt-3 border-t border-border/60">
+            <DialogFooter className="flex flex-row-reverse gap-2 pt-4 border-t border-border/60">
               <Button
                 type="submit"
                 disabled={changePasswordMutation.isPending}
-                className="gradient-primary text-white font-bold text-xs sm:text-sm h-10 px-5 rounded-xl shadow-xs cursor-pointer"
+                className="gradient-primary text-white font-bold text-xs sm:text-sm h-11 px-6 rounded-xl shadow-xs cursor-pointer"
               >
                 {changePasswordMutation.isPending ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     <span>جاري التغيير...</span>
                   </>
                 ) : (
@@ -677,7 +679,7 @@ export default function Profile() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsChangePasswordOpen(false)}
-                className="h-10 text-xs sm:text-sm px-4 rounded-xl border-border/70 cursor-pointer"
+                className="h-11 text-xs sm:text-sm px-5 rounded-xl border-border/70 cursor-pointer"
               >
                 إلغاء
               </Button>
