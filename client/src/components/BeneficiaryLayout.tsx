@@ -409,8 +409,8 @@ export default function BeneficiaryLayout({
       {/* Main Content Body */}
       <main className="flex-1 container mx-auto px-3.5 sm:px-6 py-4 sm:py-8 max-w-7xl print:p-0 print:m-0 print:max-w-none">
         {(title || subtitle || headerActions || backUrl) && (
-          <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="print:hidden flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               {backUrl && (
                 <Link href={backUrl}>
                   <Button
@@ -425,11 +425,11 @@ export default function BeneficiaryLayout({
                 </Link>
               )}
               <div className="min-w-0 flex-1">
-                {title && <h1 className="text-base sm:text-2xl font-black text-foreground tracking-tight">{title}</h1>}
-                {subtitle && <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 truncate sm:whitespace-normal">{subtitle}</p>}
+                {title && <h1 className="text-sm sm:text-2xl font-black text-foreground tracking-tight truncate">{title}</h1>}
+                {subtitle && <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">{subtitle}</p>}
               </div>
             </div>
-            {headerActions && <div className="flex items-center gap-2 shrink-0 self-stretch sm:self-center justify-end">{headerActions}</div>}
+            {headerActions && <div className="flex items-center gap-2 shrink-0">{headerActions}</div>}
           </div>
         )}
         {children}

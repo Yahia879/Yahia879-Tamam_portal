@@ -167,9 +167,10 @@ export default function MyRequests() {
       backLabel="العودة للوحة التحكم"
       headerActions={
         <Link href="/request-form-dynamic">
-          <Button className="rounded-xl sm:rounded-2xl gradient-primary text-white font-bold gap-1.5 sm:gap-2 shadow-md hover:opacity-95 cursor-pointer text-[11px] sm:text-xs h-8.5 sm:h-10 px-3 sm:px-4">
+          <Button className="rounded-xl sm:rounded-2xl gradient-primary text-white font-bold gap-1 sm:gap-2 shadow-sm hover:opacity-95 cursor-pointer text-[11px] sm:text-xs h-8 sm:h-10 px-2.5 sm:px-4 shrink-0">
             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>تقديم طلب جديد</span>
+            <span className="hidden sm:inline">تقديم طلب جديد</span>
+            <span className="sm:hidden">طلب جديد</span>
           </Button>
         </Link>
       }
