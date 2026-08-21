@@ -222,24 +222,24 @@ export default function BeneficiaryLayout({
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/80">
-                  <div className="px-3 py-2 border-b border-border/60 mb-1">
-                    <p className="text-sm font-bold text-foreground truncate">{user?.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user?.email || (user as any)?.username || ""}</p>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/80 text-right" dir="rtl">
+                  <div className="px-3 py-2 border-b border-border/60 mb-1 text-right">
+                    <p className="text-sm font-bold text-foreground truncate text-right">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground truncate text-right">{user?.email || (user as any)?.username || ""}</p>
                   </div>
                   <DropdownMenuItem
-                    className="rounded-xl cursor-pointer py-2 text-xs font-medium"
+                    className="rounded-xl cursor-pointer py-2 text-xs font-medium justify-start text-right"
                     onClick={() => setLocation("/profile")}
                   >
-                    <User className="ml-2.5 h-4 w-4 text-muted-foreground" />
+                    <User className="ml-2.5 h-4 w-4 text-muted-foreground shrink-0" />
                     <span>الملف الشخصي والحساب</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="my-1" />
                   <DropdownMenuItem
                     onClick={logout}
-                    className="rounded-xl cursor-pointer py-2 text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10"
+                    className="rounded-xl cursor-pointer py-2 text-xs font-medium text-destructive focus:text-destructive focus:bg-destructive/10 justify-start text-right"
                   >
-                    <LogOut className="ml-2.5 h-4 w-4" />
+                    <LogOut className="ml-2.5 h-4 w-4 shrink-0" />
                     <span>تسجيل الخروج</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
