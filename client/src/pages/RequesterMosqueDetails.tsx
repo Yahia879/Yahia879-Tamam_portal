@@ -342,18 +342,6 @@ export default function RequesterMosqueDetails() {
                   >
                     <Marker position={[mosqueLat, mosqueLng]} />
                   </MapView>
-
-                  {/* Quick Google Maps External Link */}
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${mosqueLat},${mosqueLng}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="absolute bottom-3 right-3 z-[500] bg-background/90 hover:bg-background text-foreground border border-border/80 rounded-xl px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md backdrop-blur-xs transition-all"
-                  >
-                    <Navigation className="w-3.5 h-3.5 text-primary" />
-                    <span>فتح في خرائط Google</span>
-                    <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                  </a>
                 </div>
               ) : (
                 <div className="p-8 rounded-2xl sm:rounded-3xl bg-muted/30 border border-border/60 text-center text-xs text-muted-foreground">
@@ -458,15 +446,10 @@ export default function RequesterMosqueDetails() {
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl overflow-hidden bg-card">
           <CardHeader className="p-4 sm:p-6 border-b border-border/40 bg-muted/30">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-lg font-bold text-foreground">
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                  <span>طلبات الخدمات المرتبطة بهذا المسجد</span>
-                </CardTitle>
-                <CardDescription className="text-[11px] sm:text-xs">
-                  سجل طلبات العمارة والصيانة والتأثيث المقدمة لبيت الله
-                </CardDescription>
-              </div>
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-lg font-bold text-foreground">
+                <Send className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <span>طلبات الخدمات المرتبطة بهذا المسجد</span>
+              </CardTitle>
               <Badge variant="outline" className="font-mono font-bold text-xs">
                 {mosqueRequests.length} طلب
               </Badge>
