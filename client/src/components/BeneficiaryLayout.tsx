@@ -208,7 +208,7 @@ export default function BeneficiaryLayout({
               </Link>
 
               {/* User Dropdown */}
-              <DropdownMenu>
+              <DropdownMenu dir="rtl">
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2.5 hover:bg-muted/70 rounded-2xl p-1 sm:px-2.5 sm:py-1.5 transition-all border border-transparent hover:border-border/60 cursor-pointer">
                     <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 shadow-xs">
@@ -222,7 +222,7 @@ export default function BeneficiaryLayout({
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/80 text-right" dir="rtl">
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/80 text-right">
                   <div className="px-3 py-2 border-b border-border/60 mb-1 text-right">
                     <p className="text-sm font-bold text-foreground truncate text-right">{user?.name}</p>
                     <p className="text-xs text-muted-foreground truncate text-right">{user?.email || (user as any)?.username || ""}</p>

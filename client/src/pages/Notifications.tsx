@@ -1,5 +1,6 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCheck, FileText, Building2, User, AlertCircle, Loader2, ChevronRight, ChevronLeft, ArrowRight, Star } from "lucide-react";
@@ -23,7 +24,7 @@ const notificationIcons: Record<string, any> = {
 export default function Notifications() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const utils = trpc.useContext();
+  const utils = trpc.useUtils();
   const [page, setPage] = useState(1);
   const limit = 10;
   
@@ -62,9 +63,11 @@ export default function Notifications() {
   };
 
   const notifications = data?.notifications || [];
+  const isRequester = user?.role === "service_requester";
+  const Layout = isRequester ? BeneficiaryLayout : DashboardLayout;
 
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -203,6 +206,6 @@ export default function Notifications() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </Layout>
   );
 }
