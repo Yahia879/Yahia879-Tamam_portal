@@ -67,7 +67,10 @@ export default function RequesterDashboard() {
   // جلب طلبات المستخدم
   const { data: myRequestsData, isLoading: isLoadingRequests } = trpc.requests.getMyRequests.useQuery();
   // جلب مساجد المستخدم
-  const { data: myMosques, isLoading: isLoadingMosques } = trpc.mosques.getMyMosques.useQuery();
+  const { data: myMosquesData, isLoading: isLoadingMosques } = trpc.mosques.getMyMosques.useQuery();
+  const myMosques = Array.isArray(myMosquesData)
+    ? myMosquesData
+    : (Array.isArray(myMosquesData?.mosques) ? myMosquesData.mosques : []);
   // جلب الإشعارات
   const { data: notificationsData } = trpc.notifications.getMyNotifications.useQuery({ limit: 5 });
 

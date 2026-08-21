@@ -151,10 +151,13 @@ export default function MosqueForm() {
     { enabled: !!user?.id && user?.role === "service_requester" && !isEdit }
   );
 
-  const hasExistingMosque = existingMosques && existingMosques.length > 0;
+  const mosqueList = Array.isArray(existingMosques)
+    ? existingMosques
+    : (Array.isArray(existingMosques?.mosques) ? existingMosques.mosques : []);
+  const hasExistingMosque = mosqueList.length > 0;
   // التحقق من الاستثناءات الممنوحة
   const exemptionsGranted = user?.mosqueExemptions || 0;
-  const pendingMosquesCount = existingMosques?.filter(m => m.approvalStatus === 'pending').length || 0;
+  const pendingMosquesCount = mosqueList.filter((m: any) => m.approvalStatus === 'pending').length;
   // يمكن للمستخدم تسجيل مسجد واحد مجاناً + عدد الاستثناءات
   const canRegisterMore = pendingMosquesCount < (1 + exemptionsGranted);
 

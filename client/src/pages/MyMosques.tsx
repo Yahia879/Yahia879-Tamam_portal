@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Building2,
   MapPin,
@@ -17,10 +24,13 @@ import {
   XCircle,
   Users,
   Ruler,
-  Calendar,
-  Sparkles,
-  ArrowRight,
+  X,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
   Send,
+  AlertCircle,
+  Calendar,
 } from "lucide-react";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 
@@ -31,214 +41,503 @@ const APPROVAL_STATUS_LABELS: Record<string, string> = {
   rejected: "مرفوض",
 };
 
-// ألوان حالة الاعتماد
-const APPROVAL_STATUS_COLORS: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  rejected: "bg-red-500/10 text-red-600 border-red-500/20",
+// شارات حالة الاعتماد
+const getApprovalStatusBadge = (status: string) => {
+  switch (status) {
+    case "approved":
+      return (
+        <Badge
+          variant="outline"
+          className="rounded-xl text-[11px] font-bold px-2.5 py-0.5 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1"
+        >
+          <CheckCircle2 className="w-3 h-3" />
+          <span>معتمد</span>
+        </Badge>
+      );
+    case "pending":
+      return (
+        <Badge
+          variant="outline"
+          className="rounded-xl text-[11px] font-bold px-2.5 py-0.5 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 gap-1"
+        >
+          <Clock className="w-3 h-3" />
+          <span>قيد المراجعة</span>
+        </Badge>
+      );
+    case "rejected":
+      return (
+        <Badge
+          variant="outline"
+          className="rounded-xl text-[11px] font-bold px-2.5 py-0.5 border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 gap-1"
+        >
+          <XCircle className="w-3 h-3" />
+          <span>مرفوض</span>
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline" className="rounded-xl text-[11px] font-bold px-2.5 py-0.5">
+          {status}
+        </Badge>
+      );
+  }
 };
 
 export default function MyMosques() {
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusTab, setStatusTab] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [page, setPage] = useState<number>(1);
+  const limit = 9;
 
-  // جلب مساجد المستخدم
-  const { data: mosques, isLoading } = trpc.mosques.getMyMosques.useQuery();
+  // تأخير البحث لتجنب كثرة الطلبات (Debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  // فلترة المساجد حسب البحث
-  const filteredMosques =
-    mosques?.filter(
-      (mosque: any) =>
-        mosque.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mosque.city?.toLowerCase().includes(searchQuery.toLowerCase())
-    ) || [];
+  // إعادة ضبط الصفحة عند تغيير التبويب أو المدينة
+  useEffect(() => {
+    setPage(1);
+  }, [statusTab, cityFilter]);
 
-  // إحصائيات المساجد
-  const stats = {
-    total: mosques?.length || 0,
-    approved: mosques?.filter((m: any) => m.approvalStatus === "approved").length || 0,
-    pending: mosques?.filter((m: any) => m.approvalStatus === "pending").length || 0,
-    rejected: mosques?.filter((m: any) => m.approvalStatus === "rejected").length || 0,
+  // جلب المدن المتاحة للفلترة
+  const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
+  const availableCities = useMemo(() => {
+    const cities = allCategories
+      .filter((c: any) => c.type === "city")
+      .map((c: any) => c.nameAr)
+      .filter(Boolean);
+    return Array.from(new Set(cities));
+  }, [allCategories]);
+
+  // جلب مساجد المستخدم من الـ Backend مع الفلترة والبحث والصفحات
+  const { data: responseData, isLoading } = trpc.mosques.getMyMosques.useQuery({
+    search: debouncedSearch || undefined,
+    status: statusTab,
+    city: cityFilter !== "all" ? cityFilter : undefined,
+    page,
+    limit,
+  });
+
+  const mosques = Array.isArray(responseData)
+    ? responseData
+    : (Array.isArray(responseData?.mosques) ? responseData.mosques : []);
+  const total = responseData?.total ?? mosques.length;
+  const totalPages = responseData?.totalPages ?? Math.ceil(total / limit);
+  const stats = responseData?.stats || {
+    total: mosques.length,
+    approved: mosques.filter((m: any) => m.approvalStatus === "approved").length,
+    pending: mosques.filter((m: any) => m.approvalStatus === "pending").length,
+    rejected: mosques.filter((m: any) => m.approvalStatus === "rejected").length,
   };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+      setPage(newPage);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setStatusTab("all");
+    setCityFilter("all");
+    setPage(1);
+  };
+
+  const isFiltering = debouncedSearch !== "" || statusTab !== "all" || cityFilter !== "all";
 
   return (
     <BeneficiaryLayout
       activeTab="mosques"
       title="مساجدي المسجلة"
-      subtitle="إدارة المساجد الخاصة بك والمتابعة على طلبات خدمات بيوت الله"
+      subtitle="إدارة ومتابعة كافة المساجد المسجلة والتحقق من حالة اعتمادها وطلب الخدمات"
+      backUrl="/requester"
+      backLabel="العودة للوحة التحكم"
       headerActions={
         <Link href="/requester/mosques/new">
-          <Button className="rounded-2xl gradient-primary text-white font-bold gap-2 shadow-md hover:opacity-95">
+          <Button className="rounded-2xl gradient-primary text-white font-bold gap-2 shadow-md hover:opacity-95 cursor-pointer">
             <Plus className="w-4 h-4" />
             <span>تسجيل مسجد جديد</span>
           </Button>
         </Link>
       }
     >
-      {/* Stats Cards Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="border border-border/60 shadow-xs rounded-2xl p-4 bg-background">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">إجمالي المساجد</p>
-              <p className="text-2xl font-extrabold text-foreground mt-1">{stats.total}</p>
+      {/* KPI Stats Overview Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
+        <Card
+          onClick={() => setStatusTab("all")}
+          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+            statusTab === "all" ? "border-primary ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
+          }`}
+        >
+          <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">إجمالي المساجد</p>
+              <p className="text-xl sm:text-3xl font-extrabold text-foreground mt-0.5 sm:mt-1">{stats.total}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
+              <Building2 className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="border border-border/60 shadow-xs rounded-2xl p-4 bg-background">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">مساجد معتمدة</p>
-              <p className="text-2xl font-extrabold text-emerald-600 mt-1">{stats.approved}</p>
+        <Card
+          onClick={() => setStatusTab("approved")}
+          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+            statusTab === "approved" ? "border-emerald-500 ring-1 ring-emerald-500/30" : "border-border/60 hover:border-emerald-500/40"
+          }`}
+        >
+          <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">مساجد معتمدة</p>
+              <p className="text-xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5 sm:mt-1">{stats.approved}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="border border-border/60 shadow-xs rounded-2xl p-4 bg-background">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">قيد المراجعة</p>
-              <p className="text-2xl font-extrabold text-amber-600 mt-1">{stats.pending}</p>
+        <Card
+          onClick={() => setStatusTab("pending")}
+          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+            statusTab === "pending" ? "border-amber-500 ring-1 ring-amber-500/30" : "border-border/60 hover:border-amber-500/40"
+          }`}
+        >
+          <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">قيد المراجعة</p>
+              <p className="text-xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">{stats.pending}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-              <Clock className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-110 transition-transform">
+              <Clock className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-          </div>
+          </CardContent>
         </Card>
 
-        <Card className="border border-border/60 shadow-xs rounded-2xl p-4 bg-background">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">مرفوضة</p>
-              <p className="text-2xl font-extrabold text-red-600 mt-1">{stats.rejected}</p>
+        <Card
+          onClick={() => setStatusTab("rejected")}
+          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+            statusTab === "rejected" ? "border-rose-500 ring-1 ring-rose-500/30" : "border-border/60 hover:border-rose-500/40"
+          }`}
+        >
+          <CardContent className="p-3 sm:p-5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs font-medium text-muted-foreground truncate">مرفوضة</p>
+              <p className="text-xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5 sm:mt-1">{stats.rejected}</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-600 flex items-center justify-center">
-              <XCircle className="w-5 h-5" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
+              <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
             </div>
-          </div>
+          </CardContent>
         </Card>
       </div>
 
-      {/* Search Bar */}
-      <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="ابحث باسم المسجد أو المدينة..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pr-9 rounded-2xl h-10 border-border/60 bg-background text-xs"
-          />
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+        {/* Status Tabs Pills */}
+        <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+          <div className="flex items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 shrink-0">
+            <button
+              onClick={() => setStatusTab("all")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                statusTab === "all"
+                  ? "bg-background dark:bg-card text-primary shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              الكل ({stats.total})
+            </button>
+            <button
+              onClick={() => setStatusTab("approved")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                statusTab === "approved"
+                  ? "bg-background dark:bg-card text-emerald-600 dark:text-emerald-400 shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
+              }`}
+            >
+              معتمدة ({stats.approved})
+            </button>
+            <button
+              onClick={() => setStatusTab("pending")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                statusTab === "pending"
+                  ? "bg-background dark:bg-card text-amber-600 dark:text-amber-400 shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
+              }`}
+            >
+              قيد المراجعة ({stats.pending})
+            </button>
+            <button
+              onClick={() => setStatusTab("rejected")}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                statusTab === "rejected"
+                  ? "bg-background dark:bg-card text-rose-600 dark:text-rose-400 shadow-xs border border-border/60"
+                  : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
+              }`}
+            >
+              مرفوضة ({stats.rejected})
+            </button>
+          </div>
+        </div>
+
+        {/* Search Input & City Filter */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="relative flex-1 md:w-72">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="ابحث باسم المسجد أو المدينة أو الحي..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-9 pl-8 rounded-2xl h-10 border-border/60 bg-background text-xs"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-full cursor-pointer"
+                title="مسح البحث"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <Select value={cityFilter} onValueChange={setCityFilter}>
+            <SelectTrigger className="w-[140px] rounded-2xl h-10 border-border/60 bg-background text-xs cursor-pointer">
+              <SelectValue placeholder="المدينة" />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl">
+              <SelectItem value="all">كل المدن</SelectItem>
+              {availableCities.map((city: string) => (
+                <SelectItem key={city} value={city}>
+                  {city}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {isFiltering && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleClearFilters}
+              className="h-10 w-10 rounded-2xl text-muted-foreground hover:text-destructive shrink-0 cursor-pointer"
+              title="إعادة تعيين الفلاتر"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Mosques Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 bg-muted/60 animate-pulse rounded-3xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-52 bg-muted/40 animate-pulse rounded-3xl" />
           ))}
         </div>
-      ) : filteredMosques.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMosques.map((mosque: any) => (
-            <Card
-              key={mosque.id}
-              className="border border-border/60 shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden bg-background flex flex-col group"
-            >
-              <CardHeader className="p-5 pb-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Building2 className="w-6 h-6" />
+      ) : mosques.length > 0 ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {mosques.map((mosque: any) => {
+              const isApproved = mosque.approvalStatus === "approved";
+              const isPending = mosque.approvalStatus === "pending";
+              const isRejected = mosque.approvalStatus === "rejected";
+
+              return (
+                <Card
+                  key={mosque.id}
+                  className={`border shadow-xs hover:shadow-md transition-all rounded-3xl overflow-hidden flex flex-col group ${
+                    isRejected
+                      ? "border-rose-200/80 dark:border-rose-900/40 bg-rose-50/20 dark:bg-rose-950/10 hover:border-rose-300"
+                      : "border-border/60 bg-card hover:border-primary/40"
+                  }`}
+                >
+                  <CardHeader className="p-5 pb-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <Building2 className="w-6 h-6" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-extrabold text-base text-foreground truncate group-hover:text-primary transition-colors">
+                            {mosque.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-medium truncate">
+                            <MapPin className="w-3.5 h-3.5 text-primary/70 shrink-0" />
+                            <span>{mosque.city || "أبها"}</span>
+                            {mosque.district && <span>• {mosque.district}</span>}
+                          </p>
+                        </div>
+                      </div>
+
+                      {getApprovalStatusBadge(mosque.approvalStatus)}
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-extrabold text-base text-foreground truncate group-hover:text-primary transition-colors">
-                        {mosque.name}
-                      </h3>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 font-medium truncate">
-                        <MapPin className="w-3.5 h-3.5 text-primary/70 shrink-0" />
-                        <span>{mosque.city || "أبها"}</span>
-                        {mosque.district && <span>• {mosque.district}</span>}
-                      </p>
+                  </CardHeader>
+
+                  <CardContent className="p-5 pt-0 flex-1 flex flex-col justify-between">
+                    <div className="grid grid-cols-2 gap-2 py-3 border-y border-border/40 my-3 text-xs text-muted-foreground font-medium">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Ruler className="w-4 h-4 text-primary/60 shrink-0" />
+                        <span>المساحة: {mosque.area ? `${mosque.area} م²` : "غير محدد"}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <Users className="w-4 h-4 text-primary/60 shrink-0" />
+                        <span>السعة: {mosque.capacity ? `${mosque.capacity} مصلٍ` : "غير محدد"}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <Badge
-                    variant="outline"
-                    className={`rounded-xl text-[11px] font-bold px-2.5 py-0.5 shrink-0 ${
-                      APPROVAL_STATUS_COLORS[mosque.approvalStatus] || "bg-slate-100"
-                    }`}
-                  >
-                    {APPROVAL_STATUS_LABELS[mosque.approvalStatus] || mosque.approvalStatus}
-                  </Badge>
+                    {/* Rejection Alert Notice */}
+                    {isRejected && mosque.rejectionReason && (
+                      <div className="p-3 bg-rose-100/70 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-2xl mb-4 text-xs text-rose-900 dark:text-rose-200 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 leading-relaxed">
+                          <span className="font-bold">سبب الرفض: </span>
+                          <span className="font-medium">{mosque.rejectionReason}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-auto pt-2">
+                      <Link href={`/mosques/${mosque.id}`} className="flex-1">
+                        <Button variant="outline" className="w-full rounded-2xl text-xs font-bold h-9 gap-1.5 cursor-pointer">
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>التفاصيل</span>
+                        </Button>
+                      </Link>
+
+                      {isApproved && (
+                        <Link href="/request-form-dynamic" className="flex-1">
+                          <Button className="w-full rounded-2xl text-xs font-bold h-9 gap-1.5 gradient-primary text-white shadow-xs cursor-pointer">
+                            <Send className="w-3.5 h-3.5" />
+                            <span>طلب خدمة</span>
+                          </Button>
+                        </Link>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-4 bg-muted/20 border border-border/60 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs text-muted-foreground text-center sm:text-right font-medium">
+              عرض{" "}
+              <span className="font-bold text-foreground font-mono">
+                {total === 0 ? 0 : (page - 1) * limit + 1}
+              </span>{" "}
+              إلى{" "}
+              <span className="font-bold text-foreground font-mono">
+                {Math.min(page * limit, total)}
+              </span>{" "}
+              من إجمالي{" "}
+              <span className="font-bold text-foreground font-mono">{total}</span> مسجد
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page <= 1}
+                  className="rounded-xl h-8 w-8 cursor-pointer disabled:opacity-40"
+                  title="الصفحة السابقة"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNum = index + 1;
+                    // إظهار الصفحات القريبة فقط إذا كان العدد كبيراً
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      (pageNum >= page - 1 && pageNum <= page + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={page === pageNum ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`rounded-xl h-8 w-8 p-0 text-xs font-bold cursor-pointer ${
+                            page === pageNum ? "gradient-primary text-white shadow-xs" : ""
+                          }`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    }
+                    if (pageNum === page - 2 || pageNum === page + 2) {
+                      return (
+                        <span key={pageNum} className="text-xs text-muted-foreground px-1">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
                 </div>
-              </CardHeader>
 
-              <CardContent className="p-5 pt-0 flex-1 flex flex-col justify-between">
-                <div className="grid grid-cols-2 gap-3 py-3 border-y border-border/40 my-3 text-xs text-muted-foreground font-medium">
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Ruler className="w-4 h-4 text-primary/60 shrink-0" />
-                    <span>المساحة: {mosque.area ? `${mosque.area} م²` : "غير محدد"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Users className="w-4 h-4 text-primary/60 shrink-0" />
-                    <span>السعة: {mosque.capacity ? `${mosque.capacity} مصلٍ` : "غير محدد"}</span>
-                  </div>
-                </div>
-
-                {mosque.approvalStatus === "rejected" && mosque.rejectionReason && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl mb-4 text-xs text-red-600">
-                    <span className="font-bold">سبب الرفض: </span>
-                    <span>{mosque.rejectionReason}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 mt-auto pt-2">
-                  <Link href={`/mosques/${mosque.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full rounded-2xl text-xs font-bold h-9 gap-1.5">
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>التفاصيل</span>
-                    </Button>
-                  </Link>
-
-                  {mosque.approvalStatus === "approved" && (
-                    <Link href="/request-form-dynamic" className="flex-1">
-                      <Button className="w-full rounded-2xl text-xs font-bold h-9 gap-1.5 gradient-primary text-white shadow-xs">
-                        <Send className="w-3.5 h-3.5" />
-                        <span>طلب خدمة</span>
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages}
+                  className="rounded-xl h-8 w-8 cursor-pointer disabled:opacity-40"
+                  title="الصفحة التالية"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <Card className="border border-border/60 shadow-xs rounded-3xl p-12 text-center bg-background">
-          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
+        <Card className="border border-border/60 shadow-xs rounded-3xl p-12 text-center bg-card">
+          <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 text-primary flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-8 h-8" />
           </div>
-          <h3 className="font-bold text-lg text-foreground mb-1">لا توجد مساجد مسجلة</h3>
+          <h3 className="font-bold text-lg text-foreground mb-1">
+            {isFiltering ? "لا توجد نتائج مطابقة لبحثك" : "لا توجد مساجد مسجلة بعد"}
+          </h3>
           <p className="text-xs text-muted-foreground mb-6 max-w-md mx-auto">
-            {searchQuery
-              ? "لا توجد نتائج مطابقة للبحث."
-              : "قم بتسجيل مسجدك الإلكتروني لتمكن من طلب كافة الخدمات المتاحة."}
+            {isFiltering
+              ? "لم يتم العثور على أي مساجد تطابق خيارات الفلترة أو البحث المحددة. جرب تغيير المعايير أو إعادة التعيين."
+              : "قم بتسجيل مسجدك الإلكتروني لتمكن من طلب كافة الخدمات المتاحة ورعاية بيت الله بكل يسر وسهولة."}
           </p>
-          <Link href="/requester/mosques/new">
-            <Button className="gradient-primary text-white font-bold rounded-2xl shadow-md gap-2 px-6">
-              <Plus className="w-4 h-4" />
-              <span>تسجيل مسجد جديد</span>
+          {isFiltering ? (
+            <Button
+              onClick={handleClearFilters}
+              variant="outline"
+              className="rounded-2xl font-bold gap-2 px-6 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>إعادة تعيين الفلاتر</span>
             </Button>
-          </Link>
+          ) : (
+            <Link href="/requester/mosques/new">
+              <Button className="gradient-primary text-white font-bold rounded-2xl shadow-md gap-2 px-6 cursor-pointer">
+                <Plus className="w-4 h-4" />
+                <span>تسجيل مسجد جديد</span>
+              </Button>
+            </Link>
+          )}
         </Card>
       )}
     </BeneficiaryLayout>

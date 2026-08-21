@@ -3,7 +3,7 @@ import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users } from "../../drizzle/schema";
-import { eq, and, like, desc, sql } from "drizzle-orm";
+import { eq, and, like, desc, sql, or } from "drizzle-orm";
 import { notifyNewMosque, notifyMosqueApproval } from "./notifications";
 import { checkPermission } from "../permissions";
 
@@ -256,13 +256,107 @@ export const mosquesRouter = router({
       return { mosques: results, total };
     }),
 
-  // الحصول على المساجد المسجلة بواسطة المستخدم الحالي
-  getMyMosques: protectedProcedure.query(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) return [];
+  // الحصول على المساجد المسجلة بواسطة المستخدم الحالي (مع الفلترة والبحث والصفحات)
+  getMyMosques: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      status: z.string().optional(),
+      city: z.string().optional(),
+      page: z.number().default(1),
+      limit: z.number().default(9),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) {
+        return {
+          mosques: [],
+          total: 0,
+          page: 1,
+          limit: 9,
+          totalPages: 0,
+          stats: { total: 0, approved: 0, pending: 0, rejected: 0 }
+        };
+      }
 
-    return await db.select().from(mosques).where(eq(mosques.registeredBy, ctx.user.id)).orderBy(desc(mosques.createdAt));
-  }),
+      const page = Math.max(1, input?.page || 1);
+      const limit = Math.max(1, input?.limit || 9);
+      const offset = (page - 1) * limit;
+
+      const conditions: any[] = [eq(mosques.registeredBy, ctx.user.id)];
+
+      if (input?.search && input.search.trim()) {
+        const term = input.search.trim();
+        conditions.push(
+          or(
+            sql`${mosques.name} LIKE ${`%${term}%`}`,
+            sql`${mosques.city} LIKE ${`%${term}%`}`,
+            sql`${mosques.district} LIKE ${`%${term}%`}`,
+            sql`${mosques.governorate} LIKE ${`%${term}%`}`,
+            sql`${mosques.address} LIKE ${`%${term}%`}`
+          )!
+        );
+      }
+
+      if (input?.status && input.status !== "all") {
+        conditions.push(eq(mosques.approvalStatus, input.status as any));
+      }
+
+      if (input?.city && input.city !== "all") {
+        conditions.push(eq(mosques.city, input.city));
+      }
+
+      // 1. حساب إحصائيات المستخدم الإجمالية
+      const statsRows = await db.select({
+        approvalStatus: mosques.approvalStatus,
+        count: sql<number>`count(*)`,
+      }).from(mosques)
+        .where(eq(mosques.registeredBy, ctx.user.id))
+        .groupBy(mosques.approvalStatus);
+
+      const stats = {
+        total: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0,
+      };
+
+      for (const row of statsRows) {
+        const count = Number(row.count) || 0;
+        stats.total += count;
+        if (row.approvalStatus === "approved") {
+          stats.approved += count;
+        } else if (row.approvalStatus === "pending") {
+          stats.pending += count;
+        } else if (row.approvalStatus === "rejected") {
+          stats.rejected += count;
+        }
+      }
+
+      // 2. حساب إجمالي عدد النتائج المفلترة
+      const countResult = await db.select({
+        count: sql<number>`count(*)`,
+      }).from(mosques)
+        .where(and(...conditions));
+
+      const total = Number(countResult[0]?.count) || 0;
+      const totalPages = Math.ceil(total / limit);
+
+      // 3. جلب المساجد بالصفحات
+      const results = await db.select().from(mosques)
+        .where(and(...conditions))
+        .orderBy(desc(mosques.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return {
+        mosques: results,
+        total,
+        page,
+        limit,
+        totalPages,
+        stats,
+      };
+    }),
 
   // اعتماد مسجد
   approve: protectedProcedure

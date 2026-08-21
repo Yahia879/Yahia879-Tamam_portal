@@ -76,9 +76,12 @@ export default function RequesterMosqueForm() {
     { enabled: !!user?.id }
   );
 
-  const hasExistingMosque = existingMosques && existingMosques.length > 0;
+  const mosqueList = Array.isArray(existingMosques)
+    ? existingMosques
+    : (Array.isArray(existingMosques?.mosques) ? existingMosques.mosques : []);
+  const hasExistingMosque = mosqueList.length > 0;
   const exemptionsGranted = user?.mosqueExemptions || 0;
-  const pendingMosquesCount = existingMosques?.filter(m => m.approvalStatus === 'pending').length || 0;
+  const pendingMosquesCount = mosqueList.filter((m: any) => m.approvalStatus === 'pending').length;
   const canRegisterMore = pendingMosquesCount < (1 + exemptionsGranted);
 
   const createMutation = trpc.mosques.create.useMutation({
