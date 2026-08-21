@@ -151,11 +151,34 @@ export const disbursementsRouter = router({
         pendingOrdersCount += Number(execPendingOrders?.value || 0);
       }
 
+      // 3. مركز الاعتماد المالي (صاحب الصلاحية / رئيس مجلس الإدارة):
+      // - تظهر النقطة الحمراء عند وجود أوامر صرف بحالة "بانتظار اعتماد صاحب الصلاحية" (approved)
+      let pendingBoardExecutiveCount = 0;
+      const hasBoardChairmanPerm = 
+        userRole === "board_chairman" ||
+        ["super_admin", "system_admin"].includes(userRole) ||
+        await checkPermission(user.id, "board_chairman") ||
+        await checkPermission(user.id, "board_chairman_view") ||
+        await checkPermission(user.id, "board_leadership.board_chairman") ||
+        await checkPermission(user.id, "board_leadership.board_chairman_view") ||
+        await checkPermission(user.id, "board.board_chairman") ||
+        await checkPermission(user.id, "board.board_chairman_view");
+
+      if (hasBoardChairmanPerm) {
+        const [boardPendingOrders] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.status, "approved" as any));
+        pendingBoardExecutiveCount = Number(boardPendingOrders?.value || 0);
+      }
+
       return {
         pendingRequestsCount,
         pendingOrdersCount,
+        pendingBoardExecutiveCount,
         hasPendingRequests: pendingRequestsCount > 0,
         hasPendingOrders: pendingOrdersCount > 0,
+        hasPendingBoardExecutive: pendingBoardExecutiveCount > 0,
       };
     }),
 
