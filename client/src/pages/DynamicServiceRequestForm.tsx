@@ -51,6 +51,7 @@ import {
   ExternalLink,
   Download,
   FileText,
+  X,
 } from 'lucide-react';
 
 function toHijriDate(date: Date): string {
@@ -136,27 +137,49 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ url: string; name: string; type: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePreviewFile = (file: File) => {
-    const url = URL.createObjectURL(file);
-    const extension = file.name.split('.').pop()?.toLowerCase() || '';
-    const isPdf = file.type === 'application/pdf' || extension === 'pdf';
-    const isImage = file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(extension);
-    
-    setPreviewFile({
-      url,
-      name: file.name,
-      type: isPdf ? 'application/pdf' : isImage ? 'image/jpeg' : (file.type || 'application/octet-stream'),
-    });
+  // حالة معاينة المستندات والصور (Lightbox) تماماً كما في صفحة الموردين
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; contentType?: string } | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+
+  const handleViewFile = (file: File, title: string = file.name) => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    const objectUrl = URL.createObjectURL(file);
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    let contentType = file.type;
+    if (!contentType) {
+      if (ext === 'pdf') contentType = 'application/pdf';
+      else if (['jpg', 'jpeg'].includes(ext)) contentType = 'image/jpeg';
+      else if (ext === 'png') contentType = 'image/png';
+      else if (ext === 'webp') contentType = 'image/webp';
+      else if (ext === 'gif') contentType = 'image/gif';
+      else if (ext === 'docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      else if (ext === 'doc') contentType = 'application/msword';
+      else contentType = 'application/octet-stream';
+    }
+    setPreviewUrl(objectUrl);
+    setPreviewDoc({ title, contentType });
   };
 
-  const closePreview = () => {
-    if (previewFile?.url) {
-      URL.revokeObjectURL(previewFile.url);
+  const handleClosePreview = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrl);
     }
-    setPreviewFile(null);
+    setPreviewUrl("");
+    setPreviewDoc(null);
+  };
+
+  const handleDownloadPreview = () => {
+    if (!previewDoc || !selectedFile) return;
+    const link = document.createElement("a");
+    link.href = previewUrl;
+    link.download = previewDoc.title || selectedFile.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
@@ -810,20 +833,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-200/40">
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          onClick={() => handlePreviewFile(selectedFile)}
-                          className="rounded-xl bg-background/80 hover:bg-background text-primary border-primary/30 text-xs font-semibold gap-1.5 h-9 px-3 shadow-xs"
+                          onClick={() => handleViewFile(selectedFile, selectedFile.name)}
+                          className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
                         >
-                          <Eye className="w-4 h-4" />
-                          <span>عرض المرفق</span>
+                          <Eye className="h-3.5 w-3.5" />
+                          معاينة
                         </Button>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => setSelectedFile(null)}
-                          className="rounded-xl text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-9 px-3"
+                          className="rounded-lg text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-8 px-2.5"
                         >
                           <Trash2 className="w-4 h-4" />
                           <span>إزالة</span>
@@ -961,13 +984,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   {selectedFile && (
                     <div className="pt-2 border-t border-border/60">
                       <p className="text-[11px] sm:text-xs text-muted-foreground mb-2 font-medium">المرفقات والوثائق الداعمة</p>
-                      <div className="p-3.5 rounded-2xl border border-border/80 bg-muted/30 flex items-center justify-between gap-3">
+                      <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-150 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Paperclip className="w-4 h-4" />
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <FileText className="h-5 w-5 text-primary" />
                           </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-foreground text-xs sm:text-sm truncate">{selectedFile.name}</p>
+                          <div className="min-w-0 text-right">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{selectedFile.name}</p>
                             <p className="text-[10px] text-muted-foreground font-mono">
                               {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                             </p>
@@ -975,13 +998,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                         </div>
                         <Button
                           type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          onClick={() => handlePreviewFile(selectedFile)}
-                          className="rounded-xl text-primary border-primary/30 hover:bg-primary/5 text-xs font-bold gap-1.5 h-8.5 px-3 shrink-0 shadow-xs"
+                          onClick={() => handleViewFile(selectedFile, selectedFile.name)}
+                          className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>عرض المرفق</span>
+                          <Eye className="h-3.5 w-3.5" />
+                          معاينة
                         </Button>
                       </div>
                     </div>
@@ -1043,86 +1066,106 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       </Card>
     </div>
 
-      {/* مشروط معاينة المرفق */}
-      <Dialog open={!!previewFile} onOpenChange={(open) => { if (!open) closePreview(); }}>
-        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl border-border bg-background">
-          <DialogHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Paperclip className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <DialogTitle className="text-sm sm:text-base font-bold text-foreground truncate max-w-md">
-                  {previewFile?.name}
-                </DialogTitle>
-                <p className="text-[11px] text-muted-foreground">معاينة المرفق</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {previewFile?.url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(previewFile.url, '_blank')}
-                  className="rounded-xl text-xs gap-1.5 h-8.5 px-3"
-                  title="فتح في نافذة جديدة"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">فتح في نافذة جديدة</span>
-                </Button>
-              )}
-            </div>
-          </DialogHeader>
+      {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) تماماً كما في صفحة الموردين */}
+      {previewDoc && (() => {
+        const contentType = previewDoc.contentType || "";
+        const isImage = contentType.startsWith("image/") || !!previewDoc.title.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i);
+        const isPdf = contentType === "application/pdf" || previewDoc.title.toLowerCase().endsWith(".pdf");
+        const isDocx = contentType.includes("wordprocessingml.document") || previewDoc.title.toLowerCase().endsWith(".docx");
 
-          <div className="flex-1 overflow-auto p-4 sm:p-6 flex items-center justify-center bg-muted/20 min-h-[300px] max-h-[65vh]">
-            {previewFile && (
-              previewFile.type.startsWith('image/') || previewFile.name.match(/\.(jpg|jpeg|png|webp|gif|svg)$/i) ? (
-                <img
-                  src={previewFile.url}
-                  alt={previewFile.name}
-                  className="max-h-[60vh] max-w-full object-contain rounded-xl shadow-md border border-border bg-background"
-                />
-              ) : previewFile.type === 'application/pdf' || previewFile.name.toLowerCase().endsWith('.pdf') ? (
-                <iframe
-                  src={previewFile.url}
-                  title={previewFile.name}
-                  className="w-full h-[60vh] rounded-xl border border-border bg-background"
-                />
-              ) : (
-                <div className="text-center p-8 space-y-4">
-                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
-                    <FileText className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm text-foreground">{previewFile.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">لا يمكن عرض هذا النوع من الملفات مباشرة داخل المتصفح</p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => window.open(previewFile.url, '_blank')}
-                    className="rounded-xl gap-2 font-bold text-xs"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>تنزيل / فتح الملف</span>
-                  </Button>
-                </div>
-              )
-            )}
-          </div>
-
-          <DialogFooter className="p-3 sm:p-4 border-t border-border/80 bg-muted/10 flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closePreview}
-              className="rounded-xl text-xs font-bold"
+        return (
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-200"
+            onClick={handleClosePreview}
+          >
+            <div 
+              className="relative max-w-5xl w-full h-[90vh] flex flex-col items-center bg-slate-900/95 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              إغلاق
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {/* Close button */}
+              <button 
+                onClick={handleClosePreview}
+                className="absolute top-4 right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
+                title="إغلاق"
+              >
+                <X className="w-5 h-5" />
+              </button>
+ 
+              {/* Download button */}
+              <button 
+                onClick={handleDownloadPreview}
+                className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
+                title="تحميل"
+              >
+                <Download className="w-4 h-4" />
+                <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+              </button>
+
+              {/* Document/Image container */}
+              <div className="w-full flex-1 flex items-center justify-center p-2 overflow-hidden mt-12 mb-2 min-h-[50vh]">
+                {isImage ? (
+                  <div className="w-full h-full flex items-center justify-center overflow-auto">
+                    <img 
+                      src={previewUrl} 
+                      alt={previewDoc.title} 
+                      className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md border border-slate-800 bg-white"
+                    />
+                  </div>
+                ) : isPdf ? (
+                  <iframe 
+                    src={previewUrl} 
+                    title={previewDoc.title} 
+                    className="w-full h-full border border-slate-800 rounded-lg bg-white shadow-lg"
+                  />
+                ) : isDocx ? (
+                  <div 
+                    id="docx-preview-container" 
+                    className="w-full h-full overflow-y-auto bg-white rounded-lg p-6 border shadow-inner flex justify-center text-black"
+                    dir="ltr"
+                  >
+                    <div className="flex flex-col items-center justify-center py-20 gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                      <span className="text-sm text-slate-500 font-medium font-sans">جاري معالجة مستند Word...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-850 border border-slate-700/60 rounded-2xl max-w-md w-full text-center shadow-lg">
+                    <div className="p-4 bg-slate-800 rounded-full mb-4">
+                      {contentType.includes("spreadsheet") || contentType.includes("excel") ? (
+                        <FileText className="w-12 h-12 text-emerald-400" />
+                      ) : contentType.includes("word") || contentType.includes("msword") ? (
+                        <FileText className="w-12 h-12 text-blue-400" />
+                      ) : (
+                        <FileText className="w-12 h-12 text-amber-400" />
+                      )}
+                    </div>
+                    <h3 className="text-base font-bold text-slate-100 mb-2">{previewDoc.title}</h3>
+                    <p className="text-xs text-slate-400 mb-6 max-w-xs leading-relaxed">
+                      هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه.
+                    </p>
+                    <Button 
+                      onClick={handleDownloadPreview}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      تحميل المستند
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Caption/Name */}
+              <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <Info className="h-4 w-4 text-slate-400" />
+                  معاينة مستند - {previewDoc.title}
+                </p>
+                <p className="text-xs font-bold">{previewDoc.title}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* تقرير الطباعة الرسمي A4 الذي يظهر داخل نفس الصفحة عند أمر الطباعة */}
       <div className="hidden print:block printable-report-container w-full max-w-[210mm] mx-auto p-0 bg-white font-sans text-slate-900" dir="rtl">
