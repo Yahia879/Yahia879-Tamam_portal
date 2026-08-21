@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,8 +232,11 @@ export default function Profile() {
     });
   };
 
+  const isRequester = user?.role === "service_requester";
+  const Layout = isRequester ? BeneficiaryLayout : DashboardLayout;
+
   return (
-    <DashboardLayout>
+    <Layout>
       <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto pb-10">
         {/* Top Header */}
         <div className="flex items-center justify-between gap-4">
@@ -681,6 +685,6 @@ export default function Profile() {
           </form>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </Layout>
   );
 }
