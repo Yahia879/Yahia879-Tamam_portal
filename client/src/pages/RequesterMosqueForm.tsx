@@ -220,7 +220,9 @@ export default function RequesterMosqueForm() {
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-xs font-bold">اسم المسجد *</Label>
+                <Label className="text-xs font-bold">
+                  اسم المسجد <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </Label>
                 <Input
                   placeholder="مثال: جامع الملك فهد"
                   value={formData.name}
@@ -231,7 +233,9 @@ export default function RequesterMosqueForm() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold">نوع المسجد *</Label>
+                <Label className="text-xs font-bold">
+                  نوع المسجد <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </Label>
                 <Select value={formData.mosqueType} onValueChange={(val) => handleChange("mosqueType", val)}>
                   <SelectTrigger className="rounded-2xl h-11 border-border/60 text-xs">
                     <SelectValue placeholder="اختر النوع (جامع، مسجد...)" />
@@ -245,7 +249,9 @@ export default function RequesterMosqueForm() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold">مساحة المسجد الإجمالية (م²) *</Label>
+                <Label className="text-xs font-bold">
+                  مساحة المسجد الإجمالية (م²) <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </Label>
                 <Input
                   type="number"
                   placeholder="مثال: 500"
@@ -257,7 +263,9 @@ export default function RequesterMosqueForm() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold">سعة المصلين التقريبية (عدد الأشخاص) *</Label>
+                <Label className="text-xs font-bold">
+                  سعة المصلين التقريبية (عدد الأشخاص) <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </Label>
                 <Input
                   type="number"
                   placeholder="مثال: 400"
@@ -285,7 +293,9 @@ export default function RequesterMosqueForm() {
           <CardContent className="p-6 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Label className="text-xs font-bold">المدينة *</Label>
+                <Label className="text-xs font-bold">
+                  المدينة <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </Label>
                 <Select value={formData.city} onValueChange={handleCityChange}>
                   <SelectTrigger className="rounded-2xl h-11 border-border/60 text-xs">
                     <SelectValue placeholder="اختر المدينة" />
@@ -321,10 +331,12 @@ export default function RequesterMosqueForm() {
 
             <div className="space-y-2 pt-2">
               <Label className="text-xs font-bold flex items-center justify-between">
-                <span>تحديد الموقع الإحداثي على الخريطة *</span>
+                <span>
+                  تحديد الموقع الإحداثي على الخريطة <span className="text-rose-500 font-bold mr-0.5">*</span>
+                </span>
                 {formData.latitude && (
-                  <span className="text-[11px] text-emerald-600 font-mono font-bold">
-                    ✓ تم التحديد ({parseFloat(formData.latitude).toFixed(4)}, {parseFloat(formData.longitude).toFixed(4)})
+                  <span className="text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-bold font-sans flex items-center gap-1">
+                    ✓ تم التحديد على الخريطة
                   </span>
                 )}
               </Label>
