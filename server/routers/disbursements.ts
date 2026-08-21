@@ -1809,14 +1809,8 @@ export const disbursementsRouter = router({
               fundingSource = contract.supportType;
             }
 
-            const managementPercentage = Number((contract as any).managementPercentage || 0);
-            const adminFeesVal = request.adminFees 
-              ? Number(request.adminFees) 
-              : (contractAmount * managementPercentage) / 100;
-            const totalOpportunityValue = contractAmount + adminFeesVal;
-
-            if (fundingAmount === 0 && totalOpportunityValue > 0) {
-              fundingAmount = totalOpportunityValue;
+            if (fundingAmount === 0 && contractAmount > 0) {
+              fundingAmount = contractAmount;
             }
           }
 

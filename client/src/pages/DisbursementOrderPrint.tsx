@@ -257,7 +257,7 @@ export default function DisbursementOrderPrint() {
 
   const actualProjectCost = isTamamLinked 
     ? actualProjectValue 
-    : (hasContract ? parseFloat(project.contractAmount.toString()) : amount);
+    : (hasContract ? parseFloat(project.contractAmount.toString()) : (actualProjectValue > 0 ? actualProjectValue : amount));
 
   const adminFees = request?.adminFees 
     ? parseFloat(request.adminFees.toString()) 
@@ -265,11 +265,11 @@ export default function DisbursementOrderPrint() {
         ? parseFloat(customSupplier.adminFees) 
         : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
 
-  const totalOpportunityValue = actualProjectCost + adminFees;
+  const totalOpportunityValue = actualProjectCost;
 
   const resolvedFundingAmount = (project?.fundingAmount && project.fundingAmount > 0)
     ? project.fundingAmount
-    : (totalOpportunityValue > 0 ? totalOpportunityValue : 0);
+    : (actualProjectCost > 0 ? actualProjectCost : (isCustomType ? amount : 0));
 
   const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
                        customSupplier?.requestType === "sadad_invoice" || 
@@ -630,7 +630,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${(actualProjectValue + adminFees).toLocaleString()} ريال` 
+                            ? `${actualProjectValue.toLocaleString()} ريال` 
                             : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
@@ -649,7 +649,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${((actualProjectValue + adminFees) - (amountsSpent + amount)).toLocaleString()} ريال` 
+                            ? `${(actualProjectValue - (amountsSpent + amount)).toLocaleString()} ريال` 
                             : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                       </tr>
