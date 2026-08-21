@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronLeft,
+  ChevronRight,
   ArrowRight,
   Calendar,
   DollarSign,
@@ -123,6 +124,7 @@ export default function ProjectDetailsPage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [isEditingManager, setIsEditingManager] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(true);
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   // جلب الصلاحيات المحسوبة من السيرفر (تأخذ بالاعتبار الأدوار + الحجب الخاص والحظر)
@@ -469,7 +471,7 @@ export default function ProjectDetailsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 container mx-auto px-4 md:px-0" dir="rtl">
+      <div className="space-y-6 container mx-auto px-4 md:px-0 font-sans" dir="rtl">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/60 shadow-xs text-right">
           <div className="flex items-center gap-3.5 flex-1 min-w-0">
@@ -716,17 +718,17 @@ export default function ProjectDetailsPage() {
           </TooltipProvider>
         )}
 
-        {/* Main Grid: Vertical Sidebar Tabs + Content Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Main Grid: Collapsible Vertical Sidebar Tabs + Content Area */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
           {/* Mobile Tabs Bar (Horizontal Pills on Mobile) */}
           {!financialsOnly && (
-            <div className="lg:hidden col-span-12 w-full overflow-x-auto pb-1 scrollbar-hide">
-              <div className="flex items-center gap-1.5 p-1.5 bg-muted/40 rounded-2xl border border-border/60 w-max min-w-full">
+            <div className="lg:hidden w-full overflow-x-auto pb-1 scrollbar-hide">
+              <div className="flex items-center gap-1.5 p-1.5 bg-muted/40 rounded-2xl border border-border/60 w-max min-w-full font-sans">
                 {navItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans ${
                       activeTab === item.id 
                         ? "bg-background text-foreground shadow-xs border border-border/80" 
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
@@ -746,84 +748,147 @@ export default function ProjectDetailsPage() {
             </div>
           )}
 
-          {/* Desktop Vertical Sidebar (col-span-3) */}
+          {/* Desktop Collapsible Vertical Sidebar (Default Closed / Collapsed) */}
           {!financialsOnly && (
-            <div className="hidden lg:block lg:col-span-3 space-y-4 sticky top-20">
-              {/* Vertical Navigation Menu */}
+            <aside
+              className={`hidden lg:flex flex-col gap-4 sticky top-20 transition-all duration-300 shrink-0 font-sans ${
+                isNavCollapsed ? "w-[68px]" : "w-64 xl:w-72"
+              }`}
+            >
+              {/* Vertical Navigation Card */}
               <div className="p-2 rounded-2xl bg-card border border-border/70 shadow-xs space-y-1">
-                {navItems.map((item) => {
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all text-right cursor-pointer ${
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <item.icon className={`w-4 h-4 ${isActive ? "text-primary-foreground" : "text-primary"}`} />
-                        <span>{item.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {item.badge && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-bold ${
-                            isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                          }`}>
-                            {item.badge}
-                          </span>
+                {/* Header with Toggle Collapse/Expand Button */}
+                <div className={`flex items-center pb-2 mb-1 border-b border-border/50 ${
+                  isNavCollapsed ? "justify-center" : "justify-between px-2 pt-1"
+                }`}>
+                  {!isNavCollapsed && (
+                    <span className="text-xs font-bold text-muted-foreground font-sans">أقسام المشروع</span>
+                  )}
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer"
+                          onClick={() => setIsNavCollapsed(!isNavCollapsed)}
+                          title={isNavCollapsed ? "توسيع القائمة" : "طي القائمة"}
+                        >
+                          {isNavCollapsed ? (
+                            <ChevronLeft className="w-4 h-4" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-xs font-bold font-sans">
+                        {isNavCollapsed ? "توسيع القائمة" : "طي القائمة"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Tab Buttons */}
+                <TooltipProvider delayDuration={150}>
+                  {navItems.map((item) => {
+                    const isActive = activeTab === item.id;
+                    const buttonEl = (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center p-2.5 rounded-xl text-xs font-bold transition-all text-right cursor-pointer font-sans ${
+                          isNavCollapsed ? "justify-center h-10 w-10 mx-auto" : "justify-between"
+                        } ${
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-primary-foreground" : "text-primary"}`} />
+                          {!isNavCollapsed && <span className="truncate">{item.label}</span>}
+                        </div>
+                        {!isNavCollapsed && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.badge && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-lg font-mono font-bold ${
+                                isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                              }`}>
+                                {item.badge}
+                              </span>
+                            )}
+                            {item.isLocked && (
+                              <Lock className={`w-3.5 h-3.5 ${isActive ? "text-primary-foreground" : "text-amber-500"}`} />
+                            )}
+                          </div>
                         )}
-                        {item.isLocked && (
-                          <Lock className={`w-3.5 h-3.5 ${isActive ? "text-primary-foreground" : "text-amber-500"}`} />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+
+                    if (isNavCollapsed) {
+                      return (
+                        <Tooltip key={item.id}>
+                          <TooltipTrigger asChild>
+                            <div>{buttonEl}</div>
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="flex items-center gap-2 text-xs font-bold font-sans">
+                            <span>{item.label}</span>
+                            {item.badge && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted font-mono">{item.badge}</span>
+                            )}
+                            {item.isLocked && <Lock className="w-3 h-3 text-amber-500" />}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return buttonEl;
+                  })}
+                </TooltipProvider>
               </div>
 
-              {/* Quick Info Sidebar Widget */}
-              <Card className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-right space-y-3">
-                <h3 className="text-xs font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Briefcase className="w-4 h-4 text-primary" />
-                  بيانات سريعة
-                </h3>
-                <div className="space-y-2 text-xs">
-                  <div>
-                    <span className="text-muted-foreground block text-[11px]">المدة الزمنية:</span>
-                    <p className="font-bold text-foreground mt-0.5">
-                      {project.startDate && project.expectedEndDate
-                        ? `${Math.round((new Date(project.expectedEndDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} يوم`
-                        : "غير محددة"
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-[11px]">المرحلة الحالية:</span>
-                    <Badge variant="outline" className={`${statusColors[project.status || "planning"]} text-[10px] font-bold mt-1`}>
-                      {getStatusLabel()}
-                    </Badge>
-                  </div>
-                  {project.request && (
-                    <div className="pt-2 border-t border-border/40">
-                      <span className="text-muted-foreground block text-[11px]">الطلب المرتبط:</span>
-                      <Link href={`/requests/${project.request.id}`}>
-                        <span className="font-bold text-primary hover:underline flex items-center gap-1 mt-1 cursor-pointer">
-                          {project.request.requestNumber}
-                          <ArrowRight className="w-3 h-3 rotate-180" />
-                        </span>
-                      </Link>
+              {/* Quick Info Sidebar Widget (visible when expanded) */}
+              {!isNavCollapsed && (
+                <Card className="rounded-2xl border border-border/60 bg-muted/20 p-4 text-right space-y-3 font-sans">
+                  <h3 className="text-xs font-bold text-foreground flex items-center gap-2 pb-2 border-b border-border/50">
+                    <Briefcase className="w-4 h-4 text-primary" />
+                    بيانات سريعة
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">المدة الزمنية:</span>
+                      <p className="font-bold text-foreground mt-0.5 font-sans">
+                        {project.startDate && project.expectedEndDate
+                          ? `${Math.round((new Date(project.expectedEndDate).getTime() - new Date(project.startDate).getTime()) / (1000 * 60 * 60 * 24))} يوم`
+                          : "غير محددة"
+                        }
+                      </p>
                     </div>
-                  )}
-                </div>
-              </Card>
-            </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">المرحلة الحالية:</span>
+                      <Badge variant="outline" className={`${statusColors[project.status || "planning"]} text-[10px] font-bold mt-1 font-sans`}>
+                        {getStatusLabel()}
+                      </Badge>
+                    </div>
+                    {project.request && (
+                      <div className="pt-2 border-t border-border/40">
+                        <span className="text-muted-foreground block text-[11px]">الطلب المرتبط:</span>
+                        <Link href={`/requests/${project.request.id}`}>
+                          <span className="font-bold text-primary hover:underline flex items-center gap-1 mt-1 cursor-pointer font-sans">
+                            {project.request.requestNumber}
+                            <ArrowRight className="w-3 h-3 rotate-180" />
+                          </span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+            </aside>
           )}
 
-          {/* Main Tab Content Area (col-span-9) */}
-          <div className={`${financialsOnly ? 'col-span-12' : 'lg:col-span-9 col-span-12'} space-y-6`}>
+          {/* Main Tab Content Area (full width when collapsed) */}
+          <main className="flex-1 min-w-0 w-full space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
               {/* نظرة عامة */}
               <TabsContent value="overview" className="space-y-6 mt-0">
@@ -1560,7 +1625,7 @@ export default function ProjectDetailsPage() {
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
+          </main>
         </div>
       </div>
     </DashboardLayout>
