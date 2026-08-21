@@ -129,28 +129,28 @@
 
 .dark {
   /* ═══════════════════════════════════════════════
-     متغيرات الثيم الداكن - تركواز على خلفية داكنة
+     متغيرات الثيم الداكن - تركواز على خلفية داكنة ناعمة ومريحة للعين
      ═══════════════════════════════════════════════ */
-  --primary: oklch(0.65 0.14 174);          /* تركواز أفتح للداكن */
-  --primary-foreground: oklch(0.10 0.01 174);
+  --primary: oklch(0.68 0.14 174);          /* تركواز حيوي ومريح للداكن */
+  --primary-foreground: oklch(0.12 0.01 174);
 
-  --background: oklch(0.13 0.008 174);      /* داكن مائل للتركواز */
-  --foreground: oklch(0.92 0.005 174);      /* فاتح مائل للتركواز */
-  --card: oklch(0.17 0.010 174);
-  --card-foreground: oklch(0.92 0.005 174);
-  --popover: oklch(0.17 0.010 174);
-  --popover-foreground: oklch(0.92 0.005 174);
-  --secondary: oklch(0.22 0.012 174);
-  --secondary-foreground: oklch(0.75 0.008 174);
-  --muted: oklch(0.22 0.010 174);
-  --muted-foreground: oklch(0.60 0.012 174);
-  --accent: oklch(0.25 0.015 174);
-  --accent-foreground: oklch(0.90 0.005 174);
+  --background: oklch(0.19 0.010 210);      /* خلفية كحلية/سليت داكنة ناعمة وغير مفرطة في السواد */
+  --foreground: oklch(0.94 0.005 210);      /* نص رئيسي واضح ومريح */
+  --card: oklch(0.24 0.012 210);            /* بطاقات أفتح بتدرج مريح */
+  --card-foreground: oklch(0.94 0.005 210);
+  --popover: oklch(0.24 0.012 210);
+  --popover-foreground: oklch(0.94 0.005 210);
+  --secondary: oklch(0.28 0.015 210);
+  --secondary-foreground: oklch(0.85 0.008 210);
+  --muted: oklch(0.27 0.012 210);
+  --muted-foreground: oklch(0.70 0.012 210);
+  --accent: oklch(0.30 0.016 210);
+  --accent-foreground: oklch(0.95 0.005 210);
   --destructive: oklch(0.65 0.22 22);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.65 0.14 174);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.68 0.14 174);
 
   /* القائمة الجانبية - لون #09707e حسب طلب المستخدم (ثيم داكن) */
   --sidebar: oklch(0.45 0.09 192);
@@ -163,11 +163,11 @@
   --sidebar-ring: oklch(0.82 0.15 75);
 
   /* الرسوم البيانية - داكن */
-  --chart-1: oklch(0.65 0.14 174);
-  --chart-2: oklch(0.78 0.15 75);
-  --chart-3: oklch(0.55 0.15 250);
-  --chart-4: oklch(0.68 0.18 70);
-  --chart-5: oklch(0.65 0.20 290);
+  --chart-1: oklch(0.68 0.14 174);
+  --chart-2: oklch(0.80 0.15 75);
+  --chart-3: oklch(0.58 0.15 250);
+  --chart-4: oklch(0.70 0.18 70);
+  --chart-5: oklch(0.68 0.20 290);
 }
 
 /* ═══════════════════════════════════════════════
