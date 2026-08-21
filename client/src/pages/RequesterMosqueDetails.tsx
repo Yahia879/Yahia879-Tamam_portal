@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -13,23 +12,16 @@ import {
   Users,
   Ruler,
   Calendar,
-  Eye,
   CheckCircle2,
   Clock,
   XCircle,
   AlertCircle,
   Sparkles,
   Send,
-  ExternalLink,
-  Plus,
-  Navigation,
-  Check,
 } from "lucide-react";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 import { MapView } from "@/components/Map";
 import { Marker } from "react-leaflet";
-import { ProgramIcon } from "@/components/ProgramIcon";
-import { PROGRAM_LABELS } from "@shared/constants";
 
 const mosqueTypeLabels: Record<string, string> = {
   jami: "جامع",
@@ -46,22 +38,6 @@ export default function RequesterMosqueDetails() {
     { id: mosqueId },
     { enabled: !!mosqueId }
   );
-
-  // جلب طلبات الخدمات الخاصة بالمستخدم لتصفية طلبات هذا المسجد
-  const { data: myRequestsData } = trpc.requests.getMyRequests.useQuery({
-    limit: 50,
-  });
-
-  const allRequests = Array.isArray(myRequestsData)
-    ? myRequestsData
-    : (Array.isArray(myRequestsData?.requests) ? myRequestsData.requests : []);
-
-  const mosqueRequests = useMemo(() => {
-    if (!mosque) return [];
-    return allRequests.filter(
-      (r: any) => r.mosqueId === mosque.id || (r.mosqueName && r.mosqueName === mosque.name)
-    );
-  }, [allRequests, mosque]);
 
   if (isLoading) {
     return (
@@ -361,43 +337,17 @@ export default function RequesterMosqueDetails() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-            <div
-              className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-center justify-between gap-4 select-none ${
-                hasPrayerHall
-                  ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20'
-                  : 'border-border/60 bg-muted/20'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
-                  hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
-                }`}>
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-xs sm:text-sm text-foreground">هل يتضمن المشروع مصلى للنساء؟</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {hasPrayerHall ? "نعم، المسجد يشمل قسماً مخصصاً لمصلى النساء" : "لا يوجد مصلى للنساء مسجل لهذا المسجد"}
-                  </p>
-                </div>
-              </div>
-              <div
-                className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ${
-                  hasPrayerHall
-                    ? 'bg-primary border-primary text-white shadow-xs'
-                    : 'border-input bg-background dark:bg-input/30'
-                }`}
-              >
-                {hasPrayerHall && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-              </div>
-            </div>
-
-            {hasPrayerHall && (
+            {hasPrayerHall ? (
               <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4">
-                <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
-                  <Building2 className="w-4 h-4" />
-                  <span>بيانات مصلى النساء</span>
-                </h4>
+                <div className="flex items-center justify-between border-b border-primary/10 pb-2.5">
+                  <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    <span>يوجد مصلى مخصص للنساء</span>
+                  </h4>
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs font-bold">
+                    متوفر
+                  </Badge>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5 sm:space-y-2">
                     <label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
@@ -426,6 +376,16 @@ export default function RequesterMosqueDetails() {
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="p-4 sm:p-5 rounded-2xl border border-border/60 bg-muted/20 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted text-muted-foreground shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-xs sm:text-sm text-foreground">مصلى النساء</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">لا يوجد مصلى للنساء مسجل لهذا المسجد</p>
+                </div>
+              </div>
             )}
 
             {cleanNotes && (
@@ -437,71 +397,6 @@ export default function RequesterMosqueDetails() {
                   disabled
                   className="rounded-2xl border-border/60 text-xs min-h-[90px] bg-muted/40 dark:bg-muted/20 font-medium text-foreground cursor-default"
                 />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Step 4: Linked Requests History for this Mosque */}
-        <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl overflow-hidden bg-card">
-          <CardHeader className="p-4 sm:p-6 border-b border-border/40 bg-muted/30">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-lg font-bold text-foreground">
-                <Send className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                <span>طلبات الخدمات المرتبطة بهذا المسجد</span>
-              </CardTitle>
-              <Badge variant="outline" className="font-mono font-bold text-xs">
-                {mosqueRequests.length} طلب
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {mosqueRequests.length > 0 ? (
-              <div className="space-y-3">
-                {mosqueRequests.map((req: any) => (
-                  <div
-                    key={req.id}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-muted/30 hover:bg-muted/50 border border-border/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <ProgramIcon program={req.programType} size="md" showBackground />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-xs sm:text-sm text-foreground truncate">
-                            {req.programName || PROGRAM_LABELS[req.programType] || req.programType}
-                          </h4>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-muted rounded-md text-muted-foreground">
-                            {req.requestNumber}
-                          </span>
-                        </div>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
-                          تاريخ التقديم: {req.createdAt ? new Date(req.createdAt).toLocaleDateString("ar-SA") : "سابقاً"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <Link href={`/requests/${req.id}`}>
-                      <Button variant="outline" className="rounded-xl text-[11px] font-bold h-8 px-3 gap-1.5 w-full sm:w-auto cursor-pointer">
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>تفاصيل الطلب</span>
-                      </Button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 sm:py-8 space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  لم يتم تقديم أي طلب خدمة لهذا المسجد حتى الآن.
-                </p>
-                {isApproved && (
-                  <Link href="/request-form-dynamic">
-                    <Button className="gradient-primary text-white font-bold rounded-xl text-xs h-9 px-5 gap-1.5 shadow-sm">
-                      <Plus className="w-4 h-4" />
-                      <span>تقديم طلب جديد لهذا المسجد</span>
-                    </Button>
-                  </Link>
-                )}
               </div>
             )}
           </CardContent>
