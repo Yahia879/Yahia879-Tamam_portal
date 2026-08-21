@@ -11,6 +11,7 @@ import {
   Bell,
   Star,
   TrendingUp,
+  Eye,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -21,29 +22,39 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 
-// حساب نسبة التقدم بناءً على المرحلة
+// حساب نسبة التقدم بناءً على المراحل العشر (زيادة 10% في كل مرحلة)
 const getProgressPercentage = (stage: string): number => {
   const stageProgress: Record<string, number> = {
-    submitted: 15,
-    initial_review: 30,
-    field_visit: 45,
-    technical_eval: 60,
-    financial_eval_and_approval: 75,
-    execution: 90,
+    submitted: 10,
+    initial_review: 20,
+    field_visit: 30,
+    technical_eval: 40,
+    boq_preparation: 50,
+    financial_eval: 60,
+    financial_eval_and_approval: 60,
+    quotation_approval: 65,
+    contracting: 70,
+    execution: 80,
+    handover: 90,
     closed: 100,
   };
-  return stageProgress[stage] || 15;
+  return stageProgress[stage] || 10;
 };
 
 const getStageLabelAr = (stage: string): string => {
   const stageLabels: Record<string, string> = {
-    submitted: "تم تقديم الطلب",
-    initial_review: "الفرز والأولي",
+    submitted: "تقديم الطلب",
+    initial_review: "المراجعة الأولية",
     field_visit: "الزيارة الميدانية",
-    technical_eval: "الدراسة الفنية",
+    technical_eval: "التقييم والدراسة الفنية",
+    boq_preparation: "إعداد جدول الكميات",
+    financial_eval: "التقييم المالي",
     financial_eval_and_approval: "الاعتماد المالي",
+    quotation_approval: "اعتماد العرض",
+    contracting: "مرحلة التعاقد",
     execution: "مرحلة التنفيذ",
-    closed: "تم إغلاق الطلب",
+    handover: "مرحلة الاستلام",
+    closed: "مكتمل ومغلق",
   };
   return stageLabels[stage] || "قيد المعالجة";
 };
@@ -258,6 +269,16 @@ export default function RequesterDashboard() {
                             {stageLabel}
                           </Badge>
                           <span className="text-xs sm:text-sm font-extrabold text-primary">{progress}%</span>
+                          <Link href={`/requests/${request.id}`}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl text-[11px] sm:text-xs font-bold gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>عرض التفاصيل</span>
+                            </Button>
+                          </Link>
                         </div>
                       </div>
 
