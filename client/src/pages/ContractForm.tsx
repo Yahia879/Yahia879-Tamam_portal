@@ -1633,7 +1633,6 @@ export default function ContractForm() {
                       placeholder="أدخل القيمة المتفق عليها"
                       className="font-bold text-green-700 font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">القيمة الإجمالية المتفق عليها مع المورد</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -1659,7 +1658,6 @@ export default function ContractForm() {
                       placeholder="0"
                       className="font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">نسبة الجمعية المستقطعة من القيمة المتفقة</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1684,7 +1682,6 @@ export default function ContractForm() {
                       placeholder="أدخل قيمة الجمعية"
                       className="font-semibold text-right font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">مبلغ حصة الجمعية المستقطع من القيمة المتفقة</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1695,7 +1692,6 @@ export default function ContractForm() {
                       value={contractData.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">تطابق دائماً القيمة المتفقة مع المورد</p>
                   </div>
                 </div>
               </div>
