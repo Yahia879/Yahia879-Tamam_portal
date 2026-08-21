@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -13,6 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   Building2,
   FileText,
   Plus,
@@ -24,6 +29,9 @@ import {
   Sun,
   Moon,
   ArrowRight,
+  Menu,
+  X,
+  ChevronLeft,
 } from "lucide-react";
 
 interface BeneficiaryLayoutProps {
@@ -48,6 +56,7 @@ export default function BeneficiaryLayout({
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
   const { theme, toggleTheme, switchable } = useTheme();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // جلب إعدادات الجمعية (الشعار والاسم)
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
@@ -98,21 +107,34 @@ export default function BeneficiaryLayout({
       <header className="print:hidden sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-xs transition-all">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16 sm:h-20">
-            {/* Branding Logo & Info */}
-            <Link href="/requester" className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <img
-                src={mainLogoSrc}
-                alt={orgName}
-                className="h-8 w-8 sm:h-10 sm:w-auto shrink-0 object-contain"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
-              />
-              <div className="min-w-0 flex flex-col">
-                <span className="font-bold text-sm sm:text-lg text-foreground truncate">{orgName}</span>
-                <span className="hidden sm:block text-[10px] text-muted-foreground truncate">{orgNameShort}</span>
-              </div>
-            </Link>
+            {/* Branding Logo & Info with Mobile Hamburger */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Mobile Hamburger Toggle Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden rounded-xl h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/80 shrink-0 cursor-pointer"
+                aria-label="فتح القائمة الجانبية"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+
+              <Link href="/requester" className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <img
+                  src={mainLogoSrc}
+                  alt={orgName}
+                  className="h-8 w-8 sm:h-10 sm:w-auto shrink-0 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+                <div className="min-w-0 flex flex-col">
+                  <span className="font-bold text-sm sm:text-lg text-foreground truncate">{orgName}</span>
+                  <span className="hidden sm:block text-[10px] text-muted-foreground truncate">{orgNameShort}</span>
+                </div>
+              </Link>
+            </div>
 
             {/* Desktop Navigation Bar */}
             <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 p-1.5 rounded-2xl border border-border/50">
@@ -125,7 +147,7 @@ export default function BeneficiaryLayout({
                     <Link key={item.id} href={item.path}>
                       <Button
                         size="sm"
-                        className="rounded-xl shadow-xs gradient-primary text-white font-semibold gap-1.5 px-4 h-9 hover:opacity-95 transition-all"
+                        className="rounded-xl shadow-xs gradient-primary text-white font-semibold gap-1.5 px-4 h-9 hover:opacity-95 transition-all cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
                         <span>{item.label}</span>
@@ -137,7 +159,7 @@ export default function BeneficiaryLayout({
                 return (
                   <Link key={item.id} href={item.path}>
                     <button
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all ${
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                         isActive
                           ? "bg-background text-primary shadow-xs border border-border/80 font-semibold"
                           : "text-muted-foreground hover:text-foreground hover:bg-background/50"
@@ -159,7 +181,7 @@ export default function BeneficiaryLayout({
                   variant="ghost"
                   size="icon"
                   onClick={toggleTheme}
-                  className="rounded-xl h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  className="rounded-xl h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer"
                   title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
                 >
                   {theme === "dark" ? (
@@ -175,7 +197,8 @@ export default function BeneficiaryLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative rounded-xl h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                  className="relative rounded-xl h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-foreground hover:bg-muted/80 cursor-pointer"
+                  title="الإشعارات"
                 >
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                   {unreadNotificationsCount > 0 && (
@@ -187,7 +210,7 @@ export default function BeneficiaryLayout({
               {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2.5 hover:bg-muted/70 rounded-2xl p-1 sm:px-2.5 sm:py-1.5 transition-all border border-transparent hover:border-border/60">
+                  <button className="flex items-center gap-2.5 hover:bg-muted/70 rounded-2xl p-1 sm:px-2.5 sm:py-1.5 transition-all border border-transparent hover:border-border/60 cursor-pointer">
                     <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-primary/20 shadow-xs">
                       <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs sm:text-sm">
                         {user?.name ? user.name.charAt(0).toUpperCase() : "م"}
@@ -239,39 +262,148 @@ export default function BeneficiaryLayout({
           </div>
         </div>
 
-        {/* Mobile Navigation Toolbar */}
-        <div className="md:hidden border-t border-border/60 bg-background/95 backdrop-blur-md px-4 py-2 flex items-center justify-around gap-1 overflow-x-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id || location === item.path;
+        {/* Mobile Navigation Drawer / Sidebar */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent
+            side="right"
+            className="w-[85vw] max-w-xs p-0 flex flex-col justify-between bg-card text-card-foreground border-l border-border/80 shadow-2xl z-[100]"
+          >
+            <div className="flex flex-col flex-1 overflow-hidden">
+              {/* Drawer Header */}
+              <div className="p-4 border-b border-border/60 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={mainLogoSrc}
+                    alt={orgName}
+                    className="h-8 w-8 object-contain shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <SheetTitle className="font-extrabold text-sm text-foreground truncate text-right">{orgName}</SheetTitle>
+                    <span className="text-[10px] text-muted-foreground truncate">{orgNameShort}</span>
+                  </div>
+                </div>
+              </div>
 
-            if (item.isPrimary) {
-              return (
-                <Link key={item.id} href={item.path}>
-                  <button className="flex flex-col items-center justify-center p-1.5 text-primary font-bold">
-                    <div className="w-8 h-8 rounded-full gradient-primary text-white flex items-center justify-center shadow-xs">
-                      <Plus className="w-4 h-4" />
-                    </div>
-                    <span className="text-[10px] mt-1">{item.label}</span>
-                  </button>
+              {/* User Profile Card */}
+              <div className="px-4 pt-3 pb-2">
+                <div className="bg-muted/50 dark:bg-slate-900/60 p-3 rounded-2xl border border-border/60 flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-xs shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-primary font-extrabold text-sm">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : "م"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-extrabold text-xs sm:text-sm text-foreground truncate">{user?.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{user?.email || (user as any)?.username || "طالب خدمة"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Primary CTA in Drawer */}
+              <div className="px-4 py-2">
+                <Link href="/request-form-dynamic" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full rounded-xl shadow-md gradient-primary text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer">
+                    <Plus className="w-4 h-4" />
+                    <span>تقديم طلب جديد</span>
+                  </Button>
                 </Link>
-              );
-            }
+              </div>
 
-            return (
-              <Link key={item.id} href={item.path}>
-                <button
-                  className={`flex flex-col items-center justify-center p-1.5 text-[11px] font-medium transition-colors ${
-                    isActive ? "text-primary font-bold" : "text-muted-foreground"
-                  }`}
+              {/* Navigation Links */}
+              <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+                {navItems
+                  .filter((item) => !item.isPrimary)
+                  .map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id || location === item.path;
+
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                          isActive
+                            ? "bg-primary/10 text-primary border border-primary/20 font-bold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Icon className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        <ChevronLeft className={`w-3.5 h-3.5 ${isActive ? "text-primary" : "text-muted-foreground/50"}`} />
+                      </Link>
+                    );
+                  })}
+
+                <div className="pt-2 pb-1 border-t border-border/40 my-2">
+                  <p className="px-3 text-[10px] font-bold text-muted-foreground mb-1">الحساب والخدمات</p>
+
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span>الملف الشخصي والحساب</span>
+                    </div>
+                    <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/50" />
+                  </Link>
+
+                  <Link
+                    href="/notifications"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <span>الإشعارات</span>
+                    </div>
+                    {unreadNotificationsCount > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                        {unreadNotificationsCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-3 border-t border-border/60 bg-muted/30 flex flex-col gap-2">
+              {switchable && toggleTheme && (
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl justify-between h-9 border-border/60 text-xs font-semibold cursor-pointer"
+                  onClick={toggleTheme}
                 >
-                  <Icon className="w-4 h-4 mb-0.5" />
-                  <span>{item.label}</span>
-                </button>
-              </Link>
-            );
-          })}
-        </div>
+                  <span className="flex items-center gap-2">
+                    {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                    <span>{theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}</span>
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">{theme === "dark" ? "داكن" : "فاتح"}</span>
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                className="w-full rounded-xl justify-start text-destructive hover:text-destructive hover:bg-destructive/10 h-9 text-xs font-bold gap-2 cursor-pointer"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+              >
+                <LogOut className="w-4 h-4" />
+                <span>تسجيل الخروج</span>
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </header>
 
       {/* Main Content Body */}
