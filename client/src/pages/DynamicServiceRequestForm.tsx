@@ -1267,31 +1267,47 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         {/* ثانياً: بيانات المسجد والموقع */}
         <div className="mb-4 border border-slate-300 rounded-lg overflow-hidden bg-white">
           <div className="bg-slate-100/90 px-3 py-1.5 font-bold text-xs text-[#1a5f4a] border-b border-slate-300">
-            ثانياً: بيانات المسجد والموقع
+            {selectedService === 'bunyan' ? 'ثانياً: بيانات الموقع والأرض المقترحة للمسجد' : 'ثانياً: بيانات المسجد والموقع'}
           </div>
           <table className="w-full text-xs border-collapse">
             <tbody>
               {selectedService === 'bunyan' ? (
                 <>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">حالة المسجد:</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">نوع المشروع:</td>
                     <td className="p-2.5 font-bold text-slate-900 w-1/4 border-l border-slate-200">
-                      {formData.buildingType === 'new' ? 'بناء جديد' : formData.buildingType === 'stalled' ? 'استكمال متعثر' : 'بناء جديد / استكمال متعثر'}
+                      {formData.buildingType === 'new' ? 'بناء جديد' : formData.buildingType === 'stalled' ? 'استكمال متعثر' : 'بناء وتشييد مسجد جديد'}
                     </td>
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المدينة / المحافظة:</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المدينة / المنطقة:</td>
                     <td className="p-2.5 text-slate-900 w-1/4">{formData.city || orgSettings?.city || '—'}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">اسم الحي / المنطقة:</td>
-                    <td className="p-2.5 text-slate-900 border-l border-slate-200 font-medium">{formData.district || '—'}</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">اسم الحي / الموقع:</td>
+                    <td className="p-2.5 text-slate-900 border-l border-slate-200 font-medium">{formData.neighborhoodName || formData.district || '—'}</td>
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">أقرب مسجد موجود:</td>
                     <td className="p-2.5 text-slate-900">{formData.nearestMosque || '—'}</td>
                   </tr>
-                  <tr>
+                  <tr className="border-b border-slate-200">
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">المسافة من أقرب مسجد:</td>
-                    <td className="p-2.5 text-slate-900 border-l border-slate-200">{formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '—'}</td>
-                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">موقع الأرض / الإحداثيات:</td>
-                    <td className="p-2.5 text-slate-900">{formData.latitude && formData.longitude ? `${formData.latitude}, ${formData.longitude}` : (formData.address || '—')}</td>
+                    <td className="p-2.5 text-slate-900 border-l border-slate-200">{formData.distanceToMosque ? `${formData.distanceToMosque} كم` : (formData.distanceToNearestMosque ? `${formData.distanceToNearestMosque} كم` : '—')}</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">توفر أرض للبناء:</td>
+                    <td className="p-2.5 text-slate-900">{formData.hasLand === 'yes' ? 'نعم (متوفرة)' : formData.hasLand === 'no' ? 'لا (غير متوفرة)' : (formData.hasLand || '—')}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">مساحة الأرض المقترحة:</td>
+                    <td className="p-2.5 text-slate-900 border-l border-slate-200">{formData.landArea ? `${formData.landArea} م²` : '—'}</td>
+                    <td className="p-2.5 bg-slate-50 font-bold text-slate-600 border-l border-slate-200">ملكية الأرض:</td>
+                    <td className="p-2.5 text-slate-900">
+                      {formData.landOwnership === 'owned' || formData.landOwnership === 'private'
+                        ? 'ملك خاص'
+                        : formData.landOwnership === 'waqf'
+                        ? 'وقف'
+                        : formData.landOwnership === 'government'
+                        ? 'حكومية'
+                        : formData.landOwnership === 'other'
+                        ? 'أخرى'
+                        : (formData.landOwnership || '—')}
+                    </td>
                   </tr>
                 </>
               ) : (
@@ -1342,16 +1358,21 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <tbody>
               {visibleFields.map((field) => {
                 if (field.name === 'mosqueId') return null;
+                if (selectedService === 'bunyan' && ['neighborhoodName', 'nearestMosque', 'distanceToMosque', 'distanceToNearestMosque', 'hasLand', 'landArea', 'landOwnership'].includes(field.name)) {
+                  return null;
+                }
                 const val = formData[field.name];
                 let displayVal = val ? String(val) : '—';
                 if (val === 'yes') displayVal = 'نعم';
                 if (val === 'no') displayVal = 'لا';
                 if (field.name === 'landOwnership') {
-                  displayVal = val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : (val || '—');
+                  displayVal = val === 'owned' || val === 'private' ? 'ملك خاص' : val === 'waqf' ? 'وقف' : val === 'government' ? 'حكومي' : val === 'other' ? 'أخرى' : (val || '—');
                 }
                 if (field.name === 'mosqueArea' && val) displayVal = `${val} م²`;
                 if (field.name === 'landArea' && val) displayVal = `${val} م²`;
                 if (field.name === 'actualWorshippers' && val) displayVal = `${val} مصلي`;
+                if (field.name === 'donationAmount' && val) displayVal = `${Number(val).toLocaleString()} ريال`;
+                if (field.name === 'distanceToMosque' && val) displayVal = `${val} كم`;
                 if (field.name === 'distanceToNearestMosque' && val) displayVal = `${val} كم`;
 
                 return (
