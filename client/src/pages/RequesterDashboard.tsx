@@ -242,7 +242,7 @@ export default function RequesterDashboard() {
                               {request.programName || PROGRAM_LABELS[request.programType] || request.programType}
                             </h4>
                             <p className="text-[11px] sm:text-xs text-muted-foreground font-mono mt-0.5 truncate">
-                              {request.requestNumber} • {request.mosqueName || "المسجد المحدد"}
+                              {request.requestNumber} • {request.programType === "bunyan" ? "غير مرتبط بمسجد (بنيان)" : (request.mosqueName || "المسجد المحدد")}
                             </p>
                           </div>
                         </Link>

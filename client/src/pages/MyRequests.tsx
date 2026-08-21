@@ -326,7 +326,7 @@ export default function MyRequests() {
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Building2 className="w-3.5 h-3.5 text-primary/70" />
-                              {request.mosqueName || "المسجد المحدد"}
+                              {request.programType === "bunyan" ? "غير مرتبط بمسجد (بنيان)" : (request.mosqueName || "المسجد المحدد")}
                             </span>
                             {requestDate && (
                               <>
