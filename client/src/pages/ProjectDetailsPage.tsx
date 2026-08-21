@@ -267,13 +267,11 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const formatCurrency = (amount: string | null) => {
-    if (!amount) return "غير محدد";
-    return new Intl.NumberFormat("ar-SA", {
-      style: "currency",
-      currency: "SAR",
-      maximumFractionDigits: 0,
-    }).format(parseFloat(amount));
+  const formatCurrency = (amount: string | number | null | undefined) => {
+    if (amount === null || amount === undefined || amount === "") return "غير محدد";
+    const num = typeof amount === "number" ? amount : parseFloat(String(amount).replace(/,/g, ""));
+    if (isNaN(num)) return "غير محدد";
+    return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num)} ر.س.`;
   };
 
   // التحقق مما إذا كان جدول الكميات مقفلاً (إذا اكتملت المرحلة الثانية أو بدأت مراحل بعدها)
@@ -577,142 +575,162 @@ export default function ProjectDetailsPage() {
         {/* بطاقات الإحصائيات الرئيسية الموحدة */}
         {!financialsOnly && (
           <TooltipProvider delayDuration={300}>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {/* الميزانية التقديرية */}
-              <Card className="rounded-2xl border border-border/60 shadow-xs bg-card p-4 sm:p-5 text-right transition-all hover:border-border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-muted-foreground">الميزانية التقديرية</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/70 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
-                        </TooltipContent>
-                      </Tooltip>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
+              {/* الميزانية */}
+              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                      <DollarSign className="w-5 h-5 text-amber-600" />
                     </div>
-                    <p className="text-base sm:text-lg font-black font-mono text-foreground truncate">
-                      {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
-                        ? (boqData && boqData.total > 0
-                            ? formatCurrency(boqData.total.toString())
-                            : formatCurrency(project.budget))
-                        : "لم تُحدد بعد"
-                      }
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="font-bold text-foreground truncate">
+                        {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
+                          ? (boqData && boqData.total > 0
+                              ? formatCurrency(boqData.total.toString())
+                              : formatCurrency(project.budget))
+                          : "غير محدد"
+                        }
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
 
               {/* التكلفة الفعلية */}
-              <Card className="rounded-2xl border border-border/60 shadow-xs bg-card p-4 sm:p-5 text-right transition-all hover:border-border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-muted-foreground">التكلفة الفعلية</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/70 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          <p>التكلفة النهائية المتفق عليها في العقد والتي تشمل نسبة الجمعية</p>
-                        </TooltipContent>
-                      </Tooltip>
+              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-5 h-5 text-emerald-600" />
                     </div>
-                    <p className="text-base sm:text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 truncate">
-                      {formatCurrency(project.actualCost)}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">التكلفة الفعلية</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>التكلفة النهائية المتفق عليها في العقد والتي تشمل نسبة الجمعية</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="font-bold text-foreground truncate">
+                        {formatCurrency(project.actualCost)}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
 
               {/* نسبة الإنجاز */}
-              <Card className="rounded-2xl border border-border/60 shadow-xs bg-card p-4 sm:p-5 text-right transition-all hover:border-border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <BarChart3 className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-muted-foreground">نسبة الإنجاز</span>
-                      <span className="text-xs font-black font-mono text-blue-600 dark:text-blue-400">
+              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">نسبة الإنجاز</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>نسبة الإنجاز الفعلية للمشروع</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <p className="font-bold text-foreground">
                         {project.completionPercentage || 0}%
-                      </span>
-                    </div>
-                    <div className="mt-2 w-full bg-muted rounded-full h-2 overflow-hidden">
-                      <div 
-                        className="bg-blue-600 h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.min(100, Math.max(0, project.completionPercentage || 0))}%` }}
-                      />
+                      </p>
                     </div>
                   </div>
-                </div>
+                </CardContent>
               </Card>
 
               {/* مدير المشروع */}
-              <Card className="rounded-2xl border border-border/60 shadow-xs bg-card p-4 sm:p-5 text-right transition-all hover:border-border">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-muted-foreground">مدير المشروع</span>
-                      {canChangeManager && !isEditingManager && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-5 w-5 text-muted-foreground hover:text-primary rounded-md p-0"
-                          onClick={() => setIsEditingManager(true)}
-                          title="تغيير مدير المشروع"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
+              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
+                <CardContent className="p-4 text-right">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                      <Users className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-muted-foreground font-bold">مدير المشروع</p>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>مدير المشروع المسؤول عن المتابعة</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      {isEditingManager ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <Select
+                            value={project.managerId?.toString() || ""}
+                            onValueChange={(val) => {
+                              handleUpdateManager(parseInt(val));
+                              setIsEditingManager(false);
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
+                              <SelectValue placeholder="اختر..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {projectManagers.map((m: any) => (
+                                <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
+                                  {m.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setIsEditingManager(false)} 
+                            className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-foreground truncate">
+                            {project.managerName || "غير محدد"}
+                          </p>
+                          {canChangeManager && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-9 h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0 shrink-0"
+                              onClick={() => setIsEditingManager(true)}
+                              title="تغيير مدير المشروع"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    {isEditingManager ? (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <Select
-                          value={project.managerId?.toString() || ""}
-                          onValueChange={(val) => {
-                            handleUpdateManager(parseInt(val));
-                            setIsEditingManager(false);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
-                            <SelectValue placeholder="اختر..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {projectManagers.map((m: any) => (
-                              <SelectItem key={m.id} value={m.id.toString()} className="text-xs font-medium">
-                                {m.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => setIsEditingManager(false)} 
-                          className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <p className="text-sm sm:text-base font-bold text-foreground truncate">
-                        {project.managerName || "غير محدد"}
-                      </p>
-                    )}
                   </div>
-                </div>
+                </CardContent>
               </Card>
             </div>
           </TooltipProvider>
@@ -916,7 +934,7 @@ export default function ProjectDetailsPage() {
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ البدء</p>
                           <p className="font-bold text-foreground mt-0.5">
                             {project.startDate 
-                              ? new Date(project.startDate).toLocaleDateString("ar-SA")
+                              ? new Date(project.startDate).toLocaleDateString("ar-SA-u-nu-latn")
                               : "لم يبدأ بعد"
                             }
                           </p>
@@ -925,7 +943,7 @@ export default function ProjectDetailsPage() {
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ الانتهاء المتوقع</p>
                           <p className="font-bold text-foreground mt-0.5">
                             {project.expectedEndDate 
-                              ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA")
+                              ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA-u-nu-latn")
                               : "غير محدد"
                             }
                           </p>
@@ -1107,7 +1125,7 @@ export default function ProjectDetailsPage() {
                             <div className="flex justify-between items-center w-full">
                               <span className="font-bold text-primary text-xs sm:text-sm">{evalNote.userName || "موظف التقييم"}</span>
                               <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
-                                {new Date(evalNote.createdAt).toLocaleString("ar-SA")}
+                                {new Date(evalNote.createdAt).toLocaleString("ar-SA-u-nu-latn")}
                               </span>
                             </div>
                             <div className="text-xs sm:text-sm space-y-2">
