@@ -162,9 +162,11 @@ export default function MyRequests() {
       activeTab="requests"
       title="سجل طلباتي"
       subtitle="استعراض ومتابعة حالات وتطورات كافة الخدمات المطلوبة"
+      backUrl="/requester"
+      backLabel="العودة للوحة التحكم"
       headerActions={
         <Link href="/request-form-dynamic">
-          <Button className="rounded-2xl gradient-primary text-white font-bold gap-2 shadow-md hover:opacity-95">
+          <Button className="rounded-2xl gradient-primary text-white font-bold gap-2 shadow-md hover:opacity-95 cursor-pointer">
             <Plus className="w-4 h-4" />
             <span>تقديم طلب جديد</span>
           </Button>
