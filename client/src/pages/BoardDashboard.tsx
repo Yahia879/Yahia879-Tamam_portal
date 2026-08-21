@@ -491,7 +491,7 @@ export default function BoardDashboard() {
                               return (
                                 <TableRow 
                                   key={order.id} 
-                                  className={isNeedsApproval ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs border-b border-border/40" : "hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-colors border-b border-border/40"}
+                                  className={isNeedsApproval ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs border-b border-border/40" : "hover:bg-primary/[0.03] dark:hover:bg-primary/[0.06] transition-colors border-b border-border/40"}
                                 >
                                   {/* رقم أمر الصرف */}
                                   <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">

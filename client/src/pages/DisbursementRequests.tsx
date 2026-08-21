@@ -813,7 +813,7 @@ export default function DisbursementRequests() {
                           return (
                             <TableRow 
                               key={request.id} 
-                              className={isPendingAction ? "bg-gradient-to-l from-emerald-50/70 via-teal-50/20 to-transparent dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-transparent hover:from-emerald-50/90 border-r-4 border-r-[#1a5f4a] transition-all shadow-xs" : ""}
+                              className={isPendingAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
                             >
                               <TableCell className="py-3.5 px-4 font-sans text-xs text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center gap-2 justify-start">
