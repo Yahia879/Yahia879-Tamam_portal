@@ -409,7 +409,7 @@ export default function MyMosques() {
                     )}
 
                     <div className="flex items-center gap-2 mt-auto pt-1 sm:pt-2">
-                      <Link href={`/mosques/${mosque.id}`} className="flex-1">
+                      <Link href={`/requester/mosques/${mosque.id}`} className="flex-1">
                         <Button variant="outline" className="w-full rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold h-8 sm:h-9 gap-1.5 cursor-pointer">
                           <Eye className="w-3.5 h-3.5" />
                           <span>التفاصيل</span>
