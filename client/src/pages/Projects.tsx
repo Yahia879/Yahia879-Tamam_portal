@@ -410,14 +410,6 @@ export default function Projects() {
                                   {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
                                 </DropdownMenuItem>
                               </Link>
-                              {canViewDetails && project.requestId && user?.role !== "project_manager" && (
-                                <Link href={`/requests/${project.requestId}`}>
-                                  <DropdownMenuItem>
-                                    <FileText className="w-4 h-4 ml-2" />
-                                    عرض الطلب
-                                  </DropdownMenuItem>
-                                </Link>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}

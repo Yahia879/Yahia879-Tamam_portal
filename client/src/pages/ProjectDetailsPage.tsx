@@ -105,6 +105,18 @@ const phaseStatusLabels: Record<string, string> = {
   completed: "مكتمل",
 };
 
+const programLabels: Record<string, string> = {
+  bunyan: "بنيان",
+  daaem: "دعائم",
+  enaya: "عناية",
+  emdad: "إمداد",
+  ethraa: "إثراء",
+  sedana: "سدانة",
+  taqa: "طاقة",
+  miyah: "مياه",
+  suqya: "سقيا",
+};
+
 // المراحل التي تظهر فيها الميزانية (من التقييم المالي واعتماد العرض وما بعدها)
 const BUDGET_VISIBLE_STAGES = [
   "financial_eval_and_approval",
@@ -891,12 +903,9 @@ export default function ProjectDetailsPage() {
                     {project.request && (
                       <div className="pt-2 border-t border-border/40">
                         <span className="text-muted-foreground block text-[11px]">الطلب المرتبط:</span>
-                        <Link href={`/requests/${project.request.id}`}>
-                          <span className="font-bold text-primary hover:underline flex items-center gap-1 mt-1 cursor-pointer font-sans">
-                            {project.request.requestNumber}
-                            <ArrowRight className="w-3 h-3 rotate-180" />
-                          </span>
-                        </Link>
+                        <span className="font-bold text-foreground block mt-1 font-sans">
+                          {project.request.requestNumber}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1031,16 +1040,15 @@ export default function ProjectDetailsPage() {
                         <div className="grid grid-cols-2 gap-4 text-xs sm:text-sm">
                           <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                             <p className="text-xs text-muted-foreground font-semibold">رقم الطلب</p>
-                            <Link href={`/requests/${project.request.id}`}>
-                              <p className="font-bold text-primary hover:underline cursor-pointer flex items-center gap-1 mt-1">
-                                {project.request.requestNumber}
-                                <ArrowRight className="w-3 h-3 rotate-180" />
-                              </p>
-                            </Link>
+                            <p className="font-bold text-foreground mt-1 font-sans">
+                              {project.request.requestNumber}
+                            </p>
                           </div>
                           <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                             <p className="text-xs text-muted-foreground font-semibold">البرنامج</p>
-                            <p className="font-bold text-foreground mt-1">{project.request.programType || "—"}</p>
+                            <p className="font-bold text-foreground mt-1">
+                              {programLabels[project.request.programType?.toLowerCase() || ""] || project.request.programType || "—"}
+                            </p>
                           </div>
                           {project.request.mosqueName && (
                             <div className="col-span-2 p-3 rounded-xl bg-muted/20 border border-border/40">
