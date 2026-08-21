@@ -493,12 +493,12 @@ export default function MyRequests() {
           </div>
 
           {/* Pagination Footer */}
-          <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-            <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
-              عرض {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} من أصل {total} طلب
-            </div>
+          {totalPages > 1 && (
+            <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
+                عرض {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, total)} من أصل {total} طلب
+              </div>
 
-            {totalPages > 1 && (
               <div className="flex items-center gap-1 overflow-x-auto max-w-full py-0.5">
                 <Button
                   variant="outline"
@@ -558,8 +558,8 @@ export default function MyRequests() {
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">

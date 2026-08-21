@@ -89,7 +89,7 @@ export default function MyMosques() {
   const [statusTab, setStatusTab] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
   const [page, setPage] = useState<number>(1);
-  const limit = 9;
+  const limit = 10;
 
   // تأخير البحث لتجنب كثرة الطلبات (Debounce)
   useEffect(() => {
@@ -432,21 +432,21 @@ export default function MyMosques() {
           </div>
 
           {/* Pagination Footer */}
-          <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-            <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
-              عرض{" "}
-              <span className="font-bold text-foreground font-mono">
-                {total === 0 ? 0 : (page - 1) * limit + 1}
-              </span>{" "}
-              إلى{" "}
-              <span className="font-bold text-foreground font-mono">
-                {Math.min(page * limit, total)}
-              </span>{" "}
-              من إجمالي{" "}
-              <span className="font-bold text-foreground font-mono">{total}</span> مسجد
-            </div>
+          {totalPages > 1 && (
+            <div className="p-3 sm:p-4 bg-muted/20 border border-border/60 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
+              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-right font-medium">
+                عرض{" "}
+                <span className="font-bold text-foreground font-mono">
+                  {total === 0 ? 0 : (page - 1) * limit + 1}
+                </span>{" "}
+                إلى{" "}
+                <span className="font-bold text-foreground font-mono">
+                  {Math.min(page * limit, total)}
+                </span>{" "}
+                من إجمالي{" "}
+                <span className="font-bold text-foreground font-mono">{total}</span> مسجد
+              </div>
 
-            {totalPages > 1 && (
               <div className="flex items-center gap-1 overflow-x-auto max-w-full py-0.5">
                 <Button
                   variant="outline"
@@ -504,8 +504,8 @@ export default function MyMosques() {
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <Card className="border border-border/60 shadow-xs rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center bg-card">
