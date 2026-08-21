@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -212,8 +212,44 @@ export default function RequestDetailsNew() {
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [boqOpen, setBoqOpen] = useState(false);
-  const [showReviewInfo, setShowReviewInfo] = useState(false);
-  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
+  const [showReviewInfo, setShowReviewInfo] = useState(() => user?.role === "service_requester");
+  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; contentType?: string } | null>(null);
+
+  useEffect(() => {
+    if (user?.role === "service_requester") {
+      setShowReviewInfo(true);
+    }
+  }, [user?.role]);
+
+  const handleViewAttachment = (url: string, title: string) => {
+    const ext = title.split('.').pop()?.toLowerCase() || '';
+    let contentType = '';
+    if (ext === 'pdf') contentType = 'application/pdf';
+    else if (['jpg', 'jpeg'].includes(ext)) contentType = 'image/jpeg';
+    else if (ext === 'png') contentType = 'image/png';
+    else if (ext === 'webp') contentType = 'image/webp';
+    else if (ext === 'gif') contentType = 'image/gif';
+    else if (ext === 'docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    else if (ext === 'doc') contentType = 'application/msword';
+    else contentType = 'application/octet-stream';
+
+    setPreviewDoc({ url, title, contentType });
+  };
+
+  const handleClosePreview = () => {
+    setPreviewDoc(null);
+  };
+
+  const handleDownloadPreview = () => {
+    if (!previewDoc) return;
+    const a = document.createElement('a');
+    a.href = previewDoc.url;
+    a.download = previewDoc.title;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
   
   // States for add dialogs
   const [addCommentOpen, setAddCommentOpen] = useState(false);
@@ -1070,7 +1106,7 @@ export default function RequestDetailsNew() {
               <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
                 <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3">
                   <ArrowRight className={`w-4 h-4 ${isEn ? "rotate-180 mr-2" : "ml-2"}`} />
-                  <span className="hidden sm:inline">{isEn ? "Back" : "رجوع"}</span>
+                  <span className="hidden sm:inline">{user?.role === "service_requester" ? "العودة لطلباتي" : (isEn ? "Back" : "رجوع")}</span>
                 </Button>
               </Link>
               <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0">
@@ -1129,19 +1165,21 @@ export default function RequestDetailsNew() {
                       <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-lg bg-purple-50/90 text-purple-700 border border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/80 shadow-2xs">
                         <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>{request.descriptiveName}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDescriptiveNameInput(request.descriptiveName || "");
-                            setShowEditCaptionDialog(true);
-                          }}
-                          className="hover:text-purple-950 dark:hover:text-purple-100 transition-colors mr-1 p-0.5 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50"
-                          title="تعديل التسمية التوضيحية"
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </button>
+                        {user?.role !== "service_requester" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDescriptiveNameInput(request.descriptiveName || "");
+                              setShowEditCaptionDialog(true);
+                            }}
+                            className="hover:text-purple-950 dark:hover:text-purple-100 transition-colors mr-1 p-0.5 rounded hover:bg-purple-100 dark:hover:bg-purple-900/50 cursor-pointer"
+                            title="تعديل التسمية التوضيحية"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
                       </div>
-                    ) : (
+                    ) : user?.role !== "service_requester" ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -1155,7 +1193,7 @@ export default function RequestDetailsNew() {
                         <span>إضافة تسمية توضيحية للطلب</span>
                         <Pencil className="w-3 h-3 text-purple-500 opacity-80" />
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -1188,6 +1226,31 @@ export default function RequestDetailsNew() {
           </div>
         ) : (
           <>
+            {/* بنر تقييم رضا المستفيد لطالب الخدمة */}
+            {user?.role === "service_requester" && (request.currentStage === "closed" || request.status === "completed") && !(request as any).isEvaluated && !request.satisfactionRating && (
+              <div className="mb-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-l from-amber-500/15 via-amber-500/10 to-emerald-500/10 border-2 border-amber-400/50 dark:border-amber-600/40 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in duration-300">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+                    <Star className="w-6 h-6 fill-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-base sm:text-lg text-foreground">
+                      رأيك يهمنا! شاركنا تقييمك لجودة الخدمة المقدمة
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      تم إنجاز طلبك بنجاح. يسعدنا تقييمك للخدمة لمساعدتنا في التطوير المستمر لبيوت الله.
+                    </p>
+                  </div>
+                </div>
+                <Link href={`/requests/${requestId}/evaluation`}>
+                  <Button className="rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold gap-2 shadow-md hover:scale-105 transition-all h-11 px-6 shrink-0 cursor-pointer">
+                    <Star className="w-4 h-4 fill-white" />
+                    <span>تقييم الخدمة الآن</span>
+                  </Button>
+                </Link>
+              </div>
+            )}
+
             {/* Progress Stepper */}
             <ProgressStepper
               steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack || undefined) }))}
@@ -1606,7 +1669,7 @@ export default function RequestDetailsNew() {
                 })()}
               
               {/* قسم المراجعة الأولية */}
-              {request.currentStage === 'initial_review' && (
+              {request.currentStage === 'initial_review' && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
                 <div className="bg-blue-50 dark:bg-blue-950/20 p-4 sm:p-6 rounded-xl border-2 border-blue-200 dark:border-blue-800">
                   <div className="flex items-center gap-3 mb-4">
                     <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
@@ -1940,16 +2003,16 @@ export default function RequestDetailsNew() {
                                 src={attachment.fileUrl} 
                                 alt={attachment.fileName} 
                                 className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
-                                onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
+                                onClick={() => handleViewAttachment(attachment.fileUrl, attachment.fileName)}
                               />
                               <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
                                 <Button 
                                   type="button" 
                                   variant="secondary" 
                                   size="icon" 
-                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
-                                  onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
-                                  title={isEn ? "View image full screen" : "عرض الصورة ملء الشاشة"}
+                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors cursor-pointer"
+                                  onClick={() => handleViewAttachment(attachment.fileUrl, attachment.fileName)}
+                                  title={isEn ? "View file full screen" : "عرض الملف ملء الشاشة"}
                                 >
                                   <Eye className="w-4 h-4" />
                                 </Button>
@@ -1957,9 +2020,9 @@ export default function RequestDetailsNew() {
                                   type="button" 
                                   variant="secondary" 
                                   size="icon" 
-                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors"
+                                  className="w-9 h-9 rounded-full bg-white dark:bg-slate-900 shadow-md hover:bg-orange-500 hover:text-white transition-colors cursor-pointer"
                                   asChild
-                                  title={isEn ? "Download image" : "تنزيل الصورة"}
+                                  title={isEn ? "Download file" : "تنزيل الملف"}
                                 >
                                   <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
                                     <Download className="w-4 h-4" />
@@ -1968,7 +2031,10 @@ export default function RequestDetailsNew() {
                               </div>
                             </div>
                           ) : (
-                            <div className="aspect-video w-full rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2">
+                            <div 
+                              className="aspect-video w-full rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2 cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors"
+                              onClick={() => handleViewAttachment(attachment.fileUrl, attachment.fileName)}
+                            >
                               <FileText className="w-10 h-10 text-slate-300 dark:text-slate-700" />
                               <span className="text-[10px] bg-slate-200/50 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-400 font-medium">
                                 {isEn ? "Document" : "مستند"}
@@ -1984,22 +2050,20 @@ export default function RequestDetailsNew() {
                                 {isEn ? (attachment.fileType || 'File') : (attachment.fileType || 'ملف')}
                               </span>
                               <div className="flex items-center gap-1.5">
-                                {isImg && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1"
-                                    onClick={() => setPreviewImage({ url: attachment.fileUrl, name: attachment.fileName })}
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    {isEn ? "View" : "عرض"}
-                                  </Button>
-                                )}
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1 cursor-pointer"
+                                  onClick={() => handleViewAttachment(attachment.fileUrl, attachment.fileName)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  {isEn ? "View" : "معاينة"}
+                                </Button>
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
                                   asChild 
-                                  className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1"
+                                  className="h-8 px-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20 font-bold text-[11px] rounded-lg gap-1 cursor-pointer"
                                 >
                                   <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" download={attachment.fileName}>
                                     <Download className="w-3.5 h-3.5" />
@@ -2168,8 +2232,8 @@ export default function RequestDetailsNew() {
                                     type="button" 
                                     variant="secondary" 
                                     size="icon" 
-                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300"
-                                    onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300 cursor-pointer"
+                                    onClick={() => handleViewAttachment(photo.fileUrl, photo.fileName)}
                                     title={isEn ? "View image" : "عرض الصورة"}
                                   >
                                     <Eye className="w-4 h-4" />
@@ -2421,8 +2485,8 @@ export default function RequestDetailsNew() {
                                     type="button" 
                                     variant="secondary" 
                                     size="icon" 
-                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300"
-                                    onClick={() => setPreviewImage({ url: photo.fileUrl, name: photo.fileName })}
+                                    className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-900/95 shadow-lg text-slate-700 dark:text-slate-200 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white transition-all transform scale-90 group-hover:scale-100 duration-300 cursor-pointer"
+                                    onClick={() => handleViewAttachment(photo.fileUrl, photo.fileName)}
                                     title="عرض الصورة"
                                   >
                                     <Eye className="w-4 h-4" />
@@ -3451,50 +3515,89 @@ export default function RequestDetailsNew() {
         )}
       </ColoredDialog>
 
-      {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
-      {previewImage && (
+      {/* نافذة معاينة المرفقات والوثائق الفاخرة (Lightbox Modal) */}
+      {previewDoc && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-6 animate-in fade-in duration-200"
+          onClick={handleClosePreview}
         >
           <div 
-            className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center bg-slate-900/55 border border-slate-800 rounded-2xl p-2 sm:p-4 shadow-2xl overflow-hidden"
+            className="relative max-w-5xl w-full h-[90vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
-            <button 
-              onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700/80 text-white rounded-full p-2 transition-all z-10 shadow-lg"
-              title="إغلاق"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Header controls bar */}
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-slate-800/80 z-10 shrink-0">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 border border-orange-500/20">
+                  <Paperclip className="w-4 h-4" />
+                </div>
+                <p className="text-sm font-bold text-slate-100 truncate" title={previewDoc.title}>
+                  {previewDoc.title}
+                </p>
+              </div>
 
-            {/* Download button */}
-            <a 
-              href={previewImage.url} 
-              download={previewImage.name}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute top-4 left-4 bg-slate-800/80 hover:bg-orange-600/80 text-white rounded-full p-2 transition-all flex items-center gap-1.5 px-3 z-10 shadow-lg"
-              title="تحميل"
-            >
-              <Download className="w-4 h-4" />
-              <span className="text-xs font-bold hidden sm:inline">تحميل</span>
-            </a>
-
-            {/* Image container */}
-            <div className="w-full flex-1 flex items-center justify-center p-2 overflow-auto mt-12 mb-2">
-              <img 
-                src={previewImage.url} 
-                alt={previewImage.name} 
-                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
-              />
+              <div className="flex items-center gap-2 shrink-0">
+                <Button 
+                  size="sm" 
+                  onClick={handleDownloadPreview}
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-bold h-8 px-3 rounded-lg gap-1.5 shadow-sm text-xs cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isEn ? "Download" : "تنزيل"}</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleClosePreview}
+                  className="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                  title={isEn ? "Close" : "إغلاق"}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
 
-            {/* Caption/Name */}
-            <div className="mt-2 text-center px-4 py-2 w-full border-t border-slate-800/60 bg-slate-900/30">
-              <p className="text-sm font-bold text-slate-100 truncate">{previewImage.name}</p>
+            {/* Document preview container */}
+            <div className="w-full flex-1 flex items-center justify-center p-4 overflow-auto bg-slate-950/50">
+              {previewDoc.contentType?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].some(ext => previewDoc.title?.toLowerCase().endsWith('.' + ext)) ? (
+                <img 
+                  src={previewDoc.url} 
+                  alt={previewDoc.title} 
+                  className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-md"
+                />
+              ) : previewDoc.contentType === 'application/pdf' || previewDoc.title?.toLowerCase().endsWith('.pdf') ? (
+                <iframe 
+                  src={`${previewDoc.url}#toolbar=0`} 
+                  className="w-full h-full rounded-lg border border-slate-800 bg-white"
+                  title={previewDoc.title}
+                />
+              ) : (
+                <div className="text-center p-8 bg-slate-900/60 rounded-2xl border border-slate-800 max-w-md space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-400 mx-auto flex items-center justify-center border border-orange-500/20">
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-100 text-base mb-1">{previewDoc.title}</h5>
+                    <p className="text-xs text-slate-400">لا يمكن عرض هذا النوع من الملفات مباشرة داخل المتصفح</p>
+                  </div>
+                  <Button 
+                    onClick={handleDownloadPreview}
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl gap-2 w-full cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>تنزيل الملف وفتحه على جهازك</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Caption Bar */}
+            <div className="px-4 py-2.5 bg-slate-950/80 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 shrink-0">
+              <span className="truncate flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <span>{previewDoc.title}</span>
+              </span>
+              <span className="shrink-0 text-[11px] text-slate-500">معاينة آمنة • بوابة تمام</span>
             </div>
           </div>
         </div>
