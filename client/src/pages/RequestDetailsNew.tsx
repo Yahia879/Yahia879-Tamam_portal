@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -1104,9 +1104,13 @@ export default function RequestDetailsNew() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <Link href={user?.role === "service_requester" ? "/my-requests" : "/requests"}>
-                <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-auto p-0 sm:px-3">
-                  <ArrowRight className={`w-4 h-4 ${isEn ? "rotate-180 mr-2" : "ml-2"}`} />
-                  <span className="hidden sm:inline">{user?.role === "service_requester" ? "العودة لطلباتي" : (isEn ? "Back" : "رجوع")}</span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-xl hover:bg-muted text-foreground transition-colors shrink-0 cursor-pointer"
+                  title={user?.role === "service_requester" ? "العودة لطلباتي" : (isEn ? "Back" : "رجوع")}
+                >
+                  <ArrowRight className={`w-5 h-5 ${isEn ? "rotate-180" : ""}`} />
                 </Button>
               </Link>
               <div className="flex items-start sm:items-center gap-3.5 sm:gap-5 min-w-0">
@@ -1828,156 +1832,285 @@ export default function RequestDetailsNew() {
 
           {showReviewInfo && (
             <div className="mt-4 space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
-              {/* تفاصيل الطلب */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm">
-                <h4 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2 text-slate-800 dark:text-slate-200 border-b pb-3 border-slate-200 dark:border-slate-800">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  {isEn ? "Basic Request Details" : "تفاصيل الطلب الأساسية"}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* معلومات أساسية ثابته */}
-                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Program" : "البرنامج"}</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
+              {/* تفاصيل الطلب والمسجد */}
+              <div className="bg-card border border-border/80 rounded-2xl p-4 sm:p-6 shadow-xs space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/70 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20 shadow-2xs">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-base sm:text-lg text-foreground">
+                        {isEn ? "Basic Request Details" : "تفاصيل وبيانات الطلب"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isEn ? "General information, program specifications, and submitted requirements" : "المعلومات العامة ومواصفات البرنامج ومتطلبات الطلب المدخلة"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-muted text-muted-foreground border border-border/60 font-mono">
+                      {request.requestNumber}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800">
                       {isMultiMosque ? "مشروع مباشر لعدة مساجد" : translateProgram(request.programType)}
-                    </p>
+                    </span>
                   </div>
-                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Submission Date" : "تاريخ التقديم"}</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}</p>
+                </div>
+
+                {/* General Info Grid */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                    {/* البرنامج */}
+                    <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                      <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Program" : "البرنامج"}</p>
+                      <p className="text-sm font-extrabold text-foreground">
+                        {isMultiMosque ? "مشروع مباشر لعدة مساجد" : translateProgram(request.programType)}
+                      </p>
+                    </div>
+
+                    {/* تاريخ التقديم */}
+                    <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                      <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Submission Date" : "تاريخ التقديم"}</p>
+                      <p className="text-sm font-extrabold text-foreground">
+                        {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                      </p>
+                    </div>
+
+                    {/* اسم المسجد */}
+                    {request.mosque && (
+                      <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                        <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Mosque" : "المسجد"}</p>
+                        <p className="text-sm font-extrabold text-foreground truncate" title={request.mosque.name}>
+                          {request.mosque.name}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* المدينة / الموقع */}
+                    {request.mosque && (
+                      <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                        <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "City" : "المدينة / المنطقة"}</p>
+                        <p className="text-sm font-extrabold text-foreground">
+                          {request.mosque.city || (isEn ? "Not specified" : "غير محدد")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* استجابة سريعة - المسؤول */}
+                    {request.requestTrack === 'quick_response' && request.assignedToUser && (
+                      <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                        <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Assigned To" : "المسؤول عن الاستجابة"}</p>
+                        <p className="text-sm font-extrabold text-foreground">{(request.assignedToUser as any).name}</p>
+                      </div>
+                    )}
+
+                    {/* استجابة سريعة - تاريخ البدء */}
+                    {request.requestTrack === 'quick_response' && (request as any).quickResponseStartDate && (
+                      <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                        <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Start Date" : "تاريخ البدء"}</p>
+                        <p className="text-sm font-extrabold text-foreground">
+                          {new Date((request as any).quickResponseStartDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* استجابة سريعة - تاريخ الانتهاء */}
+                    {request.requestTrack === 'quick_response' && (request as any).quickResponseEndDate && (
+                      <div className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-1">
+                        <p className="text-[11px] font-bold text-muted-foreground">{isEn ? "Expected Completion" : "تاريخ الانتهاء المتوقع"}</p>
+                        <p className="text-sm font-extrabold text-foreground">
+                          {new Date((request as any).quickResponseEndDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {request.requestTrack === 'quick_response' && (
-                    <>
-                      {request.assignedToUser && (
-                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Quick Response Assigned To" : "المسؤول عن الاستجابة السريعة"}</p>
-                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{(request.assignedToUser as any).name}</p>
-                        </div>
-                      )}
-                      {(request as any).quickResponseStartDate && (
-                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Quick Response Start Date" : "تاريخ بدء الاستجابة السريعة"}</p>
-                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
-                            {new Date((request as any).quickResponseStartDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
-                          </p>
-                        </div>
-                      )}
-                      {(request as any).quickResponseEndDate && (
-                        <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Expected Completion Date" : "تاريخ الانتهاء المتوقع"}</p>
-                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
-                            {new Date((request as any).quickResponseEndDate).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                  {isMultiMosque ? (
-                    <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50 shadow-xs">
-                      <p className="text-[10px] sm:text-xs text-indigo-700 dark:text-indigo-400 font-medium flex items-center gap-1.5">
-                        <MultiMosquesIcon className="w-3.5 h-3.5" />
+
+                  {/* مساجد متعددة إن وجدت */}
+                  {isMultiMosque && (
+                    <div className="bg-indigo-50/50 dark:bg-indigo-950/20 p-3.5 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50">
+                      <p className="text-[11px] text-indigo-700 dark:text-indigo-400 font-bold flex items-center gap-1.5 mb-1">
+                        <MultiMosquesIcon className="w-4 h-4" />
                         المساجد المشمولة بالمشروع
                       </p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <p className="text-sm font-extrabold text-slate-800 dark:text-slate-200">
                         {(request as any)?.multiMosques?.map((m: any) => m.name).join("، ") || "عدة مساجد مخصصة"}
                       </p>
                     </div>
-                  ) : request.mosque ? (
-                    <>
-                      <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Mosque" : "المسجد"}</p>
-                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 truncate">{request.mosque.name}</p>
-                      </div>
-                      <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Location" : "الموقع"}</p>
-                        <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{request.mosque.city || (isEn ? "Not specified" : "غير محدد")}</p>
-                      </div>
-                    </>
-                  ) : null}
-
-                  {/* معلومات الحقول الديناميكية */}
-                  {(() => {
-                    const allFields = getAllFieldsForProgram(request.programType);
-                    let programData: Record<string, any> = {};
-                    
-                    try {
-                      if (typeof request.programData === 'string') {
-                        programData = JSON.parse(request.programData);
-                      } else {
-                        programData = (request.programData as Record<string, any>) || {};
-                      }
-                    } catch (e) {
-                      console.error("Error parsing programData:", e);
-                      programData = {};
-                    }
-                    
-                    return allFields
-                      .filter(field => field.name !== 'mosqueId' && programData[field.name] !== undefined)
-                      .map(field => {
-                        let displayLabel = field.label;
-                        if (isEn) {
-                          const enFieldLabels: Record<string, string> = {
-                            "حالة البناء": "Building Status",
-                            "سعة المصلين": "Worshipers Capacity",
-                            "نوع المبنى": "Building Type",
-                            "ملاحظات وتفاصيل إضافية": "Additional Notes & Details",
-                            "المنطقة": "Region",
-                            "المدينة/القرية": "City/Village",
-                            "هل توجد إحداثيات": "Are coordinates available?",
-                            "الحاجة": "Need / Urgency",
-                            "نوع التوريد": "Supply Type",
-                            "الكمية المطلوبة": "Required Quantity",
-                            "التفاصيل": "Details",
-                            "الوصف": "Description",
-                            "المستفيد": "Beneficiary",
-                            "ملاحظات": "Notes",
-                            "وصف الأعمال المطلوبة": "Description of required works",
-                            "مساحة المسجد بالمتر المربع": "Mosque area in square meters",
-                            "عدد المصلين الفعلي": "Actual number of worshipers",
-                            "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟": "Are you willing to establish a volunteer team under your leadership to market the opportunity?",
-                          };
-                          displayLabel = enFieldLabels[field.label] || field.label;
-                        }
-
-                        let displayValue = programData[field.name];
-                        
-                        // معالجة القيم الخاصة (مثل نعم/لا)
-                        if (field.type === 'radio' || field.type === 'select') {
-                          const option = field.options?.find(opt => opt.value === displayValue);
-                          if (option) {
-                            displayValue = option.label;
-                            if (isEn) {
-                              const enOptions: Record<string, string> = {
-                                "نعم": "Yes",
-                                "لا": "No",
-                                "ممتاز": "Excellent",
-                                "جيد جداً": "Very Good",
-                                "جيد": "Good",
-                                "مقبول": "Fair",
-                                "ضعيف": "Poor",
-                                "خرساني": "Concrete",
-                                "مسبق الصنع": "Prefabricated",
-                                "شعبي": "Traditional",
-                                "أخرى": "Other",
-                              };
-                              displayValue = enOptions[option.label] || option.label;
-                            }
-                          } else if (displayValue === 'yes') {
-                            displayValue = isEn ? 'Yes' : 'نعم';
-                          } else if (displayValue === 'no') {
-                            displayValue = isEn ? 'No' : 'لا';
-                          }
-                        }
-
-                        return (
-                          <div key={field.name} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs" dir={isEn ? "ltr" : "rtl"}>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{displayLabel}</p>
-                            <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{String(displayValue)}</p>
-                          </div>
-                        );
-                      });
-                  })()}
+                  )}
                 </div>
+
+                {/* معلومات الحقول الديناميكية */}
+                {(() => {
+                  const allFields = getAllFieldsForProgram(request.programType);
+                  let programData: Record<string, any> = {};
+                  
+                  try {
+                    if (typeof request.programData === 'string') {
+                      programData = JSON.parse(request.programData);
+                    } else {
+                      programData = (request.programData as Record<string, any>) || {};
+                    }
+                  } catch (e) {
+                    console.error("Error parsing programData:", e);
+                    programData = {};
+                  }
+
+                  const activeFields = allFields.filter(
+                    field => field.name !== 'mosqueId' && programData[field.name] !== undefined && programData[field.name] !== '' && programData[field.name] !== null
+                  );
+
+                  if (activeFields.length === 0) return null;
+
+                  // Separate short/choice/numeric fields vs long textareas
+                  const shortFields: any[] = [];
+                  const longFields: any[] = [];
+
+                  activeFields.forEach(field => {
+                    let displayLabel = field.label;
+                    if (isEn) {
+                      const enFieldLabels: Record<string, string> = {
+                        "حالة البناء": "Building Status",
+                        "سعة المصلين": "Worshipers Capacity",
+                        "نوع المبنى": "Building Type",
+                        "ملاحظات وتفاصيل إضافية": "Additional Notes & Details",
+                        "المنطقة": "Region",
+                        "المدينة/القرية": "City/Village",
+                        "هل توجد إحداثيات": "Are coordinates available?",
+                        "الحاجة": "Need / Urgency",
+                        "نوع التوريد": "Supply Type",
+                        "الكمية المطلوبة": "Required Quantity",
+                        "التفاصيل": "Details",
+                        "الوصف": "Description",
+                        "المستفيد": "Beneficiary",
+                        "ملاحظات": "Notes",
+                        "وصف الأعمال المطلوبة": "Description of required works",
+                        "مساحة المسجد بالمتر المربع": "Mosque area in square meters",
+                        "عدد المصلين الفعلي": "Actual number of worshipers",
+                        "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟": "Willing to establish a volunteer team?",
+                      };
+                      displayLabel = enFieldLabels[field.label] || field.label;
+                    }
+
+                    let displayValue = programData[field.name];
+                    
+                    if (field.type === 'radio' || field.type === 'select') {
+                      const option = field.options?.find(opt => opt.value === displayValue);
+                      if (option) {
+                        displayValue = option.label;
+                        if (isEn) {
+                          const enOptions: Record<string, string> = {
+                            "نعم": "Yes",
+                            "لا": "No",
+                            "ممتاز": "Excellent",
+                            "جيد جداً": "Very Good",
+                            "جيد": "Good",
+                            "مقبول": "Fair",
+                            "ضعيف": "Poor",
+                            "خرساني": "Concrete",
+                            "مسبق الصنع": "Prefabricated",
+                            "شعبي": "Traditional",
+                            "أخرى": "Other",
+                          };
+                          displayValue = enOptions[option.label] || option.label;
+                        }
+                      } else if (displayValue === 'yes') {
+                        displayValue = isEn ? 'Yes' : 'نعم';
+                      } else if (displayValue === 'no') {
+                        displayValue = isEn ? 'No' : 'لا';
+                      }
+                    } else if (displayValue === 'yes') {
+                      displayValue = isEn ? 'Yes' : 'نعم';
+                    } else if (displayValue === 'no') {
+                      displayValue = isEn ? 'No' : 'لا';
+                    }
+
+                    const isLongText = field.type === 'textarea' || (typeof displayValue === 'string' && displayValue.length > 60);
+
+                    if (isLongText) {
+                      longFields.push({ field, displayLabel, displayValue });
+                    } else {
+                      shortFields.push({ field, displayLabel, displayValue });
+                    }
+                  });
+
+                  return (
+                    <div className="space-y-4 pt-2">
+                      {/* Short / Choice / Numerical Fields Grid */}
+                      {shortFields.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                          {shortFields.map(({ field, displayLabel, displayValue }) => {
+                            const isYes = displayValue === 'نعم' || displayValue === 'Yes';
+                            const isNo = displayValue === 'لا' || displayValue === 'No';
+                            const isArea = field.name?.toLowerCase().includes('area') || field.label?.includes('مساحة');
+                            const isCapacity = field.name?.toLowerCase().includes('worshippers') || field.name?.toLowerCase().includes('capacity') || field.label?.includes('مصلين');
+
+                            return (
+                              <div 
+                                key={field.name} 
+                                className="bg-slate-50/80 dark:bg-slate-900/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col justify-between gap-1.5 shadow-2xs"
+                                dir={isEn ? "ltr" : "rtl"}
+                              >
+                                <p className="text-[11px] font-bold text-muted-foreground leading-tight">
+                                  {displayLabel}
+                                </p>
+                                <div className="pt-0.5">
+                                  {isYes ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                      <span>{displayValue}</span>
+                                    </span>
+                                  ) : isNo ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800">
+                                      <XCircle className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                                      <span>{displayValue}</span>
+                                    </span>
+                                  ) : isArea ? (
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="text-sm font-extrabold text-foreground">{displayValue}</span>
+                                      <span className="text-[11px] text-muted-foreground font-normal">م²</span>
+                                    </div>
+                                  ) : isCapacity ? (
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="text-sm font-extrabold text-foreground">{displayValue}</span>
+                                      <span className="text-[11px] text-muted-foreground font-normal">مصلٍ</span>
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm font-extrabold text-foreground break-words">
+                                      {String(displayValue)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Long Text Fields / Textareas */}
+                      {longFields.length > 0 && (
+                        <div className="space-y-3 pt-2">
+                          {longFields.map(({ field, displayLabel, displayValue }) => (
+                            <div 
+                              key={field.name} 
+                              className="bg-slate-50/80 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/70 dark:border-slate-800/80 space-y-2 shadow-2xs"
+                              dir={isEn ? "ltr" : "rtl"}
+                            >
+                              <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span>{displayLabel}</span>
+                              </div>
+                              <div className="bg-white dark:bg-slate-950/60 p-3.5 rounded-lg border border-slate-200/60 dark:border-slate-800/60 text-sm font-medium text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                                {String(displayValue)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* المرفقات */}
