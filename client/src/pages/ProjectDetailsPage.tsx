@@ -286,6 +286,28 @@ export default function ProjectDetailsPage() {
     return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num)} ر.س.`;
   };
 
+  const formatDate = (dateVal: string | Date | null | undefined) => {
+    if (!dateVal) return "غير محدد";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "غير محدد";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
+  };
+
+  const formatDateTime = (dateVal: string | Date | null | undefined) => {
+    if (!dateVal) return "غير محدد";
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "غير محدد";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}/${month}/${day} ${hours}:${minutes}`;
+  };
+
   // التحقق مما إذا كان جدول الكميات مقفلاً (إذا اكتملت المرحلة الثانية أو بدأت مراحل بعدها)
   const isBOQLocked = project?.phases?.some(p => 
     (p.phaseOrder === 2 && p.status === "completed") || 
@@ -950,19 +972,13 @@ export default function ProjectDetailsPage() {
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ البدء</p>
                           <p className="font-bold text-foreground mt-0.5">
-                            {project.startDate 
-                              ? new Date(project.startDate).toLocaleDateString("ar-SA-u-nu-latn")
-                              : "لم يبدأ بعد"
-                            }
+                            {formatDate(project.startDate)}
                           </p>
                         </div>
                         <div className="p-3 rounded-xl bg-muted/20 border border-border/40">
                           <p className="text-xs text-muted-foreground font-semibold">تاريخ الانتهاء المتوقع</p>
                           <p className="font-bold text-foreground mt-0.5">
-                            {project.expectedEndDate 
-                              ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA-u-nu-latn")
-                              : "غير محدد"
-                            }
+                            {formatDate(project.expectedEndDate)}
                           </p>
                         </div>
                         {project.donorName && (
@@ -1141,7 +1157,7 @@ export default function ProjectDetailsPage() {
                             <div className="flex justify-between items-center w-full">
                               <span className="font-bold text-primary text-xs sm:text-sm">{evalNote.userName || "موظف التقييم"}</span>
                               <span className="text-xs text-muted-foreground flex items-center gap-1 font-sans">
-                                {new Date(evalNote.createdAt).toLocaleString("ar-SA-u-nu-latn")}
+                                {formatDateTime(evalNote.createdAt)}
                               </span>
                             </div>
                             <div className="text-xs sm:text-sm space-y-2">

@@ -565,7 +565,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                       <Building2 className="w-4 h-4 ml-1.5" />
                       <span>{mosque.name}</span>
                       <span className="mr-2 text-[10px] opacity-85">
-                        ({mItems.length} بند • {mTotal.toLocaleString("ar-SA")} ر.س)
+                        ({mItems.length} بند • {mTotal.toLocaleString("en-US")} ر.س)
                       </span>
                     </TabsTrigger>
                   );
@@ -602,7 +602,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                       <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-border/50 text-xs">
                         <span className="text-muted-foreground font-medium">إجمالي الجدول:</span>
                         <span className="font-bold text-sm text-teal-600 dark:text-teal-400">
-                          {m.totalAmount.toLocaleString("ar-SA")} ريال
+                          {m.totalAmount.toLocaleString("en-US")} ريال
                         </span>
                       </div>
                     </CardContent>
@@ -653,7 +653,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                     {isMultiMosque && selectedMosqueTab === "all" ? "الإجمالي الكلي للمشروع" : "إجمالي الجدول"}
                   </p>
                   <p className="text-xl sm:text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {filteredTotalAmount.toLocaleString("ar-SA")} ريال
+                    {filteredTotalAmount.toLocaleString("en-US")} ريال
                   </p>
                 </div>
                 <div className="rounded-xl bg-background/80 p-3.5 border border-border/60 shadow-2xs">
@@ -712,7 +712,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                     </div>
 
                     <span className="text-xs font-semibold text-muted-foreground">
-                      مجموع الفئة: {items.reduce((s: number, i: any) => s + (i.totalPrice ? parseFloat(i.totalPrice) : 0), 0).toLocaleString("ar-SA")} ر.س
+                      مجموع الفئة: {items.reduce((s: number, i: any) => s + (i.totalPrice ? parseFloat(i.totalPrice) : 0), 0).toLocaleString("en-US")} ر.س
                     </span>
                   </div>
 
@@ -754,10 +754,10 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                               <TableCell className="text-xs">{item.unit}</TableCell>
                               <TableCell className="text-xs font-bold">{item.quantity}</TableCell>
                               <TableCell className="text-xs">
-                                {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("ar-SA")} ر.س` : "-"}
+                                {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("en-US")} ر.س` : "-"}
                               </TableCell>
                               <TableCell className="font-bold text-xs sm:text-sm text-teal-600 dark:text-teal-400">
-                                {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("ar-SA")} ريال` : "-"}
+                                {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("en-US")} ريال` : "-"}
                               </TableCell>
                               {!isLocked && (canEdit || canDelete) && (
                                 <TableCell>

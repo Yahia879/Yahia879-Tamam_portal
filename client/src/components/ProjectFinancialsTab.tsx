@@ -564,7 +564,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <p className="text-sm text-gray-700 mt-2">
                 {isFullyCovered 
                   ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية (المبلغ المتفق عليه مع المورد + الأجور الإدارية)."
-                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكاليف والأجور الإدارية.`
+                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكاليف والأجور الإدارية.`
                 }
               </p>
             </div>
@@ -574,25 +574,25 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <div className="text-center p-2 border-r last:border-r-0">
                 <span className="text-muted-foreground block">مبلغ المورد</span>
                 <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block">
-                  {supplierBaseAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                  {supplierBaseAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2 border-r last:border-r-0">
                 <span className="text-muted-foreground block">+ الأجور الإدارية</span>
                 <span className="font-bold text-orange-700 text-sm mt-0.5 inline-block">
-                  {calculatedAdminFeeAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                  {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2 border-r last:border-r-0 bg-slate-50 rounded-sm">
                 <span className="text-muted-foreground block">= إجمالي التكلفة</span>
                 <span className="font-bold text-primary text-sm mt-0.5 inline-block">
-                  {totalRequiredCost.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                  {totalRequiredCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="text-center p-2">
                 <span className="text-muted-foreground block">مبلغ الدعم المقدم</span>
                 <span className={`font-bold text-sm mt-0.5 inline-block ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
-                  {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                  {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -656,14 +656,14 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="p-3 bg-gray-50 rounded-lg border">
                     <span className="text-muted-foreground block">التاريخ:</span>
                     <span className="font-bold text-gray-900 text-sm mt-1 inline-block">
-                      {approvedQuotation.createdAt ? new Date(approvedQuotation.createdAt).toLocaleDateString("ar-SA") : "-"}
+                      {approvedQuotation.createdAt ? new Date(approvedQuotation.createdAt).toLocaleDateString("en-CA") : "-"}
                     </span>
                   </div>
                   <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg col-span-2 flex justify-between items-center">
                     <div>
                       <span className="text-emerald-800 block text-xs font-medium">المبلغ المعتمد المتفق عليه مع المورد:</span>
                       <span className="font-bold text-emerald-900 text-base mt-0.5 block">
-                        {supplierBaseAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                        {supplierBaseAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                       </span>
                     </div>
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
@@ -827,7 +827,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="p-2.5 bg-blue-100/60 rounded-md border border-blue-200 flex items-center justify-between">
                     <span className="font-semibold text-blue-950 text-xs">إجمالي التمويل من كافة الداعمين:</span>
                     <span className="font-bold text-blue-900 text-sm">
-                      {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                     </span>
                   </div>
                 </div>
@@ -867,7 +867,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     <div>
                       <Label className="text-[11px] text-muted-foreground">المبلغ المحسوب للأجور</Label>
                       <div className="h-8 flex items-center px-3 rounded-md bg-white border font-bold text-orange-800 text-xs [direction:ltr]">
-                        {calculatedAdminFeeAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                        {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                       </div>
                     </div>
                   </div>
@@ -907,7 +907,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                           <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
                             <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
                             <span className="font-bold text-blue-900">
-                              {(source.amount || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                              {(source.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                             </span>
                           </div>
                         );
@@ -918,7 +918,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="flex items-center justify-between border-t border-gray-200 pt-2 font-bold">
                     <span className="text-muted-foreground">إجمالي الدعم المقدم:</span>
                     <span className="font-black text-green-700 text-sm">
-                      {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                     </span>
                   </div>
                 </div>
@@ -933,7 +933,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="flex items-center justify-between border-t border-amber-200 pt-2">
                     <span className="text-muted-foreground">قيمة الأجور الإدارية المحسوبة:</span>
                     <span className="font-bold text-orange-700 text-sm">
-                      {calculatedAdminFeeAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                      {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                     </span>
                   </div>
                 </div>
@@ -978,7 +978,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <div className="text-right sm:text-left bg-white/80 dark:bg-slate-900/80 px-3.5 py-1.5 rounded-xl border border-amber-200 shadow-2xs">
                 <span className="text-[10px] text-muted-foreground block font-semibold">إجمالي الدين المستحق للجمعية</span>
                 <span className="text-lg font-black text-amber-800 dark:text-amber-400">
-                  {effectiveAssocAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">ريال</span>
+                  {effectiveAssocAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs font-semibold">ريال</span>
                 </span>
               </div>
             </CardHeader>
@@ -992,7 +992,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     إشارة وحالة الدين المالي: يُعد ديناً مستحقاً على المتبرع / الداعم
                   </h4>
                   <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed font-medium">
-                    تم صرف مبلغ قدره <strong>{effectiveAssocAmount.toLocaleString("ar-SA")} ريال</strong> من "الحساب العام للجمعية" لتغطية عجز مدفوعات الداعم ومتابعة تنفيذ أعمال المشروع بدون توقف. هذا المبلغ يُعد <strong>ديناً ثابتاً ومستحقاً لصالح الجمعية على جهة الدعم/المتبرع</strong>، ويجب سداده وإعادة إيداعه في الحساب العام للجمعية عند تحصيل باقي الدعم وسندات القبض القادمة.
+                    تم صرف مبلغ قدره <strong>{effectiveAssocAmount.toLocaleString("en-US")} ريال</strong> من "الحساب العام للجمعية" لتغطية عجز مدفوعات الداعم ومتابعة تنفيذ أعمال المشروع بدون توقف. هذا المبلغ يُعد <strong>ديناً ثابتاً ومستحقاً لصالح الجمعية على جهة الدعم/المتبرع</strong>، ويجب سداده وإعادة إيداعه في الحساب العام للجمعية عند تحصيل باقي الدعم وسندات القبض القادمة.
                   </p>
                 </div>
               </div>
@@ -1041,9 +1041,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                           <TableRow key={req.id}>
                             <TableCell className="font-sans text-xs font-bold">{req.requestNumber}</TableCell>
                             <TableCell className="text-xs font-medium">{req.title || "طلب صرف مرتبط"}</TableCell>
-                            <TableCell className="text-xs">{req.amount.toLocaleString()} ريال</TableCell>
+                            <TableCell className="text-xs">{req.amount.toLocaleString("en-US")} ريال</TableCell>
                             <TableCell className="text-xs font-bold text-amber-700 dark:text-amber-400">
-                              {req.coveredAmount.toLocaleString()} ريال
+                              {req.coveredAmount.toLocaleString("en-US")} ريال
                             </TableCell>
                             <TableCell className="text-center">
                               <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-[10px] font-bold">
@@ -1087,21 +1087,21 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
               <span className="text-xs text-muted-foreground block">إجمالي مبلغ الدعم المعتمد</span>
               <span className="text-lg font-bold text-blue-900 mt-1 block">
-                {currentSupportAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
 
             <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-right">
               <span className="text-xs text-muted-foreground block">إجمالي المقبوض فعلياً (سندات القبض)</span>
               <span className="text-lg font-bold text-emerald-900 mt-1 block">
-                {totalReceivedAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                {totalReceivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
 
             <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-100 text-right">
               <span className="text-xs text-muted-foreground block">المبلغ المتبقي للقبض</span>
               <span className="text-lg font-bold text-amber-900 mt-1 block">
-                {remainingSupportToCollect.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                {remainingSupportToCollect.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
           </div>
@@ -1170,21 +1170,21 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                         <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-100/90 text-right">
                           <span className="text-[10px] text-emerald-800 block font-semibold">المقبوض فعلياً (المدفوع)</span>
                           <span className="text-sm font-bold text-emerald-950 block mt-0.5">
-                            {receivedAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                            {receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
                           </span>
                         </div>
 
                         <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-100/90 text-right">
                           <span className="text-[10px] text-amber-800 block font-semibold">المبلغ المتبقي للقبض</span>
                           <span className="text-sm font-bold text-amber-950 block mt-0.5">
-                            {remainingAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                            {remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                         <span>إجمالي الدعم المقرر:</span>
-                        <span className="font-bold text-slate-800">{targetAmt.toLocaleString("ar-SA")} ريال</span>
+                        <span className="font-bold text-slate-800">{targetAmt.toLocaleString("en-US")} ريال</span>
                       </div>
 
                       <Progress value={sPct} className="h-1.5 bg-slate-100" />
@@ -1248,12 +1248,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       </div>
 
                       <div className="flex items-center gap-4 text-xs font-semibold">
-                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span></span>
+                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span></span>
                         <div className="text-emerald-700">
-                          المقبوض: <span className="font-bold text-emerald-800">{receivedAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
+                          المقبوض: <span className="font-bold text-emerald-800">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
                         </div>
                         <div className="text-amber-700">
-                          المتبقي: <span className="font-bold text-amber-800">{remainingAmt.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</span>
+                          المتبقي: <span className="font-bold text-amber-800">{remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
                         </div>
                       </div>
                     </CardHeader>
@@ -1311,14 +1311,14 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                      )}
                                    </TableCell>
                                   <TableCell className="text-xs">
-                                    {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}
+                                    {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}
                                   </TableCell>
                                   <TableCell className={`font-bold text-xs ${
                                     voucher.status === "approval_revoked" || voucher.status === "rejected"
                                       ? "text-slate-400 line-through"
                                       : "text-emerald-700"
                                   }`}>
-                                    {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                                    {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                                     {voucher.status === "approval_revoked" && (
                                       <span className="text-[10px] text-amber-700 font-normal mr-1 block">(ملغى الاعتماد - غير محتسب)</span>
                                     )}
@@ -1479,8 +1479,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                               <TableRow key={voucher.id}>
                                 <TableCell className="text-xs font-semibold">{voucher.payerName || "-"}</TableCell>
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
-                                <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA") : "-"}</TableCell>
-                                <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال</TableCell>
+                                <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}</TableCell>
+                                <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</TableCell>
                                 <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
                                      {getCleanVoucherNotes(voucher.notes)}
                                    </TableCell>
