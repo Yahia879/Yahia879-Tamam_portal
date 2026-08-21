@@ -574,7 +574,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <Alert className="bg-blue-50 border-blue-100 text-blue-800 p-3">
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription className="text-xs sm:text-sm">
-                إذا كنت تريد تعديل بيانات حسابك، يرجى الذهاب إلى صفحة الإعدادات
+                إذا كنت تريد تعديل بيانات حسابك، يرجى الذهاب إلى صفحة المعلومات الشخصية
               </AlertDescription>
             </Alert>
           </div>
