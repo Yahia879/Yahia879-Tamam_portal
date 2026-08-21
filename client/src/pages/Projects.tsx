@@ -310,7 +310,7 @@ export default function Projects() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm font-mono">{project.projectNumber}</span>
+                            <span className="text-sm font-sans font-bold">{project.projectNumber}</span>
                           </TableCell>
                           <TableCell>
                             <Badge className={`${statusColors[project.status || "planning"]} whitespace-nowrap`}>
@@ -326,7 +326,7 @@ export default function Projects() {
                           <TableCell>
                             {(!project.requestId || (project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage))) ? (
                               project.budget ? (
-                                <span className="font-medium whitespace-nowrap">{parseFloat(project.budget).toLocaleString()} ريال</span>
+                                <span className="font-medium whitespace-nowrap">{parseFloat(project.budget).toLocaleString("en-US")} ريال</span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )
@@ -338,7 +338,7 @@ export default function Projects() {
                             <div className="flex items-center gap-1 text-muted-foreground whitespace-nowrap">
                               <Calendar className="w-4 h-4" />
                               <span className="text-sm">
-                                {new Date(project.createdAt).toLocaleDateString("ar-SA")}
+                                {new Date(project.createdAt).toLocaleDateString("en-CA")}
                               </span>
                             </div>
                           </TableCell>
@@ -357,14 +357,6 @@ export default function Projects() {
                                       {canViewFinancials && !canViewDetails ? "عرض المالية" : "عرض التفاصيل"}
                                     </DropdownMenuItem>
                                   </Link>
-                                  {canViewDetails && project.requestId && user?.role !== "project_manager" && (
-                                    <Link href={`/requests/${project.requestId}`}>
-                                      <DropdownMenuItem>
-                                        <FileText className="w-4 h-4 ml-2" />
-                                        عرض الطلب
-                                      </DropdownMenuItem>
-                                    </Link>
-                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -425,7 +417,7 @@ export default function Projects() {
                         <div>
                           <span className="text-muted-foreground text-xs block">الميزانية:</span>
                           {(!project.requestId || (project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage))) ? (
-                            <span className="font-medium">{project.budget ? `${parseFloat(project.budget).toLocaleString()} ريال` : "-"}</span>
+                            <span className="font-medium">{project.budget ? `${parseFloat(project.budget).toLocaleString("en-US")} ريال` : "-"}</span>
                           ) : (
                             <span className="text-muted-foreground text-xs">لم تُحدد بعد</span>
                           )}
