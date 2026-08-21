@@ -1206,7 +1206,7 @@ export default function NewLinkedDisbursementRequest() {
       contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
       paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
       title: formData.title,
-      description: formData.description + generalAccountNote,
+      description: formData.description,
       amount: totalAmount,
       adminFees: (requestType === "supplier_one_time" || requestType === "sadad_invoice" || requestType === "misc_expenses") ? formData.adminFees : undefined,
       paymentType: "progress",

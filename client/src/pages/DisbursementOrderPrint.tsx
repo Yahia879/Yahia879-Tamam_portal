@@ -291,9 +291,10 @@ export default function DisbursementOrderPrint() {
                            request?.title || 
                            "—");
 
-  // إزالة أي تنبيه مالي صفري من العرض ليكون الوصف نظيفاً ومرتباً
+  // إزالة أي تنبيه مالي من العرض ليكون الوصف نظيفاً ومرتباً
   const descriptionText = (rawDescriptionText || "—")
-    .replace(/\r?\n?\[تنبيه مالـ?ي:\s*تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ\s*\([٠0][٫.]?[٠0]*\s*ريال\)\s*عن مدفوعات الداعم الفعلية المقبوضة\]/g, "")
+    .replace(/\r?\n?\[تنبيه\s*مالـ?ي:[\s\S]*?عن مدفوعات الداعم الفعلية المقبوضة\]/gi, "")
+    .replace(/\r?\n?\[تنبيه\s*مالـ?ي:[\s\S]*?\]/gi, "")
     .trim() || "—";
 
   const descLength = descriptionText.length;

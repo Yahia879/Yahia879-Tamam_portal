@@ -324,9 +324,10 @@ export default function DisbursementRequestPrint() {
     ? (customSupplier?.requiredWorksDesc || customSupplier?.customProjectName || "—") 
     : (parsedWorks.scheduled || request.description || request.title || "—");
 
-  // إزالة أي تنبيه مالي صفري من العرض ليكون الوصف نظيفاً ومرتباً
+  // إزالة أي تنبيه مالي من العرض ليكون الوصف نظيفاً ومرتباً
   const descriptionText = (rawDescriptionText || "—")
-    .replace(/\r?\n?\[تنبيه مالـ?ي:\s*تم التوجيه بالصرف من الحساب العام للجمعية لتغطية العجز البالغ\s*\([٠0][٫.]?[٠0]*\s*ريال\)\s*عن مدفوعات الداعم الفعلية المقبوضة\]/g, "")
+    .replace(/\r?\n?\[تنبيه\s*مالـ?ي:[\s\S]*?عن مدفوعات الداعم الفعلية المقبوضة\]/gi, "")
+    .replace(/\r?\n?\[تنبيه\s*مالـ?ي:[\s\S]*?\]/gi, "")
     .trim() || "—";
 
   const descLength = descriptionText.length;
@@ -335,10 +336,32 @@ export default function DisbursementRequestPrint() {
                             "";
 
   // حساب بيانات الدعم والأجور الإدارية
-  const supportingEntity = contract?.supportingEntity || "";
+  // الأولوية الأولى لبيانات قسم المالية في تفاصيل المشروع
+  const finDetail = (request as any)?.financialDetail || (project as any)?.financialDetail || null;
   let supportSources: { entity: string; customEntity?: string; amount: number }[] = [];
   
-  if (supportingEntity && supportingEntity.trim().startsWith('[')) {
+  if (finDetail) {
+    if (finDetail.supportSourcesJson) {
+      try {
+        const parsed = JSON.parse(finDetail.supportSourcesJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          supportSources = parsed.filter((s: any) => (s.entity && s.entity.trim() !== "") || (s.customEntity && s.customEntity.trim() !== ""));
+        }
+      } catch (e) {
+        console.error("Failed to parse financialDetail supportSourcesJson", e);
+      }
+    }
+    if (supportSources.length === 0 && finDetail.supportEntity && finDetail.supportEntity.trim() !== "") {
+      supportSources = [{
+        entity: finDetail.supportEntity,
+        customEntity: finDetail.customSupportEntity || "",
+        amount: parseFloat(finDetail.supportAmount || "0"),
+      }];
+    }
+  }
+
+  const supportingEntity = contract?.supportingEntity || "";
+  if (supportSources.length === 0 && supportingEntity && supportingEntity.trim().startsWith('[')) {
     try {
       const parsed = JSON.parse(supportingEntity);
       if (Array.isArray(parsed)) {
@@ -360,7 +383,7 @@ export default function DisbursementRequestPrint() {
     : (customSupplier?.adminFees 
         ? parseFloat(customSupplier.adminFees) 
         : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
-  const totalOpportunityValue = actualProjectCost + adminFees;
+  const totalOpportunityValue = actualProjectCost;
 
   if (supportSources.length === 0 && supportingEntity && supportingEntity.trim() !== "" && supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
     const isDonationShop = supportingEntity === "متجر التبرعات";
@@ -377,9 +400,9 @@ export default function DisbursementRequestPrint() {
 
   const resolvedSupportingEntitiesText = (supportSources.length > 0
     ? supportSources.map(s => {
-        const name = s.entity === "اخرى" ? s.customEntity : (s.entity || s.customEntity);
+        const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "أخرى") : (s.entity || s.customEntity);
         if (supportSources.length > 1 && s.amount > 0) {
-          return `${name} (${s.amount.toLocaleString()} ريال)`;
+          return `${name} (${s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`;
         }
         return name;
       }).filter(Boolean).join("، ")
