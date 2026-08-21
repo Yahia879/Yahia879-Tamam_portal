@@ -176,10 +176,10 @@ export default function MyRequests() {
       }
     >
       {/* KPI Stats Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 mb-4 sm:mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 lg:gap-5 mb-4 sm:mb-8">
         <Card
           onClick={() => setStatusTab("all")}
-          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+          className={`col-span-2 lg:col-span-1 border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
             statusTab === "all" ? "border-primary ring-1 ring-primary/30" : "border-border/60 hover:border-primary/40"
           }`}
         >
@@ -244,16 +244,33 @@ export default function MyRequests() {
             </div>
           </CardContent>
         </Card>
+
+        <Card
+          onClick={() => setStatusTab("rejected")}
+          className={`border shadow-xs hover:shadow-md transition-all rounded-xl sm:rounded-2xl cursor-pointer group bg-card ${
+            statusTab === "rejected" ? "border-rose-500 ring-1 ring-rose-500/30" : "border-border/60 hover:border-rose-500/40"
+          }`}
+        >
+          <CardContent className="p-2.5 sm:p-5 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">مرفوضة</p>
+              <p className="text-lg sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 mt-0.5 sm:mt-1">{stats.rejected}</p>
+            </div>
+            <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-500/10 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-110 transition-transform">
+              <XCircle className="w-4 h-4 sm:w-6 sm:h-6" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
         {/* Status Tabs Pills */}
-        <div className="w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/60 dark:bg-muted/30 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-border/50 shrink-0">
+        <div className="w-full md:w-auto overflow-x-auto scrollbar-none pb-1.5 md:pb-0 -mx-1 px-1 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-muted/60 dark:bg-muted/30 p-1 sm:p-1.5 rounded-xl sm:rounded-2xl border border-border/50 min-w-max">
             <button
               onClick={() => setStatusTab("all")}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 active:scale-95 touch-manipulation ${
                 statusTab === "all"
                   ? "bg-background dark:bg-card text-primary shadow-xs border border-border/60"
                   : "text-muted-foreground hover:text-foreground"
@@ -263,7 +280,7 @@ export default function MyRequests() {
             </button>
             <button
               onClick={() => setStatusTab("pending")}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 active:scale-95 touch-manipulation ${
                 statusTab === "pending"
                   ? "bg-background dark:bg-card text-amber-600 dark:text-amber-400 shadow-xs border border-border/60"
                   : "text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
@@ -273,7 +290,7 @@ export default function MyRequests() {
             </button>
             <button
               onClick={() => setStatusTab("in_progress")}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 active:scale-95 touch-manipulation ${
                 statusTab === "in_progress"
                   ? "bg-background dark:bg-card text-blue-600 dark:text-blue-400 shadow-xs border border-border/60"
                   : "text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400"
@@ -283,7 +300,7 @@ export default function MyRequests() {
             </button>
             <button
               onClick={() => setStatusTab("completed")}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 active:scale-95 touch-manipulation ${
                 statusTab === "completed"
                   ? "bg-background dark:bg-card text-emerald-600 dark:text-emerald-400 shadow-xs border border-border/60"
                   : "text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400"
@@ -293,7 +310,7 @@ export default function MyRequests() {
             </button>
             <button
               onClick={() => setStatusTab("rejected")}
-              className={`px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 active:scale-95 touch-manipulation ${
                 statusTab === "rejected"
                   ? "bg-background dark:bg-card text-rose-600 dark:text-rose-400 shadow-xs border border-border/60"
                   : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"

@@ -1,3 +1,21 @@
+import crypto from "node:crypto";
+
+if (!(crypto as any).hash) {
+  (crypto as any).hash = function (
+    algorithm: string,
+    data: crypto.BinaryLike,
+    outputEncoding?: crypto.BinaryToTextEncoding
+  ) {
+    const hash = crypto.createHash(algorithm).update(data);
+    return outputEncoding ? hash.digest(outputEncoding) : hash.digest();
+  };
+}
+
+(globalThis as any).crypto = crypto;
+if (typeof global !== "undefined") {
+  (global as any).crypto = crypto;
+}
+
 import "dotenv/config";
 import express from "express";
 
