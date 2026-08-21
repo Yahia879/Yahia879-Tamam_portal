@@ -453,7 +453,8 @@ export default function DisbursementRequests() {
   const isExecutiveDirector = 
     ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
+    user?.email === "ceo@manarah.org.sa";
 
   const handleCreateRequest = () => {
     if (!newRequest.projectId || !newRequest.title || !newRequest.amount) {
@@ -620,8 +621,8 @@ export default function DisbursementRequests() {
         aPendingAction = a.status === "pending_executive";
         bPendingAction = b.status === "pending_executive";
       } else {
-        aPendingAction = (a.status === "pending" || a.status === "draft") && a.requestedBy === user?.id;
-        bPendingAction = (b.status === "pending" || b.status === "draft") && b.requestedBy === user?.id;
+        aPendingAction = (a.status === "pending" || a.status === "draft") && (a.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !a.requestedBy);
+        bPendingAction = (b.status === "pending" || b.status === "draft") && (b.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !b.requestedBy);
       }
 
       if (aPendingAction && !bPendingAction) return -1;
@@ -808,16 +809,18 @@ export default function DisbursementRequests() {
                           ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                           const isConverted = !!request.orderId || request.status === "paid";
-                          const isPendingAction = request.status === "pending" || request.status === "pending_executive" || request.status === "draft";
+                          const isPendingMyAction = isExecutiveDirector
+                            ? request.status === "pending_executive"
+                            : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !request.requestedBy);
 
                           return (
                             <TableRow 
                               key={request.id} 
-                              className={isPendingAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
+                              className={isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
                             >
                               <TableCell className="py-3.5 px-4 font-sans text-xs text-right font-bold whitespace-nowrap">
                                 <div className="flex items-center gap-2 justify-start">
-                                  {isPendingAction && (
+                                  {isPendingMyAction && (
                                     <TooltipProvider>
                                       <Tooltip delayDuration={50}>
                                         <TooltipTrigger asChild>
@@ -830,7 +833,7 @@ export default function DisbursementRequests() {
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                          <span>بانتظار الاعتماد</span>
+                                          <span>{isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك"}</span>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1107,14 +1110,14 @@ export default function DisbursementRequests() {
                         const isConverted = !!request.orderId || request.status === "paid";
                         const isPendingMyAction = isExecutiveDirector
                           ? request.status === "pending_executive"
-                          : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || canApproveRequest);
+                          : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !request.requestedBy);
 
                         return (
                           <div 
                             key={request.id} 
                             className={`p-4 space-y-3 transition-all rounded-xl border ${
                               isPendingMyAction 
-                                ? "bg-gradient-to-br from-emerald-50/80 via-teal-50/30 to-background dark:from-emerald-950/40 dark:via-teal-950/10 dark:to-background border-2 border-[#1a5f4a]/60 shadow-md my-3" 
+                                ? "bg-emerald-100/75 dark:bg-emerald-950/60 border-2 border-emerald-700 dark:border-emerald-400 shadow-md my-3" 
                                 : "hover:bg-muted/10 border-border"
                             }`}
                           >

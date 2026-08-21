@@ -274,7 +274,8 @@ export default function DisbursementOrders() {
   const isExecutiveDirector = 
     ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
+    user?.email === "ceo@manarah.org.sa";
 
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
@@ -482,16 +483,18 @@ export default function DisbursementOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isPendingAction = order.status === "pending" || order.status === "pending_executive" || order.status === "edited" || order.status === "draft";
+                        const isPendingMyAction = isExecutiveDirector
+                          ? order.status === "pending_executive"
+                          : (order.status === "pending" || order.status === "edited" || order.status === "draft") && (user?.email === "solayani@manarah.org.sa" || !isExecutiveDirector);
 
                         return (
                           <TableRow 
                             key={order.id}
-                            className={isPendingAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
+                            className={isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 transition-all shadow-xs" : ""}
                           >
                             <TableCell className="py-2.5 px-3 font-sans text-xs text-right font-bold whitespace-nowrap">
                               <div className="flex items-center gap-2 justify-start">
-                                {isPendingAction && (
+                                {isPendingMyAction && (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={50}>
                                       <TooltipTrigger asChild>
@@ -504,7 +507,7 @@ export default function DisbursementOrders() {
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                        <span>بانتظار الاعتماد</span>
+                                        <span>{isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك"}</span>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
