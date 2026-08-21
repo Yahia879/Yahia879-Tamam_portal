@@ -287,7 +287,7 @@ export default function ContractForm() {
     supportedAmount: 0,
   });
 
-  const totalProjectCost = contractData.totalValue + (contractData.totalValue * (contractData.managementPercentage || 0)) / 100;
+  const totalProjectCost = contractData.totalValue;
 
   // بنود العقد
   const [clauseValues, setClauseValues] = useState<ClauseValue[]>([]);
@@ -1608,7 +1608,7 @@ export default function ContractForm() {
                 {/* التفاصيل المالية */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label>قيمة العقد (ريال) *</Label>
+                    <Label>القيمة المتفقة مع المورد (ريال) *</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1620,21 +1620,20 @@ export default function ContractForm() {
                             ? (val * prev.managementPercentage) / 100 
                             : prev.managementAmount;
                           const mgmtPct = val > 0 && mgmtAmt > 0 ? (mgmtAmt / val) * 100 : prev.managementPercentage;
-                          const newTotalProjectCost = val + mgmtAmt;
                           return { 
                             ...prev, 
                             totalValue: val,
                             baseValue: val,
                             managementAmount: mgmtAmt,
                             managementPercentage: mgmtPct,
-                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                            supportedAmount: prev.supportType === "full" ? val : prev.supportedAmount
                           };
                         });
                       }}
-                      placeholder="أدخل قيمة العقد"
-                      className="font-bold text-green-700"
+                      placeholder="أدخل القيمة المتفق عليها"
+                      className="font-bold text-green-700 font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">قيمة العقد المستحقة للمورد</p>
+                    <p className="text-xs text-muted-foreground">القيمة الإجمالية المتفق عليها مع المورد</p>
                   </div>
                   
                   <div className="space-y-2">
@@ -1649,18 +1648,18 @@ export default function ContractForm() {
                         const percentage = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
                           const mgmtAmt = (prev.totalValue * percentage) / 100;
-                          const newTotalProjectCost = prev.totalValue + mgmtAmt;
                           return { 
                             ...prev, 
                             managementPercentage: percentage,
                             managementAmount: mgmtAmt,
-                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                            supportedAmount: prev.supportType === "full" ? prev.totalValue : prev.supportedAmount
                           };
                         });
                       }}
                       placeholder="0"
+                      className="font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">نسبة الإشراف/الإدارة للجمعية</p>
+                    <p className="text-xs text-muted-foreground">نسبة الجمعية المستقطعة من القيمة المتفقة</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1674,19 +1673,18 @@ export default function ContractForm() {
                         const amount = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
                           const percentage = prev.totalValue > 0 ? Number(((amount / prev.totalValue) * 100).toFixed(2)) : prev.managementPercentage;
-                          const newTotalProjectCost = prev.totalValue + amount;
                           return {
                             ...prev,
                             managementAmount: amount,
                             managementPercentage: percentage,
-                            supportedAmount: prev.supportType === "full" ? newTotalProjectCost : prev.supportedAmount
+                            supportedAmount: prev.supportType === "full" ? prev.totalValue : prev.supportedAmount
                           };
                         });
                       }}
                       placeholder="أدخل قيمة الجمعية"
-                      className="font-semibold text-right"
+                      className="font-semibold text-right font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">قيمة الأجور الإدارية / نسبة الجمعية (قابلة للتعديل)</p>
+                    <p className="text-xs text-muted-foreground">مبلغ حصة الجمعية المستقطع من القيمة المتفقة</p>
                   </div>
 
                   <div className="space-y-2">
@@ -1694,13 +1692,10 @@ export default function ContractForm() {
                     <Input
                       type="text"
                       disabled
-                      value={(
-                        contractData.totalValue + 
-                        (contractData.managementAmount || ((contractData.totalValue * (contractData.managementPercentage || 0)) / 100))
-                      ).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right"
+                      value={contractData.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-right font-sans"
                     />
-                    <p className="text-xs text-muted-foreground">إجمالي القيمة الكلية للمشروع شاملة الأجور الإدارية</p>
+                    <p className="text-xs text-muted-foreground">تطابق دائماً القيمة المتفقة مع المورد</p>
                   </div>
                 </div>
               </div>
@@ -2192,25 +2187,25 @@ export default function ContractForm() {
                       </p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">قيمة العقد:</span>
-                      <p className="font-medium text-green-700 font-bold">{contractData.totalValue.toLocaleString()} ريال</p>
+                      <span className="text-muted-foreground">القيمة المتفقة مع المورد:</span>
+                      <p className="font-medium text-green-700 font-bold font-sans">{contractData.totalValue.toLocaleString("en-US")} ريال</p>
                     </div>
                     {(contractData.managementPercentage > 0 || (contractData.managementAmount && contractData.managementAmount > 0)) && (
                       <>
                         <div>
                           <span className="text-muted-foreground">نسبة الجمعية:</span>
-                          <p className="font-medium">{contractData.managementPercentage ? `${contractData.managementPercentage}%` : "-"}</p>
+                          <p className="font-medium font-sans">{contractData.managementPercentage ? `${contractData.managementPercentage}%` : "-"}</p>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">قيمة الجمعية:</span>
-                          <p className="font-medium text-orange-600">
-                            {(contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100)).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          <span className="text-muted-foreground">قيمة الجمعية (المستقطعة):</span>
+                          <p className="font-medium text-orange-600 font-sans">
+                            {(contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
                           </p>
                         </div>
                         <div className="sm:col-span-2 border-t pt-2 mt-2">
-                          <span className="text-muted-foreground">القيمة الكلية للمشروع:</span>
-                          <p className="text-base font-bold text-blue-700">
-                            {(contractData.totalValue + (contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100))).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          <span className="text-muted-foreground">القيمة الكلية للعقد:</span>
+                          <p className="text-base font-bold text-blue-700 font-sans">
+                            {contractData.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
                           </p>
                         </div>
                       </>
