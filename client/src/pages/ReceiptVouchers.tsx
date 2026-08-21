@@ -492,7 +492,7 @@ export default function ReceiptVouchers() {
           v.voucherNumber || "-",
           projectOrType,
           v.projectNumber || "-",
-          v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("ar-SA") : "-",
+          v.receiptDate ? new Date(v.receiptDate).toLocaleDateString("en-CA") : "-",
           stripPayerTitle(v.payerName),
           Number(v.amount) || 0,
           statusText,
@@ -589,8 +589,8 @@ export default function ReceiptVouchers() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground font-semibold">إجمالي المقبوضات</p>
-                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
-                    {totalAmountReceived.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
+                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none font-sans">
+                    {totalAmountReceived.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
                   </p>
                 </div>
               </div>
@@ -774,14 +774,14 @@ export default function ReceiptVouchers() {
                           </TableCell>
 
                           {/* المبلغ المقبوض */}
-                          <TableCell className="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap">
-                            {parseFloat(voucher.amount.toString()).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <span className="text-[10px] font-normal text-muted-foreground">ريال</span>
+                          <TableCell className="py-3.5 px-4 text-right font-bold text-emerald-600 dark:text-emerald-400 text-xs whitespace-nowrap font-sans">
+                            {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px] font-normal text-muted-foreground font-sans">ريال</span>
                           </TableCell>
 
                           {/* تاريخ الإنشاء */}
-                          <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground">
+                          <TableCell className="py-3.5 px-4 whitespace-nowrap text-right text-xs text-muted-foreground font-sans">
                             {voucher.receiptDate
-                              ? new Date(voucher.receiptDate).toLocaleDateString("ar-SA")
+                              ? new Date(voucher.receiptDate).toLocaleDateString("en-CA")
                               : "-"}
                           </TableCell>
 
@@ -1018,8 +1018,8 @@ export default function ReceiptVouchers() {
                     {/* المبلغ الملتزم به للداعم */}
                     <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200/80 shadow-2xs">
                       <span className="text-[11px] text-muted-foreground font-semibold block">المبلغ الملتزم به للداعم</span>
-                      <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
-                        {supporterCommittedAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                      <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5 font-sans">
+                        {supporterCommittedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
                       </span>
                     </div>
@@ -1027,8 +1027,8 @@ export default function ReceiptVouchers() {
                     {/* المبلغ الذي سدده الداعم سابقاً */}
                     <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-lg border border-emerald-200/80 shadow-2xs">
                       <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold block">سدده الداعم سابقاً</span>
-                      <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 block mt-0.5">
-                        {previouslyPaidBySupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                      <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 block mt-0.5 font-sans">
+                        {previouslyPaidBySupporter.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         <span className="text-[10px] font-normal text-emerald-600 mr-1">ريال</span>
                       </span>
                     </div>
@@ -1036,8 +1036,8 @@ export default function ReceiptVouchers() {
                     {/* المتبقي غير المسدد علي الداعم */}
                     <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded-lg border border-amber-200/80 shadow-2xs">
                       <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold block">المتبقي غير المسدد</span>
-                      <span className={`text-base font-extrabold block mt-0.5 ${remainingUnpaidForSupporter <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
-                        {remainingUnpaidForSupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
+                      <span className={`text-base font-extrabold block mt-0.5 font-sans ${remainingUnpaidForSupporter <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
+                        {remainingUnpaidForSupporter.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                         <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
                       </span>
                     </div>
@@ -1047,7 +1047,7 @@ export default function ReceiptVouchers() {
                   {remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId && (
                     <div className="p-3 bg-emerald-50/90 border border-emerald-200 rounded-lg text-emerald-900 flex items-center gap-2 text-xs font-bold mt-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span>تم سداد كامل المبلغ الملتزم به من قبل هذا الداعم بنجاح ({supporterCommittedAmount.toLocaleString()} ريال)، ولا يوجد متبقي غير مسدد لتسجيل سند قبض جديد.</span>
+                      <span>تم سداد كامل المبلغ الملتزم به من قبل هذا الداعم بنجاح ({supporterCommittedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)، ولا يوجد متبقي غير مسدد لتسجيل سند قبض جديد.</span>
                     </div>
                   )}
                 </div>
@@ -1063,9 +1063,9 @@ export default function ReceiptVouchers() {
                       <button
                         type="button"
                         onClick={() => setModalAmount(remainingUnpaidForSupporter.toString())}
-                        className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                        className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer font-sans"
                       >
-                        تعبئة المتبقي ({remainingUnpaidForSupporter.toLocaleString()} ريال)
+                        تعبئة المتبقي ({remainingUnpaidForSupporter.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
                       </button>
                     )}
                   </div>
