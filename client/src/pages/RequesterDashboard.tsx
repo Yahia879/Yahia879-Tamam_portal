@@ -58,12 +58,14 @@ export default function RequesterDashboard() {
   // جلب الإشعارات
   const { data: notificationsData } = trpc.notifications.getMyNotifications.useQuery({ limit: 5 });
 
-  const myRequests = myRequestsData?.requests || [];
+  const myRequests = Array.isArray(myRequestsData)
+    ? myRequestsData
+    : (Array.isArray(myRequestsData?.requests) ? myRequestsData.requests : []);
   const stats = myRequestsData?.stats || {
     total: myRequests.length,
-    pending: myRequests.filter(r => r.status === "pending" || r.status === "under_review").length,
-    inProgress: myRequests.filter(r => r.status === "in_progress").length,
-    completed: myRequests.filter(r => r.status === "completed" || r.currentStage === "closed").length,
+    pending: myRequests.filter((r: any) => r.status === "pending" || r.status === "under_review").length,
+    inProgress: myRequests.filter((r: any) => r.status === "in_progress").length,
+    completed: myRequests.filter((r: any) => r.status === "completed" || r.currentStage === "closed").length,
   };
 
   return (

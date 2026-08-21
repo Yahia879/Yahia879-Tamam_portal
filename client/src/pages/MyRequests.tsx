@@ -112,10 +112,21 @@ export default function MyRequests() {
     limit: PAGE_SIZE,
   });
 
-  const requests = myRequestsData?.requests || [];
-  const total = myRequestsData?.total || 0;
-  const totalPages = myRequestsData?.totalPages || 1;
-  const stats = myRequestsData?.stats || { total: 0, pending: 0, inProgress: 0, completed: 0, rejected: 0 };
+  // استخراج البيانات مع حماية كاملة ضد أي هيكل استجابة
+  const requests = Array.isArray(myRequestsData)
+    ? myRequestsData
+    : (Array.isArray(myRequestsData?.requests) ? myRequestsData.requests : []);
+  
+  const total = typeof myRequestsData?.total === "number" ? myRequestsData.total : requests.length;
+  const totalPages = typeof myRequestsData?.totalPages === "number" ? myRequestsData.totalPages : (Math.ceil(total / PAGE_SIZE) || 1);
+  
+  const stats = myRequestsData?.stats || {
+    total: requests.length,
+    pending: requests.filter((r: any) => r.status === "pending" || r.status === "under_review").length,
+    inProgress: requests.filter((r: any) => r.status === "in_progress").length,
+    completed: requests.filter((r: any) => r.status === "completed").length,
+    rejected: requests.filter((r: any) => r.status === "rejected").length,
+  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
