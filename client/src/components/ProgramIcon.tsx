@@ -71,15 +71,15 @@ export function ProgramIcon({
   if (showBackground) {
     return (
       <div 
-        className={`${bgSizeClasses[size]} rounded-lg flex items-center justify-center ${className}`}
-        style={{ backgroundColor: `${color}15` }}
+        className={`${bgSizeClasses[size]} rounded-xl flex items-center justify-center shrink-0 border border-border/30 dark:border-white/10 ${className}`}
+        style={{ backgroundColor: `${color}20` }}
       >
         <Icon className={sizeClasses[size]} style={{ color }} />
       </div>
     );
   }
 
-  return <Icon className={`${sizeClasses[size]} ${className}`} style={{ color }} />;
+  return <Icon className={`${sizeClasses[size]} shrink-0 ${className}`} style={{ color }} />;
 }
 
 // تصدير الخريطة والألوان للاستخدام المباشر

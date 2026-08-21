@@ -102,7 +102,7 @@ export default function BeneficiaryLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 text-foreground flex flex-col font-sans dir-rtl print:bg-white print:p-0" dir="rtl">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-background text-foreground flex flex-col font-sans dir-rtl print:bg-white print:p-0" dir="rtl">
       {/* Top Header */}
       <header className="print:hidden sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-border/60 shadow-xs transition-all">
         <div className="container mx-auto px-4 sm:px-6">
@@ -137,7 +137,7 @@ export default function BeneficiaryLayout({
             </div>
 
             {/* Desktop Navigation Bar */}
-            <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 p-1.5 rounded-2xl border border-border/50">
+            <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 dark:border-border/60">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id || location === item.path;
@@ -161,8 +161,8 @@ export default function BeneficiaryLayout({
                     <button
                       className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer ${
                         isActive
-                          ? "bg-background text-primary shadow-xs border border-border/80 font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                          ? "bg-background dark:bg-card text-primary shadow-xs border border-border/80 font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-background/50 dark:hover:bg-muted/40"
                       }`}
                     >
                       <Icon className={`w-4 h-4 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
@@ -289,7 +289,7 @@ export default function BeneficiaryLayout({
 
               {/* User Profile Card */}
               <div className="px-4 pt-3 pb-2">
-                <div className="bg-muted/50 dark:bg-slate-900/60 p-3 rounded-2xl border border-border/60 flex items-center gap-3">
+                <div className="bg-muted/50 dark:bg-muted/20 p-3 rounded-2xl border border-border/60 flex items-center gap-3">
                   <Avatar className="h-10 w-10 border-2 border-primary/20 shadow-xs shrink-0">
                     <AvatarFallback className="bg-primary/10 text-primary font-extrabold text-sm">
                       {user?.name ? user.name.charAt(0).toUpperCase() : "م"}
@@ -327,8 +327,8 @@ export default function BeneficiaryLayout({
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                           isActive
-                            ? "bg-primary/10 text-primary border border-primary/20 font-bold"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                            ? "bg-primary/10 dark:bg-primary/20 text-primary border border-primary/20 dark:border-primary/30 font-bold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60 dark:hover:bg-muted/30"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -346,7 +346,7 @@ export default function BeneficiaryLayout({
                   <Link
                     href="/profile"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 dark:hover:bg-muted/30 transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <User className="w-4 h-4 text-muted-foreground" />
@@ -358,7 +358,7 @@ export default function BeneficiaryLayout({
                   <Link
                     href="/notifications"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 dark:hover:bg-muted/30 transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       <Bell className="w-4 h-4 text-muted-foreground" />
@@ -375,7 +375,7 @@ export default function BeneficiaryLayout({
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-3 border-t border-border/60 bg-muted/30 flex flex-col gap-2">
+            <div className="p-3 border-t border-border/60 bg-muted/30 dark:bg-card/90 flex flex-col gap-2">
               {switchable && toggleTheme && (
                 <Button
                   variant="outline"
@@ -416,7 +416,7 @@ export default function BeneficiaryLayout({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground"
+                    className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-pointer"
                     title={backLabel || "العودة"}
                   >
                     <ArrowRight className="w-5 h-5" />
@@ -436,7 +436,7 @@ export default function BeneficiaryLayout({
       </main>
 
       {/* Modern Footer */}
-      <footer className="print:hidden mt-auto border-t border-border/60 bg-background/50 py-6 sm:py-8 text-center">
+      <footer className="print:hidden mt-auto border-t border-border/60 bg-background/50 dark:bg-card/40 py-6 sm:py-8 text-center">
         <div className="container mx-auto px-4">
           <p className="text-xs sm:text-sm text-muted-foreground font-medium">
             {orgName || "بوابة منارة"} - {orgNameShort || "للعناية بالمساجد"}
