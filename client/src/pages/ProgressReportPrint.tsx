@@ -598,10 +598,10 @@ export default function ProgressReportPrint() {
               {/* القسم الخامس: التوقيعات والاعتماد */}
               <div className="mt-12 break-inside-avoid">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right">
-                  {/* الطرف الأول */}
+                  {/* مُعِد الطلب */}
                   <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
                     <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
-                      الطرف الأول : 
+                      مُعِد الطلب :
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
@@ -619,10 +619,10 @@ export default function ProgressReportPrint() {
                     </div>
                   </div>
 
-                  {/* الطرف الثاني */}
+                  {/* يُعتمد */}
                   <div className="border border-[#d4a574]/20 rounded-lg p-4 bg-gray-50/50">
                     <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-sm">
-                      الطرف الثاني :
+                      يُعتمد :
                     </div>
                     <div className="space-y-2 text-xs">
                       <div>
