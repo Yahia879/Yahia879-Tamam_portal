@@ -606,15 +606,11 @@ export default function ProgressReportPrint() {
                     <div className="space-y-2 text-xs">
                       <div>
                         <span className="font-semibold text-gray-600">الاسم: </span>
-                        <span className="text-gray-900 font-bold">{orgSettings?.officialReportsName || ""}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-gray-600">يمثلها بالتوقيع: </span>
-                        <span className="text-gray-900 font-bold">{orgSettings?.authorizedSignatory || "—"}</span>
+                        <span className="text-gray-900 font-bold">{project?.managerName || "—"}</span>
                       </div>
                       <div>
                         <span className="font-semibold text-gray-600">الصفة: </span>
-                        <span className="text-gray-900">{orgSettings?.signatoryTitle || "مفوض التوقيع"}</span>
+                        <span className="text-gray-900">مدير المشروع</span>
                       </div>
                       <div className="pt-6">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
