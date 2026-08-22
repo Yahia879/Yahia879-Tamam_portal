@@ -614,16 +614,18 @@ export default function DisbursementRequests() {
     const list = [...requestsData.requests];
 
     return list.sort((a, b) => {
-      let aPendingAction = false;
-      let bPendingAction = false;
+      const checkPendingMyAction = (req: any) => {
+        if ((req.status === "pending" || req.status === "draft") && req.requestedBy === user?.id) {
+          return true;
+        }
+        if (req.status === "pending_executive" && isExecutiveDirector) {
+          return true;
+        }
+        return false;
+      };
 
-      if (isExecutiveDirector) {
-        aPendingAction = a.status === "pending_executive";
-        bPendingAction = b.status === "pending_executive";
-      } else {
-        aPendingAction = (a.status === "pending" || a.status === "draft") && (a.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !a.requestedBy);
-        bPendingAction = (b.status === "pending" || b.status === "draft") && (b.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !b.requestedBy);
-      }
+      const aPendingAction = checkPendingMyAction(a);
+      const bPendingAction = checkPendingMyAction(b);
 
       if (aPendingAction && !bPendingAction) return -1;
       if (!aPendingAction && bPendingAction) return 1;
@@ -809,9 +811,9 @@ export default function DisbursementRequests() {
                           ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                           const isConverted = !!request.orderId || request.status === "paid";
-                          const isPendingMyAction = isExecutiveDirector
-                            ? request.status === "pending_executive"
-                            : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !request.requestedBy);
+                          const isPendingMyAction = 
+                            ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
+                            (request.status === "pending_executive" && isExecutiveDirector);
 
                           return (
                             <TableRow 
@@ -833,7 +835,7 @@ export default function DisbursementRequests() {
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                          <span>{isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك"}</span>
+                                          <span>{request.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مُعد الطلب)"}</span>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -1108,9 +1110,9 @@ export default function DisbursementRequests() {
                       ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
                         const isConverted = !!request.orderId || request.status === "paid";
-                        const isPendingMyAction = isExecutiveDirector
-                          ? request.status === "pending_executive"
-                          : (request.status === "pending" || request.status === "draft") && (request.requestedBy === user?.id || user?.email === "solayani@manarah.org.sa" || !request.requestedBy);
+                        const isPendingMyAction = 
+                          ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
+                          (request.status === "pending_executive" && isExecutiveDirector);
 
                         return (
                           <div 
@@ -1136,7 +1138,7 @@ export default function DisbursementRequests() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                      <span>بانتظار اعتمادك</span>
+                                      <span>{request.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مُعد الطلب)"}</span>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>

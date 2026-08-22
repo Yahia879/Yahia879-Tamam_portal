@@ -271,35 +271,45 @@ export default function DisbursementOrders() {
     },
   });
 
+  const isFinancialUser = 
+    user?.email === "solayani@manarah.org.sa" ||
+    user?.email === "test2@gmail.com" ||
+    ["financial", "financial_manager"].includes(user?.role || "") ||
+    (user as any)?.customRole?.nameAr === "الإدارة المالية" ||
+    (user as any)?.customRole?.nameAr === "المدير المالي";
+
   const isExecutiveDirector = 
     ["general_manager", "executive_director"].includes(user?.role || "") ||
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
-    user?.email === "ceo@manarah.org.sa";
+    user?.email === "ceo@manarah.org.sa" ||
+    user?.email === "test10@gmail.com";
 
   // ترتيب الأوامر بحيث تظهر الأوامر التي بانتظار اعتماد المستخدم أولاً
   const sortedOrders = useMemo(() => {
     if (!ordersData?.orders) return [];
 
-    const userEmail = user?.email;
     return [...ordersData.orders].sort((a: any, b: any) => {
-      let aPendingMyAction = false;
-      let bPendingMyAction = false;
+      const checkPendingMyAction = (o: any) => {
+        if ((o.status === "pending" || o.status === "edited" || o.status === "draft") && isFinancialUser) {
+          return true;
+        }
+        if (o.status === "pending_executive" && isExecutiveDirector) {
+          return true;
+        }
+        return false;
+      };
 
-      if (userEmail === "solayani@manarah.org.sa") {
-        aPendingMyAction = a.status === "pending" || a.status === "edited" || a.status === "draft";
-        bPendingMyAction = b.status === "pending" || b.status === "edited" || b.status === "draft";
-      } else if (userEmail === "ceo@manarah.org.sa") {
-        aPendingMyAction = a.status === "pending_executive";
-        bPendingMyAction = b.status === "pending_executive";
-      }
+      const aPendingMyAction = checkPendingMyAction(a);
+      const bPendingMyAction = checkPendingMyAction(b);
 
       if (aPendingMyAction && !bPendingMyAction) return -1;
       if (!aPendingMyAction && bPendingMyAction) return 1;
 
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [ordersData?.orders, user?.email]);
+  }, [ordersData?.orders, isFinancialUser, isExecutiveDirector]);
 
   const filteredOrders = sortedOrders;
 
@@ -483,9 +493,9 @@ export default function DisbursementOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders?.map((order) => {
-                        const isPendingMyAction = isExecutiveDirector
-                          ? order.status === "pending_executive"
-                          : (order.status === "pending" || order.status === "edited" || order.status === "draft") && (user?.email === "solayani@manarah.org.sa" || !isExecutiveDirector);
+                        const isPendingMyAction = 
+                          ((order.status === "pending" || order.status === "edited" || order.status === "draft") && isFinancialUser) ||
+                          (order.status === "pending_executive" && isExecutiveDirector);
 
                         return (
                           <TableRow 
@@ -507,7 +517,7 @@ export default function DisbursementOrders() {
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                                        <span>{isExecutiveDirector ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك"}</span>
+                                        <span>{order.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (الإدارة المالية)"}</span>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -702,15 +712,45 @@ export default function DisbursementOrders() {
 
                 {/* Modernized Mobile View Cards Grid */}
                 <div className="md:hidden grid gap-4 p-4 bg-muted/5" dir="rtl">
-                  {filteredOrders?.map((order) => (
-                    <Card key={order.id} className="border border-border/80 shadow-sm overflow-hidden bg-background hover:shadow-md transition-shadow rounded-xl">
-                      <div className="p-4 space-y-4">
-                        {/* Card Header */}
-                        <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
-                              {order.orderNumber}
-                            </span>
+                  {filteredOrders?.map((order) => {
+                    const isPendingMyAction = 
+                      ((order.status === "pending" || order.status === "edited" || order.status === "draft") && isFinancialUser) ||
+                      (order.status === "pending_executive" && isExecutiveDirector);
+
+                    return (
+                      <Card 
+                        key={order.id} 
+                        className={`border shadow-sm overflow-hidden bg-background hover:shadow-md transition-all rounded-xl ${
+                          isPendingMyAction
+                            ? "bg-emerald-100/75 dark:bg-emerald-950/60 border-2 border-emerald-700 dark:border-emerald-400 shadow-md"
+                            : "border-border/80"
+                        }`}
+                      >
+                        <div className="p-4 space-y-4">
+                          {/* Card Header */}
+                          <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
+                            <div className="flex items-center gap-1.5">
+                              {isPendingMyAction && (
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={50}>
+                                    <TooltipTrigger asChild>
+                                      <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                          <Clock className="w-3.5 h-3.5 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                        </div>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                      <span>{order.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (الإدارة المالية)"}</span>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span className="font-mono text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/20 px-2.5 py-1 rounded-md">
+                                {order.orderNumber}
+                              </span>
                             {order.isException && (
                               <TooltipProvider>
                                 <Tooltip delayDuration={100}>
