@@ -735,12 +735,23 @@ export default function NewLinkedDisbursementRequest() {
 
   // دالة للتحقق مما إذا كان تقرير الإنجاز مرتبطاً بطلب صرف سابق
   const isReportLinked = (report: any) => {
-    if (!projectRequests?.requests) return false;
+    if (!projectRequests || !projectRequests.requests) return false;
     const match = (report.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/);
-    if (!match) return false;
-    const paymentIdRaw = match[1];
-    const isManual = paymentIdRaw.startsWith("manual-");
-    const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+    let paymentIdNumeric = 0;
+    let isManual = false;
+    if (match) {
+      const paymentIdRaw = match[1];
+      isManual = paymentIdRaw.startsWith("manual-");
+      paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+    }
+
+    if (!paymentIdNumeric && projectDetails?.payments) {
+      const matchedP = projectDetails.payments.find((p: any) => p.description && report.title?.includes(p.description));
+      if (matchedP) {
+        isManual = String(matchedP.id).startsWith("manual-");
+        paymentIdNumeric = parseInt(String(matchedP.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+      }
+    }
     
     return projectRequests.requests.some((req: any) => {
       if (req.status === "rejected") return false;
@@ -751,11 +762,56 @@ export default function NewLinkedDisbursementRequest() {
   };
 
   const selectedReport = approvedReports?.find((r: any) => r.id === selectedReportId);
-  const paymentIdMatch = selectedReport ? (selectedReport.workSummary || "").match(/\[معرف الدفعة:\s*([^\]]+)\]/) : null;
-  const paymentIdRaw = paymentIdMatch ? paymentIdMatch[1] : "";
-  // استخراج الرقم من معرف الدفعة (مثل cp-5 -> 5)
-  const paymentIdNumeric = parseInt(paymentIdRaw.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
-  const paymentInfo = projectDetails?.payments?.find((p: any) => p.id === paymentIdRaw || p.id === paymentIdNumeric);
+  
+  // مطابقة الدفعة بدقة من قائمة دفعات المشروع (بالرقم أو الوصف أو المسمى)
+  const paymentInfo = useMemo(() => {
+    if (!selectedReport || !projectDetails?.payments || projectDetails.payments.length === 0) return null;
+
+    const workSummary = selectedReport.workSummary || "";
+    const title = selectedReport.title || "";
+
+    // 1. استخراج معرف الدفعة من ملخص الأعمال إذا وُجد
+    const paymentIdMatch = workSummary.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    if (paymentIdMatch) {
+      const rawId = paymentIdMatch[1].trim();
+      const numId = parseInt(rawId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+      const found = projectDetails.payments.find((p: any) => 
+        p.id === rawId || 
+        p.id === numId || 
+        p.id === `cp-${numId}` || 
+        p.id === `manual-${numId}` ||
+        String(p.id).replace(/^(cp-|disb-|manual-)/i, "") === String(numId)
+      );
+      if (found) return found;
+    }
+
+    // 2. البحث عن الدفعة بمطابقة المسمى والوصف مع عنوان التقرير أو نص الملخص (مثل: "الدفعة 1"، "الدفعة 2")
+    const foundByDesc = projectDetails.payments.find((p: any) => {
+      if (!p.description) return false;
+      const desc = p.description.trim();
+      return title.includes(desc) || workSummary.includes(desc);
+    });
+    if (foundByDesc) return foundByDesc;
+
+    // 3. البحث برقم الدفعة (مثال: "الدفعة 1" أو "الدفعة 2")
+    const reportNumMatch = title.match(/الدفعة\s*(\d+)/) || workSummary.match(/الدفعة\s*(\d+)/);
+    if (reportNumMatch) {
+      const num = reportNumMatch[1];
+      const foundByNum = projectDetails.payments.find((p: any) => 
+        p.description?.includes(`الدفعة ${num}`) || 
+        p.paymentNumber?.endsWith(`-${num}`) ||
+        p.workDescription?.includes(`الدفعة ${num}`)
+      );
+      if (foundByNum) return foundByNum;
+    }
+
+    // 4. إذا كان هناك دفعة واحدة فقط في المشروع
+    if (projectDetails.payments.length === 1) {
+      return projectDetails.payments[0];
+    }
+
+    return null;
+  }, [selectedReport, projectDetails]);
 
   // الملء التلقائي بناءً على تقرير الإنجاز المختار
   useEffect(() => {
@@ -764,8 +820,8 @@ export default function NewLinkedDisbursementRequest() {
       const actualMatch = workSummaryText.match(/الأعمال المنفذة فعلياً:\r?\n([\s\S]*?)(?:\r?\n\r?\[معرف الدفعة:|$)/);
       const actual = actualMatch ? actualMatch[1].trim() : workSummaryText.replace(/\[معرف الدفعة:\s*[^\]]+\]/g, "").trim();
 
-      const targetPaymentId = paymentInfo ? paymentIdNumeric : 0;
-      const targetContractId = (paymentInfo as any)?.contractId || 0;
+      const targetPaymentId = paymentInfo ? (parseInt(String(paymentInfo.id).replace(/^(cp-|disb-|manual-)/i, "")) || 0) : 0;
+      const targetContractId = (paymentInfo as any)?.contractId || (projectContracts?.contracts?.[0]?.id || 0);
       
       const reportDateFormatted = selectedReport.reportDate 
         ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(selectedReport.reportDate))
@@ -791,7 +847,7 @@ export default function NewLinkedDisbursementRequest() {
         };
       });
     }
-  }, [selectedReportId, projectDetails, paymentInfo]);
+  }, [selectedReportId, projectDetails, paymentInfo, projectContracts]);
   
   // جلب تفاصيل العقد
   const { data: contractDetails } = trpc.contracts.getById.useQuery(
@@ -818,8 +874,8 @@ export default function NewLinkedDisbursementRequest() {
   
   // تحديث بيانات المورد من العقد وتقرير الإنجاز والبيانات المالية تلقائياً
   useEffect(() => {
-    const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
     const paymentAmt = paymentInfo ? parseFloat(String(paymentInfo.amount || "0")) : 0;
+    const reportBudget = selectedReport ? parseFloat(String(selectedReport.budgetSpent || "0")) : 0;
     const quotationAmt = parseFloat(String(
       projectFinancials?.approvedQuotation?.approvedAmount || 
       projectFinancials?.approvedQuotation?.finalAmount || 
@@ -836,9 +892,10 @@ export default function NewLinkedDisbursementRequest() {
     ));
     const projectBudgetAmt = parseFloat(String((projectDetails as any)?.budget || (projectDetails as any)?.actualCost || "0"));
 
-    const calculatedAmount = reportBudget > 0
-      ? reportBudget
-      : (paymentAmt > 0 ? paymentAmt : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)));
+    // الأولوية الأولى هي قيمة الدفعة المحددة في قسم الدفعات للمشروع
+    const calculatedAmount = paymentAmt > 0
+      ? paymentAmt
+      : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)));
 
     if (calculatedAmount > 0) {
       setSuppliers(prev => {
@@ -944,8 +1001,11 @@ export default function NewLinkedDisbursementRequest() {
     setSuppliers(suppliers.map(s => {
       if (s.id === id) {
         const updated = { ...s, [field]: value };
-        if (isCustom && field === "amount") {
+        if (field === "amount") {
           updated.agreedAmount = Number(value);
+        }
+        if (field === "agreedAmount") {
+          updated.amount = Number(value);
         }
         return updated;
       }
@@ -1024,6 +1084,14 @@ export default function NewLinkedDisbursementRequest() {
       setShowSupporterDeficitDialog(true);
       return;
     }
+    if (!isCustom) {
+      setSuppliers(prev => prev.map(s => {
+        if (s.agreedAmount > 0 && (!s.amount || s.amount === 0)) {
+          return { ...s, amount: s.agreedAmount };
+        }
+        return s;
+      }));
+    }
     setStep(3);
   };
 
@@ -1095,7 +1163,7 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
-    if (!isCustom && suppliers.some(s => s.amount > s.agreedAmount)) {
+    if (!isCustom && suppliers.some(s => Number((s.amount || 0).toFixed(2)) > Number((s.agreedAmount || 0).toFixed(2)))) {
       toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
       return;
     }
@@ -1127,7 +1195,7 @@ export default function NewLinkedDisbursementRequest() {
   };
 
   const executeDisbursementSubmit = (useGeneralAccount: boolean) => {
-    const isManual = paymentIdRaw.startsWith("manual-");
+    const isManual = !isCustom && paymentInfo ? String(paymentInfo.id).startsWith("manual-") : false;
     const resolvedCity = formData.projectCity === "other" ? formData.customCity : formData.projectCity;
     
     // إدراج الحقول المخصصة في المرفقات كـ metadata لحفظها بالكامل في قاعدة البيانات
@@ -2463,7 +2531,7 @@ export default function NewLinkedDisbursementRequest() {
                             <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
                             <Input
                               type="number"
-                              value={supplier.agreedAmount || ""}
+                              value={supplier.amount !== undefined && supplier.amount !== 0 ? supplier.amount : (supplier.agreedAmount || "")}
                               readOnly={!isCustom}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value) || 0;
@@ -2505,7 +2573,7 @@ export default function NewLinkedDisbursementRequest() {
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ الفعلي (ريال) *</Label>
                           <Input
                             type="number"
-                            value={supplier.amount || ""}
+                            value={supplier.amount !== undefined && supplier.amount !== 0 ? supplier.amount : (supplier.agreedAmount || "")}
                             readOnly={isCustom && requestType !== "custom_standard"}
                             onChange={(e) => updateSupplier(supplier.id, "amount", parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
@@ -2578,7 +2646,7 @@ export default function NewLinkedDisbursementRequest() {
             <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending || (!isCustom && suppliers.some(s => s.amount > s.agreedAmount))}
+                disabled={createMutation.isPending || (!isCustom && suppliers.some(s => Number((s.amount || 0).toFixed(2)) > Number((s.agreedAmount || 0).toFixed(2))))}
                 className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />
