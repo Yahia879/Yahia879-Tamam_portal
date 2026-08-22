@@ -11,9 +11,16 @@ if (!(crypto as any).hash) {
   };
 }
 
-(globalThis as any).crypto = crypto;
-if (typeof global !== "undefined") {
-  (global as any).crypto = crypto;
+try {
+  if (!globalThis.crypto) {
+    Object.defineProperty(globalThis, "crypto", {
+      value: crypto,
+      configurable: true,
+      writable: true,
+    });
+  }
+} catch (e) {
+  // Ignored if crypto is already defined with getter in Node.js
 }
 
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
