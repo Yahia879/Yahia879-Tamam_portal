@@ -627,15 +627,11 @@ export default function ProgressReportPrint() {
                     <div className="space-y-2 text-xs">
                       <div>
                         <span className="font-semibold text-gray-600">الاسم: </span>
-                        <span className="text-gray-900 font-bold">{contract?.supplierName || "—"}</span>
+                        <span className="text-gray-900 font-bold">{orgSettings?.authorizedSignatory || "م. عبدالهادي آل فائق"}</span>
                       </div>
                       <div>
                         <span className="font-semibold text-gray-600">الصفة: </span>
-                        <span className="text-gray-900">الطرف الثاني (المقاول منفذ المشروع)</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-gray-600">رقم العقد: </span>
-                        <span className="text-gray-900 font-mono">{contract?.contractNumber || "—"}</span>
+                        <span className="text-gray-900">المدير التنفيذي</span>
                       </div>
                       <div className="pt-6">
                         <span className="font-semibold text-gray-600">التوقيع : </span>
