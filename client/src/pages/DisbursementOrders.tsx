@@ -929,7 +929,8 @@ export default function DisbursementOrders() {
                         </div>
                       </div>
                     </Card>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* تذييل الصفحة مع الترقيم وخادم البحث */}
