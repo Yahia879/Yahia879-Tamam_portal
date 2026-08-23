@@ -747,8 +747,8 @@ export default function ProgressReports() {
       toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
       return;
     }
-    if (report.status === "approved") {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده.");
+    if (report.status === "approved" || report.status === "revoked") {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو إلغاء اعتماده.");
       return;
     }
     if (isDisbursementApproved(report)) {
@@ -1596,7 +1596,7 @@ export default function ProgressReports() {
                         </DropdownMenuItem>
 
                         {/* تعديل التقرير */}
-                        {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
+                        {!isReportConverted(report) && report.status !== "approved" && report.status !== "revoked" && !isDisbursementApproved(report) && canEditReport && (
                           <DropdownMenuItem 
                             onClick={() => {
                               handleEditReportClick(report);
@@ -2106,7 +2106,7 @@ export default function ProgressReports() {
                 إغلاق
               </Button>
 
-              {selectedReport && selectedReport.status !== "approved" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
+              {selectedReport && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
                 <Button
                   variant="outline"
                   onClick={() => {
