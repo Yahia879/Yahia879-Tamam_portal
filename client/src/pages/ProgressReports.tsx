@@ -148,6 +148,14 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
     badgeIcon: <XCircle className="w-3 h-3" />,
     iconBg: "bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800",
   },
+  revoked: {
+    label: "ملغى اعتماده",
+    color: "text-amber-800 dark:text-amber-300",
+    bg: "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800",
+    icon: <ShieldAlert className="w-5 h-5 text-amber-600" />,
+    badgeIcon: <ShieldAlert className="w-3 h-3 text-amber-600" />,
+    iconBg: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300 dark:border-amber-700",
+  },
 };
 
 const PAYMENT_TYPE_MAP: Record<string, string> = {
@@ -301,6 +309,8 @@ export default function ProgressReports() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showViewRejectionDialog, setShowViewRejectionDialog] = useState(false);
   const [viewRejectionReasonText, setViewRejectionReasonText] = useState("");
+  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
+  const [revokeReason, setRevokeReason] = useState("");
 
   const userPermissionsList = user?.permissions || [];
   const isExecutiveDirector = 
@@ -553,6 +563,19 @@ export default function ProgressReports() {
     },
   });
 
+  const revokeApprovalReportMutation = trpc.progressReports.revokeApproval.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم إلغاء اعتماد التقرير بنجاح");
+      setShowRevokeDialog(false);
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إلغاء الاعتماد");
+    },
+  });
+
   const reviewMutation = trpc.progressReports.review.useMutation({
     onSuccess: () => {
       toast.success("تمت المراجعة بنجاح");
@@ -659,6 +682,7 @@ export default function ProgressReports() {
     const paymentKey = payment.description || payment.paymentNumber;
     const isAlreadyReported = reportsData?.some((report: any) => {
       if (report.projectId !== newReport.projectId) return false;
+      if (report.status === "rejected" || report.status === "revoked") return false;
       const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
       if (hasPaymentIdTag) {
         return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
@@ -1085,6 +1109,7 @@ export default function ProgressReports() {
                           const paymentKey = payment.description || payment.paymentNumber;
                           const isAlreadyReported = reportsData?.some((report: any) => {
                             if (report.projectId !== newReport.projectId) return false;
+                            if (report.status === "rejected" || report.status === "revoked") return false;
                             const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
                             if (hasPaymentIdTag) {
                               return !!(payment.id && report.workSummary.includes(`[معرف الدفعة: ${payment.id}]`));
@@ -1577,17 +1602,47 @@ export default function ProgressReports() {
                         )}
 
                         {/* عرض سبب الإلغاء */}
-                        {report.status === "rejected" && (
+                        {(report.status === "rejected" || report.status === "revoked") && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
-                              setViewRejectionReasonText(report.rejectionReason || "");
+                              setViewRejectionReasonText(report.rejectionReason || (report.status === "revoked" ? "تم إلغاء اعتماد هذا التقرير" : "تم رفض التقرير"));
                               setShowViewRejectionDialog(true);
                             }}
                             className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
                           >
                             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                            <span>عرض سبب إلغاء التقرير</span>
+                            <span>{report.status === "revoked" ? "عرض سبب إلغاء الاعتماد" : "عرض سبب إلغاء التقرير"}</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* إلغاء الاعتماد (المرحلة الأولى) */}
+                        {report.status === "pending_executive" && (isProjectManager || user?.role === "super_admin" || (report.isException && report.exceptionApprovedBy === user?.id)) && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setRevokeReason("");
+                              setShowRevokeDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                            <span>إلغاء اعتماد مدير المشروع</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* إلغاء الاعتماد (المرحلة الثانية / النهائي) */}
+                        {report.status === "approved" && (isExecutiveDirector || user?.role === "super_admin") && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setRevokeReason("");
+                              setShowRevokeDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                            <span>إلغاء الاعتماد النهائي</span>
                           </DropdownMenuItem>
                         )}
 
@@ -2088,6 +2143,24 @@ export default function ProgressReports() {
                   </Button>
                 )
               )}
+
+              {/* زر إلغاء الاعتماد */}
+              {selectedReport && (
+                (selectedReport.status === "pending_executive" && (selectedReport.projectManagerId === user?.id || user?.role === "super_admin" || (selectedReport.isException && selectedReport.exceptionApprovedBy === user?.id))) ||
+                (selectedReport.status === "approved" && (isExecutiveDirector || user?.role === "super_admin"))
+              ) && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setRevokeReason("");
+                    setShowRevokeDialog(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                  <ShieldAlert className="w-4 h-4 ml-1.5" />
+                  إلغاء الاعتماد
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2178,6 +2251,54 @@ export default function ProgressReports() {
                 disabled={!rejectionReason || !rejectionReason.trim() || rejectReportMutation.isPending}
               >
                 {rejectReportMutation.isPending ? "جاري الإلغاء..." : "تأكيد الإلغاء"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة إلغاء الاعتماد */}
+        <Dialog open={showRevokeDialog} onOpenChange={setShowRevokeDialog}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+                <span>إلغاء اعتماد تقرير الإنجاز</span>
+              </DialogTitle>
+              <DialogDescription>
+                {selectedReport?.status === "pending_executive"
+                  ? `هل أنت تأكد من رغبتك في إلغاء اعتماد المرحلة الأولى لتقرير الإنجاز رقم ${selectedReport?.reportNumber}؟ ستصبح حالة التقرير (ملغى اعتماده) وسيمكنك إنشاء تقرير جديد لهذه الدفعة.`
+                  : `هل أنت تأكد من رغبتك في إلغاء الاعتماد النهائي لتقرير الإنجاز رقم ${selectedReport?.reportNumber}؟ ستصبح حالة التقرير (ملغى اعتماده) وسيمكنك إنشاء تقرير جديد لهذه الدفعة.`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>سبب إلغاء الاعتماد (اختياري)</Label>
+                <Textarea
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="أدخل سبب إلغاء الاعتماد..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowRevokeDialog(false)}>
+                إلغاء الأمر
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (selectedReport) {
+                    revokeApprovalReportMutation.mutate({
+                      id: selectedReport.id,
+                      reason: revokeReason,
+                    });
+                  }
+                }}
+                disabled={revokeApprovalReportMutation.isPending}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+              >
+                {revokeApprovalReportMutation.isPending ? "جاري إلغاء الاعتماد..." : "تأكيد إلغاء الاعتماد"}
               </Button>
             </DialogFooter>
           </DialogContent>
