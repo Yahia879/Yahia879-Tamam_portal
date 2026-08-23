@@ -317,9 +317,9 @@ export default function ProgressReportPrint() {
     : "مدير المشروع";
   const resolvedSignatureUrl = report?.creatorSignatureUrl || report?.projectManagerSignatureUrl || null;
 
-  const executiveDirectorDepartment = "المدير التنفيذي";
-  const executiveDirectorName = report?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق";
-  const executiveDirectorSignatureUrl = report?.approvedBySignatureUrl || (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
+  const executiveDirectorDepartment = (report as any)?.approvedBySignatureDepartment || "المدير التنفيذي";
+  const executiveDirectorName = (report as any)?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق";
+  const executiveDirectorSignatureUrl = (report as any)?.approvedBySignatureUrl || (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
 
   const canApproveReport = (() => {
     if (!report || !currentUser) return false;
@@ -435,8 +435,8 @@ export default function ProgressReportPrint() {
             ? currentUser?.id === report?.exceptionApprovedBy
             : (currentUser?.role === "super_admin" || userPermissionsList.includes("progress_reports.exception_approve") || userPermissionsList.includes("disbursements.exception_approve"));
 
-          const canControlCreatorSig = (report?.isException ? isExceptionApprover : isProjectManager) && !!resolvedSignatureUrl && isReportStage1Approved;
-          const canControlExecSig = isExecutiveDirectorRole && !!executiveDirectorSignatureUrl && isReportStage2Approved;
+          const canControlCreatorSig = (isProjectManager || currentUser?.role === "super_admin" || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
+          const canControlExecSig = (isExecutiveDirectorRole || currentUser?.role === "super_admin") && !!executiveDirectorSignatureUrl && isReportStage2Approved;
 
           return (
             <>
