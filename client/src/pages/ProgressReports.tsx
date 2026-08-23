@@ -2058,6 +2058,20 @@ export default function ProgressReports() {
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                 إغلاق
               </Button>
+
+              {selectedReport && selectedReport.status !== "approved" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    handleEditReportClick(selectedReport);
+                  }}
+                  className="border-blue-200 hover:bg-blue-50 text-blue-600 font-medium"
+                >
+                  <Edit className="w-4 h-4 ml-1.5" />
+                  تعديل التقرير
+                </Button>
+              )}
               
               {selectedReport?.status !== "approved" && (
                 canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed" || selectedReport?.status === "pending" || selectedReport?.status === "pending_executive") && (
