@@ -550,12 +550,30 @@ export const progressReportsRouter = router({
           });
         }
 
+        // جلب بيانات توقيع المدير التنفيذي المنفذ للاعتماد
+        const [execData] = await db
+          .select({
+            name: users.name,
+            signatureName: users.signatureName,
+            signatureDepartment: users.signatureDepartment,
+            signatureUrl: users.signatureUrl,
+          })
+          .from(users)
+          .where(eq(users.id, ctx.user.id));
+
+        const execSigName = execData?.signatureName || execData?.name || ctx.user.name || "المدير التنفيذي";
+        const execSigDept = execData?.signatureDepartment || "المدير التنفيذي";
+        const execSigUrl = execData?.signatureUrl || null;
+
         await db
           .update(progressReports)
           .set({
             status: "approved",
             approvedBy: ctx.user.id,
             approvedAt: new Date(),
+            approvedBySignatureName: execSigName,
+            approvedBySignatureDepartment: execSigDept,
+            approvedBySignatureUrl: execSigUrl,
             approvalNotes: input.notes || report.approvalNotes,
             updatedAt: new Date(),
           })
