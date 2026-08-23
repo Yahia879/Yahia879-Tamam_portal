@@ -1574,9 +1574,12 @@ export default function ProgressReports() {
                     const status = statusConfig[report.status] || statusConfig.draft;
                     const isPendingMyAction = checkPendingMyAction(report);
                     const isProjectManager = Boolean(
+                      user?.role === "project_manager" ||
+                      user?.role === "super_admin" ||
                       (report.projectManagerId && Number(report.projectManagerId) === Number(user?.id)) ||
-                      (projectDetails?.managerId && Number(projectDetails.managerId) === Number(user?.id)) ||
-                      (report.createdBy && Number(report.createdBy) === Number(user?.id))
+                      (report.managerApprovedBy && Number(report.managerApprovedBy) === Number(user?.id)) ||
+                      (report.createdBy && Number(report.createdBy) === Number(user?.id)) ||
+                      (projectDetails?.managerId && Number(projectDetails.managerId) === Number(user?.id))
                     );
 
                     const renderDropdownContent = () => (
@@ -1620,8 +1623,8 @@ export default function ProgressReports() {
                           </DropdownMenuItem>
                         )}
 
-                        {/* إلغاء الاعتماد (المرحلة الأولى) */}
-                        {report.status === "pending_executive" && (isProjectManager || user?.role === "super_admin" || (report.isException && report.exceptionApprovedBy === user?.id)) && (
+                        {/* إلغاء الاعتماد (المرحلة الأولى أو النهائية) */}
+                        {(report.status === "pending_executive" || report.status === "approved") && (isProjectManager || isExecutiveDirector || user?.role === "super_admin") && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
@@ -1631,22 +1634,7 @@ export default function ProgressReports() {
                             className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
                           >
                             <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                            <span>إلغاء اعتماد مدير المشروع</span>
-                          </DropdownMenuItem>
-                        )}
-
-                        {/* إلغاء الاعتماد (المرحلة الثانية / النهائي) */}
-                        {report.status === "approved" && (isExecutiveDirector || user?.role === "super_admin") && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedReport(report);
-                              setRevokeReason("");
-                              setShowRevokeDialog(true);
-                            }}
-                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-700 font-bold"
-                          >
-                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                            <span>إلغاء الاعتماد النهائي</span>
+                            <span>إلغاء الاعتماد</span>
                           </DropdownMenuItem>
                         )}
 
@@ -2149,10 +2137,7 @@ export default function ProgressReports() {
               )}
 
               {/* زر إلغاء الاعتماد */}
-              {selectedReport && (
-                (selectedReport.status === "pending_executive" && (selectedReport.projectManagerId === user?.id || user?.role === "super_admin" || (selectedReport.isException && selectedReport.exceptionApprovedBy === user?.id))) ||
-                (selectedReport.status === "approved" && (isExecutiveDirector || user?.role === "super_admin"))
-              ) && (
+              {selectedReport && (selectedReport.status === "pending_executive" || selectedReport.status === "approved") && (
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false);
