@@ -1573,7 +1573,11 @@ export default function ProgressReports() {
                     const variance = report.variance || 0;
                     const status = statusConfig[report.status] || statusConfig.draft;
                     const isPendingMyAction = checkPendingMyAction(report);
-                    const isProjectManager = report.projectManagerId === user?.id;
+                    const isProjectManager = Boolean(
+                      (report.projectManagerId && Number(report.projectManagerId) === Number(user?.id)) ||
+                      (projectDetails?.managerId && Number(projectDetails.managerId) === Number(user?.id)) ||
+                      (report.createdBy && Number(report.createdBy) === Number(user?.id))
+                    );
 
                     const renderDropdownContent = () => (
                       <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
