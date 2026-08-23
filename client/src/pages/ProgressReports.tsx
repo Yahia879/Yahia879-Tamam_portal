@@ -2269,9 +2269,7 @@ export default function ProgressReports() {
                 <span>إلغاء اعتماد تقرير الإنجاز</span>
               </DialogTitle>
               <DialogDescription>
-                {selectedReport?.status === "pending_executive"
-                  ? `هل أنت تأكد من رغبتك في إلغاء اعتماد المرحلة الأولى لتقرير الإنجاز رقم ${selectedReport?.reportNumber}؟ ستصبح حالة التقرير (ملغى اعتماده) وسيمكنك إنشاء تقرير جديد لهذه الدفعة.`
-                  : `هل أنت تأكد من رغبتك في إلغاء الاعتماد النهائي لتقرير الإنجاز رقم ${selectedReport?.reportNumber}؟ ستصبح حالة التقرير (ملغى اعتماده) وسيمكنك إنشاء تقرير جديد لهذه الدفعة.`}
+                هل أنت تأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
