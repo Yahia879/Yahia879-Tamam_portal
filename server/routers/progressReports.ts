@@ -363,6 +363,18 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
 
+      const [existingReport] = await db
+        .select({ status: progressReports.status })
+        .from(progressReports)
+        .where(eq(progressReports.id, input.id));
+
+      if (existingReport?.status === "approved") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده",
+        });
+      }
+
       try {
         const updateData: any = {};
         
