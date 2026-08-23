@@ -544,6 +544,7 @@ export default function UserPermissions() {
         disbursements_sign: "توقيع طلبات الصرف",
         disbursement_orders_sign: "توقيع أوامر الصرف",
         final_reports_sign: "توقيع التقارير الختامية",
+        progress_reports_sign: "توقيع تقارير الإنجاز",
       },
       mosques: {
         view: "عرض قائمة المساجد",
@@ -775,7 +776,7 @@ export default function UserPermissions() {
           id: "signing",
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
-          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
+          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
         }
       ]
     },
@@ -946,6 +947,7 @@ export default function UserPermissions() {
                         disbursements_sign: "disbursements.sign",
                         disbursement_orders_sign: "disbursement_orders.sign",
                         final_reports_sign: "final_reports.sign",
+                        progress_reports_sign: "progress_reports.sign",
                       };
                       id = signingIds[p] || id;
                     }
