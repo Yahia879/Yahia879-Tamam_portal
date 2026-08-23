@@ -772,6 +772,7 @@ export default function RolePermissions() {
             { id: "progress_reports.add", nameAr: "إضافة تقرير إنجاز" },
             { id: "progress_reports.edit", nameAr: "تعديل التقرير" },
             { id: "progress_reports.approve", nameAr: "اعتماد تقارير المتابعة" },
+            { id: "progress_reports.exception_approve", nameAr: "استثناء اعتماد مدير المشروع" },
           ]
         },
         {
@@ -835,7 +836,7 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
@@ -881,7 +882,7 @@ export default function RolePermissions() {
       title: "الهندسة والمشاريع",
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
@@ -1065,7 +1066,8 @@ export default function RolePermissions() {
         view: "عرض تقارير الإنجاز",
         add: "إضافة تقرير إنجاز",
         edit: "تعديل التقرير",
-        approve: "اعتماد تقارير المتابعة"
+        approve: "اعتماد تقارير المتابعة",
+        exception_approve: "استثناء اعتماد مدير المشروع",
       },
       project_reports: {
         view: "عرض تقارير المشاريع",
