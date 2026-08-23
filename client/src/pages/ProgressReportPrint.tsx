@@ -304,6 +304,8 @@ export default function ProgressReportPrint() {
 
   const cleanWorkSummary = getActualWorkDone(workSummaryText);
 
+  const isReportStage1Approved = report?.status === "pending_executive" || report?.status === "approved" || !!report?.managerApprovedAt;
+  const isReportStage2Approved = report?.status === "approved" || !!report?.approvedAt;
   const isExceptionApproved = Boolean(report?.isException);
 
   let rawCreatorName = report?.creatorSignatureName;
@@ -311,14 +313,24 @@ export default function ProgressReportPrint() {
     rawCreatorName = rawCreatorName.replace(/^\[استثناء\]:\s*/, "");
   }
 
-  const resolvedSignatureName = rawCreatorName || report?.projectManagerName || report?.createdByName || project?.managerName || "—";
-  const resolvedSignatureDepartment = isExceptionApproved 
+  const resolvedSignatureName = isReportStage1Approved
+    ? (rawCreatorName || report?.projectManagerName || report?.createdByName || project?.managerName || "—")
+    : (report?.projectManagerName || project?.managerName || "—");
+
+  const resolvedSignatureDepartment = isReportStage1Approved 
     ? (report?.creatorSignatureDepartment || "مدير المشروع")
     : "مدير المشروع";
+
   const resolvedSignatureUrl = report?.creatorSignatureUrl || report?.projectManagerSignatureUrl || null;
 
-  const executiveDirectorDepartment = (report as any)?.approvedBySignatureDepartment || "المدير التنفيذي";
-  const executiveDirectorName = (report as any)?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق";
+  const executiveDirectorDepartment = isReportStage2Approved
+    ? ((report as any)?.approvedBySignatureDepartment || "المدير التنفيذي")
+    : "المدير التنفيذي";
+
+  const executiveDirectorName = isReportStage2Approved
+    ? ((report as any)?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق")
+    : (orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق");
+
   const executiveDirectorSignatureUrl = (report as any)?.approvedBySignatureUrl || (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
 
   const canApproveReport = (() => {
