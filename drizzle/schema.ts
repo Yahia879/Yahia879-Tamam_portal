@@ -1255,6 +1255,9 @@ export const progressReports = mysqlTable("progress_reports", {
   creatorSignatureName: text("creatorSignatureName"),
   creatorSignatureDepartment: text("creatorSignatureDepartment"),
   creatorSignatureUrl: text("creatorSignatureUrl"),
+  approvedBySignatureName: text("approvedBySignatureName"),
+  approvedBySignatureDepartment: text("approvedBySignatureDepartment"),
+  approvedBySignatureUrl: text("approvedBySignatureUrl"),
 
   showCreatorSignature: boolean("showCreatorSignature").default(true),
   showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
