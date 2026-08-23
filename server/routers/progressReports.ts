@@ -759,6 +759,76 @@ export const progressReportsRouter = router({
       return { success: true, message: "تم إلغاء / رفض التقرير بنجاح" };
     }),
 
+  // إلغاء الاعتماد (تغيير الحالة إلى "revoked" / ملغى اعتماده)
+  revokeApproval: protectedProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        reason: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [report] = await db
+        .select()
+        .from(progressReports)
+        .where(eq(progressReports.id, input.id));
+
+      if (!report) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
+      }
+
+      const isSuperAdmin = ctx.user.role === "super_admin";
+      const isExecutiveDirector = ["general_manager", "executive_director"].includes(ctx.user.role);
+
+      const [project] = await db
+        .select({ managerId: projects.managerId })
+        .from(projects)
+        .where(eq(projects.id, report.projectId));
+
+      const isProjectManager = project?.managerId === ctx.user.id;
+
+      if (report.status === "pending_executive") {
+        const isExceptionApprover = report.isException && report.exceptionApprovedBy === ctx.user.id;
+        if (!isProjectManager && !isSuperAdmin && !isExceptionApprover) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط مدير المشروع المحدد لهذا المشروع أو المدير العام يمكنه إلغاء اعتماد المرحلة الأولى.",
+          });
+        }
+      } else if (report.status === "approved") {
+        if (!isExecutiveDirector && !isSuperAdmin) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "فقط المدير التنفيذي أو المدير العام يمكنه إلغاء الاعتماد النهائي للتقرير.",
+          });
+        }
+      } else {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن إلغاء اعتماد تقرير غير معتمد.",
+        });
+      }
+
+      await db
+        .update(progressReports)
+        .set({
+          status: "revoked",
+          rejectionReason: input.reason ? `تم إلغاء الاعتماد: ${input.reason.trim()}` : "تم إلغاء اعتماد التقرير",
+          rejectedBy: ctx.user.id,
+          rejectedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(progressReports.id, input.id));
+
+      return {
+        success: true,
+        message: "تم إلغاء اعتماد التقرير بنجاح وتغيير حالته إلى (ملغى اعتماده)",
+      };
+    }),
+
   // التحكم بإظهار التواقيع في التقرير المطبوع
   updateSignatureVisibility: protectedProcedure
     .input(
