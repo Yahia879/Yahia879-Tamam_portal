@@ -620,7 +620,8 @@ export default function UserPermissions() {
         view: "عرض تقارير الإنجاز",
         add: "إضافة تقرير إنجاز",
         edit: "تعديل التقرير",
-        approve: "اعتماد تقارير المتابعة"
+        approve: "اعتماد تقارير المتابعة",
+        exception_approve: "استثناء اعتماد مدير المشروع",
       },
       project_reports: {
         view: "عرض تقارير المشاريع",
@@ -719,7 +720,7 @@ export default function UserPermissions() {
       title: "الهندسة والمشاريع",
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve"] },
+        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "approve", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
