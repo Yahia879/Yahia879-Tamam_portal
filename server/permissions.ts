@@ -51,7 +51,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   contracts: ["contracts.view", "contracts.create", "contracts.edit", "contracts.edit_approved", "contracts.delete", "contracts.approve"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
-  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve"],
+  progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.exception_approve"],
   project_reports: ["project_reports.view", "project_reports.create"],
   financial_report: ["financial_reports.view"],
   reports: ["reports.view_stats", "reports.export_data"],
@@ -178,6 +178,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "progress_reports.add": ["progress_reports.add", "progress_reports.view"],
   "progress_reports.edit": ["progress_reports.edit", "progress_reports.view"],
   "progress_reports.approve": ["progress_reports.approve", "progress_reports.view"],
+  "progress_reports.exception_approve": ["progress_reports.exception_approve", "progress_reports.view"],
 
   "project_reports.view": ["project_reports.view"],
   "project_reports.create": ["project_reports.create", "project_reports.view"],
@@ -583,6 +584,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "progress_reports.add", moduleId: "reports", action: "add", nameAr: "إضافة تقرير إنجاز", nameEn: "Add Progress Report" },
       { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
       { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
+      { id: "progress_reports.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Reports" },
       { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
       { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
       { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
@@ -991,7 +993,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("progress_reports.view") ||
     allPermissions.has("progress_reports.add") ||
     allPermissions.has("progress_reports.edit") ||
-    allPermissions.has("progress_reports.approve")
+    allPermissions.has("progress_reports.approve") ||
+    allPermissions.has("progress_reports.exception_approve")
   ) {
     allPermissions.add("progress_reports");
   }
