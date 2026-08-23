@@ -788,27 +788,24 @@ export const progressReportsRouter = router({
         .from(projects)
         .where(eq(projects.id, report.projectId));
 
-      const isProjectManager = project?.managerId === ctx.user.id;
+      const isProjectManager = Boolean(
+        ctx.user.role === "project_manager" ||
+        (project?.managerId && project.managerId === ctx.user.id) ||
+        (report.managerApprovedBy && report.managerApprovedBy === ctx.user.id) ||
+        (report.createdBy && report.createdBy === ctx.user.id)
+      );
 
-      if (report.status === "pending_executive") {
-        const isExceptionApprover = report.isException && report.exceptionApprovedBy === ctx.user.id;
-        if (!isProjectManager && !isSuperAdmin && !isExceptionApprover) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "فقط مدير المشروع المحدد لهذا المشروع أو المدير العام يمكنه إلغاء اعتماد المرحلة الأولى.",
-          });
-        }
-      } else if (report.status === "approved") {
-        if (!isExecutiveDirector && !isSuperAdmin) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "فقط المدير التنفيذي أو المدير العام يمكنه إلغاء الاعتماد النهائي للتقرير.",
-          });
-        }
-      } else {
+      if (report.status !== "pending_executive" && report.status !== "approved") {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "لا يمكن إلغاء اعتماد تقرير غير معتمد.",
+        });
+      }
+
+      if (!isProjectManager && !isExecutiveDirector && !isSuperAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية لإلغاء اعتماد هذا التقرير.",
         });
       }
 
