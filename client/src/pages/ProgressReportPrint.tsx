@@ -761,50 +761,68 @@ export default function ProgressReportPrint() {
                 return null;
               })()}
 
-              {/* القسم الخامس: التوقيعات والاعتماد */}
+              {/* القسم الخامس: التوقيعات والاعتماد (الشكل الأصلي المطور) */}
               <div className="mt-12 break-inside-avoid">
-                <div className={`grid ${(resolvedSignatureName && resolvedSignatureDepartment) ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
-                  {/* مدير المشروع (مُعد الاعتماد) */}
-                  {(resolvedSignatureName && resolvedSignatureDepartment) && (
-                    <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
-                      <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-xs sm:text-sm">
-                        {resolvedSignatureDepartment}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right">
+                  {/* مُعِد الطلب / مدير المشروع */}
+                  <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
+                    <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
+                      مُعِد التقرير :
+                    </div>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="font-semibold text-gray-600">الاسم: </span>
+                        <span className="text-gray-900 font-bold">{resolvedSignatureName}</span>
                       </div>
-                      <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                      <div>
+                        <span className="font-semibold text-gray-600">الصفة: </span>
+                        <span className="text-gray-900">{resolvedSignatureDepartment}</span>
+                      </div>
+                      <div className="pt-2 flex items-center gap-2">
+                        <span className="font-semibold text-gray-600">التوقيع : </span>
                         {(showCreatorSignature && resolvedSignatureUrl && (report.status === "pending_executive" || report.status === "approved")) ? (
-                          <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                          <div className="h-10 flex items-center justify-start overflow-hidden">
                             <img 
                               src={resolvedSignatureUrl} 
                               alt="توقيع مدير المشروع" 
-                              className="max-h-12 max-w-full object-contain" 
+                              className="max-h-10 max-w-[160px] object-contain" 
                             />
                           </div>
                         ) : (
-                          <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36 my-1"></div>
+                          <span className="text-gray-400 font-serif">..........................................</span>
                         )}
-                        <div className="text-gray-900 font-bold">{resolvedSignatureName}</div>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* المدير التنفيذي */}
+                  {/* يُعتمد / المدير التنفيذي */}
                   <div className="border border-[#d4a574]/20 rounded-lg p-4 bg-gray-50/50">
-                    <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-xs sm:text-sm">
-                      {executiveDirectorDepartment}
+                    <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-sm">
+                      يُعتمد :
                     </div>
-                    <div className="space-y-1 text-xs flex flex-col items-center justify-center">
-                      {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (report.status === "approved")) ? (
-                        <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
-                          <img
-                            src={executiveDirectorSignatureUrl}
-                            alt="توقيع المدير التنفيذي"
-                            className="max-h-12 max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36 my-1"></div>
-                      )}
-                      <div className="text-gray-900 font-bold">{executiveDirectorName}</div>
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <span className="font-semibold text-gray-600">الاسم: </span>
+                        <span className="text-gray-900 font-bold">{executiveDirectorName}</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold text-gray-600">الصفة: </span>
+                        <span className="text-gray-900">{executiveDirectorDepartment}</span>
+                      </div>
+                      <div className="pt-2 flex items-center gap-2">
+                        <span className="font-semibold text-gray-600">التوقيع : </span>
+                        {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (report.status === "approved")) ? (
+                          <div className="h-10 flex items-center justify-start overflow-hidden">
+                            <img
+                              src={executiveDirectorSignatureUrl}
+                              alt="توقيع المدير التنفيذي"
+                              className="max-h-10 max-w-[160px] object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 font-serif">..........................................</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
