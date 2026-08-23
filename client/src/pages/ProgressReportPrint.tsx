@@ -348,7 +348,11 @@ export default function ProgressReportPrint() {
     if (report.status === "approved" || report.status === "rejected" || report.status === "revoked") return false;
 
     if (report.status === "draft" || report.status === "submitted" || report.status === "pending") {
-      const isProjectManager = project?.managerId === currentUser.id;
+      const isProjectManager = Boolean(
+        (project?.managerId && Number(project.managerId) === Number(currentUser?.id)) ||
+        ((report as any)?.projectManagerId && Number((report as any).projectManagerId) === Number(currentUser?.id)) ||
+        (report?.createdBy && Number(report.createdBy) === Number(currentUser?.id))
+      );
       const isSuperAdmin = currentUser.role === "super_admin";
       return isProjectManager || isSuperAdmin;
     }
@@ -363,10 +367,14 @@ export default function ProgressReportPrint() {
   const canRevokeApproval = (() => {
     if (!report || !currentUser) return false;
     const isSuperAdmin = currentUser.role === "super_admin";
-    const isProjectManager = project?.managerId === currentUser.id;
+    const isProjectManager = Boolean(
+      (project?.managerId && Number(project.managerId) === Number(currentUser?.id)) ||
+      ((report as any)?.projectManagerId && Number((report as any).projectManagerId) === Number(currentUser?.id)) ||
+      (report?.createdBy && Number(report.createdBy) === Number(currentUser?.id))
+    );
 
     if (report.status === "pending_executive") {
-      const isExceptionApprover = report.isException && report.exceptionApprovedBy === currentUser.id;
+      const isExceptionApprover = report.isException && Number(report.exceptionApprovedBy) === Number(currentUser.id);
       return isProjectManager || isSuperAdmin || isExceptionApprover;
     }
 
@@ -468,7 +476,7 @@ export default function ProgressReportPrint() {
         {canRevokeApproval && (
           <Button
             onClick={() => {
-              if (window.confirm(report?.status === "pending_executive" ? "هل أنت تأكد من رغبتك في إلغاء اعتماد المرحلة الأولى؟ ستصبح حالة التقرير (ملغى اعتماده)." : "هل أنت تأكد من رغبتك في إلغاء الاعتماد النهائي للتقرير؟ ستصبح حالة التقرير (ملغى اعتماده).")) {
+              if (window.confirm("هل أنت تأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟")) {
                 revokeReportMutation.mutate({ id: report.id });
               }
             }}
