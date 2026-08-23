@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye, PenTool, Check, Loader2 } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -165,10 +168,48 @@ export default function ProgressReportPrint() {
   const [previewFile, setPreviewFile] = useState<string | null>(null);
 
   // جلب تفاصيل التقرير
-  const { data: report, isLoading: isReportLoading } = trpc.progressReports.getById.useQuery(
+  const { data: report, isLoading: isReportLoading, refetch: refetchReport } = trpc.progressReports.getById.useQuery(
     { id: reportId || 0 },
     { enabled: !!reportId }
   );
+
+  const { user: currentUser } = useAuth();
+  const userPermissionsList = currentUser?.permissions || [];
+  const isExecutiveDirectorRole = 
+    currentUser?.role === "general_manager" ||
+    currentUser?.role === "executive_director" ||
+    (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (currentUser as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+  const [showCreatorSignature, setShowCreatorSignature] = useState(true);
+  const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState(true);
+
+  useEffect(() => {
+    if (report) {
+      if ((report as any).showCreatorSignature !== undefined && (report as any).showCreatorSignature !== null) {
+        setShowCreatorSignature(Boolean((report as any).showCreatorSignature));
+      }
+      if ((report as any).showExecutiveDirectorSignature !== undefined && (report as any).showExecutiveDirectorSignature !== null) {
+        setShowExecutiveDirectorSignature(Boolean((report as any).showExecutiveDirectorSignature));
+      }
+    }
+  }, [report?.showCreatorSignature, report?.showExecutiveDirectorSignature]);
+
+  const updateSignatureVisibilityMutation = trpc.progressReports.updateSignatureVisibility.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث إعدادات إظهار التوقيع");
+    },
+  });
+
+  const approveReportMutation = trpc.progressReports.approve.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم اعتماد التقرير بنجاح");
+      refetchReport();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد التقرير");
+    },
+  });
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading: isProjectLoading } = trpc.projects.getById.useQuery(
@@ -263,6 +304,40 @@ export default function ProgressReportPrint() {
 
   const cleanWorkSummary = getActualWorkDone(workSummaryText);
 
+  const isExceptionApproved = Boolean(report?.isException);
+
+  let rawCreatorName = report?.creatorSignatureName;
+  if (isExceptionApproved && rawCreatorName) {
+    rawCreatorName = rawCreatorName.replace(/^\[استثناء\]:\s*/, "");
+  }
+
+  const resolvedSignatureName = rawCreatorName || report?.projectManagerName || report?.createdByName || project?.managerName || "—";
+  const resolvedSignatureDepartment = isExceptionApproved 
+    ? (report?.creatorSignatureDepartment || "مدير المشروع")
+    : "مدير المشروع";
+  const resolvedSignatureUrl = report?.creatorSignatureUrl || report?.projectManagerSignatureUrl || null;
+
+  const executiveDirectorDepartment = "المدير التنفيذي";
+  const executiveDirectorName = report?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق";
+  const executiveDirectorSignatureUrl = report?.approvedBySignatureUrl || (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
+
+  const canApproveReport = (() => {
+    if (!report || !currentUser) return false;
+    if (report.status === "approved" || report.status === "rejected") return false;
+
+    if (report.status === "draft" || report.status === "submitted" || report.status === "pending") {
+      const isProjectManager = project?.managerId === currentUser.id;
+      const isSuperAdmin = currentUser.role === "super_admin";
+      return isProjectManager || isSuperAdmin;
+    }
+
+    if (report.status === "pending_executive") {
+      return isExecutiveDirectorRole || currentUser.role === "super_admin";
+    }
+
+    return false;
+  })();
+
   return (
     <>
       <style>{`
@@ -322,16 +397,95 @@ export default function ProgressReportPrint() {
           }
         }
       `}</style>
-      {/* أزرار التحكم */}
-      <div className="print:hidden fixed top-4 right-4 z-50 flex gap-2">
-        <Button variant="outline" onClick={handleBack} className="bg-white/90 backdrop-blur border shadow-sm">
+
+      {/* أزرار التحكم والخيارات */}
+      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
+        <Button variant="outline" onClick={handleBack} className="bg-white border shadow-sm sm:bg-white/90 font-semibold">
           <ArrowRight className="ml-2 h-4 w-4" />
           رجوع
         </Button>
-        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white">
+        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
           <Printer className="ml-2 h-4 w-4" />
           طباعة التقرير / PDF
         </Button>
+
+        {/* زر اعتماد تقرير الإنجاز */}
+        {canApproveReport && (
+          <Button
+            onClick={() => approveReportMutation.mutate({ id: report.id })}
+            disabled={approveReportMutation.isPending}
+            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold animate-pulse"
+          >
+            {approveReportMutation.isPending ? (
+              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4 ml-2" />
+            )}
+            اعتماد تقرير الإنجاز
+          </Button>
+        )}
+
+        {/* أدوات إظهار / إخفاء التواقيع */}
+        {(() => {
+          const isProjectManager = currentUser?.id === project?.managerId;
+          const isReportStage1Approved = report?.status === "pending_executive" || report?.status === "approved" || !!report?.managerApprovedAt;
+          const isReportStage2Approved = report?.status === "approved" || !!report?.approvedAt;
+
+          const isExceptionApprover = report?.exceptionApprovedBy
+            ? currentUser?.id === report?.exceptionApprovedBy
+            : (currentUser?.role === "super_admin" || userPermissionsList.includes("progress_reports.exception_approve") || userPermissionsList.includes("disbursements.exception_approve"));
+
+          const canControlCreatorSig = (report?.isException ? isExceptionApprover : isProjectManager) && !!resolvedSignatureUrl && isReportStage1Approved;
+          const canControlExecSig = isExecutiveDirectorRole && !!executiveDirectorSignatureUrl && isReportStage2Approved;
+
+          return (
+            <>
+              {canControlCreatorSig && (
+                <label
+                  htmlFor="show-creator-sig"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                >
+                  <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <span>توقيع مدير المشروع</span>
+                  <Checkbox
+                    id="show-creator-sig"
+                    checked={showCreatorSignature}
+                    onCheckedChange={(checked) => {
+                      const val = !!checked;
+                      setShowCreatorSignature(val);
+                      if (report?.id) {
+                        updateSignatureVisibilityMutation.mutate({ id: report.id, showCreatorSignature: val });
+                      }
+                    }}
+                    className="scale-90"
+                  />
+                </label>
+              )}
+
+              {canControlExecSig && (
+                <label
+                  htmlFor="show-exec-sig"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
+                >
+                  <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                  <span>توقيع المدير التنفيذي</span>
+                  <Checkbox
+                    id="show-exec-sig"
+                    checked={showExecutiveDirectorSignature}
+                    onCheckedChange={(checked) => {
+                      const val = !!checked;
+                      setShowExecutiveDirectorSignature(val);
+                      if (report?.id) {
+                        updateSignatureVisibilityMutation.mutate({ id: report.id, showExecutiveDirectorSignature: val });
+                      }
+                    }}
+                    className="scale-90"
+                  />
+                </label>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* تصميم الصفحة المطبوعة A4 */}
@@ -597,46 +751,48 @@ export default function ProgressReportPrint() {
 
               {/* القسم الخامس: التوقيعات والاعتماد */}
               <div className="mt-12 break-inside-avoid">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 text-right">
-                  {/* مُعِد الطلب */}
-                  <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
-                    <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-sm">
-                      مُعِد الطلب :
+                <div className={`grid ${(resolvedSignatureName && resolvedSignatureDepartment) ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
+                  {/* مدير المشروع (مُعد الاعتماد) */}
+                  {(resolvedSignatureName && resolvedSignatureDepartment) && (
+                    <div className="border border-[#1a5f4a]/20 rounded-lg p-4 bg-gray-50/50">
+                      <div className="font-bold text-[#1a5f4a] border-b border-[#1a5f4a]/20 pb-2 mb-3 text-xs sm:text-sm">
+                        {resolvedSignatureDepartment}
+                      </div>
+                      <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                        {(showCreatorSignature && resolvedSignatureUrl && (report.status === "pending_executive" || report.status === "approved")) ? (
+                          <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                            <img 
+                              src={resolvedSignatureUrl} 
+                              alt="توقيع مدير المشروع" 
+                              className="max-h-12 max-w-full object-contain" 
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36 my-1"></div>
+                        )}
+                        <div className="text-gray-900 font-bold">{resolvedSignatureName}</div>
+                      </div>
                     </div>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="font-semibold text-gray-600">الاسم: </span>
-                        <span className="text-gray-900 font-bold">{project?.managerName || "—"}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-gray-600">الصفة: </span>
-                        <span className="text-gray-900">مدير المشروع</span>
-                      </div>
-                      <div className="pt-6">
-                        <span className="font-semibold text-gray-600">التوقيع : </span>
-                        <span className="text-gray-400 font-serif">..........................................</span>
-                      </div>
-                    </div>
-                  </div>
+                  )}
 
-                  {/* يُعتمد */}
+                  {/* المدير التنفيذي */}
                   <div className="border border-[#d4a574]/20 rounded-lg p-4 bg-gray-50/50">
-                    <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-sm">
-                      يُعتمد :
+                    <div className="font-bold text-[#5d4037] border-b border-[#d4a574]/20 pb-2 mb-3 text-xs sm:text-sm">
+                      {executiveDirectorDepartment}
                     </div>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="font-semibold text-gray-600">الاسم: </span>
-                        <span className="text-gray-900 font-bold">{orgSettings?.authorizedSignatory || "م. عبدالهادي آل فائق"}</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold text-gray-600">الصفة: </span>
-                        <span className="text-gray-900">المدير التنفيذي</span>
-                      </div>
-                      <div className="pt-6">
-                        <span className="font-semibold text-gray-600">التوقيع : </span>
-                        <span className="text-gray-400 font-serif">..........................................</span>
-                      </div>
+                    <div className="space-y-1 text-xs flex flex-col items-center justify-center">
+                      {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (report.status === "approved")) ? (
+                        <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                          <img
+                            src={executiveDirectorSignatureUrl}
+                            alt="توقيع المدير التنفيذي"
+                            className="max-h-12 max-w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36 my-1"></div>
+                      )}
+                      <div className="text-gray-900 font-bold">{executiveDirectorName}</div>
                     </div>
                   </div>
                 </div>
