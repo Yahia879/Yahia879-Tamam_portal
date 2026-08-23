@@ -1227,14 +1227,38 @@ export const progressReports = mysqlTable("progress_reports", {
   photos: longtext("photos"), // صور الموقع
   
   // الحالة
-  status: mysqlEnum("status", ["draft", "submitted", "reviewed", "approved"]).default("draft"),
+  status: mysqlEnum("status", ["draft", "submitted", "pending", "pending_executive", "reviewed", "approved", "rejected"]).default("draft"),
   
-  // المنشئ والمراجع
+  // المنشئ والمراجع والاعتمادات
   createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   reviewedBy: int("reviewedBy").references(() => users.id, { onDelete: "set null" }),
   reviewedAt: datetime("reviewedAt"),
   reviewNotes: text("reviewNotes"),
-  
+
+  // اعتماد مدير المشروع (المرحلة الأولى)
+  managerApprovedBy: int("managerApprovedBy").references(() => users.id, { onDelete: "set null" }),
+  managerApprovedAt: datetime("managerApprovedAt"),
+
+  // الاعتماد النهائي (المرحلة الثانية)
+  approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: datetime("approvedAt"),
+  approvalNotes: text("approvalNotes"),
+
+  // الرفض
+  rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: datetime("rejectedAt"),
+  rejectionReason: text("rejectionReason"),
+
+  // استثناء الاعتماد والتوقيعات
+  isException: boolean("isException").default(false),
+  exceptionApprovedBy: int("exceptionApprovedBy").references(() => users.id, { onDelete: "set null" }),
+  creatorSignatureName: text("creatorSignatureName"),
+  creatorSignatureDepartment: text("creatorSignatureDepartment"),
+  creatorSignatureUrl: text("creatorSignatureUrl"),
+
+  showCreatorSignature: boolean("showCreatorSignature").default(true),
+  showExecutiveDirectorSignature: boolean("showExecutiveDirectorSignature").default(true),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
