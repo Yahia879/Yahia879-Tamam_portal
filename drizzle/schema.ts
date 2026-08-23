@@ -1227,7 +1227,7 @@ export const progressReports = mysqlTable("progress_reports", {
   photos: longtext("photos"), // صور الموقع
   
   // الحالة
-  status: mysqlEnum("status", ["draft", "submitted", "pending", "pending_executive", "reviewed", "approved", "rejected"]).default("draft"),
+  status: mysqlEnum("status", ["draft", "submitted", "pending", "pending_executive", "reviewed", "approved", "rejected", "revoked"]).default("draft"),
   
   // المنشئ والمراجع والاعتمادات
   createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
