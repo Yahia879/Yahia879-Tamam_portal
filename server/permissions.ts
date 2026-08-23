@@ -197,6 +197,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "disbursements.exception_approve": ["disbursements.exception_approve"],
   "disbursement_orders.exception_approve": ["disbursement_orders.exception_approve"],
 
+  "progress_reports.sign": ["progress_reports.sign", "progress_reports.view"],
+  "signing.progress_reports_sign": ["signing.progress_reports_sign", "progress_reports.view"],
+
   // Board Leadership Permissions Expansion
   board_chairman: ["board_chairman", "board_chairman_view"],
   board_chairman_view: ["board_chairman_view"],
@@ -585,6 +588,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "progress_reports.edit", moduleId: "reports", action: "edit", nameAr: "تعديل التقرير", nameEn: "Edit Progress Report" },
       { id: "progress_reports.approve", moduleId: "reports", action: "approve", nameAr: "اعتماد تقارير المتابعة", nameEn: "Approve Progress Reports" },
       { id: "progress_reports.exception_approve", moduleId: "reports", action: "exception_approve", nameAr: "استثناء اعتماد مدير المشروع", nameEn: "Exception Approve Progress Reports" },
+      { id: "signing.progress_reports_sign", moduleId: "signing", action: "sign", nameAr: "توقيع تقارير الإنجاز", nameEn: "Sign Progress Reports" },
       { id: "project_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقارير المشاريع", nameEn: "View Project Reports" },
       { id: "project_reports.create", moduleId: "reports", action: "create", nameAr: "إنشاء تقارير مشاريع", nameEn: "Create Project Reports" },
       { id: "financial_reports.view", moduleId: "reports", action: "view", nameAr: "عرض تقرير المالية والإحصائيات", nameEn: "View Financial Reports" },
