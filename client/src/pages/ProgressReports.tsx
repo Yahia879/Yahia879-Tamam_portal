@@ -37,6 +37,12 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Plus,
   Eye,
   FileText,
@@ -63,6 +69,9 @@ import {
   Upload,
   X,
   Loader2,
+  ShieldAlert,
+  XCircle,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -74,9 +83,12 @@ import {
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
-  submitted: { label: "مقدم للمراجعة", variant: "default" },
+  submitted: { label: "بانتظار اعتماد مدير المشروع", variant: "default" },
+  pending: { label: "بانتظار اعتماد مدير المشروع", variant: "default" },
+  pending_executive: { label: "بانتظار اعتماد المدير التنفيذي", variant: "default" },
   reviewed: { label: "تمت المراجعة", variant: "outline" },
   approved: { label: "معتمد", variant: "outline" },
+  rejected: { label: "مرفوض", variant: "destructive" },
 };
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode; badgeIcon: React.ReactNode; iconBg: string }> = {
@@ -89,12 +101,28 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
     iconBg: "bg-slate-100 text-slate-600 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800",
   },
   submitted: {
-    label: "مقدم للمراجعة",
+    label: "بانتظار اعتماد مدير المشروع",
     color: "text-amber-700 dark:text-amber-400",
     bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
     icon: <Clock className="w-5 h-5 text-amber-500" />,
     badgeIcon: <Clock className="w-3 h-3" />,
     iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  },
+  pending: {
+    label: "بانتظار اعتماد مدير المشروع",
+    color: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
+    icon: <Clock className="w-5 h-5 text-amber-500" />,
+    badgeIcon: <Clock className="w-3 h-3" />,
+    iconBg: "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+  },
+  pending_executive: {
+    label: "بانتظار اعتماد المدير التنفيذي",
+    color: "text-amber-800 dark:text-amber-300",
+    bg: "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700",
+    icon: <Clock className="w-5 h-5 text-amber-600" />,
+    badgeIcon: <Clock className="w-3 h-3" />,
+    iconBg: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300 dark:border-amber-700",
   },
   reviewed: {
     label: "تمت المراجعة",
@@ -111,6 +139,14 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
     icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
     badgeIcon: <CheckCircle className="w-3 h-3" />,
     iconBg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+  },
+  rejected: {
+    label: "مرفوض",
+    color: "text-rose-700 dark:text-rose-400",
+    bg: "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800",
+    icon: <XCircle className="w-5 h-5 text-rose-500" />,
+    badgeIcon: <XCircle className="w-3 h-3" />,
+    iconBg: "bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200 dark:border-rose-800",
   },
 };
 
@@ -250,11 +286,33 @@ export default function ProgressReports() {
   const limit = 10;
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // نوافذ الحوار
+  // نوافذ الحوار والاعتمادات
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; size: number; base64: string; type: string }[]>([]);
+  
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [approvalNotes, setApprovalNotes] = useState("");
+  const [showExceptionDialog, setShowExceptionDialog] = useState(false);
+  const [exceptionNotes, setExceptionNotes] = useState("");
+  const [showViewExceptionDialog, setShowViewExceptionDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showViewRejectionDialog, setShowViewRejectionDialog] = useState(false);
+  const [viewRejectionReasonText, setViewRejectionReasonText] = useState("");
+
+  const userPermissionsList = user?.permissions || [];
+  const isExecutiveDirector = 
+    user?.role === "general_manager" || 
+    user?.role === "executive_director" || 
+    (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+    (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
+
+  const canExceptionApprove = 
+    user?.role === "super_admin" || 
+    userPermissionsList.includes("progress_reports.exception_approve") || 
+    userPermissionsList.includes("disbursements.exception_approve");
   
   const [newReport, setNewReport] = useState({
     projectId: 0,
@@ -453,6 +511,45 @@ export default function ProgressReports() {
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ");
+    },
+  });
+
+  const approveReportMutation = trpc.progressReports.approve.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم اعتماد تقرير الإنجاز بنجاح");
+      setShowApproveDialog(false);
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء اعتماد التقرير");
+    },
+  });
+
+  const exceptionApproveReportMutation = trpc.progressReports.exceptionApprove.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرراتك بدلاً من مدير المشروع");
+      setShowExceptionDialog(false);
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تنفيذ استثناء الاعتماد");
+    },
+  });
+
+  const rejectReportMutation = trpc.progressReports.reject.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم إلغاء/رفض التقرير بنجاح");
+      setShowRejectDialog(false);
+      setShowDetailsDialog(false);
+      refetchReports();
+      refetchAllReports();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء إلغاء التقرير");
     },
   });
 
@@ -847,11 +944,27 @@ export default function ProgressReports() {
     return "text-gray-500";
   };
 
-  // تصفية التقارير (إظهار تقارير الإنجاز فقط واستبعاد تقارير الزيارات والتقارير الدورية التي تتبع لمركز تقارير المشاريع)
+  const checkPendingMyAction = (report: any) => {
+    if (!user || !report) return false;
+    if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
+      return !!(report.projectManagerId && report.projectManagerId === user.id);
+    }
+    if (report.status === "pending_executive") {
+      return isExecutiveDirector;
+    }
+    return false;
+  };
+
+  // تصفية وفرز التقارير (إظهار تقارير الإنجاز فقط ووضع التقارير التي بانتظار اعتماد المستخدم في البداية)
   const filteredReports = (reportsData || []).filter((r: any) => !isExcludedProjectReport(r));
-  const total = filteredReports.length;
+  const sortedReports = [...filteredReports].sort((a: any, b: any) => {
+    const aPending = checkPendingMyAction(a) ? 1 : 0;
+    const bPending = checkPendingMyAction(b) ? 1 : 0;
+    return bPending - aPending;
+  });
+  const total = sortedReports.length;
   const totalPages = Math.ceil(total / limit);
-  const paginatedReports = filteredReports.slice((page - 1) * limit, page * limit);
+  const paginatedReports = sortedReports.slice((page - 1) * limit, page * limit);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -1406,7 +1519,10 @@ export default function ProgressReports() {
             <SelectContent>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="pending">بانتظار اعتماد مدير المشروع</SelectItem>
+              <SelectItem value="pending_executive">بانتظار اعتماد المدير التنفيذي</SelectItem>
               <SelectItem value="approved">معتمد</SelectItem>
+              <SelectItem value="rejected">مرفوض</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1431,29 +1547,205 @@ export default function ProgressReports() {
                   {paginatedReports.map((report: any) => {
                     const variance = report.variance || 0;
                     const status = statusConfig[report.status] || statusConfig.draft;
+                    const isPendingMyAction = checkPendingMyAction(report);
+                    const isProjectManager = report.projectManagerId === user?.id;
+
+                    const renderDropdownContent = () => (
+                      <DropdownMenuContent align="end" className="w-56 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
+                        {/* عرض التقرير PDF */}
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            navigate(`/progress-reports/${report.id}/print`);
+                          }}
+                          className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-slate-700"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#1a5f4a]" />
+                          <span>عرض تقرير الإنجاز</span>
+                        </DropdownMenuItem>
+
+                        {/* تعديل التقرير */}
+                        {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              handleEditReportClick(report);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-blue-600" />
+                            <span>تعديل تقرير الإنجاز</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* عرض سبب الإلغاء */}
+                        {report.status === "rejected" && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setViewRejectionReasonText(report.rejectionReason || "");
+                              setShowViewRejectionDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-rose-600 font-bold"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            <span>عرض سبب إلغاء التقرير</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* استثناء اعتماد مدير المشروع (Super Admin) */}
+                        {canExceptionApprove && !isProjectManager && (report.status === "pending" || report.status === "submitted" || report.status === "draft") && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setExceptionNotes("");
+                              setShowExceptionDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors font-bold text-amber-700 dark:text-amber-400"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                            <span>استثناء اعتماد مدير المشروع</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* عرض مبررات استثناء الاعتماد */}
+                        {report.isException && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setShowViewExceptionDialog(true);
+                            }}
+                            className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-md transition-colors text-amber-800 dark:text-amber-300 font-medium"
+                          >
+                            <Info className="w-3.5 h-3.5 text-amber-600" />
+                            <span>عرض مبررات استثناء الاعتماد</span>
+                          </DropdownMenuItem>
+                        )}
+
+                        {/* اعتماد وتراجع المرحلة الأولى: مدير المشروع */}
+                        {(report.status === "pending" || report.status === "submitted" || report.status === "draft") && isProjectManager && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setApprovalNotes("");
+                                setShowApproveDialog(true);
+                              }}
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>اعتماد تقرير الإنجاز</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setRejectionReason("");
+                                setShowRejectDialog(true);
+                              }}
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                              <span>إلغاء تقرير الإنجاز</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {/* اعتماد وتراجع المرحلة الثانية: المدير التنفيذي */}
+                        {report.status === "pending_executive" && isExecutiveDirector && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setApprovalNotes("");
+                                setShowApproveDialog(true);
+                              }}
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md transition-colors text-emerald-600 font-bold"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>اعتماد تقرير الإنجاز</span>
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setRejectionReason("");
+                                setShowRejectDialog(true);
+                              }}
+                              className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors text-rose-600"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                              <span>إلغاء تقرير الإنجاز</span>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    );
+
                     return (
                       <div
                         key={report.id}
-                        className="grid grid-cols-1 md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer items-center text-right"
+                        className={`grid grid-cols-1 md:grid-cols-[auto_1.2fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-all cursor-pointer items-center text-right ${
+                          isPendingMyAction ? "bg-emerald-100/75 dark:bg-emerald-950/60 hover:bg-emerald-200/70 dark:hover:bg-emerald-900/70 border-r-4 border-r-emerald-700 dark:border-r-emerald-400 shadow-xs" : ""
+                        }`}
                         onClick={() => handleViewDetails(report)}
                       >
                         {/* Desktop: Report Icon */}
                         <div className="hidden md:flex w-10 justify-center">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
-                            {status.icon}
-                          </div>
+                          {isPendingMyAction ? (
+                            <TooltipProvider>
+                              <Tooltip delayDuration={50}>
+                                <TooltipTrigger asChild>
+                                  <div className="relative inline-flex items-center justify-center shrink-0 cursor-pointer">
+                                    <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white shadow-sm border border-emerald-400/40 transition-transform duration-200 hover:scale-110">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                      <Clock className="w-4 h-4 text-amber-200 animate-spin relative z-10" style={{ animationDuration: '4s' }} />
+                                    </div>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-slate-700/60 flex items-center gap-1.5 z-50">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                                  <span>{report.status === "pending_executive" ? "بانتظار اعتمادك (المدير التنفيذي)" : "بانتظار اعتمادك (مدير المشروع)"}</span>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
+                              {status.icon}
+                            </div>
+                          )}
                         </div>
 
                         {/* Report Info (Mobile & Desktop) */}
                         <div className="flex items-start justify-between md:block gap-3">
                           <div className="flex items-center gap-3 md:block min-w-0">
                             <div className="md:hidden shrink-0">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
-                                {status.icon}
-                              </div>
+                              {isPendingMyAction ? (
+                                <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-tr from-[#1a5f4a] via-emerald-600 to-teal-500 text-white">
+                                  <Clock className="w-4 h-4 text-amber-200 animate-spin" style={{ animationDuration: '4s' }} />
+                                </div>
+                              ) : (
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${status.iconBg}`}>
+                                  {status.icon}
+                                </div>
+                              )}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-foreground text-sm">{report.reportNumber}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-bold text-foreground text-sm">{report.reportNumber}</p>
+                                {report.isException && (
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={100}>
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex items-center justify-center p-0.5 rounded bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 shrink-0 cursor-help">
+                                          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="bg-amber-900 text-amber-50 text-[11px] font-medium px-2.5 py-1 rounded-md shadow-lg border border-amber-700 z-50">
+                                        تم اعتماد المرحلة الأولى باستثناء اعتماد مدير المشروع
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
                                 {report.title}
                               </p>
@@ -1471,41 +1763,7 @@ export default function ProgressReports() {
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                                  {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
-                                    <DropdownMenuItem 
-                                      onClick={() => {
-                                        handleEditReportClick(report);
-                                      }}
-                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
-                                    >
-                                      <Edit className="w-3.5 h-3.5 text-blue-600" />
-                                      <span>تعديل تقرير الإنجاز</span>
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {report.status !== "approved" && (
-                                    <DropdownMenuItem 
-                                      onClick={() => {
-                                        reviewMutation.mutate({ id: report.id, status: "approved" });
-                                      }}
-                                      className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
-                                    >
-                                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                      <span>اعتماد التقرير</span>
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  <DropdownMenuItem 
-                                    onClick={() => {
-                                      navigate(`/progress-reports/${report.id}/print`);
-                                    }}
-                                    className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
-                                  >
-                                    <FileText className="w-3.5 h-3.5 text-red-600" />
-                                    <span>عرض التقرير PDF</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
+                                {renderDropdownContent()}
                               </DropdownMenu>
                             </div>
                             <p className="text-[10px] md:text-xs text-muted-foreground">
@@ -1570,41 +1828,7 @@ export default function ProgressReports() {
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52 text-right font-medium bg-background border border-border shadow-md rounded-lg p-1 z-50">
-                              {!isReportConverted(report) && report.status !== "approved" && !isDisbursementApproved(report) && canEditReport && (
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    handleEditReportClick(report);
-                                  }}
-                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
-                                >
-                                  <Edit className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>تعديل تقرير الإنجاز</span>
-                                </DropdownMenuItem>
-                              )}
-
-                              {report.status !== "approved" && (
-                                <DropdownMenuItem 
-                                  onClick={() => {
-                                    reviewMutation.mutate({ id: report.id, status: "approved" });
-                                  }}
-                                  className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors text-emerald-600 focus:text-emerald-700 font-bold"
-                                >
-                                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>اعتماد التقرير</span>
-                                </DropdownMenuItem>
-                              )}
-
-                              <DropdownMenuItem 
-                                onClick={() => {
-                                  navigate(`/progress-reports/${report.id}/print`);
-                                }}
-                                className="flex items-center justify-start gap-2.5 cursor-pointer text-xs py-2 px-3 hover:bg-muted/50 rounded-md transition-colors"
-                              >
-                                <FileText className="w-3.5 h-3.5 text-red-600" />
-                                <span>عرض التقرير PDF</span>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
+                            {renderDropdownContent()}
                           </DropdownMenu>
                         </div>
                       </div>
@@ -1836,11 +2060,12 @@ export default function ProgressReports() {
               </Button>
               
               {selectedReport?.status !== "approved" && (
-                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
+                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed" || selectedReport?.status === "pending" || selectedReport?.status === "pending_executive") && (
                   <Button
                     onClick={() => {
                       setShowDetailsDialog(false);
-                      reviewMutation.mutate({ id: selectedReport.id, status: "approved" });
+                      setApprovalNotes("");
+                      setShowApproveDialog(true);
                     }}
                     className="gradient-primary text-white font-bold"
                   >
@@ -1849,6 +2074,211 @@ export default function ProgressReports() {
                   </Button>
                 )
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة اعتماد تقرير الإنجاز */}
+        <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                  ? "اعتماد تقرير الإنجاز (اعتماد مدير المشروع - المرحلة الأولى)"
+                  : "اعتماد تقرير الإنجاز (اعتماد المدير التنفيذي - المرحلة الثانية)"}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedReport?.status === "pending" || selectedReport?.status === "submitted" || selectedReport?.status === "draft"
+                  ? `هل تريد اعتماد تقرير الإنجاز رقم ${selectedReport?.reportNumber} وتحويله إلى (بانتظار اعتماد المدير التنفيذي)؟`
+                  : `هل تريد الاعتماد النهائي لتقرير الإنجاز رقم ${selectedReport?.reportNumber} من قِبَل المدير التنفيذي؟`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted p-4 space-y-1">
+                <p className="font-bold text-slate-800">{selectedReport?.title}</p>
+                {selectedReport?.projectName && (
+                  <p className="text-xs text-slate-500">المشروع: {selectedReport.projectName}</p>
+                )}
+                <p className="text-xs text-slate-500">نسبة الإنجاز: {selectedReport?.overallProgress}%</p>
+              </div>
+              <div className="space-y-2">
+                <Label>ملاحظات الاعتماد (اختياري)</Label>
+                <Textarea
+                  value={approvalNotes}
+                  onChange={(e) => setApprovalNotes(e.target.value)}
+                  placeholder="أدخل أي ملاحظات..."
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+                إلغاء
+              </Button>
+              <Button
+                className="bg-[#1a5f4a] hover:bg-[#154d3c] text-white font-bold"
+                onClick={() =>
+                  approveReportMutation.mutate({
+                    id: selectedReport?.id,
+                    notes: approvalNotes,
+                  })
+                }
+                disabled={approveReportMutation.isPending}
+              >
+                {approveReportMutation.isPending ? "جاري الاعتماد..." : "اعتماد تقرير الإنجاز"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة إلغاء / رفض تقرير الإنجاز */}
+        <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>إلغاء / رفض تقرير الإنجاز</DialogTitle>
+              <DialogDescription>
+                هل تريد إلغاء تقرير الإنجاز رقم {selectedReport?.reportNumber}؟
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>سبب الإلغاء *</Label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="يرجى توضيح سبب إلغاء التقرير (إجباري)..."
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+                إلغاء
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() =>
+                  rejectReportMutation.mutate({
+                    id: selectedReport?.id,
+                    reason: rejectionReason,
+                  })
+                }
+                disabled={!rejectionReason || !rejectionReason.trim() || rejectReportMutation.isPending}
+              >
+                {rejectReportMutation.isPending ? "جاري الإلغاء..." : "تأكيد الإلغاء"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة استثناء اعتماد مدير المشروع */}
+        <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+                <span>استثناء اعتماد مدير المشروع</span>
+              </DialogTitle>
+              <DialogDescription>
+                يتيح هذا الخيار للمدير الفائق اعتماد المرحلة الأولى نيابة عن مدير المشروع وتوثيق التوقيع والمبرر.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-800">سبب / مبرر الاستثناء *</Label>
+                <Textarea
+                  value={exceptionNotes}
+                  onChange={(e) => setExceptionNotes(e.target.value)}
+                  placeholder="اكتب سبب أو مبرر استثناء اعتماد مدير المشروع (إجباري)..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowExceptionDialog(false)}>
+                إلغاء
+              </Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                onClick={() => {
+                  if (selectedReport?.id && exceptionNotes.trim()) {
+                    exceptionApproveReportMutation.mutate({
+                      id: selectedReport.id,
+                      notes: exceptionNotes.trim(),
+                    });
+                  }
+                }}
+                disabled={!exceptionNotes || !exceptionNotes.trim() || exceptionApproveReportMutation.isPending}
+              >
+                {exceptionApproveReportMutation.isPending ? "جاري تنفيذ الاستثناء..." : "تأكيد استثناء الاعتماد"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض مبررات استثناء الاعتماد */}
+        <Dialog open={showViewExceptionDialog} onOpenChange={setShowViewExceptionDialog}>
+          <DialogContent dir="rtl" className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                <Info className="w-5 h-5 text-amber-600" />
+                <span>مبررات استثناء اعتماد مدير المشروع</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-amber-50/80 border border-amber-200 p-3.5 space-y-1 text-xs text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200">
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  تقرير رقم: <span className="font-mono">{selectedReport?.reportNumber}</span>
+                </p>
+                {selectedReport?.creatorSignatureName && (
+                  <p className="text-slate-700 dark:text-slate-300">
+                    منفذ الاستثناء: <span className="font-semibold">{selectedReport.creatorSignatureName}</span>
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800 dark:text-slate-200 text-xs">سبب / مبرر الاستثناء:</Label>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[70px] font-sans leading-relaxed">
+                  {selectedReport?.approvalNotes ? (
+                    selectedReport.approvalNotes.replace(/^\[مبرر استثناء اعتماد مدير المشروع\]:\s*/, "")
+                  ) : (
+                    "لا يوجد مبرر مسجل"
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)}>
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض سبب إلغاء التقرير */}
+        <Dialog open={showViewRejectionDialog} onOpenChange={setShowViewRejectionDialog}>
+          <DialogContent dir="rtl" className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-700 dark:text-rose-400">
+                <AlertCircle className="w-5 h-5 text-rose-600" />
+                <span>سبب إلغاء تقرير الإنجاز</span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="rounded-lg bg-rose-50/80 border border-rose-200 p-3.5 space-y-1 text-xs text-rose-900 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-200">
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  تقرير رقم: <span className="font-mono">{selectedReport?.reportNumber}</span>
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-bold text-slate-800 dark:text-slate-200 text-xs">سبب الإلغاء المسجل:</Label>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border rounded-md text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap min-h-[70px] font-sans leading-relaxed">
+                  {viewRejectionReasonText || "لا يوجد سبب مسجل"}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewRejectionDialog(false)}>
+                إغلاق
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
