@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye, PenTool, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye, PenTool, Check, Loader2, ShieldAlert } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
@@ -211,6 +211,16 @@ export default function ProgressReportPrint() {
     },
   });
 
+  const revokeReportMutation = trpc.progressReports.revokeApproval.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم إلغاء اعتماد التقرير بنجاح");
+      refetchReport();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
+    },
+  });
+
   // جلب تفاصيل المشروع
   const { data: project, isLoading: isProjectLoading } = trpc.projects.getById.useQuery(
     { id: report?.projectId || 0 },
@@ -335,7 +345,7 @@ export default function ProgressReportPrint() {
 
   const canApproveReport = (() => {
     if (!report || !currentUser) return false;
-    if (report.status === "approved" || report.status === "rejected") return false;
+    if (report.status === "approved" || report.status === "rejected" || report.status === "revoked") return false;
 
     if (report.status === "draft" || report.status === "submitted" || report.status === "pending") {
       const isProjectManager = project?.managerId === currentUser.id;
@@ -345,6 +355,23 @@ export default function ProgressReportPrint() {
 
     if (report.status === "pending_executive") {
       return isExecutiveDirectorRole || currentUser.role === "super_admin";
+    }
+
+    return false;
+  })();
+
+  const canRevokeApproval = (() => {
+    if (!report || !currentUser) return false;
+    const isSuperAdmin = currentUser.role === "super_admin";
+    const isProjectManager = project?.managerId === currentUser.id;
+
+    if (report.status === "pending_executive") {
+      const isExceptionApprover = report.isException && report.exceptionApprovedBy === currentUser.id;
+      return isProjectManager || isSuperAdmin || isExceptionApprover;
+    }
+
+    if (report.status === "approved") {
+      return isExecutiveDirectorRole || isSuperAdmin;
     }
 
     return false;
@@ -434,6 +461,26 @@ export default function ProgressReportPrint() {
               <Check className="h-4 w-4 ml-2" />
             )}
             اعتماد تقرير الإنجاز
+          </Button>
+        )}
+
+        {/* زر إلغاء اعتماد تقرير الإنجاز */}
+        {canRevokeApproval && (
+          <Button
+            onClick={() => {
+              if (window.confirm(report?.status === "pending_executive" ? "هل أنت تأكد من رغبتك في إلغاء اعتماد المرحلة الأولى؟ ستصبح حالة التقرير (ملغى اعتماده)." : "هل أنت تأكد من رغبتك في إلغاء الاعتماد النهائي للتقرير؟ ستصبح حالة التقرير (ملغى اعتماده).")) {
+                revokeReportMutation.mutate({ id: report.id });
+              }
+            }}
+            disabled={revokeReportMutation.isPending}
+            className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold"
+          >
+            {revokeReportMutation.isPending ? (
+              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <ShieldAlert className="h-4 w-4 ml-2" />
+            )}
+            إلغاء الاعتماد
           </Button>
         )}
 
