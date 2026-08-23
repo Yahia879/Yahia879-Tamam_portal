@@ -368,10 +368,10 @@ export const progressReportsRouter = router({
         .from(progressReports)
         .where(eq(progressReports.id, input.id));
 
-      if (existingReport?.status === "approved") {
+      if (existingReport?.status === "approved" || existingReport?.status === "revoked") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده",
+          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو إلغاء اعتماده",
         });
       }
 
