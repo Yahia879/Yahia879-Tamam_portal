@@ -1633,7 +1633,7 @@ export default function ProgressReports() {
                         )}
 
                         {/* إلغاء الاعتماد (للتقارير المعتمدة فقط) */}
-                        {report.status === "approved" && (isProjectManager || isExecutiveDirector || user?.role === "super_admin") && (
+                        {report.status === "approved" && (isProjectManager || isExecutiveDirector || user?.role === "super_admin" || canExceptionApprove) && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);

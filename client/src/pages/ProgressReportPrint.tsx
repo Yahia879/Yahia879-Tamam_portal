@@ -415,7 +415,7 @@ export default function ProgressReportPrint() {
   const canRevokeApproval = (() => {
     if (!report || !currentUser) return false;
     if (report.status !== "approved") return false;
-    return isExecutiveDirectorRole || hasApprovePermission;
+    return isExecutiveDirectorRole || hasApprovePermission || hasExceptionApprove;
   })();
 
   return (

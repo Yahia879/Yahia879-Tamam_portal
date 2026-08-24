@@ -1018,7 +1018,9 @@ export const progressReportsRouter = router({
         });
       }
 
-      if (!isProjectManager && !isExecutiveDirector && !isSuperAdmin) {
+      const hasExceptionApprove = await checkPermission(ctx.user.id, "progress_reports.exception_approve");
+
+      if (!isProjectManager && !isExecutiveDirector && !isSuperAdmin && !hasExceptionApprove) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "ليس لديك صلاحية لإلغاء اعتماد هذا التقرير.",
