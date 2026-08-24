@@ -569,6 +569,7 @@ export default function ProgressReports() {
       refetchAllReports();
       refetchDisbursementRequests();
       utils.disbursements.invalidate();
+      utils.projects.invalidate();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
@@ -585,6 +586,7 @@ export default function ProgressReports() {
       refetchAllReports();
       refetchDisbursementRequests();
       utils.disbursements.invalidate();
+      utils.projects.invalidate();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
@@ -696,8 +698,8 @@ export default function ProgressReports() {
 
     const paymentTitle = `تقرير إنجاز - ${payment.description || payment.paymentNumber}`;
     const paymentKey = payment.description || payment.paymentNumber;
-    const isAlreadyReported = reportsData?.some((report: any) => {
-      if (report.projectId !== newReport.projectId) return false;
+    const isAlreadyReported = (allReportsData || []).some((report: any) => {
+      if (Number(report.projectId) !== Number(newReport.projectId)) return false;
       if (report.status === "rejected" || report.status === "revoked") return false;
       const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
       if (hasPaymentIdTag) {
@@ -1116,8 +1118,8 @@ export default function ProgressReports() {
                             payment.workDescription.trim() === ""
                           );
                           const paymentKey = payment.description || payment.paymentNumber;
-                          const isAlreadyReported = reportsData?.some((report: any) => {
-                            if (report.projectId !== newReport.projectId) return false;
+                          const isAlreadyReported = (allReportsData || []).some((report: any) => {
+                            if (Number(report.projectId) !== Number(newReport.projectId)) return false;
                             if (report.status === "rejected" || report.status === "revoked") return false;
                             const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
                             if (hasPaymentIdTag) {

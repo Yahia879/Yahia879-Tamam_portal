@@ -233,6 +233,9 @@ export default function ProgressReportPrint() {
     onSuccess: (data) => {
       toast.success(data?.message || "تم إلغاء اعتماد التقرير بنجاح");
       refetchReport();
+      utils.progressReports.invalidate();
+      utils.projects.invalidate();
+      utils.disbursements.invalidate();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
