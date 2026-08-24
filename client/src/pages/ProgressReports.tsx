@@ -759,8 +759,8 @@ export default function ProgressReports() {
       toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
       return;
     }
-    if (report.status === "approved" || report.status === "revoked") {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو إلغاء اعتماده.");
+    if (report.status === "pending_executive" || report.status === "approved" || report.status === "revoked") {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو أثناء انتظار اعتماد المدير التنفيذي.");
       return;
     }
     if (isDisbursementApproved(report)) {
@@ -1601,7 +1601,7 @@ export default function ProgressReports() {
                         </DropdownMenuItem>
 
                         {/* تعديل التقرير */}
-                        {!isReportConverted(report) && report.status !== "approved" && report.status !== "revoked" && !isDisbursementApproved(report) && canEditReport && (
+                        {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && !isDisbursementApproved(report) && canEditReport && (
                           <DropdownMenuItem 
                             onClick={() => {
                               handleEditReportClick(report);
@@ -2111,7 +2111,7 @@ export default function ProgressReports() {
                 إغلاق
               </Button>
 
-              {selectedReport && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
+              {selectedReport && selectedReport.status !== "pending_executive" && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -2125,20 +2125,37 @@ export default function ProgressReports() {
                 </Button>
               )}
               
-              {selectedReport?.status !== "approved" && (
-                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed" || selectedReport?.status === "pending" || selectedReport?.status === "pending_executive") && (
-                  <Button
-                    onClick={() => {
-                      setShowDetailsDialog(false);
-                      setApprovalNotes("");
-                      setShowApproveDialog(true);
-                    }}
-                    className="gradient-primary text-white font-bold"
-                  >
-                    <CheckCircle className="w-4 h-4 ml-2" />
-                    اعتماد التقرير
-                  </Button>
-                )
+              {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
+              {selectedReport && (
+                ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && isProjectManager) ||
+                (selectedReport.status === "pending_executive" && isExecutiveDirector)
+              ) && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setApprovalNotes("");
+                    setShowApproveDialog(true);
+                  }}
+                  className="gradient-primary text-white font-bold"
+                >
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                  اعتماد التقرير
+                </Button>
+              )}
+
+              {/* زر استثناء اعتماد مدير المشروع */}
+              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && !isProjectManager && canExceptionApprove && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setExceptionNotes("");
+                    setShowExceptionDialog(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                  <ShieldAlert className="w-4 h-4 ml-1.5" />
+                  استثناء اعتماد مدير المشروع
+                </Button>
               )}
 
               {/* زر إلغاء الاعتماد */}

@@ -50,8 +50,8 @@ export const progressReportsRouter = router({
         userEmail === "ceo@manarah.org.sa" ||
         userEmail === "test10@gmail.com" ||
         (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
-        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
-        (await checkPermission(user.id, "progress_reports.approve"));
+        (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
+        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي";
 
       let pendingReportsCount = 0;
 
@@ -450,10 +450,10 @@ export const progressReportsRouter = router({
         .from(progressReports)
         .where(eq(progressReports.id, input.id));
 
-      if (existingReport?.status === "approved" || existingReport?.status === "revoked") {
+      if (existingReport?.status === "pending_executive" || existingReport?.status === "approved" || existingReport?.status === "revoked") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو إلغاء اعتماده",
+          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو أثناء انتظار اعتماد المدير التنفيذي",
         });
       }
 
