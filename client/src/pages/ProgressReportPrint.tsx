@@ -972,6 +972,9 @@ export default function ProgressReportPrint() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
       {/* نافذة استثناء اعتماد مدير المشروع */}
       <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
         <DialogContent dir="rtl">
