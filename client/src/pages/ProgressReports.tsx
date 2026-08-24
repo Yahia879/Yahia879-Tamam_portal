@@ -167,21 +167,32 @@ const PAYMENT_TYPE_MAP: Record<string, string> = {
 
 const PAYMENT_STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   paid: { label: "مدفوعة", variant: "outline" },
-  pending: { label: "مستحقة", variant: "secondary" },
+  due: { label: "مستحقة", variant: "secondary" },
+  pending: { label: "قيد الانتظار", variant: "secondary" },
   draft: { label: "مسودة", variant: "secondary" },
   submitted: { label: "قيد المراجعة", variant: "default" },
   approved: { label: "معتمدة", variant: "outline" },
+  in_progress: { label: "قيد التنفيذ", variant: "default" },
+  partially_paid: { label: "مدفوعة جزئياً", variant: "secondary" },
+  cancelled: { label: "ملغاة", variant: "destructive" },
+  overdue: { label: "متأخرة", variant: "destructive" },
 };
 
 const getPaymentStatusStyles = (status: string) => {
   switch (status) {
     case "paid":
       return "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50";
+    case "due":
     case "pending":
       return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50";
     case "submitted":
     case "approved":
       return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50";
+    case "overdue":
+    case "cancelled":
+      return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50";
+    case "partially_paid":
+      return "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/50";
     default:
       return "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700";
   }
