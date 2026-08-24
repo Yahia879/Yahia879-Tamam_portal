@@ -2415,10 +2415,14 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const [existingVoucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
-      if (existingVoucher && existingVoucher.status === "approved") {
+      if (!existingVoucher) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+      }
+
+      if (existingVoucher.status !== "pending_approval" && existingVoucher.status !== "pending") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "لا يمكن تعديل سند القبض المعتمد، يرجى إلغاء الاعتماد أولاً مع كتابة المبررات"
+          message: "لا يمكن تعديل سند القبض إلا عندما تكون حالته قيد الاعتماد"
         });
       }
 
@@ -2501,10 +2505,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.email !== "solayani@manarah.org.sa") {
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "receipt_vouchers.exception_approve");
+      const isFaaa8User = ctx.user.email === "solayani@manarah.org.sa";
+
+      if (!isFaaa8User && !hasExceptionPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "عذراً، إلغاء اعتماد سند القبض مخصص حصرياً للمسؤول المالي (solayani@manarah.org.sa)"
+          message: "عذراً، إلغاء اعتماد سند القبض يتطلب صلاحية استثناء اعتماد السند أو المسؤول المالي"
         });
       }
 

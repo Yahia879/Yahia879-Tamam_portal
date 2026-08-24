@@ -910,7 +910,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 4. تعديل سند القبض */}
-                                {canEdit && voucher.status !== "approved" && (
+                                {canEdit && (voucher.status === "pending_approval" || voucher.status === "pending") && (
                                   <DropdownMenuItem
                                     onClick={() => openEditVoucherModal(voucher)}
                                     className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -921,7 +921,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 5. إلغاء الاعتماد */}
-                                {isFaaa8User && voucher.status === "approved" && (
+                                {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
                                   <DropdownMenuItem
                                     onClick={() => handleOpenRevokeModal(voucher)}
                                     disabled={revokeVoucherApprovalMutation.isPending}
