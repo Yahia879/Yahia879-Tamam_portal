@@ -2110,67 +2110,20 @@ export default function ProgressReports() {
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                 إغلاق
               </Button>
-
-              {selectedReport && selectedReport.status !== "pending_executive" && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    handleEditReportClick(selectedReport);
-                  }}
-                  className="border-blue-200 hover:bg-blue-50 text-blue-600 font-medium"
-                >
-                  <Edit className="w-4 h-4 ml-1.5" />
-                  تعديل التقرير
-                </Button>
-              )}
               
-              {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
-              {selectedReport && (
-                ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && isProjectManager) ||
-                (selectedReport.status === "pending_executive" && isExecutiveDirector)
-              ) && (
-                <Button
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    setApprovalNotes("");
-                    setShowApproveDialog(true);
-                  }}
-                  className="gradient-primary text-white font-bold"
-                >
-                  <CheckCircle className="w-4 h-4 ml-2" />
-                  اعتماد التقرير
-                </Button>
-              )}
-
-              {/* زر استثناء اعتماد مدير المشروع */}
-              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && !isProjectManager && canExceptionApprove && (
-                <Button
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    setExceptionNotes("");
-                    setShowExceptionDialog(true);
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-                >
-                  <ShieldAlert className="w-4 h-4 ml-1.5" />
-                  استثناء اعتماد مدير المشروع
-                </Button>
-              )}
-
-              {/* زر إلغاء الاعتماد */}
-              {selectedReport && selectedReport.status === "approved" && (
-                <Button
-                  onClick={() => {
-                    setShowDetailsDialog(false);
-                    setRevokeReason("");
-                    setShowRevokeDialog(true);
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
-                >
-                  <ShieldAlert className="w-4 h-4 ml-1.5" />
-                  إلغاء الاعتماد
-                </Button>
+              {selectedReport?.status !== "approved" && (
+                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
+                  <Button
+                    onClick={() => {
+                      setShowDetailsDialog(false);
+                      reviewMutation.mutate({ id: selectedReport.id, status: "approved" });
+                    }}
+                    className="gradient-primary text-white font-bold"
+                  >
+                    <CheckCircle className="w-4 h-4 ml-2" />
+                    اعتماد التقرير
+                  </Button>
+                )
               )}
             </DialogFooter>
           </DialogContent>
