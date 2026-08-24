@@ -189,7 +189,7 @@ async function cancelLinkedDisbursements(
 }
 
 export const progressReportsRouter = router({
-  // عدد تقارير الإنجاز المعلقة التي تتطلب اعتماد من المستخدم الحالي (مدير المشروع أو المدير التنفيذي)
+  // عدد تقارير الإنجاز المعلقة التي تتطلب اعتماد من المستخدم الحالي (مدير المشروع المعين أو المدير التنفيذي)
   getPendingActionCounts: protectedProcedure
     .query(async ({ ctx }) => {
       const db = await getDb();
@@ -205,42 +205,25 @@ export const progressReportsRouter = router({
         userEmail === "test10@gmail.com" ||
         (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
         (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director" ||
-        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
-        (await checkPermission(user.id, "progress_reports.approve"));
-
-      const isSuperOrAdmin = ["super_admin", "system_admin"].includes(userRole);
-      const hasExceptionApprove = await checkPermission(user.id, "progress_reports.exception_approve");
-      const hasApprovePermission = await checkPermission(user.id, "progress_reports.approve");
-      const isPMUser = userRole === "project_manager";
+        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي";
 
       let pendingReportsCount = 0;
 
-      // 1. المرحلة الأولى: تقارير بانتظار اعتماد مدير المشروع
-      if (isSuperOrAdmin || hasExceptionApprove || hasApprovePermission) {
-        const [allPmPending] = await db
-          .select({ value: sql<number>`count(*)` })
-          .from(progressReports)
-          .where(inArray(progressReports.status, ["pending", "submitted", "draft"]));
-        pendingReportsCount += Number(allPmPending?.value || 0);
-      } else {
-        const [pmPendingReports] = await db
-          .select({ value: sql<number>`count(*)` })
-          .from(progressReports)
-          .innerJoin(projects, eq(progressReports.projectId, projects.id))
-          .where(
-            and(
-              inArray(progressReports.status, ["pending", "submitted", "draft"]),
-              or(
-                eq(projects.managerId, user.id),
-                isPMUser ? sql`1=1` : sql`1=0`
-              )
-            )
-          );
-        pendingReportsCount += Number(pmPendingReports?.value || 0);
-      }
+      // 1. المرحلة الأولى: تقارير بانتظار اعتماد مدير المشروع (المستخدم المعين كمدير للمشروع)
+      const [pmPendingReports] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(progressReports)
+        .innerJoin(projects, eq(progressReports.projectId, projects.id))
+        .where(
+          and(
+            inArray(progressReports.status, ["pending", "submitted", "draft"]),
+            eq(projects.managerId, user.id)
+          )
+        );
+      pendingReportsCount += Number(pmPendingReports?.value || 0);
 
-      // 2. المرحلة الثانية: تقارير بانتظار اعتماد المدير التنفيذي
-      if (isExecDirector || isSuperOrAdmin) {
+      // 2. المرحلة الثانية: تقارير بانتظار اعتماد المدير التنفيذي (فقط للمدير التنفيذي)
+      if (isExecDirector) {
         const [execPendingReports] = await db
           .select({ value: sql<number>`count(*)` })
           .from(progressReports)

@@ -1001,26 +1001,14 @@ export default function ProgressReports() {
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
     
-    // المرحلة الأولى: بانتظار اعتماد مدير المشروع
+    // المرحلة الأولى: بانتظار اعتماد مدير المشروع (فقط لمدير المشروع المعين للمشروع)
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
-      return Boolean(
-        (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
-        user.role === "project_manager" ||
-        user.role === "super_admin" ||
-        user.role === "system_admin" ||
-        canExceptionApprove ||
-        canReviewReport
-      );
+      return Boolean(report.projectManagerId && Number(report.projectManagerId) === Number(user.id));
     }
     
-    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي (فقط للمدير التنفيذي)
     if (report.status === "pending_executive") {
-      return Boolean(
-        isExecutiveDirector ||
-        user.role === "super_admin" ||
-        user.role === "system_admin" ||
-        canReviewReport
-      );
+      return Boolean(isExecutiveDirector);
     }
     return false;
   };
@@ -1613,12 +1601,7 @@ export default function ProgressReports() {
                     const status = statusConfig[report.status] || statusConfig.draft;
                     const isPendingMyAction = checkPendingMyAction(report);
                     const isProjectManager = Boolean(
-                      user?.role === "project_manager" ||
-                      user?.role === "super_admin" ||
-                      (report.projectManagerId && Number(report.projectManagerId) === Number(user?.id)) ||
-                      (report.managerApprovedBy && Number(report.managerApprovedBy) === Number(user?.id)) ||
-                      (report.createdBy && Number(report.createdBy) === Number(user?.id)) ||
-                      (projectDetails?.managerId && Number(projectDetails.managerId) === Number(user?.id))
+                      report.projectManagerId && Number(report.projectManagerId) === Number(user?.id)
                     );
 
                     const renderDropdownContent = () => (
@@ -2162,13 +2145,9 @@ export default function ProgressReports() {
               {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
               {selectedReport && (
                 ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && (
-                  user?.role === "project_manager" ||
-                  user?.role === "super_admin" ||
-                  user?.role === "system_admin" ||
-                  canReviewReport ||
-                  (selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id))
+                  selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id)
                 )) ||
-                (selectedReport.status === "pending_executive" && (isExecutiveDirector || user?.role === "super_admin" || user?.role === "system_admin" || canReviewReport))
+                (selectedReport.status === "pending_executive" && isExecutiveDirector)
               ) && (
                 <Button
                   onClick={() => {
@@ -2184,7 +2163,7 @@ export default function ProgressReports() {
               )}
 
               {/* زر استثناء اعتماد مدير المشروع */}
-              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && canExceptionApprove && (
+              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && canExceptionApprove && !(selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id)) && (
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false);
