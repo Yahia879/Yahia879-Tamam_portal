@@ -2538,10 +2538,13 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      if (ctx.user.email !== "solayani@manarah.org.sa") {
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "receipt_vouchers.exception_approve");
+      const isFaaa8User = ctx.user.email === "solayani@manarah.org.sa";
+
+      if (!isFaaa8User && !hasExceptionPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "عذراً، رفض سند القبض مخصص حصرياً للمسؤول المالي (solayani@manarah.org.sa)"
+          message: "عذراً، رفض سند القبض يتطلب صلاحية استثناء اعتماد السند أو المسؤول المالي"
         });
       }
 

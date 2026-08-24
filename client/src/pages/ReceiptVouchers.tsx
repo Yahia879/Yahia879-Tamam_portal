@@ -898,7 +898,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 3. رفض سند القبض */}
-                                {isFaaa8User && voucher.status === "pending_approval" && (
+                                {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
                                   <DropdownMenuItem
                                     onClick={() => handleOpenRejectModal(voucher)}
                                     disabled={rejectVoucherMutation.isPending}
