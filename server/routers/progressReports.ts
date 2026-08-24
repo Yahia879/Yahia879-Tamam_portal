@@ -195,6 +195,9 @@ export const progressReportsRouter = router({
           projectName: projects.name,
           createdBy: progressReports.createdBy,
           createdByName: users.name,
+          creatorUserSignatureName: users.signatureName,
+          creatorUserSignatureDepartment: users.signatureDepartment,
+          creatorUserSignatureUrl: users.signatureUrl,
 
           // بيانات مدير المشروع والاعتمادات
           projectManagerId: projects.managerId,

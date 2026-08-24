@@ -327,15 +327,15 @@ export default function ProgressReportPrint() {
   // 1. الخانة الأولى: مُعِد التقرير (مدير المشروع / معتمد الاستثناء) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
   const resolvedSignatureName = isExceptionApproved
     ? ((report as any)?.exceptionApprovedBySignatureName || (report as any)?.exceptionApprovedByName || rawCreatorName || "معتمد الاستثناء")
-    : ((report as any)?.managerApprovedBySignatureName || (report as any)?.projectManagerSignatureName || rawCreatorName || (report as any)?.managerApprovedByName || report?.projectManagerName || report?.createdByName || project?.managerName || "—");
+    : ((report as any)?.managerApprovedBySignatureName || (report as any)?.projectManagerSignatureName || (report as any)?.creatorUserSignatureName || rawCreatorName || (report as any)?.managerApprovedByName || report?.projectManagerName || (report as any)?.createdByName || project?.managerName || "—");
 
   const resolvedSignatureDepartment = isExceptionApproved
     ? ((report as any)?.exceptionApprovedBySignatureDepartment || report?.creatorSignatureDepartment || "إدارة النظام")
-    : ((report as any)?.managerApprovedBySignatureDepartment || (report as any)?.projectManagerSignatureDepartment || report?.creatorSignatureDepartment || "مدير المشروع");
+    : ((report as any)?.managerApprovedBySignatureDepartment || (report as any)?.projectManagerSignatureDepartment || (report as any)?.creatorUserSignatureDepartment || report?.creatorSignatureDepartment || "مدير المشروع");
 
   const resolvedSignatureUrl = isExceptionApproved
     ? ((report as any)?.exceptionApprovedBySignatureUrl || report?.creatorSignatureUrl || null)
-    : ((report as any)?.managerApprovedBySignatureUrl || report?.creatorSignatureUrl || (report as any)?.projectManagerSignatureUrl || null);
+    : ((report as any)?.managerApprovedBySignatureUrl || (report as any)?.projectManagerSignatureUrl || (report as any)?.creatorUserSignatureUrl || report?.creatorSignatureUrl || null);
 
   // 2. الخانة الثانية: يُعتمد (المدير التنفيذي) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
   const executiveDirectorUser = (report as any)?.approvedBy
