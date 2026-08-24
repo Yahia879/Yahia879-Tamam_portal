@@ -2525,11 +2525,11 @@ export const disbursementsRouter = router({
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
 
-          // تحديث حالة الدفعة اليدوية إلى مستحقة عند اعتماد أمر الصرف
+          // تحديث حالة الدفعة اليدوية إلى معتمدة عند اعتماد أمر الصرف
           await db
             .update(payments)
             .set({
-              status: "due",
+              status: "approved",
               updatedAt: new Date(),
             })
             .where(eq(payments.id, orderWithRequest.paymentId));

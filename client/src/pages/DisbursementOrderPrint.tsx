@@ -194,9 +194,9 @@ export default function DisbursementOrderPrint() {
     }
   }
 
-  if (order?.attachmentsJson) {
+  if ((order as any)?.attachmentsJson) {
     try {
-      const orderAtts = typeof order.attachmentsJson === "string" ? JSON.parse(order.attachmentsJson) : order.attachmentsJson;
+      const orderAtts = typeof (order as any).attachmentsJson === "string" ? JSON.parse((order as any).attachmentsJson) : (order as any).attachmentsJson;
       if (Array.isArray(orderAtts)) {
         rawAttachments.push(...orderAtts);
       }
@@ -255,6 +255,13 @@ export default function DisbursementOrderPrint() {
   const hasContract = !!project?.contractAmount;
   const managementPercentage = parseFloat(project?.managementPercentage?.toString() || "0");
 
+  const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
+                       customSupplier?.requestType === "sadad_invoice" || 
+                       customSupplier?.requestType === "misc_expenses" ||
+                       linkedRequestInfo?.requestType === "supplier_one_time" || 
+                       linkedRequestInfo?.requestType === "sadad_invoice" || 
+                       linkedRequestInfo?.requestType === "misc_expenses";
+
   const actualProjectCost = isTamamLinked 
     ? actualProjectValue 
     : (hasContract ? parseFloat(project.contractAmount.toString()) : (actualProjectValue > 0 ? actualProjectValue : amount));
@@ -270,13 +277,6 @@ export default function DisbursementOrderPrint() {
   const resolvedFundingAmount = (project?.fundingAmount && project.fundingAmount > 0)
     ? project.fundingAmount
     : (actualProjectCost > 0 ? actualProjectCost : (isCustomType ? amount : 0));
-
-  const isCustomType = customSupplier?.requestType === "supplier_one_time" || 
-                       customSupplier?.requestType === "sadad_invoice" || 
-                       customSupplier?.requestType === "misc_expenses" ||
-                       linkedRequestInfo?.requestType === "supplier_one_time" || 
-                       linkedRequestInfo?.requestType === "sadad_invoice" || 
-                       linkedRequestInfo?.requestType === "misc_expenses";
 
   const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
                          linkedRequestInfo?.requestType === "sadad_invoice" ||

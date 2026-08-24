@@ -160,7 +160,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/disbursement-requests": "disbursement_requests",
   "/disbursement-orders": "disbursement_orders",
   "/disbursement-orders/new-direct": "disbursement_orders",
-  "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit"],
+  "/receipt-vouchers": ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"],
   "/receipt-vouchers/new": ["receipt_vouchers", "receipt_vouchers.edit"],
 
   // ── تقارير الإنجاز والمشاريع ──
@@ -300,7 +300,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
 
   // تقارير الإنجاز والمشاريع
-  { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit"] },
+  { pattern: /^\/receipt-vouchers\/\d+(\/print)?$/, permission: ["receipt_vouchers", "receipt_vouchers.view", "receipt_vouchers.edit", "receipt_vouchers.exception_approve"] },
   { pattern: /^\/progress-reports\/\d+\/print$/, permission: "progress_reports" },
   { pattern: /^\/project-reports\/.*$/, permission: ["project_reports", "project_reports.view", "project_reports.create", "progress_reports", "progress_reports.view", "reports.view"] },
 ];

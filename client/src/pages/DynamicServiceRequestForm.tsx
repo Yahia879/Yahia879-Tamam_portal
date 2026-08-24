@@ -1105,7 +1105,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <Button
               size="lg"
               onClick={handleNextStep}
-              disabled={currentStep === 'details' && isCurrentMosqueUnapproved}
+              disabled={Boolean(currentStep === 'details' && isCurrentMosqueUnapproved)}
               className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>التالي</span>
@@ -1364,7 +1364,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   <tr>
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">العنوان / الوصف:</td>
                     <td className="p-2.5 text-slate-900 w-1/4 border-l border-slate-200">
-                      {currentMosque?.address || formData.address || (currentMosque?.governorate ? `محافظة ${currentMosque.governorate}` : '—')}
+                      {currentMosque?.address || formData.address || ((currentMosque as any)?.governorate ? `محافظة ${(currentMosque as any).governorate}` : '—')}
                     </td>
                     <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/4 border-l border-slate-200">المساحة والسعة:</td>
                     <td className="p-2.5 text-slate-900 w-1/4">
@@ -1416,7 +1416,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   <td className="p-2.5 bg-slate-50 font-bold text-slate-600 w-1/3 border-l border-slate-200">مصلى النساء:</td>
                   <td className="p-2.5 text-slate-900">
                     {formData.hasPrayerHall
-                      ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || currentMosque?.womenPrayerCapacity || '—'} مصلي | المساحة: ${formData.womenPrayerArea || currentMosque?.womenPrayerArea || '—'} م²)`
+                      ? `يتضمن مصلى للنساء (السعة: ${formData.womenPrayerCapacity || (currentMosque as any)?.womenPrayerCapacity || '—'} مصلي | المساحة: ${formData.womenPrayerArea || (currentMosque as any)?.womenPrayerArea || '—'} م²)`
                       : 'لا يتضمن مصلى للنساء'}
                   </td>
                 </tr>

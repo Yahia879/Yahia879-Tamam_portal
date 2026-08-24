@@ -420,18 +420,25 @@ export default function ReceiptVoucherPrint() {
             </div>
 
             <div className="col-span-6 flex flex-col items-center justify-end space-y-0.5">
-              <span className="text-sm sm:text-base font-bold text-[#978457]">الإدارة المالية</span>
+              <span className="text-sm sm:text-base font-bold text-[#978457]">
+                {(voucher as any)?.isException ? "معتمد الاستثناء" : "الإدارة المالية"}
+              </span>
               <div className="w-38 h-13 flex items-center justify-center relative">
                 {signatureUrl ? (
                   <img
                     src={signatureUrl}
-                    alt="توقيع الإدارة المالية"
+                    alt={(voucher as any)?.isException ? "توقيع معتمد الاستثناء" : "توقيع الإدارة المالية"}
                     className="max-h-13 max-w-full object-contain"
                   />
                 ) : (
                   <div className="w-34 h-13"></div>
                 )}
               </div>
+              {signerUser?.name && (
+                <span className="text-[11px] font-bold text-slate-700 font-sans">
+                  {signerUser.signatureName || signerUser.name}
+                </span>
+              )}
             </div>
           </div>
 

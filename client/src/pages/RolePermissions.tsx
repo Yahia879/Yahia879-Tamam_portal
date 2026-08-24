@@ -589,6 +589,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "receipt_vouchers.view", nameAr: "عرض سندات القبض" },
             { id: "receipt_vouchers.edit", nameAr: "تعديل سند القبض" },
+            { id: "receipt_vouchers.exception_approve", nameAr: "استثناء اعتماد السند" },
           ]
         },
         {
@@ -751,6 +752,7 @@ export default function RolePermissions() {
           permissions: [
             { id: "receipt_vouchers.view", nameAr: "عرض سندات القبض" },
             { id: "receipt_vouchers.edit", nameAr: "تعديل سند القبض" },
+            { id: "receipt_vouchers.exception_approve", nameAr: "استثناء اعتماد السند" },
           ]
         },
         {
@@ -833,7 +835,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
@@ -895,7 +897,7 @@ export default function RolePermissions() {
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
-        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit"] },
+        { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
@@ -1055,6 +1057,7 @@ export default function RolePermissions() {
       receipt_vouchers: {
         view: "عرض سندات القبض",
         edit: "تعديل سند القبض",
+        exception_approve: "استثناء اعتماد السند",
       },
       disbursement_orders: {
         view: "عرض أوامر الصرف",

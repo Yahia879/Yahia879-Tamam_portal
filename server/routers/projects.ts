@@ -4,6 +4,7 @@ import { getDb } from "../db";
 import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
 // توليد رقم مشروع بمنهجية سنوية
@@ -554,13 +555,13 @@ export const projectsRouter = router({
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (linkedOrder?.status === "executed") {
+        if ((linkedOrder as any)?.status === "executed") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder.executedAt || cp.paidAt;
-        } else if (cp.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paidAtDate = linkedOrder?.executedAt || cp.paidAt;
+        } else if (cp.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
           paymentStatus = "paid";
           paidAtDate = cp.paidAt;
-        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || cp.status === "due") {
+        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (cp as any).status === "due") {
           paymentStatus = "due";
         } else {
           paymentStatus = cp.status === "paid" ? "paid" : "pending";
@@ -591,13 +592,13 @@ export const projectsRouter = router({
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (linkedOrder?.status === "executed") {
+        if ((linkedOrder as any)?.status === "executed") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder.executedAt || p.paidAt;
-        } else if (p.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paidAtDate = linkedOrder?.executedAt || p.paidAt;
+        } else if (p.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
           paymentStatus = "paid";
           paidAtDate = p.paidAt;
-        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || p.status === "due") {
+        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (p as any).status === "due") {
           paymentStatus = "due";
         } else {
           paymentStatus = p.status === "paid" ? "paid" : "pending";
@@ -1930,13 +1931,13 @@ export const projectsRouter = router({
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (linkedOrder?.status === "executed") {
+        if ((linkedOrder as any)?.status === "executed") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder.executedAt || cp.paidAt;
-        } else if (cp.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paidAtDate = linkedOrder?.executedAt || cp.paidAt;
+        } else if (cp.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
           paymentStatus = "paid";
           paidAtDate = cp.paidAt;
-        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || cp.status === "due") {
+        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (cp as any).status === "due") {
           paymentStatus = "due";
         } else {
           paymentStatus = cp.status === "paid" ? "paid" : "pending";
@@ -1966,13 +1967,13 @@ export const projectsRouter = router({
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (linkedOrder?.status === "executed") {
+        if ((linkedOrder as any)?.status === "executed") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder.executedAt || p.paidAt;
-        } else if (p.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paidAtDate = linkedOrder?.executedAt || p.paidAt;
+        } else if (p.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
           paymentStatus = "paid";
           paidAtDate = p.paidAt;
-        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || p.status === "due") {
+        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (p as any).status === "due") {
           paymentStatus = "due";
         } else {
           paymentStatus = p.status === "paid" ? "paid" : "pending";
@@ -2331,6 +2332,12 @@ export const projectsRouter = router({
           notes: receiptVouchers.notes,
           status: receiptVouchers.status,
           rejectionReason: receiptVouchers.rejectionReason,
+          isException: receiptVouchers.isException,
+          exceptionApprovedBy: receiptVouchers.exceptionApprovedBy,
+          exceptionApprovedAt: receiptVouchers.exceptionApprovedAt,
+          exceptionReason: receiptVouchers.exceptionReason,
+          approvedBy: receiptVouchers.approvedBy,
+          approvedAt: receiptVouchers.approvedAt,
           createdAt: receiptVouchers.createdAt,
           projectName: projects.name,
           projectNumber: projects.projectNumber,
@@ -2552,6 +2559,54 @@ export const projectsRouter = router({
       return { success: true };
     }),
 
+  exceptionApproveReceiptVoucher: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      reason: z.string().min(1, "يرجى إدخال سبب أو مبررات استثناء اعتماد السند"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "receipt_vouchers.exception_approve");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!hasExceptionPerm && !isAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "ليس لديك صلاحية استثناء اعتماد سند القبض"
+        });
+      }
+
+      const [voucher] = await db.select().from(receiptVouchers).where(eq(receiptVouchers.id, input.id));
+      if (!voucher) throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
+
+      if (voucher.status === "approved") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "سند القبض معتمد بالفعل"
+        });
+      }
+
+      await db.update(receiptVouchers)
+        .set({
+          status: "approved",
+          isException: 1,
+          exceptionApprovedBy: ctx.user.id,
+          exceptionApprovedAt: new Date(),
+          exceptionReason: input.reason.trim(),
+          approvedBy: ctx.user.id,
+          approvedAt: new Date(),
+          rejectionReason: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(receiptVouchers.id, input.id));
+
+      await resequenceVoucherNumbers(db);
+
+      return { success: true, message: "تم اعتماد سند القبض بالاستثناء بنجاح" };
+    }),
+
   getReceiptVoucherById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
@@ -2575,6 +2630,12 @@ export const projectsRouter = router({
           notes: receiptVouchers.notes,
           status: receiptVouchers.status,
           rejectionReason: receiptVouchers.rejectionReason,
+          isException: receiptVouchers.isException,
+          exceptionApprovedBy: receiptVouchers.exceptionApprovedBy,
+          exceptionApprovedAt: receiptVouchers.exceptionApprovedAt,
+          exceptionReason: receiptVouchers.exceptionReason,
+          approvedBy: receiptVouchers.approvedBy,
+          approvedAt: receiptVouchers.approvedAt,
           createdAt: receiptVouchers.createdAt,
           createdById: receiptVouchers.createdById,
         })
@@ -2601,21 +2662,41 @@ export const projectsRouter = router({
       // التوقيع يظهر بالتقرير فقط وحصرياً إذا كان السند معتمداً (status === 'approved')
       let signerUser = null;
       if (voucher.status === "approved") {
-        const signerUserList = await db
-          .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            signatureUrl: users.signatureUrl,
-            signatureName: users.signatureName,
-            signatureDepartment: users.signatureDepartment,
-            showSignatureInDocuments: users.showSignatureInDocuments,
-          })
-          .from(users)
-          .where(eq(users.email, "solayani@manarah.org.sa"))
-          .limit(1);
+        if (voucher.isException && voucher.exceptionApprovedBy) {
+          const approverList = await db
+            .select({
+              id: users.id,
+              name: users.name,
+              email: users.email,
+              signatureUrl: users.signatureUrl,
+              signatureName: users.signatureName,
+              signatureDepartment: users.signatureDepartment,
+              showSignatureInDocuments: users.showSignatureInDocuments,
+            })
+            .from(users)
+            .where(eq(users.id, voucher.exceptionApprovedBy))
+            .limit(1);
 
-        signerUser = signerUserList.length > 0 ? signerUserList[0] : null;
+          signerUser = approverList.length > 0 ? approverList[0] : null;
+        }
+
+        if (!signerUser) {
+          const signerUserList = await db
+            .select({
+              id: users.id,
+              name: users.name,
+              email: users.email,
+              signatureUrl: users.signatureUrl,
+              signatureName: users.signatureName,
+              signatureDepartment: users.signatureDepartment,
+              showSignatureInDocuments: users.showSignatureInDocuments,
+            })
+            .from(users)
+            .where(eq(users.email, "solayani@manarah.org.sa"))
+            .limit(1);
+
+          signerUser = signerUserList.length > 0 ? signerUserList[0] : null;
+        }
       }
 
       return {
