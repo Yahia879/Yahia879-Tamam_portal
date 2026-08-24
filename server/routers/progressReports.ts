@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { eq, desc, and, sql, or, like, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, sql, or, like, inArray, isNull, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { getDb } from "../db";
-import { progressReports, projects, users } from "../../drizzle/schema";
+import { progressReports, projects, users, disbursementRequests, disbursementOrders } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
 
 const pmUsers = alias(users, "pmUsers");
@@ -33,6 +33,135 @@ const parseDateInput = (val: any): Date | null => {
     return null;
   }
 };
+
+async function cancelLinkedDisbursements(
+  db: any,
+  report: { id: number; reportNumber: string; projectId: number; workSummary?: string | null },
+  reasonText: string,
+  userId: number
+) {
+  try {
+    // 1. استخراج معرف الدفعة من ملخص الأعمال إن وجد
+    const workSummary = report.workSummary || "";
+    const paymentMatch = workSummary.match(/\[معرف الدفعة:\s*([^\]]+)\]/);
+    let linkedContractPaymentId: number | null = null;
+    let linkedPaymentId: number | null = null;
+    if (paymentMatch) {
+      const rawId = paymentMatch[1].trim();
+      const isManual = rawId.startsWith("manual-");
+      const numericId = parseInt(rawId.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
+      if (numericId > 0) {
+        if (isManual) {
+          linkedPaymentId = numericId;
+        } else {
+          linkedContractPaymentId = numericId;
+        }
+      }
+    }
+
+    // 2. شروط البحث عن طلبات الصرف المرتبطة بهذا التقرير
+    const matchConditions = [];
+    if (linkedContractPaymentId) {
+      matchConditions.push(eq(disbursementRequests.contractPaymentId, linkedContractPaymentId));
+    }
+    if (linkedPaymentId) {
+      matchConditions.push(eq(disbursementRequests.paymentId, linkedPaymentId));
+    }
+    if (report.reportNumber) {
+      matchConditions.push(
+        and(
+          eq(disbursementRequests.projectId, report.projectId),
+          or(
+            like(disbursementRequests.description, `%${report.reportNumber}%`),
+            like(disbursementRequests.title, `%${report.reportNumber}%`)
+          )
+        )
+      );
+    }
+
+    if (matchConditions.length === 0) return;
+
+    const linkedRequests = await db
+      .select({
+        id: disbursementRequests.id,
+        requestNumber: disbursementRequests.requestNumber,
+        status: disbursementRequests.status,
+        requestedBy: disbursementRequests.requestedBy,
+      })
+      .from(disbursementRequests)
+      .where(
+        and(
+          or(...matchConditions),
+          ne(disbursementRequests.status, "rejected")
+        )
+      );
+
+    for (const req of linkedRequests) {
+      await db
+        .update(disbursementRequests)
+        .set({
+          status: "rejected",
+          rejectedBy: userId,
+          rejectedAt: new Date(),
+          rejectionReason: reasonText,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementRequests.id, req.id));
+
+      if (req.requestedBy) {
+        await createNotification({
+          userId: req.requestedBy,
+          title: "تم إلغاء/رفض طلب الصرف المرتبط",
+          message: `تم إلغاء/رفض طلب الصرف رقم ${req.requestNumber} بسبب: ${reasonText}`,
+          type: "error",
+          relatedType: "disbursement_request",
+          relatedId: req.id,
+        }).catch((err: any) => console.error("Error creating notification for disbursement request:", err));
+      }
+
+      // البحث عن أوامر الصرف المرتبطة بهذا الطلب
+      const linkedOrders = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          createdBy: disbursementOrders.createdBy,
+        })
+        .from(disbursementOrders)
+        .where(
+          and(
+            eq(disbursementOrders.disbursementRequestId, req.id),
+            ne(disbursementOrders.status, "rejected")
+          )
+        );
+
+      for (const ord of linkedOrders) {
+        await db
+          .update(disbursementOrders)
+          .set({
+            status: "rejected",
+            rejectedBy: userId,
+            rejectedAt: new Date(),
+            rejectionReason: reasonText,
+            updatedAt: new Date(),
+          })
+          .where(eq(disbursementOrders.id, ord.id));
+
+        if (ord.createdBy) {
+          await createNotification({
+            userId: ord.createdBy,
+            title: "تم إلغاء/رفض أمر الصرف المرتبط",
+            message: `تم إلغاء/رفض أمر الصرف رقم ${ord.orderNumber} بسبب: ${reasonText}`,
+            type: "error",
+            relatedType: "disbursement_order",
+            relatedId: ord.id,
+          }).catch((err: any) => console.error("Error creating notification for disbursement order:", err));
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error cancelling linked disbursements for report:", err);
+  }
+}
 
 export const progressReportsRouter = router({
   // عدد تقارير الإنجاز المعلقة التي تتطلب اعتماد من المستخدم الحالي (مدير المشروع أو المدير التنفيذي)
@@ -822,18 +951,28 @@ export const progressReportsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "تقرير الإنجاز غير موجود" });
       }
 
+      const rejectionReasonText = input.reason.trim();
+
       await db
         .update(progressReports)
         .set({
           status: "rejected",
           rejectedBy: ctx.user.id,
           rejectedAt: new Date(),
-          rejectionReason: input.reason.trim(),
+          rejectionReason: rejectionReasonText,
           updatedAt: new Date(),
         })
         .where(eq(progressReports.id, input.id));
 
-      return { success: true, message: "تم إلغاء / رفض التقرير بنجاح" };
+      // إلغاء ورفض طلبات وأوامر الصرف المرتبطة
+      await cancelLinkedDisbursements(
+        db,
+        report,
+        `تم إلغاء/رفض تقرير الإنجاز المرتبط (${report.reportNumber}): ${rejectionReasonText}`,
+        ctx.user.id
+      );
+
+      return { success: true, message: "تم إلغاء / رفض التقرير بنجاح، وتحديث طلبات وأوامر الصرف المرتبطة" };
     }),
 
   // إلغاء الاعتماد (تغيير الحالة إلى "revoked" / ملغى اعتماده)
@@ -886,20 +1025,33 @@ export const progressReportsRouter = router({
         });
       }
 
+      const reasonFormatted = input.reason ? `تم إلغاء الاعتماد: ${input.reason.trim()}` : "تم إلغاء اعتماد التقرير";
+      const linkedRejectionReason = input.reason?.trim()
+        ? `تم إلغاء اعتماد تقرير الإنجاز المرتبط (${report.reportNumber}): ${input.reason.trim()}`
+        : `تم إلغاء اعتماد تقرير الإنجاز المرتبط (${report.reportNumber})`;
+
       await db
         .update(progressReports)
         .set({
           status: "revoked",
-          rejectionReason: input.reason ? `تم إلغاء الاعتماد: ${input.reason.trim()}` : "تم إلغاء اعتماد التقرير",
+          rejectionReason: reasonFormatted,
           rejectedBy: ctx.user.id,
           rejectedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(progressReports.id, input.id));
 
+      // إلغاء ورفض طلبات وأوامر الصرف المرتبطة بهذا التقرير تلقائياً
+      await cancelLinkedDisbursements(
+        db,
+        report,
+        linkedRejectionReason,
+        ctx.user.id
+      );
+
       return {
         success: true,
-        message: "تم إلغاء اعتماد التقرير بنجاح وتغيير حالته إلى (ملغى اعتماده)",
+        message: "تم إلغاء اعتماد التقرير بنجاح وتغيير حالته إلى (ملغى اعتماده)، وتم رفض طلبات وأوامر الصرف المرتبطة به تلقائياً",
       };
     }),
 

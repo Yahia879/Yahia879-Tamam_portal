@@ -63,6 +63,7 @@ import {
   Download,
   ExternalLink,
   ShieldAlert,
+  AlertCircle,
   Info,
   BadgeCheck,
 } from "lucide-react";
@@ -675,6 +676,19 @@ export default function DisbursementOrders() {
                                           </DropdownMenuItem>
                                         )}
 
+                                        {order.status === "rejected" && order.rejectionReason && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowDetailsDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-rose-600 hover:text-rose-700 focus:text-rose-700 focus:bg-rose-50 dark:focus:bg-rose-950/30 font-bold"
+                                          >
+                                            <AlertCircle className="h-4 w-4 text-rose-500" />
+                                            <span>عرض سبب الرفض</span>
+                                          </DropdownMenuItem>
+                                        )}
+
                                         <DropdownMenuItem
                                           onClick={() => {
                                             navigate(`/disbursement-orders/${order.id}/print`);
@@ -1217,6 +1231,13 @@ export default function DisbursementOrders() {
                   </Badge>
                 </div>
               </div>
+
+              {selectedOrder?.status === "rejected" && selectedOrder?.rejectionReason && (
+                <div className="p-3.5 bg-rose-50/80 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 rounded-xl space-y-1 text-xs text-rose-900 dark:text-rose-200">
+                  <span className="font-bold block text-rose-800 dark:text-rose-300">سبب الرفض / الإلغاء:</span>
+                  <p className="whitespace-pre-wrap leading-relaxed text-rose-950 dark:text-rose-100">{selectedOrder.rejectionReason}</p>
+                </div>
+              )}
 
               {(() => {
                 const parsedAttachments = (() => {

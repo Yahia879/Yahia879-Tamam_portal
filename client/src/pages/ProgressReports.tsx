@@ -567,6 +567,8 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      refetchDisbursementRequests();
+      utils.disbursements.invalidate();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
@@ -581,6 +583,8 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      refetchDisbursementRequests();
+      utils.disbursements.invalidate();
       utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
