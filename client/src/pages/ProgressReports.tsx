@@ -72,6 +72,7 @@ import {
   ShieldAlert,
   XCircle,
   Info,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -999,11 +1000,27 @@ export default function ProgressReports() {
 
   const checkPendingMyAction = (report: any) => {
     if (!user || !report) return false;
+    
+    // المرحلة الأولى: بانتظار اعتماد مدير المشروع
     if (report.status === "pending" || report.status === "submitted" || report.status === "draft") {
-      return !!(report.projectManagerId && report.projectManagerId === user.id);
+      return Boolean(
+        (report.projectManagerId && Number(report.projectManagerId) === Number(user.id)) ||
+        user.role === "project_manager" ||
+        user.role === "super_admin" ||
+        user.role === "system_admin" ||
+        canExceptionApprove ||
+        canReviewReport
+      );
     }
+    
+    // المرحلة الثانية: بانتظار اعتماد المدير التنفيذي
     if (report.status === "pending_executive") {
-      return isExecutiveDirector;
+      return Boolean(
+        isExecutiveDirector ||
+        user.role === "super_admin" ||
+        user.role === "system_admin" ||
+        canReviewReport
+      );
     }
     return false;
   };
@@ -2127,20 +2144,81 @@ export default function ProgressReports() {
               <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
                 إغلاق
               </Button>
+
+              {selectedReport && selectedReport.status !== "pending_executive" && selectedReport.status !== "approved" && selectedReport.status !== "revoked" && selectedReport.status !== "rejected" && !isReportConverted(selectedReport) && !isDisbursementApproved(selectedReport) && canEditReport && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    handleEditReportClick(selectedReport);
+                  }}
+                  className="gap-1.5"
+                >
+                  <Edit className="w-4 h-4" />
+                  تعديل التقرير
+                </Button>
+              )}
               
-              {selectedReport?.status !== "approved" && (
-                canReviewReport && (selectedReport?.status === "submitted" || selectedReport?.status === "reviewed") && (
-                  <Button
-                    onClick={() => {
-                      setShowDetailsDialog(false);
-                      reviewMutation.mutate({ id: selectedReport.id, status: "approved" });
-                    }}
-                    className="gradient-primary text-white font-bold"
-                  >
-                    <CheckCircle className="w-4 h-4 ml-2" />
-                    اعتماد التقرير
-                  </Button>
-                )
+              {/* زر الاعتماد العادي للمرحلة الأولى أو الثانية */}
+              {selectedReport && (
+                ((selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && (
+                  user?.role === "project_manager" ||
+                  user?.role === "super_admin" ||
+                  user?.role === "system_admin" ||
+                  canReviewReport ||
+                  (selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id))
+                )) ||
+                (selectedReport.status === "pending_executive" && (isExecutiveDirector || user?.role === "super_admin" || user?.role === "system_admin" || canReviewReport))
+              ) && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setApprovalNotes("");
+                    setShowApproveDialog(true);
+                  }}
+                  className="gradient-primary text-white font-bold"
+                >
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                  اعتماد التقرير
+                </Button>
+              )}
+
+              {/* زر استثناء اعتماد مدير المشروع */}
+              {selectedReport && (selectedReport.status === "pending" || selectedReport.status === "submitted" || selectedReport.status === "draft") && canExceptionApprove && (
+                <Button
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setExceptionNotes("");
+                    setShowExceptionDialog(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                  <ShieldAlert className="w-4 h-4 ml-1.5" />
+                  استثناء اعتماد مدير المشروع
+                </Button>
+              )}
+
+              {/* زر إلغاء الاعتماد */}
+              {selectedReport && selectedReport.status === "approved" && (
+                user?.role === "super_admin" ||
+                user?.role === "system_admin" ||
+                isExecutiveDirector ||
+                canExceptionApprove ||
+                canReviewReport ||
+                (selectedReport.projectManagerId && Number(selectedReport.projectManagerId) === Number(user?.id))
+              ) && (
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setShowDetailsDialog(false);
+                    setRevokeReason("");
+                    setShowRevokeDialog(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                >
+                  <RotateCcw className="w-4 h-4 ml-1.5" />
+                  إلغاء الاعتماد
+                </Button>
               )}
             </DialogFooter>
           </DialogContent>
