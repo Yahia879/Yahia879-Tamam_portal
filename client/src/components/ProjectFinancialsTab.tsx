@@ -1162,26 +1162,26 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
           {/* تنبيه الفائض المالي مع زر التحويل المباشر */}
           {surplusAmount > 0 && (
-            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 text-purple-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 via-sky-50/40 to-slate-50 border border-indigo-200/90 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Sparkles className="w-5 h-5" />
+                <div className="w-10 h-10 rounded-xl bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-5 h-5 text-indigo-200" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-black text-sm text-purple-900">
+                    <h4 className="font-black text-sm text-indigo-950">
                       يوجد فائض في المقبوضات بمقدار ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
                     </h4>
-                    <Badge className="bg-purple-600 text-white text-[10px] font-bold">فائض قابل للتحويل</Badge>
+                    <Badge className="bg-indigo-700 text-white text-[10px] font-bold">فائض قابل للتحويل</Badge>
                   </div>
-                  <p className="text-xs text-purple-800/80 mt-1 leading-relaxed">
-                    إجمالي سندات القبض المعتمدة يتجاوز قيمة الدعم المطلوبة للمشروع. يمكنك تحويل هذا الفائض إلى سند قبض مستقل (مقيد لمصرف آخر أو غير مقيد) ليظهر في صفحة سندات القبض العامة.
+                  <p className="text-xs text-indigo-900/80 mt-1 leading-relaxed">
+                    إجمالي سندات القبض المعتمدة يتجاوز تكلفة المشروع المقررة. يمكنك تحويل هذا الفائض إلى سند قبض مستقل (مقيد لمصرف آخر أو غير مقيد) ليظهر في صفحة سندات القبض العامة.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={openTransferSurplusModal}
-                className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
+                className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
               >
                 <ArrowRightLeft className="w-4 h-4" />
                 <span>تحويل الفائض إلى سند قبض</span>
@@ -1213,19 +1213,19 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </div>
 
             {surplusAmount > 0 && (
-              <div className="p-4 bg-purple-50/80 rounded-xl border border-purple-200 text-right relative overflow-hidden">
+              <div className="p-4 bg-indigo-50/80 rounded-xl border border-indigo-200 text-right relative overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-purple-900 font-bold block">فائض المقبوضات</span>
-                  <Badge className="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.2">فائض</Badge>
+                  <span className="text-xs text-indigo-900 font-bold block">فائض المقبوضات</span>
+                  <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.2">فائض</Badge>
                 </div>
-                <span className="text-lg font-black text-purple-950 mt-1 block font-sans">
+                <span className="text-lg font-black text-indigo-950 mt-1 block font-sans">
                   {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                 </span>
                 <Button
                   variant="link"
                   size="sm"
                   onClick={openTransferSurplusModal}
-                  className="p-0 h-auto text-[11px] text-purple-700 hover:text-purple-900 font-bold mt-1.5 flex items-center gap-1"
+                  className="p-0 h-auto text-[11px] text-indigo-700 hover:text-indigo-900 font-bold mt-1.5 flex items-center gap-1"
                 >
                   <ArrowRightLeft className="w-3 h-3" />
                   <span>تحويل الفائض الآن</span>
@@ -1995,66 +1995,66 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
       {/* Dialog for Transferring Project Surplus */}
       <Dialog open={isTransferSurplusOpen} onOpenChange={setIsTransferSurplusOpen}>
-        <DialogContent className="dir-rtl text-right max-w-xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-purple-200">
-          <DialogHeader className="text-right border-b pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                  <ArrowRightLeft className="w-5 h-5" />
+        <DialogContent className="dir-rtl text-right max-w-3xl sm:max-w-3xl w-[94vw] max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-indigo-200/90 p-6">
+          <DialogHeader className="text-right border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center shrink-0 shadow-xs">
+                  <ArrowRightLeft className="w-5 h-5 text-indigo-700" />
                 </div>
                 <div>
-                  <DialogTitle className="text-base font-bold text-purple-950">
+                  <DialogTitle className="text-lg font-bold text-slate-900">
                     تحويل فائض المقبوضات إلى سند قبض
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  <DialogDescription className="text-xs text-slate-500 mt-0.5">
                     تحويل الفائض المالي المحصل من الداعم إلى سند قبض مقيد أو غير مقيد
                   </DialogDescription>
                 </div>
               </div>
-              <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-xs font-black">
-                فائض متاح: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <Badge className="bg-indigo-50 text-indigo-800 border border-indigo-300 text-xs font-black px-3 py-1 self-start sm:self-center">
+                فائض متاح للتحويل: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </Badge>
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 py-2 text-xs">
+          <div className="space-y-4 py-3 text-xs">
             {/* اختيار نوع السند */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-800">نوع سند القبض المحول إليه *</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setTransferType("restricted")}
-                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-2.5 ${
+                  className={`p-3.5 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
                     transferType === "restricted"
-                      ? "bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900"
-                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700"
+                      ? "bg-indigo-50/80 border-indigo-600 ring-2 ring-indigo-600/20 text-indigo-950 shadow-xs"
+                      : "bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700"
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${transferType === "restricted" ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                  <div className={`p-2.5 rounded-lg shrink-0 ${transferType === "restricted" ? "bg-indigo-700 text-white" : "bg-slate-200 text-slate-700"}`}>
                     <FileCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold block text-xs">سند قبض مقيد</span>
-                    <span className="text-[10px] text-muted-foreground">مقيد بمصرف تبرع محدد</span>
+                    <span className="font-bold block text-xs text-slate-900">سند قبض مقيد</span>
+                    <span className="text-[11px] text-slate-500">مقيد بمصرف تبرع أو غرض محدد</span>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTransferType("unrestricted")}
-                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-2.5 ${
+                  className={`p-3.5 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-3 ${
                     transferType === "unrestricted"
-                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-900"
-                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700"
+                      ? "bg-sky-50/80 border-sky-600 ring-2 ring-sky-600/20 text-sky-950 shadow-xs"
+                      : "bg-slate-50/70 border-slate-200 hover:bg-slate-100 text-slate-700"
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${transferType === "unrestricted" ? "bg-amber-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                  <div className={`p-2.5 rounded-lg shrink-0 ${transferType === "unrestricted" ? "bg-sky-700 text-white" : "bg-slate-200 text-slate-700"}`}>
                     <Coins className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="font-bold block text-xs">سند قبض غير مقيد</span>
-                    <span className="text-[10px] text-muted-foreground">تبرع عام غير مقيد بمشروع</span>
+                    <span className="font-bold block text-xs text-slate-900">سند قبض غير مقيد</span>
+                    <span className="text-[11px] text-slate-500">تبرع عام غير مقيد بمشروع</span>
                   </div>
                 </button>
               </div>
@@ -2062,13 +2062,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
             {/* في حال اختيار مقيد: تحديد المصرف */}
             {transferType === "restricted" && (
-              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 space-y-2.5">
-                <Label className="text-xs font-bold text-blue-950">مصرف التبرع المقيد *</Label>
+              <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-200/90 space-y-2.5">
+                <Label className="text-xs font-bold text-indigo-950">مصرف التبرع المقيد *</Label>
                 <Select value={transferPurpose} onValueChange={setTransferPurpose}>
-                  <SelectTrigger className="h-9 text-xs bg-white border-blue-200">
+                  <SelectTrigger className="h-10 text-xs bg-white border-indigo-200 focus:ring-indigo-600">
                     <SelectValue placeholder="اختر مصرف التبرع" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60">
                     <SelectItem value="صيانة المساجد">صيانة المساجد</SelectItem>
                     <SelectItem value="تشييد وبناء المساجد">تشييد وبناء المساجد</SelectItem>
                     <SelectItem value="سقاية الماء">سقاية الماء</SelectItem>
@@ -2085,14 +2085,14 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 </Select>
 
                 {transferPurpose === "اخرى" && (
-                  <div>
-                    <Label className="text-[11px] text-muted-foreground mb-1 block">اسم مصرف التبرع المخصص *</Label>
+                  <div className="pt-1">
+                    <Label className="text-[11px] font-bold text-slate-700 mb-1 block">اسم مصرف التبرع المخصص *</Label>
                     <Input
                       type="text"
                       value={customTransferPurpose}
                       onChange={(e) => setCustomTransferPurpose(e.target.value)}
-                      placeholder="أدخل مسمى مصرف التبرع..."
-                      className="h-8 text-xs bg-white"
+                      placeholder="أدخل مسمى مصرف التبرع بالتفصيل..."
+                      className="h-9 text-xs bg-white border-indigo-200"
                     />
                   </div>
                 )}
@@ -2100,7 +2100,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             )}
 
             {/* مبلغ التحويل وتاريخ السند */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-bold text-slate-800 mb-1 block">مبلغ التحويل (ريال) *</Label>
                 <Input
@@ -2111,7 +2111,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                   placeholder="0.00"
-                  className="h-9 text-xs font-bold text-purple-950 font-sans text-left [direction:ltr]"
+                  className="h-10 text-xs font-bold text-indigo-950 font-sans text-left [direction:ltr] border-slate-200 focus:border-indigo-600"
                 />
               </div>
 
@@ -2121,7 +2121,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   type="date"
                   value={transferDate}
                   onChange={(e) => setTransferDate(e.target.value)}
-                  className="h-9 text-xs font-sans"
+                  className="h-10 text-xs font-sans border-slate-200 focus:border-indigo-600"
                 />
               </div>
             </div>
@@ -2134,16 +2134,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 value={transferPayerName}
                 onChange={(e) => setTransferPayerName(e.target.value)}
                 placeholder="السادة / ..."
-                className="h-9 text-xs"
+                className="h-10 text-xs border-slate-200 focus:border-indigo-600"
               />
             </div>
 
             {/* طريقة الدفع والبنك */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs font-bold text-slate-800 mb-1 block">طريقة القبض</Label>
                 <Select value={transferPaymentMethod} onValueChange={setTransferPaymentMethod}>
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="h-10 text-xs border-slate-200 focus:border-indigo-600">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2160,7 +2160,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   type="text"
                   value={transferBankName}
                   onChange={(e) => setTransferBankName(e.target.value)}
-                  className="h-9 text-xs"
+                  className="h-10 text-xs border-slate-200 focus:border-indigo-600"
                 />
               </div>
             </div>
@@ -2173,18 +2173,18 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 onChange={(e) => setTransferNotes(e.target.value)}
                 rows={2}
                 placeholder="بيان سند القبض المحول..."
-                className="text-xs"
+                className="text-xs border-slate-200 focus:border-indigo-600"
               />
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 border-t pt-3">
+          <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsTransferSurplusOpen(false)}
-              className="text-xs font-medium"
+              className="text-xs font-medium border-slate-300"
             >
               إلغاء
             </Button>
@@ -2193,7 +2193,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               size="sm"
               onClick={handleConfirmTransferSurplus}
               disabled={transferSurplusMutation.isPending}
-              className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-5 gap-1.5 shadow-xs"
+              className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs px-6 h-9 gap-1.5 shadow-xs"
             >
               {transferSurplusMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               <span>تأكيد التحويل وإنشاء سند القبض</span>
