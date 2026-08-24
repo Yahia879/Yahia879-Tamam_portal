@@ -312,17 +312,22 @@ export default function ProgressReports() {
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
   const [revokeReason, setRevokeReason] = useState("");
 
-  const userPermissionsList = user?.permissions || [];
   const isExecutiveDirector = 
     user?.role === "general_manager" || 
     user?.role === "executive_director" || 
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
-  const canExceptionApprove = 
-    user?.role === "super_admin" || 
-    userPermissionsList.includes("progress_reports.exception_approve") || 
-    userPermissionsList.includes("disbursements.exception_approve");
+  // التحقق من الصلاحيات
+  const hasAddPermission = usePermission("progress_reports.add");
+  const hasEditPermission = usePermission("progress_reports.edit");
+  const hasApprovePermission = usePermission("progress_reports.approve");
+  const hasExceptionApprove = usePermission("progress_reports.exception_approve") || usePermission("disbursements.exception_approve");
+
+  const canCreateReport = hasAddPermission;
+  const canEditReport = hasEditPermission;
+  const canReviewReport = hasApprovePermission;
+  const canExceptionApprove = hasExceptionApprove;
   
   const [newReport, setNewReport] = useState({
     projectId: 0,
@@ -995,13 +1000,6 @@ export default function ProgressReports() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // التحقق من الصلاحيات
-  const hasAddPermission = usePermission("progress_reports.add");
-  const hasEditPermission = usePermission("progress_reports.edit");
-  const hasApprovePermission = usePermission("progress_reports.approve");
-  const canCreateReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasAddPermission;
-  const canEditReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasEditPermission;
-  const canReviewReport = ["super_admin", "system_admin"].includes(user?.role || "") || hasApprovePermission;
 
   if (activeTab === "create" || activeTab === "edit") {
     return (

@@ -45,12 +45,11 @@ export const progressReportsRouter = router({
       }).optional()
     )
     .query(async ({ input, ctx }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasView = await checkPermission(ctx.user.id, "progress_reports.view") || await checkPermission(ctx.user.id, "project_reports.view") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasApprove = await checkPermission(ctx.user.id, "progress_reports.approve");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.view");
 
-      if (!isAdmin && !hasView && !hasApprove && !hasGeneric) {
+      if (!hasView && !hasApprove && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لعرض قائمة تقارير المشاريع" });
       }
 
@@ -260,11 +259,10 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
-      if (!isAdmin && !hasAdd && !hasGeneric) {
+      if (!hasAdd && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإنشاء تقرير مشاريع" });
       }
 
@@ -352,11 +350,10 @@ export const progressReportsRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
-      if (!isAdmin && !hasEdit && !hasGeneric) {
+      if (!hasEdit && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل تقرير مشاريع" });
       }
 
@@ -425,12 +422,11 @@ export const progressReportsRouter = router({
   submit: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
       const hasAdd = await checkPermission(ctx.user.id, "progress_reports.add") || await checkPermission(ctx.user.id, "project_reports.create");
       const hasEdit = await checkPermission(ctx.user.id, "progress_reports.edit");
       const hasGeneric = await checkPermission(ctx.user.id, "reports.create");
 
-      if (!isAdmin && !hasAdd && !hasEdit && !hasGeneric) {
+      if (!hasAdd && !hasEdit && !hasGeneric) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتقديم تقرير مشاريع" });
       }
 
