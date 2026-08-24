@@ -781,7 +781,7 @@ export default function DisbursementOrderPrint() {
 
               {/* تذييل المستند الفاخر */}
               <div className="mt-6 pt-3 border-t border-gray-100 text-center text-slate-400 text-[10px] flex justify-between items-center px-2">
-                <span className="font-medium">تم إنشاء هذا المستند آلياً من نظام بوابة تمام للعناية بالمساجد</span>
+                <span className="font-medium">تم إنشاء هذا المستند آلياً من نظام {orgSettings?.organizationName || "بوابة منارة"} للعناية بالمساجد</span>
                 <span className="font-mono text-gray-500">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} - صفحة 1 من 1</span>
               </div>
             </div>

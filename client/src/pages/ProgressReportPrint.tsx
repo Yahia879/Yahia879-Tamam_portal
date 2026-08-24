@@ -937,7 +937,7 @@ export default function ProgressReportPrint() {
 
               {/* تذييل المستند */}
               <div className="mt-12 pt-4 border-t text-center text-gray-400 text-[10px]">
-                <p>تم توليد هذا التقرير آلياً من نظام بوابة تمام الإلكترونية للعناية بالمساجد.</p>
+                <p>تم توليد هذا التقرير آلياً من نظام {orgSettings?.organizationName || "بوابة منارة"} الإلكترونية للعناية بالمساجد.</p>
                 <p className="mt-1">تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} - صفحة 1 من 1</p>
               </div>
 
