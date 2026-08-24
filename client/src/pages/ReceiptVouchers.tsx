@@ -195,9 +195,8 @@ export default function ReceiptVouchers() {
     ? matchedSupporterItem.amount 
     : (supporterDetailsList.length === 1 ? supporterDetailsList[0].amount : projectApprovedBudget);
 
-  // حساب المبلغ الذي سدده الداعم سابقاً من سندات القبض الخاصة بالمشروع
   const projectVouchersList: any[] = (projectFinancialData as any)?.receiptVouchers || (projectFinancialData as any)?.vouchers || [];
-  const validProjectVouchers = projectVouchersList.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+  const validProjectVouchers = projectVouchersList.filter((v: any) => v.status === "approved");
 
   const previouslyPaidBySupporter = validProjectVouchers
     .filter((v: any) => {

@@ -158,7 +158,7 @@ export default function NewReceiptVoucherPage() {
     : (supporterDetailsList.length === 1 ? supporterDetailsList[0].amount : projectApprovedBudget);
 
   const projectVouchersList: any[] = (projectFinancialData as any)?.receiptVouchers || (projectFinancialData as any)?.vouchers || [];
-  const validProjectVouchers = projectVouchersList.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+  const validProjectVouchers = projectVouchersList.filter((v: any) => v.status === "approved");
 
   const previouslyPaidBySupporter = validProjectVouchers
     .filter((v: any) => {

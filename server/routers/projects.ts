@@ -2398,6 +2398,107 @@ export const projectsRouter = router({
       return { success: true, voucherNumber };
     }),
 
+  transferProjectSurplusToReceiptVoucher: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      targetType: z.enum(["restricted", "unrestricted"]),
+      donationPurpose: z.string().optional(),
+      amount: z.number().positive("يرجى إدخال مبلغ تحويل صحيح أكبر من 0"),
+      receiptDate: z.string().min(1, "يرجى تحديد تاريخ السند"),
+      payerName: z.string().min(1, "يرجى تحديد اسم الداعم"),
+      paymentMethod: z.string().optional(),
+      referenceNumber: z.string().optional(),
+      bankName: z.string().optional(),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
+      if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
+
+      // جلب سندات القبض المعتمدة للمشروع لخصم مبلغ التحويل منها
+      const projectVouchers = await db
+        .select()
+        .from(receiptVouchers)
+        .where(and(
+          eq(receiptVouchers.projectId, input.projectId),
+          eq(receiptVouchers.status, "approved")
+        ))
+        .orderBy(desc(receiptVouchers.receiptDate), desc(receiptVouchers.id));
+
+      if (projectVouchers.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا توجد سندات قبض معتمدة لهذا المشروع لتحويل الفائض منها"
+        });
+      }
+
+      let remainingToDeduct = input.amount;
+
+      // خصم مبلغ التحويل من أحدث السندات المعتمدة للمشروع
+      for (const v of projectVouchers) {
+        if (remainingToDeduct <= 0) break;
+        const vAmt = parseFloat(v.amount.toString() || "0");
+        if (vAmt <= 0) continue;
+
+        if (vAmt >= remainingToDeduct) {
+          const newAmt = vAmt - remainingToDeduct;
+          await db.update(receiptVouchers)
+            .set({
+              amount: newAmt.toString(),
+              notes: `${v.notes ? `${v.notes} | ` : ""}تم استقطاع (${remainingToDeduct.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند قبض مستقل`,
+              updatedAt: new Date(),
+            })
+            .where(eq(receiptVouchers.id, v.id));
+          remainingToDeduct = 0;
+        } else {
+          await db.update(receiptVouchers)
+            .set({
+              amount: "0",
+              notes: `${v.notes ? `${v.notes} | ` : ""}تم تحويل كامل مبلغ السند (${vAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند مستقل`,
+              updatedAt: new Date(),
+            })
+            .where(eq(receiptVouchers.id, v.id));
+          remainingToDeduct -= vAmt;
+        }
+      }
+
+      // تجهيز بيان السند الجديد المنشأ
+      let finalNotes = "";
+      if (input.targetType === "restricted") {
+        const purpose = input.donationPurpose?.trim() || "عام";
+        finalNotes = `مصرف التبرع: ${purpose} | ${input.notes?.trim() || `تم تحويله من فائض مقبوضات المشروع ${project.projectNumber} (${project.name})`}`;
+      } else {
+        finalNotes = input.notes?.trim() || `سند قبض غير مقيد - تم تحويله من فائض مقبوضات المشروع ${project.projectNumber} (${project.name})`;
+      }
+
+      // إنشاء سند القبض الجديد المستقل (معتمد ورقم تسلسلي رسمي)
+      const voucherNumber = await resequenceVoucherNumbers(db);
+
+      await db.insert(receiptVouchers).values({
+        voucherNumber,
+        projectId: null,
+        amount: input.amount.toString(),
+        receiptDate: new Date(input.receiptDate),
+        payerName: input.payerName,
+        paymentMethod: input.paymentMethod || "bank_transfer",
+        referenceNumber: input.referenceNumber || "",
+        bankName: input.bankName || "مصرف الراجحي",
+        attachmentUrl: "",
+        notes: finalNotes,
+        status: "approved",
+        createdById: ctx.user.id,
+        approvedBy: ctx.user.id,
+        approvedAt: new Date(),
+      });
+
+      await resequenceVoucherNumbers(db);
+
+      return { success: true, voucherNumber };
+    }),
+
   updateReceiptVoucher: protectedProcedure
     .input(z.object({
       id: z.number(),

@@ -51,6 +51,8 @@ import {
   Coins,
   Eye,
   Printer,
+  ArrowRightLeft,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -247,6 +249,33 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     type: "revoke",
     voucherId: null,
   });
+  // Transfer Surplus Dialog States
+  const [isTransferSurplusOpen, setIsTransferSurplusOpen] = useState<boolean>(false);
+  const [transferType, setTransferType] = useState<"restricted" | "unrestricted">("restricted");
+  const [transferPurpose, setTransferPurpose] = useState<string>("صيانة المساجد");
+  const [customTransferPurpose, setCustomTransferPurpose] = useState<string>("");
+  const [transferAmount, setTransferAmount] = useState<string>("");
+  const [transferDate, setTransferDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [transferPayerName, setTransferPayerName] = useState<string>("");
+  const [transferPaymentMethod, setTransferPaymentMethod] = useState<string>("bank_transfer");
+  const [transferRefNumber, setTransferRefNumber] = useState<string>("");
+  const [transferBankName, setTransferBankName] = useState<string>("مصرف الراجحي");
+  const [transferNotes, setTransferNotes] = useState<string>("");
+
+  const transferSurplusMutation = trpc.projects.transferProjectSurplusToReceiptVoucher.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحويل الفائض بنجاح إلى سند قبض جديد يظهر في صفحة سندات القبض");
+      setIsTransferSurplusOpen(false);
+      refetch();
+      utils.projects.getAllReceiptVouchers.invalidate();
+      utils.projects.getFinancialData.invalidate();
+      utils.projects.getById.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تحويل الفائض");
+    },
+  });
+
   const [actionReason, setActionReason] = useState<string>("");
   const [actionError, setActionError] = useState<string>("");
   const [justificationModalNote, setJustificationModalNote] = useState<string | null>(null);
@@ -431,7 +460,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Receipts Calculations
   const receiptVouchers = data?.receiptVouchers || [];
-  const validReceiptVouchers = receiptVouchers.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+  const validReceiptVouchers = receiptVouchers.filter((v: any) => v.status === "approved");
   const vouchersTotalReceived = validReceiptVouchers.reduce((sum, v) => sum + parseFloat((v as any).amount || "0"), 0);
 
   const generalAccountReceivedAmount = validSupportSources
@@ -443,10 +472,74 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   const totalReceivedAmount = vouchersTotalReceived + generalAccountReceivedAmount;
   const remainingSupportToCollect = Math.max(0, currentSupportAmount - totalReceivedAmount);
+  const targetRequiredAmount = currentSupportAmount > 0 ? currentSupportAmount : totalRequiredCost;
+  const surplusAmount = targetRequiredAmount > 0 ? Math.max(0, totalReceivedAmount - targetRequiredAmount) : 0;
   const collectionRawPct = currentSupportAmount > 0 ? (totalReceivedAmount / currentSupportAmount) * 100 : 0;
   const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
     ? parseFloat(collectionRawPct.toFixed(2))
     : Math.min(100, Math.round(collectionRawPct));
+
+  const openTransferSurplusModal = () => {
+    const rawPayer = validSupportSources[0]?.entity === "اخرى" ? validSupportSources[0]?.customEntity : validSupportSources[0]?.entity;
+    const cleanPayer = rawPayer || (data as any)?.project?.donorName || "المتبرع الكريم";
+    const fullPayerName = cleanPayer.startsWith("السادة") || cleanPayer.startsWith("السيد") || cleanPayer.startsWith("السيدة")
+      ? cleanPayer
+      : `السادة / ${cleanPayer}`;
+
+    setTransferType("restricted");
+    setTransferPurpose("صيانة المساجد");
+    setCustomTransferPurpose("");
+    setTransferAmount(surplusAmount > 0 ? surplusAmount.toString() : "");
+    setTransferDate(new Date().toISOString().split("T")[0]);
+    setTransferPayerName(fullPayerName);
+    setTransferPaymentMethod("bank_transfer");
+    setTransferRefNumber("");
+    setTransferBankName("مصرف الراجحي");
+    setTransferNotes(`تم تحويله من فائض مقبوضات المشروع ${(data as any)?.project?.projectNumber || `#${projectId}`}`);
+    setIsTransferSurplusOpen(true);
+  };
+
+  const handleConfirmTransferSurplus = () => {
+    const amt = parseFloat(transferAmount);
+    if (!transferAmount || isNaN(amt) || amt <= 0) {
+      toast.error("يرجى إدخال مبلغ تحويل صحيح أكبر من صفر");
+      return;
+    }
+    if (amt > surplusAmount + 0.01) {
+      toast.error(`المبلغ المطلوب تحويله (${amt.toLocaleString()} ريال) يتجاوز مبلغ الفائض المتاح (${surplusAmount.toLocaleString()} ريال)`);
+      return;
+    }
+    if (!transferDate) {
+      toast.error("يرجى تحديد تاريخ السند");
+      return;
+    }
+    if (!transferPayerName.trim()) {
+      toast.error("يرجى تحديد اسم الداعم / المتبرع");
+      return;
+    }
+
+    const purpose = transferType === "restricted"
+      ? (transferPurpose === "اخرى" ? customTransferPurpose.trim() : transferPurpose)
+      : undefined;
+
+    if (transferType === "restricted" && !purpose) {
+      toast.error("يرجى اختيار أو تحديد مصرف التبرع المقيد");
+      return;
+    }
+
+    transferSurplusMutation.mutate({
+      projectId,
+      targetType: transferType,
+      donationPurpose: purpose,
+      amount: amt,
+      receiptDate: transferDate,
+      payerName: transferPayerName.trim(),
+      paymentMethod: transferPaymentMethod,
+      referenceNumber: transferRefNumber.trim(),
+      bankName: transferBankName.trim(),
+      notes: transferNotes.trim(),
+    });
+  };
 
   // Handlers
   const handleSaveFinancials = () => {
@@ -1030,28 +1123,78 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
         <CardContent className="pt-6 space-y-6">
 
+          {/* تنبيه الفائض المالي مع زر التحويل المباشر */}
+          {surplusAmount > 0 && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200 text-purple-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-black text-sm text-purple-900">
+                      يوجد فائض في المقبوضات بمقدار ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                    </h4>
+                    <Badge className="bg-purple-600 text-white text-[10px] font-bold">فائض قابل للتحويل</Badge>
+                  </div>
+                  <p className="text-xs text-purple-800/80 mt-1 leading-relaxed">
+                    إجمالي سندات القبض المعتمدة يتجاوز قيمة الدعم المطلوبة للمشروع. يمكنك تحويل هذا الفائض إلى سند قبض مستقل (مقيد لمصرف آخر أو غير مقيد) ليظهر في صفحة سندات القبض العامة.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={openTransferSurplusModal}
+                className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                <span>تحويل الفائض إلى سند قبض</span>
+              </Button>
+            </div>
+          )}
+
           {/* Cards metrics for Collection */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`grid gap-4 ${surplusAmount > 0 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
             <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
-              <span className="text-xs text-muted-foreground block">إجمالي مبلغ الدعم المعتمد</span>
-              <span className="text-lg font-bold text-blue-900 mt-1 block">
-                {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <span className="text-xs text-muted-foreground block">إجمالي مبلغ الدعم المطلوب</span>
+              <span className="text-lg font-bold text-blue-900 mt-1 block font-sans">
+                {targetRequiredAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
 
             <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-right">
               <span className="text-xs text-muted-foreground block">إجمالي المقبوض فعلياً (سندات القبض)</span>
-              <span className="text-lg font-bold text-emerald-900 mt-1 block">
+              <span className="text-lg font-bold text-emerald-900 mt-1 block font-sans">
                 {totalReceivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
 
             <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-100 text-right">
               <span className="text-xs text-muted-foreground block">المبلغ المتبقي للقبض</span>
-              <span className="text-lg font-bold text-amber-900 mt-1 block">
+              <span className="text-lg font-bold text-amber-900 mt-1 block font-sans">
                 {remainingSupportToCollect.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </span>
             </div>
+
+            {surplusAmount > 0 && (
+              <div className="p-4 bg-purple-50/80 rounded-xl border border-purple-200 text-right relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-purple-900 font-bold block">فائض المقبوضات</span>
+                  <Badge className="bg-purple-600 text-white text-[9px] font-bold px-1.5 py-0.2">فائض</Badge>
+                </div>
+                <span className="text-lg font-black text-purple-950 mt-1 block font-sans">
+                  {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                </span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={openTransferSurplusModal}
+                  className="p-0 h-auto text-[11px] text-purple-700 hover:text-purple-900 font-bold mt-1.5 flex items-center gap-1"
+                >
+                  <ArrowRightLeft className="w-3 h-3" />
+                  <span>تحويل الفائض الآن</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Progress Bar of Collection */}
@@ -1095,7 +1238,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     );
                   });
 
-                  const validSVouchers = sVouchers.filter(v => v.status === "approved" || v.status === "pending_approval");
+                  const validSVouchers = sVouchers.filter(v => v.status === "approved");
                   const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                   const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
                   const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
@@ -1175,7 +1318,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   );
                 });
 
-                const validSVouchers = sVouchers.filter(v => v.status === "approved" || v.status === "pending_approval");
+                const validSVouchers = sVouchers.filter(v => v.status === "approved");
                 const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                 const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
                 const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
@@ -1706,6 +1849,215 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           <DialogFooter className="justify-start border-t pt-3">
             <Button type="button" variant="outline" size="sm" onClick={() => setJustificationModalNote(null)} className="text-xs font-bold border-amber-300">
               إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Transferring Project Surplus */}
+      <Dialog open={isTransferSurplusOpen} onOpenChange={setIsTransferSurplusOpen}>
+        <DialogContent className="dir-rtl text-right max-w-xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-purple-200">
+          <DialogHeader className="text-right border-b pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                  <ArrowRightLeft className="w-5 h-5" />
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold text-purple-950">
+                    تحويل فائض المقبوضات إلى سند قبض
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                    تحويل الفائض المالي المحصل من الداعم إلى سند قبض مقيد أو غير مقيد
+                  </DialogDescription>
+                </div>
+              </div>
+              <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-xs font-black">
+                فائض متاح: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              </Badge>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-xs">
+            {/* اختيار نوع السند */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-slate-800">نوع سند القبض المحول إليه *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTransferType("restricted")}
+                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-2.5 ${
+                    transferType === "restricted"
+                      ? "bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900"
+                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${transferType === "restricted" ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                    <FileCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold block text-xs">سند قبض مقيد</span>
+                    <span className="text-[10px] text-muted-foreground">مقيد بمصرف تبرع محدد</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setTransferType("unrestricted")}
+                  className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex items-center gap-2.5 ${
+                    transferType === "unrestricted"
+                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 text-amber-900"
+                      : "bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${transferType === "unrestricted" ? "bg-amber-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold block text-xs">سند قبض غير مقيد</span>
+                    <span className="text-[10px] text-muted-foreground">تبرع عام غير مقيد بمشروع</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* في حال اختيار مقيد: تحديد المصرف */}
+            {transferType === "restricted" && (
+              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 space-y-2.5">
+                <Label className="text-xs font-bold text-blue-950">مصرف التبرع المقيد *</Label>
+                <Select value={transferPurpose} onValueChange={setTransferPurpose}>
+                  <SelectTrigger className="h-9 text-xs bg-white border-blue-200">
+                    <SelectValue placeholder="اختر مصرف التبرع" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="صيانة المساجد">صيانة المساجد</SelectItem>
+                    <SelectItem value="تشييد وبناء المساجد">تشييد وبناء المساجد</SelectItem>
+                    <SelectItem value="سقاية الماء">سقاية الماء</SelectItem>
+                    <SelectItem value="فرش وتأثيث المساجد">فرش وتأثيث المساجد</SelectItem>
+                    <SelectItem value="نظافة وتعقيم المساجد">نظافة وتعقيم المساجد</SelectItem>
+                    <SelectItem value="أنظمة الطاقة الشمسية">أنظمة الطاقة الشمسية</SelectItem>
+                    <SelectItem value="أجهزة التكييف والتهوية">أجهزة التكييف والتهوية</SelectItem>
+                    <SelectItem value="الأنظمة الصوتية والمرئية">الأنظمة الصوتية والمرئية</SelectItem>
+                    <SelectItem value="ترميم وتأهيل المساجد">ترميم وتأهيل المساجد</SelectItem>
+                    <SelectItem value="خدمات عامة وإفطار صائم">خدمات عامة وإفطار صائم</SelectItem>
+                    <SelectItem value="وقفية رعاية المساجد">وقفية رعاية المساجد</SelectItem>
+                    <SelectItem value="اخرى">مصرف آخر (كتابة يدوية)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {transferPurpose === "اخرى" && (
+                  <div>
+                    <Label className="text-[11px] text-muted-foreground mb-1 block">اسم مصرف التبرع المخصص *</Label>
+                    <Input
+                      type="text"
+                      value={customTransferPurpose}
+                      onChange={(e) => setCustomTransferPurpose(e.target.value)}
+                      placeholder="أدخل مسمى مصرف التبرع..."
+                      className="h-8 text-xs bg-white"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* مبلغ التحويل وتاريخ السند */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-bold text-slate-800 mb-1 block">مبلغ التحويل (ريال) *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={surplusAmount}
+                  step="0.01"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="h-9 text-xs font-bold text-purple-950 font-sans text-left [direction:ltr]"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-slate-800 mb-1 block">تاريخ السند *</Label>
+                <Input
+                  type="date"
+                  value={transferDate}
+                  onChange={(e) => setTransferDate(e.target.value)}
+                  className="h-9 text-xs font-sans"
+                />
+              </div>
+            </div>
+
+            {/* اسم الداعم / المتبرع */}
+            <div>
+              <Label className="text-xs font-bold text-slate-800 mb-1 block">اسم الجهة الداعمة / المتبرع *</Label>
+              <Input
+                type="text"
+                value={transferPayerName}
+                onChange={(e) => setTransferPayerName(e.target.value)}
+                placeholder="السادة / ..."
+                className="h-9 text-xs"
+              />
+            </div>
+
+            {/* طريقة الدفع والبنك */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-bold text-slate-800 mb-1 block">طريقة القبض</Label>
+                <Select value={transferPaymentMethod} onValueChange={setTransferPaymentMethod}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">حوالة بنكية</SelectItem>
+                    <SelectItem value="cash">نقدي</SelectItem>
+                    <SelectItem value="check">شيك</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-slate-800 mb-1 block">اسم البنك / الحساب</Label>
+                <Input
+                  type="text"
+                  value={transferBankName}
+                  onChange={(e) => setTransferBankName(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* البيان والملاحظات */}
+            <div>
+              <Label className="text-xs font-bold text-slate-800 mb-1 block">البيان / ملاحظات السند</Label>
+              <Textarea
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                rows={2}
+                placeholder="بيان سند القبض المحول..."
+                className="text-xs"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsTransferSurplusOpen(false)}
+              className="text-xs font-medium"
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleConfirmTransferSurplus}
+              disabled={transferSurplusMutation.isPending}
+              className="bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs px-5 gap-1.5 shadow-xs"
+            >
+              {transferSurplusMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>تأكيد التحويل وإنشاء سند القبض</span>
             </Button>
           </DialogFooter>
         </DialogContent>

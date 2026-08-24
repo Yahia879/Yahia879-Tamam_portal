@@ -737,7 +737,7 @@ export default function NewLinkedDisbursementRequest() {
   // إجمالي سندات القبض المقبوضة لجميع الداعمين + مبالغ جهات دعم الحساب العام المسجلة (مطابق تماماً لـ ProjectFinancialsTab)
   const totalSupporterPayments = useMemo(() => {
     const vouchers = projectFinancials?.receiptVouchers || [];
-    const validVouchers = vouchers.filter((v: any) => v.status === "approved" || v.status === "pending_approval");
+    const validVouchers = vouchers.filter((v: any) => v.status === "approved");
     const vouchersTotal = validVouchers.reduce((sum: number, v: any) => sum + parseFloat(v.amount || "0"), 0);
 
     // إضافة مبالغ جهات الدعم المصنفة كـ "حساب عام" (نفس منطق ProjectFinancialsTab)
