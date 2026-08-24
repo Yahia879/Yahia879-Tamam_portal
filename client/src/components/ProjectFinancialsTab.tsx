@@ -296,13 +296,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const [transferNotes, setTransferNotes] = useState<string>("");
 
   const transferSurplusMutation = trpc.projects.transferProjectSurplusToReceiptVoucher.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحويل الفائض بنجاح إلى سند قبض جديد يظهر في صفحة سندات القبض");
+    onSuccess: (_, variables) => {
+      const remainingAfter = Math.max(0, activeSupporterMaxSurplus - variables.amount);
+      toast.success(
+        `تم استقطاع (${variables.amount.toLocaleString("en-US")} ريال) من فائض المقبوضات وإنشاء سند القبض بنجاح، وأصبح الفائض المتبقي (${remainingAfter.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`
+      );
       setIsTransferSurplusOpen(false);
       refetch();
+      utils.projects.getFinancialData.invalidate({ projectId });
+      utils.projects.getById.invalidate({ id: projectId });
       utils.projects.getAllReceiptVouchers.invalidate();
-      utils.projects.getFinancialData.invalidate();
-      utils.projects.getById.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء تحويل الفائض");
@@ -2433,6 +2436,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   placeholder="مثال: 50000"
                   className="h-10 text-xs font-bold text-indigo-950 font-sans text-left [direction:ltr] border-slate-200 focus:border-indigo-600"
                 />
+
+                {/* معاينة الفائض المتبقي بعد التحويل مباشرة */}
+                {parseFloat(transferAmount) > 0 && parseFloat(transferAmount) <= activeSupporterMaxSurplus && (
+                  <div className="flex items-center justify-between text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-200 mt-1 animate-in fade-in">
+                    <span className="text-slate-600 font-medium">الفائض المتبقي بعد هذا التحويل:</span>
+                    <span className="font-extrabold text-indigo-900 font-sans">
+                      {Math.max(0, activeSupporterMaxSurplus - (parseFloat(transferAmount) || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* تاريخ القبض */}
