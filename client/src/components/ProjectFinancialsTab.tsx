@@ -53,7 +53,9 @@ import {
   Printer,
   ArrowRightLeft,
   FileCheck,
+  ShieldAlert,
 } from "lucide-react";
+import { usePermission } from "@/hooks/usePermission";
 import { toast } from "sonner";
 
 interface ProjectFinancialsTabProps {
@@ -145,6 +147,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const [customSupportEntity, setCustomSupportEntity] = useState<string>("");
   const { user } = useAuth();
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
+  const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);
@@ -238,10 +241,26 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     },
   });
 
-  // Modal State for Revoking Approval & Rejection
+  const exceptionApproveVoucherMutation = trpc.projects.exceptionApproveReceiptVoucher.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم اعتماد سند القبض بالاستثناء بنجاح");
+      setActionModal(prev => ({ ...prev, isOpen: false }));
+      setActionReason("");
+      setActionError("");
+      refetch();
+      utils.projects.getAllReceiptVouchers.invalidate();
+      utils.projects.getReceiptVoucherById.invalidate();
+      utils.projects.getFinancialData.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد السند بالاستثناء");
+    },
+  });
+
+  // Modal State for Revoking Approval & Rejection & Exception
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
-    type: "revoke" | "reject";
+    type: "revoke" | "reject" | "exception_approve";
     voucherId: number | null;
     voucherNumber?: string;
   }>({
@@ -302,17 +321,35 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     setActionError("");
   };
 
+  const handleOpenExceptionModal = (voucher: { id: number; voucherNumber: string }) => {
+    setActionModal({
+      isOpen: true,
+      type: "exception_approve",
+      voucherId: voucher.id,
+      voucherNumber: voucher.voucherNumber,
+    });
+    setActionReason("");
+    setActionError("");
+  };
+
   const handleConfirmAction = () => {
     if (!actionReason.trim()) {
       setActionError(
         actionModal.type === "revoke"
           ? "يرجى إدخال مبررات إلغاء الاعتماد أولاً"
+          : actionModal.type === "exception_approve"
+          ? "يرجى إدخال سبب ومبررات استثناء الاعتماد أولاً"
           : "يرجى إدخال سبب الرفض أولاً"
       );
       return;
     }
 
-    if (actionModal.type === "revoke" && actionModal.voucherId) {
+    if (actionModal.type === "exception_approve" && actionModal.voucherId) {
+      exceptionApproveVoucherMutation.mutate({
+        id: actionModal.voucherId,
+        reason: actionReason.trim(),
+      });
+    } else if (actionModal.type === "revoke" && actionModal.voucherId) {
       revokeVoucherApprovalMutation.mutate({
         id: actionModal.voucherId,
         revocationReason: actionReason.trim(),
@@ -471,10 +508,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     .reduce((sum, s) => sum + (s.amount || 0), 0);
 
   const totalReceivedAmount = vouchersTotalReceived + generalAccountReceivedAmount;
-  const remainingSupportToCollect = Math.max(0, currentSupportAmount - totalReceivedAmount);
-  const targetRequiredAmount = currentSupportAmount > 0 ? currentSupportAmount : totalRequiredCost;
+  const targetRequiredAmount = totalRequiredCost > 0 ? totalRequiredCost : currentSupportAmount;
+  const remainingSupportToCollect = Math.max(0, targetRequiredAmount - totalReceivedAmount);
   const surplusAmount = targetRequiredAmount > 0 ? Math.max(0, totalReceivedAmount - targetRequiredAmount) : 0;
-  const collectionRawPct = currentSupportAmount > 0 ? (totalReceivedAmount / currentSupportAmount) * 100 : 0;
+  const collectionRawPct = targetRequiredAmount > 0 ? (totalReceivedAmount / targetRequiredAmount) * 100 : 0;
   const collectionPercentage = collectionRawPct > 0 && collectionRawPct < 1
     ? parseFloat(collectionRawPct.toFixed(2))
     : Math.min(100, Math.round(collectionRawPct));
@@ -1463,46 +1500,66 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                         </Button>
                                       )}
 
-                                       {/* أزرار الاعتماد والرفض وإلغاء الاعتماد مخصصة حصرياً للمسؤول المالي faaa8@gmail.com */}
-                                       {isFaaa8User && (
-                                         voucher.status === "approved" ? (
-                                           <Button
-                                             variant="ghost"
-                                             size="sm"
-                                             onClick={() => handleOpenRevokeModal(voucher)}
-                                             disabled={revokeVoucherApprovalMutation.isPending}
-                                             className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
-                                             title="إلغاء الاعتماد لإتاحة التعديل"
-                                           >
-                                             <RotateCcw className="h-3.5 w-3.5" />
-                                             إلغاء الاعتماد
-                                           </Button>
-                                         ) : voucher.status === "pending_approval" ? (<>
-                                           <Button
-                                               variant="ghost"
-                                               size="sm"
-                                               onClick={() => {
-                                                 approveVoucherMutation.mutate({ id: voucher.id });
-                                               }}
-                                               disabled={approveVoucherMutation.isPending}
-                                               className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
-                                               title="اعتماد سند القبض"
-                                             >
-                                               <CheckCircle className="h-3.5 w-3.5" />
-                                               اعتماد
-                                             </Button>
-                                             <Button
-                                               variant="ghost"
-                                               size="sm"
-                                               onClick={() => handleOpenRejectModal(voucher)}
-                                               disabled={rejectVoucherMutation.isPending}
-                                               className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
-                                               title="رفض سند القبض"
-                                             >
-                                               <XCircle className="h-3.5 w-3.5" />
-                                               رفض
-                                              </Button>
-                                            </> ) : null
+                                       {/* زر إلغاء الاعتماد */}
+                                       {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           onClick={() => handleOpenRevokeModal(voucher)}
+                                           disabled={revokeVoucherApprovalMutation.isPending}
+                                           className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                                           title="إلغاء الاعتماد لإتاحة التعديل"
+                                         >
+                                           <RotateCcw className="h-3.5 w-3.5" />
+                                           <span>إلغاء الاعتماد</span>
+                                         </Button>
+                                       )}
+
+                                       {/* زر الاعتماد العادي للمسؤول المالي */}
+                                       {isFaaa8User && voucher.status === "pending_approval" && (
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           onClick={() => {
+                                             approveVoucherMutation.mutate({ id: voucher.id });
+                                           }}
+                                           disabled={approveVoucherMutation.isPending}
+                                           className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                                           title="اعتماد سند القبض"
+                                         >
+                                           <CheckCircle className="h-3.5 w-3.5" />
+                                           <span>اعتماد</span>
+                                         </Button>
+                                       )}
+
+                                       {/* زر استثناء الاعتماد لمن يملك صلاحية استثناء اعتماد السند */}
+                                       {hasExceptionApprove && voucher.status === "pending_approval" && (
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           onClick={() => handleOpenExceptionModal(voucher)}
+                                           disabled={exceptionApproveVoucherMutation.isPending}
+                                           className="h-7 px-2 text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                           title="استثناء اعتماد سند القبض مع ذكر السبب"
+                                         >
+                                           <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                                           <span>استثناء الاعتماد</span>
+                                         </Button>
+                                       )}
+
+                                       {/* زر الرفض للمسؤول المالي أو صاحب صلاحية استثناء الاعتماد */}
+                                       {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
+                                         <Button
+                                           variant="ghost"
+                                           size="sm"
+                                           onClick={() => handleOpenRejectModal(voucher)}
+                                           disabled={rejectVoucherMutation.isPending}
+                                           className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                                           title="رفض سند القبض"
+                                         >
+                                           <XCircle className="h-3.5 w-3.5" />
+                                           <span>رفض</span>
+                                         </Button>
                                        )}
 
                                       {/* زر التعديل يظهر فقط إذا لم يكن السند معتمداً */}
@@ -1577,18 +1634,83 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                    </TableCell>
                                 <TableCell className="text-center">
                                   <div className="flex items-center justify-center gap-1">
-                                     <Button
-                                       variant="ghost"
-                                       size="icon"
-                                       onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                       className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                       title="معاينة وطباعة سند القبض"
-                                     >
-                                       <Eye className="h-3.5 w-3.5" />
-                                     </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
-                                      <Edit3 className="h-3.5 w-3.5" />
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
+                                      className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
+                                      title="معاينة وطباعة سند القبض"
+                                    >
+                                      <Eye className="h-3.5 w-3.5" />
                                     </Button>
+
+                                    {/* زر إلغاء الاعتماد */}
+                                    {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleOpenRevokeModal(voucher)}
+                                        disabled={revokeVoucherApprovalMutation.isPending}
+                                        className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
+                                        title="إلغاء الاعتماد لإتاحة التعديل"
+                                      >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                        <span>إلغاء الاعتماد</span>
+                                      </Button>
+                                    )}
+
+                                    {/* زر الاعتماد العادي للمسؤول المالي */}
+                                    {isFaaa8User && voucher.status === "pending_approval" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          approveVoucherMutation.mutate({ id: voucher.id });
+                                        }}
+                                        disabled={approveVoucherMutation.isPending}
+                                        className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
+                                        title="اعتماد سند القبض"
+                                      >
+                                        <CheckCircle className="h-3.5 w-3.5" />
+                                        <span>اعتماد</span>
+                                      </Button>
+                                    )}
+
+                                    {/* زر استثناء الاعتماد لمن يملك صلاحية استثناء اعتماد السند */}
+                                    {hasExceptionApprove && voucher.status === "pending_approval" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleOpenExceptionModal(voucher)}
+                                        disabled={exceptionApproveVoucherMutation.isPending}
+                                        className="h-7 px-2 text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
+                                        title="استثناء اعتماد سند القبض مع ذكر السبب"
+                                      >
+                                        <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                                        <span>استثناء الاعتماد</span>
+                                      </Button>
+                                    )}
+
+                                    {/* زر الرفض للمسؤول المالي أو صاحب صلاحية استثناء الاعتماد */}
+                                    {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleOpenRejectModal(voucher)}
+                                        disabled={rejectVoucherMutation.isPending}
+                                        className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
+                                        title="رفض سند القبض"
+                                      >
+                                        <XCircle className="h-3.5 w-3.5" />
+                                        <span>رفض</span>
+                                      </Button>
+                                    )}
+
+                                    {voucher.status !== "approved" && (
+                                      <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
+                                        <Edit3 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1757,7 +1879,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         <DialogContent className="dir-rtl text-right max-w-md bg-white rounded-xl shadow-xl border border-slate-200">
           <DialogHeader className="text-right border-b pb-3">
             <DialogTitle className="text-base font-bold flex items-center gap-2 text-slate-800 text-right">
-              {actionModal.type === "revoke" ? (
+              {actionModal.type === "exception_approve" ? (
+                <>
+                  <ShieldAlert className="h-5 w-5 text-amber-600" />
+                  <span>استثناء اعتماد سند القبض</span>
+                </>
+              ) : actionModal.type === "revoke" ? (
                 <>
                   <RotateCcw className="h-5 w-5 text-amber-600" />
                   <span>إلغاء اعتماد سند القبض</span>
@@ -1770,7 +1897,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               )}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-1 text-right">
-              {actionModal.type === "revoke"
+              {actionModal.type === "exception_approve"
+                ? `أنت على وشك اعتماد سند القبض (${actionModal.voucherNumber || ""}) استثنائياً. سيتم تسجيل توقيعك واسمك على السند مع توثيق مبررات الاستثناء.`
+                : actionModal.type === "revoke"
                 ? `عند إلغاء اعتماد السند (${actionModal.voucherNumber || ""})، سيتم سحب التوقيع المالي من التقرير الرسمي وإعادة إتاحة خياري التعديل والحذف.`
                 : `عند رفض السند (${actionModal.voucherNumber || ""})، سيتم تسجيل حالة الرفض وحفظ السبب.`}
             </DialogDescription>
@@ -1779,7 +1908,11 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-700">
-                {actionModal.type === "revoke" ? "مبررات إلغاء الاعتماد *" : "سبب الرفض *"}
+                {actionModal.type === "exception_approve"
+                  ? "مبررات وسبب الاستثناء *"
+                  : actionModal.type === "revoke"
+                  ? "مبررات إلغاء الاعتماد *"
+                  : "سبب الرفض *"}
               </Label>
               <Textarea
                 value={actionReason}
@@ -1788,7 +1921,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   if (actionError) setActionError("");
                 }}
                 placeholder={
-                  actionModal.type === "revoke"
+                  actionModal.type === "exception_approve"
+                    ? "أدخل مبررات وسبب استثناء اعتماد سند القبض بالتفصيل..."
+                    : actionModal.type === "revoke"
                     ? "أدخل مبررات إلغاء الاعتماد بالتفصيل..."
                     : "أدخل سبب رفض سند القبض..."
                 }
@@ -1818,17 +1953,21 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               type="button"
               size="sm"
               onClick={handleConfirmAction}
-              disabled={revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending}
+              disabled={exceptionApproveVoucherMutation.isPending || revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending}
               className={`text-xs font-bold px-4 gap-1.5 ${
-                actionModal.type === "revoke"
+                actionModal.type === "exception_approve" || actionModal.type === "revoke"
                   ? "bg-amber-600 hover:bg-amber-700 text-white"
                   : "bg-rose-600 hover:bg-rose-700 text-white"
               }`}
             >
-              {(revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending) && (
+              {(exceptionApproveVoucherMutation.isPending || revokeVoucherApprovalMutation.isPending || rejectVoucherMutation.isPending) && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               )}
-              {actionModal.type === "revoke" ? "تأكيد إلغاء الاعتماد" : "تأكيد الرفض"}
+              {actionModal.type === "exception_approve"
+                ? "تأكيد استثناء الاعتماد"
+                : actionModal.type === "revoke"
+                ? "تأكيد إلغاء الاعتماد"
+                : "تأكيد الرفض"}
             </Button>
           </DialogFooter>
         </DialogContent>
