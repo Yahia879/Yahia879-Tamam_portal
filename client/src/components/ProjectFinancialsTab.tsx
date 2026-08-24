@@ -530,10 +530,44 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     ? parseFloat(collectionRawPct.toFixed(2))
     : Math.min(100, Math.round(collectionRawPct));
 
+  // List of distinct supporters registered for this project
+  const projectRegisteredSupporters: string[] = useMemo(() => {
+    const list: string[] = [];
+    validSupportSources.forEach((src) => {
+      let name = src.entity === "اخرى" ? src.customEntity : src.entity;
+      if (name && name.trim()) {
+        name = name.replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
+        const isGenAcc = isGeneralAccountName(name);
+        if (name && !isGenAcc && !list.includes(name)) {
+          list.push(name);
+        }
+      }
+    });
+
+    // Fallback if validSupportSources is empty but supportEntity or donorName exists
+    if (list.length === 0 && (data as any)?.financialDetail?.supportEntity) {
+      let clean = ((data as any).financialDetail.supportEntity || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
+      if (clean && !isGeneralAccountName(clean) && !list.includes(clean)) {
+        list.push(clean);
+      }
+    }
+    if (list.length === 0 && (data as any)?.project?.donorName) {
+      let clean = ((data as any).project.donorName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
+      if (clean && !isGeneralAccountName(clean) && !list.includes(clean)) {
+        list.push(clean);
+      }
+    }
+    return list;
+  }, [validSupportSources, data]);
+
   const openTransferSurplusModal = () => {
-    const rawPayer = validSupportSources[0]?.entity === "اخرى" ? validSupportSources[0]?.customEntity : validSupportSources[0]?.entity;
-    let cleanPayer = (rawPayer || (data as any)?.project?.donorName || "").trim();
+    let cleanPayer = projectRegisteredSupporters[0] || "";
     let detectedHonorific = "السادة";
+
+    if (!cleanPayer) {
+      const rawPayer = validSupportSources[0]?.entity === "اخرى" ? validSupportSources[0]?.customEntity : validSupportSources[0]?.entity;
+      cleanPayer = (rawPayer || (data as any)?.project?.donorName || "").trim();
+    }
 
     if (cleanPayer.startsWith("السادة")) {
       detectedHonorific = "السادة";
@@ -547,22 +581,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     }
 
     setTransferHonorificTitle(detectedHonorific);
-
-    if (cleanPayer) {
-      if (fundingSupportCategoryList.includes(cleanPayer)) {
-        setTransferPayerSelect(cleanPayer);
-        setTransferCustomPayer("");
-        setTransferPayerName(cleanPayer);
-      } else {
-        setTransferPayerSelect("__custom__");
-        setTransferCustomPayer(cleanPayer);
-        setTransferPayerName(cleanPayer);
-      }
-    } else {
-      setTransferPayerSelect("__custom__");
-      setTransferCustomPayer("");
-      setTransferPayerName("");
-    }
+    setTransferPayerSelect(cleanPayer);
+    setTransferCustomPayer("");
+    setTransferPayerName(cleanPayer);
 
     setTransferType("restricted");
     if (donationPurposes.length > 0) {
@@ -592,9 +613,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       return;
     }
 
-    const currentPayer = (transferPayerSelect === "__custom__" ? transferCustomPayer : transferPayerSelect).trim();
+    const currentPayer = (transferPayerSelect || transferPayerName).trim();
     if (!currentPayer) {
-      toast.error("يرجى تحديد أو كتابة اسم الجهة الداعمة / المسدد");
+      toast.error("يرجى تحديد اسم الجهة الداعمة / المسدد");
       return;
     }
 
@@ -2132,7 +2153,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               </div>
             )}
 
-            {/* اللقب والجهة الداعمة / المسدد مع إمكانية كتابة جهة أخرى */}
+            {/* اللقب والجهة الداعمة / المسدد */}
             <div className="space-y-3 border-t border-slate-100 pt-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="col-span-1 space-y-1.5 text-right">
@@ -2155,21 +2176,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     value={transferPayerSelect}
                     onValueChange={(val) => {
                       setTransferPayerSelect(val);
-                      if (val !== "__custom__") {
-                        setTransferPayerName(val);
-                      } else {
-                        setTransferPayerName(transferCustomPayer);
-                      }
+                      setTransferPayerName(val);
                     }}
+                    disabled={projectRegisteredSupporters.length === 0}
                   >
                     <SelectTrigger className="h-10 text-xs bg-white border-slate-200 focus:ring-indigo-600 text-right w-full" dir="rtl">
-                      <SelectValue placeholder="اختر من تصنيفات التمويل والدعم أو أضف جهة أخرى..." />
+                      <SelectValue placeholder={projectRegisteredSupporters.length > 0 ? "اختر الداعم المسجل للمشروع..." : "لا يوجد داعمين مسجلين للمشروع"} />
                     </SelectTrigger>
                     <SelectContent dir="rtl" className="max-h-60">
-                      <SelectItem value="__custom__" className="text-right font-bold text-indigo-700">
-                        ✍️ إضافة جهة أخرى / إدخال يدوي
-                      </SelectItem>
-                      {fundingSupportCategoryList.map((sup, idx) => (
+                      {projectRegisteredSupporters.map((sup, idx) => (
                         <SelectItem key={idx} value={sup} className="text-right">
                           {sup}
                         </SelectItem>
@@ -2178,26 +2193,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   </Select>
                 </div>
               </div>
-
-              {/* حقل إدخال اسم الجهة يدوياً عند اختيار أخرى */}
-              {transferPayerSelect === "__custom__" && (
-                <div className="space-y-1.5 text-right animate-in fade-in duration-200">
-                  <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <PenLine className="w-4 h-4 text-indigo-700" />
-                    <span>اسم الجهة الداعمة أو المتبرع *</span>
-                  </Label>
-                  <Input
-                    type="text"
-                    value={transferCustomPayer}
-                    onChange={(e) => {
-                      setTransferCustomPayer(e.target.value);
-                      setTransferPayerName(e.target.value);
-                    }}
-                    placeholder="أدخل اسم الجهة الداعمة أو المتبرع..."
-                    className="h-10 text-xs bg-white border-slate-200 focus:border-indigo-600 font-medium text-right"
-                  />
-                </div>
-              )}
             </div>
 
             {/* تفاصيل سند القبض: المبلغ والتاريخ */}
@@ -2285,7 +2280,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               onClick={handleConfirmTransferSurplus}
               disabled={
                 transferSurplusMutation.isPending ||
-                (transferPayerSelect === "__custom__" ? !transferCustomPayer.trim() : !transferPayerSelect.trim()) ||
+                !transferPayerSelect.trim() ||
                 (transferType === "restricted" && !transferPurpose) ||
                 !transferAmount ||
                 parseFloat(transferAmount) <= 0 ||
