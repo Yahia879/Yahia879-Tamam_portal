@@ -1293,6 +1293,29 @@ export const disbursementsRouter = router({
         })
         .where(eq(disbursementRequests.id, input.id));
 
+      if (request.contractPaymentId) {
+        await db
+          .update(contractPayments)
+          .set({
+            status: "pending",
+            paidAt: null,
+            paidBy: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(contractPayments.id, request.contractPaymentId));
+      }
+
+      if (request.paymentId) {
+        await db
+          .update(payments)
+          .set({
+            status: "pending",
+            paidAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(payments.id, request.paymentId));
+      }
+
       // إرسال إشعار لمقدم الطلب
       if (request.requestedBy) {
         await createNotification({
@@ -2462,13 +2485,12 @@ export const disbursementsRouter = router({
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
 
-          // تحديث حالة دفعة العقد إلى مسددة عند اعتماد أمر الصرف
+          // تحديث حالة دفعة العقد إلى مستحقة عند اعتماد أمر الصرف (تصبح مسددة فقط عند التنفيذ الفعلي للصرف)
           await db
             .update(contractPayments)
             .set({
-              status: "paid",
-              paidAt: new Date(),
-              paidBy: ctx.user.id,
+              status: "due",
+              updatedAt: new Date(),
             })
             .where(eq(contractPayments.id, orderWithRequest.contractPaymentId));
         }
@@ -2503,12 +2525,12 @@ export const disbursementsRouter = router({
               .where(eq(disbursementRequests.id, orderWithRequest.requestId as number));
           }
 
-          // تحديث حالة الدفعة اليدوية إلى مسددة عند اعتماد أمر الصرف
+          // تحديث حالة الدفعة اليدوية إلى مستحقة عند اعتماد أمر الصرف
           await db
             .update(payments)
             .set({
-              status: "paid",
-              paidAt: new Date(),
+              status: "due",
+              updatedAt: new Date(),
             })
             .where(eq(payments.id, orderWithRequest.paymentId));
         }
@@ -2744,6 +2766,11 @@ export const disbursementsRouter = router({
         .where(eq(disbursementOrders.id, input.id));
 
       if (order && order.disbursementRequestId) {
+        const [req] = await db
+          .select({ contractPaymentId: disbursementRequests.contractPaymentId, paymentId: disbursementRequests.paymentId })
+          .from(disbursementRequests)
+          .where(eq(disbursementRequests.id, order.disbursementRequestId));
+
         await db
           .update(disbursementRequests)
           .set({
@@ -2753,6 +2780,29 @@ export const disbursementsRouter = router({
             rejectionReason: input.reason,
           })
           .where(eq(disbursementRequests.id, order.disbursementRequestId));
+
+        if (req?.contractPaymentId) {
+          await db
+            .update(contractPayments)
+            .set({
+              status: "pending",
+              paidAt: null,
+              paidBy: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(contractPayments.id, req.contractPaymentId));
+        }
+
+        if (req?.paymentId) {
+          await db
+            .update(payments)
+            .set({
+              status: "pending",
+              paidAt: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(payments.id, req.paymentId));
+        }
       }
 
       if (order) {

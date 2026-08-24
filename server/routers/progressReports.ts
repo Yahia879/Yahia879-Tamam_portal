@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
 import { checkPermission } from "../permissions";
 import { getDb } from "../db";
-import { progressReports, projects, users, disbursementRequests, disbursementOrders } from "../../drizzle/schema";
+import { progressReports, projects, users, disbursementRequests, disbursementOrders, contractPayments, payments } from "../../drizzle/schema";
 import { notifyProgressReportCreation, notifyProgressReportApproval, createNotification } from "./notifications";
 
 const pmUsers = alias(users, "pmUsers");
@@ -87,6 +87,8 @@ async function cancelLinkedDisbursements(
         requestNumber: disbursementRequests.requestNumber,
         status: disbursementRequests.status,
         requestedBy: disbursementRequests.requestedBy,
+        contractPaymentId: disbursementRequests.contractPaymentId,
+        paymentId: disbursementRequests.paymentId,
       })
       .from(disbursementRequests)
       .where(
@@ -107,6 +109,29 @@ async function cancelLinkedDisbursements(
           updatedAt: new Date(),
         })
         .where(eq(disbursementRequests.id, req.id));
+
+      if (req.contractPaymentId) {
+        await db
+          .update(contractPayments)
+          .set({
+            status: "pending",
+            paidAt: null,
+            paidBy: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(contractPayments.id, req.contractPaymentId));
+      }
+
+      if (req.paymentId) {
+        await db
+          .update(payments)
+          .set({
+            status: "pending",
+            paidAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(payments.id, req.paymentId));
+      }
 
       if (req.requestedBy) {
         await createNotification({

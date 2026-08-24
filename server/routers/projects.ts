@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, or, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -514,6 +514,12 @@ export const projectsRouter = router({
         .where(eq(disbursementRequests.projectId, targetProjectId))
         .orderBy(desc(disbursementRequests.createdAt));
 
+      // جلب أوامر الصرف المرتبطة بطلبات الصرف لهذا المشروع
+      const disbIds = projectDisbursements.map(d => d.id);
+      const projectOrders = disbIds.length > 0
+        ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, disbIds))
+        : [];
+
       // جلب الدفعات اليدوية
       const manualPayments = await db
         .select()
@@ -541,16 +547,34 @@ export const projectsRouter = router({
       // 1. إضافة دفعات العقود المجدولة
       allContractPayments.forEach(cp => {
         const linkedDisb = projectDisbursements.find(d => d.contractPaymentId === cp.id);
-        const rawDate = linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
+        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
+
+        // حالة الدفعة تصبح "مسدد" (paid) فقط عندما يكون أمر الصرف المرتبط بحالة "منفذ" (executed)
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (linkedOrder?.status === "executed") {
+          paymentStatus = "paid";
+          paidAtDate = linkedOrder.executedAt || cp.paidAt;
+        } else if (cp.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paymentStatus = "paid";
+          paidAtDate = cp.paidAt;
+        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || cp.status === "due") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = cp.status === "paid" ? "paid" : "pending";
+        }
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
           paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
           amount: cp.amount,
-          status: cp.status === "paid" ? "paid" : "pending",
+          status: paymentStatus,
           description: cp.phaseName,
           date: toLocalDateString(rawDate),
-          paidAt: cp.paidAt ? toLocalDateString(cp.paidAt) : null,
+          paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
           source: "contract",
           workDescription: cp.notes,
           completionPercentage: cp.completionPercentage || 0,
@@ -561,16 +585,33 @@ export const projectsRouter = router({
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
         const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
-        const rawDate = linkedDisb?.dateMiladi || p.createdAt;
+        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
+
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (linkedOrder?.status === "executed") {
+          paymentStatus = "paid";
+          paidAtDate = linkedOrder.executedAt || p.paidAt;
+        } else if (p.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paymentStatus = "paid";
+          paidAtDate = p.paidAt;
+        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || p.status === "due") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = p.status === "paid" ? "paid" : "pending";
+        }
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
           paymentType: p.paymentType,
           amount: p.amount,
-          status: p.status,
+          status: paymentStatus,
           description: p.description,
           date: toLocalDateString(rawDate),
-          paidAt: p.paidAt ? toLocalDateString(p.paidAt) : null,
+          paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
           source: "manual",
           workDescription: p.description,
           completionPercentage: p.completionPercentage || 0,
@@ -1857,6 +1898,19 @@ export const projectsRouter = router({
         ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
         : [];
 
+      // جلب طلبات الصرف
+      const projectDisbursements = await db
+        .select()
+        .from(disbursementRequests)
+        .where(eq(disbursementRequests.projectId, proj.id))
+        .orderBy(desc(disbursementRequests.createdAt));
+
+      // جلب أوامر الصرف المرتبطة بطلبات الصرف لهذا المشروع
+      const disbIds = projectDisbursements.map(d => d.id);
+      const projectOrders = disbIds.length > 0
+        ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, disbIds))
+        : [];
+
       // جلب الدفعات اليدوية
       const manualPayments = await db
         .select()
@@ -1869,15 +1923,34 @@ export const projectsRouter = router({
 
       // 1. إضافة دفعات العقود المجدولة
       allContractPayments.forEach(cp => {
+        const linkedDisb = projectDisbursements.find(d => d.contractPaymentId === cp.id);
+        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
+
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (linkedOrder?.status === "executed") {
+          paymentStatus = "paid";
+          paidAtDate = linkedOrder.executedAt || cp.paidAt;
+        } else if (cp.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paymentStatus = "paid";
+          paidAtDate = cp.paidAt;
+        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || cp.status === "due") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = cp.status === "paid" ? "paid" : "pending";
+        }
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
           paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
           amount: cp.amount,
-          status: cp.status === "paid" ? "paid" : "pending",
+          status: paymentStatus,
           description: cp.phaseName,
-          date: cp.dueDate || cp.createdAt,
-          paidAt: cp.paidAt,
+          date: rawDate,
+          paidAt: paidAtDate,
           source: "contract",
           workDescription: cp.notes,
           completionPercentage: cp.completionPercentage || 0,
@@ -1886,15 +1959,34 @@ export const projectsRouter = router({
 
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
+        const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
+        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
+
+        let paymentStatus = "pending";
+        let paidAtDate = null;
+
+        if (linkedOrder?.status === "executed") {
+          paymentStatus = "paid";
+          paidAtDate = linkedOrder.executedAt || p.paidAt;
+        } else if (p.status === "paid" && (!linkedDisb || linkedDisb.status === "paid") && (!linkedOrder || linkedOrder.status === "executed")) {
+          paymentStatus = "paid";
+          paidAtDate = p.paidAt;
+        } else if (linkedOrder?.status === "approved" || linkedDisb?.status === "approved" || linkedDisb?.status === "pending" || linkedDisb?.status === "pending_executive" || p.status === "due") {
+          paymentStatus = "due";
+        } else {
+          paymentStatus = p.status === "paid" ? "paid" : "pending";
+        }
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
           paymentType: p.paymentType,
           amount: p.amount,
-          status: p.status,
+          status: paymentStatus,
           description: p.description,
-          date: p.createdAt,
-          paidAt: p.paidAt,
+          date: rawDate,
+          paidAt: paidAtDate,
           source: "manual",
           workDescription: p.description,
           completionPercentage: p.completionPercentage || 0,
