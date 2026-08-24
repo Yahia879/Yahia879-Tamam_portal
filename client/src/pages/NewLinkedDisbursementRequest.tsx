@@ -630,10 +630,14 @@ export default function NewLinkedDisbursementRequest() {
     { enabled: formData.projectId > 0 }
   );
 
-  // تصفية التقارير لاستبعاد تقارير الزيارة الميدانية وإبقاء تقارير الإنجاز فقط
+  // تصفية التقارير لاستبعاد تقارير الزيارة الميدانية وإبقاء تقارير الإنجاز المعتمدة فقط لهذا المشروع
   const approvedReports = useMemo(() => {
-    if (!rawApprovedReports) return [];
+    if (!rawApprovedReports || !formData.projectId) return [];
     return rawApprovedReports.filter((report: any) => {
+      // التأكد بشكل قاطع من أن التقرير معتمد فقط وتابع لنفس المشروع
+      if (report.status !== "approved") return false;
+      if (Number(report.projectId) !== Number(formData.projectId)) return false;
+
       const titleLower = (report.title || "").toLowerCase();
       const numUpper = (report.reportNumber || "").toUpperCase();
       const workSummary = (report.workSummary || "").toLowerCase();
@@ -647,7 +651,17 @@ export default function NewLinkedDisbursementRequest() {
         
       return !isVisit;
     });
-  }, [rawApprovedReports]);
+  }, [rawApprovedReports, formData.projectId]);
+
+  // إلغاء تحديد التقرير في حال تغير المشروع أو لم يعد التقرير معتمداً
+  useEffect(() => {
+    if (selectedReportId !== null && approvedReports) {
+      const exists = approvedReports.some((r: any) => r.id === selectedReportId);
+      if (!exists) {
+        setSelectedReportId(null);
+      }
+    }
+  }, [approvedReports, selectedReportId]);
 
   // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم التكرار
   const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(

@@ -89,10 +89,31 @@ export default function EditLinkedDisbursementRequest() {
   );
 
   // جلب تقارير الإنجاز المعتمدة للمشروع المحدد
-  const { data: approvedReports } = trpc.progressReports.list.useQuery(
+  const { data: rawApprovedReports } = trpc.progressReports.list.useQuery(
     { projectId: formData.projectId || undefined, status: "approved" },
     { enabled: formData.projectId > 0 }
   );
+
+  const approvedReports = useMemo(() => {
+    if (!rawApprovedReports || !formData.projectId) return [];
+    return rawApprovedReports.filter((report: any) => {
+      if (report.status !== "approved") return false;
+      if (Number(report.projectId) !== Number(formData.projectId)) return false;
+
+      const titleLower = (report.title || "").toLowerCase();
+      const numUpper = (report.reportNumber || "").toUpperCase();
+      const workSummary = (report.workSummary || "").toLowerCase();
+      
+      const isVisit = 
+        titleLower.includes("زيارة") || 
+        titleLower.includes("visit") || 
+        numUpper.includes("VISIT") ||
+        workSummary.includes("الزيارة الميدانية") ||
+        workSummary.includes("تقرير زيارة");
+        
+      return !isVisit;
+    });
+  }, [rawApprovedReports, formData.projectId]);
 
   // جلب طلبات الصرف الحالية للمشروع للتحقق من عدم تكرار الدفعة
   const { data: projectRequests } = trpc.disbursements.getRequestsByProject.useQuery(
