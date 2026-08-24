@@ -530,6 +530,52 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     ? parseFloat(collectionRawPct.toFixed(2))
     : Math.min(100, Math.round(collectionRawPct));
 
+  // Financial breakdown and surplus per supporter
+  const supportersFinancials = useMemo(() => {
+    return validSupportSources.map((source) => {
+      const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
+      const committedAmt = source.amount || 0;
+      const isGenAcc = isGeneralAccountName(sName);
+      
+      const normSName = normalizeArabicText(sName);
+      const normEntity = normalizeArabicText(source.entity);
+      const normCustom = normalizeArabicText(source.customEntity);
+
+      const sVouchers = receiptVouchers.filter((v: any) => {
+        const normPayer = normalizeArabicText(v.payerName);
+        if (!normPayer) return false;
+        return (
+          normPayer === normSName ||
+          normPayer === normEntity ||
+          (normCustom && normPayer === normCustom) ||
+          (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+        );
+      });
+
+      const validSVouchers = sVouchers.filter((v: any) => v.status === "approved");
+      const receivedAmt = isGenAcc ? committedAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount?.toString() || "0"), 0);
+      const remainingAmt = isGenAcc ? 0 : Math.max(0, committedAmt - receivedAmt);
+      const sSurplus = isGenAcc ? 0 : Math.max(0, receivedAmt - committedAmt);
+      const cleanName = sName.replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
+
+      return {
+        name: sName,
+        cleanName,
+        committedAmount: committedAmt,
+        receivedAmount: receivedAmt,
+        remainingAmount: remainingAmt,
+        surplusAmount: sSurplus,
+        isGeneralAccount: isGenAcc,
+        vouchersCount: validSVouchers.length,
+      };
+    });
+  }, [validSupportSources, receiptVouchers]);
+
+  // Supporters who actually have a surplus
+  const supportersWithSurplus = useMemo(() => {
+    return supportersFinancials.filter(s => s.surplusAmount > 0);
+  }, [supportersFinancials]);
+
   // List of distinct supporters registered for this project
   const projectRegisteredSupporters: string[] = useMemo(() => {
     const list: string[] = [];
@@ -560,8 +606,20 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     return list;
   }, [validSupportSources, data]);
 
-  const openTransferSurplusModal = () => {
-    let cleanPayer = projectRegisteredSupporters[0] || "";
+  // Selected supporter details inside modal
+  const selectedSupporterInfo = useMemo(() => {
+    const cleanSelect = (transferPayerSelect || transferPayerName).replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
+    return supportersFinancials.find(s => s.cleanName === cleanSelect || normalizeArabicText(s.name) === normalizeArabicText(cleanSelect));
+  }, [supportersFinancials, transferPayerSelect, transferPayerName]);
+
+  // Effective max surplus for the selected supporter (or project surplus fallback)
+  const activeSupporterMaxSurplus = selectedSupporterInfo && selectedSupporterInfo.surplusAmount > 0
+    ? selectedSupporterInfo.surplusAmount
+    : (supportersWithSurplus.length > 0 ? supportersWithSurplus[0].surplusAmount : surplusAmount);
+
+  const openTransferSurplusModal = (targetSupporterName?: string) => {
+    const defaultSupporter = targetSupporterName || (supportersWithSurplus.length > 0 ? supportersWithSurplus[0].cleanName : (projectRegisteredSupporters[0] || ""));
+    let cleanPayer = defaultSupporter.trim();
     let detectedHonorific = "السادة";
 
     if (!cleanPayer) {
@@ -585,13 +643,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     setTransferCustomPayer("");
     setTransferPayerName(cleanPayer);
 
+    const supInfo = supportersFinancials.find(s => s.cleanName === cleanPayer || normalizeArabicText(s.name) === normalizeArabicText(cleanPayer));
+    const targetSurplus = supInfo && supInfo.surplusAmount > 0 ? supInfo.surplusAmount : surplusAmount;
+
     setTransferType("restricted");
     if (donationPurposes.length > 0) {
       setTransferPurpose(donationPurposes[0]);
     } else {
       setTransferPurpose("");
     }
-    setTransferAmount(surplusAmount > 0 ? surplusAmount.toString() : "");
+    setTransferAmount(targetSurplus > 0 ? targetSurplus.toString() : "");
     setTransferDate(new Date().toISOString().split("T")[0]);
     setTransferBankName("مصرف الراجحي");
     setTransferNotes(`تم تحويله من فائض مقبوضات المشروع ${(data as any)?.project?.projectNumber || `#${projectId}`}`);
@@ -604,8 +665,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       toast.error("يرجى إدخال مبلغ تحويل صحيح أكبر من صفر");
       return;
     }
-    if (amt > surplusAmount + 0.01) {
-      toast.error(`المبلغ المطلوب تحويله (${amt.toLocaleString()} ريال) يتجاوز مبلغ الفائض المتاح (${surplusAmount.toLocaleString()} ريال)`);
+    if (amt > activeSupporterMaxSurplus + 0.01) {
+      toast.error(`المبلغ المطلوب تحويله (${amt.toLocaleString()} ريال) يتجاوز مبلغ الفائض المتاح لهذا الداعم (${activeSupporterMaxSurplus.toLocaleString()} ريال)`);
       return;
     }
     if (!transferDate) {
@@ -1247,7 +1308,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 </div>
               </div>
               <Button
-                onClick={openTransferSurplusModal}
+                onClick={() => openTransferSurplusModal()}
                 className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
               >
                 <ArrowRightLeft className="w-4 h-4" />
@@ -1288,11 +1349,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 <span className="text-lg font-black text-indigo-950 mt-1 block font-sans">
                   {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                 </span>
+                {supportersWithSurplus.length > 0 && (
+                  <p className="text-[11px] text-indigo-800 font-semibold mt-1">
+                    الفائض ناتج من: {supportersWithSurplus.map(s => `${s.name} (${s.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`).join("، ")}
+                  </p>
+                )}
                 <Button
                   variant="link"
                   size="sm"
-                  onClick={openTransferSurplusModal}
-                  className="p-0 h-auto text-[11px] text-indigo-700 hover:text-indigo-900 font-bold mt-1.5 flex items-center gap-1"
+                  onClick={() => openTransferSurplusModal()}
+                  className="p-0 h-auto text-[11px] text-indigo-700 hover:text-indigo-900 font-bold mt-1.5 flex items-center gap-1 cursor-pointer"
                 >
                   <ArrowRightLeft className="w-3 h-3" />
                   <span>تحويل الفائض الآن</span>
@@ -1345,6 +1411,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   const validSVouchers = sVouchers.filter(v => v.status === "approved");
                   const receivedAmt = isGenAcc ? targetAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount.toString() || "0"), 0);
                   const remainingAmt = isGenAcc ? 0 : Math.max(0, targetAmt - receivedAmt);
+                  const sSurplusAmt = isGenAcc ? 0 : Math.max(0, receivedAmt - targetAmt);
                   const sRawPct = isGenAcc ? 100 : (targetAmt > 0 ? (receivedAmt / targetAmt) * 100 : (receivedAmt > 0 ? 100 : 0));
                   const sPct = sRawPct > 0 && sRawPct < 1
                     ? parseFloat(sRawPct.toFixed(2))
@@ -1381,6 +1448,24 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                         <span>إجمالي الدعم المقرر:</span>
                         <span className="font-bold text-slate-800">{targetAmt.toLocaleString("en-US")} ريال</span>
                       </div>
+
+                      {sSurplusAmt > 0 && (
+                        <div className="p-2 bg-indigo-50/90 rounded-lg border border-indigo-200 flex items-center justify-between text-xs mt-1">
+                          <span className="text-indigo-900 font-bold text-[11px]">
+                            فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openTransferSurplusModal(sName)}
+                            className="h-6 px-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 hover:text-indigo-900 flex items-center gap-1 cursor-pointer"
+                          >
+                            <ArrowRightLeft className="w-3 h-3" />
+                            <span>تحويل الفائض</span>
+                          </Button>
+                        </div>
+                      )}
 
                       <Progress value={sPct} className="h-1.5 bg-slate-100" />
                     </div>
@@ -2079,12 +2164,41 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 </div>
               </div>
               <Badge className="bg-indigo-50 text-indigo-800 border border-indigo-300 text-xs font-black px-3 py-1 self-start sm:self-center">
-                فائض متاح للتحويل: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                فائض الداعم المتاح للتحويل: {activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
               </Badge>
             </div>
           </DialogHeader>
 
           <div className="space-y-4 py-3 text-xs">
+            {/* بطاقة توضيح مصدر الفائض والداعم المحدد */}
+            {selectedSupporterInfo && selectedSupporterInfo.surplusAmount > 0 && (
+              <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-xs space-y-1.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-950 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span>مصدر الفائض: {selectedSupporterInfo.name}</span>
+                  </span>
+                  <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-extrabold">
+                    فائض الداعم: {selectedSupporterInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1 text-slate-600 border-t border-indigo-100">
+                  <div>
+                    <span className="block text-slate-500">المبلغ المقرر التزامه:</span>
+                    <span className="font-bold text-slate-800">{selectedSupporterInfo.committedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500">المسدد فعلياً من الداعم:</span>
+                    <span className="font-bold text-emerald-700">{selectedSupporterInfo.receivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500">يصدر سند القبض باسم:</span>
+                    <span className="font-bold text-indigo-950">{transferHonorificTitle} / {selectedSupporterInfo.cleanName}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* اختيار نوع السند */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-800">نوع سند القبض المحول إليه *</Label>
@@ -2177,6 +2291,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     onValueChange={(val) => {
                       setTransferPayerSelect(val);
                       setTransferPayerName(val);
+                      const sup = supportersFinancials.find(s => s.cleanName === val || normalizeArabicText(s.name) === normalizeArabicText(val));
+                      if (sup && sup.surplusAmount > 0) {
+                        setTransferAmount(sup.surplusAmount.toString());
+                      }
                     }}
                     disabled={projectRegisteredSupporters.length === 0}
                   >
@@ -2184,11 +2302,20 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       <SelectValue placeholder={projectRegisteredSupporters.length > 0 ? "اختر الداعم المسجل للمشروع..." : "لا يوجد داعمين مسجلين للمشروع"} />
                     </SelectTrigger>
                     <SelectContent dir="rtl" className="max-h-60">
-                      {projectRegisteredSupporters.map((sup, idx) => (
-                        <SelectItem key={idx} value={sup} className="text-right">
-                          {sup}
-                        </SelectItem>
-                      ))}
+                      {projectRegisteredSupporters.map((sup, idx) => {
+                        const supInfo = supportersFinancials.find(s => s.cleanName === sup || normalizeArabicText(s.name) === normalizeArabicText(sup));
+                        const hasSurplus = supInfo && supInfo.surplusAmount > 0;
+                        return (
+                          <SelectItem key={idx} value={sup} className="text-right">
+                            <span className="font-medium">{sup}</span>
+                            {hasSurplus && (
+                              <span className="text-emerald-700 font-bold mr-2 text-[10px]">
+                                (فائض متاح: {supInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                              </span>
+                            )}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2201,20 +2328,20 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <div className="space-y-1.5 text-right">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-bold text-slate-800">مبلغ الدفعة المقبوضة (ريال) *</Label>
-                  {surplusAmount > 0 && (
+                  {activeSupporterMaxSurplus > 0 && (
                     <button
                       type="button"
-                      onClick={() => setTransferAmount(surplusAmount.toString())}
+                      onClick={() => setTransferAmount(activeSupporterMaxSurplus.toString())}
                       className="text-[11px] font-bold text-indigo-700 hover:underline cursor-pointer"
                     >
-                      تعبئة كامل الفائض ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                      تعبئة كامل فائض الداعم ({activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
                     </button>
                   )}
                 </div>
                 <Input
                   type="number"
                   min={0.01}
-                  max={surplusAmount}
+                  max={activeSupporterMaxSurplus}
                   step="0.01"
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}

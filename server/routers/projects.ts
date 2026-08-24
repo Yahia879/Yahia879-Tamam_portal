@@ -2418,7 +2418,7 @@ export const projectsRouter = router({
       const [project] = await db.select().from(projects).where(eq(projects.id, input.projectId));
       if (!project) throw new TRPCError({ code: "NOT_FOUND", message: "المشروع غير موجود" });
 
-      // جلب سندات القبض المعتمدة للمشروع لخصم مبلغ التحويل منها
+      // جلب وترتيب سندات القبض المعتمدة للمشروع للخصم من سندات الداعم محدد الفائض أولاً
       const projectVouchers = await db
         .select()
         .from(receiptVouchers)
@@ -2435,10 +2435,22 @@ export const projectsRouter = router({
         });
       }
 
+      // فرز السندات لإعطاء الأولوية لسندات الداعم المسدد للفائض
+      const cleanInputPayer = (input.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
+      const sortedVouchers = [...projectVouchers].sort((a, b) => {
+        const aClean = (a.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
+        const bClean = (b.payerName || "").replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim().toLowerCase();
+        const aMatch = cleanInputPayer && (aClean.includes(cleanInputPayer) || cleanInputPayer.includes(aClean));
+        const bMatch = cleanInputPayer && (bClean.includes(cleanInputPayer) || cleanInputPayer.includes(bClean));
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+
       let remainingToDeduct = input.amount;
 
-      // خصم مبلغ التحويل من أحدث السندات المعتمدة للمشروع
-      for (const v of projectVouchers) {
+      // خصم مبلغ التحويل من سندات الداعم المعتمدة للمشروع
+      for (const v of sortedVouchers) {
         if (remainingToDeduct <= 0) break;
         const vAmt = parseFloat(v.amount.toString() || "0");
         if (vAmt <= 0) continue;
@@ -2448,7 +2460,7 @@ export const projectsRouter = router({
           await db.update(receiptVouchers)
             .set({
               amount: newAmt.toString(),
-              notes: `${v.notes ? `${v.notes} | ` : ""}تم استقطاع (${remainingToDeduct.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند قبض مستقل`,
+              notes: `${v.notes ? `${v.notes} | ` : ""}تم استقطاع (${remainingToDeduct.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند قبض مستقل للداعم`,
               updatedAt: new Date(),
             })
             .where(eq(receiptVouchers.id, v.id));
@@ -2457,7 +2469,7 @@ export const projectsRouter = router({
           await db.update(receiptVouchers)
             .set({
               amount: "0",
-              notes: `${v.notes ? `${v.notes} | ` : ""}تم تحويل كامل مبلغ السند (${vAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند مستقل`,
+              notes: `${v.notes ? `${v.notes} | ` : ""}تم تحويل كامل مبلغ السند (${vAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال) كفائض محول لسند مستقل للداعم`,
               updatedAt: new Date(),
             })
             .where(eq(receiptVouchers.id, v.id));
