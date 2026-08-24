@@ -1144,13 +1144,13 @@ export default function ProgressReports() {
                             ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
                             : isAlreadyReported
                             ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 font-bold"
-                            : getPaymentStatusStyles(payment.status);
+                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 font-medium";
                             
                           const statusLabel = isIncomplete 
                             ? "بيانات غير مكتملة" 
                             : isAlreadyReported
                             ? "تم تقديم تقرير"
-                            : (PAYMENT_STATUS_MAP[payment.status]?.label || payment.status);
+                            : "قيد الانتظار";
                           
                           return (
                             <div
