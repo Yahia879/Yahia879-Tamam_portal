@@ -579,10 +579,10 @@ export const progressReportsRouter = router({
         .from(progressReports)
         .where(eq(progressReports.id, input.id));
 
-      if (existingReport?.status === "pending_executive" || existingReport?.status === "approved" || existingReport?.status === "revoked") {
+      if (existingReport?.status === "pending_executive" || existingReport?.status === "approved" || existingReport?.status === "revoked" || existingReport?.status === "rejected") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو أثناء انتظار اعتماد المدير التنفيذي",
+          message: "لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو رفضه أو أثناء انتظار اعتماد المدير التنفيذي",
         });
       }
 

@@ -763,8 +763,8 @@ export default function ProgressReports() {
       toast.error("لا يمكن تعديل تقرير الإنجاز بعد تحويله إلى طلب صرف.");
       return;
     }
-    if (report.status === "pending_executive" || report.status === "approved" || report.status === "revoked") {
-      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو أثناء انتظار اعتماد المدير التنفيذي.");
+    if (report.status === "pending_executive" || report.status === "approved" || report.status === "revoked" || report.status === "rejected") {
+      toast.error("لا يمكن تعديل تقرير الإنجاز بعد اعتماده أو رفضه أو إلغائه.");
       return;
     }
     if (isDisbursementApproved(report)) {
@@ -1605,7 +1605,7 @@ export default function ProgressReports() {
                         </DropdownMenuItem>
 
                         {/* تعديل التقرير */}
-                        {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && !isDisbursementApproved(report) && canEditReport && (
+                        {!isReportConverted(report) && report.status !== "pending_executive" && report.status !== "approved" && report.status !== "revoked" && report.status !== "rejected" && !isDisbursementApproved(report) && canEditReport && (
                           <DropdownMenuItem 
                             onClick={() => {
                               handleEditReportClick(report);
