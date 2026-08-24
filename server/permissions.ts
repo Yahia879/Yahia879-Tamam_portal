@@ -694,7 +694,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
       'requests.manage_as_field_team',
       'requests.manage_as_quick_response',
       'requests.upload_final_report',
-      'board_chairman'
+      'board_chairman',
+      'receipt_vouchers.exception_approve',
+      'progress_reports.exception_approve',
+      'disbursements.exception_approve',
+      'disbursement_orders.exception_approve',
     ];
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     // يحصلان أيضاً على جميع الصلاحيات الموسعة (باستثناء appointments.view_own والصلاحيات المستبعدة)
@@ -802,7 +806,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     const excludedAdminPerms = [
       'requests.manage_as_field_team',
       'requests.manage_as_quick_response',
-      'requests.upload_final_report'
+      'requests.upload_final_report',
+      'board_chairman',
+      'receipt_vouchers.exception_approve',
+      'progress_reports.exception_approve',
+      'disbursements.exception_approve',
+      'disbursement_orders.exception_approve',
     ];
     const allAvailablePerms = await db.select({ id: permissions.id }).from(permissions);
     allAvailablePerms.forEach(p => {
@@ -817,7 +826,12 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   const excludedAdminPerms = [
     'requests.manage_as_field_team',
     'requests.manage_as_quick_response',
-    'requests.upload_final_report'
+    'requests.upload_final_report',
+    'board_chairman',
+    'receipt_vouchers.exception_approve',
+    'progress_reports.exception_approve',
+    'disbursements.exception_approve',
+    'disbursement_orders.exception_approve',
   ];
   for (const perm of permissionsToExpand) {
     const expanded = PERMISSION_EXPANSION[perm];
@@ -1727,7 +1741,12 @@ export const permissionsRouter = router({
         const excludedAdminPerms = [
           'requests.manage_as_field_team',
           'requests.manage_as_quick_response',
-          'requests.upload_final_report'
+          'requests.upload_final_report',
+          'board_chairman',
+          'receipt_vouchers.exception_approve',
+          'progress_reports.exception_approve',
+          'disbursements.exception_approve',
+          'disbursement_orders.exception_approve',
         ];
         const allPerms = await db.select({ id: permissions.id }).from(permissions);
         allPerms.forEach(p => {
@@ -1793,7 +1812,12 @@ export const permissionsRouter = router({
       const excludedAdminPerms = [
         'requests.manage_as_field_team',
         'requests.manage_as_quick_response',
-        'requests.upload_final_report'
+        'requests.upload_final_report',
+        'board_chairman',
+        'receipt_vouchers.exception_approve',
+        'progress_reports.exception_approve',
+        'disbursements.exception_approve',
+        'disbursement_orders.exception_approve',
       ];
       for (const perm of permsArray) {
         const expanded = PERMISSION_EXPANSION[perm];

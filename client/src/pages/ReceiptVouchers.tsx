@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ export default function ReceiptVouchers() {
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "") || userPermissions.includes("*");
   const canView = isAdmin || userPermissions.includes("receipt_vouchers.view") || userPermissions.includes("receipt_vouchers.edit") || userPermissions.some(p => p.startsWith("receipt_vouchers"));
   const canEdit = userPermissions.includes("receipt_vouchers.edit");
-  const hasExceptionApprove = isAdmin || userPermissions.includes("receipt_vouchers.exception_approve");
+  const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
 
   // الحصول على البارامترات من URL إن وجدت
   const urlParams = new URLSearchParams(window.location.search);

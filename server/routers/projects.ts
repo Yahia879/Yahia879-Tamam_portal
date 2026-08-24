@@ -2569,9 +2569,8 @@ export const projectsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const hasExceptionPerm = await checkPermission(ctx.user.id, "receipt_vouchers.exception_approve");
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
 
-      if (!hasExceptionPerm && !isAdmin) {
+      if (!hasExceptionPerm) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "ليس لديك صلاحية استثناء اعتماد سند القبض"
