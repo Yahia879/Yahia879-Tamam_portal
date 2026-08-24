@@ -532,7 +532,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
   // Financial breakdown and surplus per supporter
   const supportersFinancials = useMemo(() => {
-    return validSupportSources.map((source) => {
+    const totalCommittedSupport = validSupportSources.reduce((sum, s) => sum + (s.amount || 0), 0);
+
+    // 1. First pass: compute received amount and target required share for each supporter
+    const rawBreakdown = validSupportSources.map((source) => {
       const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
       const committedAmt = source.amount || 0;
       const isGenAcc = isGeneralAccountName(sName);
@@ -554,8 +557,20 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
       const validSVouchers = sVouchers.filter((v: any) => v.status === "approved");
       const receivedAmt = isGenAcc ? committedAmt : validSVouchers.reduce((sum, v) => sum + parseFloat(v.amount?.toString() || "0"), 0);
-      const remainingAmt = isGenAcc ? 0 : Math.max(0, committedAmt - receivedAmt);
-      const sSurplus = isGenAcc ? 0 : Math.max(0, receivedAmt - committedAmt);
+
+      // What is this supporter's assigned share of the project required cost?
+      let requiredShare = 0;
+      if (validSupportSources.length === 1) {
+        requiredShare = targetRequiredAmount;
+      } else if (totalCommittedSupport > 0) {
+        requiredShare = (targetRequiredAmount * committedAmt) / totalCommittedSupport;
+      } else if (totalReceivedAmount > 0) {
+        requiredShare = (targetRequiredAmount * receivedAmt) / totalReceivedAmount;
+      } else {
+        requiredShare = targetRequiredAmount / (validSupportSources.length || 1);
+      }
+
+      const rawSurplus = isGenAcc ? 0 : Math.max(0, receivedAmt - requiredShare);
       const cleanName = sName.replace(/^(السيد|السيدة|السادة)\s*(\/|-)?\s*/, "").trim();
 
       return {
@@ -563,13 +578,37 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         cleanName,
         committedAmount: committedAmt,
         receivedAmount: receivedAmt,
-        remainingAmount: remainingAmt,
-        surplusAmount: sSurplus,
+        requiredShare,
+        rawSurplus,
         isGeneralAccount: isGenAcc,
         vouchersCount: validSVouchers.length,
       };
     });
-  }, [validSupportSources, receiptVouchers]);
+
+    // 2. Second pass: distribute project surplusAmount accurately
+    const totalRawSurplus = rawBreakdown.reduce((sum, s) => sum + s.rawSurplus, 0);
+
+    return rawBreakdown.map((s) => {
+      let finalSurplus = 0;
+      if (surplusAmount > 0) {
+        if (rawBreakdown.length === 1) {
+          finalSurplus = surplusAmount;
+        } else if (totalRawSurplus > 0) {
+          finalSurplus = (surplusAmount * s.rawSurplus) / totalRawSurplus;
+        } else if (totalReceivedAmount > 0 && !s.isGeneralAccount) {
+          finalSurplus = (surplusAmount * s.receivedAmount) / totalReceivedAmount;
+        }
+      }
+      
+      const remainingAmt = s.isGeneralAccount ? 0 : Math.max(0, s.requiredShare - s.receivedAmount);
+
+      return {
+        ...s,
+        surplusAmount: finalSurplus > 0 ? parseFloat(finalSurplus.toFixed(2)) : 0,
+        remainingAmount: remainingAmt > 0 ? parseFloat(remainingAmt.toFixed(2)) : 0,
+      };
+    });
+  }, [validSupportSources, receiptVouchers, targetRequiredAmount, totalReceivedAmount, surplusAmount]);
 
   // Supporters who actually have a surplus
   const supportersWithSurplus = useMemo(() => {
@@ -2170,31 +2209,77 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           </DialogHeader>
 
           <div className="space-y-4 py-3 text-xs">
-            {/* بطاقة توضيح مصدر الفائض والداعم المحدد */}
-            {selectedSupporterInfo && selectedSupporterInfo.surplusAmount > 0 && (
-              <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-xs space-y-1.5 animate-in fade-in duration-200">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-indigo-950 flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
-                    <span>مصدر الفائض: {selectedSupporterInfo.name}</span>
-                  </span>
-                  <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[11px] font-extrabold">
-                    فائض الداعم: {selectedSupporterInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+            {/* بطاقة توضيح مصادر الفائض في المشروع والداعمين أصحاب الفائض */}
+            {surplusAmount > 0 && (
+              <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 text-xs space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-indigo-600 text-white shrink-0 shadow-2xs">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-black text-xs text-indigo-950 block">
+                        {supportersWithSurplus.length > 1
+                          ? `مصادر الفائض في المشروع (${supportersWithSurplus.length} داعمين)`
+                          : `مصدر الفائض في المشروع: ${supportersWithSurplus[0]?.name || "الداعم المسجل"}`}
+                      </span>
+                      <span className="text-[11px] text-indigo-800/80">
+                        {supportersWithSurplus.length > 1
+                          ? "يوجد مبالغ فائضة متحققة من أكثر من داعم، انقر على الداعم المراد تحويل فائضه:"
+                          : "تم تحديد الداعم صاحب الفائض المسدد للمشروع تلقائياً ويصدر السند باسمه:"}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge className="bg-indigo-700 text-white text-xs font-black px-2.5 py-0.5 self-start sm:self-center">
+                    إجمالي الفائض: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
                   </Badge>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1 text-slate-600 border-t border-indigo-100">
-                  <div>
-                    <span className="block text-slate-500">المبلغ المقرر التزامه:</span>
-                    <span className="font-bold text-slate-800">{selectedSupporterInfo.committedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500">المسدد فعلياً من الداعم:</span>
-                    <span className="font-bold text-emerald-700">{selectedSupporterInfo.receivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
-                  </div>
-                  <div>
-                    <span className="block text-slate-500">يصدر سند القبض باسم:</span>
-                    <span className="font-bold text-indigo-950">{transferHonorificTitle} / {selectedSupporterInfo.cleanName}</span>
-                  </div>
+
+                {/* عرض كروت الفائض لكل داعم في حال وجود داعم أو أكثر */}
+                <div className={`grid gap-2 pt-0.5 ${supportersWithSurplus.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                  {supportersWithSurplus.map((sup, idx) => {
+                    const isSelected = transferPayerSelect === sup.cleanName || normalizeArabicText(transferPayerName) === normalizeArabicText(sup.name);
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setTransferPayerSelect(sup.cleanName);
+                          setTransferPayerName(sup.cleanName);
+                          setTransferAmount(sup.surplusAmount.toString());
+                        }}
+                        className={`p-3 rounded-xl border text-right transition-all cursor-pointer flex flex-col justify-between ${
+                          isSelected
+                            ? "bg-white border-indigo-600 ring-2 ring-indigo-600/20 shadow-xs"
+                            : "bg-white/60 border-indigo-100 hover:bg-white hover:border-indigo-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Building2 className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
+                            <span className="font-bold text-xs text-slate-900 truncate">{sup.name}</span>
+                          </div>
+                          <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shrink-0">
+                            فائض: {sup.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-600 mt-2.5 pt-2 border-t border-slate-100">
+                          <div>
+                            <span className="text-slate-400 block text-[9px]">المقرر التزامه:</span>
+                            <span className="font-bold text-slate-800">{sup.committedAmount.toLocaleString("en-US")} ريال</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px]">المسدد فعلياً:</span>
+                            <span className="font-bold text-emerald-700">{sup.receivedAmount.toLocaleString("en-US")} ريال</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px]">الحصة التكليفية:</span>
+                            <span className="font-bold text-indigo-900">{sup.requiredShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
