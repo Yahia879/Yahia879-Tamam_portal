@@ -1628,8 +1628,8 @@ export default function ProgressReports() {
                           </DropdownMenuItem>
                         )}
 
-                        {/* إلغاء الاعتماد (المرحلة الأولى أو النهائية) */}
-                        {(report.status === "pending_executive" || report.status === "approved") && (isProjectManager || isExecutiveDirector || user?.role === "super_admin") && (
+                        {/* إلغاء الاعتماد (للتقارير المعتمدة فقط) */}
+                        {report.status === "approved" && (isProjectManager || isExecutiveDirector || user?.role === "super_admin") && (
                           <DropdownMenuItem
                             onClick={() => {
                               setSelectedReport(report);
@@ -2142,7 +2142,7 @@ export default function ProgressReports() {
               )}
 
               {/* زر إلغاء الاعتماد */}
-              {selectedReport && (selectedReport.status === "pending_executive" || selectedReport.status === "approved") && (
+              {selectedReport && selectedReport.status === "approved" && (
                 <Button
                   onClick={() => {
                     setShowDetailsDialog(false);
