@@ -617,7 +617,7 @@ export default function BoardDashboard() {
                                       )}
 
                                       {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
-                                      {canPerformActions && order.orderStatus !== "executed" && (
+                                      {canPerformActions && isNeedsApproval && (
                                         <>
                                           <DropdownMenuSeparator className="my-1 border-border/60" />
 
