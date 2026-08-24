@@ -229,19 +229,7 @@ export default function ProgressReportPrint() {
     },
   });
 
-  const revokeReportMutation = trpc.progressReports.revokeApproval.useMutation({
-    onSuccess: (data) => {
-      toast.success(data?.message || "تم إلغاء اعتماد التقرير بنجاح");
-      refetchReport();
-      utils.progressReports.invalidate();
-      utils.projects.invalidate();
-      utils.disbursements.invalidate();
-      utils.progressReports.getPendingActionCounts.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
-    },
-  });
+
 
   // جلب تفاصيل المشروع
   const { data: project, isLoading: isProjectLoading } = trpc.projects.getById.useQuery(
@@ -415,11 +403,7 @@ export default function ProgressReportPrint() {
     return !isProjectManager && hasExceptionApprove;
   })();
 
-  const canRevokeApproval = (() => {
-    if (!report || !currentUser) return false;
-    if (report.status !== "approved") return false;
-    return isExecutiveDirectorRole || hasApprovePermission || hasExceptionApprove;
-  })();
+
 
   return (
     <>
@@ -527,25 +511,7 @@ export default function ProgressReportPrint() {
           </Button>
         )}
 
-        {/* زر إلغاء اعتماد تقرير الإنجاز */}
-        {canRevokeApproval && (
-          <Button
-            onClick={() => {
-              if (window.confirm("هل أنت متأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟")) {
-                revokeReportMutation.mutate({ id: report.id });
-              }
-            }}
-            disabled={revokeReportMutation.isPending}
-            className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white font-bold"
-          >
-            {revokeReportMutation.isPending ? (
-              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-            ) : (
-              <ShieldAlert className="h-4 w-4 ml-2" />
-            )}
-            إلغاء الاعتماد
-          </Button>
-        )}
+
 
         {/* أدوات إظهار / إخفاء التواقيع */}
         {(() => {
