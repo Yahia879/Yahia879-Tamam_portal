@@ -636,7 +636,7 @@ export const progressReportsRouter = router({
 
       // المرحلة الثانية: اعتماد المدير التنفيذي فقط (pending_executive -> approved)
       if (report.status === "pending_executive") {
-        if (!isExecDirector && !hasApprovePerm) {
+        if (!isExecDirector) {
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "فقط المدير التنفيذي يمتلك صلاحية اعتماد المرحلة الثانية لتقرير الإنجاز",

@@ -398,9 +398,9 @@ export default function ProgressReportPrint() {
       return isProjectManager;
     }
 
-    // المرحلة الثانية: فقط المدير التنفيذي أو من يملك صلاحية اعتماد التقارير
+    // المرحلة الثانية: فقط المدير التنفيذي
     if (report.status === "pending_executive") {
-      return isExecutiveDirectorRole || hasApprovePermission;
+      return isExecutiveDirectorRole;
     }
 
     return false;
