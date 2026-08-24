@@ -611,6 +611,10 @@ function DashboardLayoutContent({
     enabled: !!user,
     refetchInterval: 15000,
   });
+  const { data: pendingProgressReports } = trpc.progressReports.getPendingActionCounts.useQuery(undefined, {
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
   // الشعار الأبيض (أيقونة) للقائمة الجانبية والهيدر
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
   // الشعار الأبيض (للهيدر في الموبايل)
@@ -697,10 +701,12 @@ function DashboardLayoutContent({
                     const isOrdersPath = item.path === "/disbursement-orders";
                     const isRequestsPath = item.path === "/disbursements";
                     const isBoardExecutivePath = item.path === "/board-executive";
+                    const isProgressReportsPath = item.path === "/progress-reports";
                     const hasActionBadge = 
                       (isOrdersPath && Boolean(pendingDisbursements?.hasPendingOrders)) ||
                       (isRequestsPath && Boolean(pendingDisbursements?.hasPendingRequests)) ||
-                      (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive));
+                      (isBoardExecutivePath && Boolean(pendingDisbursements?.hasPendingBoardExecutive)) ||
+                      (isProgressReportsPath && Boolean(pendingProgressReports?.hasPendingReports));
 
                     return (
                       <SidebarMenuItem key={item.path}>

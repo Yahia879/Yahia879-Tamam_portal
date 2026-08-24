@@ -35,6 +35,54 @@ const parseDateInput = (val: any): Date | null => {
 };
 
 export const progressReportsRouter = router({
+  // عدد تقارير الإنجاز المعلقة التي تتطلب اعتماد من المستخدم الحالي (مدير المشروع أو المدير التنفيذي)
+  getPendingActionCounts: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { pendingReportsCount: 0, hasPendingReports: false };
+
+      const user = ctx.user;
+      const userRole = user.role;
+      const userEmail = user.email || "";
+
+      const isExecDirector =
+        ["general_manager", "executive_director"].includes(userRole) ||
+        userEmail === "ceo@manarah.org.sa" ||
+        userEmail === "test10@gmail.com" ||
+        (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
+        (user as any)?.customRole?.nameAr === "الرئيس التنفيذي" ||
+        (await checkPermission(user.id, "progress_reports.approve"));
+
+      let pendingReportsCount = 0;
+
+      // 1. المرحلة الأولى: تقارير بانتظار اعتماد مدير المشروع (المستخدم الحالي هو مدير المشروع المحدد في المشروع)
+      const [pmPendingReports] = await db
+        .select({ value: sql<number>`count(*)` })
+        .from(progressReports)
+        .innerJoin(projects, eq(progressReports.projectId, projects.id))
+        .where(
+          and(
+            inArray(progressReports.status, ["pending", "submitted", "draft"]),
+            eq(projects.managerId, user.id)
+          )
+        );
+      pendingReportsCount += Number(pmPendingReports?.value || 0);
+
+      // 2. المرحلة الثانية: تقارير بانتظار اعتماد المدير التنفيذي
+      if (isExecDirector) {
+        const [execPendingReports] = await db
+          .select({ value: sql<number>`count(*)` })
+          .from(progressReports)
+          .where(eq(progressReports.status, "pending_executive"));
+        pendingReportsCount += Number(execPendingReports?.value || 0);
+      }
+
+      return {
+        pendingReportsCount,
+        hasPendingReports: pendingReportsCount > 0,
+      };
+    }),
+
   // قائمة تقارير الإنجاز
   list: protectedProcedure
     .input(

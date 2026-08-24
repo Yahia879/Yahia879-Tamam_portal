@@ -318,6 +318,7 @@ export default function ProgressReports() {
     (user as any)?.customRole?.nameAr === "المدير التنفيذي" ||
     (user as any)?.customRole?.nameEn?.toLowerCase() === "executive director";
 
+  const utils = trpc.useUtils();
   // التحقق من الصلاحيات
   const hasAddPermission = usePermission("progress_reports.add");
   const hasEditPermission = usePermission("progress_reports.edit");
@@ -512,6 +513,7 @@ export default function ProgressReports() {
       resetNewReport();
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(formatErrorMessage(error.message) || "حدث خطأ أثناء إنشاء التقرير");
@@ -523,6 +525,7 @@ export default function ProgressReports() {
       toast.success("تم تقديم التقرير للمراجعة");
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ");
@@ -536,6 +539,7 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد التقرير");
@@ -549,6 +553,7 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء تنفيذ استثناء الاعتماد");
@@ -562,6 +567,7 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إلغاء التقرير");
@@ -575,6 +581,7 @@ export default function ProgressReports() {
       setShowDetailsDialog(false);
       refetchReports();
       refetchAllReports();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء إلغاء الاعتماد");

@@ -202,10 +202,12 @@ export default function ProgressReportPrint() {
     },
   });
 
+  const utils = trpc.useUtils();
   const approveReportMutation = trpc.progressReports.approve.useMutation({
     onSuccess: (data) => {
       toast.success(data?.message || "تم اعتماد التقرير بنجاح");
       refetchReport();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء اعتماد التقرير");
@@ -216,6 +218,7 @@ export default function ProgressReportPrint() {
     onSuccess: (data) => {
       toast.success(data?.message || "تم إلغاء اعتماد التقرير بنجاح");
       refetchReport();
+      utils.progressReports.getPendingActionCounts.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء إلغاء الاعتماد");
