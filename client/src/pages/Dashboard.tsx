@@ -440,7 +440,7 @@ export default function Dashboard() {
                     <CardDescription className="text-xs sm:text-sm">{pendingUsers.length} مستخدم بانتظار المراجعة</CardDescription>
                   </div>
                 </div>
-                <Link href="/users?status=pending">
+                <Link href="/requester-approvals">
                   <Button variant="outline" size="sm" className="w-full sm:w-auto h-8 sm:h-9">
                     عرض الكل
                     <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
@@ -466,7 +466,7 @@ export default function Dashboard() {
                           <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
                         </p>
                       </div>
-                      <Link href={`/users/${pendingUser.id}`} className="shrink-0">
+                      <Link href={`/requester-approvals/${pendingUser.id}`} className="shrink-0">
                         <Button size="sm" variant="outline" className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3">
                           مراجعة
                         </Button>
