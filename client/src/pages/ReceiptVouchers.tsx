@@ -328,8 +328,8 @@ export default function ReceiptVouchers() {
 
   const openEditVoucherModal = (voucher: any) => {
     setEditingVoucherId(voucher.id);
-    setModalProjectId(voucher.projectId.toString());
-    setModalAmount(voucher.amount.toString());
+    setModalProjectId(voucher.projectId ? voucher.projectId.toString() : "");
+    setModalAmount(voucher.amount ? voucher.amount.toString() : "");
     setModalDate(voucher.receiptDate ? new Date(voucher.receiptDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
     
     const rawPayer = voucher.payerName || "";
@@ -424,11 +424,11 @@ export default function ReceiptVouchers() {
 
   const handleSaveVoucher = () => {
     const prjId = parseInt(modalProjectId);
-    if (!modalProjectId || isNaN(prjId) || prjId <= 0) {
+    if (!editingVoucherId && (!modalProjectId || isNaN(prjId) || prjId <= 0)) {
       toast.error("يرجى اختيار المشروع أولاً");
       return;
     }
-    if (projectSupporters.length === 0) {
+    if (!editingVoucherId && projectSupporters.length === 0) {
       toast.error("يجب تحديد الداعمين ومبلغ الدعم للمشروع أولاً قبل تسجيل سند القبض");
       return;
     }
@@ -443,7 +443,7 @@ export default function ReceiptVouchers() {
     }
     const cleanPayer = modalPayerName.trim();
     if (!cleanPayer) {
-      toast.error("يرجى اختيار اسم الجهة الداعمة المسجلة للمشروع");
+      toast.error("يرجى اختيار أو إدخال اسم الجهة الداعمة");
       return;
     }
 
@@ -909,7 +909,7 @@ export default function ReceiptVouchers() {
                                 )}
 
                                 {/* 4. تعديل سند القبض */}
-                                {canEdit && (voucher.status === "pending_approval" || voucher.status === "pending") && (
+                                {canEdit && voucher.status !== "approved" && (
                                   <DropdownMenuItem
                                     onClick={() => openEditVoucherModal(voucher)}
                                     className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-[#1a5f4a] focus:text-[#1a5f4a] focus:bg-[#1a5f4a]/5 dark:focus:bg-[#1a5f4a]/10"
@@ -1023,13 +1023,13 @@ export default function ReceiptVouchers() {
                     <Select
                       value={modalPayerName}
                       onValueChange={(val) => setModalPayerName(val)}
-                      disabled={projectSupporters.length === 0}
+                      disabled={projectSupporters.length === 0 && !modalPayerName}
                     >
                       <SelectTrigger className="h-10 text-xs bg-white border-slate-200 w-full">
-                        <SelectValue placeholder={projectSupporters.length > 0 ? "اختر الداعم المسجل..." : "لا يوجد داعمين مسجلين للمشروع"} />
+                        <SelectValue placeholder={projectSupporters.length > 0 || modalPayerName ? "اختر الداعم المسجل..." : "لا يوجد داعمين مسجلين للمشروع"} />
                       </SelectTrigger>
                       <SelectContent dir="rtl" className="max-h-60">
-                        {projectSupporters.map((sup, idx) => (
+                        {Array.from(new Set([...projectSupporters, ...(modalPayerName ? [modalPayerName] : [])])).map((sup, idx) => (
                           <SelectItem key={idx} value={sup}>
                             {sup}
                           </SelectItem>
@@ -1179,7 +1179,7 @@ export default function ReceiptVouchers() {
               <Button
                 type="button"
                 onClick={handleSaveVoucher}
-                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0) || (remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId)}
+                disabled={createVoucherMutation.isPending || updateVoucherMutation.isPending || (activeModalProjectId > 0 && projectSupporters.length === 0 && !editingVoucherId) || (remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && !editingVoucherId)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 h-10 rounded-lg shadow-2xs"
               >
                 {(createVoucherMutation.isPending || updateVoucherMutation.isPending) && (

@@ -2532,10 +2532,10 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "سند القبض غير موجود" });
       }
 
-      if (existingVoucher.status !== "pending_approval" && existingVoucher.status !== "pending") {
+      if (existingVoucher.status === "approved") {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "لا يمكن تعديل سند القبض إلا عندما تكون حالته قيد الاعتماد"
+          message: "لا يمكن تعديل سند القبض المعتمد، يرجى إلغاء الاعتماد أولاً مع تدوين المبررات"
         });
       }
 
@@ -2549,6 +2549,8 @@ export const projectsRouter = router({
           bankName: input.bankName || "",
           attachmentUrl: input.attachmentUrl || "",
           notes: input.notes || "",
+          status: existingVoucher.status === "approval_revoked" ? "pending_approval" : existingVoucher.status,
+          updatedAt: new Date(),
         })
         .where(eq(receiptVouchers.id, input.id));
 
