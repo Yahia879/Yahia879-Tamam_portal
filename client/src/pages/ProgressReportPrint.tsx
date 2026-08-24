@@ -175,6 +175,7 @@ export default function ProgressReportPrint() {
   );
 
   const { user: currentUser } = useAuth();
+  const hasApprovePermission = usePermission("progress_reports.approve");
   const hasExceptionApprove = usePermission("progress_reports.exception_approve");
   const isExecutiveDirectorRole = 
     currentUser?.role === "general_manager" ||
@@ -184,6 +185,8 @@ export default function ProgressReportPrint() {
 
   const [showCreatorSignature, setShowCreatorSignature] = useState(true);
   const [showExecutiveDirectorSignature, setShowExecutiveDirectorSignature] = useState(true);
+  const [showExceptionDialog, setShowExceptionDialog] = useState(false);
+  const [exceptionNotes, setExceptionNotes] = useState("");
 
   useEffect(() => {
     if (report) {
@@ -211,6 +214,18 @@ export default function ProgressReportPrint() {
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء اعتماد التقرير");
+    },
+  });
+
+  const exceptionApproveReportMutation = trpc.progressReports.exceptionApprove.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تم تنفيذ استثناء الاعتماد بنجاح وتوثيق مبرراتك بدلاً من مدير المشروع");
+      setShowExceptionDialog(false);
+      refetchReport();
+      utils.progressReports.getPendingActionCounts.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء تنفيذ استثناء الاعتماد");
     },
   });
 
@@ -369,46 +384,38 @@ export default function ProgressReportPrint() {
     executiveDirectorUser?.signatureUrl || 
     (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
 
+  const isProjectManager = Boolean(
+    (project?.managerId && Number(project.managerId) === Number(currentUser?.id)) ||
+    ((report as any)?.projectManagerId && Number((report as any).projectManagerId) === Number(currentUser?.id))
+  );
+
   const canApproveReport = (() => {
     if (!report || !currentUser) return false;
     if (report.status === "approved" || report.status === "rejected" || report.status === "revoked") return false;
 
+    // المرحلة الأولى: فقط مدير المشروع المسند للمشروع
     if (report.status === "draft" || report.status === "submitted" || report.status === "pending") {
-      const isProjectManager = Boolean(
-        (project?.managerId && Number(project.managerId) === Number(currentUser?.id)) ||
-        ((report as any)?.projectManagerId && Number((report as any).projectManagerId) === Number(currentUser?.id)) ||
-        (report?.createdBy && Number(report.createdBy) === Number(currentUser?.id))
-      );
-      const isSuperAdmin = currentUser.role === "super_admin";
-      return isProjectManager || isSuperAdmin;
+      return isProjectManager;
     }
 
+    // المرحلة الثانية: فقط المدير التنفيذي أو من يملك صلاحية اعتماد التقارير
     if (report.status === "pending_executive") {
-      return isExecutiveDirectorRole || currentUser.role === "super_admin";
+      return isExecutiveDirectorRole || hasApprovePermission;
     }
 
     return false;
   })();
 
+  const canExceptionApproveReport = (() => {
+    if (!report || !currentUser) return false;
+    if (report.status !== "draft" && report.status !== "submitted" && report.status !== "pending") return false;
+    return !isProjectManager && hasExceptionApprove;
+  })();
+
   const canRevokeApproval = (() => {
     if (!report || !currentUser) return false;
-    const isSuperAdmin = currentUser.role === "super_admin";
-    const isProjectManager = Boolean(
-      (project?.managerId && Number(project.managerId) === Number(currentUser?.id)) ||
-      ((report as any)?.projectManagerId && Number((report as any).projectManagerId) === Number(currentUser?.id)) ||
-      (report?.createdBy && Number(report.createdBy) === Number(currentUser?.id))
-    );
-
-    if (report.status === "pending_executive") {
-      const isExceptionApprover = report.isException && Number(report.exceptionApprovedBy) === Number(currentUser.id);
-      return isProjectManager || isSuperAdmin || isExceptionApprover;
-    }
-
-    if (report.status === "approved") {
-      return isExecutiveDirectorRole || isSuperAdmin;
-    }
-
-    return false;
+    if (report.status !== "approved") return false;
+    return isExecutiveDirectorRole || hasApprovePermission;
   })();
 
   return (
@@ -482,7 +489,7 @@ export default function ProgressReportPrint() {
           طباعة التقرير / PDF
         </Button>
 
-        {/* زر اعتماد تقرير الإنجاز */}
+        {/* زر اعتماد تقرير الإنجاز العادي */}
         {canApproveReport && (
           <Button
             onClick={() => approveReportMutation.mutate({ id: report.id })}
@@ -498,16 +505,35 @@ export default function ProgressReportPrint() {
           </Button>
         )}
 
+        {/* زر استثناء اعتماد مدير المشروع */}
+        {canExceptionApproveReport && (
+          <Button
+            onClick={() => {
+              setExceptionNotes("");
+              setShowExceptionDialog(true);
+            }}
+            disabled={exceptionApproveReportMutation.isPending}
+            className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold animate-pulse"
+          >
+            {exceptionApproveReportMutation.isPending ? (
+              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+            ) : (
+              <ShieldAlert className="h-4 w-4 ml-2" />
+            )}
+            استثناء اعتماد مدير المشروع
+          </Button>
+        )}
+
         {/* زر إلغاء اعتماد تقرير الإنجاز */}
         {canRevokeApproval && (
           <Button
             onClick={() => {
-              if (window.confirm("هل أنت تأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟")) {
+              if (window.confirm("هل أنت متأكد من رغبتك في إلغاء اعتماد تقرير الإنجاز؟")) {
                 revokeReportMutation.mutate({ id: report.id });
               }
             }}
             disabled={revokeReportMutation.isPending}
-            className="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold"
+            className="flex-1 sm:flex-none bg-rose-600 hover:bg-rose-700 text-white font-bold"
           >
             {revokeReportMutation.isPending ? (
               <Loader2 className="h-4 w-4 ml-2 animate-spin" />
@@ -946,6 +972,55 @@ export default function ProgressReportPrint() {
               )}
             </div>
           )}
+      {/* نافذة استثناء اعتماد مدير المشروع */}
+      <Dialog open={showExceptionDialog} onOpenChange={setShowExceptionDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-700 font-bold">
+              <ShieldAlert className="w-5 h-5 text-amber-600" />
+              استثناء اعتماد مدير المشروع
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-3">
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-3 text-xs text-amber-900 dark:text-amber-300 leading-relaxed">
+              <p className="font-bold mb-1">تنبيه إداري:</p>
+              أنت تقوم الآن باعتماد تقرير الإنجاز رقم <strong>{report?.reportNumber}</strong> نيابةً عن مدير المشروع كإجراء استثنائي بصفتك مخولاً بالصلاحية. سيتم تدوين اسمك وتوقيعك في مستند التقرير.
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                سبب أو مبرر الاستثناء <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={exceptionNotes}
+                onChange={(e) => setExceptionNotes(e.target.value)}
+                placeholder="يرجى كتابة سبب تجاوز اعتماد مدير المشروع هنا..."
+                className="w-full min-h-[100px] p-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-background focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowExceptionDialog(false)}
+              disabled={exceptionApproveReportMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => {
+                if (report?.id && exceptionNotes.trim()) {
+                  exceptionApproveReportMutation.mutate({
+                    id: report.id,
+                    notes: exceptionNotes.trim(),
+                  });
+                }
+              }}
+              disabled={!exceptionNotes || !exceptionNotes.trim() || exceptionApproveReportMutation.isPending}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+            >
+              {exceptionApproveReportMutation.isPending ? "جاري تنفيذ الاستثناء..." : "تأكيد استثناء الاعتماد"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
