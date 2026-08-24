@@ -94,7 +94,13 @@ export default function ReceiptVoucherPrint() {
 
   useDocumentTitle(
     voucher
-      ? (voucher.status === "approved" ? `سند قبض رقم ${voucherNumDisplay}` : `معاينة سند قبض (غير معتمد)`)
+      ? (voucher.status === "approved"
+          ? `سند قبض رقم ${voucherNumDisplay}`
+          : voucher.status === "approval_revoked"
+            ? `معاينة سند قبض (ملغي الاعتماد)`
+            : voucher.status === "rejected"
+              ? `معاينة سند قبض (مرفوض)`
+              : `معاينة سند قبض (قيد الاعتماد)`)
       : "طباعة سند القبض"
   );
 
@@ -356,6 +362,16 @@ export default function ReceiptVoucherPrint() {
                     {voucherNumDisplay}
                   </span>
                 </>
+              ) : voucher.status === "approval_revoked" ? (
+                <div className="px-3.5 py-1.5 bg-amber-50 border-2 border-amber-500 rounded-xl text-amber-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+                  <span>سند ملغي الاعتماد</span>
+                </div>
+              ) : voucher.status === "rejected" ? (
+                <div className="px-3.5 py-1.5 bg-rose-50 border-2 border-rose-500 rounded-xl text-rose-900 text-xs sm:text-sm font-black flex items-center gap-2 shadow-xs">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-600"></span>
+                  <span>سند مرفوض</span>
+                </div>
               ) : (
                 <div className="px-3 py-1 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 text-xs sm:text-sm font-bold">
                   سند قيد الاعتماد (ينشأ رقم السند بعد الاعتماد)
@@ -403,6 +419,18 @@ export default function ReceiptVoucherPrint() {
                 {getCleanVoucherNotes(voucher.notes) || voucher.project?.name || "تأمين احتياجات المشاريع المعتمدة"}
               </div>
             </div>
+
+            {/* عرض المبررات في حال كان السند ملغي الاعتماد أو مرفوض */}
+            {(voucher.status === "approval_revoked" || voucher.status === "rejected") && voucher.rejectionReason && (
+              <div className="flex items-baseline gap-3 text-right pt-1">
+                <span className="text-[#978457] font-black shrink-0 min-w-[95px] text-xs sm:text-sm">
+                  {voucher.status === "approval_revoked" ? "مبررات الإلغاء:" : "سبب الرفض:"}
+                </span>
+                <div className="grow bg-amber-50/60 border border-amber-200/80 rounded-lg p-2 text-slate-800 font-bold text-xs sm:text-sm leading-relaxed">
+                  {voucher.rejectionReason}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Section: Signatures & Stamp */}
