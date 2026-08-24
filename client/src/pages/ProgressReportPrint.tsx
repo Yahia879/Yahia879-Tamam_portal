@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye, PenTool, Check, Loader2, ShieldAlert } from "lucide-react";
@@ -174,7 +175,7 @@ export default function ProgressReportPrint() {
   );
 
   const { user: currentUser } = useAuth();
-  const userPermissionsList = currentUser?.permissions || [];
+  const hasExceptionApprove = usePermission("progress_reports.exception_approve");
   const isExecutiveDirectorRole = 
     currentUser?.role === "general_manager" ||
     currentUser?.role === "executive_director" ||
@@ -500,7 +501,7 @@ export default function ProgressReportPrint() {
 
           const isExceptionApprover = report?.exceptionApprovedBy
             ? currentUser?.id === report?.exceptionApprovedBy
-            : (currentUser?.role === "super_admin" || userPermissionsList.includes("progress_reports.exception_approve") || userPermissionsList.includes("disbursements.exception_approve"));
+            : hasExceptionApprove;
 
           const canControlCreatorSig = (isProjectManager || currentUser?.role === "super_admin" || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
           const canControlExecSig = (isExecutiveDirectorRole || currentUser?.role === "super_admin") && !!executiveDirectorSignatureUrl && isReportStage2Approved;

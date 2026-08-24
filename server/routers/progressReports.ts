@@ -614,11 +614,7 @@ export const progressReportsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const isSuperAdmin = ctx.user.role === "super_admin";
-      const hasExceptionPerm =
-        isSuperAdmin ||
-        (await checkPermission(ctx.user.id, "progress_reports.exception_approve")) ||
-        (await checkPermission(ctx.user.id, "disbursements.exception_approve"));
+      const hasExceptionPerm = await checkPermission(ctx.user.id, "progress_reports.exception_approve");
 
       if (!hasExceptionPerm) {
         throw new TRPCError({

@@ -322,7 +322,7 @@ export default function ProgressReports() {
   const hasAddPermission = usePermission("progress_reports.add");
   const hasEditPermission = usePermission("progress_reports.edit");
   const hasApprovePermission = usePermission("progress_reports.approve");
-  const hasExceptionApprove = usePermission("progress_reports.exception_approve") || usePermission("disbursements.exception_approve");
+  const hasExceptionApprove = usePermission("progress_reports.exception_approve");
 
   const canCreateReport = hasAddPermission;
   const canEditReport = hasEditPermission;
