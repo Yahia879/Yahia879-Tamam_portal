@@ -10,6 +10,8 @@ import { notifyProgressReportCreation, notifyProgressReportApproval, createNotif
 
 const pmUsers = alias(users, "pmUsers");
 const appUsers = alias(users, "appUsers");
+const mgrUsers = alias(users, "mgrUsers");
+const excUsers = alias(users, "excUsers");
 
 const parseDateInput = (val: any): Date | null => {
   if (!val) return null;
@@ -203,6 +205,10 @@ export const progressReportsRouter = router({
 
           managerApprovedBy: progressReports.managerApprovedBy,
           managerApprovedAt: progressReports.managerApprovedAt,
+          managerApprovedByName: mgrUsers.name,
+          managerApprovedBySignatureName: mgrUsers.signatureName,
+          managerApprovedBySignatureDepartment: mgrUsers.signatureDepartment,
+          managerApprovedBySignatureUrl: mgrUsers.signatureUrl,
 
           approvedBy: progressReports.approvedBy,
           approvedAt: progressReports.approvedAt,
@@ -218,6 +224,10 @@ export const progressReportsRouter = router({
 
           isException: progressReports.isException,
           exceptionApprovedBy: progressReports.exceptionApprovedBy,
+          exceptionApprovedByName: excUsers.name,
+          exceptionApprovedBySignatureName: excUsers.signatureName,
+          exceptionApprovedBySignatureDepartment: excUsers.signatureDepartment,
+          exceptionApprovedBySignatureUrl: excUsers.signatureUrl,
 
           creatorSignatureName: progressReports.creatorSignatureName,
           creatorSignatureDepartment: progressReports.creatorSignatureDepartment,
@@ -230,9 +240,33 @@ export const progressReportsRouter = router({
         .leftJoin(users, eq(progressReports.createdBy, users.id))
         .leftJoin(pmUsers, eq(projects.managerId, pmUsers.id))
         .leftJoin(appUsers, eq(progressReports.approvedBy, appUsers.id))
+        .leftJoin(mgrUsers, eq(progressReports.managerApprovedBy, mgrUsers.id))
+        .leftJoin(excUsers, eq(progressReports.exceptionApprovedBy, excUsers.id))
         .where(eq(progressReports.id, input.id));
 
-      return report;
+      if (!report) return null;
+
+      const [defaultExecUser] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          signatureName: users.signatureName,
+          signatureDepartment: users.signatureDepartment,
+          signatureUrl: users.signatureUrl,
+        })
+        .from(users)
+        .where(
+          and(
+            inArray(users.role, ["general_manager", "executive_director"]),
+            isNull(users.deletedAt)
+          )
+        )
+        .limit(1);
+
+      return {
+        ...report,
+        defaultExecutiveDirectorUser: defaultExecUser || null,
+      };
     }),
 
   // إنشاء تقرير جديد

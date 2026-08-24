@@ -324,25 +324,47 @@ export default function ProgressReportPrint() {
     rawCreatorName = rawCreatorName.replace(/^\[استثناء\]:\s*/, "");
   }
 
-  const resolvedSignatureName = isReportStage1Approved
-    ? (rawCreatorName || report?.projectManagerName || report?.createdByName || project?.managerName || "—")
-    : (report?.projectManagerName || project?.managerName || "—");
+  // 1. الخانة الأولى: مُعِد التقرير (مدير المشروع / معتمد الاستثناء) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
+  const resolvedSignatureName = isExceptionApproved
+    ? ((report as any)?.exceptionApprovedBySignatureName || (report as any)?.exceptionApprovedByName || rawCreatorName || "معتمد الاستثناء")
+    : ((report as any)?.managerApprovedBySignatureName || (report as any)?.projectManagerSignatureName || rawCreatorName || (report as any)?.managerApprovedByName || report?.projectManagerName || report?.createdByName || project?.managerName || "—");
 
-  const resolvedSignatureDepartment = isReportStage1Approved 
-    ? (report?.creatorSignatureDepartment || "مدير المشروع")
-    : "مدير المشروع";
+  const resolvedSignatureDepartment = isExceptionApproved
+    ? ((report as any)?.exceptionApprovedBySignatureDepartment || report?.creatorSignatureDepartment || "إدارة النظام")
+    : ((report as any)?.managerApprovedBySignatureDepartment || (report as any)?.projectManagerSignatureDepartment || report?.creatorSignatureDepartment || "مدير المشروع");
 
-  const resolvedSignatureUrl = report?.creatorSignatureUrl || report?.projectManagerSignatureUrl || null;
+  const resolvedSignatureUrl = isExceptionApproved
+    ? ((report as any)?.exceptionApprovedBySignatureUrl || report?.creatorSignatureUrl || null)
+    : ((report as any)?.managerApprovedBySignatureUrl || report?.creatorSignatureUrl || (report as any)?.projectManagerSignatureUrl || null);
 
-  const executiveDirectorDepartment = isReportStage2Approved
-    ? ((report as any)?.approvedBySignatureDepartment || "المدير التنفيذي")
-    : "المدير التنفيذي";
+  // 2. الخانة الثانية: يُعتمد (المدير التنفيذي) - تنعكس من Profile: الاسم الذي يظهر في المستند واسم الإدارة
+  const executiveDirectorUser = (report as any)?.approvedBy
+    ? {
+        signatureName: (report as any)?.approvedBySignatureName,
+        name: (report as any)?.approvedByName,
+        signatureDepartment: (report as any)?.approvedBySignatureDepartment,
+        signatureUrl: (report as any)?.approvedBySignatureUrl,
+      }
+    : ((report as any)?.defaultExecutiveDirectorUser || null);
 
-  const executiveDirectorName = isReportStage2Approved
-    ? ((report as any)?.approvedBySignatureName || report?.approvedByName || orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق")
-    : (orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "م. عبدالهادي آل فائق");
+  const executiveDirectorName = 
+    executiveDirectorUser?.signatureName || 
+    executiveDirectorUser?.name || 
+    (report as any)?.approvedBySignatureName || 
+    report?.approvedByName || 
+    orgSettings?.authorizedSignatory || 
+    orgSettings?.executiveDirectorName || 
+    "م. عبدالهادي آل فائق";
 
-  const executiveDirectorSignatureUrl = (report as any)?.approvedBySignatureUrl || (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
+  const executiveDirectorDepartment = 
+    executiveDirectorUser?.signatureDepartment || 
+    (report as any)?.approvedBySignatureDepartment || 
+    "المدير التنفيذي";
+
+  const executiveDirectorSignatureUrl = 
+    (report as any)?.approvedBySignatureUrl || 
+    executiveDirectorUser?.signatureUrl || 
+    (isExecutiveDirectorRole ? (currentUser as any)?.signatureUrl : null);
 
   const canApproveReport = (() => {
     if (!report || !currentUser) return false;
