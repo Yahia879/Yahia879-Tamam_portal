@@ -622,9 +622,9 @@ export default function DisbursementOrderPrint() {
                           إجمالي قيمة الدعم
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
-                          {resolvedFundingAmount > 0 
-                            ? `${resolvedFundingAmount.toLocaleString()} ريال` 
-                            : (isCustomType ? `${amount.toLocaleString()} ريال` : "—")}
+                          {isTamamLinked 
+                            ? `${actualProjectValue.toLocaleString()} ريال` 
+                            : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
                         </td>
                         <td className="p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة العقد
