@@ -785,6 +785,105 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   field.name === 'fundingProposals' ||
                   field.name === 'willingToVolunteer';
 
+                const isFileField = field.name === 'attachment' || field.type === 'file';
+
+                if (isFileField) {
+                  return (
+                    <React.Fragment key={field.name}>
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
+                          <Paperclip className="w-4 h-4 text-primary" />
+                          <span>{field.label || 'المرفقات والوثائق الداعمة'}</span>
+                          {field.required && <span className="text-red-500 font-bold">*</span>}
+                        </label>
+                        <div className="flex flex-col gap-3">
+                          <input
+                            type="file"
+                            id="request-attachment"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.doc,.docx,image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              if (file) {
+                                const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'doc', 'docx'];
+                                const extension = file.name.split('.').pop()?.toLowerCase();
+                                if (!extension || !allowedExtensions.includes(extension)) {
+                                  alert('نوع الملف غير مسموح. يرجى اختيار ملف PDF أو صور أو مستندات Word.');
+                                  e.target.value = '';
+                                  return;
+                                }
+                                if (file.size > 10 * 1024 * 1024) {
+                                  alert('حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.');
+                                  e.target.value = '';
+                                  return;
+                                }
+                              }
+                              setSelectedFile(file);
+                              handleFieldChange(field.name, file ? file.name : '');
+                            }}
+                          />
+
+                          {selectedFile ? (
+                            <div className="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                  <CheckCircle2 className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-xs sm:text-sm text-foreground truncate">{selectedFile.name}</p>
+                                  <p className="text-[11px] text-muted-foreground font-mono">
+                                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-200/40">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleViewFile(selectedFile, selectedFile.name)}
+                                  className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  معاينة
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedFile(null);
+                                    handleFieldChange(field.name, '');
+                                  }}
+                                  className="rounded-lg text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-8 px-2.5"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>إزالة</span>
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => document.getElementById('request-attachment')?.click()}
+                              className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group"
+                            >
+                              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                <UploadCloud className="w-6 h-6" />
+                              </div>
+                              <p className="font-bold text-xs sm:text-sm text-foreground">
+                                {field.placeholder || "اضغط لرفع ملف أو اسحبه إلى هنا"}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                }
+
                 return (
                   <React.Fragment key={field.name}>
                     <div className={isFullWidth ? 'col-span-1 sm:col-span-2' : 'col-span-1'}>
@@ -915,93 +1014,6 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   </React.Fragment>
                 );
               })}
-
-              {/* حقل رفع المرفق الاختياري */}
-              <div className="col-span-1 sm:col-span-2 pt-4 border-t border-border/60">
-                <label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
-                  <Paperclip className="w-4 h-4 text-primary" />
-                  <span>المرفقات والوثائق الداعمة (اختياري)</span>
-                </label>
-                <div className="flex flex-col gap-3">
-                  <input
-                    type="file"
-                    id="request-attachment"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif,.doc,.docx,image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      if (file) {
-                        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'doc', 'docx'];
-                        const extension = file.name.split('.').pop()?.toLowerCase();
-                        if (!extension || !allowedExtensions.includes(extension)) {
-                          alert('نوع الملف غير مسموح. يرجى اختيار ملف PDF أو صور أو مستندات Word.');
-                          e.target.value = '';
-                          return;
-                        }
-                        if (file.size > 10 * 1024 * 1024) {
-                          alert('حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت.');
-                          e.target.value = '';
-                          return;
-                        }
-                      }
-                      setSelectedFile(file);
-                    }}
-                  />
-
-                  {selectedFile ? (
-                    <div className="p-4 rounded-2xl border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-bold text-xs sm:text-sm text-foreground truncate">{selectedFile.name}</p>
-                          <p className="text-[11px] text-muted-foreground font-mono">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-200/40">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewFile(selectedFile, selectedFile.name)}
-                          className="h-8 text-xs text-primary hover:text-primary/80 font-semibold gap-1 shrink-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          معاينة
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedFile(null)}
-                          className="rounded-lg text-destructive hover:bg-destructive/10 text-xs font-semibold gap-1 h-8 px-2.5"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span>إزالة</span>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => document.getElementById('request-attachment')?.click()}
-                      className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                        <UploadCloud className="w-6 h-6" />
-                      </div>
-                      <p className="font-bold text-xs sm:text-sm text-foreground">
-                        اضغط لرفع ملف أو اسحبه إلى هنا
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         )}
