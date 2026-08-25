@@ -66,8 +66,6 @@ import {
   CloudUpload,
   Layers,
   Sparkle,
-  Maximize2,
-  Minimize2,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -204,7 +202,6 @@ export default function FormsCustomizationServiceDetail() {
   const [fields, setFields] = useState<ServiceField[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(true);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -758,20 +755,16 @@ export default function FormsCustomizationServiceDetail() {
       </div>
 
       {/* ========================================================================= */}
-      {/* نافذة المعاينة الحية المطابقة لصفحة /request-form-dynamic */}
+      {/* نافذة المعاينة الحية بصفحة كاملة المطابقة لصفحة التقديم */}
       {/* ========================================================================= */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent
           showCloseButton={false}
-          className={
-            isFullscreen
-              ? "fixed inset-0 top-0 left-0 w-screen h-[100dvh] max-w-none max-h-none sm:max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 overflow-hidden flex flex-col text-right shadow-none bg-slate-100/80 dark:bg-zinc-950 duration-200"
-              : "w-[95vw] max-w-5xl max-h-[92vh] p-0 overflow-hidden flex flex-col text-right rounded-3xl border border-border shadow-2xl bg-slate-50 dark:bg-zinc-950 duration-200"
-          }
+          className="fixed inset-0 top-0 left-0 w-screen h-[100dvh] max-w-none max-h-none sm:max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 overflow-hidden flex flex-col text-right shadow-none bg-slate-100 dark:bg-zinc-950 duration-200"
           dir="rtl"
         >
-          {/* Header المعاينة مع أدوات التبديل بين الأجهزة والتحكم بالشاشة */}
-          <div className="p-3.5 sm:p-4 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
+          {/* Header المعاينة الصلب والأنيق بدون بلور */}
+          <div className="p-3.5 sm:p-4 border-b border-border/80 bg-card flex items-center justify-between gap-3 shrink-0 shadow-xs">
             <div className="flex items-center gap-3 min-w-0">
               <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${currentProgram?.color || "bg-primary"} text-white shadow-xs shrink-0`}>
                 <IconComponent className="w-5 h-5" />
@@ -784,21 +777,21 @@ export default function FormsCustomizationServiceDetail() {
                   </Badge>
                 </DialogTitle>
                 <p className="text-[11px] text-muted-foreground line-clamp-1">
-                  تظهر هذه المعاينة التفاعلية تماماً كما سيراها المستفيد في صفحة تقديم الطلب (/request-form-dynamic)
+                  تظهر هذه المعاينة التفاعلية تماماً كما سيراها المستفيد في صفحة تقديم الطلب
                 </p>
               </div>
             </div>
 
-            {/* محول الجهاز (Desktop vs Mobile) وأزرار التحكم */}
+            {/* محول الجهاز (Desktop vs Mobile) وزر الإغلاق */}
             <div className="flex items-center gap-2 shrink-0">
               {/* محول الجهاز */}
-              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
+              <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     previewDevice === "desktop"
-                      ? "bg-background text-foreground shadow-xs"
+                      ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   title="عرض بنسخة الكمبيوتر"
@@ -811,7 +804,7 @@ export default function FormsCustomizationServiceDetail() {
                   onClick={() => setPreviewDevice("mobile")}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     previewDevice === "mobile"
-                      ? "bg-background text-foreground shadow-xs"
+                      ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                   title="عرض بنسخة الجوال"
@@ -820,28 +813,6 @@ export default function FormsCustomizationServiceDetail() {
                   <span className="hidden sm:inline">جوال</span>
                 </button>
               </div>
-
-              {/* زر التبديل لملء الشاشة / تصغير */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="h-8.5 px-2.5 rounded-xl text-xs gap-1.5 font-bold border-border/60 text-muted-foreground hover:text-foreground hidden sm:flex items-center"
-                title={isFullscreen ? "العودة للنافذة المنبثقة" : "عرض بصفحة كاملة"}
-              >
-                {isFullscreen ? (
-                  <>
-                    <Minimize2 className="w-3.5 h-3.5" />
-                    <span>نافذة</span>
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="w-3.5 h-3.5" />
-                    <span>صفحة كاملة</span>
-                  </>
-                )}
-              </Button>
 
               {/* زر الإغلاق */}
               <Button
@@ -858,7 +829,7 @@ export default function FormsCustomizationServiceDetail() {
           </div>
 
           {/* محتوى المعاينة التفاعلي الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
             <div
               className={`w-full transition-all duration-300 space-y-6 ${
                 previewDevice === "mobile"
@@ -1242,33 +1213,21 @@ export default function FormsCustomizationServiceDetail() {
             </div>
           </div>
 
-          {/* تذييل نافذة المعاينة */}
-          <div className="p-3.5 sm:p-4 border-t border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+          {/* تذييل نافذة المعاينة الصلب والأنيق */}
+          <div className="p-3.5 sm:p-4 border-t border-border/80 bg-card flex items-center justify-between gap-3 shrink-0 shadow-xs">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
               <Sparkles className="w-3.5 h-3.5 text-primary" />
               <span>معاينة حية ومباشرة • أي تعديل على الحقول ينعكس هنا فوراً</span>
             </span>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="text-xs font-bold px-3 rounded-xl hidden sm:flex items-center gap-1.5"
-              >
-                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                <span>{isFullscreen ? "وضع النافذة" : "صفحة كاملة"}</span>
-              </Button>
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                onClick={() => setIsPreviewOpen(false)}
-                className="text-xs font-bold px-5 rounded-xl bg-primary text-primary-foreground shadow-sm"
-              >
-                إغلاق المعاينة
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => setIsPreviewOpen(false)}
+              className="text-xs font-bold px-5 rounded-xl bg-primary text-primary-foreground shadow-sm hover:opacity-95"
+            >
+              إغلاق المعاينة
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
