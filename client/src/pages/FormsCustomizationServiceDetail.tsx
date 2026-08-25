@@ -66,6 +66,8 @@ import {
   CloudUpload,
   Layers,
   Sparkle,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -202,6 +204,7 @@ export default function FormsCustomizationServiceDetail() {
   const [fields, setFields] = useState<ServiceField[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -759,61 +762,108 @@ export default function FormsCustomizationServiceDetail() {
       {/* ========================================================================= */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent
-          className="max-w-4xl max-h-[92vh] p-0 overflow-hidden flex flex-col text-right rounded-3xl border border-border shadow-2xl bg-slate-50 dark:bg-zinc-950"
+          showCloseButton={false}
+          className={
+            isFullscreen
+              ? "fixed inset-0 top-0 left-0 w-screen h-[100dvh] max-w-none max-h-none sm:max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 overflow-hidden flex flex-col text-right shadow-none bg-slate-100/80 dark:bg-zinc-950 duration-200"
+              : "w-[95vw] max-w-5xl max-h-[92vh] p-0 overflow-hidden flex flex-col text-right rounded-3xl border border-border shadow-2xl bg-slate-50 dark:bg-zinc-950 duration-200"
+          }
           dir="rtl"
         >
-          {/* Header المعاينة مع أدوات التبديل بين الأجهزة */}
-          <div className="p-4 sm:p-5 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${currentProgram?.color || "bg-primary"} text-white`}>
+          {/* Header المعاينة مع أدوات التبديل بين الأجهزة والتحكم بالشاشة */}
+          <div className="p-3.5 sm:p-4 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center ${currentProgram?.color || "bg-primary"} text-white shadow-xs shrink-0`}>
                 <IconComponent className="w-5 h-5" />
               </div>
-              <div>
-                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
-                  معاينة حية: استمارة طلب خدمة {currentProgram?.name || serviceId}
+              <div className="min-w-0">
+                <DialogTitle className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                  <span className="truncate">معاينة حية: استمارة طلب خدمة {currentProgram?.name || serviceId}</span>
+                  <Badge variant="outline" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20 hidden md:inline-flex shrink-0">
+                    صفحة تفاعلية
+                  </Badge>
                 </DialogTitle>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground line-clamp-1">
                   تظهر هذه المعاينة التفاعلية تماماً كما سيراها المستفيد في صفحة تقديم الطلب (/request-form-dynamic)
                 </p>
               </div>
             </div>
 
-            {/* محول الجهاز (Desktop vs Mobile) */}
-            <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
-              <button
+            {/* محول الجهاز (Desktop vs Mobile) وأزرار التحكم */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* محول الجهاز */}
+              <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("desktop")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewDevice === "desktop"
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="عرض بنسخة الكمبيوتر"
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">كمبيوتر</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("mobile")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewDevice === "mobile"
+                      ? "bg-background text-foreground shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="عرض بنسخة الجوال"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">جوال</span>
+                </button>
+              </div>
+
+              {/* زر التبديل لملء الشاشة / تصغير */}
+              <Button
                 type="button"
-                onClick={() => setPreviewDevice("desktop")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  previewDevice === "desktop"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="h-8.5 px-2.5 rounded-xl text-xs gap-1.5 font-bold border-border/60 text-muted-foreground hover:text-foreground hidden sm:flex items-center"
+                title={isFullscreen ? "العودة للنافذة المنبثقة" : "عرض بصفحة كاملة"}
               >
-                <Monitor className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">كمبيوتر</span>
-              </button>
-              <button
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>نافذة</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>صفحة كاملة</span>
+                  </>
+                )}
+              </Button>
+
+              {/* زر الإغلاق */}
+              <Button
                 type="button"
-                onClick={() => setPreviewDevice("mobile")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  previewDevice === "mobile"
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsPreviewOpen(false)}
+                className="w-8.5 h-8.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                title="إغلاق المعاينة"
               >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">جوال</span>
-              </button>
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
           {/* محتوى المعاينة التفاعلي الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start">
             <div
               className={`w-full transition-all duration-300 space-y-6 ${
                 previewDevice === "mobile"
-                  ? "max-w-[400px] border-4 border-slate-700/60 dark:border-zinc-800 rounded-3xl p-3 bg-background shadow-2xl"
-                  : "max-w-3xl"
+                  ? "max-w-[420px] border-4 border-slate-700/60 dark:border-zinc-800 rounded-3xl p-3.5 bg-background shadow-2xl my-auto"
+                  : "max-w-4xl"
               }`}
             >
               {/* 1. Stepper واقعي لمراحل تقديم الطلب */}
@@ -1193,19 +1243,32 @@ export default function FormsCustomizationServiceDetail() {
           </div>
 
           {/* تذييل نافذة المعاينة */}
-          <div className="p-3.5 sm:p-4 border-t border-border bg-background flex items-center justify-between gap-3 shrink-0">
-            <span className="text-xs text-muted-foreground">
-              معاينة حية ومباشرة • أي تعديل على الحقول ينعكس هنا فوراً
+          <div className="p-3.5 sm:p-4 border-t border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>معاينة حية ومباشرة • أي تعديل على الحقول ينعكس هنا فوراً</span>
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsPreviewOpen(false)}
-              className="text-xs font-bold px-4 rounded-xl"
-            >
-              إغلاق المعاينة
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="text-xs font-bold px-3 rounded-xl hidden sm:flex items-center gap-1.5"
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <span>{isFullscreen ? "وضع النافذة" : "صفحة كاملة"}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setIsPreviewOpen(false)}
+                className="text-xs font-bold px-5 rounded-xl bg-primary text-primary-foreground shadow-sm"
+              >
+                إغلاق المعاينة
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

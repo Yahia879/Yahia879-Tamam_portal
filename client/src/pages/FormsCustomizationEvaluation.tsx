@@ -54,6 +54,8 @@ import {
   Send,
   Building2,
   Calendar,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -149,6 +151,7 @@ export default function FormsCustomizationEvaluation() {
 
   const [hasChanges, setHasChanges] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(true);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [showSettingsSection, setShowSettingsSection] = useState(false);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
@@ -807,36 +810,45 @@ export default function FormsCustomizationEvaluation() {
       {/* ========================================================================= */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent
-          className="max-w-3xl max-h-[92vh] p-0 overflow-hidden flex flex-col text-right rounded-3xl border border-border shadow-2xl bg-slate-100 dark:bg-zinc-950"
+          showCloseButton={false}
+          className={
+            isFullscreen
+              ? "fixed inset-0 top-0 left-0 w-screen h-[100dvh] max-w-none max-h-none sm:max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 overflow-hidden flex flex-col text-right shadow-none bg-slate-100/80 dark:bg-zinc-950 duration-200"
+              : "w-[95vw] max-w-4xl max-h-[92vh] p-0 overflow-hidden flex flex-col text-right rounded-3xl border border-border shadow-2xl bg-slate-100 dark:bg-zinc-950 duration-200"
+          }
           dir="rtl"
         >
           {/* شريط أدوات المعاينة */}
-          <div className="p-4 sm:p-5 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="p-3.5 sm:p-4 border-b border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
                 style={{ backgroundColor: formConfig.headerBgColor || "#14707a" }}
               >
                 <Star className="w-5 h-5 fill-white" />
               </div>
-              <div>
-                <DialogTitle className="text-sm sm:text-base font-bold text-foreground">
-                  معاينة حية: استمارة تقييم رضا المستفيد
+              <div className="min-w-0">
+                <DialogTitle className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                  <span className="truncate">معاينة حية: استمارة تقييم رضا المستفيد</span>
+                  <Badge variant="outline" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20 hidden md:inline-flex shrink-0">
+                    صفحة تفاعلية
+                  </Badge>
                 </DialogTitle>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] text-muted-foreground line-clamp-1">
                   تظهر هذه المعاينة التفاعلية تماماً كما سيراها المستفيد في صفحة التقييم
                 </p>
               </div>
             </div>
 
             {/* أدوات التبديل */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
+              {/* تبديل التبويب */}
               <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
                 <button
                   type="button"
                   onClick={() => setPreviewTab("form")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    previewTab === "form" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewTab === "form" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   الاستمارة
@@ -844,41 +856,78 @@ export default function FormsCustomizationEvaluation() {
                 <button
                   type="button"
                   onClick={() => setPreviewTab("success")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    previewTab === "success" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewTab === "success" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   شاشة النجاح
                 </button>
               </div>
 
+              {/* تبديل الجهاز */}
               <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border/60">
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`p-1.5 rounded-lg text-xs transition-all ${
-                    previewDevice === "desktop" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewDevice === "desktop" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="كمبيوتر"
+                  title="عرض كمبيوتر"
                 >
-                  <Monitor className="w-4 h-4" />
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">كمبيوتر</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`p-1.5 rounded-lg text-xs transition-all ${
-                    previewDevice === "mobile" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    previewDevice === "mobile" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
                   }`}
-                  title="جوال"
+                  title="عرض جوال"
                 >
-                  <Smartphone className="w-4 h-4" />
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">جوال</span>
                 </button>
               </div>
+
+              {/* زر التبديل لملء الشاشة / تصغير */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="h-8.5 px-2.5 rounded-xl text-xs gap-1.5 font-bold border-border/60 text-muted-foreground hover:text-foreground hidden sm:flex items-center"
+                title={isFullscreen ? "العودة للنافذة المنبثقة" : "عرض بصفحة كاملة"}
+              >
+                {isFullscreen ? (
+                  <>
+                    <Minimize2 className="w-3.5 h-3.5" />
+                    <span>نافذة</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>صفحة كاملة</span>
+                  </>
+                )}
+              </Button>
+
+              {/* زر الإغلاق */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsPreviewOpen(false)}
+                className="w-8.5 h-8.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                title="إغلاق المعاينة"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
           {/* محتوى المعاينة الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start">
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
@@ -1141,19 +1190,32 @@ export default function FormsCustomizationEvaluation() {
           </div>
 
           {/* تذييل نافذة المعاينة */}
-          <div className="p-3.5 sm:p-4 border-t border-border bg-background flex items-center justify-between gap-3 shrink-0">
-            <span className="text-xs text-muted-foreground">
-              معاينة حية ومباشرة • أي تعديل على الأسئلة أو الألوان ينعكس هنا فوراً
+          <div className="p-3.5 sm:p-4 border-t border-border bg-background/95 backdrop-blur flex items-center justify-between gap-3 shrink-0">
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              <span>معاينة حية ومباشرة • أي تعديل على الأسئلة أو الألوان ينعكس هنا فوراً</span>
             </span>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsPreviewOpen(false)}
-              className="text-xs font-bold px-4 rounded-xl"
-            >
-              إغلاق المعاينة
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="text-xs font-bold px-3 rounded-xl hidden sm:flex items-center gap-1.5"
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <span>{isFullscreen ? "وضع النافذة" : "صفحة كاملة"}</span>
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setIsPreviewOpen(false)}
+                className="text-xs font-bold px-5 rounded-xl bg-primary text-primary-foreground shadow-sm"
+              >
+                إغلاق المعاينة
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
