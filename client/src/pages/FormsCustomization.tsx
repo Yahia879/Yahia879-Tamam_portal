@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import {
   ArrowRight,
   Star,
@@ -14,15 +14,10 @@ import {
 
 export default function FormsCustomization() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const userPermissions = useUserPermissions();
 
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-
-  const hasEvaluationPerm =
-    isAdmin || userPermissions.includes("forms_customization.evaluation");
-  const hasServicesPerm =
-    isAdmin || userPermissions.includes("forms_customization.services");
+  const hasEvaluationPerm = userPermissions.includes("forms_customization.evaluation");
+  const hasServicesPerm = userPermissions.includes("forms_customization.services");
 
   const allOptions = [
     {
