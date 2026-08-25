@@ -424,8 +424,9 @@ export default function FormsCustomizationServiceDetail() {
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="text-xs text-muted-foreground font-medium">إجباري:</span>
                     <Switch
-                      checked={field.required}
-                      onCheckedChange={(c) => handleUpdateField(field.id, { required: c })}
+                      checked={isMosqueField ? true : field.required}
+                      onCheckedChange={(c) => !isMosqueField && handleUpdateField(field.id, { required: c })}
+                      disabled={isMosqueField}
                     />
                   </div>
 
