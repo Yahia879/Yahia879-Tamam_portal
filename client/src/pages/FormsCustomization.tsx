@@ -7,6 +7,7 @@ import {
   Layers,
   ChevronLeft,
   SlidersHorizontal,
+  FileText,
 } from "lucide-react";
 
 export default function FormsCustomization() {
@@ -15,16 +16,16 @@ export default function FormsCustomization() {
   const options = [
     {
       title: "تخصيص استمارة تقييم رضا المستفيد",
-      subtitle: "تعديل أسئلة وحقول تقييم المستفيد للطلبات",
+      subtitle: "تعديل أسئلة وحقول تقييم المستفيد للطلبات والمشاريع",
       path: "/forms-customization/evaluation",
       icon: Star,
       iconColor: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
     },
     {
-      title: "الخيار الثاني",
-      subtitle: "مساحة مخصصة للنموذج الإضافي القادم",
-      path: "/forms-customization/option-2",
-      icon: Layers,
+      title: "تخصيص نماذج طلبات الخدمات",
+      subtitle: "تخصيص حقول واستمارات تقديم الطلب لكل نوع من أنواع الخدمات",
+      path: "/forms-customization/services",
+      icon: FileText,
       iconColor: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40",
     },
   ];
