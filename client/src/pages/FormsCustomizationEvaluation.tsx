@@ -901,32 +901,36 @@ export default function FormsCustomizationEvaluation() {
           </div>
 
           {/* محتوى المعاينة الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center items-center bg-slate-100/90 dark:bg-zinc-950">
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
-                  ? "max-w-[420px] border-4 border-slate-700/60 dark:border-zinc-800 rounded-3xl p-3.5 bg-background shadow-2xl my-auto space-y-4"
-                  : "max-w-2xl"
+                  ? "relative max-w-[395px] h-[780px] max-h-[82vh] bg-background rounded-[48px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
+                  : "max-w-2xl space-y-6"
               }`}
             >
               {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية (Dynamic Island) */}
               {previewDevice === "mobile" && (
-                <div className="flex items-center justify-between px-2 pt-1 pb-1 text-[11px] font-bold text-foreground/80 select-none border-b border-border/40 mb-2">
-                  <span className="font-semibold tracking-tight text-xs">9:41</span>
-                  {/* Dynamic Island */}
-                  <div className="w-24 h-5.5 bg-black dark:bg-zinc-900 rounded-full flex items-center justify-end px-2.5 gap-1.5 shadow-inner">
-                    <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
-                  </div>
-                  <div className="flex items-center gap-1.5 text-foreground/80">
-                    <Signal className="w-3.5 h-3.5" />
-                    <Wifi className="w-3.5 h-3.5" />
-                    <Battery className="w-4 h-4" />
+                <div className="pt-3 px-5 pb-2 shrink-0 bg-background/95 backdrop-blur z-20 select-none border-b border-border/30">
+                  <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                    <span className="font-semibold tracking-tight text-xs">9:41</span>
+                    {/* Dynamic Island */}
+                    <div className="w-24 h-5.5 bg-black dark:bg-zinc-900 rounded-full flex items-center justify-end px-2.5 gap-1.5 shadow-inner">
+                      <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-foreground/80">
+                      <Signal className="w-3.5 h-3.5" />
+                      <Wifi className="w-3.5 h-3.5" />
+                      <Battery className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
               )}
 
-              {previewTab === "form" ? (
+              {/* مساحة محتوى شاشة الهاتف القابلة للتمرير والتفاعل */}
+              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right" : "space-y-6"}>
+                {previewTab === "form" ? (
                 /* استمارة التقييم التفاعلية */
                 <div className="rounded-3xl border border-slate-200/90 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans">
                   {/* Header Banner مع الشعار واللون المخصص */}
@@ -1178,9 +1182,13 @@ export default function FormsCustomizationEvaluation() {
                 </div>
               )}
 
+              </div>
+
               {/* شريط السحب السفلي لهواتف iPhone (Home Indicator) */}
               {previewDevice === "mobile" && (
-                <div className="w-32 h-1 bg-foreground/20 rounded-full mx-auto mt-4 mb-1" />
+                <div className="pb-2.5 pt-1.5 bg-background/95 backdrop-blur shrink-0 flex justify-center border-t border-border/30">
+                  <div className="w-32 h-1 bg-foreground/20 rounded-full mx-auto" />
+                </div>
               )}
             </div>
           </div>
