@@ -393,30 +393,24 @@ export default function FormsCustomizationServiceDetail() {
 
                   {/* نوع الحقل */}
                   <div className="w-full sm:w-44 shrink-0">
-                    {isMosqueField ? (
-                      <div className="h-9 px-3 rounded-md bg-muted/60 border border-border flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                        <span>قائمة مساجد 🏛️</span>
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 bg-background">قاعدة بيانات</Badge>
-                      </div>
-                    ) : (
-                      <Select
-                        value={field.type}
-                        onValueChange={(val: ServiceFieldType) =>
-                          handleUpdateField(field.id, { type: val })
-                        }
-                      >
-                        <SelectTrigger className="h-9 text-xs font-medium text-right">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          {FIELD_TYPES.map((ft) => (
-                            <SelectItem key={ft.type} value={ft.type} className="text-xs">
-                              {ft.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Select
+                      value={field.type}
+                      onValueChange={(val: ServiceFieldType) =>
+                        handleUpdateField(field.id, { type: val })
+                      }
+                      disabled={isMosqueField}
+                    >
+                      <SelectTrigger className="h-9 text-xs font-medium text-right">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="end">
+                        {FIELD_TYPES.map((ft) => (
+                          <SelectItem key={ft.type} value={ft.type} className="text-xs">
+                            {ft.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* مفتاح الإلزامية */}
@@ -450,54 +444,57 @@ export default function FormsCustomizationServiceDetail() {
                         ? "text-muted-foreground/30 cursor-not-allowed"
                         : "text-muted-foreground hover:text-destructive"
                     }`}
-                    title={isMosqueField ? "حقل اختيار المسجد مربوط بقاعدة البيانات ولا يمكن حذفه" : "حذف الحقل"}
+                    title={isMosqueField ? "حقل لا يمكن حذفه" : "حذف الحقل"}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
 
-                {/* إذا كان حقل المسجد المربوط بقاعدة البيانات */}
-                {isMosqueField && (
-                  <div className="mt-2.5 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1.5 text-primary text-[11px] font-medium">
-                      <span>💡 ملاحظة: خيارات هذا الحقل تُجلب تلقائياً من قائمة المساجد المعتمدة في حساب المستفيد</span>
-                    </span>
-                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
-                      مربوط بقاعدة البيانات
-                    </Badge>
-                  </div>
-                )}
-
                 {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة مخصصة */}
                 {!isMosqueField && ["select", "radio"].includes(field.type) && (
-                  <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-muted-foreground">الخيارات:</span>
-                      {field.options?.map((opt, oIdx) => (
-                        <span
-                          key={oIdx}
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-muted text-xs font-medium"
-                        >
-                          <span>{opt.label}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveOption(field.id, oIdx)}
-                            className="text-muted-foreground hover:text-destructive"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
+                  <div className="mt-3.5 pt-3.5 border-t border-border/60 bg-muted/20 -mx-3.5 -mb-3.5 p-3.5 sm:p-4 rounded-b-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <List className="w-3.5 h-3.5 text-primary" />
+                        <span>خيارات الإجابة:</span>
+                      </span>
+                      <span className="text-[11px] text-muted-foreground font-medium">
+                        {field.options?.length ? `${field.options.length} خيارات` : "0 خيارات"}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2 max-w-sm">
+                    {/* قائمة الخيارات المضافة */}
+                    {field.options && field.options.length > 0 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {field.options.map((opt, oIdx) => (
+                          <div
+                            key={oIdx}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/80 text-xs font-semibold text-foreground shadow-2xs group/opt hover:border-primary/40 transition-colors"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+                            <span>{opt.label}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveOption(field.id, oIdx)}
+                              className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-0.5"
+                              title="حذف هذا الخيار"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* حقل إضافة خيار جديد */}
+                    <div className="flex items-center gap-2 max-w-md pt-0.5">
                       <Input
                         value={newOptionInputs[field.id] || ""}
                         onChange={(e) =>
                           setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
                         }
-                        placeholder="أدخل خياراً جديداً..."
-                        className="h-8 text-xs text-right"
+                        placeholder="اكتب اسم الخيار ثم اضغط إضافة أو Enter..."
+                        className="h-9 text-xs bg-background rounded-lg text-right"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -509,9 +506,10 @@ export default function FormsCustomizationServiceDetail() {
                         type="button"
                         size="sm"
                         onClick={() => handleAddOption(field.id)}
-                        className="h-8 px-3 text-xs"
+                        className="h-9 px-3.5 text-xs font-bold gap-1 rounded-lg shrink-0"
                       >
-                        إضافة
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إضافة</span>
                       </Button>
                     </div>
                   </div>

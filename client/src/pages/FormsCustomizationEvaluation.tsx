@@ -431,34 +431,53 @@ export default function FormsCustomizationEvaluation() {
 
               {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة */}
               {["select", "radio"].includes(field.type) && (
-                <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">الخيارات المتاحة:</span>
-                    {field.options?.map((opt, oIdx) => (
-                      <span
-                        key={oIdx}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-muted text-xs font-medium"
-                      >
-                        <span>{opt.label}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(field.id, oIdx)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                <div className="mt-3.5 pt-3.5 border-t border-border/60 bg-muted/20 -mx-3.5 -mb-3.5 p-3.5 sm:p-4 rounded-b-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <List className="w-3.5 h-3.5 text-primary" />
+                      <span>خيارات الإجابة:</span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      {field.options?.length ? `${field.options.length} خيارات مضافة` : "لا توجد خيارات مضافة بعد"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 max-w-sm">
+                  {/* قائمة الخيارات المضافة */}
+                  {field.options && field.options.length > 0 ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {field.options.map((opt, oIdx) => (
+                        <div
+                          key={oIdx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background border border-border/80 text-xs font-semibold text-foreground shadow-2xs group/opt hover:border-primary/40 transition-colors"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+                          <span>{opt.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOption(field.id, oIdx)}
+                            className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-0.5"
+                            title="حذف هذا الخيار"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground italic">
+                      يرجى إضافة خيارات الإجابة التي ستظهر للمستخدم في هذا السؤال
+                    </p>
+                  )}
+
+                  {/* حقل إضافة خيار جديد */}
+                  <div className="flex items-center gap-2 max-w-md pt-0.5">
                     <Input
                       value={newOptionInputs[field.id] || ""}
                       onChange={(e) =>
                         setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
                       }
-                      placeholder="أدخل خياراً جديداً..."
-                      className="h-8 text-xs text-right"
+                      placeholder="اكتب اسم الخيار ثم اضغط إضافة أو Enter..."
+                      className="h-9 text-xs bg-background rounded-lg text-right"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -470,9 +489,10 @@ export default function FormsCustomizationEvaluation() {
                       type="button"
                       size="sm"
                       onClick={() => handleAddOption(field.id)}
-                      className="h-8 px-3 text-xs"
+                      className="h-9 px-3.5 text-xs font-bold gap-1 rounded-lg shrink-0"
                     >
-                      إضافة
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إضافة</span>
                     </Button>
                   </div>
                 </div>
