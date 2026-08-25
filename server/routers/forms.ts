@@ -224,38 +224,62 @@ function getDefaultFieldsForService(serviceId: string): ServiceField[] {
       { id: "hasLand", type: "radio", label: "هل لديكم أرض مخصصة للبناء؟", required: true, isActive: true, order: 2, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
       { id: "landOwnership", type: "select", label: "ملكية الأرض", required: true, isActive: true, order: 3, options: [{ label: "ملك خاص", value: "owned" }, { label: "وقف", value: "waqf" }, { label: "حكومية", value: "government" }, { label: "أخرى", value: "other" }], isSystem: true },
       { id: "landArea", type: "number", label: "مساحة الأرض بالمتر المربع", placeholder: "مثال: 500", required: false, isActive: true, order: 4, isSystem: true },
-      { id: "hasDonor", type: "radio", label: "هل لديكم متبرع للقيام بتكاليف البناء؟", required: true, isActive: true, order: 5, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
-      { id: "workDescription", type: "textarea", label: "وصف الأعمال أو الاحتياج المطلوب", placeholder: "اكتب تفاصيل إضافية...", required: true, isActive: true, order: 6, isSystem: true },
-      { id: "willingToVolunteer", type: "radio", label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟", required: true, isActive: true, order: 7, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "landProposal", type: "textarea", label: "مقترحات بخصوص الأرض", placeholder: "أي مقترحات أو ملاحظات بخصوص الأرض...", required: false, isActive: true, order: 5, isSystem: true },
+      { id: "hasDonor", type: "radio", label: "هل لديكم متبرع للقيام بتكاليف البناء؟", required: true, isActive: true, order: 6, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "donationAmount", type: "number", label: "مبلغ التبرع (بالريال السعودي)", placeholder: "مثال: 100000", required: false, isActive: true, order: 7, isSystem: true },
+      { id: "fundingProposal", type: "textarea", label: "مقترحات التمويل", placeholder: "أي مقترحات بخصوص التمويل والتبرعات...", required: true, isActive: true, order: 8, isSystem: true },
+      { id: "nearestMosque", type: "text", label: "أقرب مسجد موجود", placeholder: "اسم أقرب مسجد للموقع المقترح", required: false, isActive: true, order: 9, isSystem: true },
+      { id: "distanceToMosque", type: "number", label: "المسافة من أقرب مسجد (بالكيلومتر)", placeholder: "مثال: 2.5", required: false, isActive: true, order: 10, isSystem: true },
+      { id: "workDescription", type: "textarea", label: "وصف الأعمال أو الاحتياج المطلوب", placeholder: "اكتب تفاصيل إضافية...", required: true, isActive: true, order: 11, isSystem: true },
+      { id: "willingToVolunteer", type: "radio", label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟", required: true, isActive: true, order: 12, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "attachment", type: "file", label: "المرفقات والوثائق الداعمة (اختياري)", placeholder: "ملفات PDF أو صور أو مستندات Word", required: false, isActive: true, order: 13, isSystem: true },
     ];
   }
 
   // البرامج القياسية الأخرى (عناية، فرش، تكييف، استجابة سريعة، سقيا، إلخ)
   const commonFields: ServiceField[] = [
-    { id: "mosqueId", type: "select", label: "اختيار المسجد", placeholder: "اختر المسجد من قائمتك", required: true, isActive: true, order: 1, isSystem: true },
-    { id: "workDescription", type: "textarea", label: "وصف الأعمال والاحتياج المطلوب", placeholder: "اكتب وصفاً تفصيلياً للاحتياج والأعمال المطلوبة...", required: true, isActive: true, order: 2, isSystem: true },
-    { id: "mosqueArea", type: "number", label: "مساحة المسجد (م٢)", placeholder: "مثال: 350", required: false, isActive: true, order: 3, isSystem: true },
-    { id: "actualWorshippers", type: "number", label: "عدد المصلين الفعلي", placeholder: "مثال: 150", required: false, isActive: true, order: 4, isSystem: true },
+    { id: "mosqueId", type: "select", label: "اختر المسجد", placeholder: "اختر المسجد المراد تقديم الطلب له", required: true, isActive: true, order: 1, isSystem: true },
+    { id: "workDescription", type: "textarea", label: "وصف الأعمال المطلوبة", placeholder: "اكتب وصفاً تفصيلياً للأعمال المطلوبة...", required: true, isActive: true, order: 2, isSystem: true },
+    { id: "mosqueArea", type: "number", label: "مساحة المسجد بالمتر المربع", placeholder: "مثال: 300", required: false, isActive: true, order: 3, isSystem: true },
+    { id: "actualWorshippers", type: "number", label: "عدد المصلين الفعلي", placeholder: "مثال: 200", required: false, isActive: true, order: 4, isSystem: true },
+    { id: "hasDonorForMaintenance", type: "radio", label: "هل يوجد متبرع للقيام بتكاليف الصيانة المطلوبة؟", required: false, isActive: true, order: 5, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
   ];
 
   if (serviceId === "takeef") {
-    commonFields.push({ id: "acCount", type: "number", label: "عدد المكيفات المطلوبة", placeholder: "مثال: 4", required: true, isActive: true, order: 5, isSystem: true });
-  } else if (serviceId === "soqya") {
-    commonFields.push({ id: "waterQuantity", type: "number", label: "الكمية المطلوبة (كرتون)", placeholder: "مثال: 100", required: true, isActive: true, order: 5, isSystem: true });
+    commonFields.push({ id: "acCount", type: "number", label: "عدد المكيفات المطلوبة", placeholder: "مثال: 4", required: true, isActive: true, order: 6, isSystem: true });
+  } else if (serviceId === "soqya" || serviceId === "suqya") {
+    commonFields.push(
+      { id: "cartonsNeeded", type: "number", label: "عدد الكراتين المطلوبة", placeholder: "مثال: 50", required: true, isActive: true, order: 6, isSystem: true },
+      { id: "monthlyCartonNeed", type: "number", label: "احتياج المسجد الشهري بالكرتون", placeholder: "مثال: 20", required: false, isActive: true, order: 7, isSystem: true },
+      { id: "hasWaterFridge", type: "radio", label: "هل لديكم ثلاجة مخصصة للماء بالمسجد؟", required: true, isActive: true, order: 8, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true }
+    );
   } else if (serviceId === "quick_response") {
-    commonFields.push({ id: "urgencyLevel", type: "select", label: "درجة الاستعجال", required: true, isActive: true, order: 5, options: [{ label: "طارئ جداً", value: "urgent" }, { label: "متوسط", value: "medium" }, { label: "عادي", value: "normal" }], isSystem: true });
+    commonFields.push({ id: "urgencyLevel", type: "select", label: "درجة الاستعجال", required: true, isActive: true, order: 6, options: [{ label: "طارئ جداً", value: "urgent" }, { label: "متوسط", value: "medium" }, { label: "عادي", value: "normal" }], isSystem: true });
   }
 
-  commonFields.push({
-    id: "willingToVolunteer",
-    type: "radio",
-    label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟",
-    required: true,
-    isActive: true,
-    order: commonFields.length + 1,
-    options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }],
-    isSystem: true,
-  });
+  const currentCount = commonFields.length;
+  commonFields.push(
+    {
+      id: "willingToVolunteer",
+      type: "radio",
+      label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟",
+      required: true,
+      isActive: true,
+      order: currentCount + 1,
+      options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }],
+      isSystem: true,
+    },
+    {
+      id: "attachment",
+      type: "file",
+      label: "المرفقات والوثائق الداعمة (اختياري)",
+      placeholder: "ملفات PDF أو صور أو مستندات Word",
+      required: false,
+      isActive: true,
+      order: currentCount + 2,
+      isSystem: true,
+    }
+  );
 
   return commonFields;
 }
