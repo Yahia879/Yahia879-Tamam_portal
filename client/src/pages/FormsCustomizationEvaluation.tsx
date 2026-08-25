@@ -210,6 +210,7 @@ export default function FormsCustomizationEvaluation() {
     setHasChanges(true);
   };
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragEnabledIndex, setDragEnabledIndex] = useState<number | null>(null);
 
   // سحب وإفلات لترتيب الأسئلة
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -234,6 +235,7 @@ export default function FormsCustomizationEvaluation() {
 
   const handleDragEnd = () => {
     setDraggedIndex(null);
+    setDragEnabledIndex(null);
   };
 
   // إضافة خيار للقوائم
@@ -342,15 +344,16 @@ export default function FormsCustomizationEvaluation() {
         <div className="space-y-2.5">
           {formConfig.fields.map((field, index) => {
             const isDragging = draggedIndex === index;
+            const isDragEnabled = dragEnabledIndex === index;
 
             return (
               <div
                 key={field.id}
-                draggable
+                draggable={isDragEnabled}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all select-none ${
+                className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all ${
                   isDragging
                     ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
                     : "border-border shadow-2xs hover:border-primary/40"
@@ -360,12 +363,16 @@ export default function FormsCustomizationEvaluation() {
                   {/* مقبض السحب والإفلات (Grip Handle) + الترتيب البارز */}
                   <div className="flex items-center gap-2 shrink-0">
                     <div
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
-                      title="اسحب لتغيير الترتيب"
+                      onMouseDown={() => setDragEnabledIndex(index)}
+                      onMouseUp={() => setDragEnabledIndex(null)}
+                      onTouchStart={() => setDragEnabledIndex(index)}
+                      onTouchEnd={() => setDragEnabledIndex(null)}
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors select-none"
+                      title="اضغط واسحب لتغيير الترتيب"
                     >
-                      <GripVertical className="w-5 h-5 text-muted-foreground/70" />
+                      <GripVertical className="w-5 h-5 text-muted-foreground/70 pointer-events-none" />
                     </div>
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 shadow-2xs">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 shadow-2xs select-none">
                       #{index + 1}
                     </div>
                   </div>
