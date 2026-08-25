@@ -53,7 +53,9 @@ export type FieldType =
   | "radio"
   | "checkbox"
   | "email"
-  | "phone";
+  | "phone"
+  | "date"
+  | "file";
 
 export interface FormFieldOption {
   label: string;
