@@ -163,6 +163,9 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/stage-settings\/?$/, title: "إعدادات المراحل" },
   { pattern: /^\/action-settings\/?$/, title: "إعدادات الإجراءات" },
   { pattern: /^\/program-customization\/?$/, title: "تخصيص البرامج والمشاريع" },
+  { pattern: /^\/forms-customization\/?$/, title: "تخصيص النماذج" },
+  { pattern: /^\/forms-customization\/evaluation\/?$/, title: "تخصيص استمارة تقييم رضا المستفيد" },
+  { pattern: /^\/forms-customization\/option-2\/?$/, title: "الخيار الثاني (تخصيص النماذج)" },
   { pattern: /^\/partners\/?$/, title: "الشركاء" },
 ];
 
