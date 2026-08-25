@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { Link, useRoute } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -915,194 +915,195 @@ export default function FormsCustomizationServiceDetail() {
                         const value = previewValues[field.id];
 
                         return (
-                          <div
-                            key={field.id}
-                            className={isFullWidth && previewDevice !== "mobile" ? "col-span-1 sm:col-span-2" : "col-span-1"}
-                          >
-                            <div className="space-y-2">
-                              <Label className="select-none flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
-                                {Icon && <Icon className="w-4 h-4 text-primary/75 shrink-0" />}
-                                <span>{field.label}</span>
-                                {field.required && <span className="text-red-500 font-bold">*</span>}
-                              </Label>
+                          <React.Fragment key={field.id}>
+                            <div
+                              className={isFullWidth && previewDevice !== "mobile" ? "col-span-1 sm:col-span-2" : "col-span-1"}
+                            >
+                              <div className="space-y-2">
+                                <Label className="select-none flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
+                                  {Icon && <Icon className="w-4 h-4 text-primary/75 shrink-0" />}
+                                  <span>{field.label}</span>
+                                  {field.required && <span className="text-red-500 font-bold">*</span>}
+                                </Label>
 
-                              {/* أنواع الحقول المختلفة بتصميم مطابق تماماً للأصل */}
-                              {field.type === "textarea" && (
-                                <div className="space-y-1">
-                                  <Textarea
-                                    value={value || ""}
-                                    onChange={(e) =>
-                                      setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
-                                    }
-                                    placeholder={field.placeholder || "اكتب التفاصيل المطلوبة هنا..."}
-                                    rows={4}
-                                    className="placeholder:text-muted-foreground min-h-[110px] rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5"
-                                  />
-                                  {field.helpText && (
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                                      {field.helpText}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-
-                              {["text", "email", "phone", "number"].includes(field.type) && (
-                                <div className="relative flex items-center">
-                                  <Input
-                                    type={field.type === "number" ? "number" : field.type === "email" ? "email" : field.type === "phone" ? "tel" : "text"}
-                                    value={value || ""}
-                                    onChange={(e) =>
-                                      setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
-                                    }
-                                    placeholder={field.placeholder || (field.type === "phone" ? "05xxxxxxxx" : field.type === "number" ? "0" : "")}
-                                    className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
-                                      unitSuffix ? "pl-12" : ""
-                                    }`}
-                                  />
-                                  {unitSuffix && (
-                                    <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
-                                      {unitSuffix}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {field.type === "date" && (
-                                <Input
-                                  type="date"
-                                  value={value || ""}
-                                  onChange={(e) =>
-                                    setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
-                                  }
-                                  className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
-                                />
-                              )}
-
-                              {field.type === "select" && (
-                                <Select
-                                  value={value || ""}
-                                  onValueChange={(val) =>
-                                    setPreviewValues((prev) => ({ ...prev, [field.id]: val }))
-                                  }
-                                >
-                                  <SelectTrigger className="w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary">
-                                    <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-xl border-border shadow-lg">
-                                    {field.options && field.options.length > 0 ? (
-                                      field.options.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value} className="text-xs sm:text-sm font-medium">
-                                          {opt.label}
-                                        </SelectItem>
-                                      ))
-                                    ) : (
-                                      <SelectItem value="default_opt" className="text-xs">
-                                        خيار تجريبي
-                                      </SelectItem>
+                                {/* أنواع الحقول المختلفة بتصميم مطابق تماماً للأصل */}
+                                {field.type === "textarea" && (
+                                  <div className="space-y-1">
+                                    <Textarea
+                                      value={value || ""}
+                                      onChange={(e) =>
+                                        setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
+                                      }
+                                      placeholder={field.placeholder || "اكتب التفاصيل المطلوبة هنا..."}
+                                      rows={4}
+                                      className="placeholder:text-muted-foreground min-h-[110px] rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5"
+                                    />
+                                    {field.helpText && (
+                                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                                        {field.helpText}
+                                      </p>
                                     )}
-                                  </SelectContent>
-                                </Select>
-                              )}
+                                  </div>
+                                )}
 
-                              {field.type === "radio" && (
-                                <div className="space-y-3">
-                                  <RadioGroup
+                                {["text", "email", "phone", "number"].includes(field.type) && (
+                                  <div className="relative flex items-center">
+                                    <Input
+                                      type={field.type === "number" ? "number" : field.type === "email" ? "email" : field.type === "phone" ? "tel" : "text"}
+                                      value={value || ""}
+                                      onChange={(e) =>
+                                        setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
+                                      }
+                                      placeholder={field.placeholder || (field.type === "phone" ? "05xxxxxxxx" : field.type === "number" ? "0" : "")}
+                                      className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+                                        unitSuffix ? "pl-12" : ""
+                                      }`}
+                                    />
+                                    {unitSuffix && (
+                                      <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                        {unitSuffix}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {field.type === "date" && (
+                                  <Input
+                                    type="date"
+                                    value={value || ""}
+                                    onChange={(e) =>
+                                      setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
+                                    }
+                                    className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+                                  />
+                                )}
+
+                                {field.type === "select" && (
+                                  <Select
                                     value={value || ""}
                                     onValueChange={(val) =>
                                       setPreviewValues((prev) => ({ ...prev, [field.id]: val }))
                                     }
-                                    className={`grid ${
-                                      field.options && field.options.length > 2
-                                        ? "grid-cols-1 sm:grid-cols-3"
-                                        : "grid-cols-2"
-                                    } gap-3`}
-                                    dir="rtl"
                                   >
-                                    {(field.options && field.options.length > 0
-                                      ? field.options
-                                      : [
-                                          { label: "نعم", value: "yes" },
-                                          { label: "لا", value: "no" },
-                                        ]
-                                    ).map((option) => {
-                                      const isSelected = value === option.value;
-                                      const isYes = option.value === "yes";
-                                      const isNo = option.value === "no";
+                                    <SelectTrigger className="w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary">
+                                      <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-border shadow-lg">
+                                      {field.options && field.options.length > 0 ? (
+                                        field.options.map((opt) => (
+                                          <SelectItem key={opt.value} value={opt.value} className="text-xs sm:text-sm font-medium">
+                                            {opt.label}
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="default_opt" className="text-xs">
+                                          خيار تجريبي
+                                        </SelectItem>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                )}
 
-                                      return (
-                                        <label
-                                          key={option.value}
-                                          htmlFor={`preview-${field.id}-${option.value}`}
-                                          className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
-                                            isSelected
-                                              ? isYes
-                                                ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20"
-                                                : isNo
-                                                ? "border-rose-500 bg-rose-50/70 dark:bg-rose-950/30 text-rose-900 dark:text-rose-200 shadow-xs ring-2 ring-rose-500/20"
-                                                : "border-primary bg-primary/10 text-primary shadow-xs ring-2 ring-primary/20"
-                                              : "border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground"
-                                          }`}
-                                        >
-                                          <div className="flex items-center gap-3">
-                                            <RadioGroupItem
-                                              value={option.value}
-                                              id={`preview-${field.id}-${option.value}`}
-                                              className="border-muted-foreground/40 text-primary"
-                                            />
-                                            <span className="font-bold text-xs sm:text-sm">
-                                              {option.label}
-                                            </span>
-                                          </div>
-                                          {isSelected && (
-                                            <div
-                                              className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs ${
-                                                isYes ? "bg-emerald-600" : isNo ? "bg-rose-600" : "bg-primary"
-                                              }`}
-                                            >
-                                              <Check className="w-3 h-3 stroke-[3]" />
+                                {field.type === "radio" && (
+                                  <div className="space-y-3">
+                                    <RadioGroup
+                                      value={value || ""}
+                                      onValueChange={(val) =>
+                                        setPreviewValues((prev) => ({ ...prev, [field.id]: val }))
+                                      }
+                                      className={`grid ${
+                                        field.options && field.options.length > 2
+                                          ? "grid-cols-1 sm:grid-cols-3"
+                                          : "grid-cols-2"
+                                      } gap-3`}
+                                      dir="rtl"
+                                    >
+                                      {(field.options && field.options.length > 0
+                                        ? field.options
+                                        : [
+                                            { label: "نعم", value: "yes" },
+                                            { label: "لا", value: "no" },
+                                          ]
+                                      ).map((option) => {
+                                        const isSelected = value === option.value;
+                                        const isYes = option.value === "yes";
+                                        const isNo = option.value === "no";
+
+                                        return (
+                                          <label
+                                            key={option.value}
+                                            htmlFor={`preview-${field.id}-${option.value}`}
+                                            className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                                              isSelected
+                                                ? isYes
+                                                  ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20"
+                                                  : isNo
+                                                  ? "border-rose-500 bg-rose-50/70 dark:bg-rose-950/30 text-rose-900 dark:text-rose-200 shadow-xs ring-2 ring-rose-500/20"
+                                                  : "border-primary bg-primary/10 text-primary shadow-xs ring-2 ring-primary/20"
+                                                : "border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground"
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-3">
+                                              <RadioGroupItem
+                                                value={option.value}
+                                                id={`preview-${field.id}-${option.value}`}
+                                                className="border-muted-foreground/40 text-primary"
+                                              />
+                                              <span className="font-bold text-xs sm:text-sm">
+                                                {option.label}
+                                              </span>
                                             </div>
-                                          )}
-                                        </label>
-                                      );
-                                    })}
-                                  </RadioGroup>
-                                </div>
-                              )}
-
-                              {field.type === "checkbox" && (
-                                <div
-                                  onClick={() =>
-                                    setPreviewValues((prev) => ({ ...prev, [field.id]: !value }))
-                                  }
-                                  className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${
-                                    value
-                                      ? "border-primary bg-primary/5 text-primary font-bold shadow-2xs ring-2 ring-primary/20"
-                                      : "border-border/80 bg-background text-foreground"
-                                  }`}
-                                >
-                                  <Checkbox checked={!!value} className="h-4 w-4 rounded-md" />
-                                  <span className="text-xs sm:text-sm">{field.placeholder || field.label}</span>
-                                </div>
-                              )}
-
-                              {field.type === "file" && (
-                                <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
-                                  <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                                    <CloudUpload className="w-6 h-6" />
+                                            {isSelected && (
+                                              <div
+                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs ${
+                                                  isYes ? "bg-emerald-600" : isNo ? "bg-rose-600" : "bg-primary"
+                                                }`}
+                                              >
+                                                <Check className="w-3 h-3 stroke-[3]" />
+                                              </div>
+                                            )}
+                                          </label>
+                                        );
+                                      })}
+                                    </RadioGroup>
                                   </div>
-                                  <p className="font-bold text-xs sm:text-sm text-foreground">
-                                    اضغط لرفع ملف أو اسحبه إلى هنا
-                                  </p>
-                                  <p className="text-[11px] text-muted-foreground mt-1">
-                                    يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
-                                  </p>
-                                </div>
-                              )}
+                                )}
+
+                                {field.type === "checkbox" && (
+                                  <div
+                                    onClick={() =>
+                                      setPreviewValues((prev) => ({ ...prev, [field.id]: !value }))
+                                    }
+                                    className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${
+                                      value
+                                        ? "border-primary bg-primary/5 text-primary font-bold shadow-2xs ring-2 ring-primary/20"
+                                        : "border-border/80 bg-background text-foreground"
+                                    }`}
+                                  >
+                                    <Checkbox checked={!!value} className="h-4 w-4 rounded-md" />
+                                    <span className="text-xs sm:text-sm">{field.placeholder || field.label}</span>
+                                  </div>
+                                )}
+
+                                {field.type === "file" && (
+                                  <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                      <CloudUpload className="w-6 h-6" />
+                                    </div>
+                                    <p className="font-bold text-xs sm:text-sm text-foreground">
+                                      اضغط لرفع ملف أو اسحبه إلى هنا
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                      يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
-                            {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers تلقائياً */}
+                            {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers مباشرة بكامل عرض الشبكة */}
                             {serviceId === "bunyan" && field.id === "actualWorshippers" && (
-                              <div className="col-span-1 sm:col-span-2 space-y-4 mt-5">
+                              <div className="col-span-1 sm:col-span-2 space-y-4">
                                 <div
                                   onClick={() => setPreviewHasPrayerHall(!previewHasPrayerHall)}
                                   className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
@@ -1129,6 +1130,7 @@ export default function FormsCustomizationServiceDetail() {
                                     </div>
                                   </div>
                                   <Checkbox
+                                    id="hasPrayerHall"
                                     checked={previewHasPrayerHall}
                                     className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
                                   />
@@ -1142,12 +1144,13 @@ export default function FormsCustomizationServiceDetail() {
                                     </h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                       <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                        <label htmlFor="previewWomenCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
                                           <Users className="w-4 h-4 text-primary/70" />
                                           <span>سعة مصلى النساء (مصلي)</span>
                                           <span className="text-red-500 font-bold">*</span>
-                                        </Label>
+                                        </label>
                                         <Input
+                                          id="previewWomenCapacity"
                                           type="number"
                                           value={previewWomenCapacity}
                                           onChange={(e) => setPreviewWomenCapacity(e.target.value)}
@@ -1156,12 +1159,13 @@ export default function FormsCustomizationServiceDetail() {
                                         />
                                       </div>
                                       <div className="space-y-2">
-                                        <Label className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                        <label htmlFor="previewWomenArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
                                           <Ruler className="w-4 h-4 text-primary/70" />
                                           <span>المساحة (م²)</span>
                                           <span className="text-red-500 font-bold">*</span>
-                                        </Label>
+                                        </label>
                                         <Input
+                                          id="previewWomenArea"
                                           type="number"
                                           value={previewWomenArea}
                                           onChange={(e) => setPreviewWomenArea(e.target.value)}
@@ -1174,7 +1178,7 @@ export default function FormsCustomizationServiceDetail() {
                                 )}
                               </div>
                             )}
-                          </div>
+                          </React.Fragment>
                         );
                       })}
 
