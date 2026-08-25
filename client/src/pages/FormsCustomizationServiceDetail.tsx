@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowRight,
   Plus,
@@ -27,6 +28,7 @@ import {
   RotateCcw,
   Eye,
   FileText,
+  AlertCircle,
   AlignLeft,
   Hash,
   List,
@@ -130,6 +132,7 @@ export default function FormsCustomizationServiceDetail() {
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragEnabledIndex, setDragEnabledIndex] = useState<number | null>(null);
+  const [expandedPlaceholder, setExpandedPlaceholder] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (serverConfig?.fields) {
@@ -388,14 +391,48 @@ export default function FormsCustomizationServiceDetail() {
                     </div>
                   </div>
 
-                  {/* نص السؤال / التسمية المباشرة */}
-                  <div className="flex-1 min-w-0">
+                  {/* نص السؤال / التسمية المباشرة مع إمكانية كتابة Placeholder بخفة وبدون زحمة */}
+                  <div className="flex-1 min-w-0 space-y-1">
                     <Input
                       value={field.label}
                       onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
                       placeholder="اسم الحقل / السؤال..."
                       className="h-9 text-xs sm:text-sm font-semibold text-right"
                     />
+
+                    {/* محرر تلميح الحقل (Placeholder) المصغر والخفيف */}
+                    {(field.placeholder !== undefined && field.placeholder !== "") || expandedPlaceholder[field.id] ? (
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <Input
+                          value={field.placeholder || ""}
+                          onChange={(e) =>
+                            handleUpdateField(field.id, { placeholder: e.target.value })
+                          }
+                          placeholder="نص توضيحي داخلي (Placeholder)..."
+                          className="h-7 text-[11px] text-muted-foreground placeholder:text-muted-foreground/40 bg-muted/30 border-dashed border-border/80 focus-visible:bg-background rounded-md text-right px-2"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleUpdateField(field.id, { placeholder: "" });
+                            setExpandedPlaceholder((p) => ({ ...p, [field.id]: false }));
+                          }}
+                          className="p-1 rounded text-muted-foreground/50 hover:text-destructive transition-colors shrink-0"
+                          title="إزالة التلميح"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPlaceholder((p) => ({ ...p, [field.id]: true }))}
+                        className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 font-medium select-none"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>إضافة نص تلميح داخلي (Placeholder)</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* نوع الحقل */}
