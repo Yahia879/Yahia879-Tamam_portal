@@ -215,6 +215,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   ],
   "/contract-templates": ["settings_center", "settings_contracts.view", "contracts"],
   "/program-customization": "programs_services",
+  "/forms-customization": "settings_center",
+  "/forms-customization/evaluation": "settings_center",
+  "/forms-customization/option-2": "settings_center",
   "/partners": "settings_center",
   "/support": ["Create_Ticket", "View_Tickets"],
 };
