@@ -217,6 +217,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/program-customization": "programs_services",
   "/forms-customization": "settings_center",
   "/forms-customization/evaluation": "settings_center",
+  "/forms-customization/services": "settings_center",
   "/forms-customization/option-2": "settings_center",
   "/partners": "settings_center",
   "/support": ["Create_Ticket", "View_Tickets"],
@@ -230,6 +231,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   pattern: RegExp;
   permission: string | string[];
 }> = [
+  // تخصيص نماذج الخدمات
+  { pattern: /^\/forms-customization\/services\/[^/]+$/, permission: "settings_center" },
+
   // المساجد
   { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques" },
   { pattern: /^\/mosques\/\d+\/edit$/, permission: "mosques" },
