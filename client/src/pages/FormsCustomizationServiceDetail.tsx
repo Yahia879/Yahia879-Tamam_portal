@@ -887,6 +887,16 @@ export default function FormsCustomizationServiceDetail() {
                   <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-5 sm:gap-6`}>
                     {fields
                       .filter((f) => f.isActive)
+                      .filter((field) => {
+                        // إخفاء الحقول المشروطة في المعاينة التفاعلية حتى يختار المستخدم "نعم"
+                        if (["landOwnership", "landArea", "landProposal"].includes(field.id)) {
+                          return previewValues["hasLand"] === "yes";
+                        }
+                        if (field.id === "donationAmount") {
+                          return previewValues["hasDonor"] === "yes";
+                        }
+                        return true;
+                      })
                       .map((field) => {
                         const isFullWidth =
                           field.type === "textarea" ||

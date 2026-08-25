@@ -7,6 +7,7 @@ import BeneficiaryLayout from '@/components/BeneficiaryLayout';
 import { 
   getAllFieldsForProgram,
   getVisibleFieldsForProgram,
+  shouldShowField,
   SHARED_FIELDS,
   FormField,
 } from '@/lib/programFields';
@@ -234,6 +235,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
     // إذا كان هناك تخصيص محفوظ للحقول من خلال لوحة تخصيص النماذج
     if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
+      // تطبيق الشروط المنطقية للحقول المعتمدة على إجابات سابقة (مثل وجود أرض أو متبرع في بنيان)
+      const CONDITIONAL_RULES: Record<string, { dependsOn: string; condition: (val: any) => boolean }> = {
+        landOwnership: { dependsOn: 'hasLand', condition: (val) => val === 'yes' },
+        landArea: { dependsOn: 'hasLand', condition: (val) => val === 'yes' },
+        landProposal: { dependsOn: 'hasLand', condition: (val) => val === 'yes' },
+        donationAmount: { dependsOn: 'hasDonor', condition: (val) => val === 'yes' },
+      };
+
       const activeCustomFields: FormField[] = customFormConfig.fields
         .filter((f) => f.isActive)
         .sort((a, b) => a.order - b.order)
@@ -246,7 +255,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           required: f.required,
           options: f.options,
           validation: f.required ? { minLength: 1 } : undefined,
-        }));
+          conditional: CONDITIONAL_RULES[f.id],
+        }))
+        .filter((f) => shouldShowField(f, formData));
 
       // إضافة حقول مصلى النساء إذا تم تحديد ذلك
       if (formData && formData.hasPrayerHall) {
