@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/DashboardLayout";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import {
   Settings as SettingsIcon,
@@ -108,12 +109,11 @@ const groupIcons: Record<string, React.ElementType> = {
 export default function Settings() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const userPermissions = useUserPermissions();
 
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
 
   const hasPermission = (perm?: string) => {
-    if (isAdmin) return true;
     if (!perm) return true;
     if (perm === "forms_customization") {
       return (
@@ -121,6 +121,7 @@ export default function Settings() {
         userPermissions.includes("forms_customization.services")
       );
     }
+    if (isAdmin) return true;
     if (perm === "settings_categories.view") {
       return (
         userPermissions.includes("settings_categories.view") ||
