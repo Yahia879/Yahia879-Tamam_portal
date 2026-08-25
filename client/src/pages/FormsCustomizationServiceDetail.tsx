@@ -861,52 +861,68 @@ export default function FormsCustomizationServiceDetail() {
 
               {/* مساحة محتوى شاشة الهاتف القابلة للتمرير والتفاعل */}
               <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right" : "space-y-6"}>
-                {/* 1. Stepper واقعي لمراحل تقديم الطلب */}
-                <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
-                <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold gap-1">
-                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[9px] sm:text-[10px]">✓</span>
-                    <span>المستفيد</span>
-                  </div>
-                  <div className="w-3 sm:w-8 h-[2px] bg-emerald-500/40 shrink" />
-                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
-                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[9px] sm:text-[10px]">✓</span>
-                    <span>البرنامج</span>
-                  </div>
-                  <div className="w-3 sm:w-8 h-[2px] bg-primary shrink" />
-                  <div className="flex items-center gap-1 text-primary shrink-0">
-                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary text-white flex items-center justify-center text-[9px] sm:text-[10px]">3</span>
-                    <span>تفاصيل الطلب</span>
-                  </div>
-                  <div className="w-3 sm:w-8 h-[2px] bg-border shrink" />
-                  <div className="flex items-center gap-1 text-muted-foreground shrink-0">
-                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-muted flex items-center justify-center text-[9px] sm:text-[10px]">4</span>
-                    <span>المراجعة</span>
+                {/* 1. شريط تقدم الخطوات المطابق للأصل */}
+                <div className="p-3.5 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        ✓
+                      </div>
+                      <p className="text-[10px] sm:text-xs mt-1 text-center font-semibold text-emerald-600 dark:text-emerald-400">
+                        المستفيد
+                      </p>
+                    </div>
+                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-emerald-500/40" />
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                        ✓
+                      </div>
+                      <p className="text-[10px] sm:text-xs mt-1 text-center font-semibold text-emerald-600 dark:text-emerald-400">
+                        البرنامج
+                      </p>
+                    </div>
+                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-primary" />
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-primary text-primary-foreground ring-2 ring-primary/20 scale-105">
+                        3
+                      </div>
+                      <p className="text-[10px] sm:text-xs mt-1 text-center font-bold text-primary">
+                        تفاصيل الطلب
+                      </p>
+                    </div>
+                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-muted" />
+                    <div className="flex flex-col items-center shrink-0 opacity-50">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-muted text-muted-foreground">
+                        4
+                      </div>
+                      <p className="text-[10px] sm:text-xs mt-1 text-center font-medium text-muted-foreground">
+                        المراجعة
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 2. Banner الخدمة والبرنامج */}
-              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5 sm:p-6 flex items-center gap-3 sm:gap-4">
-                <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${currentProgram?.color || "bg-primary"} text-white shadow-md sm:shadow-lg`}>
-                  <IconComponent className="w-5 h-5 sm:w-7 sm:h-7" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] sm:text-[11px] font-bold mb-0.5 sm:mb-1">
-                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    <span>برنامج {currentProgram?.name || serviceId}</span>
+                {/* 2. Banner الخدمة والبرنامج */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5 sm:p-5 flex items-center gap-3">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${currentProgram?.color || "bg-primary"} text-white shadow-md`}>
+                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
-                  <h3 className="text-sm sm:text-lg font-bold text-foreground truncate">
-                    استمارة طلب خدمة {currentProgram?.name || serviceId}
-                  </h3>
-                  <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
-                    {currentProgram?.description || "يرجى تعبئة الحقول والبيانات المطلوبة لتقديم طلب الخدمة"}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold mb-0.5">
+                      <Sparkles className="w-2.5 h-2.5" />
+                      <span>برنامج {currentProgram?.name || serviceId}</span>
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
+                      استمارة طلب خدمة {currentProgram?.name || serviceId}
+                    </h3>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+                      {currentProgram?.description || "يرجى تعبئة الحقول والبيانات المطلوبة لتقديم طلب الخدمة"}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* 3. كرت الحقول الديناميكية الواقعي */}
-              <div className={`text-card-foreground flex flex-col gap-5 sm:gap-6 ${previewDevice === "mobile" ? "p-3.5 rounded-2xl" : "p-5 sm:p-8 lg:p-10 rounded-3xl"} shadow-xl border border-border/60 bg-background overflow-hidden`}>
+                {/* 3. كرت الحقول الديناميكية الواقعي */}
+                <div className={`text-card-foreground flex flex-col gap-4 sm:gap-6 ${previewDevice === "mobile" ? "p-3.5 rounded-2xl" : "p-5 sm:p-8 lg:p-10 rounded-3xl"} shadow-md border border-border/60 bg-background overflow-hidden`}>
                 <div className="space-y-5 sm:space-y-8">
                   <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-4" : "grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"}`}>
                     {fields
@@ -1039,7 +1055,7 @@ export default function FormsCustomizationServiceDetail() {
                                         field.options && field.options.length > 2
                                           ? "grid-cols-1 sm:grid-cols-3"
                                           : "grid-cols-2"
-                                      } gap-3`}
+                                      } gap-2.5 sm:gap-3`}
                                       dir="rtl"
                                     >
                                       {(field.options && field.options.length > 0
@@ -1057,7 +1073,7 @@ export default function FormsCustomizationServiceDetail() {
                                           <label
                                             key={option.value}
                                             htmlFor={`preview-${field.id}-${option.value}`}
-                                            className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                                            className={`relative flex items-center justify-between p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
                                               isSelected
                                                 ? isYes
                                                   ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20"
@@ -1067,7 +1083,7 @@ export default function FormsCustomizationServiceDetail() {
                                                 : "border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground"
                                             }`}
                                           >
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 sm:gap-3">
                                               <RadioGroupItem
                                                 value={option.value}
                                                 id={`preview-${field.id}-${option.value}`}
