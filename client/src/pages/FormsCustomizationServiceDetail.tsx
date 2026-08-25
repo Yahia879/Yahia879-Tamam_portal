@@ -141,7 +141,7 @@ export default function FormsCustomizationServiceDetail() {
     onSuccess: (res) => {
       toast.success(res.message);
       setHasChanges(false);
-      utils.forms.getServiceFormConfig.invalidate({ serviceId });
+      utils.forms.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء الحفظ");
@@ -152,7 +152,7 @@ export default function FormsCustomizationServiceDetail() {
     onSuccess: (res) => {
       toast.success(res.message);
       setIsResetConfirmOpen(false);
-      utils.forms.getServiceFormConfig.invalidate({ serviceId });
+      utils.forms.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء استعادة الافتراضي");
