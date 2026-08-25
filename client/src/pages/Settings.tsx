@@ -15,6 +15,7 @@ import {
   Layers,
   ArrowRight,
   Bell,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface SettingCard {
@@ -70,6 +71,15 @@ const settingCards: SettingCard[] = [
     bgColor: "bg-cyan-50 dark:bg-cyan-950/30",
     group: "البيانات",
     permission: "services.view",
+  },
+  {
+    icon: SlidersHorizontal,
+    title: "تخصيص النماذج",
+    description: "إدارة وتخصيص نماذج الإدخال والحقول والاستمارات",
+    path: "/forms-customization",
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
+    group: "البيانات",
   },
   // مجموعة: المستخدمون
   {
