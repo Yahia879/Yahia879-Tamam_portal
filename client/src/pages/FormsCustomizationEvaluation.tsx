@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import {
   ArrowRight,
   Plus,
@@ -261,10 +261,8 @@ export default function FormsCustomizationEvaluation() {
     handleUpdateField(fieldId, { options: updatedOptions });
   };
 
-  const { user } = useAuth();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const hasPermission = isAdmin || userPermissions.includes("forms_customization.evaluation");
+  const userPermissions = useUserPermissions();
+  const hasPermission = userPermissions.includes("forms_customization.evaluation");
 
   if (!hasPermission) {
     return (
