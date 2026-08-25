@@ -36,8 +36,6 @@ import {
   Radio,
   Calendar,
   Paperclip,
-  ChevronUp,
-  ChevronDown,
   Loader2,
   X,
   Package,
@@ -49,6 +47,7 @@ import {
   Sun,
   Droplets,
   GlassWater,
+  GripVertical,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -129,6 +128,7 @@ export default function FormsCustomizationServiceDetail() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (serverConfig?.fields) {
@@ -201,25 +201,40 @@ export default function FormsCustomizationServiceDetail() {
     setHasChanges(true);
   };
 
-  // حذف حقل
+  // حذف حقل (فقط الحقول المربوطة بقاعدة البيانات مثل mosqueId هي المحمية من الحذف)
   const handleDeleteField = (fieldId: string) => {
+    if (fieldId === "mosqueId") {
+      toast.error("حقل اختيار المسجد مربوط بقاعدة البيانات ولا يمكن حذفه");
+      return;
+    }
     setFields((prev) => prev.filter((f) => f.id !== fieldId));
+    setHasChanges(true);
+    toast.info("تم حذف الحقل");
+  };
+
+  // سحب وإفلات لترتيب الحقول
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newFields = [...fields];
+    const draggedItem = newFields[draggedIndex];
+    newFields.splice(draggedIndex, 1);
+    newFields.splice(index, 0, draggedItem);
+
+    const updated = newFields.map((f, i) => ({ ...f, order: i + 1 }));
+    setDraggedIndex(index);
+    setFields(updated);
     setHasChanges(true);
   };
 
-  // تحريك حقل
-  const handleMoveField = (index: number, direction: "up" | "down") => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= fields.length) return;
-
-    const newFields = [...fields];
-    const temp = newFields[index];
-    newFields[index] = newFields[targetIndex];
-    newFields[targetIndex] = temp;
-
-    const updated = newFields.map((f, i) => ({ ...f, order: i + 1 }));
-    setFields(updated);
-    setHasChanges(true);
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   // إضافة خيار للقوائم
@@ -288,7 +303,7 @@ export default function FormsCustomizationServiceDetail() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                تعديل حقول واستمارة طلب الخدمة التي يملؤها المستفيد
+                اسحب وأفلت ⠿ لإعادة ترتيب الحقول، وعدل المسميات والأنواع بحرية
               </p>
             </div>
           </div>
@@ -333,179 +348,177 @@ export default function FormsCustomizationServiceDetail() {
           </div>
         </div>
 
-        {/* قائمة الحقول البسيطة والواضحة */}
-        <div className="space-y-3">
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all ${
-                !field.isActive ? "opacity-50 bg-muted/20" : "border-border shadow-2xs"
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                {/* الترتيب ورقم الحقل */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => handleMoveField(index, "up")}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-20"
-                    >
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === fields.length - 1}
-                      onClick={() => handleMoveField(index, "down")}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-20"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <span className="text-xs font-bold text-muted-foreground w-6 text-center">
-                    #{index + 1}
-                  </span>
-                </div>
+        {/* قائمة الحقول بسحب وإفلات */}
+        <div className="space-y-2.5">
+          {fields.map((field, index) => {
+            const isMosqueField = field.id === "mosqueId";
+            const isDragging = draggedIndex === index;
 
-                {/* نص السؤال / التسمية المباشرة */}
-                <div className="flex-1 min-w-0">
-                  <Input
-                    value={field.label}
-                    onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
-                    placeholder="اسم الحقل / السؤال..."
-                    className="h-9 text-xs sm:text-sm font-semibold text-right"
-                  />
-                </div>
-
-                {/* نوع الحقل */}
-                <div className="w-full sm:w-44 shrink-0">
-                  {field.id === "mosqueId" ? (
-                    <div className="h-9 px-3 rounded-md bg-muted/60 border border-border flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span>قائمة مساجد 🏛️</span>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-background">ثابت</Badge>
+            return (
+              <div
+                key={field.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all select-none ${
+                  isDragging
+                    ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
+                    : "border-border shadow-2xs hover:border-primary/40"
+                } ${!field.isActive ? "opacity-50 bg-muted/20" : ""}`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                  {/* مقبض السحب والإفلات (Grip Handle) + الترتيب البارز */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                      title="اسحب لتغيير الترتيب"
+                    >
+                      <GripVertical className="w-5 h-5 text-muted-foreground/70" />
                     </div>
-                  ) : (
-                    <Select
-                      value={field.type}
-                      onValueChange={(val: ServiceFieldType) =>
-                        handleUpdateField(field.id, { type: val })
-                      }
-                      disabled={field.isSystem && field.id === "attachment"}
-                    >
-                      <SelectTrigger className="h-9 text-xs font-medium text-right">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent align="end">
-                        {FIELD_TYPES.map((ft) => (
-                          <SelectItem key={ft.type} value={ft.type} className="text-xs">
-                            {ft.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                {/* مفتاح الإلزامية */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-muted-foreground font-medium">إجباري:</span>
-                  <Switch
-                    checked={field.required}
-                    onCheckedChange={(c) => handleUpdateField(field.id, { required: c })}
-                  />
-                </div>
-
-                {/* مفتاح التفعيل */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-muted-foreground font-medium">مفعل:</span>
-                  <Switch
-                    checked={field.isActive}
-                    onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
-                    disabled={field.id === "mosqueId"}
-                  />
-                </div>
-
-                {/* زر الحذف */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={field.isSystem}
-                  onClick={() => !field.isSystem && handleDeleteField(field.id)}
-                  className={`h-8 w-8 shrink-0 ${
-                    field.isSystem
-                      ? "text-muted-foreground/30 cursor-not-allowed"
-                      : "text-muted-foreground hover:text-destructive"
-                  }`}
-                  title={field.isSystem ? "حقل نظام أساسي لا يمكن حذفه" : "حذف الحقل"}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* إذا كان حقل المسجد المربوط بقاعدة البيانات */}
-              {field.id === "mosqueId" && (
-                <div className="mt-2.5 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5 text-primary text-[11px] font-medium">
-                    <span>💡 ملاحظة: خيارات هذا الحقل تُجلب تلقائياً من قائمة المساجد المعتمدة في حساب المستفيد</span>
-                  </span>
-                  <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
-                    مربوط بقاعدة البيانات
-                  </Badge>
-                </div>
-              )}
-
-              {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة مخصصة */}
-              {field.id !== "mosqueId" && ["select", "radio"].includes(field.type) && (
-                <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">الخيارات:</span>
-                    {field.options?.map((opt, oIdx) => (
-                      <span
-                        key={oIdx}
-                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-muted text-xs font-medium"
-                      >
-                        <span>{opt.label}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(field.id, oIdx)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 shadow-2xs">
+                      #{index + 1}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 max-w-sm">
+                  {/* نص السؤال / التسمية المباشرة */}
+                  <div className="flex-1 min-w-0">
                     <Input
-                      value={newOptionInputs[field.id] || ""}
-                      onChange={(e) =>
-                        setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
-                      }
-                      placeholder="أدخل خياراً جديداً..."
-                      className="h-8 text-xs text-right"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddOption(field.id);
-                        }
-                      }}
+                      value={field.label}
+                      onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
+                      placeholder="اسم الحقل / السؤال..."
+                      className="h-9 text-xs sm:text-sm font-semibold text-right"
                     />
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleAddOption(field.id)}
-                      className="h-8 px-3 text-xs"
-                    >
-                      إضافة
-                    </Button>
                   </div>
+
+                  {/* نوع الحقل */}
+                  <div className="w-full sm:w-44 shrink-0">
+                    {isMosqueField ? (
+                      <div className="h-9 px-3 rounded-md bg-muted/60 border border-border flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                        <span>قائمة مساجد 🏛️</span>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 bg-background">قاعدة بيانات</Badge>
+                      </div>
+                    ) : (
+                      <Select
+                        value={field.type}
+                        onValueChange={(val: ServiceFieldType) =>
+                          handleUpdateField(field.id, { type: val })
+                        }
+                      >
+                        <SelectTrigger className="h-9 text-xs font-medium text-right">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align="end">
+                          {FIELD_TYPES.map((ft) => (
+                            <SelectItem key={ft.type} value={ft.type} className="text-xs">
+                              {ft.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* مفتاح الإلزامية */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground font-medium">إجباري:</span>
+                    <Switch
+                      checked={field.required}
+                      onCheckedChange={(c) => handleUpdateField(field.id, { required: c })}
+                    />
+                  </div>
+
+                  {/* مفتاح التفعيل */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground font-medium">مفعل:</span>
+                    <Switch
+                      checked={field.isActive}
+                      onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
+                      disabled={isMosqueField}
+                    />
+                  </div>
+
+                  {/* زر الحذف */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={isMosqueField}
+                    onClick={() => !isMosqueField && handleDeleteField(field.id)}
+                    className={`h-8 w-8 shrink-0 ${
+                      isMosqueField
+                        ? "text-muted-foreground/30 cursor-not-allowed"
+                        : "text-muted-foreground hover:text-destructive"
+                    }`}
+                    title={isMosqueField ? "حقل اختيار المسجد مربوط بقاعدة البيانات ولا يمكن حذفه" : "حذف الحقل"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* إذا كان حقل المسجد المربوط بقاعدة البيانات */}
+                {isMosqueField && (
+                  <div className="mt-2.5 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-primary text-[11px] font-medium">
+                      <span>💡 ملاحظة: خيارات هذا الحقل تُجلب تلقائياً من قائمة المساجد المعتمدة في حساب المستفيد</span>
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                      مربوط بقاعدة البيانات
+                    </Badge>
+                  </div>
+                )}
+
+                {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة مخصصة */}
+                {!isMosqueField && ["select", "radio"].includes(field.type) && (
+                  <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">الخيارات:</span>
+                      {field.options?.map((opt, oIdx) => (
+                        <span
+                          key={oIdx}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-muted text-xs font-medium"
+                        >
+                          <span>{opt.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveOption(field.id, oIdx)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-2 max-w-sm">
+                      <Input
+                        value={newOptionInputs[field.id] || ""}
+                        onChange={(e) =>
+                          setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
+                        }
+                        placeholder="أدخل خياراً جديداً..."
+                        className="h-8 text-xs text-right"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddOption(field.id);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleAddOption(field.id)}
+                        className="h-8 px-3 text-xs"
+                      >
+                        إضافة
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* زر إضافة حقل جديد */}
