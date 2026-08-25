@@ -66,6 +66,9 @@ import {
   CloudUpload,
   Layers,
   Sparkle,
+  Wifi,
+  Battery,
+  Signal,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -837,6 +840,23 @@ export default function FormsCustomizationServiceDetail() {
                   : "max-w-4xl"
               }`}
             >
+              {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية (Dynamic Island) */}
+              {previewDevice === "mobile" && (
+                <div className="flex items-center justify-between px-2 pt-1 pb-1 text-[11px] font-bold text-foreground/80 select-none border-b border-border/40 mb-2">
+                  <span className="font-semibold tracking-tight text-xs">9:41</span>
+                  {/* Dynamic Island */}
+                  <div className="w-24 h-5.5 bg-black dark:bg-zinc-900 rounded-full flex items-center justify-end px-2.5 gap-1.5 shadow-inner">
+                    <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-foreground/80">
+                    <Signal className="w-3.5 h-3.5" />
+                    <Wifi className="w-3.5 h-3.5" />
+                    <Battery className="w-4 h-4" />
+                  </div>
+                </div>
+              )}
+
               {/* 1. Stepper واقعي لمراحل تقديم الطلب */}
               <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
                 <div className="flex items-center justify-between text-xs font-bold">
@@ -1224,6 +1244,11 @@ export default function FormsCustomizationServiceDetail() {
                   </Button>
                 </div>
               </div>
+
+              {/* شريط السحب السفلي لهواتف iPhone (Home Indicator) */}
+              {previewDevice === "mobile" && (
+                <div className="w-32 h-1 bg-foreground/20 rounded-full mx-auto mt-4 mb-1" />
+              )}
             </div>
           </div>
 

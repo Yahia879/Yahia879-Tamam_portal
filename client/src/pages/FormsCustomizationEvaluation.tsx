@@ -54,6 +54,9 @@ import {
   Send,
   Building2,
   Calendar,
+  Wifi,
+  Battery,
+  Signal,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -902,10 +905,27 @@ export default function FormsCustomizationEvaluation() {
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
-                  ? "max-w-[400px] border-4 border-slate-700/60 dark:border-zinc-800 rounded-3xl p-2 bg-background shadow-2xl"
+                  ? "max-w-[420px] border-4 border-slate-700/60 dark:border-zinc-800 rounded-3xl p-3.5 bg-background shadow-2xl my-auto space-y-4"
                   : "max-w-2xl"
               }`}
             >
+              {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية (Dynamic Island) */}
+              {previewDevice === "mobile" && (
+                <div className="flex items-center justify-between px-2 pt-1 pb-1 text-[11px] font-bold text-foreground/80 select-none border-b border-border/40 mb-2">
+                  <span className="font-semibold tracking-tight text-xs">9:41</span>
+                  {/* Dynamic Island */}
+                  <div className="w-24 h-5.5 bg-black dark:bg-zinc-900 rounded-full flex items-center justify-end px-2.5 gap-1.5 shadow-inner">
+                    <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-foreground/80">
+                    <Signal className="w-3.5 h-3.5" />
+                    <Wifi className="w-3.5 h-3.5" />
+                    <Battery className="w-4 h-4" />
+                  </div>
+                </div>
+              )}
+
               {previewTab === "form" ? (
                 /* استمارة التقييم التفاعلية */
                 <div className="rounded-3xl border border-slate-200/90 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans">
@@ -1156,6 +1176,11 @@ export default function FormsCustomizationEvaluation() {
                     العودة لمعاينة الاستمارة
                   </Button>
                 </div>
+              )}
+
+              {/* شريط السحب السفلي لهواتف iPhone (Home Indicator) */}
+              {previewDevice === "mobile" && (
+                <div className="w-32 h-1 bg-foreground/20 rounded-full mx-auto mt-4 mb-1" />
               )}
             </div>
           </div>
