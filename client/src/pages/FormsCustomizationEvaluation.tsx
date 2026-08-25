@@ -40,6 +40,7 @@ import {
   Loader2,
   AlertCircle,
   X,
+  GripVertical,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -208,20 +209,31 @@ export default function FormsCustomizationEvaluation() {
     }));
     setHasChanges(true);
   };
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
-  // تحريك حقل
-  const handleMoveField = (index: number, direction: "up" | "down") => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= formConfig.fields.length) return;
+  // سحب وإفلات لترتيب الأسئلة
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
 
     const newFields = [...formConfig.fields];
-    const temp = newFields[index];
-    newFields[index] = newFields[targetIndex];
-    newFields[targetIndex] = temp;
+    const draggedItem = newFields[draggedIndex];
+    newFields.splice(draggedIndex, 1);
+    newFields.splice(index, 0, draggedItem);
 
     const updated = newFields.map((f, i) => ({ ...f, order: i + 1 }));
+    setDraggedIndex(index);
     setFormConfig((prev) => ({ ...prev, fields: updated }));
     setHasChanges(true);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   // إضافة خيار للقوائم
@@ -327,39 +339,36 @@ export default function FormsCustomizationEvaluation() {
         </div>
 
         {/* قائمة الأسئلة البسيطة والواضحة */}
-        <div className="space-y-3">
-          {formConfig.fields.map((field, index) => (
-            <div
-              key={field.id}
-              className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all ${
-                !field.isActive ? "opacity-50 bg-muted/20" : "border-border shadow-2xs"
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                {/* الترتيب ورقم الحقل */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => handleMoveField(index, "up")}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-20"
+        <div className="space-y-2.5">
+          {formConfig.fields.map((field, index) => {
+            const isDragging = draggedIndex === index;
+
+            return (
+              <div
+                key={field.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`p-3.5 sm:p-4 rounded-xl border bg-card text-right transition-all select-none ${
+                  isDragging
+                    ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
+                    : "border-border shadow-2xs hover:border-primary/40"
+                } ${!field.isActive ? "opacity-50 bg-muted/20" : ""}`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
+                  {/* مقبض السحب والإفلات (Grip Handle) + الترتيب البارز */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                      title="اسحب لتغيير الترتيب"
                     >
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === formConfig.fields.length - 1}
-                      onClick={() => handleMoveField(index, "down")}
-                      className="p-0.5 rounded hover:bg-muted text-muted-foreground disabled:opacity-20"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
+                      <GripVertical className="w-5 h-5 text-muted-foreground/70" />
+                    </div>
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 shadow-2xs">
+                      #{index + 1}
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-muted-foreground w-6 text-center">
-                    #{index + 1}
-                  </span>
-                </div>
 
                 {/* نص السؤال المباشر */}
                 <div className="flex-1 min-w-0">
@@ -469,7 +478,8 @@ export default function FormsCustomizationEvaluation() {
                 </div>
               )}
             </div>
-          ))}
+          );
+        })}
         </div>
 
         {/* زر إضافة حقل جديد البسيط */}
