@@ -215,10 +215,10 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   ],
   "/contract-templates": ["settings_center", "settings_contracts.view", "contracts"],
   "/program-customization": "programs_services",
-  "/forms-customization": "settings_center",
-  "/forms-customization/evaluation": "settings_center",
-  "/forms-customization/services": "settings_center",
-  "/forms-customization/option-2": "settings_center",
+  "/forms-customization": ["forms_customization.evaluation", "forms_customization.services", "settings_center"],
+  "/forms-customization/evaluation": ["forms_customization.evaluation", "settings_center"],
+  "/forms-customization/services": ["forms_customization.services", "settings_center"],
+  "/forms-customization/option-2": ["forms_customization.services", "settings_center"],
   "/partners": "settings_center",
   "/support": ["Create_Ticket", "View_Tickets"],
 };
@@ -232,7 +232,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   permission: string | string[];
 }> = [
   // تخصيص نماذج الخدمات
-  { pattern: /^\/forms-customization\/services\/[^/]+$/, permission: "settings_center" },
+  { pattern: /^\/forms-customization\/services\/[^/]+$/, permission: ["forms_customization.services", "settings_center"] },
 
   // المساجد
   { pattern: /^\/mosques\/\d+\/edit-imam$/, permission: "mosques" },
