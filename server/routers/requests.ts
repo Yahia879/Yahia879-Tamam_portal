@@ -3554,6 +3554,7 @@ export const requestsRouter = router({
         communicationRating: z.number().min(1).max(5).optional(),
         overallSatisfaction: z.number().min(1).max(5).optional(),
         comments: z.string().optional(),
+        answers: z.record(z.string(), z.any()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -3607,18 +3608,35 @@ export const requestsRouter = router({
       }
 
       // حساب التقييم العام (من 1 إلى 5)
-      const finalRating = input.overallSatisfaction || input.rating || input.servicesRating || 5;
+      let finalRating = input.overallSatisfaction || input.rating || input.servicesRating || 5;
+
+      // إذا وُجدت إجابات ديناميكية، نحاول استخلاص التقييم منها
+      if (input.answers) {
+        if (typeof input.answers.overallSatisfaction === "number" && input.answers.overallSatisfaction > 0) {
+          finalRating = input.answers.overallSatisfaction;
+        } else {
+          // البحث عن أول حقل تقييم برقم
+          const numericRatings = Object.entries(input.answers)
+            .filter(([k, v]) => (k.toLowerCase().includes("rating") || k.toLowerCase().includes("satisfaction")) && typeof v === "number" && v > 0)
+            .map(([, v]) => v as number);
+          if (numericRatings.length > 0) {
+            const avg = Math.round(numericRatings.reduce((a, b) => a + b, 0) / numericRatings.length);
+            finalRating = Math.max(1, Math.min(5, avg));
+          }
+        }
+      }
 
       const surveyPayload = {
-        beneficiaryName: input.beneficiaryName || null,
-        beneficiaryPhone: input.beneficiaryPhone || null,
-        serviceName: input.serviceName || null,
-        beneficiaryEmail: input.beneficiaryEmail || null,
-        servicesRating: input.servicesRating || null,
-        speedRating: input.speedRating || null,
-        communicationRating: input.communicationRating || null,
-        overallSatisfaction: input.overallSatisfaction || null,
-        comments: input.comments || input.notes || null,
+        beneficiaryName: input.beneficiaryName || input.answers?.beneficiaryName || null,
+        beneficiaryPhone: input.beneficiaryPhone || input.answers?.beneficiaryPhone || null,
+        serviceName: input.serviceName || input.answers?.serviceName || null,
+        beneficiaryEmail: input.beneficiaryEmail || input.answers?.beneficiaryEmail || null,
+        servicesRating: input.servicesRating || input.answers?.servicesRating || null,
+        speedRating: input.speedRating || input.answers?.speedRating || null,
+        communicationRating: input.communicationRating || input.answers?.communicationRating || null,
+        overallSatisfaction: input.overallSatisfaction || input.answers?.overallSatisfaction || null,
+        comments: input.comments || input.notes || input.answers?.comments || null,
+        answers: input.answers || null,
       };
 
       await db.insert(requestEvaluations).values({
