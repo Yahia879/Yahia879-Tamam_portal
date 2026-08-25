@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowRight,
   Plus,
@@ -118,6 +119,7 @@ export default function FormsCustomizationEvaluation() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
+  const [expandedPlaceholder, setExpandedPlaceholder] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (serverConfig) {
@@ -259,6 +261,32 @@ export default function FormsCustomizationEvaluation() {
     handleUpdateField(fieldId, { options: updatedOptions });
   };
 
+  const { user } = useAuth();
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasPermission = isAdmin || userPermissions.includes("forms_customization.evaluation");
+
+  if (!hasPermission) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-16 p-8 rounded-2xl border border-border bg-card text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">غير مصرح بالوصول</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            لا تملك الصلاحية اللازمة لتخصيص استمارة تقييم رضا المستفيد.
+          </p>
+          <Link href="/forms-customization">
+            <Button variant="outline" size="sm" className="mt-2 text-xs font-semibold">
+              العودة لقائمة النماذج
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -377,15 +405,51 @@ export default function FormsCustomizationEvaluation() {
                     </div>
                   </div>
 
-                {/* نص السؤال المباشر */}
-                <div className="flex-1 min-w-0">
-                  <Input
-                    value={field.label}
-                    onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
-                    placeholder="اكتب السؤال هنا..."
-                    className="h-9 text-xs sm:text-sm font-semibold text-right"
-                  />
-                </div>
+                  {/* نص السؤال المباشر مع محرر تلميح مصغر */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <Input
+                      value={field.label}
+                      onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
+                      placeholder="اكتب السؤال هنا..."
+                      className="h-9 text-xs sm:text-sm font-semibold text-right"
+                    />
+
+                    {/* محرر تلميح الحقل (Placeholder) المصغر والخفيف */}
+                    {field.type !== "rating" &&
+                      (((field.placeholder !== undefined && field.placeholder !== "") ||
+                        expandedPlaceholder[field.id]) ? (
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <Input
+                            value={field.placeholder || ""}
+                            onChange={(e) =>
+                              handleUpdateField(field.id, { placeholder: e.target.value })
+                            }
+                            placeholder="نص توضيحي داخلي (Placeholder)..."
+                            className="h-7 text-[11px] text-muted-foreground placeholder:text-muted-foreground/40 bg-muted/30 border-dashed border-border/80 focus-visible:bg-background rounded-md text-right px-2"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleUpdateField(field.id, { placeholder: "" });
+                              setExpandedPlaceholder((p) => ({ ...p, [field.id]: false }));
+                            }}
+                            className="p-1 rounded text-muted-foreground/50 hover:text-destructive transition-colors shrink-0"
+                            title="إزالة التلميح"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPlaceholder((p) => ({ ...p, [field.id]: true }))}
+                          className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 font-medium select-none"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>إضافة نص تلميح داخلي (Placeholder)</span>
+                        </button>
+                      ))}
+                  </div>
 
                 {/* نوع الحقل */}
                 <div className="w-full sm:w-44 shrink-0">
