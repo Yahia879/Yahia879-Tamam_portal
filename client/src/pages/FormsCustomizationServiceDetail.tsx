@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import {
   ArrowRight,
   Plus,
@@ -265,10 +265,8 @@ export default function FormsCustomizationServiceDetail() {
 
   const IconComponent = ICON_MAP[currentProgram?.icon || "Package"] || Package;
 
-  const { user } = useAuth();
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const hasPermission = isAdmin || userPermissions.includes("forms_customization.services");
+  const userPermissions = useUserPermissions();
+  const hasPermission = userPermissions.includes("forms_customization.services");
 
   if (!hasPermission) {
     return (
