@@ -858,53 +858,53 @@ export default function FormsCustomizationServiceDetail() {
               )}
 
               {/* 1. Stepper واقعي لمراحل تقديم الطلب */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs space-y-3">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">✓</span>
-                    <span className="hidden sm:inline">بيانات المستفيد</span>
+              <div className="p-3 sm:p-4 rounded-2xl bg-card border border-border/80 shadow-xs">
+                <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold gap-1">
+                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[9px] sm:text-[10px]">✓</span>
+                    <span>المستفيد</span>
                   </div>
-                  <div className="w-8 h-[2px] bg-emerald-500/40" />
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">✓</span>
-                    <span className="hidden sm:inline">اختيار البرنامج</span>
+                  <div className="w-3 sm:w-8 h-[2px] bg-emerald-500/40 shrink" />
+                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[9px] sm:text-[10px]">✓</span>
+                    <span>البرنامج</span>
                   </div>
-                  <div className="w-8 h-[2px] bg-primary" />
-                  <div className="flex items-center gap-1.5 text-primary">
-                    <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px]">3</span>
+                  <div className="w-3 sm:w-8 h-[2px] bg-primary shrink" />
+                  <div className="flex items-center gap-1 text-primary shrink-0">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary text-white flex items-center justify-center text-[9px] sm:text-[10px]">3</span>
                     <span>تفاصيل الطلب</span>
                   </div>
-                  <div className="w-8 h-[2px] bg-border" />
-                  <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px]">4</span>
-                    <span className="hidden sm:inline">المراجعة والإرسال</span>
+                  <div className="w-3 sm:w-8 h-[2px] bg-border shrink" />
+                  <div className="flex items-center gap-1 text-muted-foreground shrink-0">
+                    <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-muted flex items-center justify-center text-[9px] sm:text-[10px]">4</span>
+                    <span>المراجعة</span>
                   </div>
                 </div>
               </div>
 
               {/* 2. Banner الخدمة والبرنامج */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 sm:p-6 flex items-center gap-4">
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${currentProgram?.color || "bg-primary"} text-white shadow-lg`}>
-                  <IconComponent className="w-7 h-7" />
+              <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5 sm:p-6 flex items-center gap-3 sm:gap-4">
+                <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${currentProgram?.color || "bg-primary"} text-white shadow-md sm:shadow-lg`}>
+                  <IconComponent className="w-5 h-5 sm:w-7 sm:h-7" />
                 </div>
-                <div className="min-w-0">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold mb-1">
-                    <Sparkles className="w-3 h-3" />
+                <div className="min-w-0 flex-1">
+                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] sm:text-[11px] font-bold mb-0.5 sm:mb-1">
+                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>برنامج {currentProgram?.name || serviceId}</span>
                   </div>
-                  <h3 className="text-base sm:text-lg font-bold text-foreground truncate">
+                  <h3 className="text-sm sm:text-lg font-bold text-foreground truncate">
                     استمارة طلب خدمة {currentProgram?.name || serviceId}
                   </h3>
-                  <p className="text-xs text-muted-foreground line-clamp-1">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">
                     {currentProgram?.description || "يرجى تعبئة الحقول والبيانات المطلوبة لتقديم طلب الخدمة"}
                   </p>
                 </div>
               </div>
 
               {/* 3. كرت الحقول الديناميكية الواقعي */}
-              <div className="text-card-foreground flex flex-col gap-6 p-5 sm:p-8 lg:p-10 shadow-xl border border-border/60 rounded-3xl bg-background overflow-hidden">
-                <div className="space-y-6 sm:space-y-8">
-                  <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-5 sm:gap-6`}>
+              <div className={`text-card-foreground flex flex-col gap-5 sm:gap-6 ${previewDevice === "mobile" ? "p-3.5 rounded-2xl" : "p-5 sm:p-8 lg:p-10 rounded-3xl"} shadow-xl border border-border/60 bg-background overflow-hidden`}>
+                <div className="space-y-5 sm:space-y-8">
+                  <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-4" : "grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"}`}>
                     {fields
                       .filter((f) => f.isActive)
                       .filter((field) => {
@@ -937,7 +937,7 @@ export default function FormsCustomizationServiceDetail() {
                         return (
                           <React.Fragment key={field.id}>
                             <div
-                              className={isFullWidth && previewDevice !== "mobile" ? "col-span-1 sm:col-span-2" : "col-span-1"}
+                              className={previewDevice === "mobile" ? "col-span-1 w-full" : (isFullWidth ? "col-span-1 sm:col-span-2" : "col-span-1")}
                             >
                               <div className="space-y-2">
                                 <Label className="select-none flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
@@ -1123,28 +1123,28 @@ export default function FormsCustomizationServiceDetail() {
 
                             {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers مباشرة بكامل عرض الشبكة */}
                             {serviceId === "bunyan" && field.id === "actualWorshippers" && (
-                              <div className="col-span-1 sm:col-span-2 space-y-4">
+                              <div className={previewDevice === "mobile" ? "col-span-1 space-y-3" : "col-span-1 sm:col-span-2 space-y-4"}>
                                 <div
                                   onClick={() => setPreviewHasPrayerHall(!previewHasPrayerHall)}
-                                  className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
+                                  className={`p-3.5 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 sm:gap-4 select-none ${
                                     previewHasPrayerHall
                                       ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20"
                                       : "border-border/60 bg-muted/20 hover:bg-muted/40"
                                   }`}
                                 >
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2.5 sm:gap-3">
                                     <div
-                                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
                                         previewHasPrayerHall ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                                       }`}
                                     >
-                                      <Building2 className="w-5 h-5" />
+                                      <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                     </div>
                                     <div>
                                       <p className="font-bold text-xs sm:text-sm text-foreground">
                                         هل يتضمن المشروع مصلى للنساء؟
                                       </p>
-                                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                                      <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
                                         حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء
                                       </p>
                                     </div>
@@ -1152,46 +1152,56 @@ export default function FormsCustomizationServiceDetail() {
                                   <Checkbox
                                     id="hasPrayerHall"
                                     checked={previewHasPrayerHall}
-                                    className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                                    className="h-5 w-5 rounded-md data-[state=checked]:bg-primary shrink-0"
                                   />
                                 </div>
 
                                 {previewHasPrayerHall && (
-                                  <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
-                                      <Building2 className="w-4 h-4" />
+                                  <div className="p-3.5 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2">
+                                      <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                       بيانات مصلى النساء
                                     </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                      <div className="space-y-2">
+                                    <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-3 sm:gap-4`}>
+                                      <div className="space-y-1.5">
                                         <label htmlFor="previewWomenCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                          <Users className="w-4 h-4 text-primary/70" />
+                                          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/70" />
                                           <span>سعة مصلى النساء (مصلي)</span>
                                           <span className="text-red-500 font-bold">*</span>
                                         </label>
-                                        <Input
-                                          id="previewWomenCapacity"
-                                          type="number"
-                                          value={previewWomenCapacity}
-                                          onChange={(e) => setPreviewWomenCapacity(e.target.value)}
-                                          placeholder="مثال: 50"
-                                          className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
-                                        />
+                                        <div className="relative flex items-center">
+                                          <Input
+                                            id="previewWomenCapacity"
+                                            type="number"
+                                            value={previewWomenCapacity}
+                                            onChange={(e) => setPreviewWomenCapacity(e.target.value)}
+                                            placeholder="مثال: 50"
+                                            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 pl-12"
+                                          />
+                                          <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                            مصلي
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div className="space-y-2">
+                                      <div className="space-y-1.5">
                                         <label htmlFor="previewWomenArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                          <Ruler className="w-4 h-4 text-primary/70" />
+                                          <Ruler className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/70" />
                                           <span>المساحة (م²)</span>
                                           <span className="text-red-500 font-bold">*</span>
                                         </label>
-                                        <Input
-                                          id="previewWomenArea"
-                                          type="number"
-                                          value={previewWomenArea}
-                                          onChange={(e) => setPreviewWomenArea(e.target.value)}
-                                          placeholder="مثال: 50"
-                                          className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
-                                        />
+                                        <div className="relative flex items-center">
+                                          <Input
+                                            id="previewWomenArea"
+                                            type="number"
+                                            value={previewWomenArea}
+                                            onChange={(e) => setPreviewWomenArea(e.target.value)}
+                                            placeholder="مثال: 50"
+                                            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 pl-12"
+                                          />
+                                          <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                            م²
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1204,19 +1214,19 @@ export default function FormsCustomizationServiceDetail() {
 
                     {/* حقل المرفقات العام إن لم يكن مضافاً كحقل مخصص */}
                     {!fields.some((f) => f.id === "attachment" && f.isActive) && (
-                      <div className="col-span-1 sm:col-span-2 pt-4 border-t border-border/60">
-                        <Label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
+                      <div className="col-span-1 sm:col-span-2 pt-3 sm:pt-4 border-t border-border/60">
+                        <Label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-2.5 sm:mb-3 text-foreground">
                           <Paperclip className="w-4 h-4 text-primary" />
                           <span>المرفقات والوثائق الداعمة (اختياري)</span>
                         </Label>
-                        <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
-                          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                            <CloudUpload className="w-6 h-6" />
+                        <div className="p-4 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2.5 sm:mb-3 group-hover:scale-110 transition-transform">
+                            <CloudUpload className="w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <p className="font-bold text-xs sm:text-sm text-foreground">
                             اضغط لرفع ملف أو اسحبه إلى هنا
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-1">
+                          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 sm:mt-1">
                             يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
                           </p>
                         </div>
@@ -1226,21 +1236,21 @@ export default function FormsCustomizationServiceDetail() {
                 </div>
 
                 {/* أزرار التنقل السفلية للنموذج */}
-                <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border/60">
+                <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-2xl font-bold h-11 sm:h-12 px-4 sm:px-6 gap-2 text-xs sm:text-sm"
+                    className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-3 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>السابق</span>
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm bg-primary text-primary-foreground shadow-md hover:opacity-95"
+                    className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm bg-primary text-primary-foreground shadow-md hover:opacity-95"
                   >
                     <span>التالي</span>
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
               </div>
