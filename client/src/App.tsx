@@ -126,6 +126,11 @@ import PermissionsAuditLog from "./pages/PermissionsAuditLog";
 import JobPositions from "./pages/JobPositions";
 import StaffManagement from "./pages/StaffManagement";
 import ProgramCustomization from "./pages/ProgramCustomization";
+import FormsCustomization from "./pages/FormsCustomization";
+import FormsCustomizationEvaluation from "./pages/FormsCustomizationEvaluation";
+import FormsCustomizationServices from "./pages/FormsCustomizationServices";
+import FormsCustomizationServiceDetail from "./pages/FormsCustomizationServiceDetail";
+import FormsCustomizationOption2 from "./pages/FormsCustomizationOption2";
 import SupportTickets from "./pages/SupportTickets";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
@@ -389,6 +394,11 @@ function Router() {
       <Route path="/users/:id/permissions">{() => <AdminRoute component={UserPermissions} />}</Route>
       <Route path="/permissions-audit">{() => <AdminRoute component={PermissionsAuditLog} />}</Route>
       <Route path="/program-customization">{() => <AdminRoute component={ProgramCustomization} />}</Route>
+      <Route path="/forms-customization">{() => <AdminRoute component={FormsCustomization} />}</Route>
+      <Route path="/forms-customization/evaluation">{() => <AdminRoute component={FormsCustomizationEvaluation} />}</Route>
+      <Route path="/forms-customization/services">{() => <AdminRoute component={FormsCustomizationServices} />}</Route>
+      <Route path="/forms-customization/services/:serviceId">{() => <AdminRoute component={FormsCustomizationServiceDetail} />}</Route>
+      <Route path="/forms-customization/option-2">{() => <AdminRoute component={FormsCustomizationOption2} />}</Route>
       <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
       <Route path="/support">
         {() => (

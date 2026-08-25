@@ -37,7 +37,8 @@ import {
   Bell,
   FileSpreadsheet,
   LifeBuoy,
-  PenLine
+  PenLine,
+  SlidersHorizontal
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -863,6 +864,7 @@ export default function RolePermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["view", "edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services"] },
       ]
     }
   ];
@@ -940,6 +942,7 @@ export default function RolePermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
@@ -1139,6 +1142,10 @@ export default function RolePermissions() {
         add: "اضافة برامج",
         edit: "تعديل برامج",
         delete: "حذف برامج"
+      },
+      forms_customization: {
+        evaluation: "تخصيص استمارة التقييم",
+        services: "تخصيص نماذج طلبات الخدمات"
       },
       mosque_map: {
         view: "عرض الخريطة التفاعلية"

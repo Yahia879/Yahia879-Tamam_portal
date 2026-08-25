@@ -43,10 +43,10 @@ import {
   Bell,
   Info,
   ChevronDown,
-  ChevronUp,
   FileSpreadsheet,
   LifeBuoy,
   PenLine,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -679,6 +679,10 @@ export default function UserPermissions() {
         edit: "تعديل مواصفات البرامج والخدمات",
         delete: "حذف برنامج أو خدمة"
       },
+      forms_customization: {
+        evaluation: "تخصيص استمارة التقييم",
+        services: "تخصيص نماذج طلبات الخدمات"
+      },
       mosque_map: {
         view: "عرض الخريطة الجغرافية للمساجد"
       },
@@ -767,6 +771,7 @@ export default function UserPermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
