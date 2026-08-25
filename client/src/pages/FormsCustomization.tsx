@@ -51,8 +51,8 @@ export default function FormsCustomization() {
           </div>
         </div>
 
-        {/* قائمة الخيارات البسيطة */}
-        <div className="space-y-3">
+        {/* قائمة الخيارات البسيطة والمميزة بالترقيم الواضح */}
+        <div className="space-y-3.5">
           {options.map((opt, idx) => {
             const Icon = opt.icon;
             return (
@@ -63,13 +63,23 @@ export default function FormsCustomization() {
                 className="w-full flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-muted/30 transition-all text-right group shadow-2xs"
               >
                 <div className="flex items-center gap-4">
+                  {/* رقم الخيار البارز */}
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center border border-primary/20 shrink-0">
+                    {idx + 1}
+                  </div>
+
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${opt.iconColor}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
-                      {opt.title}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
+                        {opt.title}
+                      </h3>
+                      <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                        الخيار {idx + 1 === 1 ? "الأول" : "الثاني"}
+                      </span>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {opt.subtitle}
                     </p>
@@ -77,7 +87,7 @@ export default function FormsCustomization() {
                 </div>
 
                 <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
-                  <span className="text-xs font-semibold hidden sm:inline">دخول</span>
+                  <span className="text-xs font-bold hidden sm:inline">دخول</span>
                   <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 </div>
               </button>
