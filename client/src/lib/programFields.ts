@@ -12,7 +12,7 @@ import {
 
 // ==================== أنواع الحقول ====================
 
-export type FieldType = 'text' | 'number' | 'email' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file';
+export type FieldType = 'text' | 'number' | 'email' | 'phone' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'date' | 'file';
 
 export interface FieldOption {
   value: string;
