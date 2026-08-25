@@ -271,8 +271,87 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
           </div>
         );
 
+      case 'phone':
+        return (
+          <div className="relative flex items-center">
+            <Input
+              type="tel"
+              value={value !== undefined && value !== null ? value : ''}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={field.placeholder || "05xxxxxxxx"}
+              disabled={disabled}
+              className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+                error ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20' : ''
+              } ${disabled ? 'disabled:opacity-100 disabled:text-slate-900 disabled:bg-muted/40 font-bold' : ''}`}
+            />
+          </div>
+        );
+
+      case 'date':
+        return (
+          <Input
+            type="date"
+            value={value !== undefined && value !== null ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+              error ? 'border-red-500' : ''
+            }`}
+          />
+        );
+
+      case 'checkbox':
+        return (
+          <div
+            onClick={() => !disabled && onChange(!value)}
+            className={`flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none transition-all ${
+              value
+                ? 'border-primary bg-primary/5 text-primary font-bold shadow-2xs'
+                : 'border-border/80 bg-background text-foreground'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <input
+              type="checkbox"
+              checked={!!value}
+              onChange={(e) => !disabled && onChange(e.target.checked)}
+              disabled={disabled}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <span className="text-xs sm:text-sm">{field.placeholder || field.label || "أوافق على هذا الخيار"}</span>
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-2">
+            <Input
+              type="file"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onChange(f.name);
+              }}
+              disabled={disabled}
+              className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+            />
+            {value && typeof value === 'string' && (
+              <p className="text-xs text-muted-foreground font-semibold">الملف المحدد: {value}</p>
+            )}
+          </div>
+        );
+
       default:
-        return null;
+        return (
+          <Input
+            type="text"
+            value={value !== undefined && value !== null ? value : ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={field.placeholder}
+            disabled={disabled}
+            className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${
+              error ? 'border-red-500' : ''
+            }`}
+          />
+        );
     }
   };
 
