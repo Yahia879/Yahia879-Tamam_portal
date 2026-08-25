@@ -7,6 +7,8 @@ import BeneficiaryLayout from '@/components/BeneficiaryLayout';
 import { 
   getAllFieldsForProgram,
   getVisibleFieldsForProgram,
+  SHARED_FIELDS,
+  FormField,
 } from '@/lib/programFields';
 import { 
   validateAllFields, 
@@ -220,11 +222,53 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     return activePrograms.find(p => p.id === selectedService);
   }, [selectedService, activePrograms]);
 
-  // الحصول على جميع الحقول المرئية
+  // الحصول على إعدادات النموذج المخصصة للخدمة من مركز التخصيص
+  const { data: customFormConfig } = trpc.forms.getServiceFormConfig.useQuery(
+    { serviceId: selectedService || "" },
+    { enabled: !!selectedService }
+  );
+
+  // الحصول على جميع الحقول المرئية (إما المخصصة من النظام أو الافتراضية)
   const visibleFields = useMemo(() => {
     if (!selectedService) return [];
+
+    // إذا كان هناك تخصيص محفوظ للحقول من خلال لوحة تخصيص النماذج
+    if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
+      const activeCustomFields: FormField[] = customFormConfig.fields
+        .filter((f) => f.isActive)
+        .sort((a, b) => a.order - b.order)
+        .map((f) => ({
+          name: f.id,
+          type: f.type as any,
+          label: f.label,
+          placeholder: f.placeholder,
+          help: f.helpText,
+          required: f.required,
+          options: f.options,
+          validation: f.required ? { minLength: 1 } : undefined,
+        }));
+
+      // إضافة حقول مصلى النساء إذا تم تحديد ذلك
+      if (formData && formData.hasPrayerHall) {
+        const womenFields = [SHARED_FIELDS['womenPrayerArea'], SHARED_FIELDS['womenPrayerCapacity']].filter(Boolean);
+        const insertIndex = activeCustomFields.findIndex(f => f.name === 'actualWorshippers');
+        if (insertIndex !== -1) {
+          activeCustomFields.splice(insertIndex + 1, 0, ...womenFields);
+        } else {
+          const mosqueIdIndex = activeCustomFields.findIndex(f => f.name === 'mosqueId');
+          if (mosqueIdIndex !== -1) {
+            activeCustomFields.splice(mosqueIdIndex + 1, 0, ...womenFields);
+          } else {
+            activeCustomFields.push(...womenFields);
+          }
+        }
+      }
+
+      return activeCustomFields;
+    }
+
     return getVisibleFieldsForProgram(selectedService, formData);
-  }, [selectedService, formData]);
+  }, [selectedService, formData, customFormConfig]);
 
   // معالج تغيير الحقول
   const handleFieldChange = (fieldName: string, value: any) => {
@@ -348,11 +392,30 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         alert(`عذراً، المسجد المختار (${currentMosque?.name}) غير معتمد بعد. لا يمكن تقديم طلب خدمة إلا للمساجد المعتمدة.`);
         return;
       }
-      const newErrors = validateAllFields(selectedService!, formData);
-      if (hasErrors(newErrors)) {
-        setErrors(newErrors);
-        alert('يرجى ملء جميع الحقول المطلوبة');
-        return;
+
+      if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
+        const customErrors: Record<string, string> = {};
+        for (const field of visibleFields) {
+          const val = formData[field.name];
+          if (field.required && (val === undefined || val === null || val === "" || (Array.isArray(val) && val.length === 0))) {
+            customErrors[field.name] = `${field.label} مطلوب`;
+          }
+          if (field.name === 'willingToVolunteer' && val === 'no') {
+            customErrors[field.name] = "عذراً، لا يمكن إكمال إنشاء الطلب دون وجود فريق تطوعي. يرجى تأمين الفريق للمتابعة.";
+          }
+        }
+        if (hasErrors(customErrors)) {
+          setErrors(customErrors);
+          alert('يرجى ملء جميع الحقول المطلوبة');
+          return;
+        }
+      } else {
+        const newErrors = validateAllFields(selectedService!, formData);
+        if (hasErrors(newErrors)) {
+          setErrors(newErrors);
+          alert('يرجى ملء جميع الحقول المطلوبة');
+          return;
+        }
       }
       setCurrentStep('review');
     }
