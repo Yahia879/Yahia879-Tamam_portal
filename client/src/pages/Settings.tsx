@@ -80,6 +80,7 @@ const settingCards: SettingCard[] = [
     color: "text-emerald-600",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
     group: "البيانات",
+    permission: "forms_customization",
   },
   // مجموعة: المستخدمون
   {
@@ -114,6 +115,12 @@ export default function Settings() {
   const hasPermission = (perm?: string) => {
     if (isAdmin) return true;
     if (!perm) return true;
+    if (perm === "forms_customization") {
+      return (
+        userPermissions.includes("forms_customization.evaluation") ||
+        userPermissions.includes("forms_customization.services")
+      );
+    }
     if (perm === "settings_categories.view") {
       return (
         userPermissions.includes("settings_categories.view") ||
