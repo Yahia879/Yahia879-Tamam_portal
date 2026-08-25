@@ -380,23 +380,31 @@ export default function FormsCustomizationServiceDetail() {
 
                 {/* نوع الحقل */}
                 <div className="w-full sm:w-44 shrink-0">
-                  <Select
-                    value={field.type}
-                    onValueChange={(val: ServiceFieldType) =>
-                      handleUpdateField(field.id, { type: val })
-                    }
-                  >
-                    <SelectTrigger className="h-9 text-xs font-medium text-right">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      {FIELD_TYPES.map((ft) => (
-                        <SelectItem key={ft.type} value={ft.type} className="text-xs">
-                          {ft.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {field.id === "mosqueId" ? (
+                    <div className="h-9 px-3 rounded-md bg-muted/60 border border-border flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                      <span>قائمة مساجد 🏛️</span>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-background">ثابت</Badge>
+                    </div>
+                  ) : (
+                    <Select
+                      value={field.type}
+                      onValueChange={(val: ServiceFieldType) =>
+                        handleUpdateField(field.id, { type: val })
+                      }
+                      disabled={field.isSystem && field.id === "attachment"}
+                    >
+                      <SelectTrigger className="h-9 text-xs font-medium text-right">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="end">
+                        {FIELD_TYPES.map((ft) => (
+                          <SelectItem key={ft.type} value={ft.type} className="text-xs">
+                            {ft.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {/* مفتاح الإلزامية */}
@@ -414,6 +422,7 @@ export default function FormsCustomizationServiceDetail() {
                   <Switch
                     checked={field.isActive}
                     onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
+                    disabled={field.id === "mosqueId"}
                   />
                 </div>
 
@@ -422,15 +431,33 @@ export default function FormsCustomizationServiceDetail() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={() => handleDeleteField(field.id)}
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                  disabled={field.isSystem}
+                  onClick={() => !field.isSystem && handleDeleteField(field.id)}
+                  className={`h-8 w-8 shrink-0 ${
+                    field.isSystem
+                      ? "text-muted-foreground/30 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-destructive"
+                  }`}
+                  title={field.isSystem ? "حقل نظام أساسي لا يمكن حذفه" : "حذف الحقل"}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
 
-              {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة */}
-              {["select", "radio"].includes(field.type) && (
+              {/* إذا كان حقل المسجد المربوط بقاعدة البيانات */}
+              {field.id === "mosqueId" && (
+                <div className="mt-2.5 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-primary text-[11px] font-medium">
+                    <span>💡 ملاحظة: خيارات هذا الحقل تُجلب تلقائياً من قائمة المساجد المعتمدة في حساب المستفيد</span>
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                    مربوط بقاعدة البيانات
+                  </Badge>
+                </div>
+              )}
+
+              {/* إذا كان نوع الحقل قائمة منسدلة أو خيارات متعددة مخصصة */}
+              {field.id !== "mosqueId" && ["select", "radio"].includes(field.type) && (
                 <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-muted-foreground">الخيارات:</span>
