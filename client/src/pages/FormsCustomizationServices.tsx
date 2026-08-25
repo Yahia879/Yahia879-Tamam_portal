@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 import {
   ArrowRight,
   Package,
@@ -34,12 +34,10 @@ const ICON_MAP: Record<string, any> = {
 
 export default function FormsCustomizationServices() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
+  const userPermissions = useUserPermissions();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
 
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const hasPermission = isAdmin || userPermissions.includes("forms_customization.services");
+  const hasPermission = userPermissions.includes("forms_customization.services");
 
   if (!hasPermission) {
     return (
