@@ -147,9 +147,9 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "services.edit": ["settings.edit"],
   "services.delete": ["settings.edit"],
 
-  forms_customization: ["settings.view", "settings.edit"],
-  "forms_customization.evaluation": ["settings.edit", "settings.view"],
-  "forms_customization.services": ["settings.edit", "settings.view"],
+  forms_customization: ["forms_customization.evaluation", "forms_customization.services"],
+  "forms_customization.evaluation": ["settings.view"],
+  "forms_customization.services": ["settings.view"],
 
   "financial_approval.view": ["financial.view"],
   "financial_approval.approve": ["financial.approve"],
@@ -1050,6 +1050,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("settings_center");
     allPermissions.add("services");
     allPermissions.add("programs_services");
+  }
+  if (
+    allPermissions.has("forms_customization.evaluation") ||
+    allPermissions.has("forms_customization.services")
+  ) {
+    allPermissions.add("forms_customization");
+  } else {
+    allPermissions.delete("forms_customization");
   }
 
   return Array.from(allPermissions);
