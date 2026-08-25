@@ -220,19 +220,22 @@ export const DEFAULT_EVALUATION_FORM_SETTINGS: EvaluationFormSettings = {
 function getDefaultFieldsForService(serviceId: string): ServiceField[] {
   if (serviceId === "bunyan") {
     return [
-      { id: "neighborhoodName", type: "text", label: "اسم الحي", placeholder: "مثال: حي النسيم", required: true, isActive: true, order: 1, isSystem: true },
-      { id: "hasLand", type: "radio", label: "هل لديكم أرض مخصصة للبناء؟", required: true, isActive: true, order: 2, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
-      { id: "landOwnership", type: "select", label: "ملكية الأرض", required: true, isActive: true, order: 3, options: [{ label: "ملك خاص", value: "owned" }, { label: "وقف", value: "waqf" }, { label: "حكومية", value: "government" }, { label: "أخرى", value: "other" }], isSystem: true },
-      { id: "landArea", type: "number", label: "مساحة الأرض بالمتر المربع", placeholder: "مثال: 500", required: false, isActive: true, order: 4, isSystem: true },
-      { id: "landProposal", type: "textarea", label: "مقترحات بخصوص الأرض", placeholder: "أي مقترحات أو ملاحظات بخصوص الأرض...", required: false, isActive: true, order: 5, isSystem: true },
-      { id: "hasDonor", type: "radio", label: "هل لديكم متبرع للقيام بتكاليف البناء؟", required: true, isActive: true, order: 6, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
-      { id: "donationAmount", type: "number", label: "مبلغ التبرع (بالريال السعودي)", placeholder: "مثال: 100000", required: false, isActive: true, order: 7, isSystem: true },
-      { id: "fundingProposal", type: "textarea", label: "مقترحات التمويل", placeholder: "أي مقترحات بخصوص التمويل والتبرعات...", required: true, isActive: true, order: 8, isSystem: true },
-      { id: "nearestMosque", type: "text", label: "أقرب مسجد موجود", placeholder: "اسم أقرب مسجد للموقع المقترح", required: false, isActive: true, order: 9, isSystem: true },
-      { id: "distanceToMosque", type: "number", label: "المسافة من أقرب مسجد (بالكيلومتر)", placeholder: "مثال: 2.5", required: false, isActive: true, order: 10, isSystem: true },
-      { id: "workDescription", type: "textarea", label: "وصف الأعمال أو الاحتياج المطلوب", placeholder: "اكتب تفاصيل إضافية...", required: true, isActive: true, order: 11, isSystem: true },
-      { id: "willingToVolunteer", type: "radio", label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟", required: true, isActive: true, order: 12, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
-      { id: "attachment", type: "file", label: "المرفقات والوثائق الداعمة (اختياري)", placeholder: "ملفات PDF أو صور أو مستندات Word", required: false, isActive: true, order: 13, isSystem: true },
+      { id: "workDescription", type: "textarea", label: "وصف الأعمال المطلوبة", placeholder: "اكتب وصفاً تفصيلياً للأعمال المطلوبة...", helpText: "قدم وصفاً مفصلاً لما تحتاجه المسجد", required: true, isActive: true, order: 1, isSystem: true },
+      { id: "mosqueArea", type: "number", label: "مساحة المسجد بالمتر المربع", placeholder: "مثال: 300", required: false, isActive: true, order: 2, isSystem: true },
+      { id: "actualWorshippers", type: "number", label: "عدد المصلين الفعلي", placeholder: "مثال: 200", required: false, isActive: true, order: 3, isSystem: true },
+      { id: "hasDonorForMaintenance", type: "radio", label: "هل يوجد متبرع للقيام بتكاليف الصيانة المطلوبة؟", required: false, isActive: true, order: 4, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "willingToVolunteer", type: "radio", label: "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟", required: true, isActive: true, order: 5, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "neighborhoodName", type: "text", label: "اسم الحي", placeholder: "مثال: حي النسيم", required: true, isActive: true, order: 6, isSystem: true },
+      { id: "hasLand", type: "radio", label: "هل لديكم أرض مخصصة للبناء؟", required: true, isActive: true, order: 7, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "landOwnership", type: "select", label: "ملكية الأرض", required: true, isActive: true, order: 8, options: [{ label: "ملك خاص", value: "owned" }, { label: "وقف", value: "waqf" }, { label: "حكومية", value: "government" }, { label: "أخرى", value: "other" }], isSystem: true },
+      { id: "landArea", type: "number", label: "مساحة الأرض بالمتر المربع", placeholder: "مثال: 500", required: false, isActive: true, order: 9, isSystem: true },
+      { id: "landProposal", type: "textarea", label: "مقترحات بخصوص الأرض", placeholder: "أي مقترحات أو ملاحظات بخصوص الأرض...", required: false, isActive: true, order: 10, isSystem: true },
+      { id: "hasDonor", type: "radio", label: "هل لديكم متبرع للقيام بتكاليف البناء؟", required: true, isActive: true, order: 11, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "donationAmount", type: "number", label: "مبلغ التبرع (بالريال السعودي)", placeholder: "مثال: 100000", required: false, isActive: true, order: 12, isSystem: true },
+      { id: "fundingProposal", type: "textarea", label: "مقترحات التمويل", placeholder: "أي مقترحات بخصوص التمويل والتبرعات...", required: true, isActive: true, order: 13, isSystem: true },
+      { id: "nearestMosque", type: "text", label: "أقرب مسجد موجود", placeholder: "اسم أقرب مسجد للموقع المقترح", required: false, isActive: true, order: 14, isSystem: true },
+      { id: "distanceToMosque", type: "number", label: "المسافة من أقرب مسجد (بالكيلومتر)", placeholder: "مثال: 2.5", required: false, isActive: true, order: 15, isSystem: true },
+      { id: "attachment", type: "file", label: "المرفقات والوثائق الداعمة (اختياري)", placeholder: "ملفات PDF أو صور أو مستندات Word", helpText: "يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)", required: false, isActive: true, order: 16, isSystem: true },
     ];
   }
 
