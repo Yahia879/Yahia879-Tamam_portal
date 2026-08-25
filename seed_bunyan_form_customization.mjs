@@ -1,6 +1,7 @@
 import mysql from 'mysql2/promise';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: 'C:/Users/Loq/Desktop/Trying/Tamam_portal/.env' });
+dotenv.config();
+dotenv.config({ path: './.env' });
 
 async function seedBunyanFormCustomization() {
   if (!process.env.DATABASE_URL) {
