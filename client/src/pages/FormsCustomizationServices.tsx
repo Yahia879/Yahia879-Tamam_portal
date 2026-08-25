@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/_core/hooks/useAuth";
 import {
   ArrowRight,
   Package,
@@ -15,6 +16,7 @@ import {
   Loader2,
   ChevronLeft,
   SlidersHorizontal,
+  AlertCircle,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 
@@ -32,7 +34,33 @@ const ICON_MAP: Record<string, any> = {
 
 export default function FormsCustomizationServices() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { data: programs = [], isLoading } = trpc.programs.getAll.useQuery();
+
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const hasPermission = isAdmin || userPermissions.includes("forms_customization.services");
+
+  if (!hasPermission) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-16 p-8 rounded-2xl border border-border bg-card text-center space-y-3 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h3 className="text-base font-bold text-foreground">غير مصرح بالوصول</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            لا تملك الصلاحية اللازمة لتخصيص نماذج طلبات الخدمات.
+          </p>
+          <Link href="/forms-customization">
+            <Button variant="outline" size="sm" className="mt-2 text-xs font-semibold">
+              العودة لقائمة النماذج
+            </Button>
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
