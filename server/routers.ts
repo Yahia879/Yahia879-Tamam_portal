@@ -26,9 +26,13 @@ import { jobPositionsRouter } from "./routers/jobPositions";
 import { programsRouter } from "./routers/programs";
 import { supportTicketsRouter } from "./routers/supportTickets";
 import { boardRouter } from "./routers/board";
+import { formsRouter } from "./routers/forms";
 
 export const appRouter = router({
   system: systemRouter,
+
+  // تخصيص النماذج والاستمارات
+  forms: formsRouter,
 
   // اللوحة القيادية للمجلس
   board: boardRouter,
