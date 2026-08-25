@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { brandSettings } from "../../drizzle/schema";
+import { brandSettings, programs } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 export const formFieldOptionSchema = z.object({
@@ -22,6 +22,8 @@ export const formFieldSchema = z.object({
     "checkbox",
     "email",
     "phone",
+    "date",
+    "file",
   ]),
   label: z.string().min(1, "عنوان الحقل مطلوب"),
   placeholder: z.string().optional(),
@@ -51,8 +53,40 @@ export const evaluationFormSettingsSchema = z.object({
   fields: z.array(formFieldSchema),
 });
 
+export const serviceFieldSchema = z.object({
+  id: z.string(),
+  type: z.enum([
+    "text",
+    "textarea",
+    "number",
+    "select",
+    "radio",
+    "checkbox",
+    "date",
+    "file",
+    "phone",
+    "email",
+  ]),
+  label: z.string().min(1, "عنوان الحقل مطلوب"),
+  placeholder: z.string().optional(),
+  helpText: z.string().optional(),
+  required: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  order: z.number().default(0),
+  options: z.array(formFieldOptionSchema).optional(),
+  isSystem: z.boolean().optional(),
+});
+
+export const serviceFormSettingsSchema = z.object({
+  serviceId: z.string(),
+  serviceName: z.string().optional(),
+  fields: z.array(serviceFieldSchema),
+});
+
 export type FormField = z.infer<typeof formFieldSchema>;
 export type EvaluationFormSettings = z.infer<typeof evaluationFormSettingsSchema>;
+export type ServiceField = z.infer<typeof serviceFieldSchema>;
+export type ServiceFormSettings = z.infer<typeof serviceFormSettingsSchema>;
 
 export const DEFAULT_EVALUATION_FORM_SETTINGS: EvaluationFormSettings = {
   title: "قياس رضا المستفيدين من خدمات الجمعية",
@@ -182,30 +216,72 @@ export const DEFAULT_EVALUATION_FORM_SETTINGS: EvaluationFormSettings = {
   ],
 };
 
-const SETTING_KEY = "evaluation_form_customization";
+// الحقول الافتراضية لكل برنامج
+function getDefaultFieldsForService(serviceId: string): ServiceField[] {
+  if (serviceId === "bunyan") {
+    return [
+      { id: "neighborhoodName", type: "text", label: "اسم الحي", placeholder: "مثال: حي النسيم", required: true, isActive: true, order: 1, isSystem: true },
+      { id: "hasLand", type: "radio", label: "هل لديكم أرض مخصصة للبناء؟", required: true, isActive: true, order: 2, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "landOwnership", type: "select", label: "ملكية الأرض", required: true, isActive: true, order: 3, options: [{ label: "ملك خاص", value: "owned" }, { label: "وقف", value: "waqf" }, { label: "حكومية", value: "government" }, { label: "أخرى", value: "other" }], isSystem: true },
+      { id: "landArea", type: "number", label: "مساحة الأرض بالمتر المربع", placeholder: "مثال: 500", required: false, isActive: true, order: 4, isSystem: true },
+      { id: "hasDonor", type: "radio", label: "هل لديكم متبرع للقيام بتكاليف البناء؟", required: true, isActive: true, order: 5, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+      { id: "workDescription", type: "textarea", label: "وصف الأعمال أو الاحتياج المطلوب", placeholder: "اكتب تفاصيل إضافية...", required: true, isActive: true, order: 6, isSystem: true },
+      { id: "willingToVolunteer", type: "radio", label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟", required: true, isActive: true, order: 7, options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }], isSystem: true },
+    ];
+  }
+
+  // البرامج القياسية الأخرى (عناية، فرش، تكييف، استجابة سريعة، سقيا، إلخ)
+  const commonFields: ServiceField[] = [
+    { id: "mosqueId", type: "select", label: "اختيار المسجد", placeholder: "اختر المسجد من قائمتك", required: true, isActive: true, order: 1, isSystem: true },
+    { id: "workDescription", type: "textarea", label: "وصف الأعمال والاحتياج المطلوب", placeholder: "اكتب وصفاً تفصيلياً للاحتياج والأعمال المطلوبة...", required: true, isActive: true, order: 2, isSystem: true },
+    { id: "mosqueArea", type: "number", label: "مساحة المسجد (م٢)", placeholder: "مثال: 350", required: false, isActive: true, order: 3, isSystem: true },
+    { id: "actualWorshippers", type: "number", label: "عدد المصلين الفعلي", placeholder: "مثال: 150", required: false, isActive: true, order: 4, isSystem: true },
+  ];
+
+  if (serviceId === "takeef") {
+    commonFields.push({ id: "acCount", type: "number", label: "عدد المكيفات المطلوبة", placeholder: "مثال: 4", required: true, isActive: true, order: 5, isSystem: true });
+  } else if (serviceId === "soqya") {
+    commonFields.push({ id: "waterQuantity", type: "number", label: "الكمية المطلوبة (كرتون)", placeholder: "مثال: 100", required: true, isActive: true, order: 5, isSystem: true });
+  } else if (serviceId === "quick_response") {
+    commonFields.push({ id: "urgencyLevel", type: "select", label: "درجة الاستعجال", required: true, isActive: true, order: 5, options: [{ label: "طارئ جداً", value: "urgent" }, { label: "متوسط", value: "medium" }, { label: "عادي", value: "normal" }], isSystem: true });
+  }
+
+  commonFields.push({
+    id: "willingToVolunteer",
+    type: "radio",
+    label: "هل لديكم استعداد لتأسيس فريق تطوعي لقيادة وتسويق الفرصة؟",
+    required: true,
+    isActive: true,
+    order: commonFields.length + 1,
+    options: [{ label: "نعم", value: "yes" }, { label: "لا", value: "no" }],
+    isSystem: true,
+  });
+
+  return commonFields;
+}
+
+const EVALUATION_SETTING_KEY = "evaluation_form_customization";
+const SERVICE_SETTING_PREFIX = "service_form_customization_";
 
 export const formsRouter = router({
+  // ==================== استمارة التقييم ====================
+
   // جلب إعدادات استمارة التقييم
   getEvaluationFormConfig: publicProcedure.query(async () => {
     const db = await getDb();
-    if (!db) {
-      return DEFAULT_EVALUATION_FORM_SETTINGS;
-    }
+    if (!db) return DEFAULT_EVALUATION_FORM_SETTINGS;
 
     try {
       const [setting] = await db
         .select()
         .from(brandSettings)
-        .where(eq(brandSettings.settingKey, SETTING_KEY))
+        .where(eq(brandSettings.settingKey, EVALUATION_SETTING_KEY))
         .limit(1);
 
       if (setting && setting.settingValue) {
         const parsed = JSON.parse(setting.settingValue);
-        // دمج الحقول والتأكد من صحتها
         const validated = evaluationFormSettingsSchema.safeParse(parsed);
-        if (validated.success) {
-          return validated.data;
-        }
+        if (validated.success) return validated.data;
       }
     } catch (e) {
       console.error("Error reading evaluation form config:", e);
@@ -220,34 +296,15 @@ export const formsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "قاعدة البيانات غير متاحة",
-        });
-      }
-
-      // التحقق من الصلاحيات (المدراء أو من لديه صلاحية الإعدادات)
-      const allowedRoles = ["super_admin", "system_admin", "executive_director", "general_manager"];
-      const userPermissions: string[] = (ctx.user as any)?.permissions || [];
-      const hasSettingsPerm =
-        userPermissions.includes("settings_center") ||
-        userPermissions.includes("settings_categories.edit") ||
-        userPermissions.includes("services.edit");
-
-      if (!allowedRoles.includes(ctx.user.role) && !hasSettingsPerm) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "ليس لديك صلاحية لتعديل إعدادات النماذج",
-        });
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
       const serializedValue = JSON.stringify(input);
 
-      // البحث عن الإعداد لتحديثه أو إنشائه
       const [existing] = await db
         .select()
         .from(brandSettings)
-        .where(eq(brandSettings.settingKey, SETTING_KEY))
+        .where(eq(brandSettings.settingKey, EVALUATION_SETTING_KEY))
         .limit(1);
 
       if (existing) {
@@ -258,10 +315,10 @@ export const formsRouter = router({
             updatedBy: ctx.user.id,
             updatedAt: new Date(),
           })
-          .where(eq(brandSettings.settingKey, SETTING_KEY));
+          .where(eq(brandSettings.settingKey, EVALUATION_SETTING_KEY));
       } else {
         await db.insert(brandSettings).values({
-          settingKey: SETTING_KEY,
+          settingKey: EVALUATION_SETTING_KEY,
           settingValue: serializedValue,
           settingType: "json",
           description: "تخصيص استمارة تقييم رضا المستفيد",
@@ -278,27 +335,14 @@ export const formsRouter = router({
       };
     }),
 
-  // إعادة التعيين إلى الإعدادات الافتراضية
-  resetEvaluationFormConfig: protectedProcedure.mutation(async ({ ctx }) => {
+  // إعادة تعيين استمارة التقييم للافتراضي
+  resetEvaluationFormConfig: protectedProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message: "قاعدة البيانات غير متاحة",
-      });
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
     }
 
-    const allowedRoles = ["super_admin", "system_admin", "executive_director", "general_manager"];
-    if (!allowedRoles.includes(ctx.user.role)) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "ليس لديك صلاحية لإعادة تعيين النموذج",
-      });
-    }
-
-    await db
-      .delete(brandSettings)
-      .where(eq(brandSettings.settingKey, SETTING_KEY));
+    await db.delete(brandSettings).where(eq(brandSettings.settingKey, EVALUATION_SETTING_KEY));
 
     return {
       success: true,
@@ -306,4 +350,111 @@ export const formsRouter = router({
       data: DEFAULT_EVALUATION_FORM_SETTINGS,
     };
   }),
+
+  // ==================== نماذج طلبات الخدمات ====================
+
+  // جلب حقول نموذج خدمة محددة
+  getServiceFormConfig: publicProcedure
+    .input(z.object({ serviceId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      const settingKey = `${SERVICE_SETTING_PREFIX}${input.serviceId}`;
+
+      const defaultFields = getDefaultFieldsForService(input.serviceId);
+
+      if (!db) {
+        return { serviceId: input.serviceId, fields: defaultFields };
+      }
+
+      try {
+        const [setting] = await db
+          .select()
+          .from(brandSettings)
+          .where(eq(brandSettings.settingKey, settingKey))
+          .limit(1);
+
+        if (setting && setting.settingValue) {
+          const parsed = JSON.parse(setting.settingValue);
+          const validated = serviceFormSettingsSchema.safeParse(parsed);
+          if (validated.success) {
+            return validated.data;
+          }
+        }
+      } catch (e) {
+        console.error("Error reading service form config:", e);
+      }
+
+      return {
+        serviceId: input.serviceId,
+        fields: defaultFields,
+      };
+    }),
+
+  // حفظ حقول نموذج خدمة محددة
+  saveServiceFormConfig: protectedProcedure
+    .input(serviceFormSettingsSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const settingKey = `${SERVICE_SETTING_PREFIX}${input.serviceId}`;
+      const serializedValue = JSON.stringify(input);
+
+      const [existing] = await db
+        .select()
+        .from(brandSettings)
+        .where(eq(brandSettings.settingKey, settingKey))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(brandSettings)
+          .set({
+            settingValue: serializedValue,
+            updatedBy: ctx.user.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(brandSettings.settingKey, settingKey));
+      } else {
+        await db.insert(brandSettings).values({
+          settingKey,
+          settingValue: serializedValue,
+          settingType: "json",
+          description: `تخصيص نموذج الخدمة: ${input.serviceName || input.serviceId}`,
+          updatedBy: ctx.user.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      return {
+        success: true,
+        message: `تم حفظ نموذج ${input.serviceName || "الخدمة"} بنجاح وتطبيقه على الطلبات`,
+        data: input,
+      };
+    }),
+
+  // إعادة تعيين حقول نموذج خدمة للافتراضي
+  resetServiceFormConfig: protectedProcedure
+    .input(z.object({ serviceId: z.string() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const settingKey = `${SERVICE_SETTING_PREFIX}${input.serviceId}`;
+      await db.delete(brandSettings).where(eq(brandSettings.settingKey, settingKey));
+
+      return {
+        success: true,
+        message: "تمت استعادة الحقول الافتراضية للخدمة بنجاح",
+        data: {
+          serviceId: input.serviceId,
+          fields: getDefaultFieldsForService(input.serviceId),
+        },
+      };
+    }),
 });
