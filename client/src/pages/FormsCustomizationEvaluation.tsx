@@ -220,7 +220,6 @@ export default function FormsCustomizationEvaluation() {
   const [hasChanges, setHasChanges] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
-  const [showSettingsSection, setShowSettingsSection] = useState(false);
   const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({});
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -668,18 +667,6 @@ export default function FormsCustomizationEvaluation() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* زر فتح إعدادات المظهر والنصوص */}
-            <Button
-              type="button"
-              variant={showSettingsSection ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowSettingsSection(!showSettingsSection)}
-              className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl border-border/80 shadow-2xs"
-            >
-              <Palette className="w-3.5 h-3.5 text-primary" />
-              <span>إعدادات المظهر والنصوص</span>
-            </Button>
-
             {/* القائمة السريعة لإضافة حقل حسب النوع */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -733,136 +720,6 @@ export default function FormsCustomizationEvaluation() {
             </Button>
           </div>
         </div>
-
-        {/* ========================================================================= */}
-        {/* قسم إعدادات المظهر والنصوص (قابل للفتح والإغلاق) */}
-        {/* ========================================================================= */}
-        {showSettingsSection && (
-          <div className="p-5 sm:p-6 rounded-3xl border border-primary/20 bg-card shadow-sm space-y-5 animate-in fade-in slide-in-from-top-3 duration-200">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Palette className="w-4 h-4 text-primary" />
-                <span>إعدادات النصوص، الألوان ورسائل النجاح</span>
-              </h3>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSettingsSection(false)}
-                className="h-7 text-xs text-muted-foreground rounded-lg"
-              >
-                إخفاء
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">عنوان الاستمارة الرئيسي:</Label>
-                <Input
-                  value={formConfig.title}
-                  onChange={(e) => {
-                    setFormConfig((p) => ({ ...p, title: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  className="h-10 text-xs sm:text-sm rounded-xl"
-                  placeholder="مثال: قياس رضا المستفيدين من خدمات الجمعية..."
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">نص زر الإرسال:</Label>
-                <Input
-                  value={formConfig.submitButtonText || "إرسال التقييم"}
-                  onChange={(e) => {
-                    setFormConfig((p) => ({ ...p, submitButtonText: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  className="h-10 text-xs sm:text-sm rounded-xl"
-                  placeholder="مثال: إرسال التقييم"
-                />
-              </div>
-
-              <div className="col-span-1 sm:col-span-2 space-y-1.5">
-                <Label className="text-xs font-bold">النص الترحيبي / الوصف التوضيحي:</Label>
-                <Textarea
-                  value={formConfig.description}
-                  onChange={(e) => {
-                    setFormConfig((p) => ({ ...p, description: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  rows={2}
-                  className="text-xs sm:text-sm rounded-xl leading-relaxed"
-                  placeholder="اكتب مقدمة ترحيبية للمستفيد تشرح الغرض من الاستبيان..."
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">عنوان شاشة النجاح بعد الإرسال:</Label>
-                <Input
-                  value={formConfig.successTitle || "تم تقييم الخدمة بنجاح"}
-                  onChange={(e) => {
-                    setFormConfig((p) => ({ ...p, successTitle: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  className="h-10 text-xs sm:text-sm rounded-xl"
-                  placeholder="مثال: تم تقييم الخدمة بنجاح"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold">نص رسالة الشكر والتأكيد:</Label>
-                <Input
-                  value={formConfig.successMessage || ""} 
-                  onChange={(e) => {
-                    setFormConfig((p) => ({ ...p, successMessage: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  className="h-10 text-xs sm:text-sm rounded-xl"
-                  placeholder="شكراً لجهودكم ومشاركتكم القيمة..."
-                />
-              </div>
-
-              <div className="col-span-1 sm:col-span-2 space-y-2 pt-2 border-t border-border/50">
-                <Label className="text-xs font-bold flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-primary" />
-                  <span>لون خلفية الهيدر (Header Background Color):</span>
-                </Label>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {COLOR_PRESETS.map((c) => (
-                    <button
-                      key={c.hex}
-                      type="button"
-                      onClick={() => {
-                        setFormConfig((p) => ({ ...p, headerBgColor: c.hex }));
-                        setHasChanges(true);
-                      }}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                        formConfig.headerBgColor === c.hex
-                          ? "ring-2 ring-primary border-primary shadow-xs"
-                          : "border-border hover:border-primary/40 bg-background"
-                      }`}
-                    >
-                      <span className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: c.hex }} />
-                      <span>{c.label}</span>
-                    </button>
-                  ))}
-                  <div className="flex items-center gap-1.5 mr-auto">
-                    <span className="text-xs text-muted-foreground">كود اللون:</span>
-                    <Input
-                      value={formConfig.headerBgColor || "#14707a"}
-                      onChange={(e) => {
-                        setFormConfig((p) => ({ ...p, headerBgColor: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      className="h-8 w-28 text-xs font-mono rounded-lg text-left"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ========================================================================= */}
         {/* شريط البحث وتصفية الحقول (مطابق تماماً لبنيان) */}
