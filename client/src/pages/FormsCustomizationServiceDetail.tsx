@@ -323,18 +323,6 @@ export default function FormsCustomizationServiceDetail() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasChanges]);
 
-  // اختصار لوحة المفاتيح للحفظ السريع (Ctrl+S / Cmd+S)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        handleSave();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [fields, serviceId, currentProgram]);
-
   const saveMutation = trpc.forms.saveServiceFormConfig.useMutation({
     onSuccess: (res) => {
       toast.success(res.message);
@@ -358,6 +346,10 @@ export default function FormsCustomizationServiceDetail() {
   });
 
   const handleSave = () => {
+    if (!hasChanges) {
+      toast.info("لا توجد أي تعديلات جديدة لحفظها");
+      return;
+    }
     if (fields.length === 0) {
       toast.error("يجب أن يحتوي النموذج على حقل واحد على الأقل");
       return;
@@ -369,6 +361,20 @@ export default function FormsCustomizationServiceDetail() {
       fields,
     });
   };
+
+  // اختصار لوحة المفاتيح للحفظ السريع (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (hasChanges && !saveMutation.isPending) {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fields, serviceId, currentProgram, hasChanges, saveMutation.isPending]);
 
   // إضافة حقل جديد
   const handleAddField = (type: ServiceFieldType = "text", customLabel = "حقل جديد") => {
@@ -700,8 +706,13 @@ export default function FormsCustomizationServiceDetail() {
             <Button
               type="button"
               onClick={handleSave}
-              disabled={saveMutation.isPending}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-10 rounded-xl shadow-md gap-2 transition-all hover:shadow-lg"
+              disabled={saveMutation.isPending || !hasChanges}
+              className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${
+                hasChanges
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-lg cursor-pointer"
+                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
+              }`}
+              title={hasChanges ? "حفظ التعديلات (Ctrl+S)" : "لا توجد تعديلات غير محفوظة"}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

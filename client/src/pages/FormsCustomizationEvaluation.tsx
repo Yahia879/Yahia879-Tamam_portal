@@ -205,6 +205,10 @@ export default function FormsCustomizationEvaluation() {
   });
 
   const handleSave = () => {
+    if (!hasChanges) {
+      toast.info("لا توجد أي تعديلات جديدة لحفظها");
+      return;
+    }
     if (formConfig.fields.length === 0) {
       toast.error("يجب أن تحتوي الاستمارة على حقل واحد على الأقل");
       return;
@@ -425,8 +429,13 @@ export default function FormsCustomizationEvaluation() {
             <Button
               type="button"
               onClick={handleSave}
-              disabled={saveMutation.isPending}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-9 rounded-xl shadow-sm gap-1.5"
+              disabled={saveMutation.isPending || !hasChanges}
+              className={`text-xs font-bold px-5 h-9 rounded-xl shadow-sm gap-1.5 transition-all ${
+                hasChanges
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-md cursor-pointer"
+                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
+              }`}
+              title={hasChanges ? "حفظ التعديلات" : "لا توجد تعديلات غير محفوظة"}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
