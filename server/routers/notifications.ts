@@ -211,6 +211,7 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   disbursement_request_created: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
   disbursement_converted_to_order: "تم تحويل طلب الصرف رقم \"{رقم_طلب_الصرف}\" إلى أمر صرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
   disbursement_order_approved: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_approved_request_only: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
   disbursement_order_approved_general: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال",
   disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
 };
@@ -273,6 +274,12 @@ const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
     'تم الاعتماد المالي لأمر الصرف رقم "{رقم_أمر_الصرف}" للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال',
     'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال',
     'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_approved_request_only: [
+    'تم الاعتماد المالي لأمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") بقيمة {القيمة} ريال',
+    'تم الاعتماد المالي لأمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال',
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") بقيمة {القيمة} ريال',
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال'
   ],
   disbursement_order_approved_general: [
     'تم الاعتماد المالي لأمر الصرف رقم "{رقم_أمر_الصرف}" بقيمة {القيمة} ريال',
@@ -496,8 +503,10 @@ export async function createNotification(data: {
     } else if (data.title === "تحويل إلى أمر صرف" || data.message.includes("تم تحويل طلب الصرف")) {
       triggerId = "disbursement_converted_to_order";
     } else if (data.title === "الاعتماد المالي" || data.title === "اعتماد أمر صرف" || data.message.includes("الاعتماد المالي لأمر الصرف") || data.message.includes("تم اعتماد أمر الصرف") || data.message.includes("للاعتماد المالي")) {
-      if (data.message.includes("طلب رقم") || data.message.includes("للمشروع")) {
+      if (data.message.includes("طلب رقم") && data.message.includes("للمشروع")) {
         triggerId = "disbursement_order_approved";
+      } else if (data.message.includes("طلب رقم")) {
+        triggerId = "disbursement_order_approved_request_only";
       } else {
         triggerId = "disbursement_order_approved_general";
       }
@@ -524,6 +533,7 @@ export async function createNotification(data: {
       "disbursement_request_created",
       "disbursement_converted_to_order",
       "disbursement_order_approved",
+      "disbursement_order_approved_request_only",
       "disbursement_order_approved_general",
       "disbursement_order_rejected"
     ];
@@ -1886,8 +1896,10 @@ export async function notifyDisbursementOrderApproval(
     const officerIds = await getFinancialNotificationOfficerIds(db);
     const notificationTitle = "الاعتماد المالي";
     let message = "";
-    if (projectName || requestNumber) {
-      message = `تم الاعتماد المالي لأمر الصرف رقم "${orderNumber}"${requestNumber ? ` (طلب رقم "${requestNumber}")` : ""}${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+    if (projectName && requestNumber) {
+      message = `تم الاعتماد المالي لأمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}") للمشروع "${projectName}" بقيمة ${amount} ريال`;
+    } else if (requestNumber) {
+      message = `تم الاعتماد المالي لأمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}") بقيمة ${amount} ريال`;
     } else {
       message = `تم الاعتماد المالي لأمر الصرف رقم "${orderNumber}" بقيمة ${amount} ريال`;
     }

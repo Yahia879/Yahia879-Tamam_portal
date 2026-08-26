@@ -800,6 +800,18 @@ export default function NotificationCustomization() {
       ]
     },
     {
+      id: "disbursement_order_approved_request_only",
+      category: "financial",
+      nameAr: "الاعتماد المالي (مرتبط بطلب صرف فقط - غير مرتبط بمشروع)",
+      description: 'تم الاعتماد المالي لأمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) بقيمة 50,000 ريال',
+      defaultTemplate: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
       id: "disbursement_order_approved_general",
       category: "financial",
       nameAr: "الاعتماد المالي (غير مرتبط بمشروع وغير مرتبط بطلب صرف)",
@@ -1245,6 +1257,7 @@ export default function NotificationCustomization() {
       "disbursement_request_created",
       "disbursement_converted_to_order",
       "disbursement_order_approved",
+      "disbursement_order_approved_request_only",
       "disbursement_order_approved_general",
       "disbursement_order_rejected"
     ];
