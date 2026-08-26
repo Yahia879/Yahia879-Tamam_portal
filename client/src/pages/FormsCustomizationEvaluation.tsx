@@ -901,7 +901,7 @@ export default function FormsCustomizationEvaluation() {
           </div>
 
           {/* محتوى المعاينة الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex justify-center items-center bg-slate-100/90 dark:bg-zinc-950">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 sm:py-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
