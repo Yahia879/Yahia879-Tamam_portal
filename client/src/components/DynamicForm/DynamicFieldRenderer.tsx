@@ -218,7 +218,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               value={value !== undefined && value !== null ? value : ''}
               onValueChange={onChange}
               disabled={disabled}
-              className={`grid ${field.options && field.options.length > 2 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-3`}
+              className={`grid ${field.options && field.options.length > 2 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'} gap-2.5 sm:gap-3`}
               dir="rtl"
             >
               {field.options?.map((option) => {
@@ -230,7 +230,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                   <label
                     key={option.value}
                     htmlFor={`${field.name}-${option.value}`}
-                    className={`relative flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                    className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
                       isSelected
                         ? isYes
                           ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20'
@@ -240,7 +240,7 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                         : 'border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground'
                     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
                       <RadioGroupItem
                         value={option.value}
                         id={`${field.name}-${option.value}`}

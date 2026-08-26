@@ -865,12 +865,16 @@ export default function FormsCustomizationServiceDetail() {
                 {/* 1. رأس صفحة تقديم الطلب المطابق تماماً لـ BeneficiaryLayout */}
                 <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    <div
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium size-8 sm:size-10 rounded-xl hover:bg-muted shrink-0 text-foreground border border-border/40 bg-card shadow-2xs cursor-default"
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-default"
                       title="العودة للرئيسية"
                     >
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
+                      <span className="sr-only">العودة للرئيسية</span>
+                    </Button>
                     <div className="min-w-0 flex-1">
                       <h1 className="text-sm sm:text-2xl font-black text-foreground tracking-tight truncate">
                         تقديم طلب خدمة جديد

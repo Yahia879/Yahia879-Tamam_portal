@@ -579,7 +579,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const content = (
     <>
-      <div className="max-w-4xl mx-auto px-4 print:hidden">
+      <div className="max-w-4xl mx-auto px-0 sm:px-4 print:hidden">
       {/* رأس الصفحة مع زر الرجوع للإداريين */}
       {showLayout && user?.role !== 'service_requester' && (
         <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pb-4 border-b border-border/40">
@@ -601,22 +601,22 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
       {/* شريط التقدم */}
       <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
-        <div className="flex items-center justify-between min-w-[360px] sm:min-w-0">
+        <div className="flex items-center justify-between min-w-[320px] sm:min-w-0 px-1">
           {STEPS.map((step, index) => (
             <React.Fragment key={step.key}>
-              <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[72px] sm:min-h-[88px] ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
+              <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[64px] sm:min-h-[88px] ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
                 <div
-                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 ${
+                  className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-sm transition-all duration-300 ${
                     index < currentStepIndex
                       ? 'bg-primary text-primary-foreground'
                       : index === currentStepIndex
-                      ? 'bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20 scale-110'
+                      ? 'bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20 scale-105 sm:scale-110'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {index < currentStepIndex ? '✓' : step.order}
                 </div>
-                <p className={`text-[10px] sm:text-xs mt-1 text-center max-w-[60px] sm:max-w-[80px] leading-tight ${index === currentStepIndex ? 'text-primary font-bold' : 'text-muted-foreground font-medium'}`}>
+                <p className={`text-[9px] sm:text-xs mt-1 text-center max-w-[55px] sm:max-w-[80px] leading-tight ${index === currentStepIndex ? 'text-primary font-bold' : 'text-muted-foreground font-medium'}`}>
                   {step.label}
                 </p>
               </div>
@@ -629,7 +629,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       </div>
 
       {/* محتوى الخطوات */}
-      <Card className="p-5 sm:p-8 lg:p-10 shadow-xl border border-border/60 rounded-3xl bg-background overflow-hidden">
+      <Card className="p-4 sm:p-8 lg:p-10 shadow-xl border border-border/60 rounded-2xl sm:rounded-3xl bg-background overflow-hidden">
         {/* الخطوة 1: اختيار الخدمة */}
         {currentStep === 'service-selection' && (
           <div className="space-y-5 sm:space-y-6">
@@ -1172,13 +1172,13 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
 
         {/* أزرار التنقل */}
-        <div className="flex flex-row items-center justify-between gap-3 mt-8 pt-6 border-t border-border/60">
+        <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
           {currentStep !== 'service-selection' ? (
             <Button
               variant="outline"
               size="lg"
               onClick={handlePreviousStep}
-              className="rounded-2xl font-bold h-11 sm:h-12 px-4 sm:px-6 gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
+              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
             >
               <ChevronRight className="w-4 h-4" />
               <span>السابق</span>
@@ -1192,7 +1192,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               size="lg"
               onClick={handleNextStep}
               disabled={Boolean(currentStep === 'details' && isCurrentMosqueUnapproved)}
-              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span>التالي</span>
               <ChevronLeft className="w-4 h-4" />
@@ -1202,7 +1202,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending}
-              className="rounded-2xl font-bold h-11 sm:h-12 px-6 sm:px-8 gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
+              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
             >
               {isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending ? (
                 <>
