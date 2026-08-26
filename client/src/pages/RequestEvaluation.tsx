@@ -316,11 +316,6 @@ export default function RequestEvaluation() {
                           />
                         ))}
                       </div>
-                      {data.existingEvaluation?.rating && RATING_LABELS[data.existingEvaluation.rating] && (
-                        <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-                          <span>{RATING_LABELS[data.existingEvaluation.rating].label}</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* عرض بقية الإجابات والأسئلة المسجلة */}

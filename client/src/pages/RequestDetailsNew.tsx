@@ -1557,13 +1557,6 @@ export default function RequestDetailsNew() {
                               />
                             ))}
                           </div>
-                          <span className="text-[11px] font-semibold text-muted-foreground">
-                            {request.satisfactionRating === 5 && "😍 راضي جداً وممتاز"}
-                            {request.satisfactionRating === 4 && "🙂 راضي"}
-                            {request.satisfactionRating === 3 && "😐 محايد"}
-                            {request.satisfactionRating === 2 && "🙁 غير راضي"}
-                            {request.satisfactionRating === 1 && "😞 غير راضي جداً"}
-                          </span>
                         </div>
                       </div>
 

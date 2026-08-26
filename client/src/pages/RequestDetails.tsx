@@ -615,7 +615,7 @@ export default function RequestDetails() {
                 <h3 className="font-bold text-lg text-white">تقييم رضا المستفيد (استبيان الخدمة)</h3>
                 <p className="text-amber-100 text-sm mt-0.5">
                   {request.isEvaluated 
-                    ? `تم التقييم بنجاح! التقييم المسجل: ${request.satisfactionRating || 5} نجوم ⭐` 
+                    ? `تم التقييم بنجاح! التقييم المسجل: ${request.satisfactionRating || 5} من 5 نجوم` 
                     : "وصل الطلب إلى المرحلة النهائية، يسعدنا جداً مشاركة رأيك وتقييمك لمستوى الخدمة المقدمة."}
                 </p>
               </div>

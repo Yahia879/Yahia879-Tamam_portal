@@ -192,7 +192,7 @@ export function BeneficiaryRequestDetails({
                 <h3 className="font-extrabold text-base sm:text-lg text-white">تقييم رضا المستفيد</h3>
                 <p className="text-amber-100 text-xs sm:text-sm mt-0.5">
                   {isEvaluated
-                    ? `شكراً لمشاركتك! التقييم المسجل: ${request.satisfactionRating || 5} نجوم ⭐`
+                    ? `شكراً لمشاركتك! التقييم المسجل: ${request.satisfactionRating || 5} من 5 نجوم`
                     : "وصل طلبك للمرحلة النهائية، يسرنا جداً مشاركة رأيك ومستوى رضاك عن الخدمة المقدمة."}
                 </p>
               </div>
