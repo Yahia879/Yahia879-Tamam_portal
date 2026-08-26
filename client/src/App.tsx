@@ -212,6 +212,13 @@ const MyRequestsWrapper = () => {
   return <Requests initialAssignedToMe={true} />;
 };
 
+// مكون وسيط لاختيار صفحة تفاصيل المسجد المناسبة حسب دور المستخدم
+const MosqueDetailsWrapper = () => {
+  const { user } = useAuth();
+  if (user?.role === "service_requester") return <RequesterMosqueDetails />;
+  return <MosqueDetails />;
+};
+
 function Router() {
   return (
     <PermissionRouteGuard>
@@ -249,13 +256,7 @@ function Router() {
       <Route path="/mosques/new" component={MosqueForm} />
       <Route path="/requester/mosques/new">{() => <RequesterRoute component={RequesterMosqueForm} />}</Route>
       <Route path="/requester/mosques/:id">{() => <RequesterRoute component={RequesterMosqueDetails} />}</Route>
-      <Route path="/mosques/:id">
-        {() => {
-          const { user } = useAuth();
-          if (user?.role === "service_requester") return <RequesterMosqueDetails />;
-          return <MosqueDetails />;
-        }}
-      </Route>
+      <Route path="/mosques/:id" component={MosqueDetailsWrapper} />
       <Route path="/mosques/:id/edit" component={MosqueForm} />
       <Route path="/mosques/:id/edit-imam">{params => <AdminRoute component={() => <EditImam params={params} />} />}</Route>
       <Route path="/my-mosques">{() => <RequesterRoute component={MyMosques} />}</Route>
