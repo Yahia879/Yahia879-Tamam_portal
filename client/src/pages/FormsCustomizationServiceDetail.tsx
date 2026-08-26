@@ -863,23 +863,23 @@ export default function FormsCustomizationServiceDetail() {
               <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-4 text-right bg-background" : "space-y-6"}>
                 
                 {/* 1. رأس صفحة تقديم الطلب المطابق تماماً لـ BeneficiaryLayout */}
-                <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
+                <div className={`flex items-center justify-between gap-2 sm:gap-4 ${previewDevice === "mobile" ? "mb-3 pb-2.5" : "mb-4 sm:mb-8 pb-3 sm:pb-4"} border-b border-border/40`}>
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-muted shrink-0 text-foreground cursor-default"
+                      className={`${previewDevice === "mobile" ? "h-7 w-7" : "h-8 w-8 sm:h-10 sm:w-10"} rounded-xl hover:bg-muted shrink-0 text-foreground cursor-default`}
                       title="العودة للرئيسية"
                     >
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <ArrowRight className={`${previewDevice === "mobile" ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5"}`} />
                       <span className="sr-only">العودة للرئيسية</span>
                     </Button>
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-sm sm:text-2xl font-black text-foreground tracking-tight truncate">
+                      <h1 className={`${previewDevice === "mobile" ? "text-xs" : "text-sm sm:text-2xl"} font-black text-foreground tracking-tight truncate`}>
                         تقديم طلب خدمة جديد
                       </h1>
-                      <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
+                      <p className={`${previewDevice === "mobile" ? "text-[10px]" : "text-[11px] sm:text-sm"} text-muted-foreground mt-0.5 hidden sm:block`}>
                         قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية
                       </p>
                     </div>
@@ -887,58 +887,58 @@ export default function FormsCustomizationServiceDetail() {
                 </div>
 
                 {/* 2. شريط تقدم الخطوات (5 خطوات) المطابق تماماً لـ DynamicServiceRequestForm */}
-                <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
-                  <div className={`flex items-center justify-between ${previewDevice === "mobile" ? "min-w-[340px]" : "min-w-[360px] sm:min-w-0"}`}>
+                <div className={`${previewDevice === "mobile" ? "mb-4" : "mb-6 sm:mb-8"} overflow-x-auto pt-1 sm:pt-4 pb-1 hide-scrollbar`}>
+                  <div className={`flex items-center justify-between ${previewDevice === "mobile" ? "min-w-[320px]" : "min-w-[360px] sm:min-w-0"}`}>
                     {/* الخطوة 1: اختيار الخدمة */}
-                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
-                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[56px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-6 h-6 text-[9px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
                         ✓
                       </div>
-                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[8.5px] max-w-[50px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
                         اختيار الخدمة
                       </p>
                     </div>
                     <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
 
                     {/* الخطوة 2: الشروط والأحكام */}
-                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
-                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[56px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-6 h-6 text-[9px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
                         ✓
                       </div>
-                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[8.5px] max-w-[50px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
                         الشروط والأحكام
                       </p>
                     </div>
                     <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
 
                     {/* الخطوة 3: بيانات مقدم الطلب */}
-                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
-                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[56px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-6 h-6 text-[9px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
                         ✓
                       </div>
-                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[8.5px] max-w-[50px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
                         بيانات مقدم الطلب
                       </p>
                     </div>
                     <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
 
                     {/* الخطوة 4: تفاصيل الطلب (الحالية النشطة) */}
-                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
-                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px] ring-2" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm ring-2 sm:ring-4"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground ring-primary/20 scale-110`}>
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[56px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-6 h-6 text-[9px] ring-2" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm ring-2 sm:ring-4"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground ring-primary/20 scale-105 sm:scale-110`}>
                         4
                       </div>
-                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-primary font-bold`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[8.5px] max-w-[50px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-primary font-bold`}>
                         تفاصيل الطلب
                       </p>
                     </div>
                     <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-muted`} />
 
                     {/* الخطوة 5: المراجعة والإرسال */}
-                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-40`}>
-                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-muted text-muted-foreground`}>
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[56px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-40`}>
+                      <div className={`${previewDevice === "mobile" ? "w-6 h-6 text-[9px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-muted text-muted-foreground`}>
                         5
                       </div>
-                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[8.5px] max-w-[50px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
                         المراجعة والإرسال
                       </p>
                     </div>
@@ -946,9 +946,9 @@ export default function FormsCustomizationServiceDetail() {
                 </div>
 
                 {/* 3. كرت الحقول الديناميكية الفعلي المطابق 100% لـ DynamicServiceRequestForm */}
-                <div className={`text-card-foreground flex flex-col ${previewDevice === "mobile" ? "gap-4 p-4 rounded-2xl shadow-md" : "gap-6 p-5 sm:p-8 lg:p-10 rounded-3xl shadow-xl"} border border-border/60 bg-background overflow-hidden`}>
-                <div className={previewDevice === "mobile" ? "space-y-4" : "space-y-6 sm:space-y-8"}>
-                  <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-4" : "grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"}`}>
+                <div className={`text-card-foreground flex flex-col ${previewDevice === "mobile" ? "gap-3.5 p-3.5 rounded-2xl shadow-md" : "gap-6 p-5 sm:p-8 lg:p-10 rounded-3xl shadow-xl"} border border-border/60 bg-background overflow-hidden`}>
+                <div className={previewDevice === "mobile" ? "space-y-3.5" : "space-y-6 sm:space-y-8"}>
+                  <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-3.5" : "grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"}`}>
                     {fields
                       .filter((f) => f.isActive)
                       .filter((field) => {
@@ -983,9 +983,9 @@ export default function FormsCustomizationServiceDetail() {
                             <div
                               className={previewDevice === "mobile" ? "col-span-1 w-full" : (isFullWidth ? "col-span-1 sm:col-span-2" : "col-span-1")}
                             >
-                              <div className="space-y-2">
-                                <Label className="select-none flex items-center gap-1.5 text-xs sm:text-sm font-bold text-foreground">
-                                  {Icon && <Icon className="w-4 h-4 text-primary/75 shrink-0" />}
+                              <div className="space-y-1.5 sm:space-y-2">
+                                <Label className={`select-none flex items-center gap-1.5 ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} font-bold text-foreground`}>
+                                  {Icon && <Icon className={`${previewDevice === "mobile" ? "w-3.5 h-3.5" : "w-4 h-4"} text-primary/75 shrink-0`} />}
                                   <span>{field.label}</span>
                                   {field.required && <span className="text-red-500 font-bold">*</span>}
                                 </Label>
@@ -999,11 +999,11 @@ export default function FormsCustomizationServiceDetail() {
                                         setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                                       }
                                       placeholder={field.placeholder || "اكتب التفاصيل المطلوبة هنا..."}
-                                      rows={4}
-                                      className="placeholder:text-muted-foreground min-h-[110px] rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed p-3.5"
+                                      rows={previewDevice === "mobile" ? 3 : 4}
+                                      className={`placeholder:text-muted-foreground ${previewDevice === "mobile" ? "min-h-[85px] text-xs p-2.5 rounded-xl" : "min-h-[110px] rounded-xl text-xs sm:text-sm p-3.5"} bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all leading-relaxed`}
                                     />
                                     {field.helpText && (
-                                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
+                                      <p className={`${previewDevice === "mobile" ? "text-[10px]" : "text-[11px] sm:text-xs"} text-muted-foreground leading-relaxed`}>
                                         {field.helpText}
                                       </p>
                                     )}
@@ -1019,12 +1019,12 @@ export default function FormsCustomizationServiceDetail() {
                                         setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                                       }
                                       placeholder={field.placeholder || (field.type === "phone" ? "05xxxxxxxx" : field.type === "number" ? "0" : "")}
-                                      className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
-                                        unitSuffix ? "pl-12" : ""
+                                      className={`${previewDevice === "mobile" ? "h-9.5 text-xs px-2.5" : "h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 hover:border-border focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 transition-all ${
+                                        unitSuffix ? "pl-11" : ""
                                       }`}
                                     />
                                     {unitSuffix && (
-                                      <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                      <span className={`absolute left-2.5 ${previewDevice === "mobile" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} font-semibold text-muted-foreground bg-muted/60 rounded-md select-none pointer-events-none`}>
                                         {unitSuffix}
                                       </span>
                                     )}
@@ -1038,7 +1038,7 @@ export default function FormsCustomizationServiceDetail() {
                                     onChange={(e) =>
                                       setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))
                                     }
-                                    className="h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80"
+                                    className={`${previewDevice === "mobile" ? "h-9.5 text-xs" : "h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80`}
                                   />
                                 )}
 
@@ -1049,13 +1049,13 @@ export default function FormsCustomizationServiceDetail() {
                                       setPreviewValues((prev) => ({ ...prev, [field.id]: val }))
                                     }
                                   >
-                                    <SelectTrigger className="w-full h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 hover:border-border focus-visible:border-primary">
+                                    <SelectTrigger className={`w-full ${previewDevice === "mobile" ? "h-9.5 text-xs" : "h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 hover:border-border focus-visible:border-primary`}>
                                       <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl border-border shadow-lg">
                                       {field.options && field.options.length > 0 ? (
                                         field.options.map((opt) => (
-                                          <SelectItem key={opt.value} value={opt.value} className="text-xs sm:text-sm font-medium">
+                                          <SelectItem key={opt.value} value={opt.value} className={`${previewDevice === "mobile" ? "text-xs" : "text-xs sm:text-sm"} font-medium`}>
                                             {opt.label}
                                           </SelectItem>
                                         ))
@@ -1069,7 +1069,7 @@ export default function FormsCustomizationServiceDetail() {
                                 )}
 
                                 {field.type === "radio" && (
-                                  <div className="space-y-3">
+                                  <div className="space-y-2.5">
                                     <RadioGroup
                                       value={value || ""}
                                       onValueChange={(val) =>
@@ -1097,7 +1097,7 @@ export default function FormsCustomizationServiceDetail() {
                                           <label
                                             key={option.value}
                                             htmlFor={`preview-${field.id}-${option.value}`}
-                                            className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                                            className={`relative flex items-center justify-between ${previewDevice === "mobile" ? "p-2.5 rounded-xl" : "p-3 sm:p-4 rounded-xl sm:rounded-2xl"} border-2 cursor-pointer transition-all duration-200 select-none ${
                                               isSelected
                                                 ? isYes
                                                   ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20"
@@ -1107,19 +1107,19 @@ export default function FormsCustomizationServiceDetail() {
                                                 : "border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground"
                                             }`}
                                           >
-                                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                            <div className="flex items-center gap-2 sm:gap-3">
                                               <RadioGroupItem
                                                 value={option.value}
                                                 id={`preview-${field.id}-${option.value}`}
                                                 className="border-muted-foreground/40 text-primary"
                                               />
-                                              <span className="font-bold text-xs sm:text-sm">
+                                              <span className={`font-bold ${previewDevice === "mobile" ? "text-xs" : "text-xs sm:text-sm"}`}>
                                                 {option.label}
                                               </span>
                                             </div>
                                             {isSelected && (
                                               <div
-                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs ${
+                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[10px] ${
                                                   isYes ? "bg-emerald-600" : isNo ? "bg-rose-600" : "bg-primary"
                                                 }`}
                                               >
@@ -1138,26 +1138,26 @@ export default function FormsCustomizationServiceDetail() {
                                     onClick={() =>
                                       setPreviewValues((prev) => ({ ...prev, [field.id]: !value }))
                                     }
-                                    className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${
+                                    className={`flex items-center gap-2.5 ${previewDevice === "mobile" ? "p-2.5 rounded-xl text-xs" : "p-3.5 rounded-2xl text-xs sm:text-sm"} border cursor-pointer select-none transition-all ${
                                       value
                                         ? "border-primary bg-primary/5 text-primary font-bold shadow-2xs ring-2 ring-primary/20"
                                         : "border-border/80 bg-background text-foreground"
                                     }`}
                                   >
                                     <Checkbox checked={!!value} className="h-4 w-4 rounded-md" />
-                                    <span className="text-xs sm:text-sm">{field.placeholder || field.label}</span>
+                                    <span>{field.placeholder || field.label}</span>
                                   </div>
                                 )}
 
                                 {field.type === "file" && (
-                                  <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                                      <CloudUpload className="w-6 h-6" />
+                                  <div className={`${previewDevice === "mobile" ? "p-4 rounded-xl" : "p-6 sm:p-8 rounded-2xl"} border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer text-center group`}>
+                                    <div className={`${previewDevice === "mobile" ? "w-8 h-8 mb-2" : "w-12 h-12 mb-3"} rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto group-hover:scale-110 transition-transform`}>
+                                      <CloudUpload className={`${previewDevice === "mobile" ? "w-4 h-4" : "w-6 h-6"}`} />
                                     </div>
-                                    <p className="font-bold text-xs sm:text-sm text-foreground">
+                                    <p className={`font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} text-foreground`}>
                                       اضغط لرفع ملف أو اسحبه إلى هنا
                                     </p>
-                                    <p className="text-[11px] text-muted-foreground mt-1">
+                                    <p className={`${previewDevice === "mobile" ? "text-[9.5px]" : "text-[11px]"} text-muted-foreground mt-1`}>
                                       يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
                                     </p>
                                   </div>
@@ -1167,28 +1167,28 @@ export default function FormsCustomizationServiceDetail() {
 
                             {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers مباشرة بكامل عرض الشبكة */}
                             {serviceId === "bunyan" && field.id === "actualWorshippers" && (
-                              <div className={previewDevice === "mobile" ? "col-span-1 space-y-3" : "col-span-1 sm:col-span-2 space-y-4"}>
+                              <div className={previewDevice === "mobile" ? "col-span-1 space-y-2.5" : "col-span-1 sm:col-span-2 space-y-4"}>
                                 <div
                                   onClick={() => setPreviewHasPrayerHall(!previewHasPrayerHall)}
-                                  className={`p-3.5 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 sm:gap-4 select-none ${
+                                  className={`${previewDevice === "mobile" ? "p-2.5 rounded-xl gap-2.5" : "p-3.5 sm:p-5 rounded-2xl gap-3 sm:gap-4"} border-2 transition-all cursor-pointer flex items-center justify-between select-none ${
                                     previewHasPrayerHall
                                       ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20"
                                       : "border-border/60 bg-muted/20 hover:bg-muted/40"
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2.5 sm:gap-3">
+                                  <div className="flex items-center gap-2 sm:gap-3">
                                     <div
-                                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                                      className={`${previewDevice === "mobile" ? "w-7 h-7 rounded-lg" : "w-9 h-9 sm:w-10 sm:h-10 rounded-xl"} flex items-center justify-center transition-colors shrink-0 ${
                                         previewHasPrayerHall ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                                       }`}
                                     >
-                                      <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                      <Building2 className={`${previewDevice === "mobile" ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5"}`} />
                                     </div>
                                     <div>
-                                      <p className="font-bold text-xs sm:text-sm text-foreground">
+                                      <p className={`font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} text-foreground`}>
                                         هل يتضمن المشروع مصلى للنساء؟
                                       </p>
-                                      <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">
+                                      <p className={`${previewDevice === "mobile" ? "text-[9.5px]" : "text-[10px] sm:text-[11px]"} text-muted-foreground mt-0.5`}>
                                         حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء
                                       </p>
                                     </div>
@@ -1196,20 +1196,20 @@ export default function FormsCustomizationServiceDetail() {
                                   <Checkbox
                                     id="hasPrayerHall"
                                     checked={previewHasPrayerHall}
-                                    className="h-5 w-5 rounded-md data-[state=checked]:bg-primary shrink-0"
+                                    className={`${previewDevice === "mobile" ? "h-4 w-4" : "h-5 w-5"} rounded-md data-[state=checked]:bg-primary shrink-0`}
                                   />
                                 </div>
 
                                 {previewHasPrayerHall && (
-                                  <div className="p-3.5 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-3 sm:space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2">
-                                      <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                  <div className={`${previewDevice === "mobile" ? "p-3 rounded-xl space-y-2.5" : "p-3.5 sm:p-5 rounded-2xl space-y-3 sm:space-y-4"} border border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-top-2 duration-200`}>
+                                    <h4 className={`font-bold ${previewDevice === "mobile" ? "text-xs" : "text-xs sm:text-sm"} text-primary flex items-center gap-1.5 border-b border-primary/10 pb-1.5`}>
+                                      <Building2 className="w-3.5 h-3.5" />
                                       بيانات مصلى النساء
                                     </h4>
-                                    <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-3 sm:gap-4`}>
-                                      <div className="space-y-1.5">
-                                        <label htmlFor="previewWomenCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                          <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/70" />
+                                    <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-2.5" : "grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"}`}>
+                                      <div className="space-y-1">
+                                        <label htmlFor="previewWomenCapacity" className={`text-foreground flex items-center gap-1.5 font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
+                                          <Users className="w-3.5 h-3.5 text-primary/70" />
                                           <span>سعة مصلى النساء (مصلي)</span>
                                           <span className="text-red-500 font-bold">*</span>
                                         </label>
@@ -1220,16 +1220,16 @@ export default function FormsCustomizationServiceDetail() {
                                             value={previewWomenCapacity}
                                             onChange={(e) => setPreviewWomenCapacity(e.target.value)}
                                             placeholder="مثال: 50"
-                                            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 pl-12"
+                                            className={`${previewDevice === "mobile" ? "h-9 text-xs" : "h-10 sm:h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 pl-11`}
                                           />
-                                          <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                          <span className={`absolute left-2.5 ${previewDevice === "mobile" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} font-semibold text-muted-foreground bg-muted/60 rounded-md select-none pointer-events-none`}>
                                             مصلي
                                           </span>
                                         </div>
                                       </div>
-                                      <div className="space-y-1.5">
-                                        <label htmlFor="previewWomenArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-                                          <Ruler className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary/70" />
+                                      <div className="space-y-1">
+                                        <label htmlFor="previewWomenArea" className={`text-foreground flex items-center gap-1.5 font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
+                                          <Ruler className="w-3.5 h-3.5 text-primary/70" />
                                           <span>المساحة (م²)</span>
                                           <span className="text-red-500 font-bold">*</span>
                                         </label>
@@ -1240,9 +1240,9 @@ export default function FormsCustomizationServiceDetail() {
                                             value={previewWomenArea}
                                             onChange={(e) => setPreviewWomenArea(e.target.value)}
                                             placeholder="مثال: 50"
-                                            className="h-10 sm:h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 pl-12"
+                                            className={`${previewDevice === "mobile" ? "h-9 text-xs" : "h-10 sm:h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 pl-11`}
                                           />
-                                          <span className="absolute left-3 text-xs font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md select-none pointer-events-none">
+                                          <span className={`absolute left-2.5 ${previewDevice === "mobile" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} font-semibold text-muted-foreground bg-muted/60 rounded-md select-none pointer-events-none`}>
                                             م²
                                           </span>
                                         </div>
@@ -1259,18 +1259,18 @@ export default function FormsCustomizationServiceDetail() {
                     {/* حقل المرفقات العام إن لم يكن مضافاً كحقل مخصص */}
                     {!fields.some((f) => f.id === "attachment" && f.isActive) && (
                       <div className="col-span-1 sm:col-span-2 pt-2">
-                        <Label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
+                        <Label className={`flex items-center gap-2 font-bold mb-2.5 text-foreground ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
                           <Paperclip className="w-4 h-4 text-primary" />
                           <span>المرفقات والوثائق الداعمة (اختياري)</span>
                         </Label>
-                        <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
-                          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
-                            <CloudUpload className="w-6 h-6" />
+                        <div className={`${previewDevice === "mobile" ? "p-4 rounded-xl" : "p-6 sm:p-8 rounded-2xl"} border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all cursor-pointer text-center group`}>
+                          <div className={`${previewDevice === "mobile" ? "w-8 h-8 mb-2" : "w-12 h-12 mb-3"} rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto group-hover:scale-110 transition-transform`}>
+                            <CloudUpload className={`${previewDevice === "mobile" ? "w-4 h-4" : "w-6 h-6"}`} />
                           </div>
-                          <p className="font-bold text-xs sm:text-sm text-foreground">
+                          <p className={`font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} text-foreground`}>
                             ملفات PDF أو صور أو مستندات Word
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-1">
+                          <p className={`${previewDevice === "mobile" ? "text-[9.5px]" : "text-[11px]"} text-muted-foreground mt-1`}>
                             يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
                           </p>
                         </div>
@@ -1280,21 +1280,21 @@ export default function FormsCustomizationServiceDetail() {
                 </div>
 
                 {/* أزرار التنقل السفلية للنموذج المطابقة تماماً لـ DynamicServiceRequestForm */}
-                <div className={`flex flex-row items-center justify-between ${previewDevice === "mobile" ? "gap-2.5 mt-4 pt-4" : "gap-3 mt-8 pt-6"} border-t border-border/60`}>
+                <div className={`flex flex-row items-center justify-between ${previewDevice === "mobile" ? "gap-2 mt-3.5 pt-3" : "gap-3 mt-8 pt-6"} border-t border-border/60`}>
                   <Button
                     type="button"
                     variant="outline"
-                    className={`${previewDevice === "mobile" ? "rounded-xl h-10 px-4 text-xs" : "rounded-2xl h-11 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm"} font-bold gap-2 shadow-xs hover:bg-muted`}
+                    className={`${previewDevice === "mobile" ? "rounded-xl h-9 px-3.5 text-[11px]" : "rounded-2xl h-11 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm"} font-bold gap-1.5 shadow-xs hover:bg-muted`}
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                     <span>السابق</span>
                   </Button>
                   <Button
                     type="button"
-                    className={`${previewDevice === "mobile" ? "rounded-xl h-10 px-5 text-xs" : "rounded-2xl h-11 sm:h-12 px-6 sm:px-8 text-xs sm:text-sm"} font-bold gap-2 gradient-primary bg-primary text-white shadow-md hover:opacity-95 transition-all`}
+                    className={`${previewDevice === "mobile" ? "rounded-xl h-9 px-4.5 text-[11px]" : "rounded-2xl h-11 sm:h-12 px-6 sm:px-8 text-xs sm:text-sm"} font-bold gap-1.5 gradient-primary bg-primary text-white shadow-md hover:opacity-95 transition-all`}
                   >
                     <span>التالي</span>
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </Button>
                 </div>
               </div>
