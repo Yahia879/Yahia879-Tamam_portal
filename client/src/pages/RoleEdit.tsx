@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
+import { formatErrorMessage } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -373,7 +374,7 @@ export default function RoleEdit() {
       setLocation("/staff?tab=custom-roles");
     },
     onError: (error) => {
-      toast.error(error.message || "فشل إنشاء الدور");
+      toast.error(formatErrorMessage(error, "فشل إنشاء الدور، يرجى المحاولة مرة أخرى بعد قليل"));
     },
   });
 
@@ -387,7 +388,7 @@ export default function RoleEdit() {
       setLocation("/staff?tab=custom-roles");
     },
     onError: (error) => {
-      toast.error(error.message || "فشل تحديث الدور");
+      toast.error(formatErrorMessage(error, "فشل تحديث الدور، يرجى المحاولة مرة أخرى بعد قليل"));
     },
   });
 
