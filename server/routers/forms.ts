@@ -309,13 +309,21 @@ export const formsRouter = router({
       if (setting && setting.settingValue) {
         const parsed = JSON.parse(setting.settingValue);
         const validated = evaluationFormSettingsSchema.safeParse(parsed);
-        if (validated.success) return validated.data;
+        if (validated.success) {
+          return {
+            ...validated.data,
+            isCustomized: true,
+          };
+        }
       }
     } catch (e) {
       console.error("Error reading evaluation form config:", e);
     }
 
-    return DEFAULT_EVALUATION_FORM_SETTINGS;
+    return {
+      ...DEFAULT_EVALUATION_FORM_SETTINGS,
+      isCustomized: false,
+    };
   }),
 
   // حفظ إعدادات استمارة التقييم
@@ -391,7 +399,7 @@ export const formsRouter = router({
       const defaultFields = getDefaultFieldsForService(input.serviceId);
 
       if (!db) {
-        return { serviceId: input.serviceId, fields: defaultFields };
+        return { serviceId: input.serviceId, fields: defaultFields, isCustomized: false };
       }
 
       try {
@@ -405,7 +413,10 @@ export const formsRouter = router({
           const parsed = JSON.parse(setting.settingValue);
           const validated = serviceFormSettingsSchema.safeParse(parsed);
           if (validated.success) {
-            return validated.data;
+            return {
+              ...validated.data,
+              isCustomized: true,
+            };
           }
         }
       } catch (e) {
@@ -415,6 +426,7 @@ export const formsRouter = router({
       return {
         serviceId: input.serviceId,
         fields: defaultFields,
+        isCustomized: false,
       };
     }),
 

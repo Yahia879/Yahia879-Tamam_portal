@@ -311,6 +311,9 @@ export default function FormsCustomizationServiceDetail() {
     }
   }, [serverConfig, serviceId]);
 
+  // التحقق مما إذا كان النموذج تم تخصيصه وتعديله عن الإعدادات الافتراضية الأصلية
+  const isCustomizedFromDefault = Boolean((serverConfig as any)?.isCustomized) || hasChanges;
+
   // حماية المستخدم عند محاولة مغادرة الصفحة مع وجود تغييرات غير محفوظة
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -685,8 +688,17 @@ export default function FormsCustomizationServiceDetail() {
               variant="outline"
               size="sm"
               onClick={() => setIsResetConfirmOpen(true)}
-              className="text-xs text-muted-foreground hover:text-foreground h-10 px-3.5 rounded-xl border-border/80 shadow-2xs"
-              title="استعادة الترتيب والحقول الافتراضية"
+              disabled={resetMutation.isPending || !isCustomizedFromDefault}
+              className={`text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs transition-all ${
+                isCustomizedFromDefault
+                  ? "text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+                  : "text-muted-foreground/40 opacity-50 cursor-not-allowed hover:bg-transparent"
+              }`}
+              title={
+                isCustomizedFromDefault
+                  ? "استعادة الترتيب والحقول الافتراضية الأصلية للخدمة"
+                  : "النموذج مضبوط على الإعدادات الافتراضية الأصلية بالفعل"
+              }
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
               الافتراضي

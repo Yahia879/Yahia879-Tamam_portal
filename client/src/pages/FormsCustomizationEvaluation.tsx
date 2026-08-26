@@ -182,6 +182,9 @@ export default function FormsCustomizationEvaluation() {
     }
   }, [serverConfig]);
 
+  // التحقق مما إذا كانت الاستمارة معدلة عن الإعدادات الافتراضية الأصلية
+  const isCustomizedFromDefault = Boolean((serverConfig as any)?.isCustomized) || hasChanges;
+
   const saveMutation = trpc.forms.saveEvaluationFormConfig.useMutation({
     onSuccess: (res) => {
       toast.success(res.message);
@@ -409,7 +412,17 @@ export default function FormsCustomizationEvaluation() {
               variant="outline"
               size="sm"
               onClick={() => setIsResetConfirmOpen(true)}
-              className="text-xs text-muted-foreground hover:text-foreground h-9 px-3 rounded-xl"
+              disabled={resetMutation.isPending || !isCustomizedFromDefault}
+              className={`text-xs h-9 px-3 rounded-xl transition-all ${
+                isCustomizedFromDefault
+                  ? "text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+                  : "text-muted-foreground/40 opacity-50 cursor-not-allowed hover:bg-transparent"
+              }`}
+              title={
+                isCustomizedFromDefault
+                  ? "استعادة الاستمارة الافتراضية الأصلية"
+                  : "الاستمارة مضبوطة على الإعدادات الافتراضية الأصلية بالفعل"
+              }
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
               الافتراضي
