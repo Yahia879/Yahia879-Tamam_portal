@@ -67,6 +67,7 @@ import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import NotificationCustomization from "./pages/NotificationCustomization";
 import RequestEvaluation from "./pages/RequestEvaluation";
+import BeneficiarySatisfaction from "./pages/BeneficiarySatisfaction";
 import Reports from "./pages/Reports";
 import PendingReports from "./pages/PendingReports";
 
@@ -280,6 +281,7 @@ function Router() {
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
       <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
+      <Route path="/beneficiary-satisfaction">{() => <AdminRoute component={BeneficiarySatisfaction} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic">{() => <DynamicServiceRequestForm />}</Route>      

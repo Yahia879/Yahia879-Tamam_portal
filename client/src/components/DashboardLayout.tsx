@@ -55,6 +55,7 @@ import {
   Crown,
   BadgeCheck,
   PieChart,
+  HeartHandshake,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -105,6 +106,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
     }
     items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
+    items.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
     groups.push({
       label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
       items,
@@ -243,6 +245,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
   }
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
+  if (has("requests") || has("requests.view") || has("requests.view_details") || has("beneficiary_satisfaction") || ["super_admin", "system_admin", "projects_office", "general_manager", "executive_director", "project_manager"].includes(role) || isExecDirector) {
+    mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
+  }
   
   if (mosqueItems.length > 0) {
     groups.push({ 

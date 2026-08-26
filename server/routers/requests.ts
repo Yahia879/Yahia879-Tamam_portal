@@ -3738,4 +3738,119 @@ export const requestsRouter = router({
         isOwner,
       };
     }),
+
+  // جلب كافة تقييمات رضا المستفيدين للموظفين والإدارة
+  getAllBeneficiaryEvaluations: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        ratingFilter: z.number().optional(),
+        programType: z.string().optional(),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isStaff = ctx.user.role !== "service_requester";
+      if (!isStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذا القسم متاح للموظفين والإدارة فقط." });
+      }
+
+      // جلب جميع التقييمات المسجلة من جدول requestEvaluations وجدول mosqueRequests
+      const allEvaluations = await db
+        .select({
+          evalId: requestEvaluations.id,
+          requestId: mosqueRequests.id,
+          requestNumber: mosqueRequests.requestNumber,
+          programType: mosqueRequests.programType,
+          descriptiveName: mosqueRequests.descriptiveName,
+          status: mosqueRequests.status,
+          currentStage: mosqueRequests.currentStage,
+          rating: requestEvaluations.rating,
+          notes: requestEvaluations.notes,
+          evaluatedAt: requestEvaluations.createdAt,
+          requesterName: users.name,
+          requesterPhone: users.phone,
+          requesterEmail: users.email,
+          mosqueId: mosqueRequests.mosqueId,
+        })
+        .from(requestEvaluations)
+        .innerJoin(mosqueRequests, eq(requestEvaluations.requestId, mosqueRequests.id))
+        .leftJoin(users, eq(requestEvaluations.userId, users.id))
+        .where(eq(requestEvaluations.evaluationType, "beneficiary_satisfaction"))
+        .orderBy(desc(requestEvaluations.createdAt));
+
+      // جلب أسماء المساجد للتقييمات
+      const mosqueIds = Array.from(new Set(allEvaluations.map((e) => e.mosqueId).filter(Boolean))) as number[];
+      const mosqueMap = new Map<number, string>();
+      if (mosqueIds.length > 0) {
+        const mosqueList = await db
+          .select({ id: mosques.id, name: mosques.name })
+          .from(mosques)
+          .where(inArray(mosques.id, mosqueIds));
+        mosqueList.forEach((m) => mosqueMap.set(m.id, m.name));
+      }
+
+      // تحضير العناصر مع تحليل الـ notes
+      const items = allEvaluations.map((e) => {
+        let parsedNotes: any = {};
+        try {
+          if (e.notes) parsedNotes = JSON.parse(e.notes);
+        } catch {
+          parsedNotes = { comments: e.notes };
+        }
+
+        return {
+          id: e.evalId,
+          requestId: e.requestId,
+          requestNumber: e.requestNumber,
+          programType: e.programType,
+          descriptiveName: e.descriptiveName,
+          status: e.status,
+          currentStage: e.currentStage,
+          rating: e.rating || parsedNotes.overallSatisfaction || parsedNotes.servicesRating || 5,
+          evaluatedAt: e.evaluatedAt,
+          requesterName: parsedNotes.beneficiaryName || e.requesterName || "مستفيد",
+          requesterPhone: parsedNotes.beneficiaryPhone || e.requesterPhone || null,
+          requesterEmail: parsedNotes.beneficiaryEmail || e.requesterEmail || null,
+          serviceName: parsedNotes.serviceName || (e.mosqueId ? mosqueMap.get(e.mosqueId) : null) || e.descriptiveName || "طلب خدمة",
+          mosqueName: e.mosqueId ? mosqueMap.get(e.mosqueId) || null : null,
+          servicesRating: parsedNotes.servicesRating || null,
+          speedRating: parsedNotes.speedRating || null,
+          communicationRating: parsedNotes.communicationRating || null,
+          overallSatisfaction: parsedNotes.overallSatisfaction || null,
+          comments: parsedNotes.comments || parsedNotes.notes || null,
+          answers: parsedNotes.answers || parsedNotes || {},
+          rawNotes: e.notes,
+        };
+      });
+
+      // إحصائيات عامة
+      const totalEvaluations = items.length;
+      const avgRating = totalEvaluations > 0
+        ? Math.round((items.reduce((acc, curr) => acc + (curr.rating || 5), 0) / totalEvaluations) * 10) / 10
+        : 0;
+
+      const ratingCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      items.forEach((item) => {
+        const r = Math.max(1, Math.min(5, Math.round(item.rating || 5)));
+        ratingCounts[r] = (ratingCounts[r] || 0) + 1;
+      });
+
+      const positiveCount = (ratingCounts[4] || 0) + (ratingCounts[5] || 0);
+      const positivePercent = totalEvaluations > 0 ? Math.round((positiveCount / totalEvaluations) * 100) : 100;
+      const withCommentsCount = items.filter((i) => !!i.comments).length;
+
+      return {
+        items,
+        stats: {
+          totalEvaluations,
+          avgRating,
+          positivePercent,
+          withCommentsCount,
+          ratingCounts,
+        },
+      };
+    }),
 });

@@ -58,6 +58,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/requests\/[^/]+\/edit\/?$/, title: "تعديل الطلب" },
   { pattern: /^\/requests\/[^/]+\/evaluation\/?$/, title: "تقييم الطلب" },
   { pattern: /^\/requester\/requests\/[^/]+\/evaluation\/?$/, title: "تقييم الطلب" },
+  { pattern: /^\/beneficiary-satisfaction\/?$/, title: "رضا المستفيدين" },
   { pattern: /^\/requests\/[^/]+\/field-inspection\/?$/, title: "تقرير المعاينة الميدانية" },
   { pattern: /^\/requests\/[^/]+\/quick-response\/?$/, title: "تقرير الاستجابة السريعة" },
   { pattern: /^\/requests\/[^/]+\/assign-final-report\/?$/, title: "إسناد التقرير النهائي" },
