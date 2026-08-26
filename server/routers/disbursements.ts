@@ -2566,6 +2566,39 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم اعتماد أمر الصرف بنجاح" };
     }),
 
+  // تحديث أو إضافة ملاحظات لأمر الصرف
+  updateOrderNotes: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.number(),
+        notes: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      await db
+        .update(disbursementOrders)
+        .set({
+          approvalNotes: input.notes.trim() || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.orderId));
+
+      return { success: true, message: "تم حفظ الملاحظات بنجاح" };
+    }),
+
   // تنفيذ أمر صرف (الدفع الفعلي)
   executeOrder: permissionProcedure("disbursements.create")
     .input(

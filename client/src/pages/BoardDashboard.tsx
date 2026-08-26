@@ -37,7 +37,7 @@ import {
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
   MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
-  ChevronLeft, ChevronRight, Info, Printer, ExternalLink
+  ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
@@ -197,6 +197,26 @@ export default function BoardDashboard() {
       reason: rejectionReason,
     });
   };
+
+  const [notesModal, setNotesModal] = useState<{ open: boolean; orderId: number; orderNumber: string; notes: string }>({
+    open: false,
+    orderId: 0,
+    orderNumber: "",
+    notes: "",
+  });
+
+  const updateNotesMutation = trpc.disbursements.updateOrderNotes.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ وتحديث الملاحظات بنجاح");
+      setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" });
+      refetch();
+      utils.board.getExecutiveStats.invalidate();
+      utils.disbursements.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ الملاحظات");
+    },
+  });
 
   // تحديد نوع الصفحات والتوجيه بناءً على المسار والصلاحيات
   const isExecutiveRoute = location === "/board-executive";
@@ -528,6 +548,20 @@ export default function BoardDashboard() {
                                       <span className="font-semibold text-slate-600 dark:text-slate-400">المستفيد:</span>
                                       <span className="font-bold text-foreground">{order.beneficiaryName}</span>
                                     </div>
+                                    {order.approvalNotes && (
+                                      <div 
+                                        onClick={() => setNotesModal({
+                                          open: true,
+                                          orderId: order.orderId || order.id,
+                                          orderNumber: order.orderNumber,
+                                          notes: order.approvalNotes || "",
+                                        })}
+                                        className="flex items-center gap-1.5 text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/30 w-fit mt-1 cursor-pointer hover:bg-amber-500/25 transition-colors"
+                                      >
+                                        <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span className="truncate max-w-[220px]">{order.approvalNotes}</span>
+                                      </div>
+                                    )}
                                   </div>
                                 </TableCell>
 
@@ -600,6 +634,20 @@ export default function BoardDashboard() {
                                           )}
                                         </>
                                       )}
+
+                                      {/* خيار إضافة وتعديل الملاحظات */}
+                                      <DropdownMenuItem
+                                        onClick={() => setNotesModal({
+                                          open: true,
+                                          orderId: order.orderId || order.id,
+                                          orderNumber: order.orderNumber,
+                                          notes: order.approvalNotes || "",
+                                        })}
+                                        className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
+                                      >
+                                        <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span>{order.approvalNotes ? "تعديل الملاحظات" : "إضافة ملاحظات"}</span>
+                                      </DropdownMenuItem>
 
                                       {/* خيار 'عرض المبررات' عند وجود مبرر أو رفض */}
                                       {(order.rejectionReason || order.approvalNotes || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
@@ -1615,6 +1663,57 @@ export default function BoardDashboard() {
             <DialogFooter>
               <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs px-5">
                 إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 📝 نافذة إضافة وتعديل الملاحظات ==================== */}
+        <Dialog open={notesModal.open} onOpenChange={(open) => setNotesModal((prev) => ({ ...prev, open }))}>
+          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
+            <DialogHeader className="text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+                <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>ملاحظات وتوجيهات أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                تدوين ملاحظات وتوجيهات خاصة بأمر الصرف رقم ({notesModal.orderNumber}) ليتم إظهارها في شاشة أوامر الصرف.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-right">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص الملاحظات:</label>
+                <Textarea
+                  value={notesModal.notes}
+                  onChange={(e) => setNotesModal((prev) => ({ ...prev, notes: e.target.value }))}
+                  placeholder="اكتب ملاحظاتك وتوجيهاتك هنا..."
+                  rows={4}
+                  className="rounded-2xl text-xs sm:text-sm p-3.5 border-slate-200 dark:border-slate-700 resize-none leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 flex-row-reverse justify-start">
+              <Button
+                onClick={() => {
+                  updateNotesMutation.mutate({
+                    orderId: notesModal.orderId,
+                    notes: notesModal.notes,
+                  });
+                }}
+                disabled={updateNotesMutation.isPending}
+                className="rounded-xl font-bold text-xs px-5 bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {updateNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" /> : null}
+                <span>حفظ الملاحظات</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" })}
+                className="rounded-xl font-bold text-xs px-5"
+              >
+                إلغاء
               </Button>
             </DialogFooter>
           </DialogContent>

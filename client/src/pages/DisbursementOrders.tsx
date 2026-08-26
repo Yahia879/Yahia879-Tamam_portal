@@ -66,6 +66,7 @@ import {
   AlertCircle,
   Info,
   BadgeCheck,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import ExcelJS from "exceljs";
@@ -181,6 +182,7 @@ export default function DisbursementOrders() {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showExceptionDialog, setShowExceptionDialog] = useState(false);
   const [showViewExceptionDialog, setShowViewExceptionDialog] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
@@ -524,6 +526,28 @@ export default function DisbursementOrders() {
                                   </TooltipProvider>
                                 )}
                                 <span>{order.orderNumber}</span>
+                                {order.approvalNotes && (
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={100}>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          onClick={() => {
+                                            setSelectedOrder(order);
+                                            setShowNotesDialog(true);
+                                          }}
+                                          className="inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold shrink-0 cursor-pointer hover:bg-amber-500/25 transition-colors"
+                                        >
+                                          <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                          <span>ملاحظات</span>
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg border border-slate-700 max-w-xs text-right z-50">
+                                        <p className="font-bold text-amber-300 mb-0.5">ملاحظات مدونة:</p>
+                                        <p className="leading-snug">{order.approvalNotes}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
                                 {order.isException && (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={100}>
@@ -660,6 +684,19 @@ export default function DisbursementOrders() {
                                           >
                                             <XCircle className="h-4 w-4 text-red-600" />
                                             <span>رفض أمر الصرف</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {order.approvalNotes && (
+                                          <DropdownMenuItem
+                                            onClick={() => {
+                                              setSelectedOrder(order);
+                                              setShowNotesDialog(true);
+                                            }}
+                                            className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
+                                          >
+                                            <MessageSquare className="h-4 w-4 text-amber-600" />
+                                            <span>عرض الملاحظات المدونة</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -820,6 +857,22 @@ export default function DisbursementOrders() {
                               <p className="text-xs text-foreground font-semibold truncate">{order.projectName || "—"}</p>
                             </div>
                           </div>
+
+                          {order.approvalNotes && (
+                            <div 
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowNotesDialog(true);
+                              }}
+                              className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2 cursor-pointer"
+                            >
+                              <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              <div className="min-w-0 text-right">
+                                <span className="font-bold block text-[10px]">ملاحظات أمر الصرف:</span>
+                                <p className="text-xs line-clamp-2 leading-relaxed text-foreground">{order.approvalNotes}</p>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-3 text-right">
                             <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 p-2 rounded-lg">
@@ -1397,6 +1450,47 @@ export default function DisbursementOrders() {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowViewExceptionDialog(false)} className="text-xs font-semibold">
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة عرض الملاحظات المدونة */}
+        <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
+            <DialogHeader className="text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+                <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
+                <span>ملاحظات وتوجيهات أمر الصرف</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                الملاحظات والتوجيهات المدونة على أمر الصرف رقم ({selectedOrder?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-3 text-right">
+              <div className="p-3 bg-slate-50/80 border border-slate-200/80 dark:bg-slate-900/40 dark:border-slate-800 rounded-xl space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">المستفيد:</span>
+                  <span className="font-bold text-foreground truncate max-w-[240px]">{selectedOrder?.beneficiaryName || "-"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">المبلغ:</span>
+                  <span className="font-bold text-foreground font-mono">{Number(selectedOrder?.amount || 0).toLocaleString()} ريال</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص الملاحظات:</Label>
+                <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
+                  {selectedOrder?.approvalNotes || "لا توجد ملاحظات مدونة"}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowNotesDialog(false)} className="rounded-xl font-bold text-xs px-5">
                 إغلاق
               </Button>
             </DialogFooter>
