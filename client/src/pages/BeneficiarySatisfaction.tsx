@@ -12,7 +12,6 @@ import {
   ExternalLink, 
   CheckCircle2, 
   Layers, 
-  SlidersHorizontal,
   X,
   FileText
 } from "lucide-react";
@@ -138,17 +137,7 @@ export default function BeneficiarySatisfaction() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
-            <Link href="/forms-customization/evaluation">
-              <Button
-                size="sm"
-                className="h-9 px-3.5 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-xs gap-1.5"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>تخصيص الاستمارة</span>
-              </Button>
-            </Link>
-          </div>
+
         </div>
 
         {/* KPI Cards - ديناميكية بالكامل بناءً على بيانات الاستبيانات الحقيقية */}
