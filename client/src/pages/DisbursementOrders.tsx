@@ -1458,22 +1458,22 @@ export default function DisbursementOrders() {
 
         {/* نافذة عرض الملاحظات المدونة */}
         <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
-            <DialogHeader className="text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+          <DialogContent dir="rtl" className="sm:max-w-[580px] rounded-3xl p-6 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
                 <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>ملاحظات وتوجيهات أمر الصرف</span>
               </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium">
                 الملاحظات والتوجيهات المدونة على أمر الصرف رقم ({selectedOrder?.orderNumber})
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-3 text-right">
-              <div className="p-3 bg-slate-50/80 border border-slate-200/80 dark:bg-slate-900/40 dark:border-slate-800 rounded-xl space-y-1.5 text-xs">
+            <div className="space-y-4 py-4 text-right">
+              <div className="p-3.5 bg-slate-50/80 border border-slate-200/80 dark:bg-slate-900/40 dark:border-slate-800 rounded-xl space-y-2 text-xs">
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium">المستفيد:</span>
-                  <span className="font-bold text-foreground truncate max-w-[240px]">{selectedOrder?.beneficiaryName || "-"}</span>
+                  <span className="font-bold text-foreground truncate max-w-[260px]">{selectedOrder?.beneficiaryName || "-"}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium">المبلغ:</span>
@@ -1482,7 +1482,7 @@ export default function DisbursementOrders() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص ملاحظات وتوجيهات صاحب الصلاحية:</Label>
+                <Label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">نص ملاحظات وتوجيهات صاحب الصلاحية:</Label>
                 <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
                   {selectedOrder?.executiveNotes || "لا توجد ملاحظات مدونة"}
                 </div>
@@ -1490,7 +1490,7 @@ export default function DisbursementOrders() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNotesDialog(false)} className="rounded-xl font-bold text-xs px-5">
+              <Button variant="outline" onClick={() => setShowNotesDialog(false)} className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5">
                 إغلاق
               </Button>
             </DialogFooter>

@@ -122,6 +122,8 @@ export default function BoardDashboard() {
 
   const [viewJustificationModal, setViewJustificationModal] = useState<{
     open: boolean;
+    title?: string;
+    subtitle?: string;
     orderNumber: string;
     reason: string;
   }>({ open: false, orderNumber: "", reason: "" });
@@ -550,13 +552,10 @@ export default function BoardDashboard() {
                                     </div>
                                     {order.executiveNotes && (
                                       <div 
-                                        onClick={() => isNeedsApproval ? setNotesModal({
+                                        onClick={() => setViewJustificationModal({
                                           open: true,
-                                          orderId: order.orderId || order.id,
-                                          orderNumber: order.orderNumber,
-                                          notes: order.executiveNotes || "",
-                                        }) : setViewJustificationModal({
-                                          open: true,
+                                          title: "ملاحظات وتوجيهات أمر الصرف",
+                                          subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                           orderNumber: order.orderNumber,
                                           reason: order.executiveNotes,
                                         })}
@@ -639,27 +638,29 @@ export default function BoardDashboard() {
                                         </>
                                       )}
 
-                                      {/* خيار إضافة وتعديل الملاحظات يظهر فقط قبل الاعتماد أو الرفض */}
-                                      {canPerformActions && isNeedsApproval && (
+                                      {/* خيار إضافة الملاحظات يظهر فقط إذا لم تكن هناك ملاحظات سابقة وقبل الاعتماد أو الرفض */}
+                                      {canPerformActions && isNeedsApproval && !order.executiveNotes && (
                                         <DropdownMenuItem
                                           onClick={() => setNotesModal({
                                             open: true,
                                             orderId: order.orderId || order.id,
                                             orderNumber: order.orderNumber,
-                                            notes: order.executiveNotes || "",
+                                            notes: "",
                                           })}
                                           className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                         >
                                           <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                          <span>{order.executiveNotes ? "تعديل الملاحظات" : "إضافة ملاحظات"}</span>
+                                          <span>إضافة ملاحظات</span>
                                         </DropdownMenuItem>
                                       )}
 
-                                      {/* خيار عرض الملاحظات بعد الاعتماد أو الرفض */}
-                                      {!isNeedsApproval && order.executiveNotes && (
+                                      {/* خيار عرض الملاحظات فقط (بدون إمكانية التعديل) */}
+                                      {order.executiveNotes && (
                                         <DropdownMenuItem
                                           onClick={() => setViewJustificationModal({
                                             open: true,
+                                            title: "ملاحظات وتوجيهات أمر الصرف",
+                                            subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                             orderNumber: order.orderNumber,
                                             reason: order.executiveNotes,
                                           })}
@@ -670,11 +671,13 @@ export default function BoardDashboard() {
                                         </DropdownMenuItem>
                                       )}
 
-                                      {/* خيار 'عرض المبررات' عند وجود سبب رفض */}
+                                      {/* خيار 'عرض مبررات الرفض' عند وجود سبب رفض */}
                                       {(order.rejectionReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
                                         <DropdownMenuItem
                                           onClick={() => setViewJustificationModal({
                                             open: true,
+                                            title: "مبررات عدم اعتماد التحويل وسبب الرفض",
+                                            subtitle: `تفاصيل سبب الرفض المدون لأمر الصرف رقم (${order.orderNumber})`,
                                             orderNumber: order.orderNumber,
                                             reason: order.rejectionReason || "لا يوجد سبب رفض مدون",
                                           })}
@@ -1659,43 +1662,49 @@ export default function BoardDashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* ==================== 📋 نافذة عرض مبررات عدم الاعتماد (مطابقة لـ /disbursements) ==================== */}
+        {/* ==================== 📋 نافذة عرض الملاحظات أو مبررات الرفض ==================== */}
         <Dialog open={viewJustificationModal.open} onOpenChange={(open) => setViewJustificationModal((prev) => ({ ...prev, open }))}>
-          <DialogContent dir="rtl" className="sm:max-w-[560px] rounded-3xl p-6 text-right">
+          <DialogContent dir="rtl" className="sm:max-w-[580px] rounded-3xl p-6 sm:p-7 text-right">
             <DialogHeader className="text-right sm:text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold text-right sm:text-right">
-                <Info className="w-5 h-5 text-amber-600 shrink-0" />
-                <span>مبررات عدم اعتماد التحويل</span>
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
+                {viewJustificationModal.title?.includes("رفض") ? (
+                  <Info className="w-5 h-5 text-rose-600 shrink-0" />
+                ) : (
+                  <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
+                )}
+                <span>{viewJustificationModal.title || "ملاحظات وتوجيهات أمر الصرف"}</span>
               </DialogTitle>
               <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium">
-                تفاصيل المبرر والسبب المدون لأمر الصرف رقم ({viewJustificationModal.orderNumber})
+                {viewJustificationModal.subtitle || `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${viewJustificationModal.orderNumber})`}
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-3 text-right">
+            <div className="space-y-4 py-4 text-right">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص المبرر والسبب المدون:</label>
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
+                  {viewJustificationModal.title?.includes("رفض") ? "نص سبب ومبرر الرفض:" : "نص الملاحظات والتوجيهات المدونة:"}
+                </label>
                 <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
-                  {viewJustificationModal.reason || "لا يوجد مبرر مدون"}
+                  {viewJustificationModal.reason || "لا توجد ملاحظات مدونة"}
                 </div>
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs px-5">
+              <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5">
                 إغلاق
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* ==================== 📝 نافذة إضافة وتعديل الملاحظات ==================== */}
+        {/* ==================== 📝 نافذة إضافة الملاحظات (تظهر قبل الاعتماد/الرفض ولمرة واحدة) ==================== */}
         <Dialog open={notesModal.open} onOpenChange={(open) => setNotesModal((prev) => ({ ...prev, open }))}>
           <DialogContent dir="rtl" className="sm:max-w-[640px] rounded-3xl p-6 sm:p-7 text-right">
             <DialogHeader className="text-right sm:text-right border-b pb-4">
               <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
                 <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
-                <span>ملاحظات وتوجيهات أمر الصرف</span>
+                <span>إضافة ملاحظات وتوجيهات لأمر الصرف</span>
               </DialogTitle>
               <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium leading-relaxed">
                 تدوين ملاحظات وتوجيهات خاصة بأمر الصرف رقم ({notesModal.orderNumber}) ليتم إظهارها في شاشة أوامر الصرف.
