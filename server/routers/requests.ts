@@ -3845,6 +3845,24 @@ export const requestsRouter = router({
           ? Math.round((starRatings.reduce((acc, curr) => acc + curr, 0) / starRatings.length) * 10) / 10
           : (e.rating || 5);
 
+        const rawService = parsedNotes.serviceName || (e.mosqueId ? mosqueMap.get(e.mosqueId) : null) || e.descriptiveName || "طلب خدمة";
+        const programLabels: Record<string, string> = {
+          bunyan: "بنيان",
+          daaem: "دعائم",
+          enaya: "عناية",
+          emdad: "إمداد",
+          ethraa: "إثراء",
+          sedana: "سدانة",
+          taqa: "طاقة",
+          miyah: "مياه",
+          suqya: "سقيا",
+          kasswa: "كسوة",
+          tathir: "تطهير",
+          sakina: "سكينة",
+          fursh: "فرش",
+        };
+        const resolvedServiceName = programLabels[String(rawService).toLowerCase().trim()] || rawService;
+
         return {
           id: e.evalId,
           requestId: e.requestId,
@@ -3858,7 +3876,7 @@ export const requestsRouter = router({
           requesterName: parsedNotes.beneficiaryName || e.requesterName || "مستفيد",
           requesterPhone: parsedNotes.beneficiaryPhone || e.requesterPhone || null,
           requesterEmail: parsedNotes.beneficiaryEmail || e.requesterEmail || null,
-          serviceName: parsedNotes.serviceName || (e.mosqueId ? mosqueMap.get(e.mosqueId) : null) || e.descriptiveName || "طلب خدمة",
+          serviceName: resolvedServiceName,
           mosqueName: e.mosqueId ? mosqueMap.get(e.mosqueId) || null : null,
           servicesRating: parsedNotes.servicesRating || answers.servicesRating || null,
           speedRating: parsedNotes.speedRating || answers.speedRating || null,

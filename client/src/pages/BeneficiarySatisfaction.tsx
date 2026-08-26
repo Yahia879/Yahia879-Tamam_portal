@@ -51,13 +51,19 @@ export default function BeneficiarySatisfaction() {
     const map = new Map<string, string>();
     allPrograms.forEach((p: any) => {
       map.set(p.code || String(p.id), p.nameAr || p.name);
+      if (p.code) map.set(p.code.toLowerCase(), p.nameAr || p.name);
     });
     return map;
   }, [allPrograms]);
 
-  const getProgramLabel = (type?: string) => {
+  const getArabicLabel = (type?: string | null) => {
     if (!type) return "طلب خدمة";
-    return programMap.get(type) || PROGRAM_LABELS[type as keyof typeof PROGRAM_LABELS] || type;
+    const lower = String(type).toLowerCase().trim();
+    if (programMap.has(type)) return programMap.get(type)!;
+    if (programMap.has(lower)) return programMap.get(lower)!;
+    if (PROGRAM_LABELS[lower]) return PROGRAM_LABELS[lower];
+    if (PROGRAM_LABELS[type]) return PROGRAM_LABELS[type];
+    return String(type);
   };
 
   const allItems = data?.items || [];
@@ -323,7 +329,7 @@ export default function BeneficiarySatisfaction() {
                     <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
                       <th className="p-3.5 px-4">رقم الطلب</th>
                       <th className="p-3.5 px-4">المستفيد</th>
-                      <th className="p-3.5 px-4">الخدمة / المسجد</th>
+                      <th className="p-3.5 px-4">الخدمة / البرنامج</th>
                       <th className="p-3.5 px-4 text-center">التقييم</th>
                       <th className="p-3.5 px-4">الآراء والملاحظات</th>
                       <th className="p-3.5 px-4">تاريخ التقييم</th>
@@ -337,14 +343,9 @@ export default function BeneficiarySatisfaction() {
                         <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                           {/* رقم الطلب */}
                           <td className="p-3.5 px-4 font-mono font-bold text-foreground">
-                            <Link href={`/requests/${item.requestId}`}>
-                              <span className="text-primary hover:underline cursor-pointer flex items-center gap-1">
-                                <span>{item.requestNumber}</span>
-                                <ExternalLink className="w-3 h-3 inline" />
-                              </span>
-                            </Link>
+                            <span>{item.requestNumber}</span>
                             <span className="text-[10px] text-muted-foreground font-normal block font-sans">
-                              {getProgramLabel(item.programType)}
+                              {getArabicLabel(item.programType)}
                             </span>
                           </td>
 
@@ -362,10 +363,10 @@ export default function BeneficiarySatisfaction() {
                             </div>
                           </td>
 
-                          {/* الخدمة / المسجد */}
+                          {/* الخدمة / البرنامج */}
                           <td className="p-3.5 px-4">
                             <span className="font-medium text-foreground block truncate max-w-[180px]">
-                              {item.serviceName}
+                              {getArabicLabel(item.serviceName)}
                             </span>
                           </td>
 
@@ -455,7 +456,7 @@ export default function BeneficiarySatisfaction() {
                       <span>•</span>
                       <span className="inline-flex items-center gap-1.5 font-medium">
                         <Building2 className="w-3.5 h-3.5 text-primary" />
-                        {selectedEval.serviceName}
+                        {getArabicLabel(selectedEval.serviceName)}
                       </span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-1.5">
@@ -518,14 +519,14 @@ export default function BeneficiarySatisfaction() {
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
                             <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60">
-                              {field.options?.find((o) => o.value === value)?.label || String(value)}
+                              {field.options?.find((o) => o.value === value)?.label || getArabicLabel(String(value))}
                             </div>
                           )}
 
                           {/* نصوص / هاتف / بريد / رقم */}
                           {["text", "phone", "email", "number"].includes(field.type) && (
                             <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60" dir={field.type === "phone" || field.type === "email" ? "ltr" : "rtl"}>
-                              {String(value)}
+                              {field.id === "serviceName" || field.id === "programType" ? getArabicLabel(String(value)) : String(value)}
                             </div>
                           )}
 
