@@ -1177,6 +1177,9 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
 
+  // ملاحظات وتوجيهات رئيس المجلس / صاحب الصلاحية (مستقلة عن ملاحظات الاعتماد والرفض)
+  executiveNotes: text("executiveNotes"),
+
   // الاستثناء والتوقيع
   isException: boolean("isException").default(false).notNull(),
   exceptionApprovedBy: int("exceptionApprovedBy").references(() => users.id, { onDelete: "set null" }),

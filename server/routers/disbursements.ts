@@ -1617,6 +1617,7 @@ export const disbursementsRouter = router({
           creatorSignatureDepartment: disbursementOrders.creatorSignatureDepartment,
           creatorSignatureUrl: disbursementOrders.creatorSignatureUrl,
           approvalNotes: disbursementOrders.approvalNotes,
+          executiveNotes: disbursementOrders.executiveNotes,
           exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           rejectionReason: disbursementOrders.rejectionReason,
           rejectedAt: disbursementOrders.rejectedAt,
@@ -2566,7 +2567,7 @@ export const disbursementsRouter = router({
       return { success: true, message: "تم اعتماد أمر الصرف بنجاح" };
     }),
 
-  // تحديث أو إضافة ملاحظات لأمر الصرف
+  // تحديث أو إضافة ملاحظات وتوجيهات رئيس المجلس لأمر الصرف (قبل الاعتماد أو الرفض)
   updateOrderNotes: protectedProcedure
     .input(
       z.object({
@@ -2588,15 +2589,20 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
+      // لا يمكن إضافة أو تعديل الملاحظات إذا كان الأمر قد اعتُمد ونُفّذ أو رُفض مسبقاً
+      if (order.status === "executed" || order.status === "rejected") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل الملاحظات بعد اعتماد أو رفض أمر الصرف" });
+      }
+
       await db
         .update(disbursementOrders)
         .set({
-          approvalNotes: input.notes.trim() || null,
+          executiveNotes: input.notes.trim() || null,
           updatedAt: new Date(),
         })
         .where(eq(disbursementOrders.id, input.orderId));
 
-      return { success: true, message: "تم حفظ الملاحظات بنجاح" };
+      return { success: true, message: "تم حفظ وتحديث الملاحظات بنجاح" };
     }),
 
   // تنفيذ أمر صرف (الدفع الفعلي)

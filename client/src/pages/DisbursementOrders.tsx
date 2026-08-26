@@ -526,7 +526,7 @@ export default function DisbursementOrders() {
                                   </TooltipProvider>
                                 )}
                                 <span>{order.orderNumber}</span>
-                                {order.approvalNotes && (
+                                {order.executiveNotes && (
                                   <TooltipProvider>
                                     <Tooltip delayDuration={100}>
                                       <TooltipTrigger asChild>
@@ -542,8 +542,8 @@ export default function DisbursementOrders() {
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg border border-slate-700 max-w-xs text-right z-50">
-                                        <p className="font-bold text-amber-300 mb-0.5">ملاحظات مدونة:</p>
-                                        <p className="leading-snug">{order.approvalNotes}</p>
+                                        <p className="font-bold text-amber-300 mb-0.5">ملاحظات صاحب الصلاحية:</p>
+                                        <p className="leading-snug">{order.executiveNotes}</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -687,7 +687,7 @@ export default function DisbursementOrders() {
                                           </DropdownMenuItem>
                                         )}
 
-                                        {order.approvalNotes && (
+                                        {order.executiveNotes && (
                                           <DropdownMenuItem
                                             onClick={() => {
                                               setSelectedOrder(order);
@@ -696,7 +696,7 @@ export default function DisbursementOrders() {
                                             className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
                                           >
                                             <MessageSquare className="h-4 w-4 text-amber-600" />
-                                            <span>عرض الملاحظات المدونة</span>
+                                            <span>عرض ملاحظات صاحب الصلاحية</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -858,7 +858,7 @@ export default function DisbursementOrders() {
                             </div>
                           </div>
 
-                          {order.approvalNotes && (
+                          {order.executiveNotes && (
                             <div 
                               onClick={() => {
                                 setSelectedOrder(order);
@@ -868,8 +868,8 @@ export default function DisbursementOrders() {
                             >
                               <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                               <div className="min-w-0 text-right">
-                                <span className="font-bold block text-[10px]">ملاحظات أمر الصرف:</span>
-                                <p className="text-xs line-clamp-2 leading-relaxed text-foreground">{order.approvalNotes}</p>
+                                <span className="font-bold block text-[10px]">ملاحظات صاحب الصلاحية:</span>
+                                <p className="text-xs line-clamp-2 leading-relaxed text-foreground">{order.executiveNotes}</p>
                               </div>
                             </div>
                           )}
@@ -1482,9 +1482,9 @@ export default function DisbursementOrders() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص الملاحظات:</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص ملاحظات وتوجيهات صاحب الصلاحية:</Label>
                 <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
-                  {selectedOrder?.approvalNotes || "لا توجد ملاحظات مدونة"}
+                  {selectedOrder?.executiveNotes || "لا توجد ملاحظات مدونة"}
                 </div>
               </div>
             </div>
