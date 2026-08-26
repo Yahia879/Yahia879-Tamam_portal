@@ -208,11 +208,11 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   contract_approved: "تم اعتماد العقد رقم \"{رقم_العقد}\" للمورد \"{اسم_المورد}\" للطلب رقم {رقم_الطلب} بقيمة {القيمة} ريال",
   progress_report_created: "تم إنشاء تقرير إنجاز جديد رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
   progress_report_approved: "تم اعتماد تقرير الإنجاز رقم \"{رقم_التقرير}\" للمشروع \"{اسم_المشروع}\" للطلب رقم {رقم_الطلب}",
-  disbursement_request_created: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" لطلب صرف دفعة أولى للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_request_created: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
   disbursement_converted_to_order: "تم تحويل طلب الصرف رقم \"{رقم_طلب_الصرف}\" إلى أمر صرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
-  disbursement_order_pending_board_executive: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" للاعتماد المالي بقيمة {القيمة} ريال",
-  disbursement_order_approved: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
-  disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
+  disbursement_order_pending_board_executive: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" للاعتماد المالي بقيمة {القيمة} ريال",
+  disbursement_order_approved: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
 };
 
 const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
@@ -1906,7 +1906,7 @@ export async function notifyDisbursementOrderApproval(
 
     const officerIds = await getFinancialNotificationOfficerIds(db);
     const notificationTitle = "اعتماد أمر صرف";
-    const message = `تم اعتماد أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}")${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+    const message = `تم اعتماد أمر الصرف رقم "${orderNumber}"${requestNumber ? ` (طلب رقم "${requestNumber}")` : ""}${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
 
     for (const userId of officerIds) {
       await createNotification({
@@ -1949,7 +1949,7 @@ export async function notifyDisbursementOrderRejection(
 
     const officerIds = await getFinancialNotificationOfficerIds(db);
     const notificationTitle = "رفض أمر صرف";
-    const message = `تم رفض أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}")${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال بسبب: ${reason}`;
+    const message = `تم رفض أمر الصرف رقم "${orderNumber}"${requestNumber ? ` (طلب رقم "${requestNumber}")` : ""}${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال بسبب: ${reason}`;
 
     for (const userId of officerIds) {
       await createNotification({
