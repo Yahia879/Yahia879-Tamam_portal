@@ -802,46 +802,22 @@ export default function NotificationCustomization() {
     {
       id: "disbursement_order_approved",
       category: "financial",
-      nameAr: "اعتماد أمر صرف (مرتبط بمشروع وطلب صرف)",
-      description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "ترميم جامع النور" بقيمة 50,000 ريال',
-      defaultTemplate: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+      nameAr: "الاعتماد المالي (مرتبط بمشروع وطلب صرف)",
+      description: 'تم الاعتماد المالي لأمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "ترميم جامع النور" بقيمة 50,000 ريال',
+      defaultTemplate: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
       variables: [
         { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
         { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
         { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
-        { placeholder: "{القيمة}", nameAr: "القيمة" }
-      ]
-    },
-    {
-      id: "disbursement_order_approved_project_only",
-      category: "financial",
-      nameAr: "اعتماد أمر صرف (مرتبط بمشروع فقط - غير مرتبط بطلب صرف)",
-      description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" للمشروع "ترميم جامع النور" بقيمة 50,000 ريال',
-      defaultTemplate: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
-      variables: [
-        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
-        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
-        { placeholder: "{القيمة}", nameAr: "القيمة" }
-      ]
-    },
-    {
-      id: "disbursement_order_approved_request_only",
-      category: "financial",
-      nameAr: "اعتماد أمر صرف (مرتبط بطلب صرف فقط - غير مرتبط بمشروع)",
-      description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) بقيمة 50,000 ريال',
-      defaultTemplate: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
-      variables: [
-        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
-        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
         { placeholder: "{القيمة}", nameAr: "القيمة" }
       ]
     },
     {
       id: "disbursement_order_approved_general",
       category: "financial",
-      nameAr: "اعتماد أمر صرف (غير مرتبط بمشروع وغير مرتبط بطلب صرف)",
-      description: 'تم اعتماد أمر الصرف رقم "DO-2026-0023" بقيمة 50,000 ريال',
-      defaultTemplate: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال",
+      nameAr: "الاعتماد المالي (غير مرتبط بمشروع وغير مرتبط بطلب صرف)",
+      description: 'تم الاعتماد المالي لأمر الصرف رقم "DO-2026-0023" بقيمة 50,000 ريال',
+      defaultTemplate: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال",
       variables: [
         { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
         { placeholder: "{القيمة}", nameAr: "القيمة" }
@@ -1283,8 +1259,6 @@ export default function NotificationCustomization() {
       "disbursement_converted_to_order",
       "disbursement_order_pending_board_executive",
       "disbursement_order_approved",
-      "disbursement_order_approved_project_only",
-      "disbursement_order_approved_request_only",
       "disbursement_order_approved_general",
       "disbursement_order_rejected"
     ];
