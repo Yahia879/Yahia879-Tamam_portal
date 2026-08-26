@@ -905,8 +905,8 @@ export default function FormsCustomizationEvaluation() {
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
-                  ? "relative max-w-[395px] h-[780px] max-h-[82vh] bg-background rounded-[48px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
-                  : "max-w-2xl space-y-6"
+                  ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[88vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
+                  : "max-w-2xl mx-auto space-y-6"
               }`}
             >
               {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية (Dynamic Island) */}

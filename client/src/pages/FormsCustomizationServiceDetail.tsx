@@ -831,13 +831,13 @@ export default function FormsCustomizationServiceDetail() {
             </div>
           </div>
 
-          {/* محتوى المعاينة التفاعلي الواقعي */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 sm:py-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
+          {/* محتوى المعاينة التفاعلي الواقعي المطابق تماماً لصفحة تقديم الطلب للمستفيد */}
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
             <div
               className={`w-full transition-all duration-300 ${
                 previewDevice === "mobile"
-                  ? "relative max-w-[395px] h-[780px] max-h-[82vh] bg-background rounded-[48px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
-                  : "max-w-4xl space-y-6"
+                  ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[88vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
+                  : "max-w-4xl mx-auto space-y-6"
               }`}
             >
               {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية (Dynamic Island) */}
@@ -859,71 +859,91 @@ export default function FormsCustomizationServiceDetail() {
                 </div>
               )}
 
-              {/* مساحة محتوى شاشة الهاتف القابلة للتمرير والتفاعل */}
-              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right" : "space-y-6"}>
-                {/* 1. شريط تقدم الخطوات المطابق للأصل */}
-                <div className="p-3.5 sm:p-5 rounded-2xl bg-card border border-border/80 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                        ✓
-                      </div>
-                      <p className="text-[10px] sm:text-xs mt-1 text-center font-semibold text-emerald-600 dark:text-emerald-400">
-                        المستفيد
+              {/* مساحة محتوى شاشة الهاتف أو الكمبيوتر القابلة للتمرير والتفاعل */}
+              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-4 text-right bg-background" : "space-y-6"}>
+                
+                {/* 1. رأس صفحة تقديم الطلب المطابق تماماً لـ BeneficiaryLayout */}
+                <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-8 pb-3 sm:pb-4 border-b border-border/40">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium size-8 sm:size-10 rounded-xl hover:bg-muted shrink-0 text-foreground border border-border/40 bg-card shadow-2xs cursor-default"
+                      title="العودة للرئيسية"
+                    >
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-sm sm:text-2xl font-black text-foreground tracking-tight truncate">
+                        تقديم طلب خدمة جديد
+                      </h1>
+                      <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 hidden sm:block">
+                        قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية
                       </p>
                     </div>
-                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-emerald-500/40" />
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  </div>
+                </div>
+
+                {/* 2. شريط تقدم الخطوات (5 خطوات) المطابق تماماً لـ DynamicServiceRequestForm */}
+                <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
+                  <div className={`flex items-center justify-between ${previewDevice === "mobile" ? "min-w-[340px]" : "min-w-[360px] sm:min-w-0"}`}>
+                    {/* الخطوة 1: اختيار الخدمة */}
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
                         ✓
                       </div>
-                      <p className="text-[10px] sm:text-xs mt-1 text-center font-semibold text-emerald-600 dark:text-emerald-400">
-                        البرنامج
+                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                        اختيار الخدمة
                       </p>
                     </div>
-                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-primary" />
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-primary text-primary-foreground ring-2 ring-primary/20 scale-105">
-                        3
+                    <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
+
+                    {/* الخطوة 2: الشروط والأحكام */}
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
+                        ✓
                       </div>
-                      <p className="text-[10px] sm:text-xs mt-1 text-center font-bold text-primary">
+                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                        الشروط والأحكام
+                      </p>
+                    </div>
+                    <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
+
+                    {/* الخطوة 3: بيانات مقدم الطلب */}
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground`}>
+                        ✓
+                      </div>
+                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                        بيانات مقدم الطلب
+                      </p>
+                    </div>
+                    <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-primary`} />
+
+                    {/* الخطوة 4: تفاصيل الطلب (الحالية النشطة) */}
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-100`}>
+                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px] ring-2" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm ring-2 sm:ring-4"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-primary text-primary-foreground ring-primary/20 scale-110`}>
+                        4
+                      </div>
+                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-primary font-bold`}>
                         تفاصيل الطلب
                       </p>
                     </div>
-                    <div className="flex-1 h-0.5 mx-1.5 sm:mx-2 rounded-full bg-muted" />
-                    <div className="flex flex-col items-center shrink-0 opacity-50">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs bg-muted text-muted-foreground">
-                        4
+                    <div className={`${previewDevice === "mobile" ? "h-0.5 mx-1" : "h-0.5 sm:h-1 mx-1 sm:mx-2"} flex-1 rounded-full transition-colors duration-300 bg-muted`} />
+
+                    {/* الخطوة 5: المراجعة والإرسال */}
+                    <div className={`flex flex-col items-center justify-start self-start shrink-0 ${previewDevice === "mobile" ? "min-h-[64px]" : "min-h-[72px] sm:min-h-[88px]"} opacity-40`}>
+                      <div className={`${previewDevice === "mobile" ? "w-7 h-7 text-[10px]" : "w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-sm"} rounded-full flex items-center justify-center font-bold transition-all duration-300 bg-muted text-muted-foreground`}>
+                        5
                       </div>
-                      <p className="text-[10px] sm:text-xs mt-1 text-center font-medium text-muted-foreground">
-                        المراجعة
+                      <p className={`${previewDevice === "mobile" ? "text-[9px] max-w-[55px]" : "text-[10px] sm:text-xs max-w-[60px] sm:max-w-[80px]"} mt-1 text-center leading-tight text-muted-foreground font-medium`}>
+                        المراجعة والإرسال
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Banner الخدمة والبرنامج */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3.5 sm:p-5 flex items-center gap-3">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${currentProgram?.color || "bg-primary"} text-white shadow-md`}>
-                    <IconComponent className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold mb-0.5">
-                      <Sparkles className="w-2.5 h-2.5" />
-                      <span>برنامج {currentProgram?.name || serviceId}</span>
-                    </div>
-                    <h3 className="text-sm sm:text-base font-bold text-foreground truncate">
-                      استمارة طلب خدمة {currentProgram?.name || serviceId}
-                    </h3>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
-                      {currentProgram?.description || "يرجى تعبئة الحقول والبيانات المطلوبة لتقديم طلب الخدمة"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. كرت الحقول الديناميكية الواقعي */}
-                <div className={`text-card-foreground flex flex-col gap-4 sm:gap-6 ${previewDevice === "mobile" ? "p-3.5 rounded-2xl" : "p-5 sm:p-8 lg:p-10 rounded-3xl"} shadow-md border border-border/60 bg-background overflow-hidden`}>
-                <div className="space-y-5 sm:space-y-8">
+                {/* 3. كرت الحقول الديناميكية الفعلي المطابق 100% لـ DynamicServiceRequestForm */}
+                <div className={`text-card-foreground flex flex-col ${previewDevice === "mobile" ? "gap-4 p-4 rounded-2xl shadow-md" : "gap-6 p-5 sm:p-8 lg:p-10 rounded-3xl shadow-xl"} border border-border/60 bg-background overflow-hidden`}>
+                <div className={previewDevice === "mobile" ? "space-y-4" : "space-y-6 sm:space-y-8"}>
                   <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-4" : "grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6"}`}>
                     {fields
                       .filter((f) => f.isActive)
@@ -1053,7 +1073,7 @@ export default function FormsCustomizationServiceDetail() {
                                       }
                                       className={`grid ${
                                         field.options && field.options.length > 2
-                                          ? "grid-cols-1 sm:grid-cols-3"
+                                          ? (previewDevice === "mobile" ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3")
                                           : "grid-cols-2"
                                       } gap-2.5 sm:gap-3`}
                                       dir="rtl"
@@ -1073,7 +1093,7 @@ export default function FormsCustomizationServiceDetail() {
                                           <label
                                             key={option.value}
                                             htmlFor={`preview-${field.id}-${option.value}`}
-                                            className={`relative flex items-center justify-between p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
+                                            className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
                                               isSelected
                                                 ? isYes
                                                   ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-xs ring-2 ring-emerald-500/20"
@@ -1083,7 +1103,7 @@ export default function FormsCustomizationServiceDetail() {
                                                 : "border-border/60 bg-background hover:bg-muted/40 hover:border-border text-foreground"
                                             }`}
                                           >
-                                            <div className="flex items-center gap-2 sm:gap-3">
+                                            <div className="flex items-center gap-2.5 sm:gap-3">
                                               <RadioGroupItem
                                                 value={option.value}
                                                 id={`preview-${field.id}-${option.value}`}
@@ -1234,19 +1254,19 @@ export default function FormsCustomizationServiceDetail() {
 
                     {/* حقل المرفقات العام إن لم يكن مضافاً كحقل مخصص */}
                     {!fields.some((f) => f.id === "attachment" && f.isActive) && (
-                      <div className="col-span-1 sm:col-span-2 pt-3 sm:pt-4 border-t border-border/60">
-                        <Label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-2.5 sm:mb-3 text-foreground">
+                      <div className="col-span-1 sm:col-span-2 pt-2">
+                        <Label className="flex items-center gap-2 text-xs sm:text-sm font-bold mb-3 text-foreground">
                           <Paperclip className="w-4 h-4 text-primary" />
                           <span>المرفقات والوثائق الداعمة (اختياري)</span>
                         </Label>
-                        <div className="p-4 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2.5 sm:mb-3 group-hover:scale-110 transition-transform">
-                            <CloudUpload className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <div className="p-6 sm:p-8 border-2 border-dashed border-border/80 hover:border-primary hover:bg-primary/5 transition-all rounded-2xl cursor-pointer text-center group">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                            <CloudUpload className="w-6 h-6" />
                           </div>
                           <p className="font-bold text-xs sm:text-sm text-foreground">
-                            اضغط لرفع ملف أو اسحبه إلى هنا
+                            ملفات PDF أو صور أو مستندات Word
                           </p>
-                          <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 sm:mt-1">
+                          <p className="text-[11px] text-muted-foreground mt-1">
                             يدعم ملفات PDF، الصور، ومستندات Word (الحد الأقصى 10 ميجابايت)
                           </p>
                         </div>
@@ -1255,22 +1275,22 @@ export default function FormsCustomizationServiceDetail() {
                   </div>
                 </div>
 
-                {/* أزرار التنقل السفلية للنموذج */}
-                <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
+                {/* أزرار التنقل السفلية للنموذج المطابقة تماماً لـ DynamicServiceRequestForm */}
+                <div className={`flex flex-row items-center justify-between ${previewDevice === "mobile" ? "gap-2.5 mt-4 pt-4" : "gap-3 mt-8 pt-6"} border-t border-border/60`}>
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-3 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm"
+                    className={`${previewDevice === "mobile" ? "rounded-xl h-10 px-4 text-xs" : "rounded-2xl h-11 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm"} font-bold gap-2 shadow-xs hover:bg-muted`}
                   >
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <ChevronRight className="w-4 h-4" />
                     <span>السابق</span>
                   </Button>
                   <Button
                     type="button"
-                    className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm bg-primary text-primary-foreground shadow-md hover:opacity-95"
+                    className={`${previewDevice === "mobile" ? "rounded-xl h-10 px-5 text-xs" : "rounded-2xl h-11 sm:h-12 px-6 sm:px-8 text-xs sm:text-sm"} font-bold gap-2 gradient-primary bg-primary text-white shadow-md hover:opacity-95 transition-all`}
                   >
                     <span>التالي</span>
-                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <ChevronLeft className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
