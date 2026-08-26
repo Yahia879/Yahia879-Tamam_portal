@@ -33,7 +33,7 @@ import {
   requestExceptions,
   donationOpportunities,
 } from "../../drizzle/schema";
-import { eq, ne, and, desc, sql, inArray, or, gte, lte, gt } from "drizzle-orm";
+import { eq, ne, and, desc, sql, inArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -3778,7 +3778,16 @@ export const requestsRouter = router({
         .from(requestEvaluations)
         .innerJoin(mosqueRequests, eq(requestEvaluations.requestId, mosqueRequests.id))
         .leftJoin(users, eq(requestEvaluations.userId, users.id))
-        .where(eq(requestEvaluations.evaluationType, "beneficiary_satisfaction"))
+        .where(
+          and(
+            eq(requestEvaluations.evaluationType, "beneficiary_satisfaction"),
+            or(
+              isNotNull(requestEvaluations.rating),
+              isNotNull(requestEvaluations.notes),
+              eq(mosqueRequests.isEvaluated, true)
+            )
+          )
+        )
         .orderBy(desc(requestEvaluations.createdAt));
 
       // جلب أسماء المساجد للتقييمات
