@@ -462,12 +462,6 @@ export default function RequestEvaluation() {
                                   );
                                 })}
                               </div>
-
-                              {field.showLabels && (currentHover || value) && RATING_LABELS[currentHover || value] && (
-                                <div className="text-left text-xs font-semibold text-amber-600 dark:text-amber-400">
-                                  <span>{RATING_LABELS[currentHover || value].label}</span>
-                                </div>
-                              )}
                             </div>
                           )}
 

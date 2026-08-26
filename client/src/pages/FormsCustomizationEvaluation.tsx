@@ -1385,19 +1385,6 @@ export default function FormsCustomizationEvaluation() {
                                       );
                                     })}
                                   </div>
-
-                                  {/* وصف النتيجة المحدد */}
-                                  {(currentHover || value) && RATING_EMOJIS[currentHover || value] && (
-                                    <div className="flex justify-end animate-in fade-in duration-200">
-                                      <div
-                                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-                                          RATING_EMOJIS[currentHover || value].color
-                                        }`}
-                                      >
-                                        <span>{RATING_EMOJIS[currentHover || value].label}</span>
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
                               )}
 
