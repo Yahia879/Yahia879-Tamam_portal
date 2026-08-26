@@ -37,7 +37,7 @@ import {
   AlertCircle, Banknote, Receipt, MapPin, Layers,
   Check, Sparkles, PieChart as PieIcon, ClipboardList, Truck, Link2, FileSpreadsheet,
   MoreVertical, Eye, XCircle, FileCode, CheckCircle, ArrowUpRight, Search, Filter,
-  ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare
+  ChevronLeft, ChevronRight, Info, Printer, ExternalLink, MessageSquare, Loader2
 } from "lucide-react";
 
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
@@ -207,14 +207,14 @@ export default function BoardDashboard() {
 
   const updateNotesMutation = trpc.disbursements.updateOrderNotes.useMutation({
     onSuccess: () => {
-      toast.success("تم حفظ وتحديث الملاحظات بنجاح");
+      toast.success("تم إرسال الملاحظات بنجاح");
       setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" });
       refetch();
       utils.board.getExecutiveStats.invalidate();
       utils.disbursements.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ الملاحظات");
+      toast.error(err.message || "حدث خطأ أثناء إرسال الملاحظات");
     },
   });
 
@@ -1730,7 +1730,7 @@ export default function BoardDashboard() {
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
               >
                 {updateNotesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-                <span>حفظ الملاحظات</span>
+                <span>إرسال الملاحظات</span>
               </Button>
               <Button
                 variant="outline"
