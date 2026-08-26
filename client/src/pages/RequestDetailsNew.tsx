@@ -337,6 +337,12 @@ export default function RequestDetailsNew() {
   const { data: request, isLoading } = trpc.requests.getById.useQuery({ id: requestId });
   const history = request?.history || [];
 
+  // جلب تخصيص النموذج الخاص بالبرنامج لعرض الحقول المخصصة والمحدثة
+  const { data: serviceFormConfig } = trpc.forms.getServiceFormConfig.useQuery(
+    { serviceId: request?.programType || "" },
+    { enabled: !!request?.programType }
+  );
+
   useEffect(() => {
     if (selectedDecision === 'convert_to_project' && request) {
       if (request.programType === 'bunyan') {
@@ -1935,9 +1941,8 @@ export default function RequestDetailsNew() {
                     </>
                   ) : null}
 
-                  {/* معلومات الحقول الديناميكية */}
+                  {/* معلومات الحقول الديناميكية والمخصصة للبرنامج */}
                   {(() => {
-                    const allFields = getAllFieldsForProgram(request.programType);
                     let programData: Record<string, any> = {};
                     
                     try {
@@ -1950,72 +1955,172 @@ export default function RequestDetailsNew() {
                       console.error("Error parsing programData:", e);
                       programData = {};
                     }
-                    
-                    return allFields
-                      .filter(field => field.name !== 'mosqueId' && programData[field.name] !== undefined)
-                      .map(field => {
-                        let displayLabel = field.label;
-                        if (isEn) {
-                          const enFieldLabels: Record<string, string> = {
-                            "حالة البناء": "Building Status",
-                            "سعة المصلين": "Worshipers Capacity",
-                            "نوع المبنى": "Building Type",
-                            "ملاحظات وتفاصيل إضافية": "Additional Notes & Details",
-                            "المنطقة": "Region",
-                            "المدينة/القرية": "City/Village",
-                            "هل توجد إحداثيات": "Are coordinates available?",
-                            "الحاجة": "Need / Urgency",
-                            "نوع التوريد": "Supply Type",
-                            "الكمية المطلوبة": "Required Quantity",
-                            "التفاصيل": "Details",
-                            "الوصف": "Description",
-                            "المستفيد": "Beneficiary",
-                            "ملاحظات": "Notes",
-                            "وصف الأعمال المطلوبة": "Description of required works",
-                            "مساحة المسجد بالمتر المربع": "Mosque area in square meters",
-                            "عدد المصلين الفعلي": "Actual number of worshipers",
-                            "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟": "Are you willing to establish a volunteer team under your leadership to market the opportunity?",
-                          };
-                          displayLabel = enFieldLabels[field.label] || field.label;
-                        }
 
-                        let displayValue = programData[field.name];
-                        
-                        // معالجة القيم الخاصة (مثل نعم/لا)
-                        if (field.type === 'radio' || field.type === 'select') {
-                          const option = field.options?.find(opt => opt.value === displayValue);
-                          if (option) {
-                            displayValue = option.label;
-                            if (isEn) {
-                              const enOptions: Record<string, string> = {
-                                "نعم": "Yes",
-                                "لا": "No",
-                                "ممتاز": "Excellent",
-                                "جيد جداً": "Very Good",
-                                "جيد": "Good",
-                                "مقبول": "Fair",
-                                "ضعيف": "Poor",
-                                "خرساني": "Concrete",
-                                "مسبق الصنع": "Prefabricated",
-                                "شعبي": "Traditional",
-                                "أخرى": "Other",
-                              };
-                              displayValue = enOptions[option.label] || option.label;
-                            }
-                          } else if (displayValue === 'yes') {
-                            displayValue = isEn ? 'Yes' : 'نعم';
-                          } else if (displayValue === 'no') {
-                            displayValue = isEn ? 'No' : 'لا';
+                    // قائمة الحقول المخصصة المحفوظة للخدمة (من Forms Customization)
+                    const customFields = serviceFormConfig?.fields || [];
+                    const staticFields = getAllFieldsForProgram(request.programType);
+
+                    // بناء خريطة لجميع الحقول المعرفة لسهولة الوصول للتسميات والخيارات
+                    const fieldMap = new Map<string, { label: string; type?: string; options?: Array<{ label: string; value: string }>; order?: number }>();
+
+                    // 1. إضافة الحقول الافتراضية
+                    staticFields.forEach((f, idx) => {
+                      fieldMap.set(f.name, {
+                        label: f.label,
+                        type: f.type,
+                        options: f.options,
+                        order: idx + 1,
+                      });
+                    });
+
+                    // 2. دمج وتطبيق الحقول المخصصة المحدثة (التي قد تحتوي على حقول مضافة جديدة أو تسميات معدلة)
+                    customFields.forEach((f) => {
+                      fieldMap.set(f.id, {
+                        label: f.label,
+                        type: f.type,
+                        options: f.options,
+                        order: f.order,
+                      });
+                    });
+
+                    // تسميات افتراضية لبعض المفاتيح الشائعة التي قد لا تكون في القائمة
+                    const KNOWN_LABELS: Record<string, string> = {
+                      hasPrayerHall: "هل يتضمن المشروع مصلى للنساء؟",
+                      womenPrayerCapacity: "سعة مصلى النساء (مصلي)",
+                      womenPrayerArea: "مساحة مصلى النساء (م²)",
+                      neighborhoodName: "اسم الحي",
+                      hasLand: "هل لديكم أرض مخصصة للبناء؟",
+                      landOwnership: "ملكية الأرض",
+                      landArea: "مساحة الأرض بالمتر المربع",
+                      landProposal: "مقترحات بخصوص الأرض",
+                      hasDonor: "هل لديكم متبرع للقيام بتكاليف البناء؟",
+                      donationAmount: "مبلغ التبرع (بالريال السعودي)",
+                      fundingProposal: "مقترحات التمويل",
+                      fundingProposals: "مقترحات التمويل",
+                      nearestMosque: "أقرب مسجد موجود",
+                      distanceToMosque: "المسافة من أقرب مسجد (بالكيلومتر)",
+                      distanceToNearestMosque: "المسافة من أقرب مسجد (بالكيلومتر)",
+                      willingToVolunteer: "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟",
+                      hasDonorForMaintenance: "هل يوجد متبرع للقيام بتكاليف الصيانة المطلوبة؟",
+                      workDescription: "وصف الأعمال المطلوبة",
+                      mosqueArea: "مساحة المسجد بالمتر المربع",
+                      actualWorshippers: "عدد المصلين الفعلي",
+                      acCount: "عدد المكيفات المطلوبة",
+                      cartonsNeeded: "عدد الكراتين المطلوبة",
+                      monthlyCartonNeed: "احتياج المسجد الشهري بالكرتون",
+                      hasWaterFridge: "هل لديكم ثلاجة مخصصة للماء بالمسجد؟",
+                      urgencyLevel: "درجة الاستعجال",
+                      attachment: "المرفقات والوثائق الداعمة",
+                    };
+
+                    // المفاتيح المستبعدة من الحقول لأنها معروضة مسبقاً في بطاقات منفصلة
+                    const ignoredKeys = new Set([
+                      'mosqueId',
+                      'customMosqueName',
+                      'customMosqueCity',
+                      'multiMosques',
+                      'isMultiMosque',
+                      'descriptiveName',
+                      'attachment'
+                    ]);
+
+                    const keysToRender = Object.keys(programData).filter(
+                      (key) => !ignoredKeys.has(key) && programData[key] !== undefined && programData[key] !== null && programData[key] !== ''
+                    );
+
+                    // ترتيب الحقول حسب ترتيب التخصيص
+                    keysToRender.sort((a, b) => {
+                      const orderA = fieldMap.get(a)?.order ?? 999;
+                      const orderB = fieldMap.get(b)?.order ?? 999;
+                      return orderA - orderB;
+                    });
+
+                    return keysToRender.map((key) => {
+                      const fieldDef = fieldMap.get(key);
+                      let displayLabel = fieldDef?.label || KNOWN_LABELS[key] || key;
+                      const rawValue = programData[key];
+                      let displayValue = rawValue;
+
+                      // ترجمة التسمية للإنجليزية إن كانت اللغة إنجليزية
+                      if (isEn) {
+                        const enFieldLabels: Record<string, string> = {
+                          "حالة البناء": "Building Status",
+                          "سعة المصلين": "Worshipers Capacity",
+                          "نوع المبنى": "Building Type",
+                          "ملاحظات وتفاصيل إضافية": "Additional Notes & Details",
+                          "المنطقة": "Region",
+                          "المدينة/القرية": "City/Village",
+                          "هل توجد إحداثيات": "Are coordinates available?",
+                          "الحاجة": "Need / Urgency",
+                          "نوع التوريد": "Supply Type",
+                          "الكمية المطلوبة": "Required Quantity",
+                          "التفاصيل": "Details",
+                          "الوصف": "Description",
+                          "المستفيد": "Beneficiary",
+                          "ملاحظات": "Notes",
+                          "وصف الأعمال المطلوبة": "Description of required works",
+                          "مساحة المسجد بالمتر المربع": "Mosque area in square meters",
+                          "عدد المصلين الفعلي": "Actual number of worshipers",
+                          "هل لديكم استعداد لتأسيس فريق تطوعي بقيادتكم لتسويق الفرصة؟": "Are you willing to establish a volunteer team under your leadership to market the opportunity?",
+                          "هل يتضمن المشروع مصلى للنساء؟": "Does the project include a women prayer hall?",
+                          "سعة مصلى النساء (مصلي)": "Women prayer hall capacity",
+                          "مساحة مصلى النساء (م²)": "Women prayer hall area (m²)",
+                        };
+                        displayLabel = enFieldLabels[displayLabel] || displayLabel;
+                      }
+
+                      // معالجة القيم الخاصة (خيارات، قوائم، نعم/لا، قيم منطقية)
+                      if (typeof rawValue === 'boolean') {
+                        displayValue = rawValue ? (isEn ? 'Yes' : 'نعم') : (isEn ? 'No' : 'لا');
+                      } else if (rawValue === 'yes') {
+                        displayValue = isEn ? 'Yes' : 'نعم';
+                      } else if (rawValue === 'no') {
+                        displayValue = isEn ? 'No' : 'لا';
+                      } else if (fieldDef?.options && fieldDef.options.length > 0) {
+                        const option = fieldDef.options.find(opt => opt.value === rawValue);
+                        if (option) {
+                          displayValue = option.label;
+                          if (isEn) {
+                            const enOptions: Record<string, string> = {
+                              "نعم": "Yes",
+                              "لا": "No",
+                              "ممتاز": "Excellent",
+                              "جيد جداً": "Very Good",
+                              "جيد": "Good",
+                              "مقبول": "Fair",
+                              "ضعيف": "Poor",
+                              "خرساني": "Concrete",
+                              "مسبق الصنع": "Prefabricated",
+                              "شعبي": "Traditional",
+                              "أخرى": "Other",
+                            };
+                            displayValue = enOptions[option.label] || option.label;
                           }
                         }
+                      } else if (key === 'landOwnership') {
+                        const ownershipMap: Record<string, string> = {
+                          owned: isEn ? 'Privately Owned' : 'ملك خاص',
+                          waqf: isEn ? 'Waqf (Endowment)' : 'وقف',
+                          government: isEn ? 'Governmental' : 'حكومية',
+                          other: isEn ? 'Other' : 'أخرى',
+                        };
+                        displayValue = ownershipMap[rawValue] || rawValue;
+                      } else if (key === 'urgencyLevel') {
+                        const urgencyMap: Record<string, string> = {
+                          urgent: isEn ? 'Very Urgent' : 'طارئ جداً',
+                          medium: isEn ? 'Medium' : 'متوسط',
+                          normal: isEn ? 'Normal' : 'عادي',
+                        };
+                        displayValue = urgencyMap[rawValue] || rawValue;
+                      }
 
-                        return (
-                          <div key={field.name} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs" dir={isEn ? "ltr" : "rtl"}>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{displayLabel}</p>
-                            <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{String(displayValue)}</p>
-                          </div>
-                        );
-                      });
+                      return (
+                        <div key={key} className="space-y-1 col-span-full bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs" dir={isEn ? "ltr" : "rtl"}>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{displayLabel}</p>
+                          <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-words leading-relaxed">{String(displayValue)}</p>
+                        </div>
+                      );
+                    });
                   })()}
                 </div>
               </div>
