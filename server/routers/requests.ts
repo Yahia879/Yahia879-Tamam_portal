@@ -3695,9 +3695,9 @@ export const requestsRouter = router({
 
       const isOwner = request.userId === ctx.user.id;
       const isRequesterRole = ctx.user.role === "service_requester";
-      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+      const isStaff = ctx.user.role !== "service_requester";
 
-      if (!isOwner && !isRequesterRole && !isAdmin) {
+      if (!isOwner && !isRequesterRole && !isStaff) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "عفواً، ليس لديك صلاحية لعرض هذا التقييم.",

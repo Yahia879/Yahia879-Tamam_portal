@@ -343,6 +343,27 @@ export default function RequestDetailsNew() {
     { enabled: !!request?.programType }
   );
 
+  // جلب بيانات استبيان تقييم رضا المستفيد للطلب وتخصيص استمارة التقييم
+  const { data: beneficiaryEvalData } = trpc.requests.getBeneficiaryEvaluation.useQuery(
+    { requestId },
+    { enabled: !!requestId && !isNaN(requestId) }
+  );
+  const { data: evalFormConfig } = trpc.forms.getEvaluationFormConfig.useQuery();
+
+  // تحليل وتجهيز بيانات استبيان رضا المستفيد
+  const parsedBeneficiarySurvey = useMemo(() => {
+    const rawNotes = (request as any)?.evaluationNotes || beneficiaryEvalData?.existingEvaluation?.notes;
+    if (!rawNotes) return null;
+    try {
+      if (typeof rawNotes === 'string') {
+        return JSON.parse(rawNotes);
+      }
+      return rawNotes;
+    } catch {
+      return { comments: rawNotes };
+    }
+  }, [request, beneficiaryEvalData]);
+
   useEffect(() => {
     if (selectedDecision === 'convert_to_project' && request) {
       if (request.programType === 'bunyan') {
@@ -1511,69 +1532,212 @@ export default function RequestDetailsNew() {
             ) : (
               <div className="space-y-6">
 
-                {/* كرت تقييم رضا المستفيد للمسؤولين - مدمج ومضغوط ومتناسق */}
-                {request.isEvaluated && request.satisfactionRating && (
+                {/* قسم رضا المستفيدين للمسؤولين والموظفين */}
+                {(request.isEvaluated || beneficiaryEvalData?.existingEvaluation || request.satisfactionRating) && (
                   <div className="flex justify-center w-full" dir="rtl">
-                    <Card className="w-full max-w-2xl p-3.5 sm:p-4 rounded-xl border border-border shadow-xs bg-card">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
-                            <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                    <Card className="w-full max-w-4xl p-4 sm:p-6 rounded-2xl border-2 border-amber-500/30 shadow-md bg-card space-y-4">
+                      {/* رأس قسم رضا المستفيدين */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/80">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                            <HeartHandshake className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                           </div>
-                          
-                          <div className="min-w-0">
+                          <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="text-xs sm:text-sm font-bold text-foreground">
-                                تقييم رضا المستفيد عن الخدمة
-                              </h4>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                {request.satisfactionRating} من 5 نجوم
+                              <h3 className="text-base sm:text-lg font-extrabold text-foreground">
+                                رضا المستفيدين
+                              </h3>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                {beneficiaryEvalData?.existingEvaluation?.rating || request.satisfactionRating || 5} من 5 نجوم
                               </span>
                             </div>
-
-                            <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <Calendar className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                               <span>
-                                {request.evaluatedAt
-                                  ? `تم التقييم بتاريخ: ${new Date(request.evaluatedAt).toLocaleDateString('ar-SA')}`
-                                  : 'تم تسجيل التقييم بنجاح'}
+                                {request.evaluatedAt || beneficiaryEvalData?.existingEvaluation?.createdAt
+                                  ? `تاريخ استلام التقييم: ${new Date(request.evaluatedAt || beneficiaryEvalData?.existingEvaluation?.createdAt || new Date()).toLocaleDateString('ar-SA')}`
+                                  : 'تم تسجيل التقييم'}
                               </span>
                             </p>
                           </div>
                         </div>
 
-                        {/* النجوم والتعبير */}
-                        <div className="flex items-center gap-2 shrink-0 pr-10 sm:pr-0">
-                          <div className="flex items-center gap-0.5" dir="ltr">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`w-3.5 h-3.5 ${
-                                  star <= (request.satisfactionRating || 5)
-                                    ? "text-amber-500 fill-amber-500"
-                                    : "text-muted-foreground/30"
-                                }`}
-                              />
-                            ))}
-                          </div>
+                        {/* مؤشر النجوم */}
+                        <div className="flex items-center gap-1.5 self-end sm:self-center bg-amber-50 dark:bg-amber-950/40 p-2 px-3 rounded-xl border border-amber-200 dark:border-amber-800" dir="ltr">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-4 h-4 ${
+                                star <= (beneficiaryEvalData?.existingEvaluation?.rating || request.satisfactionRating || 5)
+                                  ? "text-amber-500 fill-amber-500 drop-shadow-[0_1px_2px_rgba(251,191,36,0.5)]"
+                                  : "text-muted-foreground/30 fill-none"
+                              }`}
+                            />
+                          ))}
                         </div>
                       </div>
 
-                      {/* ملاحظات المستفيد إن وجدت */}
+                      {/* بيانات مقدم التقييم */}
                       {(() => {
-                        const rawNotes = (request as any).evaluationNotes;
-                        if (!rawNotes) return null;
-                        let textToDisplay = rawNotes;
-                        try {
-                          const parsed = JSON.parse(rawNotes);
-                          textToDisplay = parsed.comments || parsed.notes || "";
-                        } catch {}
-                        if (!textToDisplay) return null;
+                        const survey = parsedBeneficiarySurvey || {};
+                        const name = survey.beneficiaryName || survey.answers?.beneficiaryName || request.requester?.name;
+                        const phone = survey.beneficiaryPhone || survey.answers?.beneficiaryPhone || request.requester?.phone;
+                        const email = survey.beneficiaryEmail || survey.answers?.beneficiaryEmail || request.requester?.email;
+                        const service = survey.serviceName || survey.answers?.serviceName || request.mosque?.name || request.descriptiveName;
+
                         return (
-                          <div className="mt-2.5 p-2 px-3 rounded-lg bg-muted/40 border border-border/50 text-xs text-foreground flex items-baseline gap-1">
-                            <span className="font-bold text-muted-foreground shrink-0">ملاحظات المستفيد:</span>
-                            <span className="text-foreground italic">"{textToDisplay}"</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 text-xs">
+                            {name && (
+                              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                                <span className="text-[11px] text-muted-foreground block font-medium">اسم المستفيد:</span>
+                                <span className="font-bold text-foreground block truncate">{name}</span>
+                              </div>
+                            )}
+                            {phone && (
+                              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                                <span className="text-[11px] text-muted-foreground block font-medium">رقم الجوال:</span>
+                                <span className="font-bold text-foreground block font-mono" dir="ltr">{phone}</span>
+                              </div>
+                            )}
+                            {email && (
+                              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                                <span className="text-[11px] text-muted-foreground block font-medium">البريد الإلكتروني:</span>
+                                <span className="font-bold text-foreground block truncate font-mono" dir="ltr">{email}</span>
+                              </div>
+                            )}
+                            {service && (
+                              <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60">
+                                <span className="text-[11px] text-muted-foreground block font-medium">الخدمة / المسجد:</span>
+                                <span className="font-bold text-foreground block truncate">{service}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* محاور التقييم التفصيلية وأسئلة الاستبيان */}
+                      {(() => {
+                        const survey = parsedBeneficiarySurvey || {};
+                        const answers = survey.answers || survey || {};
+
+                        // محاور التقييم الأساسية
+                        const metrics = [
+                          { key: "servicesRating", label: "جودة ومستوى الخدمة", value: survey.servicesRating || answers.servicesRating },
+                          { key: "speedRating", label: "سرعة الاستجابة والتنفيذ", value: survey.speedRating || answers.speedRating },
+                          { key: "communicationRating", label: "سهولة التواصل والتعامل", value: survey.communicationRating || answers.communicationRating },
+                          { key: "overallSatisfaction", label: "مستوى الرضا العام", value: survey.overallSatisfaction || answers.overallSatisfaction },
+                        ].filter((m) => typeof m.value === "number" && m.value > 0);
+
+                        // الحقول المخصصة الأخرى
+                        const standardKeys = ["beneficiaryName", "beneficiaryPhone", "beneficiaryEmail", "serviceName", "servicesRating", "speedRating", "communicationRating", "overallSatisfaction", "comments", "notes", "answers"];
+                        const fieldsDef = evalFormConfig?.fields || [];
+                        const customAnswerEntries = Object.entries(answers).filter(([k, v]) => !standardKeys.includes(k) && v !== undefined && v !== null && v !== "");
+
+                        return (
+                          <div className="space-y-3 pt-1">
+                            {metrics.length > 0 && (
+                              <div className="space-y-1.5">
+                                <span className="text-xs font-bold text-foreground block">تقييم المحاور:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                                  {metrics.map((m) => (
+                                    <div key={m.key} className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-1">
+                                      <span className="text-[11px] text-muted-foreground font-medium block truncate">{m.label}</span>
+                                      <div className="flex items-center gap-1" dir="ltr">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                          <Star
+                                            key={s}
+                                            className={`w-3 h-3 ${
+                                              s <= Number(m.value)
+                                                ? "text-amber-500 fill-amber-500"
+                                                : "text-muted-foreground/20 fill-none"
+                                            }`}
+                                          />
+                                        ))}
+                                        <span className="text-xs font-bold text-amber-700 dark:text-amber-300 mr-1">{m.value}/5</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* الأسئلة المخصصة من استمارة التقييم */}
+                            {customAnswerEntries.length > 0 && (
+                              <div className="space-y-1.5 pt-2 border-t border-border/60">
+                                <span className="text-xs font-bold text-foreground block">إجابات استبيان التقييم:</span>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-xs">
+                                  {customAnswerEntries.map(([key, val]) => {
+                                    const fieldDef = fieldsDef.find((f) => f.id === key);
+                                    const questionLabel = fieldDef?.label || key;
+                                    
+                                    // إذا كان الحقل من نوع تقييم بالنجوم
+                                    if (fieldDef?.type === "rating" || (typeof val === "number" && val >= 1 && val <= 5 && (key.includes("rating") || key.includes("eval")))) {
+                                      return (
+                                        <div key={key} className="p-2.5 rounded-xl bg-background border border-border/70 space-y-1">
+                                          <span className="text-muted-foreground text-[11px] font-medium block truncate">{questionLabel}</span>
+                                          <div className="flex items-center gap-1" dir="ltr">
+                                            {Array.from({ length: fieldDef?.maxRating || 5 }).map((_, i) => (
+                                              <Star
+                                                key={i}
+                                                className={`w-3.5 h-3.5 ${
+                                                  i < Number(val)
+                                                    ? "text-amber-500 fill-amber-500"
+                                                    : "text-muted-foreground/20 fill-none"
+                                                }`}
+                                              />
+                                            ))}
+                                            <span className="text-xs font-bold text-foreground mr-1">{String(val)}</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    // إذا كان اختيار من متعدد
+                                    if (fieldDef?.options && fieldDef.options.length > 0) {
+                                      const matchedOpt = fieldDef.options.find((o) => o.value === val);
+                                      const displayVal = matchedOpt?.label || String(val);
+                                      return (
+                                        <div key={key} className="p-2.5 rounded-xl bg-background border border-border/70 space-y-1">
+                                          <span className="text-muted-foreground text-[11px] font-medium block truncate">{questionLabel}</span>
+                                          <span className="font-bold text-foreground block">{displayVal}</span>
+                                        </div>
+                                      );
+                                    }
+
+                                    // باقي الأنواع
+                                    return (
+                                      <div key={key} className="p-2.5 rounded-xl bg-background border border-border/70 space-y-1">
+                                        <span className="text-muted-foreground text-[11px] font-medium block truncate">{questionLabel}</span>
+                                        <span className="font-bold text-foreground block">{typeof val === "boolean" ? (val ? "نعم / أوافق" : "لا") : String(val)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* ملاحظات وآراء المستفيد */}
+                      {(() => {
+                        const survey = parsedBeneficiarySurvey || {};
+                        const commentText = survey.comments || survey.notes || (survey.answers && (survey.answers.comments || survey.answers.notes)) || ((request as any).evaluationNotes && typeof (request as any).evaluationNotes === 'string' && !(request as any).evaluationNotes.startsWith('{') ? (request as any).evaluationNotes : null);
+                        
+                        if (!commentText) return null;
+
+                        return (
+                          <div className="pt-2 border-t border-border/60">
+                            <div className="p-3.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                              <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300">
+                                <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                                <span>آراء وملاحظات المستفيد:</span>
+                              </div>
+                              <p className="text-foreground text-xs sm:text-sm leading-relaxed pr-5 italic">
+                                "{commentText}"
+                              </p>
+                            </div>
                           </div>
                         );
                       })()}
@@ -2224,6 +2388,85 @@ export default function RequestDetailsNew() {
                   </div>
                 )}
               </div>
+
+              {/* قسم رضا المستفيدين داخل مراجعة المعلومات والمرفقات */}
+              {(request.isEvaluated || beneficiaryEvalData?.existingEvaluation || request.satisfactionRating) && (
+                <div className="bg-amber-500/5 dark:bg-amber-500/10 p-4 sm:p-6 rounded-xl border-2 border-amber-500/30 shadow-sm space-y-4" dir="rtl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                        <HeartHandshake className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-bold text-base sm:text-lg text-foreground">
+                            رضا المستفيدين
+                          </h4>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                            {beneficiaryEvalData?.existingEvaluation?.rating || request.satisfactionRating || 5} من 5 نجوم
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {request.evaluatedAt || beneficiaryEvalData?.existingEvaluation?.createdAt
+                            ? `تاريخ استلام التقييم: ${new Date(request.evaluatedAt || beneficiaryEvalData?.existingEvaluation?.createdAt || new Date()).toLocaleDateString('ar-SA')}`
+                            : 'تم تسجيل التقييم'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 self-end sm:self-center bg-background/80 p-1.5 px-3 rounded-xl border border-border" dir="ltr">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-4 h-4 ${
+                            star <= (beneficiaryEvalData?.existingEvaluation?.rating || request.satisfactionRating || 5)
+                              ? "text-amber-500 fill-amber-500"
+                              : "text-muted-foreground/20 fill-none"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* إجابات الاستبيان والآراء */}
+                  {(() => {
+                    const survey = parsedBeneficiarySurvey || {};
+                    const answers = survey.answers || survey || {};
+                    const commentText = survey.comments || survey.notes || (survey.answers && (survey.answers.comments || survey.answers.notes)) || ((request as any).evaluationNotes && typeof (request as any).evaluationNotes === 'string' && !(request as any).evaluationNotes.startsWith('{') ? (request as any).evaluationNotes : null);
+                    
+                    const standardKeys = ["beneficiaryName", "beneficiaryPhone", "beneficiaryEmail", "serviceName", "servicesRating", "speedRating", "communicationRating", "overallSatisfaction", "comments", "notes", "answers"];
+                    const fieldsDef = evalFormConfig?.fields || [];
+                    const customAnswerEntries = Object.entries(answers).filter(([k, v]) => !standardKeys.includes(k) && v !== undefined && v !== null && v !== "");
+
+                    return (
+                      <div className="space-y-3">
+                        {customAnswerEntries.length > 0 && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {customAnswerEntries.map(([k, v]) => {
+                              const fDef = fieldsDef.find(f => f.id === k);
+                              const qLabel = fDef?.label || k;
+                              return (
+                                <div key={k} className="p-3 bg-white dark:bg-slate-800/60 rounded-xl border border-border/80 space-y-1">
+                                  <span className="text-[11px] text-muted-foreground font-medium block truncate">{qLabel}</span>
+                                  <span className="text-xs font-bold text-foreground block">{typeof v === 'boolean' ? (v ? "نعم / أوافق" : "لا") : String(v)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {commentText && (
+                          <div className="p-3.5 bg-white dark:bg-slate-800/60 rounded-xl border border-border/80 text-xs space-y-1">
+                            <span className="font-bold text-amber-800 dark:text-amber-300 block">آراء وملاحظات المستفيد:</span>
+                            <p className="text-foreground italic">"{commentText}"</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>
