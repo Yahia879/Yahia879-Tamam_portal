@@ -332,7 +332,7 @@ export default function BeneficiarySatisfaction() {
                   </thead>
                   <tbody className="divide-y divide-border/60">
                     {filteredItems.map((item) => {
-                      const ratingNum = Math.max(1, Math.min(5, Math.round(item.rating || 5)));
+                      const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
                       return (
                         <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                           {/* رقم الطلب */}
@@ -373,7 +373,7 @@ export default function BeneficiarySatisfaction() {
                           <td className="p-3.5 px-4 text-center">
                             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
                               <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                              <span>{ratingNum} / 5</span>
+                              <span>{ratingVal} / 5</span>
                             </div>
                           </td>
 
@@ -395,27 +395,15 @@ export default function BeneficiarySatisfaction() {
 
                           {/* الإجراءات */}
                           <td className="p-3.5 px-4 text-center whitespace-nowrap">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenDetails(item)}
-                                className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>عرض الاستبيان</span>
-                              </Button>
-                              <Link href={`/requests/${item.requestId}/evaluation`}>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg"
-                                  title="فتح صفحة الاستبيان كاملة"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </Button>
-                              </Link>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenDetails(item)}
+                              className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg hover:bg-amber-500/10 hover:text-amber-700 hover:border-amber-500/30"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>عرض الاستبيان</span>
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -573,18 +561,12 @@ export default function BeneficiarySatisfaction() {
                   </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-between sm:justify-between items-center">
-                  <Link href={`/requests/${selectedEval.requestId}/evaluation`}>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs font-bold rounded-xl">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>فتح صفحة الاستبيان</span>
-                    </Button>
-                  </Link>
+                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end items-center">
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsDetailModalOpen(false)}
-                    className="text-xs font-bold rounded-xl"
+                    className="text-xs font-bold rounded-xl px-6"
                   >
                     إغلاق
                   </Button>

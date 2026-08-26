@@ -3801,7 +3801,7 @@ export const requestsRouter = router({
         mosqueList.forEach((m) => mosqueMap.set(m.id, m.name));
       }
 
-      // تحضير العناصر مع تحليل الـ notes
+      // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       const items = allEvaluations.map((e) => {
         let parsedNotes: any = {};
         try {
@@ -3809,6 +3809,41 @@ export const requestsRouter = router({
         } catch {
           parsedNotes = { comments: e.notes };
         }
+
+        const answers = parsedNotes.answers || parsedNotes || {};
+
+        // استخراج كافة التقييمات الرقمية بالنجوم لحساب المتوسط الحقيقي
+        const starRatings: number[] = [];
+
+        // 1. فحص المحاور الأساسية
+        if (typeof answers.servicesRating === "number" && answers.servicesRating > 0) starRatings.push(answers.servicesRating);
+        else if (typeof parsedNotes.servicesRating === "number" && parsedNotes.servicesRating > 0) starRatings.push(parsedNotes.servicesRating);
+
+        if (typeof answers.speedRating === "number" && answers.speedRating > 0) starRatings.push(answers.speedRating);
+        else if (typeof parsedNotes.speedRating === "number" && parsedNotes.speedRating > 0) starRatings.push(parsedNotes.speedRating);
+
+        if (typeof answers.communicationRating === "number" && answers.communicationRating > 0) starRatings.push(answers.communicationRating);
+        else if (typeof parsedNotes.communicationRating === "number" && parsedNotes.communicationRating > 0) starRatings.push(parsedNotes.communicationRating);
+
+        if (typeof answers.overallSatisfaction === "number" && answers.overallSatisfaction > 0) starRatings.push(answers.overallSatisfaction);
+        else if (typeof parsedNotes.overallSatisfaction === "number" && parsedNotes.overallSatisfaction > 0) starRatings.push(parsedNotes.overallSatisfaction);
+
+        // 2. فحص أي حقول تقييم إضافية في answers
+        const standardKeys = ["servicesRating", "speedRating", "communicationRating", "overallSatisfaction", "beneficiaryName", "beneficiaryPhone", "beneficiaryEmail", "serviceName", "comments", "notes", "answers"];
+        Object.entries(answers).forEach(([k, v]) => {
+          if (!standardKeys.includes(k) && typeof v === "number" && v >= 1 && v <= 5) {
+            starRatings.push(v);
+          }
+        });
+
+        // 3. في حال لم يوجد أي حقل، نستخدم e.rating إن وجد
+        if (starRatings.length === 0 && typeof e.rating === "number" && e.rating > 0) {
+          starRatings.push(e.rating);
+        }
+
+        const computedAverage = starRatings.length > 0
+          ? Math.round((starRatings.reduce((acc, curr) => acc + curr, 0) / starRatings.length) * 10) / 10
+          : (e.rating || 5);
 
         return {
           id: e.evalId,
@@ -3818,19 +3853,19 @@ export const requestsRouter = router({
           descriptiveName: e.descriptiveName,
           status: e.status,
           currentStage: e.currentStage,
-          rating: e.rating || parsedNotes.overallSatisfaction || parsedNotes.servicesRating || 5,
+          rating: computedAverage,
           evaluatedAt: e.evaluatedAt,
           requesterName: parsedNotes.beneficiaryName || e.requesterName || "مستفيد",
           requesterPhone: parsedNotes.beneficiaryPhone || e.requesterPhone || null,
           requesterEmail: parsedNotes.beneficiaryEmail || e.requesterEmail || null,
           serviceName: parsedNotes.serviceName || (e.mosqueId ? mosqueMap.get(e.mosqueId) : null) || e.descriptiveName || "طلب خدمة",
           mosqueName: e.mosqueId ? mosqueMap.get(e.mosqueId) || null : null,
-          servicesRating: parsedNotes.servicesRating || null,
-          speedRating: parsedNotes.speedRating || null,
-          communicationRating: parsedNotes.communicationRating || null,
-          overallSatisfaction: parsedNotes.overallSatisfaction || null,
-          comments: parsedNotes.comments || parsedNotes.notes || null,
-          answers: parsedNotes.answers || parsedNotes || {},
+          servicesRating: parsedNotes.servicesRating || answers.servicesRating || null,
+          speedRating: parsedNotes.speedRating || answers.speedRating || null,
+          communicationRating: parsedNotes.communicationRating || answers.communicationRating || null,
+          overallSatisfaction: parsedNotes.overallSatisfaction || answers.overallSatisfaction || null,
+          comments: parsedNotes.comments || parsedNotes.notes || answers.comments || null,
+          answers: answers,
           rawNotes: e.notes,
         };
       });
