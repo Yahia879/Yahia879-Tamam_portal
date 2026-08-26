@@ -2538,12 +2538,17 @@ export const disbursementsRouter = router({
       }
 
       if (orderWithRequest) {
+        let reqNum = orderWithRequest.requestNumber || "";
+        let projId = orderWithRequest.projectId;
+        if (reqNum.startsWith("DRD-")) {
+          reqNum = "";
+        }
         await notifyDisbursementOrderApproval(
           input.id,
           order.orderNumber,
-          orderWithRequest.requestNumber || "",
+          reqNum,
           orderWithRequest.orderAmount,
-          orderWithRequest.projectId
+          projId
         );
       }
 

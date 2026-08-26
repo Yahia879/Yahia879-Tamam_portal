@@ -815,8 +815,8 @@ export default function NotificationCustomization() {
       id: "disbursement_order_approved_general",
       category: "financial",
       nameAr: "الاعتماد المالي (غير مرتبط بمشروع وغير مرتبط بطلب صرف)",
-      description: 'تم الاعتماد المالي لأمر الصرف رقم "DO-2026-0023" بقيمة 50,000 ريال',
-      defaultTemplate: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال",
+      description: 'تم تحويل أمر الصرف رقم "DO-2026-0023" بقيمة 50,000 ريال إلى الاعتماد المالي',
+      defaultTemplate: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال إلى الاعتماد المالي",
       variables: [
         { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
         { placeholder: "{القيمة}", nameAr: "القيمة" }
