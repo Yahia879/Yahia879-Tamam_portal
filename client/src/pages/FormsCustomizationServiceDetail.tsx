@@ -23,6 +23,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { useUserPermissions } from "@/hooks/usePermission";
 import {
   ArrowRight,
@@ -63,12 +71,24 @@ import {
   Coins,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   CloudUpload,
   Layers,
   Sparkle,
   Wifi,
   Battery,
   Signal,
+  Search,
+  Copy,
+  SlidersHorizontal,
+  Filter,
+  CheckCircle2,
+  FolderPlus,
+  Settings2,
+  HelpCircle,
+  Undo2,
+  ChevronsUpDown,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -103,17 +123,58 @@ export interface ServiceField {
   isSystem?: boolean;
 }
 
-const FIELD_TYPES: Array<{ type: ServiceFieldType; label: string; icon: any }> = [
-  { type: "text", label: "نص قصير 📝", icon: FileText },
-  { type: "textarea", label: "نص طويل / وصف 📄", icon: AlignLeft },
-  { type: "number", label: "رقمي 🔢", icon: Hash },
-  { type: "select", label: "قائمة منسدلة 🔽", icon: List },
-  { type: "radio", label: "خيارات متعددة 🔘", icon: Radio },
-  { type: "checkbox", label: "مربع اختيار ☑️", icon: CheckSquare },
-  { type: "date", label: "تاريخ 📅", icon: Calendar },
-  { type: "file", label: "مرفق / ملف 📎", icon: Paperclip },
-  { type: "phone", label: "رقم جوال 📱", icon: Phone },
-  { type: "email", label: "بريد إلكتروني ✉️", icon: Mail },
+const FIELD_TYPES: Array<{
+  type: ServiceFieldType;
+  label: string;
+  description: string;
+  icon: any;
+  category: "text" | "choice" | "data" | "contact";
+}> = [
+  { type: "text", label: "نص قصير", description: "اسم، عنوان، مدخل بسيط", icon: FileText, category: "text" },
+  { type: "textarea", label: "نص طويل / وصف", description: "تفاصيل، شرح، ملاحظات", icon: AlignLeft, category: "text" },
+  { type: "number", label: "رقمي", description: "أعداد، مساحات، مبالغ", icon: Hash, category: "data" },
+  { type: "date", label: "تاريخ", description: "تاريخ معين من التقويم", icon: Calendar, category: "data" },
+  { type: "select", label: "قائمة منسدلة", description: "اختيار واحد من قائمة", icon: List, category: "choice" },
+  { type: "radio", label: "خيارات متعددة", description: "نعم/لا أو خيارات واضحة", icon: Radio, category: "choice" },
+  { type: "checkbox", label: "مربع اختيار", description: "إقرار، موافقة", icon: CheckSquare, category: "choice" },
+  { type: "file", label: "مرفق / مستند", description: "رفع PDF، صور، مستندات", icon: Paperclip, category: "contact" },
+  { type: "phone", label: "رقم جوال", description: "رقم هاتف محمول", icon: Phone, category: "contact" },
+  { type: "email", label: "بريد إلكتروني", description: "عنوان بريد إلكتروني", icon: Mail, category: "contact" },
+];
+
+const PRESET_OPTIONS = [
+  {
+    name: "نعم / لا",
+    options: [
+      { label: "نعم", value: "yes" },
+      { label: "لا", value: "no" },
+    ],
+  },
+  {
+    name: "تقييم (4 مستويات)",
+    options: [
+      { label: "ممتاز", value: "excellent" },
+      { label: "جيد جداً", value: "very_good" },
+      { label: "جيد", value: "good" },
+      { label: "مقبول", value: "acceptable" },
+    ],
+  },
+  {
+    name: "فترات زمنية",
+    options: [
+      { label: "صباحاً", value: "morning" },
+      { label: "مساءً", value: "evening" },
+      { label: "طوال اليوم", value: "all_day" },
+    ],
+  },
+  {
+    name: "درجة الأولوية",
+    options: [
+      { label: "عاجل جداً", value: "urgent" },
+      { label: "متوسط", value: "medium" },
+      { label: "عادي", value: "normal" },
+    ],
+  },
 ];
 
 const ICON_MAP: Record<string, any> = {
@@ -209,7 +270,11 @@ export default function FormsCustomizationServiceDetail() {
   const [newOptionInputs, setNewOptionInputs] = useState<Record<string, string>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragEnabledIndex, setDragEnabledIndex] = useState<number | null>(null);
-  const [expandedPlaceholder, setExpandedPlaceholder] = useState<Record<string, boolean>>({});
+  
+  // حالات البحث، التصفية، والتوسيع
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "required" | "inactive" | "options">("all");
+  const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({});
 
   // حالة المعاينة التفاعلية
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
@@ -224,6 +289,30 @@ export default function FormsCustomizationServiceDetail() {
       setHasChanges(false);
     }
   }, [serverConfig]);
+
+  // حماية المستخدم عند محاولة مغادرة الصفحة مع وجود تغييرات غير محفوظة
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
+
+  // اختصار لوحة المفاتيح للحفظ السريع (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fields, serviceId, currentProgram]);
 
   const saveMutation = trpc.forms.saveServiceFormConfig.useMutation({
     onSuccess: (res) => {
@@ -284,7 +373,49 @@ export default function FormsCustomizationServiceDetail() {
 
     setFields((prev) => [...prev, newField]);
     setHasChanges(true);
+    // فتح إعدادات الحقل الجديد تلقائياً لسرعة التعديل
+    setExpandedFields((prev) => ({ ...prev, [newField.id]: true }));
     toast.success("تمت إضافة حقل جديد للنموذج");
+  };
+
+  // نسخ حقل موجود (Duplication)
+  const handleDuplicateField = (fieldId: string) => {
+    const fieldIndex = fields.findIndex((f) => f.id === fieldId);
+    if (fieldIndex === -1) return;
+
+    const originalField = fields[fieldIndex];
+    const newFieldId = `field_${Date.now()}`;
+    const newField: ServiceField = {
+      ...originalField,
+      id: newFieldId,
+      label: `${originalField.label} (نسخة)`,
+      order: originalField.order + 1,
+      options: originalField.options ? originalField.options.map((opt) => ({ ...opt })) : undefined,
+    };
+
+    const newFields = [...fields];
+    newFields.splice(fieldIndex + 1, 0, newField);
+    const updated = newFields.map((f, i) => ({ ...f, order: i + 1 }));
+
+    setFields(updated);
+    setHasChanges(true);
+    setExpandedFields((prev) => ({ ...prev, [newFieldId]: true }));
+    toast.success(`تم نسخ الحقل "${originalField.label}"`);
+  };
+
+  // تحريك الحقل للأعلى أو للأسفل (Move Up / Down)
+  const handleMoveField = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= fields.length) return;
+
+    const newFields = [...fields];
+    const item = newFields[index];
+    newFields.splice(index, 1);
+    newFields.splice(targetIndex, 0, item);
+
+    const updated = newFields.map((f, i) => ({ ...f, order: i + 1 }));
+    setFields(updated);
+    setHasChanges(true);
   };
 
   // تحديث حقل
@@ -345,6 +476,11 @@ export default function FormsCustomizationServiceDetail() {
     setNewOptionInputs((prev) => ({ ...prev, [fieldId]: "" }));
   };
 
+  const handleApplyPreset = (fieldId: string, options: FormFieldOption[]) => {
+    handleUpdateField(fieldId, { options: [...options] });
+    toast.success("تم تطبيق القالب الجاهز للخيارات");
+  };
+
   const handleRemoveOption = (fieldId: string, optIndex: number) => {
     const field = fields.find((f) => f.id === fieldId);
     if (!field || !field.options) return;
@@ -353,13 +489,76 @@ export default function FormsCustomizationServiceDetail() {
     handleUpdateField(fieldId, { options: updatedOptions });
   };
 
+  // توسيع / طي الكل
+  const handleToggleExpandAll = () => {
+    const areAllExpanded = fields.every((f) => expandedFields[f.id]);
+    if (areAllExpanded) {
+      setExpandedFields({});
+    } else {
+      const all: Record<string, boolean> = {};
+      fields.forEach((f) => (all[f.id] = true));
+      setExpandedFields(all);
+    }
+  };
+
+  const toggleFieldExpand = (fieldId: string) => {
+    setExpandedFields((prev) => ({ ...prev, [fieldId]: !prev[fieldId] }));
+  };
+
+  // تصفية وبحث الحقول
+  const filteredFields = useMemo(() => {
+    return fields.filter((f) => {
+      // بحث نصي
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchesLabel = f.label.toLowerCase().includes(q);
+        const matchesPlaceholder = f.placeholder && f.placeholder.toLowerCase().includes(q);
+        const matchesHelp = f.helpText && f.helpText.toLowerCase().includes(q);
+        if (!matchesLabel && !matchesPlaceholder && !matchesHelp) return false;
+      }
+
+      // تصفية بالتبويبات
+      if (activeFilter === "active") return f.isActive;
+      if (activeFilter === "required") return f.isActive && f.required;
+      if (activeFilter === "inactive") return !f.isActive;
+      if (activeFilter === "options") return ["select", "radio"].includes(f.type);
+      return true;
+    });
+  }, [fields, searchQuery, activeFilter]);
+
   const activeFieldsCount = useMemo(() => fields.filter((f) => f.isActive).length, [fields]);
   const requiredFieldsCount = useMemo(() => fields.filter((f) => f.isActive && f.required).length, [fields]);
+  const inactiveFieldsCount = useMemo(() => fields.filter((f) => !f.isActive).length, [fields]);
+  const optionsFieldsCount = useMemo(() => fields.filter((f) => ["select", "radio"].includes(f.type)).length, [fields]);
 
   const IconComponent = ICON_MAP[currentProgram?.icon || "Package"] || Package;
 
   const userPermissions = useUserPermissions();
   const hasPermission = userPermissions.includes("forms_customization.services");
+
+  const getFieldTypeBadge = (type: ServiceFieldType) => {
+    switch (type) {
+      case "text":
+      case "textarea":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800";
+      case "number":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800";
+      case "select":
+      case "radio":
+        return "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800";
+      case "checkbox":
+        return "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-200 dark:border-teal-800";
+      case "date":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800";
+      case "file":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800";
+      case "phone":
+      case "email":
+        return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800";
+      default:
+        return "bg-muted text-muted-foreground border-border";
+    }
+  };
 
   if (!hasPermission) {
     return (
@@ -385,10 +584,11 @@ export default function FormsCustomizationServiceDetail() {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[300px]">
-          <div className="text-center space-y-2">
-            <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-            <p className="text-xs text-muted-foreground">جاري تحميل حقول الخدمة...</p>
+        <div className="flex items-center justify-center min-h-[350px]">
+          <div className="text-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+            <p className="text-sm font-semibold text-foreground">جاري تحميل حقول النموذج...</p>
+            <p className="text-xs text-muted-foreground">يتم جلب الإعدادات المخصصة وحقول الخدمة</p>
           </div>
         </div>
       </DashboardLayout>
@@ -397,49 +597,65 @@ export default function FormsCustomizationServiceDetail() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto pb-12">
-        {/* شريط العنوان والإجراءات */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-xs">
-          <div className="flex items-center gap-3.5">
+      <div className="space-y-5 max-w-5xl mx-auto pb-24">
+        
+        {/* شريط المسار والرجوع (Breadcrumbs) */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium select-none">
+          <Link href="/forms-customization" className="hover:text-foreground transition-colors">
+            تخصيص النماذج
+          </Link>
+          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/50" />
+          <Link href="/forms-customization/services" className="hover:text-foreground transition-colors">
+            خدمات البرامج
+          </Link>
+          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/50" />
+          <span className="text-foreground font-bold">{currentProgram?.name || serviceId}</span>
+        </div>
+
+        {/* رأس الصفحة الرئيسي والتفاعلي */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-border/80 bg-card shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
             <Link href="/forms-customization/services">
-              <Button variant="ghost" size="icon" type="button" className="shrink-0 rounded-xl hover:bg-muted">
+              <Button variant="ghost" size="icon" type="button" className="shrink-0 rounded-2xl hover:bg-muted">
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
             <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${
                 currentProgram?.color || "bg-indigo-600"
-              } text-white shadow-md`}
+              } text-white shadow-md transition-transform hover:scale-105`}
             >
-              <IconComponent className="w-6 h-6" />
+              <IconComponent className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-lg sm:text-xl font-bold text-foreground">
-                  تخصيص نموذج: {currentProgram?.name || serviceId}
+                <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight">
+                  تخصيص استمارة: {currentProgram?.name || serviceId}
                 </h1>
-                <Badge variant="secondary" className="text-[11px] font-mono px-2 py-0.5">
+                <Badge variant="outline" className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg border-border/80">
                   {serviceId}
                 </Badge>
                 {hasChanges && (
-                  <Badge variant="outline" className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30">
-                    تعديلات غير محفوظة
+                  <Badge variant="outline" className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span>تعديلات غير محفوظة</span>
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                تخصيص الحقول والأسئلة لنموذج تقديم الطلب المباشر للمستفيدين والمسؤولين
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                تخصيص وترتيب الحقول التي تظهر للمستفيد في الخطوة 4 (تفاصيل الطلب)
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsResetConfirmOpen(true)}
-              className="text-xs text-muted-foreground hover:text-foreground h-9 px-3 rounded-xl"
+              className="text-xs text-muted-foreground hover:text-foreground h-10 px-3.5 rounded-xl border-border/80 shadow-2xs"
+              title="استعادة الترتيب والحقول الافتراضية"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
               الافتراضي
@@ -450,127 +666,280 @@ export default function FormsCustomizationServiceDetail() {
               variant="secondary"
               size="sm"
               onClick={() => setIsPreviewOpen(true)}
-              className="text-xs font-bold gap-1.5 h-9 px-4 rounded-xl shadow-2xs"
+              className="text-xs font-bold gap-2 h-10 px-4 rounded-xl shadow-2xs hover:bg-muted/80"
             >
               <Eye className="w-4 h-4 text-primary" />
-              <span>معاينة حية للمستخدم</span>
+              <span>معاينة حية</span>
             </Button>
 
             <Button
               type="button"
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-9 rounded-xl shadow-sm gap-1.5"
+              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-10 rounded-xl shadow-md gap-2 transition-all hover:shadow-lg"
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Save className="w-4 h-4 mr-0.5" />
+                <Save className="w-4 h-4" />
               )}
-              حفظ النموذج
+              <span>حفظ النموذج</span>
+              <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Ctrl+S)</span>
             </Button>
           </div>
         </div>
 
-        {/* شريط الإحصائيات والأدوات السريعة */}
-        <div className="flex items-center justify-between gap-3 p-3.5 px-5 rounded-2xl bg-muted/40 border border-border/80 text-xs">
-          <div className="flex items-center gap-4 text-muted-foreground">
+        {/* شريط الإحصائيات والإضافة السريعة */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 px-5 rounded-2xl bg-muted/40 border border-border/80 text-xs">
+          <div className="flex items-center gap-3 sm:gap-5 text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
               <Layers className="w-4 h-4 text-primary" />
               <span>إجمالي الحقول: <strong className="text-foreground">{fields.length}</strong></span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>حقول نشطة: <strong className="text-foreground">{activeFieldsCount}</strong></span>
+              <span>نشطة: <strong className="text-foreground">{activeFieldsCount}</strong></span>
             </div>
-            <div className="hidden sm:flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5">
               <span className="text-red-500 font-bold">*</span>
-              <span>حقول إلزامية: <strong className="text-foreground">{requiredFieldsCount}</strong></span>
+              <span>إلزامية: <strong className="text-foreground">{requiredFieldsCount}</strong></span>
             </div>
+            {inactiveFieldsCount > 0 && (
+              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>معطلة: <strong>{inactiveFieldsCount}</strong></span>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground hidden md:inline text-[11px]">إضافة سريعة:</span>
+          <div className="flex items-center gap-2">
+            {/* القائمة السريعة لإضافة حقل حسب النوع */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl bg-primary text-primary-foreground shadow-xs hover:opacity-95"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>إضافة حقل جديد</span>
+                  <ChevronDown className="w-3 h-3 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-1.5 shadow-xl border-border">
+                <DropdownMenuLabel className="text-xs font-bold text-muted-foreground px-2 py-1.5">
+                  اختر نوع الحقل:
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {FIELD_TYPES.map((ft) => {
+                  const Icon = ft.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={ft.type}
+                      onClick={() => handleAddField(ft.type, `حقل ${ft.label}`)}
+                      className="flex items-center gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-muted transition-colors"
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${getFieldTypeBadge(ft.type)}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-foreground leading-tight">{ft.label}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{ft.description}</p>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => handleAddField("text", "حقل نصي")}
-              className="h-7 text-[11px] px-2 rounded-lg font-medium text-primary hover:bg-primary/10"
+              onClick={handleToggleExpandAll}
+              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-xl border-border/80"
+              title="توسيع أو طي جميع الإعدادات التفصيلية للحقول"
             >
-              + نص
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleAddField("number", "حقل رقمي")}
-              className="h-7 text-[11px] px-2 rounded-lg font-medium text-primary hover:bg-primary/10"
-            >
-              + رقم
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleAddField("radio", "سؤال خيارات")}
-              className="h-7 text-[11px] px-2 rounded-lg font-medium text-primary hover:bg-primary/10"
-            >
-              + خيارات
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => handleAddField("textarea", "وصف إضافي")}
-              className="h-7 text-[11px] px-2 rounded-lg font-medium text-primary hover:bg-primary/10"
-            >
-              + نص طويل
+              <ChevronsUpDown className="w-3.5 h-3.5 mr-1" />
+              <span>{fields.every((f) => expandedFields[f.id]) ? "طي الكل" : "توسيع الكل"}</span>
             </Button>
           </div>
         </div>
 
-        {/* قائمة الحقول بسحب وإفلات */}
-        <div className="space-y-3">
-          {fields.map((field, index) => {
-            const isMosqueField = field.id === "mosqueId";
-            const isDragging = draggedIndex === index;
-            const isDragEnabled = dragEnabledIndex === index;
-
-            return (
-              <div
-                key={field.id}
-                draggable={isDragEnabled}
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                className={`p-4 rounded-2xl border bg-card text-right transition-all duration-200 ${
-                  isDragging
-                    ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
-                    : "border-border shadow-xs hover:border-primary/40 hover:shadow-md"
-                } ${!field.isActive ? "opacity-50 bg-muted/20" : ""}`}
+        {/* شريط البحث وتصفية الحقول */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card p-3 rounded-2xl border border-border/70 shadow-2xs">
+          {/* حقل البحث */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث في الحقول والتسميات..."
+              className="h-9 pr-9 pl-8 text-xs rounded-xl bg-background border-border/70 focus-visible:border-primary"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-md"
               >
-                <div className="flex flex-col md:flex-row md:items-center gap-3">
-                  {/* مقبض السحب والإفلات + رقم الترتيب */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div
-                      onMouseDown={() => setDragEnabledIndex(index)}
-                      onMouseUp={() => setDragEnabledIndex(null)}
-                      onTouchStart={() => setDragEnabledIndex(index)}
-                      onTouchEnd={() => setDragEnabledIndex(null)}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors select-none"
-                      title="اضغط واسحب لتغيير ترتيب الحقل"
-                    >
-                      <GripVertical className="w-5 h-5 text-muted-foreground/70 pointer-events-none" />
-                    </div>
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary font-black text-xs sm:text-sm flex items-center justify-center border border-primary/20 shrink-0 shadow-2xs select-none">
-                      #{index + 1}
-                    </div>
-                  </div>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
 
-                  {/* اسم الحقل + تلميح Placeholder */}
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="relative flex items-center">
+          {/* تبويبات التصفية السريعة */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+            <Button
+              type="button"
+              variant={activeFilter === "all" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("all")}
+              className={`h-8 text-xs font-semibold px-2.5 rounded-lg shrink-0 ${activeFilter === "all" ? "bg-muted font-bold text-foreground" : "text-muted-foreground"}`}
+            >
+              الكل ({fields.length})
+            </Button>
+            <Button
+              type="button"
+              variant={activeFilter === "active" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("active")}
+              className={`h-8 text-xs font-semibold px-2.5 rounded-lg shrink-0 ${activeFilter === "active" ? "bg-muted font-bold text-foreground" : "text-muted-foreground"}`}
+            >
+              النشطة ({activeFieldsCount})
+            </Button>
+            <Button
+              type="button"
+              variant={activeFilter === "required" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setActiveFilter("required")}
+              className={`h-8 text-xs font-semibold px-2.5 rounded-lg shrink-0 ${activeFilter === "required" ? "bg-muted font-bold text-foreground" : "text-muted-foreground"}`}
+            >
+              الإلزامية ({requiredFieldsCount})
+            </Button>
+            {inactiveFieldsCount > 0 && (
+              <Button
+                type="button"
+                variant={activeFilter === "inactive" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setActiveFilter("inactive")}
+                className={`h-8 text-xs font-semibold px-2.5 rounded-lg shrink-0 ${activeFilter === "inactive" ? "bg-muted font-bold text-foreground" : "text-muted-foreground"}`}
+              >
+                المعطلة ({inactiveFieldsCount})
+              </Button>
+            )}
+            {optionsFieldsCount > 0 && (
+              <Button
+                type="button"
+                variant={activeFilter === "options" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setActiveFilter("options")}
+                className={`h-8 text-xs font-semibold px-2.5 rounded-lg shrink-0 ${activeFilter === "options" ? "bg-muted font-bold text-foreground" : "text-muted-foreground"}`}
+              >
+                الخيارات ({optionsFieldsCount})
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* قائمة بطاقات الحقول بتصميم راقي وتفاعلي */}
+        {filteredFields.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl border-2 border-dashed border-border bg-card/50 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center mx-auto">
+              <Search className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-foreground text-sm">لا توجد حقول مطابقة</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              {searchQuery ? "لم يتم العثور على أي حقل يطابق كلمة البحث الحالية" : "لا توجد حقول في هذه التصفية"}
+            </p>
+            {searchQuery && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="text-xs rounded-xl"
+              >
+                مسح البحث
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredFields.map((field) => {
+              const actualIndex = fields.findIndex((f) => f.id === field.id);
+              const isMosqueField = field.id === "mosqueId";
+              const isDragging = draggedIndex === actualIndex;
+              const isDragEnabled = dragEnabledIndex === actualIndex;
+              const isExpanded = !!expandedFields[field.id];
+              const FieldIcon = FIELD_TYPES.find((ft) => ft.type === field.type)?.icon || FileText;
+
+              return (
+                <div
+                  key={field.id}
+                  draggable={isDragEnabled}
+                  onDragStart={(e) => handleDragStart(e, actualIndex)}
+                  onDragOver={(e) => handleDragOver(e, actualIndex)}
+                  onDragEnd={handleDragEnd}
+                  className={`rounded-2xl border bg-card text-right transition-all duration-200 overflow-hidden ${
+                    isDragging
+                      ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
+                      : "border-border/80 shadow-xs hover:border-primary/40 hover:shadow-md"
+                  } ${!field.isActive ? "opacity-60 bg-muted/20 border-dashed" : ""}`}
+                >
+                  {/* الشريط الأساسي للحقل */}
+                  <div className="p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center gap-3">
+                    
+                    {/* مقبض السحب والإفلات + أزرار الترتيب السريع + رقم الترتيب */}
+                    <div className="flex items-center gap-1.5 shrink-0 select-none">
+                      {/* مقبض السحب */}
+                      <div
+                        onMouseDown={() => setDragEnabledIndex(actualIndex)}
+                        onMouseUp={() => setDragEnabledIndex(null)}
+                        onTouchStart={() => setDragEnabledIndex(actualIndex)}
+                        onTouchEnd={() => setDragEnabledIndex(null)}
+                        className="p-1 rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted cursor-grab active:cursor-grabbing transition-colors"
+                        title="اسحب لترتيب الحقل"
+                      >
+                        <GripVertical className="w-4 h-4 pointer-events-none" />
+                      </div>
+
+                      {/* أزرار التحريك السريع (Up/Down) */}
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          type="button"
+                          disabled={actualIndex === 0}
+                          onClick={() => handleMoveField(actualIndex, "up")}
+                          className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                          title="تحريك لأعلى"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actualIndex === fields.length - 1}
+                          onClick={() => handleMoveField(actualIndex, "down")}
+                          className="p-0.5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+                          title="تحريك لأسفل"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* رقم الترتيب */}
+                      <div className="w-7 h-7 rounded-xl bg-muted/60 text-muted-foreground font-black text-xs flex items-center justify-center border border-border/80 shrink-0">
+                        #{actualIndex + 1}
+                      </div>
+
+                      {/* أيقونة نوع الحقل */}
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${getFieldTypeBadge(field.type)}`}>
+                        <FieldIcon className="w-4 h-4" />
+                      </div>
+                    </div>
+
+                    {/* عنوان الحقل (تعديل مباشر) */}
+                    <div className="flex-1 min-w-0">
                       <Input
                         value={field.label}
                         onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
@@ -579,171 +948,226 @@ export default function FormsCustomizationServiceDetail() {
                       />
                     </div>
 
-                    {/* محرر تلميح الحقل (Placeholder) المصغر */}
-                    {(field.placeholder !== undefined && field.placeholder !== "") || expandedPlaceholder[field.id] ? (
-                      <div className="flex items-center gap-1.5 pt-0.5">
-                        <Input
-                          value={field.placeholder || ""}
-                          onChange={(e) =>
-                            handleUpdateField(field.id, { placeholder: e.target.value })
-                          }
-                          placeholder="نص توضيحي داخلي (Placeholder)..."
-                          className="h-7 text-[11px] text-muted-foreground placeholder:text-muted-foreground/40 bg-muted/30 border-dashed border-border/80 focus-visible:bg-background rounded-lg text-right px-2.5"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleUpdateField(field.id, { placeholder: "" });
-                            setExpandedPlaceholder((p) => ({ ...p, [field.id]: false }));
-                          }}
-                          className="p-1 rounded-md text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                          title="إزالة التلميح"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setExpandedPlaceholder((p) => ({ ...p, [field.id]: true }))}
-                        className="text-[11px] text-muted-foreground/70 hover:text-primary transition-colors flex items-center gap-1 font-medium select-none"
+                    {/* نوع الحقل */}
+                    <div className="w-full sm:w-40 shrink-0">
+                      <Select
+                        value={field.type}
+                        onValueChange={(val: ServiceFieldType) =>
+                          handleUpdateField(field.id, {
+                            type: val,
+                            options:
+                              ["radio", "select"].includes(val) && (!field.options || field.options.length === 0)
+                                ? [
+                                    { label: "نعم", value: "yes" },
+                                    { label: "لا", value: "no" },
+                                  ]
+                                : field.options,
+                          })
+                        }
+                        disabled={isMosqueField}
                       >
-                        <Plus className="w-3 h-3" />
-                        <span>إضافة نص تلميح داخلي (Placeholder)</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* نوع الحقل */}
-                  <div className="w-full sm:w-44 shrink-0">
-                    <Select
-                      value={field.type}
-                      onValueChange={(val: ServiceFieldType) =>
-                        handleUpdateField(field.id, { type: val })
-                      }
-                      disabled={isMosqueField}
-                    >
-                      <SelectTrigger className="h-10 text-xs font-semibold text-right rounded-xl border-border/80 bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent align="end" className="rounded-xl shadow-lg border-border">
-                        {FIELD_TYPES.map((ft) => (
-                          <SelectItem key={ft.type} value={ft.type} className="text-xs py-2 font-medium">
-                            {ft.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* مفتاح الإلزامية */}
-                  <div className="flex items-center gap-2 shrink-0 bg-muted/30 px-3 py-1.5 rounded-xl border border-border/50">
-                    <span className="text-xs text-muted-foreground font-semibold">إجباري:</span>
-                    <Switch
-                      checked={isMosqueField ? true : field.required}
-                      onCheckedChange={(c) => !isMosqueField && handleUpdateField(field.id, { required: c })}
-                      disabled={isMosqueField}
-                    />
-                  </div>
-
-                  {/* مفتاح التفعيل */}
-                  <div className="flex items-center gap-2 shrink-0 bg-muted/30 px-3 py-1.5 rounded-xl border border-border/50">
-                    <span className="text-xs text-muted-foreground font-semibold">مفعل:</span>
-                    <Switch
-                      checked={field.isActive}
-                      onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
-                      disabled={isMosqueField}
-                    />
-                  </div>
-
-                  {/* زر الحذف */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={isMosqueField}
-                    onClick={() => !isMosqueField && handleDeleteField(field.id)}
-                    className={`h-9 w-9 rounded-xl shrink-0 ${
-                      isMosqueField
-                        ? "text-muted-foreground/30 cursor-not-allowed"
-                        : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    }`}
-                    title={isMosqueField ? "حقل لا يمكن حذفه" : "حذف الحقل"}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* خيارات القوائم والـ Radio */}
-                {!isMosqueField && ["select", "radio"].includes(field.type) && (
-                  <div className="mt-4 pt-4 border-t border-border/60 bg-muted/20 -mx-4 -mb-4 p-4 rounded-b-2xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <List className="w-4 h-4 text-primary" />
-                        <span>خيارات الإجابة:</span>
-                      </span>
-                      <span className="text-[11px] text-muted-foreground font-medium">
-                        {field.options?.length ? `${field.options.length} خيارات مضافة` : "لا توجد خيارات بعد"}
-                      </span>
+                        <SelectTrigger className="h-10 text-xs font-semibold text-right rounded-xl border-border/80 bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align="end" className="rounded-xl shadow-xl border-border">
+                          {FIELD_TYPES.map((ft) => (
+                            <SelectItem key={ft.type} value={ft.type} className="text-xs py-2 font-medium">
+                              {ft.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
-                    {/* قائمة الخيارات المضافة */}
-                    {field.options && field.options.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {field.options.map((opt, oIdx) => (
-                          <div
-                            key={oIdx}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background border border-border text-xs font-bold text-foreground shadow-2xs hover:border-primary/40 transition-colors"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-primary/70" />
-                            <span>{opt.label}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveOption(field.id, oIdx)}
-                              className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-1"
-                              title="حذف هذا الخيار"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
+                    {/* مفاتيح التحكم السريعة (إجباري + مفعل) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* مفتاح الإلزامية */}
+                      <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
+                        <span className="text-[11px] text-muted-foreground font-semibold">إجباري:</span>
+                        <Switch
+                          checked={isMosqueField ? true : field.required}
+                          onCheckedChange={(c) => !isMosqueField && handleUpdateField(field.id, { required: c })}
+                          disabled={isMosqueField}
+                        />
                       </div>
-                    )}
 
-                    {/* حقل إضافة خيار جديد */}
-                    <div className="flex items-center gap-2 max-w-md pt-0.5">
-                      <Input
-                        value={newOptionInputs[field.id] || ""}
-                        onChange={(e) =>
-                          setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
-                        }
-                        placeholder="اكتب اسم الخيار ثم اضغط إضافة..."
-                        className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleAddOption(field.id);
-                          }
-                        }}
-                      />
+                      {/* مفتاح التفعيل */}
+                      <div className="flex items-center gap-1.5 bg-muted/40 px-2.5 py-1.5 rounded-xl border border-border/60">
+                        <span className="text-[11px] text-muted-foreground font-semibold">مفعل:</span>
+                        <Switch
+                          checked={field.isActive}
+                          onCheckedChange={(c) => handleUpdateField(field.id, { isActive: c })}
+                          disabled={isMosqueField}
+                        />
+                      </div>
+                    </div>
+
+                    {/* أزرار الإجراءات الإضافية (توسيع، نسخ، حذف) */}
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
                         type="button"
-                        size="sm"
-                        onClick={() => handleAddOption(field.id)}
-                        className="h-9 px-4 text-xs font-bold gap-1 rounded-xl shrink-0"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleFieldExpand(field.id)}
+                        className={`h-9 w-9 rounded-xl transition-colors ${
+                          isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="إعدادات وتفاصيل إضافية"
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>إضافة</span>
+                        <Settings2 className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDuplicateField(field.id)}
+                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        title="نسخ هذا الحقل"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        disabled={isMosqueField}
+                        onClick={() => !isMosqueField && handleDeleteField(field.id)}
+                        className={`h-9 w-9 rounded-xl ${
+                          isMosqueField
+                            ? "text-muted-foreground/30 cursor-not-allowed"
+                            : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        }`}
+                        title={isMosqueField ? "حقل لا يمكن حذفه" : "حذف الحقل"}
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
 
-        {/* زر إضافة حقل جديد */}
+                  {/* لوحة الإعدادات الموسعة والتفصيلية للحقل */}
+                  {isExpanded && (
+                    <div className="p-4 pt-3 border-t border-border/70 bg-muted/15 space-y-4 animate-in fade-in duration-200">
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* النص التلميحي (Placeholder) */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-primary/70" />
+                            <span>نص التلميح الداخلي (Placeholder):</span>
+                          </Label>
+                          <Input
+                            value={field.placeholder || ""}
+                            onChange={(e) => handleUpdateField(field.id, { placeholder: e.target.value })}
+                            placeholder="مثال: اكتب التفاصيل هنا..."
+                            className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
+                          />
+                        </div>
+
+                        {/* النص المساعد التوضيحي (Help Text) */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                            <HelpCircle className="w-3.5 h-3.5 text-primary/70" />
+                            <span>الوصف الإرشادي للمستخدم (Help Text):</span>
+                          </Label>
+                          <Input
+                            value={field.helpText || ""}
+                            onChange={(e) => handleUpdateField(field.id, { helpText: e.target.value })}
+                            placeholder="يظهر بخط أصغر أسفل الحقل لإرشاد مقدم الطلب..."
+                            className="h-9 text-xs bg-background rounded-xl text-right border-border/80"
+                          />
+                        </div>
+                      </div>
+
+                      {/* محرر خيارات القوائم وأسئلة الاختيار (Radio / Select) */}
+                      {!isMosqueField && ["select", "radio"].includes(field.type) && (
+                        <div className="p-3.5 rounded-2xl bg-card border border-border/80 space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <List className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              <span className="text-xs font-bold text-foreground">خيارات الإجابة المتوفرة:</span>
+                              <Badge variant="secondary" className="text-[10px] px-2 py-0.2 rounded-md">
+                                {field.options?.length || 0} خيار
+                              </Badge>
+                            </div>
+
+                            {/* قوالب خيارات سريعة */}
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-[11px] text-muted-foreground ml-1">قوالب جاهزة:</span>
+                              {PRESET_OPTIONS.map((preset, pIdx) => (
+                                <button
+                                  key={pIdx}
+                                  type="button"
+                                  onClick={() => handleApplyPreset(field.id, preset.options)}
+                                  className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted hover:bg-primary/10 hover:text-primary transition-colors border border-border/60"
+                                >
+                                  {preset.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* قائمة الخيارات المضافة كرقاقات تفاعلية */}
+                          {field.options && field.options.length > 0 && (
+                            <div className="flex items-center gap-2 flex-wrap pt-1">
+                              {field.options.map((opt, oIdx) => (
+                                <div
+                                  key={oIdx}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-background border border-border/80 text-xs font-bold text-foreground shadow-2xs hover:border-purple-400 transition-colors"
+                                >
+                                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                                  <span>{opt.label}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveOption(field.id, oIdx)}
+                                    className="p-0.5 rounded-md text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors mr-1"
+                                    title="حذف هذا الخيار"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* حقل إضافة خيار جديد */}
+                          <div className="flex items-center gap-2 max-w-md pt-1">
+                            <Input
+                              value={newOptionInputs[field.id] || ""}
+                              onChange={(e) =>
+                                setNewOptionInputs((prev) => ({ ...prev, [field.id]: e.target.value }))
+                              }
+                              placeholder="اكتب اسم الخيار ثم اضغط Enter أو إضافة..."
+                              className="h-9 text-xs bg-background rounded-xl text-right border-border/80 focus-visible:border-purple-500"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddOption(field.id);
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => handleAddOption(field.id)}
+                              className="h-9 px-4 text-xs font-bold gap-1 rounded-xl shrink-0 bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>إضافة</span>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* زر إضافة حقل جديد في الأسفل */}
         <div className="pt-2">
           <Button
             type="button"
@@ -755,6 +1179,47 @@ export default function FormsCustomizationServiceDetail() {
             <span>إضافة حقل / سؤال جديد لهذا النموذج</span>
           </Button>
         </div>
+
+        {/* شريط الإجراءات العائم السفلي عند وجود تعديلات غير محفوظة */}
+        {hasChanges && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-2xl bg-card/95 backdrop-blur-md p-3.5 px-5 rounded-2xl border-2 border-primary/30 shadow-[0_10px_35px_-5px_rgba(0,0,0,0.3)] flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center gap-2.5 text-xs font-bold text-foreground">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+              <span>لديك تعديلات غير محفوظة في النموذج</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (serverConfig?.fields) {
+                    setFields([...serverConfig.fields].sort((a, b) => a.order - b.order));
+                    setHasChanges(false);
+                    toast.info("تم التراجع عن التعديلات");
+                  }
+                }}
+                className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground rounded-xl"
+              >
+                تراجع
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                className="h-9 px-5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md gap-1.5"
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>حفظ التعديلات</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ========================================================================= */}
