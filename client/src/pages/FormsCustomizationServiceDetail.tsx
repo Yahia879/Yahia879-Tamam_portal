@@ -666,9 +666,6 @@ export default function FormsCustomizationServiceDetail() {
                 <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight">
                   تخصيص استمارة: {currentProgram?.name || serviceId}
                 </h1>
-                <Badge variant="outline" className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg border-border/80">
-                  {serviceId}
-                </Badge>
                 {hasChanges && (
                   <Badge variant="outline" className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 animate-pulse flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
