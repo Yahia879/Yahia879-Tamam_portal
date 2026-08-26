@@ -230,7 +230,6 @@ export default function FormsCustomizationEvaluation() {
 
   // حالة المعاينة التفاعلية
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
-  const [previewTab, setPreviewTab] = useState<"form" | "success">("form");
   const [previewValues, setPreviewValues] = useState<Record<string, any>>({
     beneficiaryName: "عبدالله السعدي",
     beneficiaryPhone: "0501234567",
@@ -1224,28 +1223,6 @@ export default function FormsCustomizationEvaluation() {
 
             {/* أدوات التبديل */}
             <div className="flex items-center gap-2 shrink-0">
-              {/* تبديل التبويب */}
-              <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("form")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    previewTab === "form" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  الاستمارة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("success")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    previewTab === "success" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  شاشة النجاح
-                </button>
-              </div>
-
               {/* تبديل الجهاز */}
               <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
                 <button
@@ -1316,8 +1293,7 @@ export default function FormsCustomizationEvaluation() {
 
               {/* مساحة محتوى شاشة الهاتف القابلة للتمرير والتفاعل */}
               <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right" : "space-y-6"}>
-                {previewTab === "form" ? (
-                /* استمارة التقييم التفاعلية */
+                {/* استمارة التقييم التفاعلية */}
                 <div className="rounded-3xl border border-slate-200/90 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans">
                   {/* Header Banner مع الشعار واللون المخصص */}
                   <div
@@ -1517,7 +1493,7 @@ export default function FormsCustomizationEvaluation() {
                     <div className="pt-4 border-t border-slate-200 dark:border-border">
                       <Button
                         type="button"
-                        onClick={() => setPreviewTab("success")}
+                        onClick={() => toast.success("تم إرسال استبيان التقييم تجريبياً")}
                         className="w-full h-12 rounded-2xl font-bold text-xs sm:text-sm gap-2 shadow-md text-white"
                         style={{ backgroundColor: formConfig.headerBgColor || "#14707a" }}
                       >
@@ -1527,48 +1503,7 @@ export default function FormsCustomizationEvaluation() {
                     </div>
                   </div>
                 </div>
-              ) : (
-                /* شاشة نجاح التقييم */
-                <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent shadow-xl overflow-hidden bg-card text-center p-8 space-y-6">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
-                    <CheckCircle2 className="w-10 h-10" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-                      {formConfig.successTitle || "تم تقييم الخدمة بنجاح"}
-                      <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                      {formConfig.successMessage || "شكراً لجهودكم ومشاركتكم القيمة. تم تسجيل استبيان تقييمكم لطلب الخدمة بنجاح."}
-                    </p>
-                  </div>
 
-                  {/* ملخص وهمي أنيق */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-muted/40 border border-border/50 text-xs text-right">
-                    <div className="space-y-0.5">
-                      <span className="text-muted-foreground text-[10px] block">رقم الطلب:</span>
-                      <strong className="text-foreground">REQ-2026-0042</strong>
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="text-muted-foreground text-[10px] block">المسجد:</span>
-                      <strong className="text-foreground">جامع الهدى</strong>
-                    </div>
-                    <div className="space-y-0.5">
-                      <span className="text-muted-foreground text-[10px] block">الحالة:</span>
-                      <span className="text-emerald-600 font-bold">مكتمل وتم التقييم</span>
-                    </div>
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setPreviewTab("form")}
-                    className="rounded-xl text-xs font-bold"
-                  >
-                    العودة لمعاينة الاستمارة
-                  </Button>
-                </div>
-              )}
 
               </div>
 
