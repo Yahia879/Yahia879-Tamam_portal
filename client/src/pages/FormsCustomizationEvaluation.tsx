@@ -230,11 +230,7 @@ export default function FormsCustomizationEvaluation() {
 
   // حالة المعاينة التفاعلية
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
-  const [previewValues, setPreviewValues] = useState<Record<string, any>>({
-    beneficiaryName: "عبدالله السعدي",
-    beneficiaryPhone: "0501234567",
-    serviceName: "مسجد الهدى (ترميم وصيانة)",
-  });
+  const [previewValues, setPreviewValues] = useState<Record<string, any>>({});
   const [hoverRating, setHoverRating] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -1158,13 +1154,13 @@ export default function FormsCustomizationEvaluation() {
       </div>
 
       {/* ========================================================================= */}
-      {/* الشريط العائم لحفظ التعديلات في الأسفل عند وجود تغييرات (مطابق لبنيان) */}
+      {/* شريط الإجراءات العائم السفلي عند وجود تعديلات غير محفوظة (مطابق لبنيان) */}
       {/* ========================================================================= */}
       {hasChanges && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 max-w-lg w-[92%] bg-slate-900 text-white dark:bg-zinc-900 border border-slate-700/80 p-3 sm:p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5 duration-200">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-            <span className="text-xs font-bold truncate">تعديلات غير محفوظة (Ctrl+S)</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-2xl bg-card/95 backdrop-blur-md p-3.5 px-5 rounded-2xl border-2 border-primary/30 shadow-[0_10px_35px_-5px_rgba(0,0,0,0.3)] flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2.5 text-xs font-bold text-foreground">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>لديك تعديلات غير محفوظة في النموذج</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button
@@ -1172,7 +1168,7 @@ export default function FormsCustomizationEvaluation() {
               variant="ghost"
               size="sm"
               onClick={handleRevertChanges}
-              className="h-8 px-2.5 text-xs text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl"
+              className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground rounded-xl"
             >
               تراجع
             </Button>
@@ -1180,9 +1176,13 @@ export default function FormsCustomizationEvaluation() {
               type="button"
               onClick={handleSave}
               disabled={saveMutation.isPending}
-              className="h-8 px-4 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-sm gap-1.5"
+              className="h-9 px-5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md gap-1.5"
             >
-              {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              {saveMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
               <span>حفظ التعديلات</span>
             </Button>
           </div>
