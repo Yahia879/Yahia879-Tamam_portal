@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
+import { AlertCircle, Plus, Trash2, Edit2, Save, X, CheckCircle, Loader2, Shield, ArrowRight, GripVertical, ChevronDown, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { usePermission } from "@/hooks/usePermission";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -662,39 +662,54 @@ export default function ProgramCustomization() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 self-end sm:self-center bg-muted/50 p-1 rounded-lg">
-                        <label className={`flex items-center gap-2 px-2 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-                          <input
-                            type="checkbox"
-                            checked={program.isActive}
-                            disabled={!canEdit}
-                            onChange={() => canEdit && toggleActive(program.id, program.isActive)}
-                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
-                        </label>
-                        {(canEdit || canDelete) && <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />}
-                        <div className="flex items-center">
-                          <PermissionGuard permission="services.edit">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(program)}
-                              className="h-8 w-8 text-blue-600 hover:bg-blue-50"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                          </PermissionGuard>
-                          <PermissionGuard permission="services.delete">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(program.id)}
-                              className="h-8 w-8 text-red-500 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </PermissionGuard>
+                      <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center flex-wrap">
+                        <Link href={`/forms-customization/services/${program.id}`}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2.5 sm:px-3 text-xs font-bold text-cyan-700 dark:text-cyan-400 border-cyan-300 dark:border-cyan-800 bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 hover:text-cyan-900 dark:hover:text-cyan-200 transition-all gap-1.5 rounded-lg shadow-2xs"
+                            title="تخصيص وترتيب حقول استمارة تقديم هذا البرنامج"
+                          >
+                            <SlidersHorizontal className="w-3.5 h-3.5" />
+                            <span>تخصيص الفورم</span>
+                          </Button>
+                        </Link>
+
+                        <div className="flex items-center gap-3 bg-muted/50 p-1 rounded-lg">
+                          <label className={`flex items-center gap-2 px-2 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+                            <input
+                              type="checkbox"
+                              checked={program.isActive}
+                              disabled={!canEdit}
+                              onChange={() => canEdit && toggleActive(program.id, program.isActive)}
+                              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span className="text-xs font-medium text-foreground whitespace-nowrap">فعّال</span>
+                          </label>
+                          {(canEdit || canDelete) && <div className="w-[1px] h-6 bg-border mx-1 hidden sm:block" />}
+                          <div className="flex items-center">
+                            <PermissionGuard permission="services.edit">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(program)}
+                                className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </PermissionGuard>
+                            <PermissionGuard permission="services.delete">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(program.id)}
+                                className="h-8 w-8 text-red-500 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </PermissionGuard>
+                          </div>
                         </div>
                       </div>
                     </div>
