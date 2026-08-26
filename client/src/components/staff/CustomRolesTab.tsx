@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { formatErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { usePermission } from "@/hooks/usePermission";
@@ -52,7 +53,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
       toast.success("تم تحديث حالة الدور بنجاح");
     },
     onError: (error) => {
-      toast.error(error.message || "فشل تحديث حالة الدور");
+      toast.error(formatErrorMessage(error, "فشل تحديث حالة الدور، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 
@@ -63,7 +64,7 @@ export default function CustomRolesTab({ openAddModal, setOpenAddModal }: Custom
       setRoleToDelete(null);
     },
     onError: (error) => {
-      toast.error(error.message || "فشل حذف الدور");
+      toast.error(formatErrorMessage(error, "فشل حذف الدور، يرجى المحاولة مرة أخرى بعد قليل"));
       setRoleToDelete(null);
     }
   });

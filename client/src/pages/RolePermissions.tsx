@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
+import { formatErrorMessage } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -89,7 +90,7 @@ export default function RolePermissions() {
       utils.auth.me.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء حفظ الصلاحيات");
+      toast.error(formatErrorMessage(error, "حدث خطأ أثناء حفظ وتحديث الصلاحيات، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 
@@ -103,7 +104,7 @@ export default function RolePermissions() {
       utils.auth.me.invalidate();
     },
     onError: (error) => {
-      toast.error(error.message || "حدث خطأ أثناء استعادة الصلاحيات الافتراضية");
+      toast.error(formatErrorMessage(error, "حدث خطأ أثناء استعادة الصلاحيات الافتراضية، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 

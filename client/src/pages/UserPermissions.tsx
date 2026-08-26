@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { trpc } from "../lib/trpc";
+import { formatErrorMessage } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -454,7 +455,7 @@ export default function UserPermissions() {
       setSelectedRoleId("");
     },
     onError: (error: any) => {
-      toast.error(`فشل إسناد الدور: ${error.message}`);
+      toast.error(formatErrorMessage(error, "فشل إسناد الدور، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 
@@ -467,7 +468,7 @@ export default function UserPermissions() {
       utils.auth.me.invalidate();
     },
     onError: (error: any) => {
-      toast.error(`فشل إزالة الدور: ${error.message}`);
+      toast.error(formatErrorMessage(error, "فشل إزالة الدور، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 
@@ -505,7 +506,7 @@ export default function UserPermissions() {
       utils.auth.me.invalidate();
     },
     onError: (error: any) => {
-      toast.error(`فشل تحديث الصلاحيات: ${error.message}`);
+      toast.error(formatErrorMessage(error, "فشل تحديث الصلاحيات، يرجى المحاولة مرة أخرى بعد قليل"));
     }
   });
 
