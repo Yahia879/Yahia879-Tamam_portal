@@ -298,6 +298,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "create",
         nameAr: "إنشاء تقارير مشاريع",
         nameEn: "Create Project Reports"
+      },
+      {
+        id: "beneficiary_evaluations.view",
+        moduleId: "beneficiary_evaluations",
+        action: "view",
+        nameAr: "عرض تقييمات المستفيدين",
+        nameEn: "View Beneficiary Evaluations"
       }
     ];
 
@@ -332,14 +339,14 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
-      project_manager: ["requests.view", "requests.create", "requests.view_details"],
-      corporate_comm: ["requests.view", "requests.upload_final_report"],
+      project_manager: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
+      corporate_comm: ["requests.view", "requests.upload_final_report", "beneficiary_evaluations.view"],
     };
 
     const roleNamesAr: Record<string, string> = {
@@ -558,7 +565,22 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: technical_support");
     }
 
+    // Ensure 'beneficiary_evaluations' module exists in the modules table
+    const [existingEvalModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "beneficiary_evaluations")).limit(1);
+    if (!existingEvalModule) {
+      await db.insert(modules).values({
+        id: "beneficiary_evaluations",
+        nameAr: "رضا المستفيدين",
+        nameEn: "Beneficiary Satisfaction",
+        icon: "HeartHandshake",
+        displayOrder: 4,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: beneficiary_evaluations");
+    }
+
     const customPerms = [
+      { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض تقييمات المستفيدين", nameEn: "View Beneficiary Evaluations" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },

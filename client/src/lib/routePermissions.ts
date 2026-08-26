@@ -182,7 +182,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── التقارير ──
   "/reports": ["reports.view_stats", "reports.export_data"],
   "/pending-reports": ["pending_reports.view"],
-  "/beneficiary-satisfaction": ["requests", "requests.view", "requests.view_details", "reports.view_stats", "pending_reports.view"],
+  "/beneficiary-satisfaction": ["beneficiary_evaluations.view", "beneficiary_evaluations", "beneficiary_satisfaction", "super_admin", "system_admin"],
   "/financial-report": "financial_report",
 
   // ── الإعدادات ──

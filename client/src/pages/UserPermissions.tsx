@@ -48,6 +48,7 @@ import {
   LifeBuoy,
   PenLine,
   SlidersHorizontal,
+  HeartHandshake
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -563,6 +564,9 @@ export default function UserPermissions() {
         upload_final_report: "رفع التقرير الختامي",
         create_quick_request: "إنشاء طلب سريع",
       },
+      beneficiary_evaluations: {
+        view: "عرض تقييمات المستفيدين",
+      },
       projects: {
         view: "عرض المشاريع",
         view_details: "عرض تفاصيل المشروع وادارته",
@@ -718,6 +722,7 @@ export default function UserPermissions() {
           icon: Zap, 
           perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
         },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]

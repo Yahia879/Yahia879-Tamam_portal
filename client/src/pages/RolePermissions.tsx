@@ -39,7 +39,8 @@ import {
   FileSpreadsheet,
   LifeBuoy,
   PenLine,
-  SlidersHorizontal
+  SlidersHorizontal,
+  HeartHandshake
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -878,6 +879,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
@@ -1002,6 +1004,9 @@ export default function RolePermissions() {
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
         create_quick_request: "إنشاء طلب سريع",
+      },
+      beneficiary_evaluations: {
+        view: "عرض تقييمات المستفيدين",
       },
       projects: {
         view: "عرض المشاريع",
