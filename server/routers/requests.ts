@@ -3863,6 +3863,10 @@ export const requestsRouter = router({
         };
         const resolvedServiceName = programLabels[String(rawService).toLowerCase().trim()] || rawService;
 
+        if (answers.serviceName) {
+          answers.serviceName = programLabels[String(answers.serviceName).toLowerCase().trim()] || answers.serviceName;
+        }
+
         return {
           id: e.evalId,
           requestId: e.requestId,
@@ -3904,8 +3908,34 @@ export const requestsRouter = router({
       const positivePercent = totalEvaluations > 0 ? Math.round((positiveCount / totalEvaluations) * 100) : 100;
       const withCommentsCount = items.filter((i) => !!i.comments).length;
 
+      // تطبيق الفلترة والبحث في الباك إند
+      let filteredItems = items;
+
+      if (input?.search && input.search.trim().length > 0) {
+        const q = input.search.toLowerCase().trim();
+        filteredItems = filteredItems.filter((item) => {
+          const matchReq = item.requestNumber?.toLowerCase().includes(q);
+          const matchName = item.requesterName?.toLowerCase().includes(q);
+          const matchPhone = item.requesterPhone?.toLowerCase().includes(q);
+          const matchEmail = item.requesterEmail?.toLowerCase().includes(q);
+          const matchService = item.serviceName?.toLowerCase().includes(q);
+          const matchMosque = item.mosqueName?.toLowerCase().includes(q);
+          const matchComments = item.comments?.toLowerCase().includes(q);
+          return !!(matchReq || matchName || matchPhone || matchEmail || matchService || matchMosque || matchComments);
+        });
+      }
+
+      if (input?.ratingFilter !== undefined && input.ratingFilter !== null && input.ratingFilter > 0) {
+        filteredItems = filteredItems.filter((item) => Math.round(item.rating) === input.ratingFilter);
+      }
+
+      if (input?.programType && input.programType !== "all") {
+        const prog = input.programType.toLowerCase().trim();
+        filteredItems = filteredItems.filter((item) => item.programType?.toLowerCase().trim() === prog);
+      }
+
       return {
-        items,
+        items: filteredItems,
         stats: {
           totalEvaluations,
           avgRating,

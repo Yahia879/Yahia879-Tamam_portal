@@ -38,8 +38,15 @@ export default function BeneficiarySatisfaction() {
   const [selectedEval, setSelectedEval] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // استرجاع كافة التقييمات المسجلة والبرامج وتخصيص الاستمارة ديناميكياً
-  const { data, isLoading } = trpc.requests.getAllBeneficiaryEvaluations.useQuery();
+  // استرجاع كافة التقييمات المسجلة والبرامج وتخصيص الاستمارة ديناميكياً مع ربط البحث والفلترة من الباك إند
+  const ratingFilterVal = selectedRating !== "all" ? parseInt(selectedRating, 10) : undefined;
+  const programFilterVal = selectedProgram !== "all" ? selectedProgram : undefined;
+
+  const { data, isLoading } = trpc.requests.getAllBeneficiaryEvaluations.useQuery({
+    search: searchQuery.trim() ? searchQuery.trim() : undefined,
+    ratingFilter: ratingFilterVal,
+    programType: programFilterVal,
+  });
   const { data: evalFormConfig } = trpc.forms.getEvaluationFormConfig.useQuery();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
   const { data: allPrograms = [] } = trpc.programs.getAll.useQuery();
@@ -58,15 +65,32 @@ export default function BeneficiarySatisfaction() {
 
   const getArabicLabel = (type?: string | null) => {
     if (!type) return "طلب خدمة";
-    const lower = String(type).toLowerCase().trim();
+    const str = String(type).trim();
+    const lower = str.toLowerCase();
     if (programMap.has(type)) return programMap.get(type)!;
     if (programMap.has(lower)) return programMap.get(lower)!;
     if (PROGRAM_LABELS[lower]) return PROGRAM_LABELS[lower];
     if (PROGRAM_LABELS[type]) return PROGRAM_LABELS[type];
-    return String(type);
+    const hardcoded: Record<string, string> = {
+      bunyan: "بنيان",
+      daaem: "دعائم",
+      enaya: "عناية",
+      emdad: "إمداد",
+      ethraa: "إثراء",
+      sedana: "سدانة",
+      taqa: "طاقة",
+      miyah: "مياه",
+      suqya: "سقيا",
+      kasswa: "كسوة",
+      tathir: "تطهير",
+      sakina: "سكينة",
+      fursh: "فرش",
+    };
+    if (hardcoded[lower]) return hardcoded[lower];
+    return str;
   };
 
-  const allItems = data?.items || [];
+  const filteredItems = data?.items || [];
   const stats = data?.stats || {
     totalEvaluations: 0,
     avgRating: 0,
@@ -74,43 +98,6 @@ export default function BeneficiarySatisfaction() {
     withCommentsCount: 0,
     ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   };
-
-  // تصفية النتائج الحقيقية
-  const filteredItems = useMemo(() => {
-    return allItems.filter((item) => {
-      // بحث نصي
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchReq = item.requestNumber?.toLowerCase().includes(q);
-        const matchName = item.requesterName?.toLowerCase().includes(q);
-        const matchPhone = item.requesterPhone?.toLowerCase().includes(q);
-        const matchService = item.serviceName?.toLowerCase().includes(q);
-        const matchMosque = item.mosqueName?.toLowerCase().includes(q);
-        const matchComments = item.comments?.toLowerCase().includes(q);
-
-        if (!matchReq && !matchName && !matchPhone && !matchService && !matchMosque && !matchComments) {
-          return false;
-        }
-      }
-
-      // فلترة بالنجوم
-      if (selectedRating !== "all") {
-        const ratingNum = parseInt(selectedRating, 10);
-        if (Math.round(item.rating) !== ratingNum) {
-          return false;
-        }
-      }
-
-      // فلترة بالبرنامج
-      if (selectedProgram !== "all") {
-        if (item.programType !== selectedProgram) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [allItems, searchQuery, selectedRating, selectedProgram]);
 
   const handleOpenDetails = (evalItem: any) => {
     setSelectedEval(evalItem);
@@ -302,7 +289,7 @@ export default function BeneficiarySatisfaction() {
                 سجل استبيانات التقييم
               </CardTitle>
               <CardDescription className="text-xs">
-                عرض {filteredItems.length} من أصل {allItems.length} تقييم
+                عرض {filteredItems.length} من أصل {stats.totalEvaluations} تقييم
               </CardDescription>
             </div>
           </CardHeader>
@@ -317,7 +304,7 @@ export default function BeneficiarySatisfaction() {
                 <HeartHandshake className="w-12 h-12 mx-auto text-muted-foreground/40" />
                 <p className="text-sm font-bold text-foreground">لا توجد تقييمات مطابقة</p>
                 <p className="text-xs text-muted-foreground">
-                  {allItems.length === 0 
+                  {stats.totalEvaluations === 0 
                     ? "لم يتم تسجيل أي استبيان تقييم بعد. ستظهر التقييمات هنا فور قيام المستفيدين بإرسال استبياناتهم." 
                     : "لم يتم العثور على أي استبيان تقييم وفق معايير البحث والفلترة المحددة."}
                 </p>
