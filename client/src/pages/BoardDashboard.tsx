@@ -1752,7 +1752,7 @@ export default function BoardDashboard() {
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 flex-row-reverse justify-start">
+            <DialogFooter className="gap-3 sm:gap-3 flex-row-reverse justify-start">
               <Button
                 onClick={() => {
                   updateNotesMutation.mutate({
@@ -1779,7 +1779,7 @@ export default function BoardDashboard() {
 
         {/* ==================== ⚡ نافذة تأكيد الاعتماد من صاحب الصلاحية ==================== */}
         <Dialog open={!!confirmApproveOrder} onOpenChange={(open) => !open && setConfirmApproveOrder(null)}>
-          <DialogContent dir="rtl" className="sm:max-w-[460px] rounded-3xl p-6 sm:p-7 text-right">
+          <DialogContent dir="rtl" className="sm:max-w-[560px] rounded-3xl p-6 sm:p-8 text-right">
             <DialogHeader className="text-right sm:text-right border-b pb-4">
               <DialogTitle className="text-emerald-800 dark:text-emerald-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
                 <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -1790,26 +1790,26 @@ export default function BoardDashboard() {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4 space-y-3 text-right">
-              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            <div className="py-4 space-y-4 text-right">
+              <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">
                 هل أنت متأكد من اعتماد الطلب؟
               </p>
 
               {confirmApproveOrder && (
-                <div className="p-3.5 bg-slate-50/90 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-1.5 text-xs">
+                <div className="p-4 bg-slate-50/90 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2.5 text-xs sm:text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">المستفيد:</span>
-                    <span className="font-bold text-foreground truncate max-w-[220px]">{confirmApproveOrder.beneficiaryName}</span>
+                    <span className="font-bold text-foreground truncate max-w-[280px]">{confirmApproveOrder.beneficiaryName}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">المبلغ:</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono">{formatCurrency(confirmApproveOrder.amount || 0)}</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm sm:text-base">{formatCurrency(confirmApproveOrder.amount || 0)}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 flex-row-reverse justify-start">
+            <DialogFooter className="gap-3 sm:gap-3 flex-row-reverse justify-start pt-2">
               <Button
                 onClick={() => {
                   if (confirmApproveOrder) {
