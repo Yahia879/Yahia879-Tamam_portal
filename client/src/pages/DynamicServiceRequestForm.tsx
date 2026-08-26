@@ -895,6 +895,107 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   );
                 }
 
+                if (selectedService === 'bunyan' && field.name === 'hasPrayerHall') {
+                  return (
+                    <React.Fragment key={field.name}>
+                      <div className="col-span-1 sm:col-span-2 space-y-4">
+                        <div
+                          onClick={() => {
+                            const isChecked = !formData.hasPrayerHall;
+                            setFormData((prev) => {
+                              const updated = { ...prev, hasPrayerHall: isChecked } as any;
+                              if (!isChecked) {
+                                delete updated.womenPrayerArea;
+                                delete updated.womenPrayerCapacity;
+                              }
+                              return updated;
+                            });
+                            if (!isChecked) {
+                              setErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.womenPrayerArea;
+                                delete newErrors.womenPrayerCapacity;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                          className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-4 select-none ${
+                            formData.hasPrayerHall
+                              ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20'
+                              : 'border-border/60 bg-muted/20 hover:bg-muted/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                              formData.hasPrayerHall ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'
+                            }`}>
+                              <Building2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-xs sm:text-sm text-foreground">{field.label || 'هل يتضمن المشروع مصلى للنساء؟'}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{field.help || (field as any).helpText || 'حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء'}</p>
+                            </div>
+                          </div>
+                          <Checkbox
+                            id="hasPrayerHall"
+                            checked={!!formData.hasPrayerHall}
+                            className="h-5 w-5 rounded-md data-[state=checked]:bg-primary"
+                          />
+                        </div>
+
+                        {formData.hasPrayerHall && (
+                          <div className="p-4 sm:p-5 border border-primary/20 rounded-2xl bg-primary/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <h4 className="font-bold text-xs sm:text-sm text-primary flex items-center gap-2 border-b border-primary/10 pb-2.5">
+                              <Building2 className="w-4 h-4" />
+                              بيانات مصلى النساء
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label htmlFor="womenPrayerCapacity" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                  <Users className="w-4 h-4 text-primary/70" />
+                                  <span>سعة مصلى النساء (مصلي)</span>
+                                  <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <Input
+                                  id="womenPrayerCapacity"
+                                  type="number"
+                                  value={formData.womenPrayerCapacity || ''}
+                                  onChange={(e) => handleFieldChange("womenPrayerCapacity", e.target.value)}
+                                  placeholder="مثال: 50"
+                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerCapacity ? 'border-red-500' : ''}`}
+                                />
+                                {errors.womenPrayerCapacity && (
+                                  <p className="text-xs text-red-500 font-medium">{errors.womenPrayerCapacity}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <label htmlFor="womenPrayerArea" className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+                                  <Ruler className="w-4 h-4 text-primary/70" />
+                                  <span>المساحة (م²)</span>
+                                  <span className="text-red-500 font-bold">*</span>
+                                </label>
+                                <Input
+                                  id="womenPrayerArea"
+                                  type="number"
+                                  value={formData.womenPrayerArea || ''}
+                                  onChange={(e) => handleFieldChange("womenPrayerArea", e.target.value)}
+                                  placeholder="مثال: 50"
+                                  className={`h-11 rounded-xl text-xs sm:text-sm bg-background border-border/80 ${errors.womenPrayerArea ? 'border-red-500' : ''}`}
+                                />
+                                {errors.womenPrayerArea && (
+                                  <p className="text-xs text-red-500 font-medium">{errors.womenPrayerArea}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </React.Fragment>
+                  );
+                }
+
+                const hasDedicatedPrayerHall = visibleFields.some(f => f.name === 'hasPrayerHall');
+
                 return (
                   <React.Fragment key={field.name}>
                     <div className={isFullWidth ? 'col-span-1 sm:col-span-2' : 'col-span-1'}>
@@ -928,7 +1029,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       </div>
                     )}
 
-                    {selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
+                    {!hasDedicatedPrayerHall && selectedService === 'bunyan' && field.name === 'actualWorshippers' && (
                       <div className="col-span-1 sm:col-span-2 space-y-4">
                         <div
                           onClick={() => {

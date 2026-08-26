@@ -285,10 +285,31 @@ export default function FormsCustomizationServiceDetail() {
 
   useEffect(() => {
     if (serverConfig?.fields) {
-      setFields([...serverConfig.fields].sort((a, b) => a.order - b.order));
+      let loaded = [...serverConfig.fields].sort((a, b) => a.order - b.order);
+      if (serviceId === "bunyan" && !loaded.some((f) => f.id === "hasPrayerHall")) {
+        const actualIdx = loaded.findIndex((f) => f.id === "actualWorshippers");
+        const prayerHallField: ServiceField = {
+          id: "hasPrayerHall",
+          type: "checkbox",
+          label: "هل يتضمن المشروع مصلى للنساء؟",
+          placeholder: "",
+          helpText: "حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء",
+          required: false,
+          isActive: true,
+          order: actualIdx !== -1 ? loaded[actualIdx].order + 0.5 : 4,
+          isSystem: true,
+        };
+        if (actualIdx !== -1) {
+          loaded.splice(actualIdx + 1, 0, prayerHallField);
+        } else {
+          loaded.push(prayerHallField);
+        }
+        loaded = loaded.map((f, i) => ({ ...f, order: i + 1 }));
+      }
+      setFields(loaded);
       setHasChanges(false);
     }
-  }, [serverConfig]);
+  }, [serverConfig, serviceId]);
 
   // حماية المستخدم عند محاولة مغادرة الصفحة مع وجود تغييرات غير محفوظة
   useEffect(() => {
@@ -428,8 +449,12 @@ export default function FormsCustomizationServiceDetail() {
 
   // حذف حقل
   const handleDeleteField = (fieldId: string) => {
-    if (fieldId === "mosqueId" && serviceId !== "bunyan") {
+    if (fieldId === "mosqueId") {
       toast.error("حقل اختيار المسجد مربوط بقاعدة البيانات ولا يمكن حذفه");
+      return;
+    }
+    if (fieldId === "hasPrayerHall" && serviceId === "bunyan") {
+      toast.error("حقل مصلى النساء أساسي في نظام خدمة بنيان ولا يمكن حذفه (يمكنك تعطيله من مفتاح التفعيل)");
       return;
     }
     setFields((prev) => prev.filter((f) => f.id !== fieldId));
@@ -870,10 +895,12 @@ export default function FormsCustomizationServiceDetail() {
             {filteredFields.map((field) => {
               const actualIndex = fields.findIndex((f) => f.id === field.id);
               const isMosqueField = field.id === "mosqueId";
+              const isPrayerHallField = serviceId === "bunyan" && field.id === "hasPrayerHall";
+              const isSystemField = isMosqueField || isPrayerHallField;
               const isDragging = draggedIndex === actualIndex;
               const isDragEnabled = dragEnabledIndex === actualIndex;
               const isExpanded = !!expandedFields[field.id];
-              const FieldIcon = FIELD_TYPES.find((ft) => ft.type === field.type)?.icon || FileText;
+              const FieldIcon = field.id === "hasPrayerHall" ? Building2 : (FIELD_TYPES.find((ft) => ft.type === field.type)?.icon || FileText);
 
               return (
                 <React.Fragment key={field.id}>
@@ -933,7 +960,7 @@ export default function FormsCustomizationServiceDetail() {
                       </div>
 
                       {/* أيقونة نوع الحقل */}
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${getFieldTypeBadge(field.type)}`}>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border shrink-0 ${field.id === "hasPrayerHall" ? "bg-primary/10 text-primary border-primary/20" : getFieldTypeBadge(field.type)}`}>
                         <FieldIcon className="w-4 h-4" />
                       </div>
                     </div>
@@ -964,7 +991,7 @@ export default function FormsCustomizationServiceDetail() {
                                 : field.options,
                           })
                         }
-                        disabled={isMosqueField}
+                        disabled={isSystemField}
                       >
                         <SelectTrigger className="h-10 text-xs font-semibold text-right rounded-xl border-border/80 bg-background">
                           <SelectValue />
@@ -1021,9 +1048,10 @@ export default function FormsCustomizationServiceDetail() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDuplicateField(field.id)}
-                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        title="نسخ هذا الحقل"
+                        disabled={isSystemField}
+                        onClick={() => !isSystemField && handleDuplicateField(field.id)}
+                        className={`h-9 w-9 rounded-xl ${isSystemField ? "text-muted-foreground/30 cursor-not-allowed" : "text-muted-foreground hover:text-primary hover:bg-primary/10"}`}
+                        title={isSystemField ? "حقل أساسي في النظام" : "نسخ هذا الحقل"}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -1032,14 +1060,20 @@ export default function FormsCustomizationServiceDetail() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        disabled={isMosqueField}
-                        onClick={() => !isMosqueField && handleDeleteField(field.id)}
+                        disabled={isSystemField}
+                        onClick={() => !isSystemField && handleDeleteField(field.id)}
                         className={`h-9 w-9 rounded-xl ${
-                          isMosqueField
+                          isSystemField
                             ? "text-muted-foreground/30 cursor-not-allowed"
                             : "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         }`}
-                        title={isMosqueField ? "حقل لا يمكن حذفه" : "حذف الحقل"}
+                        title={
+                          isMosqueField
+                            ? "حقل اختيار المسجد لا يمكن حذفه"
+                            : isPrayerHallField
+                            ? "حقل مصلى النساء أساسي في نظام بنيان لا يمكن حذفه (يمكنك تعطيله)"
+                            : "حذف الحقل"
+                        }
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -1049,6 +1083,15 @@ export default function FormsCustomizationServiceDetail() {
                   {/* لوحة الإعدادات الموسعة والتفصيلية للحقل */}
                   {isExpanded && (
                     <div className="p-4 pt-3 border-t border-border/70 bg-muted/15 space-y-4 animate-in fade-in duration-200">
+                      
+                      {isPrayerHallField && (
+                        <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2.5 text-xs text-primary font-medium">
+                          <Building2 className="w-4 h-4 shrink-0" />
+                          <span>
+                            هذا الحقل يتحكم بإظهار/إخفاء قسم مصلى النساء وسعته ومساحته للمستفيد في نموذج تقديم الطلب.
+                          </span>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* النص التلميحي (Placeholder) */}
@@ -1162,63 +1205,6 @@ export default function FormsCustomizationServiceDetail() {
                     </div>
                   )}
                 </div>
-
-                {/* قسم مصلى النساء الخاص بخدمة بنيان في محرر الحقول */}
-                {serviceId === "bunyan" && field.id === "actualWorshippers" && (
-                  <div className="p-4 sm:p-5 rounded-2xl border-2 border-primary/25 bg-primary/5 space-y-3.5 my-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs shrink-0">
-                          <Building2 className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                              قسم: هل يتضمن المشروع مصلى للنساء؟
-                            </h4>
-                            <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/20">
-                              خاص بخدمة بنيان
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                              مشروط تفاعلي
-                            </Badge>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            يظهر للمستفيد في النموذج بعد حقل "عدد المصلين المتوقع"، ويتيح له تحديد وجود مصلى للنساء وتعبئة سعته ومساحته
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* تفاصيل الحقول الفرعية التابعة لمصلى النساء */}
-                    <div className="p-3.5 rounded-xl bg-background/80 border border-border/80 space-y-2.5">
-                      <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        <span>الحقول الفرعية التي تظهر عند تفعيل الخيار من قبل المستفيد:</span>
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Users className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">سعة مصلى النساء (مصلي)</p>
-                            <p className="text-[10px] text-muted-foreground">نوع رقمي • إلزامي عند الاختيار</p>
-                          </div>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                            <Ruler className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-foreground truncate">المساحة (م²)</p>
-                            <p className="text-[10px] text-muted-foreground">نوع رقمي • إلزامي عند الاختيار</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </React.Fragment>
             );
           })}
@@ -1501,6 +1487,97 @@ export default function FormsCustomizationServiceDetail() {
                         const unitSuffix = getUnitSuffix(field.id);
                         const value = previewValues[field.id];
 
+                        if (serviceId === "bunyan" && field.id === "hasPrayerHall") {
+                          return (
+                            <React.Fragment key={field.id}>
+                              <div className={previewDevice === "mobile" ? "col-span-1 space-y-2.5" : "col-span-1 sm:col-span-2 space-y-4"}>
+                                <div
+                                  onClick={() => setPreviewHasPrayerHall(!previewHasPrayerHall)}
+                                  className={`${previewDevice === "mobile" ? "p-2.5 rounded-xl gap-2.5" : "p-3.5 sm:p-5 rounded-2xl gap-3 sm:gap-4"} border-2 transition-all cursor-pointer flex items-center justify-between select-none ${
+                                    previewHasPrayerHall
+                                      ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs ring-2 ring-primary/20"
+                                      : "border-border/60 bg-muted/20 hover:bg-muted/40"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 sm:gap-3">
+                                    <div
+                                      className={`${previewDevice === "mobile" ? "w-7 h-7 rounded-lg" : "w-9 h-9 sm:w-10 sm:h-10 rounded-xl"} flex items-center justify-center transition-colors shrink-0 ${
+                                        previewHasPrayerHall ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                                      }`}
+                                    >
+                                      <Building2 className={`${previewDevice === "mobile" ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5"}`} />
+                                    </div>
+                                    <div>
+                                      <p className={`font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} text-foreground`}>
+                                        {field.label || "هل يتضمن المشروع مصلى للنساء؟"}
+                                      </p>
+                                      <p className={`${previewDevice === "mobile" ? "text-[9.5px]" : "text-[10px] sm:text-[11px]"} text-muted-foreground mt-0.5`}>
+                                        {field.helpText || "حدد إذا المسجد يشمل قسماً مخصصاً لمصلى النساء"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Checkbox
+                                    id="hasPrayerHall"
+                                    checked={previewHasPrayerHall}
+                                    className={`${previewDevice === "mobile" ? "h-4 w-4" : "h-5 w-5"} rounded-md data-[state=checked]:bg-primary shrink-0`}
+                                  />
+                                </div>
+
+                                {previewHasPrayerHall && (
+                                  <div className={`${previewDevice === "mobile" ? "p-3 rounded-xl space-y-2.5" : "p-3.5 sm:p-5 rounded-2xl space-y-3 sm:space-y-4"} border border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-top-2 duration-200`}>
+                                    <h4 className={`font-bold ${previewDevice === "mobile" ? "text-xs" : "text-xs sm:text-sm"} text-primary flex items-center gap-1.5 border-b border-primary/10 pb-1.5`}>
+                                      <Building2 className="w-3.5 h-3.5" />
+                                      بيانات مصلى النساء
+                                    </h4>
+                                    <div className={`grid ${previewDevice === "mobile" ? "grid-cols-1 gap-2.5" : "grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"}`}>
+                                      <div className="space-y-1">
+                                        <label htmlFor="previewWomenCapacity" className={`text-foreground flex items-center gap-1.5 font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
+                                          <Users className="w-3.5 h-3.5 text-primary/70" />
+                                          <span>سعة مصلى النساء (مصلي)</span>
+                                          <span className="text-red-500 font-bold">*</span>
+                                        </label>
+                                        <div className="relative flex items-center">
+                                          <Input
+                                            id="previewWomenCapacity"
+                                            type="number"
+                                            value={previewWomenCapacity}
+                                            onChange={(e) => setPreviewWomenCapacity(e.target.value)}
+                                            placeholder="مثال: 50"
+                                            className={`${previewDevice === "mobile" ? "h-9 text-xs" : "h-10 sm:h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 pl-11`}
+                                          />
+                                          <span className={`absolute left-2.5 ${previewDevice === "mobile" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} font-semibold text-muted-foreground bg-muted/60 rounded-md select-none pointer-events-none`}>
+                                            مصلي
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label htmlFor="previewWomenArea" className={`text-foreground flex items-center gap-1.5 font-bold ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
+                                          <Ruler className="w-3.5 h-3.5 text-primary/70" />
+                                          <span>المساحة (م²)</span>
+                                          <span className="text-red-500 font-bold">*</span>
+                                        </label>
+                                        <div className="relative flex items-center">
+                                          <Input
+                                            id="previewWomenArea"
+                                            type="number"
+                                            value={previewWomenArea}
+                                            onChange={(e) => setPreviewWomenArea(e.target.value)}
+                                            placeholder="مثال: 50"
+                                            className={`${previewDevice === "mobile" ? "h-9 text-xs" : "h-10 sm:h-11 text-xs sm:text-sm"} rounded-xl bg-background border-border/80 pl-10`}
+                                          />
+                                          <span className={`absolute left-2.5 ${previewDevice === "mobile" ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} font-semibold text-muted-foreground bg-muted/60 rounded-md select-none pointer-events-none`}>
+                                            م²
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </React.Fragment>
+                          );
+                        }
+
                         return (
                           <React.Fragment key={field.id}>
                             <div
@@ -1688,8 +1765,8 @@ export default function FormsCustomizationServiceDetail() {
                               </div>
                             </div>
 
-                            {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers مباشرة بكامل عرض الشبكة */}
-                            {serviceId === "bunyan" && field.id === "actualWorshippers" && (
+                            {/* في خدمة بنيان: يظهر قسم مصلى النساء بعد حقل actualWorshippers فقط كاحتياط في حال لم يكن الحقل مضافاً */}
+                            {serviceId === "bunyan" && field.id === "actualWorshippers" && !fields.some((f) => f.isActive && f.id === "hasPrayerHall") && (
                               <div className={previewDevice === "mobile" ? "col-span-1 space-y-2.5" : "col-span-1 sm:col-span-2 space-y-4"}>
                                 <div
                                   onClick={() => setPreviewHasPrayerHall(!previewHasPrayerHall)}
