@@ -1148,6 +1148,7 @@ export const permissionsRouter = router({
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     await ensureRequestsPermissionsExist(db);
+    await ensureAllCustomPermissionsExist(db);
 
     const modulesData = await db.select().from(modules).where(eq(modules.isActive, true)).orderBy(modules.displayOrder);
     const permissionsData = await db.select().from(permissions);
