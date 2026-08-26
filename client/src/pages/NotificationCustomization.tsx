@@ -787,6 +787,19 @@ export default function NotificationCustomization() {
       ]
     },
     {
+      id: "disbursement_order_pending_board_executive",
+      category: "financial",
+      nameAr: "تحويل أمر الصرف للاعتماد المالي",
+      description: 'تم تحويل أمر الصرف رقم "DO-2026-0023" (طلب رقم DR-2026-0051) للمشروع "مشروع تجريبي" للاعتماد المالي بقيمة 1000000.00 ريال',
+      defaultTemplate: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" للاعتماد المالي بقيمة {القيمة} ريال",
+      variables: [
+        { placeholder: "{رقم_أمر_الصرف}", nameAr: "رقم أمر الصرف" },
+        { placeholder: "{رقم_طلب_الصرف}", nameAr: "رقم طلب الصرف" },
+        { placeholder: "{اسم_المشروع}", nameAr: "اسم المشروع" },
+        { placeholder: "{القيمة}", nameAr: "القيمة" }
+      ]
+    },
+    {
       id: "disbursement_order_approved",
       category: "financial",
       nameAr: "اعتماد أمر صرف",
@@ -1233,6 +1246,7 @@ export default function NotificationCustomization() {
       "progress_report_approved",
       "disbursement_request_created",
       "disbursement_converted_to_order",
+      "disbursement_order_pending_board_executive",
       "disbursement_order_approved",
       "disbursement_order_rejected"
     ];

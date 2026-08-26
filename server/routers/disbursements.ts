@@ -23,7 +23,7 @@ import {
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
+import { createNotification, notifyDisbursementRequestCreation, notifyDisbursementOrderCreation, notifyDisbursementOrderPendingBoardExecutive, notifyDisbursementOrderApproval, notifyDisbursementOrderRejection } from "./notifications";
 import { triggerBeneficiarySatisfactionSurvey } from "./requests";
 
 // توليد رقم طلب صرف
@@ -2277,6 +2277,14 @@ export const disbursementsRouter = router({
           input.projectId || null
         );
 
+        await notifyDisbursementOrderPendingBoardExecutive(
+          orderId,
+          orderNumber,
+          requestNumber,
+          input.amount.toString(),
+          input.projectId || null
+        );
+
         // إرسال إشعار للمدير العام لاعتماد أمر الصرف
         const managers = await db
           .select({ id: users.id })
@@ -2539,6 +2547,15 @@ export const disbursementsRouter = router({
 
       if (orderWithRequest) {
         await notifyDisbursementOrderApproval(
+          input.id,
+          order.orderNumber,
+          orderWithRequest.requestNumber || "",
+          orderWithRequest.orderAmount,
+          orderWithRequest.projectId
+        );
+
+        // إرسال إشعار تحويل أمر الصرف للاعتماد المالي (ليظهر في مركز الاعتماد المالي لرئيس المجلس)
+        await notifyDisbursementOrderPendingBoardExecutive(
           input.id,
           order.orderNumber,
           orderWithRequest.requestNumber || "",
