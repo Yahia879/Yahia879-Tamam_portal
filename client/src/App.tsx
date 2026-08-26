@@ -392,7 +392,7 @@ function Router() {
       <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
       <Route path="/support">
         {() => (
-          <ProtectedRoute allowedRoles={["service_requester", "field_team", "quick_response", "projects_office", "super_admin", "system_admin", "project_manager", "corporate_comm", "financial"]}>
+          <ProtectedRoute>
             <SupportTickets />
           </ProtectedRoute>
         )}
