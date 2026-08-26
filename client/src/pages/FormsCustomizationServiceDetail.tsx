@@ -876,10 +876,10 @@ export default function FormsCustomizationServiceDetail() {
               const FieldIcon = FIELD_TYPES.find((ft) => ft.type === field.type)?.icon || FileText;
 
               return (
-                <div
-                  key={field.id}
-                  draggable={isDragEnabled}
-                  onDragStart={(e) => handleDragStart(e, actualIndex)}
+                <React.Fragment key={field.id}>
+                  <div
+                    draggable={isDragEnabled}
+                    onDragStart={(e) => handleDragStart(e, actualIndex)}
                   onDragOver={(e) => handleDragOver(e, actualIndex)}
                   onDragEnd={handleDragEnd}
                   className={`rounded-2xl border bg-card text-right transition-all duration-200 overflow-hidden ${
@@ -1162,8 +1162,66 @@ export default function FormsCustomizationServiceDetail() {
                     </div>
                   )}
                 </div>
-              );
-            })}
+
+                {/* قسم مصلى النساء الخاص بخدمة بنيان في محرر الحقول */}
+                {serviceId === "bunyan" && field.id === "actualWorshippers" && (
+                  <div className="p-4 sm:p-5 rounded-2xl border-2 border-primary/25 bg-primary/5 space-y-3.5 my-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs shrink-0">
+                          <Building2 className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-bold text-xs sm:text-sm text-foreground">
+                              قسم: هل يتضمن المشروع مصلى للنساء؟
+                            </h4>
+                            <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/20">
+                              خاص بخدمة بنيان
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                              مشروط تفاعلي
+                            </Badge>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            يظهر للمستفيد في النموذج بعد حقل "عدد المصلين المتوقع"، ويتيح له تحديد وجود مصلى للنساء وتعبئة سعته ومساحته
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* تفاصيل الحقول الفرعية التابعة لمصلى النساء */}
+                    <div className="p-3.5 rounded-xl bg-background/80 border border-border/80 space-y-2.5">
+                      <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        <span>الحقول الفرعية التي تظهر عند تفعيل الخيار من قبل المستفيد:</span>
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Users className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">سعة مصلى النساء (مصلي)</p>
+                            <p className="text-[10px] text-muted-foreground">نوع رقمي • إلزامي عند الاختيار</p>
+                          </div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Ruler className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-foreground truncate">المساحة (م²)</p>
+                            <p className="text-[10px] text-muted-foreground">نوع رقمي • إلزامي عند الاختيار</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
           </div>
         )}
 
