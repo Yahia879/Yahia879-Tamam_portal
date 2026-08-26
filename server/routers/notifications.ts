@@ -211,7 +211,10 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   disbursement_request_created: "تم إنشاء طلب صرف جديد رقم \"{رقم_طلب_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
   disbursement_converted_to_order: "تم تحويل طلب الصرف رقم \"{رقم_طلب_الصرف}\" إلى أمر صرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
   disbursement_order_pending_board_executive: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" للاعتماد المالي بقيمة {القيمة} ريال",
-  disbursement_order_approved: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_approved: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_approved_project_only: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال",
+  disbursement_order_approved_request_only: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
+  disbursement_order_approved_general: "تم اعتماد أمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال",
   disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
 };
 
@@ -258,6 +261,36 @@ const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
   ],
   stage_closed: [
     'قام {اسم_المسؤول} بنقل الطلب رقم {رقم_الطلب} إلى مرحلة: الإغلاق'
+  ],
+  disbursement_request_created: [
+    'تم إنشاء طلب صرف جديد رقم "{رقم_طلب_الصرف}" ("{عنوان_الطلب}") للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال',
+    'تم إنشاء طلب صرف جديد رقم "{رقم_طلب_الصرف}" ("{عنوان_الطلب}") بقيمة {القيمة} ريال'
+  ],
+  disbursement_converted_to_order: [
+    'تم تحويل طلب الصرف رقم "{رقم_طلب_الصرف}" إلى أمر صرف رقم "{رقم_أمر_الصرف}" للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال',
+    'تم تحويل طلب الصرف رقم "{رقم_طلب_الصرف}" إلى أمر صرف رقم "{رقم_أمر_الصرف}" بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_pending_board_executive: [
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") للمشروع "{اسم_المشروع}" للاعتماد المالي بقيمة {القيمة} ريال',
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") للاعتماد المالي بقيمة {القيمة} ريال',
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) للمشروع "{اسم_المشروع}" للاعتماد المالي بقيمة {القيمة} ريال',
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) للاعتماد المالي بقيمة {القيمة} ريال',
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" للمشروع "{اسم_المشروع}" للاعتماد المالي بقيمة {القيمة} ريال',
+    'تم تحويل أمر الصرف رقم "{رقم_أمر_الصرف}" للاعتماد المالي بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_approved: [
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال',
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_approved_project_only: [
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_approved_request_only: [
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") بقيمة {القيمة} ريال',
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال'
+  ],
+  disbursement_order_approved_general: [
+    'تم اعتماد أمر الصرف رقم "{رقم_أمر_الصرف}" بقيمة {القيمة} ريال'
   ],
   quotation_created: [
     'تم إضافة عرض سعر جديد رقم "{رقم_العرض}" من قبل المورد "{اسم_المورد}" للطلب رقم {رقم_الطلب}',
@@ -479,7 +512,15 @@ export async function createNotification(data: {
     } else if (data.title === "تحويل أمر صرف للاعتماد المالي" || data.title === "تحويل أمر الصرف للاعتماد المالي" || data.message.includes("للاعتماد المالي")) {
       triggerId = "disbursement_order_pending_board_executive";
     } else if (data.title === "اعتماد أمر صرف" || data.message.includes("تم اعتماد أمر الصرف")) {
-      triggerId = "disbursement_order_approved";
+      if (data.message.includes("طلب رقم") && data.message.includes("للمشروع")) {
+        triggerId = "disbursement_order_approved";
+      } else if (data.message.includes("للمشروع")) {
+        triggerId = "disbursement_order_approved_project_only";
+      } else if (data.message.includes("طلب رقم")) {
+        triggerId = "disbursement_order_approved_request_only";
+      } else {
+        triggerId = "disbursement_order_approved_general";
+      }
     } else if (data.title === "رفض أمر صرف" || data.message.includes("تم رفض أمر الصرف")) {
       triggerId = "disbursement_order_rejected";
     } else if (data.title === "تذكرة دعم فني جديدة" || data.message.includes("بتقديم تذكرة دعم فني جديدة")) {
@@ -504,6 +545,9 @@ export async function createNotification(data: {
       "disbursement_converted_to_order",
       "disbursement_order_pending_board_executive",
       "disbursement_order_approved",
+      "disbursement_order_approved_project_only",
+      "disbursement_order_approved_request_only",
+      "disbursement_order_approved_general",
       "disbursement_order_rejected"
     ];
 
@@ -1906,7 +1950,16 @@ export async function notifyDisbursementOrderApproval(
 
     const officerIds = await getFinancialNotificationOfficerIds(db);
     const notificationTitle = "اعتماد أمر صرف";
-    const message = `تم اعتماد أمر الصرف رقم "${orderNumber}"${requestNumber ? ` (طلب رقم "${requestNumber}")` : ""}${projectName ? ` للمشروع "${projectName}"` : ""} بقيمة ${amount} ريال`;
+    let message = "";
+    if (projectName && requestNumber) {
+      message = `تم اعتماد أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}") للمشروع "${projectName}" بقيمة ${amount} ريال`;
+    } else if (projectName && !requestNumber) {
+      message = `تم اعتماد أمر الصرف رقم "${orderNumber}" للمشروع "${projectName}" بقيمة ${amount} ريال`;
+    } else if (!projectName && requestNumber) {
+      message = `تم اعتماد أمر الصرف رقم "${orderNumber}" (طلب رقم "${requestNumber}") بقيمة ${amount} ريال`;
+    } else {
+      message = `تم اعتماد أمر الصرف رقم "${orderNumber}" بقيمة ${amount} ريال`;
+    }
 
     for (const userId of officerIds) {
       await createNotification({
