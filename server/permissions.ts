@@ -339,14 +339,16 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
-      project_manager: ["requests.view", "requests.create", "requests.view_details", "beneficiary_evaluations.view"],
-      corporate_comm: ["requests.view", "requests.upload_final_report", "beneficiary_evaluations.view"],
+      project_manager: ["requests.view", "requests.create", "requests.view_details"],
+      corporate_comm: ["requests.view", "requests.upload_final_report"],
+      super_admin: ["beneficiary_evaluations.view"],
+      system_admin: ["beneficiary_evaluations.view"],
     };
 
     const roleNamesAr: Record<string, string> = {
