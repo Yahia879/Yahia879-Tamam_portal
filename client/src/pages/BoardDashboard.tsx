@@ -1661,13 +1661,13 @@ export default function BoardDashboard() {
 
         {/* ==================== 📋 نافذة عرض مبررات عدم الاعتماد (مطابقة لـ /disbursements) ==================== */}
         <Dialog open={viewJustificationModal.open} onOpenChange={(open) => setViewJustificationModal((prev) => ({ ...prev, open }))}>
-          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
-            <DialogHeader className="text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+          <DialogContent dir="rtl" className="sm:max-w-[560px] rounded-3xl p-6 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold text-right sm:text-right">
                 <Info className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>مبررات عدم اعتماد التحويل</span>
               </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium">
                 تفاصيل المبرر والسبب المدون لأمر الصرف رقم ({viewJustificationModal.orderNumber})
               </DialogDescription>
             </DialogHeader>
@@ -1691,26 +1691,29 @@ export default function BoardDashboard() {
 
         {/* ==================== 📝 نافذة إضافة وتعديل الملاحظات ==================== */}
         <Dialog open={notesModal.open} onOpenChange={(open) => setNotesModal((prev) => ({ ...prev, open }))}>
-          <DialogContent dir="rtl" className="sm:max-w-[480px] rounded-3xl p-6 text-right">
-            <DialogHeader className="text-right border-b pb-4">
-              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg font-bold">
+          <DialogContent dir="rtl" className="sm:max-w-[640px] rounded-3xl p-6 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
                 <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
                 <span>ملاحظات وتوجيهات أمر الصرف</span>
               </DialogTitle>
-              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium leading-relaxed">
                 تدوين ملاحظات وتوجيهات خاصة بأمر الصرف رقم ({notesModal.orderNumber}) ليتم إظهارها في شاشة أوامر الصرف.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-3 text-right">
+            <div className="space-y-4 py-4 text-right">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">نص الملاحظات:</label>
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
+                  نص الملاحظات والتوجيهات:
+                </label>
                 <Textarea
                   value={notesModal.notes}
                   onChange={(e) => setNotesModal((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder="اكتب ملاحظاتك وتوجيهاتك هنا..."
-                  rows={4}
-                  className="rounded-2xl text-xs sm:text-sm p-3.5 border-slate-200 dark:border-slate-700 resize-none leading-relaxed"
+                  rows={6}
+                  className="rounded-2xl text-xs sm:text-sm p-4 border-slate-200 dark:border-slate-700 resize-none leading-relaxed min-h-[140px] text-right"
+                  dir="rtl"
                 />
               </div>
             </div>
@@ -1724,15 +1727,15 @@ export default function BoardDashboard() {
                   });
                 }}
                 disabled={updateNotesMutation.isPending}
-                className="rounded-xl font-bold text-xs px-5 bg-amber-600 hover:bg-amber-700 text-white"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
               >
-                {updateNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" /> : null}
+                {updateNotesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
                 <span>حفظ الملاحظات</span>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" })}
-                className="rounded-xl font-bold text-xs px-5"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5"
               >
                 إلغاء
               </Button>
