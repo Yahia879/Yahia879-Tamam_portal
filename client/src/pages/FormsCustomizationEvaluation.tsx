@@ -163,12 +163,12 @@ const PRESET_OPTIONS = [
   },
 ];
 
-const RATING_EMOJIS: Record<number, { label: string; emoji: string; color: string }> = {
-  1: { label: "غير راضي جداً", emoji: "😞", color: "text-red-500 bg-red-50 dark:bg-red-950/30 border-red-200" },
-  2: { label: "غير راضي", emoji: "🙁", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-200" },
-  3: { label: "محايد", emoji: "😐", color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200" },
-  4: { label: "راضي", emoji: "🙂", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200" },
-  5: { label: "راضي جداً", emoji: "😍", color: "text-teal-600 bg-teal-50 dark:bg-teal-950/30 border-teal-200" },
+const RATING_EMOJIS: Record<number, { label: string; color: string }> = {
+  1: { label: "غير راضي جداً", color: "text-red-500 bg-red-50 dark:bg-red-950/30 border-red-200" },
+  2: { label: "غير راضي", color: "text-amber-600 bg-amber-50 dark:bg-amber-950/30 border-amber-200" },
+  3: { label: "محايد", color: "text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200" },
+  4: { label: "راضي", color: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200" },
+  5: { label: "راضي جداً", color: "text-teal-600 bg-teal-50 dark:bg-teal-950/30 border-teal-200" },
 };
 
 const COLOR_PRESETS = [
@@ -1037,7 +1037,7 @@ export default function FormsCustomizationEvaluation() {
                             <div className="flex items-center justify-between text-xs font-bold text-foreground">
                               <span className="flex items-center gap-1.5">
                                 <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                                <span>مقياس النجوم والإيموجي التفاعلي:</span>
+                                <span>مقياس النجوم التفاعلي:</span>
                               </span>
                               <span className="text-[11px] text-muted-foreground font-normal">
                                 مقياس الرضا التفاعلي (من 1 إلى 5 نجوم)
@@ -1046,7 +1046,6 @@ export default function FormsCustomizationEvaluation() {
                             <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
                               {Object.entries(RATING_EMOJIS).map(([star, data]) => (
                                 <div key={star} className={`px-2.5 py-1 rounded-xl border text-[11px] font-bold ${data.color} flex items-center gap-1`}>
-                                  <span>{data.emoji}</span>
                                   <span>{star}★ {data.label}</span>
                                 </div>
                               ))}
@@ -1387,7 +1386,7 @@ export default function FormsCustomizationEvaluation() {
                                     })}
                                   </div>
 
-                                  {/* وصف النتيجة المحدد مع الإيموجي */}
+                                  {/* وصف النتيجة المحدد */}
                                   {(currentHover || value) && RATING_EMOJIS[currentHover || value] && (
                                     <div className="flex justify-end animate-in fade-in duration-200">
                                       <div
@@ -1395,7 +1394,6 @@ export default function FormsCustomizationEvaluation() {
                                           RATING_EMOJIS[currentHover || value].color
                                         }`}
                                       >
-                                        <span>{RATING_EMOJIS[currentHover || value].emoji}</span>
                                         <span>{RATING_EMOJIS[currentHover || value].label}</span>
                                       </div>
                                     </div>

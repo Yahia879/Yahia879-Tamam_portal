@@ -41,12 +41,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const RATING_LABELS: Record<number, { label: string; description: string; emoji: string; color: string }> = {
-  1: { label: "غير راضي جداً", description: "تجربة غير مرضية ولم نتمكن من تلبيتها بالشكل المطلوب", emoji: "😞", color: "text-red-500 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900/50" },
-  2: { label: "غير راضي", description: "هناك عدة ملاحظات على جودة الخدمة أو زمن التنفيذ", emoji: "🙁", color: "text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50" },
-  3: { label: "محايد", description: "الخدمة مقبولة بوجه عام ولكن تحتاج لتحسينات", emoji: "😐", color: "text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-900/50" },
-  4: { label: "راضي", description: "خدمة ممتازة وتم إنجاز العمل بالشكل المناسب", emoji: "🙂", color: "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/50" },
-  5: { label: "راضي جداً", description: "تجربة استثنائية وجودة عالية تفوق التوقعات", emoji: "😍", color: "text-teal-600 border-teal-200 bg-teal-50 dark:bg-teal-950/30 dark:border-teal-900/50" },
+const RATING_LABELS: Record<number, { label: string; description: string; color: string }> = {
+  1: { label: "غير راضي جداً", description: "تجربة غير مرضية ولم نتمكن من تلبيتها بالشكل المطلوب", color: "text-red-500 border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900/50" },
+  2: { label: "غير راضي", description: "هناك عدة ملاحظات على جودة الخدمة أو زمن التنفيذ", color: "text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900/50" },
+  3: { label: "محايد", description: "الخدمة مقبولة بوجه عام ولكن تحتاج لتحسينات", color: "text-yellow-600 border-yellow-200 bg-yellow-50 dark:bg-yellow-950/30 dark:border-yellow-900/50" },
+  4: { label: "راضي", description: "خدمة ممتازة وتم إنجاز العمل بالشكل المناسب", color: "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/50" },
+  5: { label: "راضي جداً", description: "تجربة استثنائية وجودة عالية تفوق التوقعات", color: "text-teal-600 border-teal-200 bg-teal-50 dark:bg-teal-950/30 dark:border-teal-900/50" },
 };
 
 export default function RequestEvaluation() {
@@ -317,8 +317,7 @@ export default function RequestEvaluation() {
                         ))}
                       </div>
                       {data.existingEvaluation?.rating && RATING_LABELS[data.existingEvaluation.rating] && (
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-                          <span>{RATING_LABELS[data.existingEvaluation.rating].emoji}</span>
+                        <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
                           <span>{RATING_LABELS[data.existingEvaluation.rating].label}</span>
                         </div>
                       )}
@@ -465,8 +464,7 @@ export default function RequestEvaluation() {
                               </div>
 
                               {field.showLabels && (currentHover || value) && RATING_LABELS[currentHover || value] && (
-                                <div className="text-left text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                                  <span>{RATING_LABELS[currentHover || value].emoji}</span>
+                                <div className="text-left text-xs font-semibold text-amber-600 dark:text-amber-400">
                                   <span>{RATING_LABELS[currentHover || value].label}</span>
                                 </div>
                               )}
