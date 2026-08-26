@@ -227,6 +227,7 @@ export default function NewLinkedDisbursementRequest() {
   const [suppliers, setSuppliers] = useState<SupplierEntry[]>(() => savedState?.suppliers ?? [
     { id: crypto.randomUUID(), name: "", work: "", amount: 0, iban: "", bank: "", agreedAmount: 0 }
   ]);
+  const lastAutoFilledReportId = useRef<number | null>(null);
 
   const handleNavigateToPrint = () => {
     if (selectedReport) {
@@ -930,9 +931,14 @@ export default function NewLinkedDisbursementRequest() {
       ? paymentAmt
       : (reportBudget > 0 ? reportBudget : (contractAmt > 0 ? contractAmt : (quotationAmt > 0 ? quotationAmt : projectBudgetAmt)));
 
-    if (calculatedAmount > 0) {
+    const shouldAutoFill = selectedReportId !== lastAutoFilledReportId.current || (suppliers.length > 0 && (!suppliers[0].amount || suppliers[0].amount === 0));
+
+    if (calculatedAmount > 0 && shouldAutoFill) {
+      if (selectedReportId) {
+        lastAutoFilledReportId.current = selectedReportId;
+      }
       setSuppliers(prev => {
-        if (prev.length > 0 && prev[0].amount !== calculatedAmount) {
+        if (prev.length > 0) {
           const updated = [...prev];
           const secondPartyName = contractDetails?.contract?.secondPartyName || (projectContracts?.contracts?.[0] as any)?.secondPartyName || "مورد المشروع";
           const secondPartyIban = contractDetails?.contract?.secondPartyIban || (projectContracts?.contracts?.[0] as any)?.secondPartyIban || "";
@@ -942,7 +948,7 @@ export default function NewLinkedDisbursementRequest() {
           updated[0] = {
             ...updated[0],
             amount: calculatedAmount,
-            agreedAmount: updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount,
+            agreedAmount: contractAmt > 0 ? contractAmt : (updated[0].agreedAmount > 0 ? updated[0].agreedAmount : calculatedAmount),
             name: updated[0].name || secondPartyName,
             iban: updated[0].iban || secondPartyIban,
             bank: updated[0].bank || secondPartyBank,
@@ -953,7 +959,7 @@ export default function NewLinkedDisbursementRequest() {
         return prev;
       });
     }
-  }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails]);
+  }, [selectedReport, paymentInfo, contractDetails, projectContracts, projectFinancials, projectDetails, selectedReportId]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد للمشروع (حتى لو كان قيد الاعتماد أو مسودة)
   useEffect(() => {
@@ -1035,10 +1041,10 @@ export default function NewLinkedDisbursementRequest() {
       if (s.id === id) {
         const updated = { ...s, [field]: value };
         if (field === "amount") {
-          updated.agreedAmount = Number(value);
-        }
-        if (field === "agreedAmount") {
-          updated.amount = Number(value);
+          const numVal = Number(value) || 0;
+          if (numVal > (updated.agreedAmount || 0)) {
+            updated.agreedAmount = numVal;
+          }
         }
         return updated;
       }
@@ -1196,24 +1202,10 @@ export default function NewLinkedDisbursementRequest() {
       return;
     }
 
-    if (!isCustom && suppliers.some(s => Number((s.amount || 0).toFixed(2)) > Number((s.agreedAmount || 0).toFixed(2)))) {
-      toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
-      return;
-    }
-
-    // التحقق من تجاوز قيمة العقد أو المبلغ المتبقي
+    // التحقق من تجاوز قيمة العقد
     if (!isCustom && contractAmount > 0) {
       if (totalAmount > contractAmount) {
         toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
-        return;
-      }
-
-      if (totalAmount > remainingForDisbursement || remainingForDisbursement <= 0) {
-        toast.error(
-          remainingForDisbursement <= 0
-            ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
-            : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingForDisbursement).toLocaleString()} ريال)`
-        );
         return;
       }
     }
@@ -2564,18 +2556,13 @@ export default function NewLinkedDisbursementRequest() {
                             <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ المتفق عليه للدفعة *</Label>
                             <Input
                               type="number"
-                              value={supplier.amount !== undefined && supplier.amount !== 0 ? supplier.amount : (supplier.agreedAmount || "")}
-                              readOnly={!isCustom}
+                              value={supplier.agreedAmount !== undefined && supplier.agreedAmount !== 0 ? supplier.agreedAmount : (supplier.amount || "")}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value) || 0;
                                 updateSupplier(supplier.id, "agreedAmount", val);
-                                updateSupplier(supplier.id, "amount", val);
                               }}
                               placeholder="0.00"
-                              required
-                              className={`text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-primary rounded-xl h-10 ${
-                                isCustom ? "bg-background" : "bg-slate-50/50 dark:bg-slate-900/30 cursor-default"
-                              }`}
+                              className="text-right font-bold text-slate-900 dark:text-slate-100 border-border focus:ring-primary rounded-xl h-10 bg-background"
                             />
                           </div>
                         )}
@@ -2679,7 +2666,7 @@ export default function NewLinkedDisbursementRequest() {
             <div className="flex flex-col sm:flex-row-reverse items-stretch sm:items-center justify-between border-t border-border/60 pt-4 gap-3">
               <Button
                 onClick={handleSubmit}
-                disabled={createMutation.isPending || (!isCustom && suppliers.some(s => Number((s.amount || 0).toFixed(2)) > Number((s.agreedAmount || 0).toFixed(2))))}
+                disabled={createMutation.isPending || totalAmount <= 0 || (!isCustom && contractAmount > 0 && totalAmount > contractAmount)}
                 className="gradient-primary text-white font-bold px-6 sm:px-8 h-10 sm:h-11 rounded-xl shadow-sm text-xs sm:text-sm w-full sm:w-auto"
               >
                 <Send className="ml-2 h-4 w-4" />

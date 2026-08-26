@@ -295,8 +295,11 @@ export default function EditLinkedDisbursementRequest() {
     setSuppliers(suppliers.map(s => {
       if (s.id === id) {
         const updated = { ...s, [field]: value };
-        if (isCustom && field === "amount") {
-          updated.agreedAmount = Number(value);
+        if (field === "amount") {
+          const numVal = Number(value) || 0;
+          if (numVal > (updated.agreedAmount || 0)) {
+            updated.agreedAmount = numVal;
+          }
         }
         return updated;
       }
@@ -338,8 +341,8 @@ export default function EditLinkedDisbursementRequest() {
       return;
     }
 
-    if (!isCustom && suppliers.some(s => s.amount > s.agreedAmount)) {
-      toast.error("المبلغ الفعلي لا يمكن أن يتجاوز المبلغ المتفق عليه للدفعة");
+    if (!isCustom && contractAmount > 0 && totalAmount > contractAmount) {
+      toast.error(`المبلغ لا يمكن أن يتجاوز قيمة العقد (${contractAmount.toLocaleString()} ريال)`);
       return;
     }
 
@@ -828,7 +831,7 @@ export default function EditLinkedDisbursementRequest() {
               <CardFooter className="border-t border-border/40 pt-4 flex justify-end">
                 <Button
                   onClick={handleSubmit}
-                  disabled={updateMutation.isPending || suppliers.some(s => s.amount > s.agreedAmount)}
+                  disabled={updateMutation.isPending || totalAmount <= 0 || (!isCustom && contractAmount > 0 && totalAmount > contractAmount)}
                   className="gradient-primary text-white font-bold px-8 h-11 rounded-xl shadow-sm w-full sm:w-auto"
                 >
                   {updateMutation.isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
