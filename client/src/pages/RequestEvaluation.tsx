@@ -25,6 +25,7 @@ import {
   LogOut,
   User,
   HelpCircle,
+  MessageSquare,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -250,121 +251,166 @@ export default function RequestEvaluation() {
           <>
             {/* في حال تم التقييم سابقاً */}
             {data.request.isEvaluated || data.existingEvaluation ? (
-              <Card className="border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent shadow-xl overflow-hidden bg-card">
-                <CardHeader className="text-center pb-4 border-b border-border/40 bg-emerald-500/10">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-inner">
-                    <CheckCircle2 className="w-10 h-10" />
+              <div className="rounded-2xl border border-slate-200/90 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans">
+                {/* 1. Header Banner مع الشعار */}
+                <div
+                  className="text-white p-6 sm:p-8 flex flex-col items-center justify-center relative shadow-inner"
+                  style={{ backgroundColor: formConfig?.headerBgColor || "#14707a" }}
+                >
+                  <img 
+                    src={mainLogoSrc} 
+                    alt="شعار الجمعية" 
+                    className="h-16 sm:h-20 w-auto object-contain brightness-0 invert"
+                  />
+                  <div className="absolute left-4 top-4">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs sm:text-sm font-bold bg-white/20 backdrop-blur-md text-white border border-white/30">
+                      <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
+                      <span>{data.existingEvaluation?.rating || data.request.satisfactionRating || 5} من 5 نجوم</span>
+                    </span>
                   </div>
-                  <CardTitle className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-                    {formConfig?.successTitle || "تم تقييم الخدمة بنجاح"}
-                    <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
-                  </CardTitle>
-                  <CardDescription className="text-muted-foreground text-sm max-w-lg mx-auto">
-                    {formConfig?.successMessage || "شكراً لجهودكم ومشاركتكم القيمة. تم تسجيل استبيان تقييمكم لطلب الخدمة بنجاح."}
-                  </CardDescription>
-                </CardHeader>
+                </div>
 
-                <CardContent className="p-6 sm:p-8 space-y-6">
-                  {/* ملخص الطلب */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-muted/40 border border-border/50 text-sm">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 text-primary shrink-0" />
-                      <div>
-                        <span className="text-muted-foreground text-xs block">رقم الطلب:</span>
-                        <span className="font-semibold">{data.request.requestNumber}</span>
-                      </div>
+                <div className="p-6 sm:p-8 space-y-6">
+                  {/* 2. العنوان والنص الترحيبي والتأكيد */}
+                  <div className="text-center space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 text-xs font-bold mb-1">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>{formConfig?.successTitle || "تم تسجيل استبيان التقييم بنجاح"}</span>
                     </div>
-
-                    {data.request.mosqueName && (
-                      <div className="flex items-center gap-3">
-                        <Building2 className="w-4 h-4 text-primary shrink-0" />
-                        <div>
-                          <span className="text-muted-foreground text-xs block">المسجد:</span>
-                          <span className="font-semibold">{data.request.mosqueName}</span>
-                        </div>
-                      </div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-foreground">
+                      {formConfig?.title || "قياس رضا المستفيدين من خدمات الجمعية"}
+                    </h2>
+                    {formConfig?.description && (
+                      <p className="text-xs sm:text-[13px] text-slate-600 dark:text-muted-foreground leading-relaxed max-w-xl mx-auto">
+                        {formConfig.description}
+                      </p>
                     )}
-
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-4 h-4 text-primary shrink-0" />
-                      <div>
-                        <span className="text-muted-foreground text-xs block">تاريخ التقييم:</span>
-                        <span className="font-semibold">
-                          {data.existingEvaluation?.createdAt
-                            ? format(new Date(data.existingEvaluation.createdAt), "dd MMMM yyyy", { locale: ar })
-                            : data.request.evaluatedAt
-                            ? format(new Date(data.request.evaluatedAt), "dd MMMM yyyy", { locale: ar })
-                            : "مسجل"}
+                    <div className="pt-2 flex items-center justify-center gap-2.5 flex-wrap text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-muted border border-border font-mono font-bold text-foreground">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        {data.request.requestNumber}
+                      </span>
+                      {data.request.mosqueName && (
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <Building2 className="w-3.5 h-3.5 text-primary" />
+                          {data.request.mosqueName}
                         </span>
-                      </div>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
+                        {data.existingEvaluation?.createdAt
+                          ? format(new Date(data.existingEvaluation.createdAt), "dd MMMM yyyy", { locale: ar })
+                          : data.request.evaluatedAt
+                          ? format(new Date(data.request.evaluatedAt), "dd MMMM yyyy", { locale: ar })
+                          : "مسجل"}
+                      </span>
                     </div>
                   </div>
 
-                  {/* تفاصيل التقييم العام المسجل */}
-                  <div className="space-y-4 p-6 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-right">
-                    <div className="text-center space-y-2">
-                      <span className="text-xs font-semibold text-muted-foreground block">التقييم العام المسجل:</span>
-                      <div className="flex items-center justify-center gap-1.5" dir="ltr">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`w-7 h-7 ${
-                              star <= (data.existingEvaluation?.rating || data.request.satisfactionRating || 0)
-                                ? "fill-amber-400 text-amber-400 filter drop-shadow"
-                                : "text-muted-foreground/30"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                  <hr className="border-t border-dotted border-slate-300 dark:border-border" />
 
-                    {/* عرض بقية الإجابات والأسئلة المسجلة */}
-                    {Object.keys(existingAnswers).length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-amber-500/20 space-y-3 text-right">
-                        <span className="text-xs font-bold text-foreground block mb-2">إجابات الاستبيان:</span>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                          {activeFields.map((f) => {
-                            const ans = existingAnswers[f.id];
-                            if (ans === undefined || ans === null || ans === "") return null;
-                            return (
-                              <div key={f.id} className="p-3 rounded-lg bg-background/80 border border-border/50 space-y-1">
-                                <span className="text-muted-foreground font-medium block">{f.label}:</span>
-                                {f.type === "rating" ? (
-                                  <div className="flex items-center gap-1" dir="ltr">
-                                    {Array.from({ length: f.maxRating || 5 }).map((_, i) => (
-                                      <Star
-                                        key={i}
-                                        className={`w-4 h-4 ${
-                                          i < Number(ans)
-                                            ? "fill-amber-400 text-amber-400"
-                                            : "text-muted/40"
-                                        }`}
-                                      />
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="font-semibold text-foreground block">
-                                    {String(ans)}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                  {/* 3. عرض جميع أسئلة الاستبيان وإجاباتها المسجلة */}
+                  <div className="space-y-4">
+                    {activeFields.map((field) => {
+                      let ans = existingAnswers[field.id];
+                      if (ans === undefined) {
+                        if (field.id === "beneficiaryName") ans = parsedSurvey?.beneficiaryName || data.request.userId;
+                        else if (field.id === "beneficiaryPhone") ans = parsedSurvey?.beneficiaryPhone;
+                        else if (field.id === "beneficiaryEmail") ans = parsedSurvey?.beneficiaryEmail;
+                        else if (field.id === "serviceName") ans = parsedSurvey?.serviceName || data.request.mosqueName || data.request.descriptiveName;
+                        else if (field.id === "servicesRating") ans = parsedSurvey?.servicesRating;
+                        else if (field.id === "speedRating") ans = parsedSurvey?.speedRating;
+                        else if (field.id === "communicationRating") ans = parsedSurvey?.communicationRating;
+                        else if (field.id === "overallSatisfaction") ans = parsedSurvey?.overallSatisfaction || data.existingEvaluation?.rating || data.request.satisfactionRating;
+                        else if (field.id === "comments") ans = parsedSurvey?.comments;
+                      }
+
+                      if (ans === undefined || ans === null || ans === "") return null;
+
+                      return (
+                        <div key={field.id} className="p-3.5 sm:p-4 rounded-xl bg-slate-50 dark:bg-muted/30 border border-slate-200/80 dark:border-border/70 space-y-1.5 text-right">
+                          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-foreground block">
+                            {field.label}
+                          </span>
+
+                          {/* تقييم بالنجوم */}
+                          {field.type === "rating" && (
+                            <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                              {Array.from({ length: field.maxRating || 5 }).map((_, sIdx) => {
+                                const starVal = sIdx + 1;
+                                const active = Number(ans) >= starVal;
+                                return (
+                                  <Star
+                                    key={starVal}
+                                    className={`w-7 h-7 ${
+                                      active
+                                        ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.5)]"
+                                        : "text-slate-300 dark:text-slate-700 fill-none stroke-[1.2]"
+                                    }`}
+                                  />
+                                );
+                              })}
+                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 mr-2">
+                                {ans} من {field.maxRating || 5}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* خيارات أو قوائم */}
+                          {["select", "radio"].includes(field.type) && (
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-white dark:bg-card p-2.5 rounded-lg border border-border/60">
+                              {field.options?.find((o) => o.value === ans)?.label || String(ans)}
+                            </div>
+                          )}
+
+                          {/* نصوص / هاتف / بريد / رقم */}
+                          {["text", "phone", "email", "number"].includes(field.type) && (
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-white dark:bg-card p-2.5 rounded-lg border border-border/60" dir={field.type === "phone" || field.type === "email" ? "ltr" : "rtl"}>
+                              {String(ans)}
+                            </div>
+                          )}
+
+                          {/* نص طويل / ملاحظات */}
+                          {field.type === "textarea" && (
+                            <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs sm:text-sm italic text-foreground leading-relaxed">
+                              "{String(ans)}"
+                            </div>
+                          )}
+
+                          {/* مربع اختيار */}
+                          {field.type === "checkbox" && (
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-white dark:bg-card p-2.5 rounded-lg border border-border/60">
+                              {ans ? "نعم / أوافق" : "لا"}
+                            </div>
+                          )}
                         </div>
+                      );
+                    })}
+
+                    {/* في حال وجود تعليقات إضافية غير مدرجة بالحقول */}
+                    {parsedSurvey?.comments && !activeFields.some((f) => f.id === "comments") && (
+                      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1 text-right">
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>آراء ومقترحات المستفيد:</span>
+                        </span>
+                        <p className="text-xs sm:text-sm text-foreground italic leading-relaxed">
+                          "{parsedSurvey.comments}"
+                        </p>
                       </div>
                     )}
                   </div>
-                </CardContent>
 
-                <CardFooter className="bg-muted/20 p-6 flex justify-center border-t border-border/40">
-                  <Link href={user?.role === "service_requester" ? "/requester" : "/requests"}>
-                    <Button variant="outline" className="gap-2 font-bold">
-                      <ArrowRight className="w-4 h-4" />
-                      العودة للوحة التحكم
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
+                  <div className="pt-4 flex justify-center border-t border-border">
+                    <Link href={user?.role === "service_requester" ? "/requester" : `/requests/${requestId}`}>
+                      <Button variant="outline" className="gap-2 font-bold rounded-xl px-6">
+                        <ArrowRight className="w-4 h-4" />
+                        {user?.role === "service_requester" ? "العودة للوحة التحكم" : "العودة لصفحة الطلب"}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
             ) : (
               /* نموذج تقديم استبيان التقييم الديناميكي المباشر */
               <div className="rounded-2xl border border-slate-200/90 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans">
