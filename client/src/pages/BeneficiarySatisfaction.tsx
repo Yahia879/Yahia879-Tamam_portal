@@ -429,49 +429,49 @@ export default function BeneficiarySatisfaction() {
 
         {/* Modal: Full Survey Details Styled Exactly Like RequestEvaluation */}
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-2xl border border-border" dir="rtl">
+          <DialogContent className="max-w-3xl sm:max-w-4xl w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
             {selectedEval && (
               <div className="font-sans">
                 {/* 1. Header Banner مع الشعار مثل صفحة التقييم */}
                 <div
-                  className="text-white p-5 sm:p-6 flex flex-col items-center justify-center relative shadow-inner"
+                  className="text-white p-6 sm:p-8 flex flex-col items-center justify-center relative shadow-inner"
                   style={{ backgroundColor: evalFormConfig?.headerBgColor || "#14707a" }}
                 >
                   <img 
                     src={mainLogoSrc} 
                     alt="شعار الجمعية" 
-                    className="h-12 sm:h-14 w-auto object-contain brightness-0 invert"
+                    className="h-16 sm:h-20 w-auto object-contain brightness-0 invert"
                   />
-                  <div className="absolute left-4 top-4">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/20 backdrop-blur-md text-white border border-white/30">
-                      <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
-                      <span>{selectedEval.rating} من 5</span>
+                  <div className="absolute left-4 sm:left-6 top-4 sm:top-6">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold bg-white/20 backdrop-blur-md text-white border border-white/30">
+                      <Star className="w-4 h-4 fill-amber-300 text-amber-300" />
+                      <span>{selectedEval.rating} من 5 نجوم</span>
                     </span>
                   </div>
                 </div>
 
                 {/* 2. العنوان والتفاصيل */}
-                <div className="p-5 sm:p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-                  <div className="text-center space-y-1.5">
-                    <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                      {evalFormConfig?.title || "استبيان قياس رضا المستفيدين"}
+                <div className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+                  <div className="text-center space-y-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                      {evalFormConfig?.title || "قياس رضا المستفيدين من خدمات الجمعية"}
                     </h2>
-                    <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mx-auto">
-                      {evalFormConfig?.description || "نتائج استبيان تقييم الخدمة المسجلة من قبل المستفيد"}
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+                      {evalFormConfig?.description || "نرحب بكم في استبيان قياس رضا المستفيدين لجمعية عمارة المساجد (منارة). نسعى من خلال هذا الاستبيان إلى فهم آرائكم واقتراحاتكم، حيث إن مشاركتكم تساعدنا في تحسين وتطوير خدماتنا لتلبية تطلعاتكم بشكل أفضل. نؤكد لكم أن إكمال الاستبيان لن يستغرق أكثر من دقيقتين من وقتكم. شكرًا لكم على وقتكم وتعاونكم"}
                     </p>
-                    <div className="pt-1 flex items-center justify-center gap-2 flex-wrap text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted border border-border font-mono font-bold text-foreground">
-                        <FileText className="w-3 h-3 text-primary" />
+                    <div className="pt-2 flex items-center justify-center gap-2.5 flex-wrap text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-muted border border-border font-mono font-bold text-foreground text-xs">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
                         {selectedEval.requestNumber}
                       </span>
                       <span>•</span>
-                      <span className="inline-flex items-center gap-1 font-medium">
-                        <Building2 className="w-3 h-3 text-primary" />
+                      <span className="inline-flex items-center gap-1.5 font-medium">
+                        <Building2 className="w-3.5 h-3.5 text-primary" />
                         {selectedEval.serviceName}
                       </span>
                       <span>•</span>
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-primary" />
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-primary" />
                         {new Date(selectedEval.evaluatedAt).toLocaleDateString("ar-SA")}
                       </span>
                     </div>
@@ -499,21 +499,21 @@ export default function BeneficiarySatisfaction() {
                       if (value === undefined || value === null || value === "") return null;
 
                       return (
-                        <div key={field.id} className="p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/70 space-y-1.5 text-right">
-                          <span className="text-xs font-bold text-foreground block">
+                        <div key={field.id} className="p-4 sm:p-5 rounded-2xl bg-muted/30 border border-border/70 space-y-2 text-right">
+                          <span className="text-xs sm:text-sm font-bold text-foreground block">
                             {field.label}
                           </span>
 
                           {/* تقييم بالنجوم */}
                           {field.type === "rating" && (
-                            <div className="flex items-center gap-1 py-0.5 justify-end" dir="ltr">
+                            <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
                               {Array.from({ length: field.maxRating || 5 }).map((_, sIdx) => {
                                 const starVal = sIdx + 1;
                                 const active = Number(value) >= starVal;
                                 return (
                                   <Star
                                     key={starVal}
-                                    className={`w-6 h-6 ${
+                                    className={`w-7 h-7 ${
                                       active
                                         ? "text-amber-400 fill-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.5)]"
                                         : "text-muted-foreground/20 fill-none"
@@ -521,7 +521,7 @@ export default function BeneficiarySatisfaction() {
                                   />
                                 );
                               })}
-                              <span className="text-xs font-bold text-amber-700 dark:text-amber-300 mr-2">
+                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 mr-2">
                                 {value} من {field.maxRating || 5}
                               </span>
                             </div>
@@ -529,28 +529,28 @@ export default function BeneficiarySatisfaction() {
 
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
-                            <div className="font-bold text-xs text-foreground bg-card p-2 rounded-lg border border-border/60">
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60">
                               {field.options?.find((o) => o.value === value)?.label || String(value)}
                             </div>
                           )}
 
                           {/* نصوص / هاتف / بريد / رقم */}
                           {["text", "phone", "email", "number"].includes(field.type) && (
-                            <div className="font-bold text-xs text-foreground bg-card p-2 rounded-lg border border-border/60" dir={field.type === "phone" || field.type === "email" ? "ltr" : "rtl"}>
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60" dir={field.type === "phone" || field.type === "email" ? "ltr" : "rtl"}>
                               {String(value)}
                             </div>
                           )}
 
                           {/* نص طويل / ملاحظات */}
                           {field.type === "textarea" && (
-                            <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs italic text-foreground leading-relaxed">
+                            <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-xs sm:text-sm italic text-foreground leading-relaxed">
                               "{String(value)}"
                             </div>
                           )}
 
                           {/* مربع اختيار */}
                           {field.type === "checkbox" && (
-                            <div className="font-bold text-xs text-foreground bg-card p-2 rounded-lg border border-border/60">
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60">
                               {value ? "نعم / أوافق" : "لا"}
                             </div>
                           )}
@@ -560,9 +560,9 @@ export default function BeneficiarySatisfaction() {
 
                     {/* في حال وجود تعليقات إضافية غير مدرجة بالحقول */}
                     {selectedEval.comments && !activeFields.some((f) => f.id === "comments") && (
-                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1 text-right">
-                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5">
-                          <MessageSquare className="w-3.5 h-3.5" />
+                      <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1.5 text-right">
+                        <span className="text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 block flex items-center gap-1.5">
+                          <MessageSquare className="w-4 h-4" />
                           <span>آراء ومقترحات المستفيد:</span>
                         </span>
                         <p className="text-xs sm:text-sm text-foreground italic leading-relaxed">
