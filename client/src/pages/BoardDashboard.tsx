@@ -128,6 +128,13 @@ export default function BoardDashboard() {
     reason: string;
   }>({ open: false, orderNumber: "", reason: "" });
 
+  const [confirmApproveOrder, setConfirmApproveOrder] = useState<{
+    id: number;
+    orderNumber: string;
+    amount?: number;
+    beneficiaryName?: string;
+  } | null>(null);
+
   const utils = trpc.useUtils();
 
   const { data: currentUser } = trpc.auth.me.useQuery();
@@ -540,181 +547,199 @@ export default function BoardDashboard() {
                                     </div>
                                   </TableCell>
 
-                                {/* البيان والمستفيد */}
-                                <TableCell className="py-3.5 px-4 text-right">
-                                  <div className="space-y-0.5">
-                                    <div className="font-bold text-xs text-foreground max-w-[280px] truncate">
-                                      {order.title}
-                                    </div>
-                                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                                      <span className="font-semibold text-slate-600 dark:text-slate-400">المستفيد:</span>
-                                      <span className="font-bold text-foreground">{order.beneficiaryName}</span>
-                                    </div>
-                                    {order.executiveNotes && (
-                                      <div 
-                                        onClick={() => setViewJustificationModal({
-                                          open: true,
-                                          title: "ملاحظات وتوجيهات أمر الصرف",
-                                          subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
-                                          orderNumber: order.orderNumber,
-                                          reason: order.executiveNotes,
-                                        })}
-                                        className="flex items-center gap-1.5 text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-500/15 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-500/30 w-fit mt-1 cursor-pointer hover:bg-amber-500/25 transition-colors"
-                                      >
-                                        <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                                        <span className="truncate max-w-[220px]">{order.executiveNotes}</span>
+                                  {/* البيان والمستفيد */}
+                                  <TableCell className="py-3.5 px-4 text-right">
+                                    <div className="space-y-0.5">
+                                      <div className="font-bold text-xs text-foreground max-w-[280px] truncate flex items-center gap-1.5">
+                                        <span>{order.title}</span>
+                                        {order.executiveNotes && (
+                                          <TooltipProvider>
+                                            <UiTooltip delayDuration={100}>
+                                              <TooltipTrigger asChild>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setViewJustificationModal({
+                                                      open: true,
+                                                      title: "ملاحظات وتوجيهات أمر الصرف",
+                                                      subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
+                                                      orderNumber: order.orderNumber,
+                                                      reason: order.executiveNotes,
+                                                    });
+                                                  }}
+                                                  className="inline-flex items-center justify-center p-1 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors shrink-0 cursor-pointer shadow-2xs"
+                                                  title="يوجد ملاحظات مدونة"
+                                                >
+                                                  <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                                </button>
+                                              </TooltipTrigger>
+                                              <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl border border-slate-700 z-50">
+                                                <span>يوجد ملاحظات مدونة (انقر للعرض)</span>
+                                              </TooltipContent>
+                                            </UiTooltip>
+                                          </TooltipProvider>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                </TableCell>
-
-                                {/* ارتباط الطلب */}
-                                <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
-                                  {!order.isCustom && !!order.requestId ? (
-                                    <div className="inline-flex flex-col items-center gap-0.5">
-                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap shadow-2xs">
-                                        مرتبط بطلب صرف
-                                      </Badge>
-                                      {order.requestNumber && (
-                                        <span className="text-[10px] font-sans text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
-                                      )}
+                                      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                        <span className="font-semibold text-slate-600 dark:text-slate-400">المستفيد:</span>
+                                        <span className="font-bold text-foreground">{order.beneficiaryName}</span>
+                                      </div>
                                     </div>
-                                  ) : (
-                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap shadow-2xs">
-                                      أمر مخصص (غير مرتبط)
-                                    </Badge>
-                                  )}
-                                </TableCell>
+                                  </TableCell>
 
-                                {/* المبلغ */}
-                                <TableCell className="py-3 px-4 text-right whitespace-nowrap">
-                                  <span className="font-sans font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 inline-block">
-                                    {formatCurrency(order.amount)}
-                                  </span>
-                                </TableCell>
-
-                                {/* الحالة */}
-                                <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
-                                  {(() => {
-                                    const statusKey = (order as any).orderStatus || (order as any).status || "approved";
-                                    const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700 border-slate-300" };
-                                    return (
-                                      <Badge variant="outline" className={`font-bold text-[11px] px-2.5 py-1 rounded-lg ${statusInfo.className}`}>
-                                        {statusInfo.label}
+                                  {/* ارتباط الطلب */}
+                                  <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
+                                    {!order.isCustom && !!order.requestId ? (
+                                      <div className="inline-flex flex-col items-center gap-0.5">
+                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap shadow-2xs">
+                                          مرتبط بطلب صرف
+                                        </Badge>
+                                        {order.requestNumber && (
+                                          <span className="text-[10px] font-sans text-slate-500 dark:text-slate-400 font-semibold">{order.requestNumber}</span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800 font-bold text-[10px] px-2 py-0.5 whitespace-nowrap shadow-2xs">
+                                        أمر مخصص (غير مرتبط)
                                       </Badge>
-                                    );
-                                  })()}
-                                </TableCell>
+                                    )}
+                                  </TableCell>
 
-                                {/* قائمة الإجراءات المتناسقة مع المنظومة */}
-                                <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
-                                  <DropdownMenu dir="rtl">
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
-                                        <MoreVertical className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 font-medium text-xs shadow-lg border border-border bg-popover text-popover-foreground space-y-0.5">
-                                      {/* خيارات عرض التفاصيل للمخولين */}
-                                      {canPerformActions && (
-                                        <>
-                                          <DropdownMenuItem
-                                            onClick={() => setLocation(`/disbursement-orders/${order.orderId || order.id}/print`)}
-                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
-                                          >
-                                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                            <span>عرض أمر الصرف المعتمد</span>
-                                          </DropdownMenuItem>
+                                  {/* المبلغ */}
+                                  <TableCell className="py-3 px-4 text-right whitespace-nowrap">
+                                    <span className="font-sans font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700/80 inline-block">
+                                      {formatCurrency(order.amount)}
+                                    </span>
+                                  </TableCell>
 
-                                          {!order.isCustom && !!order.requestId && (
+                                  {/* الحالة */}
+                                  <TableCell className="py-3.5 px-4 text-right whitespace-nowrap">
+                                    {(() => {
+                                      const statusKey = (order as any).orderStatus || (order as any).status || "approved";
+                                      const statusInfo = STATUS_BADGES[statusKey] || { label: statusKey, className: "bg-slate-100 text-slate-700 border-slate-300" };
+                                      return (
+                                        <Badge variant="outline" className={`font-bold text-[11px] px-2.5 py-1 rounded-lg ${statusInfo.className}`}>
+                                          {statusInfo.label}
+                                        </Badge>
+                                      );
+                                    })()}
+                                  </TableCell>
+
+                                  {/* قائمة الإجراءات المتناسقة مع المنظومة */}
+                                  <TableCell className="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <DropdownMenu dir="rtl">
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
+                                          <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-56 rounded-xl p-1.5 font-medium text-xs shadow-lg border border-border bg-popover text-popover-foreground space-y-0.5">
+                                        {/* خيارات عرض التفاصيل للمخولين */}
+                                        {canPerformActions && (
+                                          <>
                                             <DropdownMenuItem
-                                              onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
+                                              onClick={() => setLocation(`/disbursement-orders/${order.orderId || order.id}/print`)}
                                               className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
                                             >
-                                              <FileText className="w-4 h-4 text-primary shrink-0" />
-                                              <span>عرض تقرير طلب الصرف المعتمد</span>
+                                              <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                              <span>عرض أمر الصرف المعتمد</span>
                                             </DropdownMenuItem>
-                                          )}
-                                        </>
-                                      )}
 
-                                      {/* خيار إضافة الملاحظات يظهر فقط إذا لم تكن هناك ملاحظات سابقة وقبل الاعتماد أو الرفض */}
-                                      {canPerformActions && isNeedsApproval && !order.executiveNotes && (
-                                        <DropdownMenuItem
-                                          onClick={() => setNotesModal({
-                                            open: true,
-                                            orderId: order.orderId || order.id,
-                                            orderNumber: order.orderNumber,
-                                            notes: "",
-                                          })}
-                                          className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
-                                        >
-                                          <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                          <span>إضافة ملاحظات</span>
-                                        </DropdownMenuItem>
-                                      )}
+                                            {!order.isCustom && !!order.requestId && (
+                                              <DropdownMenuItem
+                                                onClick={() => setLocation(`/disbursements/requests/${order.requestId}/print`)}
+                                                className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-semibold hover:bg-muted focus:bg-muted text-foreground transition-colors"
+                                              >
+                                                <FileText className="w-4 h-4 text-primary shrink-0" />
+                                                <span>عرض تقرير طلب الصرف المعتمد</span>
+                                              </DropdownMenuItem>
+                                            )}
+                                          </>
+                                        )}
 
-                                      {/* خيار عرض الملاحظات فقط (بدون إمكانية التعديل) */}
-                                      {order.executiveNotes && (
-                                        <DropdownMenuItem
-                                          onClick={() => setViewJustificationModal({
-                                            open: true,
-                                            title: "ملاحظات وتوجيهات أمر الصرف",
-                                            subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
-                                            orderNumber: order.orderNumber,
-                                            reason: order.executiveNotes,
-                                          })}
-                                          className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
-                                        >
-                                          <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                          <span>عرض الملاحظات</span>
-                                        </DropdownMenuItem>
-                                      )}
-
-                                      {/* خيار 'عرض مبررات الرفض' عند وجود سبب رفض */}
-                                      {(order.rejectionReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
-                                        <DropdownMenuItem
-                                          onClick={() => setViewJustificationModal({
-                                            open: true,
-                                            title: "مبررات عدم اعتماد التحويل وسبب الرفض",
-                                            subtitle: `تفاصيل سبب الرفض المدون لأمر الصرف رقم (${order.orderNumber})`,
-                                            orderNumber: order.orderNumber,
-                                            reason: order.rejectionReason || "لا يوجد سبب رفض مدون",
-                                          })}
-                                          className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
-                                        >
-                                          <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                          <span>عرض مبررات الرفض</span>
-                                        </DropdownMenuItem>
-                                      )}
-
-                                      {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
-                                      {canPerformActions && isNeedsApproval && (
-                                        <>
-                                          <DropdownMenuSeparator className="my-1 border-border/60" />
-
+                                        {/* خيار إضافة الملاحظات يظهر فقط إذا لم تكن هناك ملاحظات سابقة وقبل الاعتماد أو الرفض */}
+                                        {canPerformActions && isNeedsApproval && !order.executiveNotes && (
                                           <DropdownMenuItem
-                                            onClick={() => handleDirectApprove(order.id)}
-                                            disabled={approvingId === order.id}
-                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
+                                            onClick={() => setNotesModal({
+                                              open: true,
+                                              orderId: order.orderId || order.id,
+                                              orderNumber: order.orderNumber,
+                                              notes: "",
+                                            })}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                           >
-                                            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <span>الاعتماد من صاحب الصلاحية</span>
+                                            <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                            <span>إضافة ملاحظات</span>
                                           </DropdownMenuItem>
+                                        )}
 
+                                        {/* خيار عرض الملاحظات فقط (بدون إمكانية التعديل) */}
+                                        {order.executiveNotes && (
                                           <DropdownMenuItem
-                                            onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                            onClick={() => setViewJustificationModal({
+                                              open: true,
+                                              title: "ملاحظات وتوجيهات أمر الصرف",
+                                              subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
+                                              orderNumber: order.orderNumber,
+                                              reason: order.executiveNotes,
+                                            })}
+                                            className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
+                                          >
+                                            <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                            <span>عرض الملاحظات</span>
+                                          </DropdownMenuItem>
+                                        )}
+
+                                        {/* خيار 'عرض مبررات الرفض' عند وجود سبب رفض */}
+                                        {(order.rejectionReason || (order as any).orderStatus === "rejected" || (order as any).status === "rejected") && (
+                                          <DropdownMenuItem
+                                            onClick={() => setViewJustificationModal({
+                                              open: true,
+                                              title: "مبررات عدم اعتماد التحويل وسبب الرفض",
+                                              subtitle: `تفاصيل سبب الرفض المدون لأمر الصرف رقم (${order.orderNumber})`,
+                                              orderNumber: order.orderNumber,
+                                              reason: order.rejectionReason || "لا يوجد سبب رفض مدون",
+                                            })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
                                           >
-                                            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                                            <span>رفض الطلب</span>
+                                            <Info className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                            <span>عرض مبررات الرفض</span>
                                           </DropdownMenuItem>
-                                        </>
-                                      )}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
+                                        )}
+
+                                        {/* خيارات الاعتماد والرفض المباشر للمخولين فقط (تختفي عندما يكون الطلب معتمداً بالفعل) */}
+                                        {canPerformActions && isNeedsApproval && (
+                                          <>
+                                            <DropdownMenuSeparator className="my-1 border-border/60" />
+
+                                            <DropdownMenuItem
+                                              onClick={() => setConfirmApproveOrder({
+                                                id: order.id,
+                                                orderNumber: order.orderNumber,
+                                                amount: order.amount,
+                                                beneficiaryName: order.beneficiaryName,
+                                              })}
+                                              disabled={approvingId === order.id}
+                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 transition-colors"
+                                            >
+                                              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                              <span>الاعتماد من صاحب الصلاحية</span>
+                                            </DropdownMenuItem>
+
+                                            <DropdownMenuItem
+                                              onClick={() => setRejectingOrder({ id: order.id, orderNumber: order.orderNumber })}
+                                              className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 focus:bg-rose-50 dark:focus:bg-rose-950/30 transition-colors"
+                                            >
+                                              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                                              <span>رفض الطلب</span>
+                                            </DropdownMenuItem>
+                                          </>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
                               );
                             })}
                           </TableBody>
@@ -1744,6 +1769,64 @@ export default function BoardDashboard() {
               <Button
                 variant="outline"
                 onClick={() => setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" })}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== ⚡ نافذة تأكيد الاعتماد من صاحب الصلاحية ==================== */}
+        <Dialog open={!!confirmApproveOrder} onOpenChange={(open) => !open && setConfirmApproveOrder(null)}>
+          <DialogContent dir="rtl" className="sm:max-w-[460px] rounded-3xl p-6 sm:p-7 text-right">
+            <DialogHeader className="text-right sm:text-right border-b pb-4">
+              <DialogTitle className="text-emerald-800 dark:text-emerald-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>تأكيد اعتماد الطلب</span>
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-1 text-right sm:text-right font-medium">
+                اعتماد أمر الصرف رقم ({confirmApproveOrder?.orderNumber})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-3 text-right">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                هل أنت متأكد من اعتماد الطلب؟
+              </p>
+
+              {confirmApproveOrder && (
+                <div className="p-3.5 bg-slate-50/90 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">المستفيد:</span>
+                    <span className="font-bold text-foreground truncate max-w-[220px]">{confirmApproveOrder.beneficiaryName}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">المبلغ:</span>
+                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono">{formatCurrency(confirmApproveOrder.amount || 0)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 flex-row-reverse justify-start">
+              <Button
+                onClick={() => {
+                  if (confirmApproveOrder) {
+                    const id = confirmApproveOrder.id;
+                    setConfirmApproveOrder(null);
+                    handleDirectApprove(id);
+                  }
+                }}
+                disabled={approvingId !== null}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+              >
+                {approvingId !== null ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+                <span>تأكيد الاعتماد</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setConfirmApproveOrder(null)}
                 className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5"
               >
                 إلغاء
