@@ -1474,8 +1474,19 @@ export default function Register() {
             {/* ---------- 4. مسار المتبرع المالي (الحسابات البنكية والمتجر) ---------- */}
             {selectedRole === "donor" && donorType === "financial" && (
               <div className="space-y-6">
-                {/* بطاقة الحساب البنكي الرسمي مع الـ QR */}
-                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-7 shadow-sm space-y-6">
+                {/* رسالة توضيحية تمهيدية */}
+                <div className="p-4 sm:p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-slate-900 text-right space-y-1.5 shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold">
+                    <HeartHandshake className="w-4 h-4" />
+                    <span>خيارات التبرع المالي لدعم المساجد</span>
+                  </div>
+                  <p className="font-semibold text-sm sm:text-base leading-relaxed text-slate-800">
+                    نشكر لكم رغبتكم الكريمة في دعم بيوت الله وعمارتها. يمكنكم التبرع من خلال التحويل المباشر إلى الحساب البنكي الرسمي المعتمد أو عبر متجر التبرعات الإلكتروني.
+                  </p>
+                </div>
+
+                {/* الخيار الأول: الحساب البنكي الرسمي مع الـ QR */}
+                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-7 shadow-sm space-y-5">
                   {/* ترويسة الحساب البنكي */}
                   <div className="flex items-center justify-between border-b pb-4">
                     <div className="flex items-center gap-3">
@@ -1483,8 +1494,8 @@ export default function Register() {
                         <CreditCard className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-slate-900 text-base">مصرف الراجحي</h4>
-                        <p className="text-xs text-slate-500">الحساب البنكي الرسمي المعتمد</p>
+                        <h4 className="font-bold text-slate-900 text-base">الخيار الأول: التحويل البنكي (مصرف الراجحي)</h4>
+                        <p className="text-xs text-slate-500">الحساب البنكي الرسمي المعتمد للتبرعات</p>
                       </div>
                     </div>
 
@@ -1577,8 +1588,18 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* زر الانتقال لموقع التبرعات الإلكتروني */}
-                <div className="text-center space-y-3">
+                {/* الخيار الثاني: التبرع عبر المتجر الإلكتروني */}
+                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                  <div className="flex items-center gap-3 border-b pb-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold border border-teal-200/80">
+                      <ExternalLink className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-base">الخيار الثاني: متجر التبرعات الإلكتروني</h4>
+                      <p className="text-xs text-slate-500">اختر فرص التبرع والمشاريع المتاحة وادفع إلكترونياً (مدى، فيزا، Apple Pay)</p>
+                    </div>
+                  </div>
+
                   <a
                     href={donationUrl}
                     target="_blank"
@@ -1588,6 +1609,33 @@ export default function Register() {
                   >
                     <span>الانتقال إلى متجر منارة للتبرع الإلكتروني</span>
                     <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+
+                {/* تنبيه إرسال إيصال التبرع في نهاية الصفحة */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/90 border-2 border-amber-300/80 text-amber-950 flex flex-col sm:flex-row items-center justify-between gap-3.5 shadow-xs text-right">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm sm:text-base text-amber-950">
+                        مع إرسال إيصال التبرع على الجوال رقم <span className="font-mono font-extrabold text-amber-900" dir="ltr">0535922238</span>
+                      </p>
+                      <p className="text-xs text-amber-800/90 mt-0.5">
+                        يرجى تزويدنا بصورة الإيصال عبر الواتساب لتأكيد الاستلام وإصدار السند الرسمي
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://wa.me/966535922238"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                  >
+                    <span>إرسال الإيصال عبر واتساب</span>
+                    <ArrowRight className="w-4 h-4 rotate-180" />
                   </a>
                 </div>
               </div>
