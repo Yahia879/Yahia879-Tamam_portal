@@ -296,7 +296,7 @@ export default function Register() {
 
     // 2. مسار المتبرع بأرض
     if (selectedRole === "donor" && donorType === "land") {
-      if (!trimmedName || !formData.phone.trim() || !formData.city || !formData.email.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
+      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
         toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع بالأرض");
         return;
       }
@@ -317,7 +317,6 @@ export default function Register() {
           name: trimmedName,
           phone: formData.phone.trim(),
           email: formData.email.trim(),
-          city: formData.city,
           details: combinedDetails,
           landArea: formData.landArea,
           landLocation: formData.landLocation,
@@ -360,7 +359,6 @@ export default function Register() {
           name: trimmedName,
           phone: formData.phone.trim(),
           email: formData.email.trim() || undefined,
-          city: formData.city || undefined,
           details: combinedDetails || formData.inKindDetails.trim() || "طلب تبرع عيني",
           inKindDeliveryAvailable: formData.inKindDeliveryAvailable,
           attachmentUrl,
@@ -388,7 +386,6 @@ export default function Register() {
           name: trimmedName,
           phone: formData.phone.trim(),
           email: formData.email.trim() || undefined,
-          city: formData.city || undefined,
           financialAmount: formData.financialAmount ? parseFloat(formData.financialAmount) : undefined,
           financialBankName: formData.financialBankName || undefined,
           details: "إشعار تحويل بنكي / رغبة في التبرع المالي",
@@ -411,14 +408,19 @@ export default function Register() {
 
       setIsSubmitting(true);
       try {
+        const combinedDetails = [
+          formData.customRoleTitle ? `الصفة / العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
+          `تفاصيل التبرع والمقترح: ${formData.donorOtherDetails.trim()}`,
+        ].filter(Boolean).join("\n");
+
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_other",
           category: "donor",
           name: trimmedName,
           phone: formData.phone.trim(),
           email: formData.email.trim() || undefined,
-          city: formData.city || undefined,
-          details: formData.donorOtherDetails.trim(),
+          customRoleTitle: formData.customRoleTitle.trim() || undefined,
+          details: combinedDetails,
         });
       } catch (err: any) {
         toast.error(err.message || "حدث خطأ أثناء إرسال البيانات");
@@ -1074,30 +1076,8 @@ export default function Register() {
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>المدينة / المنطقة</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Select value={formData.city} onValueChange={(value) => handleChange("city", value)} required>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
-                          <SelectValue placeholder="اختر المدينة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dynamicCities.map((city: any) => (
-                            <SelectItem key={city.name} value={city.nameAr || city.name}>
-                              {city.nameAr || city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>البريد الإلكتروني</span>
@@ -1279,29 +1259,8 @@ export default function Register() {
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>المدينة / الموقع</span>
-                      </Label>
-                      <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
-                          <SelectValue placeholder="اختر المدينة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dynamicCities.map((city: any) => (
-                            <SelectItem key={city.name} value={city.nameAr || city.name}>
-                              {city.nameAr || city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>البريد الإلكتروني (اختياري)</span>
@@ -1688,16 +1647,46 @@ export default function Register() {
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="donor-email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>البريد الإلكتروني (اختياري)</span>
+                      </Label>
+                      <Input
+                        id="donor-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={formData.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* القسم الثاني: تفاصيل التبرع */}
+                {/* القسم الثاني: تفاصيل الصفة والتبرع */}
                 <div className="space-y-4 pt-1">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
                     <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <Sparkles className="w-4 h-4" />
                     </div>
-                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع والمقترح</h3>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والتبرع</h3>
+                  </div>
+
+                  {/* الصفة أو علاقة المستخدم بالمسجد */}
+                  <div className="space-y-2">
+                    <Label htmlFor="donorRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>الصفة أو علاقة المستخدم بالمسجد</span>
+                    </Label>
+                    <Input
+                      id="donorRoleTitle"
+                      placeholder="مثال: فاعل خير، رجل أعمال، ممثل جهة أو شركة، جار المسجد..."
+                      value={formData.customRoleTitle}
+                      onChange={(e) => handleChange("customRoleTitle", e.target.value)}
+                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -1785,29 +1774,8 @@ export default function Register() {
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        <span>المدينة</span>
-                      </Label>
-                      <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
-                          <SelectValue placeholder="اختر المدينة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {dynamicCities.map((city: any) => (
-                            <SelectItem key={city.name} value={city.nameAr || city.name}>
-                              {city.nameAr || city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>البريد الإلكتروني (اختياري)</span>
@@ -1837,7 +1805,7 @@ export default function Register() {
                   {/* حدد الصفة */}
                   <div className="space-y-2">
                     <Label htmlFor="customRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>حدد صفتك أو علاقتك بالمسجد</span>
+                      <span>الصفة أو علاقة المستخدم بالمسجد</span>
                       <span className="text-destructive">*</span>
                     </Label>
                     <Input
