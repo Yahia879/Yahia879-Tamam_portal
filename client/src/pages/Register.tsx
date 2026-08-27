@@ -778,23 +778,8 @@ export default function Register() {
             {/* ---------- 1. مسار الإمام / المؤذن (حساب مستخدم رسمي) ---------- */}
             {(selectedRole === "imam" || selectedRole === "muezzin") && (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* تنبيه مسار الإمام / المؤذن */}
-                <div className="p-4 bg-gradient-to-r from-teal-50/90 to-emerald-50/60 border border-teal-200/80 rounded-2xl text-teal-950 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
-                  <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                    <Info className="w-4 h-4" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-bold text-teal-950 text-sm">
-                      مسار {selectedRole === "imam" ? "الإمام" : "المؤذن"} (تسجيل حساب رسمي)
-                    </p>
-                    <p className="text-teal-800 leading-relaxed text-xs sm:text-sm">
-                      هذا المسار مخصص للأئمة والمؤذنين الرسميين لإنشاء حساب دائم لدى الجمعية ليتمكنوا مستقبلاً من تسجيل الدخول وتقديم ومتابعة طلبات مساجدهم.
-                    </p>
-                  </div>
-                </div>
-
                 {/* القسم الأول: البيانات الأساسية */}
-                <div className="space-y-4 pt-1">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
                     <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
                       <User className="w-4 h-4" />
