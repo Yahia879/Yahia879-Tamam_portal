@@ -27,7 +27,13 @@ import {
   CreditCard, 
   Sparkles,
   Info,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  Lock,
+  ShieldCheck,
+  Phone,
+  Mail,
+  MapPin
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -771,22 +777,36 @@ export default function Register() {
 
             {/* ---------- 1. مسار الإمام / المؤذن (حساب مستخدم رسمي) ---------- */}
             {(selectedRole === "imam" || selectedRole === "muezzin") && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="p-3.5 bg-teal-50 border border-teal-200 rounded-xl text-teal-900 text-xs sm:text-sm flex items-start gap-2.5">
-                  <Info className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    هذا المسار مخصص للأئمة والمؤذنين الرسميين لإنشاء حساب دائم لدى الجمعية ليتمكنوا مستقبلاً من تسجيل الدخول وتقديم ومتابعة طلبات مساجدهم.
-                  </p>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* تنبيه مسار الإمام / المؤذن */}
+                <div className="p-4 bg-gradient-to-r from-teal-50/90 to-emerald-50/60 border border-teal-200/80 rounded-2xl text-teal-950 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-teal-950 text-sm">
+                      مسار {selectedRole === "imam" ? "الإمام" : "المؤذن"} (تسجيل حساب رسمي)
+                    </p>
+                    <p className="text-teal-800 leading-relaxed text-xs sm:text-sm">
+                      هذا المسار مخصص للأئمة والمؤذنين الرسميين لإنشاء حساب دائم لدى الجمعية ليتمكنوا مستقبلاً من تسجيل الدخول وتقديم ومتابعة طلبات مساجدهم.
+                    </p>
+                  </div>
                 </div>
 
-                {/* البيانات الأساسية */}
-                <div className="space-y-4">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">البيانات الأساسية</h3>
+                {/* القسم الأول: البيانات الأساسية */}
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">البيانات الأساسية</h3>
+                  </div>
 
                   {/* الاسم الكامل */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-xs sm:text-sm font-semibold">
-                      الاسم الكامل <span className="text-destructive">*</span>
+                    <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                      <span>الاسم الكامل</span>
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="name"
@@ -794,15 +814,17 @@ export default function Register() {
                       value={formData.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       required
-                      className="h-10 sm:h-11 text-right"
+                      className="h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
                     />
                   </div>
 
                   {/* الجوال ورقم الهوية */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold">
-                        رقم الجوال <span className="text-destructive">*</span>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>رقم الجوال</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -812,14 +834,14 @@ export default function Register() {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
-                      <p className="text-[11px] text-gray-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
+                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="nationalId" className="text-xs sm:text-sm font-semibold">
+                      <Label htmlFor="nationalId" className="text-xs sm:text-sm font-semibold text-slate-700">
                         رقم الهوية الوطنية
                       </Label>
                       <Input
@@ -828,7 +850,7 @@ export default function Register() {
                         value={formData.nationalId}
                         onChange={(e) => handleChange("nationalId", e.target.value)}
                         maxLength={10}
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
@@ -837,8 +859,10 @@ export default function Register() {
                   {/* البريد الإلكتروني والمدينة */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold">
-                        البريد الإلكتروني <span className="text-destructive">*</span>
+                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>البريد الإلكتروني</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="email"
@@ -847,15 +871,18 @@ export default function Register() {
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
                         required
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold">المدينة</Label>
+                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span>المدينة</span>
+                      </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-10 sm:h-11">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -870,13 +897,18 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* إثبات الصفة الرسمية */}
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="proofFile" className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-teal-600" />
-                    إرفاق ما يثبت الصفة الرسمية (تكليف وزارة الشؤون الإسلامية) <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="border-2 border-dashed border-slate-300 hover:border-teal-500 rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-colors bg-slate-50/50">
+                {/* القسم الثاني: إثبات الصفة الرسمية */}
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                      إثبات الصفة الرسمية (تكليف وزارة الشؤون الإسلامية) <span className="text-destructive">*</span>
+                    </h3>
+                  </div>
+
+                  <div className="border-2 border-dashed border-slate-200 hover:border-teal-500 rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-teal-50/20">
                     <input
                       id="proofFile"
                       type="file"
@@ -886,30 +918,44 @@ export default function Register() {
                     />
                     <label htmlFor="proofFile" className="cursor-pointer block">
                       {formData.proofFile ? (
-                        <div className="text-emerald-700 font-semibold flex items-center justify-center gap-2 text-sm">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                          <span className="truncate max-w-xs">{formData.proofFile.name}</span>
-                          <span className="text-xs text-gray-500">({(formData.proofFile.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        <div className="text-emerald-700 font-semibold flex items-center justify-center gap-2.5 text-sm">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          <span className="truncate max-w-xs font-bold">{formData.proofFile.name}</span>
+                          <span className="text-xs text-slate-500 font-normal">({(formData.proofFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                         </div>
                       ) : (
-                        <div className="space-y-1 text-slate-600">
-                          <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
-                          <p className="text-xs sm:text-sm font-semibold">اضغط لرفع وثيقة التكليف أو اسحبها هنا</p>
-                          <p className="text-[11px] text-slate-400">PDF، صورة واضحة، أو مستند (الحد الأقصى 15MB)</p>
+                        <div className="space-y-2 text-slate-600">
+                          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto shadow-xs">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="text-xs sm:text-sm font-bold text-slate-800">
+                              اضغط لرفع وثيقة التكليف أو اسحبها هنا
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              PDF، صورة واضحة، أو مستند (الحد الأقصى 15MB)
+                            </p>
+                          </div>
                         </div>
                       )}
                     </label>
                   </div>
                 </div>
 
-                {/* كلمة المرور */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">كلمة المرور لتسجيل الدخول</h3>
+                {/* القسم الثالث: كلمة المرور */}
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">كلمة المرور لتسجيل الدخول</h3>
+                  </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="password" title="8 أحرف على الأقل" className="text-xs sm:text-sm font-semibold">
-                        كلمة المرور <span className="text-destructive">*</span>
+                      <Label htmlFor="password" title="8 أحرف على الأقل" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>كلمة المرور</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <div className="relative">
                         <Input
@@ -920,12 +966,12 @@ export default function Register() {
                           onChange={(e) => handleChange("password", e.target.value)}
                           required
                           minLength={8}
-                          className="pl-10 h-10 sm:h-11 text-right"
+                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors p-1"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -933,8 +979,9 @@ export default function Register() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="confirmPassword" title="أعد إدخال كلمة المرور" className="text-xs sm:text-sm font-semibold">
-                        تأكيد كلمة المرور <span className="text-destructive">*</span>
+                      <Label htmlFor="confirmPassword" title="أعد إدخال كلمة المرور" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>تأكيد كلمة المرور</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <div className="relative">
                         <Input
@@ -944,12 +991,12 @@ export default function Register() {
                           value={formData.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
                           required
-                          className="pl-10 h-10 sm:h-11 text-right"
+                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 cursor-pointer"
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer transition-colors p-1"
                         >
                           {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -961,17 +1008,20 @@ export default function Register() {
                 {/* زر الإرسال */}
                 <Button
                   type="submit"
-                  className="w-full text-white font-bold h-11 sm:h-12 rounded-xl shadow-md cursor-pointer transition-all mt-4"
-                  style={{ backgroundColor: primaryColor }}
+                  className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   disabled={isSubmitting || registerImamMuezzinMutation.isPending}
                 >
                   {isSubmitting || registerImamMuezzinMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جاري إنشاء الحساب...
                     </>
                   ) : (
-                    "إنشاء الحساب ومتابعة الطلبات"
+                    <>
+                      <UserCheck className="w-5 h-5" />
+                      إنشاء الحساب ومتابعة الطلبات
+                    </>
                   )}
                 </Button>
               </form>
