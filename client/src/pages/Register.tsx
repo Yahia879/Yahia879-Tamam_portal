@@ -582,9 +582,9 @@ export default function Register() {
                     setSelectedRole("");
                   }
                 }}
-                className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-teal-300 bg-white hover:bg-teal-50 hover:border-teal-500 text-teal-900 text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
+                className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
               >
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-700 group-hover:-translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
                 <span>تغيير الصفة</span>
               </Button>
             </div>
@@ -597,8 +597,8 @@ export default function Register() {
             {!selectedRole && (
               <div className="space-y-6">
                 <div className="text-center space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                     الخطوة 1: تحديد الصفة والعلاقة بالمسجد
                   </div>
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900">
@@ -614,13 +614,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("imam")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <UserCheck className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-teal-900 text-base">إمام</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">إمام</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         إمام مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
@@ -631,13 +631,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("muezzin")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Volume2 className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-teal-900 text-base">مؤذن</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">مؤذن</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         مؤذن مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
@@ -648,13 +648,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("donor")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <HeartHandshake className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">متبرع</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         الرغبة في تقديم تبرع (أرض، تبرع عيني، تبرع مالي، أو غير ذلك)
                       </p>
@@ -665,13 +665,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <HelpCircle className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-indigo-900 text-base">أخرى</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">أخرى</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         جار المسجد، أحد جماعة المسجد، ممثل جهة، أو صاحب استفسار عام
                       </p>
@@ -681,15 +681,13 @@ export default function Register() {
               </div>
             )}
 
-
-
             {/* ============================================================
                 المرحلة 2: مسار المتبرع (تحديد نوع التبرع)
                ============================================================ */}
             {selectedRole === "donor" && !donorType && (
               <div className="space-y-6">
                 <div className="text-center space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
                     <HeartHandshake className="w-3.5 h-3.5" />
                     مسار المتبرع
                   </div>
@@ -706,13 +704,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("land")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <LandPlot className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">متبرع بأرض</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بأرض</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         تبرع بقطعة أرض لبناء أو توسعة مسجد
                       </p>
@@ -723,13 +721,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("in_kind")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Package className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">متبرع بتبرع عيني</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بتبرع عيني</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         مواد بناء، تجهيزات، مكيفات، فرش، أنظمة صوت أو مياه
                       </p>
@@ -740,13 +738,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("financial")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">متبرع بتبرع مالي</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بتبرع مالي</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         تحويل بنكي لحساب الجمعية أو عبر المتجر الإلكتروني
                       </p>
@@ -757,13 +755,13 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">أخرى</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">أخرى</h3>
                       <p className="text-xs text-gray-500 leading-relaxed">
                         شراكة مجتمعية، وقفية، أو نوع تبرع مخصص
                       </p>
@@ -783,7 +781,7 @@ export default function Register() {
                 {/* القسم الأول: البيانات الأساسية */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
-                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <User className="w-4 h-4" />
                     </div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">البيانات الأساسية</h3>
@@ -801,7 +799,7 @@ export default function Register() {
                       value={formData.name}
                       onChange={(e) => handleChange("name", e.target.value)}
                       required
-                      className="h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
+                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                     />
                   </div>
 
@@ -821,7 +819,7 @@ export default function Register() {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
@@ -837,7 +835,7 @@ export default function Register() {
                         value={formData.nationalId}
                         onChange={(e) => handleChange("nationalId", e.target.value)}
                         maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
@@ -858,7 +856,7 @@ export default function Register() {
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
                         required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
                     </div>
@@ -869,7 +867,7 @@ export default function Register() {
                         <span>المدينة</span>
                       </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -887,7 +885,7 @@ export default function Register() {
                 {/* القسم الثاني: إثبات الصفة الرسمية */}
                 <div className="space-y-3 pt-1">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
-                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">
@@ -895,7 +893,7 @@ export default function Register() {
                     </h3>
                   </div>
 
-                  <div className="border-2 border-dashed border-slate-200 hover:border-teal-500 rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-teal-50/20">
+                  <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-2xl p-5 sm:p-6 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
                     <input
                       id="proofFile"
                       type="file"
@@ -905,14 +903,14 @@ export default function Register() {
                     />
                     <label htmlFor="proofFile" className="cursor-pointer block">
                       {formData.proofFile ? (
-                        <div className="text-emerald-700 font-semibold flex items-center justify-center gap-2.5 text-sm">
-                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <div className="text-primary font-semibold flex items-center justify-center gap-2.5 text-sm">
+                          <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                           <span className="truncate max-w-xs font-bold">{formData.proofFile.name}</span>
                           <span className="text-xs text-slate-500 font-normal">({(formData.proofFile.size / 1024 / 1024).toFixed(2)} MB)</span>
                         </div>
                       ) : (
                         <div className="space-y-2 text-slate-600">
-                          <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto shadow-xs">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-xs">
                             <Upload className="w-6 h-6" />
                           </div>
                           <div>
@@ -932,7 +930,7 @@ export default function Register() {
                 {/* القسم الثالث: كلمة المرور */}
                 <div className="space-y-4 pt-1">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
-                    <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-xs border border-teal-100/80">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <Lock className="w-4 h-4" />
                     </div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">كلمة المرور لتسجيل الدخول</h3>
@@ -953,7 +951,7 @@ export default function Register() {
                           onChange={(e) => handleChange("password", e.target.value)}
                           required
                           minLength={8}
-                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
+                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
@@ -978,7 +976,7 @@ export default function Register() {
                           value={formData.confirmPassword}
                           onChange={(e) => handleChange("confirmPassword", e.target.value)}
                           required
-                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-teal-600 focus:ring-teal-600/20 bg-slate-50/40 focus:bg-white transition-all"
+                          className="pl-10 h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                         />
                         <button
                           type="button"
