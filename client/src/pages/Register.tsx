@@ -112,6 +112,10 @@ export default function Register() {
     landProofFile: null as File | null,
 
     // مسار المتبرع العيني
+    inKindItemType: "",
+    inKindQuantity: "",
+    inKindCondition: "",
+    inKindLocation: "",
     inKindDetails: "",
     inKindDeliveryAvailable: false,
     inKindFile: null as File | null,
@@ -327,8 +331,8 @@ export default function Register() {
 
     // 3. مسار المتبرع بتبرع عيني
     if (selectedRole === "donor" && donorType === "in_kind") {
-      if (!formData.inKindDetails.trim()) {
-        toast.error("يرجى ذكر تفاصيل التبرع العيني والكميات المتاحة");
+      if (!formData.inKindItemType.trim() && !formData.inKindDetails.trim()) {
+        toast.error("يرجى تحديد نوع التبرع العيني والكميات المتاحة");
         return;
       }
 
@@ -339,6 +343,15 @@ export default function Register() {
           attachmentUrl = await uploadFile(formData.inKindFile);
         }
 
+        const combinedDetails = [
+          formData.inKindItemType ? `نوع التبرع العيني: ${formData.inKindItemType}` : "",
+          formData.inKindQuantity ? `الكميات المتاحة: ${formData.inKindQuantity}` : "",
+          formData.inKindCondition ? `حالة المواد: ${formData.inKindCondition}` : "",
+          formData.inKindLocation ? `موقع المواد / الاستلام: ${formData.inKindLocation}` : "",
+          `إمكانية النقل والتسليم: ${formData.inKindDeliveryAvailable ? "نقل وتوصيل متاح من قبل المتبرع" : "يتطلب استلام من الموقع"}`,
+          formData.inKindDetails ? `معلومات وملاحظات إضافية: ${formData.inKindDetails}` : "",
+        ].filter(Boolean).join("\n");
+
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_inkind",
           category: "donor",
@@ -346,7 +359,7 @@ export default function Register() {
           phone: formData.phone.trim(),
           email: formData.email.trim() || undefined,
           city: formData.city || undefined,
-          details: formData.inKindDetails.trim(),
+          details: combinedDetails || formData.inKindDetails.trim() || "طلب تبرع عيني",
           inKindDeliveryAvailable: formData.inKindDeliveryAvailable,
           attachmentUrl,
         });
@@ -1313,26 +1326,77 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>تفاصيل التبرع العيني</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                      يرجى توضيح نوع التبرع العيني، الكميات المتاحة، حالتها، موقعها، وإمكانية نقلها أو تسليمها.
-                    </p>
-                    <Textarea
-                      id="inKindDetails"
-                      rows={5}
-                      placeholder="يرجى توضيح نوع التبرع العيني، الكميات المتاحة، حالتها (جديدة أو مستعملة)، موقعها، وإمكانية نقلها أو تسليمها..."
-                      value={formData.inKindDetails}
-                      onChange={(e) => handleChange("inKindDetails", e.target.value)}
-                      required
-                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
-                    />
+                  {/* نوع التبرع والكميات */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKindItemType" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>نوع التبرع العيني</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="inKindItemType"
+                        placeholder="مثال: مكيفات، سجاد، إنارة، مواد بناء..."
+                        value={formData.inKindItemType}
+                        onChange={(e) => handleChange("inKindItemType", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKindQuantity" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الكميات المتاحة</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="inKindQuantity"
+                        placeholder="مثال: 5 أجهزة، 200 م²..."
+                        value={formData.inKindQuantity}
+                        onChange={(e) => handleChange("inKindQuantity", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-1">
+                  {/* حالة المواد والموقع */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKindCondition" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>حالة المواد</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Select value={formData.inKindCondition} onValueChange={(value) => handleChange("inKindCondition", value)} required>
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
+                          <SelectValue placeholder="اختر حالة المواد" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="جديدة بالكامل (غير مستعملة)">جديدة بالكامل (غير مستعملة)</SelectItem>
+                          <SelectItem value="مستعملة بحالة ممتازة (كالجديدة)">مستعملة بحالة ممتازة (كالجديدة)</SelectItem>
+                          <SelectItem value="مستعملة بحالة جيدة وصالحة">مستعملة بحالة جيدة وصالحة</SelectItem>
+                          <SelectItem value="أخرى / متنوعة">أخرى / متنوعة</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKindLocation" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>موقع المواد / الاستلام</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="inKindLocation"
+                        placeholder="مثال: مستودع في حي الروابي، أبها..."
+                        value={formData.inKindLocation}
+                        onChange={(e) => handleChange("inKindLocation", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* إمكانية النقل والتسليم */}
+                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
                     <input
                       id="inKindDelivery"
                       type="checkbox"
@@ -1340,9 +1404,24 @@ export default function Register() {
                       onChange={(e) => handleChange("inKindDeliveryAvailable", e.target.checked)}
                       className="w-4 h-4 text-primary rounded cursor-pointer"
                     />
-                    <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-700 cursor-pointer font-medium">
-                      إمكانية نقل وتوصيل التبرع العيني إلى موقع المسجد أو مستودعات الجمعية متاحة
+                    <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-800 cursor-pointer font-medium leading-relaxed">
+                      إمكانية نقل وتوصيل التبرع العيني إلى موقع المسجد أو مستودعات الجمعية متاحة من قبل المتبرع
                     </Label>
+                  </div>
+
+                  {/* معلومات وملاحظات إضافية */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold text-slate-700">
+                      معلومات وملاحظات إضافية عن التبرع العيني (اختياري)
+                    </Label>
+                    <Textarea
+                      id="inKindDetails"
+                      rows={3}
+                      placeholder="اكتب هنا أي تفاصيل أو مواصفات إضافية عن المواد أو التجهيزات..."
+                      value={formData.inKindDetails}
+                      onChange={(e) => handleChange("inKindDetails", e.target.value)}
+                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
+                    />
                   </div>
 
                   <div className="space-y-1.5 pt-1">
