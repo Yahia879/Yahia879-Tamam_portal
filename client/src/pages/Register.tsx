@@ -530,30 +530,30 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 p-4 sm:p-8 md:p-12" dir="rtl">
-      <div className={`w-full ${!selectedRole ? "max-w-4xl sm:max-w-5xl" : "max-w-3xl"} transition-all duration-300`}>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 p-3 sm:p-6 md:p-8" dir="rtl">
+      <div className="w-full max-w-2xl transition-all duration-300">
         {/* الترويسة والشعار */}
-        <Link href="/" className="flex flex-col items-center mb-6 sm:mb-10 text-center group cursor-pointer">
+        <Link href="/" className="flex flex-col items-center mb-6 sm:mb-8 text-center group cursor-pointer">
           <img
             src={orgSettings?.logoUrl || "/logo.svg"}
             alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
-            className="h-20 sm:h-24 md:h-28 mb-3.5 object-contain transition-transform group-hover:scale-105"
+            className="h-16 sm:h-20 mb-3 object-contain transition-transform group-hover:scale-105"
           />
-          <h1 className="font-black text-2xl sm:text-3xl md:text-4xl text-gray-900">
+          <h1 className="font-bold text-lg sm:text-2xl text-gray-900">
             {orgSettings?.organizationName || "بوابة منارة"}
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-gray-600 mt-1.5 font-medium">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             نموذج التسجيل وتقديم الطلبات والتبرعات
           </p>
         </Link>
 
-        <Card className="border border-slate-200/90 shadow-2xl rounded-3xl bg-white overflow-hidden">
+        <Card className="border border-slate-200/80 shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden">
           {/* شريط الإجراء العلوي والرجوع */}
           {selectedRole && (
-            <div className="bg-slate-50 border-b border-slate-100 px-6 sm:px-10 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: primaryColor }} />
-                <span className="text-sm sm:text-base font-bold text-slate-800">
+            <div className="bg-slate-50 border-b border-slate-100 px-5 sm:px-8 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryColor }} />
+                <span className="text-xs sm:text-sm font-semibold text-slate-700">
                   {selectedRole === "donor" && !donorType
                     ? "الخطوة 2: تحديد نوع التبرع"
                     : selectedRole === "imam" || selectedRole === "muezzin"
@@ -574,50 +574,46 @@ export default function Register() {
                     setSelectedRole("");
                   }
                 }}
-                className="text-xs sm:text-sm font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer transition-colors bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm"
+                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <span>تغيير الصفة</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          <CardContent className="p-6 sm:p-10 md:p-12">
+          <CardContent className="p-5 sm:p-8">
             {/* ============================================================
                 المرحلة 1: السؤال الرئيسي (تحديد الصفة والعلاقة بالمسجد)
                ============================================================ */}
             {!selectedRole && (
-              <div className="space-y-8">
-                {/* شارة الخطوة والسؤال */}
-                <div className="text-center space-y-3">
-                  <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-teal-100/90 text-teal-900 text-sm sm:text-base font-bold shadow-sm">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse" />
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
                     الخطوة 1: تحديد الصفة والعلاقة بالمسجد
                   </div>
-                  
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                     اذكر الصفة (علاقتك بالمسجد)
                   </h2>
-                  
-                  <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     يرجى اختيار صفتك لتوجيهك للمسار المخصص وتقديم الخدمة المطلوبة بأفضل صورة
                   </p>
                 </div>
 
-                {/* البطاقات الأربعة الكبيرة */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
                   {/* إمام */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("imam")}
-                    className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all duration-300 flex items-start gap-4 sm:gap-5 group cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1.5 bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
-                      <UserCheck className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
+                    <div className="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                      <UserCheck className="w-6 h-6" />
                     </div>
-                    <div className="space-y-1.5">
-                      <h3 className="font-black text-gray-900 group-hover:text-teal-900 text-lg sm:text-xl md:text-2xl">إمام</h3>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-gray-900 group-hover:text-teal-900 text-base">إمام</h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
                         إمام مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
@@ -627,14 +623,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("muezzin")}
-                    className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all duration-300 flex items-start gap-4 sm:gap-5 group cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1.5 bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-all shadow-sm">
-                      <Volume2 className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
+                    <div className="w-11 h-11 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                      <Volume2 className="w-6 h-6" />
                     </div>
-                    <div className="space-y-1.5">
-                      <h3 className="font-black text-gray-900 group-hover:text-teal-900 text-lg sm:text-xl md:text-2xl">مؤذن</h3>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-gray-900 group-hover:text-teal-900 text-base">مؤذن</h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
                         مؤذن مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
@@ -644,14 +640,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("donor")}
-                    className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all duration-300 flex items-start gap-4 sm:gap-5 group cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1.5 bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
-                      <HeartHandshake className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
+                    <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      <HeartHandshake className="w-6 h-6" />
                     </div>
-                    <div className="space-y-1.5">
-                      <h3 className="font-black text-gray-900 group-hover:text-emerald-900 text-lg sm:text-xl md:text-2xl">متبرع</h3>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-900 text-base">متبرع</h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
                         الرغبة في تقديم تبرع (أرض، تبرع عيني، تبرع مالي، أو غير ذلك)
                       </p>
                     </div>
@@ -661,14 +657,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
-                    className="p-6 sm:p-8 rounded-3xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-right transition-all duration-300 flex items-start gap-4 sm:gap-5 group cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1.5 bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
                   >
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                      <HelpCircle className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
+                    <div className="w-11 h-11 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <HelpCircle className="w-6 h-6" />
                     </div>
-                    <div className="space-y-1.5">
-                      <h3 className="font-black text-gray-900 group-hover:text-indigo-900 text-lg sm:text-xl md:text-2xl">أخرى</h3>
-                      <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-gray-900 group-hover:text-indigo-900 text-base">أخرى</h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
                         جار المسجد، أحد جماعة المسجد، ممثل جهة، أو صاحب استفسار عام
                       </p>
                     </div>
@@ -676,6 +672,7 @@ export default function Register() {
                 </div>
               </div>
             )}
+
 
 
             {/* ============================================================
@@ -1789,14 +1786,14 @@ export default function Register() {
             )}
 
             {/* الروابط السفلية */}
-            <div className="mt-10 pt-6 border-t border-slate-200/90 text-center space-y-3.5">
-              <p className="text-sm sm:text-base md:text-lg text-gray-700 font-medium">
+            <div className="mt-8 pt-5 border-t border-slate-100 text-center space-y-2.5">
+              <p className="text-xs sm:text-sm text-gray-600">
                 لديك حساب إمام أو مؤذن معتمد بالفعل؟{" "}
                 <Link href="/login" className="font-bold hover:underline" style={{ color: primaryColor }}>
                   تسجيل الدخول
                 </Link>
               </p>
-              <Link href="/" className="inline-block text-xs sm:text-sm md:text-base text-gray-500 hover:text-gray-900 font-semibold transition-colors">
+              <Link href="/" className="block text-xs text-gray-500 hover:text-gray-800 transition-colors">
                 ← العودة إلى الصفحة الرئيسية
               </Link>
             </div>
