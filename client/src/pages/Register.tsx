@@ -1612,18 +1612,18 @@ export default function Register() {
                   </a>
                 </div>
 
-                {/* تنبيه إرسال إيصال التبرع في نهاية الصفحة (مدمج ومضغوط) */}
-                <div className="p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border border-amber-300/80 text-amber-950 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs text-right">
-                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
+                {/* تنبيه إرسال إيصال التبرع في نهاية الصفحة */}
+                <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50/90 border border-amber-300/80 text-amber-950 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs text-right">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
                       <Phone className="w-4 h-4" />
                     </div>
                     <div>
                       <p className="font-bold text-xs sm:text-sm text-amber-950">
-                        مع إرسال إيصال التبرع على الجوال رقم <span className="font-mono font-extrabold text-amber-900" dir="ltr">0535922238</span>
+                        إشعار الجمعية بالتحويل وإصدار سند القبض
                       </p>
-                      <p className="text-[11px] text-amber-800/90 mt-0.5">
-                        يرجى تزويدنا بصورة الإيصال عبر الواتساب لتأكيد الاستلام وإصدار السند الرسمي
+                      <p className="text-[11px] text-amber-900/90 mt-0.5 leading-relaxed">
+                        نرجو التكرم بإرسال صورة إيصال التحويل عبر الواتساب إلى الرقم <span className="font-mono font-bold text-amber-950 inline-block px-1 bg-amber-200/60 rounded" dir="ltr">0535922238</span> لتوثيق تبرعكم وتزويدكم بالسند الرسمي.
                       </p>
                     </div>
                   </div>
@@ -1632,9 +1632,9 @@ export default function Register() {
                     href="https://wa.me/966535922238"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-xs transition-all cursor-pointer"
+                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-xs transition-all cursor-pointer"
                   >
-                    <span>إرسال الإيصال واتساب</span>
+                    <span>إرسال الإيصال عبر واتساب</span>
                     <ArrowRight className="w-3.5 h-3.5 rotate-180" />
                   </a>
                 </div>
