@@ -401,6 +401,18 @@ export default function Register() {
 
     // 5. مسار متبرع - أخرى
     if (selectedRole === "donor" && donorType === "other") {
+      if (!formData.email.trim()) {
+        toast.error("يرجى إدخال البريد الإلكتروني");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+        toast.error("البريد الإلكتروني غير صالح");
+        return;
+      }
+      if (!formData.customRoleTitle.trim()) {
+        toast.error("يرجى تحديد صفتك أو علاقتك بالمسجد");
+        return;
+      }
       if (!formData.donorOtherDetails.trim()) {
         toast.error("يرجى كتابة تفاصيل التبرع");
         return;
@@ -418,8 +430,8 @@ export default function Register() {
           category: "donor",
           name: trimmedName,
           phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
-          customRoleTitle: formData.customRoleTitle.trim() || undefined,
+          email: formData.email.trim(),
+          customRoleTitle: formData.customRoleTitle.trim(),
           details: combinedDetails,
         });
       } catch (err: any) {
@@ -432,6 +444,14 @@ export default function Register() {
 
     // 6. مسار أخرى (استفسار / جماعة المسجد / جهة)
     if (selectedRole === "other") {
+      if (!formData.email.trim()) {
+        toast.error("يرجى إدخال البريد الإلكتروني");
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+        toast.error("البريد الإلكتروني غير صالح");
+        return;
+      }
       if (!formData.customRoleTitle.trim()) {
         toast.error("يرجى تحديد صفتك (مثلاً: جار المسجد، استفسار...)");
         return;
@@ -453,8 +473,7 @@ export default function Register() {
           category: "other",
           name: trimmedName,
           phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
-          city: formData.city || undefined,
+          email: formData.email.trim(),
           customRoleTitle: formData.customRoleTitle.trim(),
           details: formData.requestDetails.trim(),
           attachmentUrl,
@@ -1651,7 +1670,8 @@ export default function Register() {
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="donor-email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني (اختياري)</span>
+                        <span>البريد الإلكتروني</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="donor-email"
@@ -1659,6 +1679,7 @@ export default function Register() {
                         placeholder="name@example.com"
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
@@ -1679,12 +1700,14 @@ export default function Register() {
                   <div className="space-y-2">
                     <Label htmlFor="donorRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
                       <span>الصفة أو علاقة المستخدم بالمسجد</span>
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="donorRoleTitle"
                       placeholder="مثال: فاعل خير، رجل أعمال، ممثل جهة أو شركة، جار المسجد..."
                       value={formData.customRoleTitle}
                       onChange={(e) => handleChange("customRoleTitle", e.target.value)}
+                      required
                       className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                     />
                   </div>
@@ -1778,7 +1801,8 @@ export default function Register() {
                     <div className="space-y-1.5 sm:col-span-2">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني (اختياري)</span>
+                        <span>البريد الإلكتروني</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="email"
@@ -1786,6 +1810,7 @@ export default function Register() {
                         placeholder="name@example.com"
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
