@@ -1366,17 +1366,14 @@ export default function Register() {
                         <span>حالة المواد</span>
                         <span className="text-destructive">*</span>
                       </Label>
-                      <Select value={formData.inKindCondition} onValueChange={(value) => handleChange("inKindCondition", value)} required>
-                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
-                          <SelectValue placeholder="اختر حالة المواد" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="جديدة بالكامل (غير مستعملة)">جديدة بالكامل (غير مستعملة)</SelectItem>
-                          <SelectItem value="مستعملة بحالة ممتازة (كالجديدة)">مستعملة بحالة ممتازة (كالجديدة)</SelectItem>
-                          <SelectItem value="مستعملة بحالة جيدة وصالحة">مستعملة بحالة جيدة وصالحة</SelectItem>
-                          <SelectItem value="أخرى / متنوعة">أخرى / متنوعة</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        id="inKindCondition"
+                        placeholder="مثال: جديدة، مستعملة بحالة ممتازة..."
+                        value={formData.inKindCondition}
+                        onChange={(e) => handleChange("inKindCondition", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -1396,7 +1393,7 @@ export default function Register() {
                   </div>
 
                   {/* إمكانية النقل والتسليم */}
-                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
+                  <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
                     <input
                       id="inKindDelivery"
                       type="checkbox"
@@ -1405,7 +1402,7 @@ export default function Register() {
                       className="w-4 h-4 text-primary rounded cursor-pointer"
                     />
                     <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-800 cursor-pointer font-medium leading-relaxed">
-                      إمكانية نقل وتوصيل التبرع العيني إلى موقع المسجد أو مستودعات الجمعية متاحة من قبل المتبرع
+                      هل يوجد إمكانية لنقل وتوصيل التبرع العيني ؟
                     </Label>
                   </div>
 
@@ -1422,35 +1419,6 @@ export default function Register() {
                       onChange={(e) => handleChange("inKindDetails", e.target.value)}
                       className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
-                  </div>
-
-                  <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="inKindFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-slate-500" />
-                      <span>إرفاق صور للمواد أو جدول الكميات (اختياري)</span>
-                    </Label>
-                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
-                      <input
-                        id="inKindFile"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,image/*"
-                        onChange={(e) => handleFileUpload("inKindFile", e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      <label htmlFor="inKindFile" className="cursor-pointer block text-xs text-slate-600">
-                        {formData.inKindFile ? (
-                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.inKindFile.name}
-                          </span>
-                        ) : (
-                          <div className="space-y-1">
-                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
-                            <p className="font-semibold text-slate-700">اضغط لاختيار صورة أو ملف للمواد العينية</p>
-                            <p className="text-[11px] text-slate-400">PDF، صور المواد، أو جدول حصر الكميات</p>
-                          </div>
-                        )}
-                      </label>
-                    </div>
                   </div>
                 </div>
 
