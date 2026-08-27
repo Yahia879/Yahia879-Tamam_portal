@@ -610,69 +610,69 @@ export default function Register() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                  {/* إمام */}
+                  {/* 1. إمام - تركواز أساسي */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("imam")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-teal-200/80 hover:border-teal-600 bg-gradient-to-br from-teal-50/60 via-white to-teal-50/20 hover:bg-teal-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <UserCheck className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">إمام</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-teal-950 group-hover:text-teal-700 text-base">إمام</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         إمام مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
                   </button>
 
-                  {/* مؤذن */}
+                  {/* 2. مؤذن - ذهبي دافئ */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("muezzin")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-amber-200/80 hover:border-amber-600 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 hover:bg-amber-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <Volume2 className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">مؤذن</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-amber-950 group-hover:text-amber-700 text-base">مؤذن</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         مؤذن مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
                   </button>
 
-                  {/* متبرع */}
+                  {/* 3. متبرع - زمردي أخضر */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("donor")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-emerald-200/80 hover:border-emerald-600 bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/20 hover:bg-emerald-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <HeartHandshake className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-emerald-950 group-hover:text-emerald-700 text-base">متبرع</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         الرغبة في تقديم تبرع (أرض، تبرع عيني، تبرع مالي، أو غير ذلك)
                       </p>
                     </div>
                   </button>
 
-                  {/* أخرى */}
+                  {/* 4. أخرى - نيلي */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-indigo-200/80 hover:border-indigo-600 bg-gradient-to-br from-indigo-50/60 via-white to-indigo-50/20 hover:bg-indigo-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <HelpCircle className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">أخرى</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-indigo-950 group-hover:text-indigo-700 text-base">أخرى</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         جار المسجد، أحد جماعة المسجد، ممثل جهة، أو صاحب استفسار عام
                       </p>
                     </div>
@@ -687,7 +687,7 @@ export default function Register() {
             {selectedRole === "donor" && !donorType && (
               <div className="space-y-6">
                 <div className="text-center space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">
                     <HeartHandshake className="w-3.5 h-3.5" />
                     مسار المتبرع
                   </div>
@@ -704,14 +704,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("land")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-emerald-200/80 hover:border-emerald-600 bg-gradient-to-br from-emerald-50/60 via-white to-emerald-50/20 hover:bg-emerald-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <LandPlot className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بأرض</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-emerald-950 group-hover:text-emerald-700 text-base">متبرع بأرض</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         تبرع بقطعة أرض لبناء أو توسعة مسجد
                       </p>
                     </div>
@@ -721,14 +721,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("in_kind")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-teal-200/80 hover:border-teal-600 bg-gradient-to-br from-teal-50/60 via-white to-teal-50/20 hover:bg-teal-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <Package className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بتبرع عيني</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-teal-950 group-hover:text-teal-700 text-base">متبرع بتبرع عيني</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         مواد بناء، تجهيزات، مكيفات، فرش، أنظمة صوت أو مياه
                       </p>
                     </div>
@@ -738,14 +738,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("financial")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-amber-200/80 hover:border-amber-600 bg-gradient-to-br from-amber-50/60 via-white to-amber-50/20 hover:bg-amber-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">متبرع بتبرع مالي</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-amber-950 group-hover:text-amber-700 text-base">متبرع بتبرع مالي</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         تحويل بنكي لحساب الجمعية أو عبر المتجر الإلكتروني
                       </p>
                     </div>
@@ -755,14 +755,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200 hover:border-primary hover:bg-primary/5 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow bg-white"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-indigo-200/80 hover:border-indigo-600 bg-gradient-to-br from-indigo-50/60 via-white to-indigo-50/20 hover:bg-indigo-50/80 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-gray-900 group-hover:text-primary text-base">أخرى</h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
+                      <h3 className="font-bold text-indigo-950 group-hover:text-indigo-700 text-base">أخرى</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         شراكة مجتمعية، وقفية، أو نوع تبرع مخصص
                       </p>
                     </div>
@@ -770,6 +770,7 @@ export default function Register() {
                 </div>
               </div>
             )}
+
 
             {/* ============================================================
                 المرحلة 3: النماذج الفعلية بحسب المسار المختار
