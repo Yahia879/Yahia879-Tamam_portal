@@ -1874,9 +1874,18 @@ export default function Register() {
                       <span>تفاصيل الطلب أو الاستفسار</span>
                       <span className="text-destructive">*</span>
                     </Label>
-                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                      يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
-                    </p>
+                    {/* صندوق توضيح إرشادي */}
+                    <div className="p-3 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <Info className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold text-slate-800 block">توضيح إرشادي:</span>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
+                        </p>
+                      </div>
+                    </div>
                     <Textarea
                       id="requestDetails"
                       rows={5}
