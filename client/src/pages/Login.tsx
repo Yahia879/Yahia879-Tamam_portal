@@ -511,15 +511,22 @@ export default function Login() {
 
         {/* روابط إضافية */}
         {mode === "login" && (
-          <div className="mt-6 space-y-3 text-center">
-            <p className="text-gray-600 text-sm">
-              ليس لديك حساب؟{" "}
-              <a href="/register" className="font-medium hover:underline" style={{ color: primaryColor }}>
-                سجل الآن
+          <div className="mt-6 pt-5 border-t border-gray-100 space-y-3.5 text-center">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+              <p className="text-gray-700 text-xs sm:text-sm font-medium mb-1.5">
+                ليس لديك حساب أو ترغب بتقديم تبرع/استفسار؟
+              </p>
+              <a 
+                href="/register" 
+                className="inline-flex items-center justify-center font-bold text-sm hover:underline"
+                style={{ color: primaryColor }}
+              >
+                ← تقديم طلب / تسجيل حساب أو تبرع
               </a>
-            </p>
-            <a href="/" className="block text-gray-500 hover:text-gray-700 text-sm">
-              ← العودة إلى الصفحة الرئيسية
+            </div>
+
+            <a href="/" className="block text-gray-500 hover:text-gray-700 text-xs sm:text-sm transition-colors">
+              العودة إلى الصفحة الرئيسية
             </a>
           </div>
         )}

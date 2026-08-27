@@ -2102,7 +2102,34 @@ export const receiptVouchers = mysqlTable("receipt_vouchers", {
 export type ReceiptVoucher = typeof receiptVouchers.$inferSelect;
 export type InsertReceiptVoucher = typeof receiptVouchers.$inferInsert;
 
+// ==================== طلبات التبرعات والاستفسارات العامة (بدون حساب مستخدم) ====================
+export const publicSubmissions = mysqlTable("public_submissions", {
+  id: int("id").primaryKey().autoincrement(),
+  submissionType: varchar("submissionType", { length: 50 }).notNull(), // 'donor_land' | 'donor_inkind' | 'donor_financial' | 'donor_other' | 'general_inquiry'
+  category: varchar("category", { length: 50 }).notNull(), // 'donor' | 'other'
+  name: text("name").notNull(),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  email: varchar("email", { length: 320 }),
+  city: varchar("city", { length: 100 }),
+  customRoleTitle: varchar("customRoleTitle", { length: 255 }), // صفة محددة لمسار أخرى (جار المسجد، أحد جماعة المسجد، ممثل جهة...)
+  details: text("details"), // تفاصيل التبرع أو نص الطلب والاستفسار
+  landArea: varchar("landArea", { length: 100 }), // مساحة الأرض
+  landDimensions: varchar("landDimensions", { length: 100 }), // أبعادها وأطوالها
+  landLocation: varchar("landLocation", { length: 255 }), // موقعها
+  landOwner: varchar("landOwner", { length: 255 }), // مالكها الحالي
+  inKindType: varchar("inKindType", { length: 255 }), // نوع التبرع العيني
+  inKindQuantity: varchar("inKindQuantity", { length: 100 }), // الكميات المتاحة
+  inKindCondition: varchar("inKindCondition", { length: 100 }), // حالتها
+  inKindDeliveryAvailable: boolean("inKindDeliveryAvailable").default(false), // إمكانية النقل أو التسليم
+  financialAmount: decimal("financialAmount", { precision: 15, scale: 2 }), // المبلغ المحول (في حال إشعار التحويل)
+  financialBankName: varchar("financialBankName", { length: 100 }), // اسم البنك المحول منه
+  attachmentUrl: varchar("attachmentUrl", { length: 500 }), // مرفق إضافي اختياري (كروكي، صك، إيصال تحويل، صور)
+  status: varchar("status", { length: 50 }).default("new").notNull(), // 'new' | 'under_review' | 'contacted' | 'completed' | 'archived'
+  adminNotes: text("adminNotes"),
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
-
-
-
+export type PublicSubmission = typeof publicSubmissions.$inferSelect;
+export type InsertPublicSubmission = typeof publicSubmissions.$inferInsert;

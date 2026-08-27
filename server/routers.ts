@@ -27,9 +27,13 @@ import { programsRouter } from "./routers/programs";
 import { supportTicketsRouter } from "./routers/supportTickets";
 import { boardRouter } from "./routers/board";
 import { formsRouter } from "./routers/forms";
+import { publicSubmissionsRouter } from "./routers/publicSubmissions";
 
 export const appRouter = router({
   system: systemRouter,
+
+  // التبرعات والاستفسارات العامة
+  publicSubmissions: publicSubmissionsRouter,
 
   // تخصيص النماذج والاستمارات
   forms: formsRouter,
