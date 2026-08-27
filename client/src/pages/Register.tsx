@@ -35,7 +35,8 @@ import {
   Mail,
   MapPin,
   Send,
-  Truck
+  Truck,
+  Download
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -468,10 +469,10 @@ export default function Register() {
   const primaryColor = orgSettings?.colorPrimary1 || "#0d9488";
   const secondaryColor = orgSettings?.colorPrimary2 || "#0f766e";
 
-  // استخراج رقم الحساب التقريبي من الآيبان إن وجد
-  const rawIban = orgSettings?.iban || "SA0580000347608011245554";
-  const bankAccountNumber = rawIban.length > 10 ? rawIban.slice(6) : "347608011245554";
-  const donationUrl = (orgSettings as any)?.donationStoreUrl || (orgSettings?.website ? (orgSettings.website.startsWith("http") ? orgSettings.website : `https://${orgSettings.website}`) : "https://manarah.org.sa");
+  // الحساب الرسمي لجمعية عمارة المساجد منارة
+  const rawIban = "SA0580000347608011245554";
+  const bankAccountNumber = "347000010006081245554";
+  const donationUrl = "https://manarahstore.sa";
 
   if (loading || isAuthenticated) {
     return (
@@ -1473,52 +1474,42 @@ export default function Register() {
             {/* ---------- 4. مسار المتبرع المالي (الحسابات البنكية والمتجر) ---------- */}
             {selectedRole === "donor" && donorType === "financial" && (
               <div className="space-y-6">
-                {/* رسالة الشكر والإرشاد المعتمدة */}
-                <div className="p-4 sm:p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-slate-900 text-right space-y-2 shadow-xs">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold">
-                    <HeartHandshake className="w-4 h-4" />
-                    رسالة شكر وتقدير
-                  </div>
-                  <p className="font-semibold text-sm sm:text-base leading-relaxed text-slate-800">
-                    نشكر لكم رغبتكم في دعم الجمعية، ويمكنكم التبرع من خلال التحويل إلى حساب الجمعية الموضح أدناه، أو من خلال اختيار إحدى فرص التبرع المتاحة على موقع التبرعات الإلكتروني.
-                  </p>
-                </div>
-
-                {/* بطاقة الحساب البنكي الرسمي */}
-                <div className="rounded-2xl border-2 border-primary/25 bg-gradient-to-b from-white to-slate-50/70 p-5 sm:p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b pb-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-gray-900 text-base">
-                          {orgSettings?.bankName || "مصرف الراجحي"}
-                        </h4>
-                        <p className="text-xs text-gray-500">الحساب البنكي الرسمي المعتمد</p>
-                      </div>
+                {/* بطاقة الحساب البنكي الرسمي مع الـ QR */}
+                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-4 sm:p-6 shadow-sm space-y-5">
+                  <div className="text-center space-y-1.5 pb-1">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+                      <CreditCard className="w-4 h-4" />
+                      <span>الحساب البنكي الرسمي المعتمد للتبرعات</span>
                     </div>
-
-                    <span className="text-[11px] font-bold px-2.5 py-1 bg-primary/10 text-primary rounded-lg">
-                      معتمد رسمياً
-                    </span>
+                    <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                      {orgSettings?.organizationName || "جمعية عمارة المساجد منارة"}
+                    </h3>
                   </div>
 
-                  {/* اسم المستفيد */}
-                  <div className="space-y-1">
-                    <span className="text-xs text-gray-500 block">اسم المستفيد (الجمعية):</span>
-                    <p className="text-sm sm:text-base font-bold text-gray-900">
-                      {orgSettings?.bankAccountName || orgSettings?.organizationName || "جمعية عمارة المساجد منارة"}
-                    </p>
+                  {/* صورة بطاقة الحساب والـ QR الرسمية */}
+                  <div className="max-w-xs sm:max-w-sm mx-auto rounded-2xl overflow-hidden shadow-md border-2 border-slate-200/90 bg-slate-950 group relative">
+                    <img
+                      src="/bank-rajhi-qr.jpg"
+                      alt="حساب الراجحي لجمعية عمارة المساجد منارة"
+                      className="w-full h-auto object-cover transition-transform group-hover:scale-[1.01]"
+                    />
+                    <a
+                      href="/bank-rajhi-qr.jpg"
+                      download="حساب_الراجحي_جمعية_منارة.jpg"
+                      className="absolute bottom-3 left-3 bg-black/75 hover:bg-black text-white text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 backdrop-blur-xs transition-colors cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>حفظ البطاقة</span>
+                    </a>
                   </div>
 
-                  {/* رقم الحساب والآيبان مع النسخ السريع */}
-                  <div className="space-y-3 pt-1">
+                  {/* حقول النسخ السريع: رقم الحساب والآيبان */}
+                  <div className="space-y-3 pt-2">
                     {/* رقم الآيبان */}
-                    <div className="p-3 bg-slate-100/90 rounded-xl flex items-center justify-between gap-2 border border-slate-200">
+                    <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between gap-2 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
                       <div className="text-right overflow-hidden">
-                        <span className="text-[11px] text-gray-500 block">رقم الآيبان (IBAN):</span>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-gray-900 tracking-wider truncate block" dir="ltr">
+                        <span className="text-[11px] font-bold text-slate-500 block mb-0.5">رقم الآيبان (IBAN):</span>
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider truncate block" dir="ltr">
                           {rawIban}
                         </span>
                       </div>
@@ -1527,16 +1518,16 @@ export default function Register() {
                         size="sm"
                         variant="secondary"
                         onClick={() => copyToClipboard(rawIban, "رقم الآيبان")}
-                        className="shrink-0 text-xs font-semibold gap-1.5 h-8 cursor-pointer bg-white hover:bg-slate-200"
+                        className="shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
                       >
                         {copiedField === "رقم الآيبان" ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-primary" />
+                            <Check className="w-4 h-4 text-primary" />
                             <span className="text-primary font-bold">تم النسخ</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-4 h-4 text-slate-600" />
                             <span>نسخ الآيبان</span>
                           </>
                         )}
@@ -1544,10 +1535,10 @@ export default function Register() {
                     </div>
 
                     {/* رقم الحساب */}
-                    <div className="p-3 bg-slate-100/90 rounded-xl flex items-center justify-between gap-2 border border-slate-200">
+                    <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between gap-2 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
                       <div className="text-right overflow-hidden">
-                        <span className="text-[11px] text-gray-500 block">رقم الحساب:</span>
-                        <span className="font-mono font-bold text-xs sm:text-sm text-gray-900 tracking-wider truncate block" dir="ltr">
+                        <span className="text-[11px] font-bold text-slate-500 block mb-0.5">رقم الحساب:</span>
+                        <span className="font-mono font-bold text-xs sm:text-sm text-slate-900 tracking-wider truncate block" dir="ltr">
                           {bankAccountNumber}
                         </span>
                       </div>
@@ -1556,16 +1547,16 @@ export default function Register() {
                         size="sm"
                         variant="secondary"
                         onClick={() => copyToClipboard(bankAccountNumber, "رقم الحساب")}
-                        className="shrink-0 text-xs font-semibold gap-1.5 h-8 cursor-pointer bg-white hover:bg-slate-200"
+                        className="shrink-0 text-xs font-bold gap-1.5 h-9 px-3 cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 shadow-xs"
                       >
                         {copiedField === "رقم الحساب" ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-primary" />
+                            <Check className="w-4 h-4 text-primary" />
                             <span className="text-primary font-bold">تم النسخ</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-4 h-4 text-slate-600" />
                             <span>نسخ الحساب</span>
                           </>
                         )}
@@ -1583,117 +1574,9 @@ export default function Register() {
                     className="inline-flex items-center justify-center gap-2 w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer text-sm sm:text-base"
                     style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   >
-                    <span>الانتقال إلى موقع التبرعات الإلكتروني</span>
+                    <span>الانتقال إلى متجر منارة للتبرع الإلكتروني</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
-                </div>
-
-                {/* قسم إشعار التحويل البنكي الاختياري */}
-                <div className="border-t pt-4">
-                  {!showTransferProofSection ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowTransferProofSection(true)}
-                      className="text-xs sm:text-sm font-semibold text-primary hover:underline flex items-center justify-center w-full gap-1 cursor-pointer py-1"
-                    >
-                      <span>هل قمت بالتحويل وترغب في إشعار الجمعية لتزويدك بسند قبض؟ (اضغط هنا)</span>
-                    </button>
-                  ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200">
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900">إشعار بالتحويل البنكي (اختياري)</h4>
-                        <button
-                          type="button"
-                          onClick={() => setShowTransferProofSection(false)}
-                          className="text-xs text-gray-500 hover:text-gray-800 cursor-pointer"
-                        >
-                          إلغاء
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="financial-name" className="text-xs font-semibold">اسم المحول <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="financial-name"
-                            placeholder="الاسم الكريم"
-                            value={formData.name}
-                            onChange={(e) => handleChange("name", e.target.value)}
-                            required
-                            className="h-10 text-right"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="financial-phone" className="text-xs font-semibold">رقم الجوال <span className="text-destructive">*</span></Label>
-                          <Input
-                            id="financial-phone"
-                            placeholder="05XXXXXXXX"
-                            value={formData.phone}
-                            onChange={(e) => handleChange("phone", e.target.value)}
-                            required
-                            className="h-10 text-left"
-                            dir="ltr"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label htmlFor="financial-amount" className="text-xs font-semibold">المبلغ المحول (ر.س)</Label>
-                          <Input
-                            id="financial-amount"
-                            placeholder="مثال: 5000"
-                            value={formData.financialAmount}
-                            onChange={(e) => handleChange("financialAmount", e.target.value)}
-                            className="h-10 text-left"
-                            dir="ltr"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label htmlFor="financial-bank" className="text-xs font-semibold">البنك المحول منه</Label>
-                          <Input
-                            id="financial-bank"
-                            placeholder="مثال: الراجحي، الأهلي..."
-                            value={formData.financialBankName}
-                            onChange={(e) => handleChange("financialBankName", e.target.value)}
-                            className="h-10 text-right"
-                          />
-                        </div>
-                      </div>
-
-                      {/* رفع إيصال التحويل */}
-                      <div className="space-y-1">
-                        <Label htmlFor="transferReceipt" className="text-xs font-semibold">إرفاق إيصال التحويل (صورة أو PDF)</Label>
-                        <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-primary bg-white">
-                          <input
-                            id="transferReceipt"
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png,image/*"
-                            onChange={(e) => handleFileUpload("transferReceiptFile", e.target.files?.[0] || null)}
-                            className="hidden"
-                          />
-                          <label htmlFor="transferReceipt" className="cursor-pointer block text-xs text-slate-600">
-                            {formData.transferReceiptFile ? (
-                              <span className="text-primary font-bold flex items-center justify-center gap-1.5">
-                                <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.transferReceiptFile.name}
-                              </span>
-                            ) : (
-                              "اضغط لاختيار صورة الإيصال البنكي"
-                            )}
-                          </label>
-                        </div>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        className="w-full text-white font-bold h-10 rounded-xl cursor-pointer"
-                        style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
-                        disabled={isSubmitting || submitPublicRequestMutation.isPending}
-                      >
-                        {isSubmitting ? "جاري الإرسال..." : "إرسال إشعار التحويل للجمعية"}
-                      </Button>
-                    </form>
-                  )}
                 </div>
               </div>
             )}
