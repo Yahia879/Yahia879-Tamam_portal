@@ -122,6 +122,20 @@ export default function Register() {
     otherFile: null as File | null,
   });
 
+  // قراءة المعاملات من الرابط إن وجدت (مثل ?role=imam أو ?role=donor)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const roleParam = searchParams.get("role") as PrimaryRole;
+    const donorTypeParam = searchParams.get("donorType") as DonorType;
+
+    if (roleParam && ["imam", "muezzin", "donor", "other"].includes(roleParam)) {
+      setSelectedRole(roleParam);
+    }
+    if (donorTypeParam && ["land", "in_kind", "financial", "other"].includes(donorTypeParam)) {
+      setDonorType(donorTypeParam);
+    }
+  }, []);
+
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!loading && isAuthenticated) {
