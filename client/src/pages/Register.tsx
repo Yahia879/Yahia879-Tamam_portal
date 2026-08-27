@@ -1623,7 +1623,7 @@ export default function Register() {
                         إشعار الجمعية بالتحويل وإصدار سند القبض
                       </p>
                       <p className="text-[11px] text-amber-900/90 mt-0.5 leading-relaxed">
-                        نرجو التكرم بإرسال صورة إيصال التحويل عبر الواتساب إلى الرقم <span className="font-mono font-bold text-amber-950 inline-block px-1 bg-amber-200/60 rounded" dir="ltr">0535922238</span> لتوثيق تبرعكم وتزويدكم بالسند الرسمي.
+                        نرجو التكرم بإرسال صورة إيصال التحويل عبر الواتساب إلى الرقم <span className="font-mono font-bold text-amber-950 inline-block px-1 bg-amber-200/60 rounded" dir="ltr">0535922238</span> لتوثيق تبرعكم.
                       </p>
                     </div>
                   </div>
