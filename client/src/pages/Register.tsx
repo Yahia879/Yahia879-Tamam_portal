@@ -290,38 +290,32 @@ export default function Register() {
 
     // 2. مسار المتبرع بأرض
     if (selectedRole === "donor" && donorType === "land") {
-      if (!formData.landArea.trim() && !formData.landLocation.trim() && !formData.landDetails.trim()) {
-        toast.error("يرجى إدخال مساحة الأرض وموقعها");
+      if (!trimmedName || !formData.phone.trim() || !formData.city || !formData.email.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
+        toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع بالأرض");
         return;
       }
 
       setIsSubmitting(true);
       try {
-        let attachmentUrl: string | undefined = undefined;
-        if (formData.landProofFile) {
-          attachmentUrl = await uploadFile(formData.landProofFile);
-        }
-
         const combinedDetails = [
-          formData.landArea ? `مساحة الأرض: ${formData.landArea}` : "",
-          formData.landDimensions ? `الأبعاد والأطوال: ${formData.landDimensions}` : "",
-          formData.landLocation ? `الموقع والحي: ${formData.landLocation}` : "",
-          formData.landOwner ? `المالك الحالي: ${formData.landOwner}` : "",
-          formData.landDetails ? `معلومات وملاحظات إضافية: ${formData.landDetails}` : "",
-        ].filter(Boolean).join("\n");
+          `مساحة الأرض: ${formData.landArea}`,
+          `الأبعاد والأطوال: ${formData.landDimensions}`,
+          `الموقع والحي: ${formData.landLocation}`,
+          `المالك الحالي: ${formData.landOwner}`,
+          `معلومات وملاحظات إضافية: ${formData.landDetails}`,
+        ].join("\n");
 
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_land",
           category: "donor",
           name: trimmedName,
           phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
-          city: formData.city || undefined,
-          details: combinedDetails || formData.landDetails.trim() || "طلب تبرع بأرض",
-          landArea: formData.landArea || undefined,
-          landLocation: formData.landLocation || undefined,
-          landOwner: formData.landOwner || undefined,
-          attachmentUrl,
+          email: formData.email.trim(),
+          city: formData.city,
+          details: combinedDetails,
+          landArea: formData.landArea,
+          landLocation: formData.landLocation,
+          landOwner: formData.landOwner,
         });
       } catch (err: any) {
         toast.error(err.message || "حدث خطأ أثناء إرسال بيانات التبرع بالأرض");
@@ -1072,8 +1066,9 @@ export default function Register() {
                       <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />
                         <span>المدينة / المنطقة</span>
+                        <span className="text-destructive">*</span>
                       </Label>
-                      <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
+                      <Select value={formData.city} onValueChange={(value) => handleChange("city", value)} required>
                         <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
@@ -1090,7 +1085,8 @@ export default function Register() {
                     <div className="space-y-1.5">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني (اختياري)</span>
+                        <span>البريد الإلكتروني</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="email"
@@ -1098,6 +1094,7 @@ export default function Register() {
                         placeholder="name@example.com"
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
@@ -1134,12 +1131,14 @@ export default function Register() {
                     <div className="space-y-1.5">
                       <Label htmlFor="landDimensions" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <span>أبعاد وأطوال الأرض</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="landDimensions"
                         placeholder="مثال: 30م × 30م، على شارعين"
                         value={formData.landDimensions}
                         onChange={(e) => handleChange("landDimensions", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
@@ -1165,12 +1164,14 @@ export default function Register() {
                     <div className="space-y-1.5">
                       <Label htmlFor="landOwner" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <span>المالك الحالي للأرض</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="landOwner"
                         placeholder="اسم المالك أو صفة الواقف"
                         value={formData.landOwner}
                         onChange={(e) => handleChange("landOwner", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
@@ -1178,8 +1179,9 @@ export default function Register() {
 
                   {/* معلومات وملاحظات إضافية */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-700">
-                      معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع
+                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                      <span>معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع</span>
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Textarea
                       id="landDetails"
@@ -1187,38 +1189,9 @@ export default function Register() {
                       placeholder="اكتب هنا أي معلومات إضافية تساعد الجمعية على دراسة وتقييم التبرع..."
                       value={formData.landDetails}
                       onChange={(e) => handleChange("landDetails", e.target.value)}
+                      required
                       className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
-                  </div>
-
-                  {/* رفع مستند أو صك اختياري */}
-                  <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="landProofFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-slate-500" />
-                      <span>إرفاق صورة الصك، كروكي، أو صور الموقع (اختياري)</span>
-                    </Label>
-                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
-                      <input
-                        id="landProofFile"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,image/*"
-                        onChange={(e) => handleFileUpload("landProofFile", e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      <label htmlFor="landProofFile" className="cursor-pointer block text-xs text-slate-600">
-                        {formData.landProofFile ? (
-                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.landProofFile.name}
-                          </span>
-                        ) : (
-                          <div className="space-y-1">
-                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
-                            <p className="font-semibold text-slate-700">اضغط لاختيار ملف أو صورة (PDF أو صور)</p>
-                            <p className="text-[11px] text-slate-400">صك الأرض، مخطط كروكي، أو صور الموقع</p>
-                          </div>
-                        )}
-                      </label>
-                    </div>
                   </div>
                 </div>
 
