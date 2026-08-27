@@ -34,7 +34,8 @@ import {
   Phone,
   Mail,
   MapPin,
-  Send
+  Send,
+  Truck
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -1393,17 +1394,43 @@ export default function Register() {
                   </div>
 
                   {/* إمكانية النقل والتسليم */}
-                  <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-3">
-                    <input
-                      id="inKindDelivery"
-                      type="checkbox"
-                      checked={formData.inKindDeliveryAvailable}
-                      onChange={(e) => handleChange("inKindDeliveryAvailable", e.target.checked)}
-                      className="w-4 h-4 text-primary rounded cursor-pointer"
-                    />
-                    <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-800 cursor-pointer font-medium leading-relaxed">
-                      هل يوجد إمكانية لنقل وتوصيل التبرع العيني ؟
-                    </Label>
+                  <div
+                    onClick={() => handleChange("inKindDeliveryAvailable", !formData.inKindDeliveryAvailable)}
+                    className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${
+                      formData.inKindDeliveryAvailable
+                        ? "bg-primary/5 border-primary shadow-xs"
+                        : "bg-slate-50/60 border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                        formData.inKindDeliveryAvailable
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "bg-slate-200/80 text-slate-500"
+                      }`}>
+                        <Truck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                          هل يوجد إمكانية لنقل وتوصيل التبرع العيني ؟
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {formData.inKindDeliveryAvailable
+                            ? "نعم، تتوفر إمكانية النقل والتوصيل لموقع المسجد أو مستودع الجمعية"
+                            : "اضغط هنا في حال توفرت لديكم إمكانية نقل وتوصيل المواد"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                      formData.inKindDeliveryAvailable
+                        ? "bg-primary border-primary text-white shadow-xs"
+                        : "bg-white border-slate-300"
+                    }`}>
+                      {formData.inKindDeliveryAvailable && (
+                        <Check className="w-4 h-4 stroke-[3]" />
+                      )}
+                    </div>
                   </div>
 
                   {/* معلومات وملاحظات إضافية */}
