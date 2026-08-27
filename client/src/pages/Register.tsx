@@ -296,7 +296,7 @@ export default function Register() {
 
     // 2. مسار المتبرع بأرض
     if (selectedRole === "donor" && donorType === "land") {
-      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
+      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.customRoleTitle.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
         toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع بالأرض");
         return;
       }
@@ -304,12 +304,13 @@ export default function Register() {
       setIsSubmitting(true);
       try {
         const combinedDetails = [
+          formData.customRoleTitle ? `الصفة أو العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
           `مساحة الأرض: ${formData.landArea}`,
           `الأبعاد والأطوال: ${formData.landDimensions}`,
           `الموقع والحي: ${formData.landLocation}`,
           `المالك الحالي: ${formData.landOwner}`,
           `معلومات وملاحظات إضافية: ${formData.landDetails}`,
-        ].join("\n");
+        ].filter(Boolean).join("\n");
 
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_land",
@@ -317,6 +318,7 @@ export default function Register() {
           name: trimmedName,
           phone: formData.phone.trim(),
           email: formData.email.trim(),
+          customRoleTitle: formData.customRoleTitle.trim(),
           details: combinedDetails,
           landArea: formData.landArea,
           landLocation: formData.landLocation,
@@ -332,8 +334,8 @@ export default function Register() {
 
     // 3. مسار المتبرع بتبرع عيني
     if (selectedRole === "donor" && donorType === "in_kind") {
-      if (!formData.inKindItemType.trim() && !formData.inKindDetails.trim()) {
-        toast.error("يرجى تحديد نوع التبرع العيني والكميات المتاحة");
+      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.customRoleTitle.trim() || !formData.inKindItemType.trim() || !formData.inKindQuantity.trim() || !formData.inKindCondition.trim() || !formData.inKindLocation.trim()) {
+        toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع العيني");
         return;
       }
 
@@ -345,6 +347,7 @@ export default function Register() {
         }
 
         const combinedDetails = [
+          formData.customRoleTitle ? `الصفة أو العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
           formData.inKindItemType ? `نوع التبرع العيني: ${formData.inKindItemType}` : "",
           formData.inKindQuantity ? `الكميات المتاحة: ${formData.inKindQuantity}` : "",
           formData.inKindCondition ? `حالة المواد: ${formData.inKindCondition}` : "",
@@ -358,7 +361,8 @@ export default function Register() {
           category: "donor",
           name: trimmedName,
           phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
+          email: formData.email.trim(),
+          customRoleTitle: formData.customRoleTitle.trim(),
           details: combinedDetails || formData.inKindDetails.trim() || "طلب تبرع عيني",
           inKindDeliveryAvailable: formData.inKindDeliveryAvailable,
           attachmentUrl,
@@ -1096,7 +1100,7 @@ export default function Register() {
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
 
-                    <div className="space-y-1.5 sm:col-span-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
                         <span>البريد الإلكتروني</span>
@@ -1111,6 +1115,21 @@ export default function Register() {
                         required
                         className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="landCustomRole" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الصفة أو العلاقة بالمسجد</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="landCustomRole"
+                        placeholder="مثال: مالك الأرض، فاعل خير، وكيل المالك..."
+                        value={formData.customRoleTitle}
+                        onChange={(e) => handleChange("customRoleTitle", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
                   </div>
@@ -1279,19 +1298,36 @@ export default function Register() {
                       <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
 
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKind-email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
                         <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني (اختياري)</span>
+                        <span>البريد الإلكتروني</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
-                        id="email"
+                        id="inKind-email"
                         type="email"
                         placeholder="name@example.com"
                         value={formData.email}
                         onChange={(e) => handleChange("email", e.target.value)}
+                        required
                         className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="inKindCustomRole" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الصفة أو العلاقة بالمسجد</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="inKindCustomRole"
+                        placeholder="مثال: متبرع، مورد، فاعل خير، جار المسجد..."
+                        value={formData.customRoleTitle}
+                        onChange={(e) => handleChange("customRoleTitle", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
                   </div>
@@ -1696,10 +1732,10 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والتبرع</h3>
                   </div>
 
-                  {/* الصفة أو علاقة المستخدم بالمسجد */}
+                  {/* الصفة أو العلاقة بالمسجد */}
                   <div className="space-y-2">
                     <Label htmlFor="donorRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>الصفة أو علاقة المستخدم بالمسجد</span>
+                      <span>الصفة أو العلاقة بالمسجد</span>
                       <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -1830,7 +1866,7 @@ export default function Register() {
                   {/* حدد الصفة */}
                   <div className="space-y-2">
                     <Label htmlFor="customRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>الصفة أو علاقة المستخدم بالمسجد</span>
+                      <span>الصفة أو العلاقة بالمسجد</span>
                       <span className="text-destructive">*</span>
                     </Label>
                     <Input
