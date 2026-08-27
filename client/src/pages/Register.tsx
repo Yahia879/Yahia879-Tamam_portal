@@ -106,6 +106,7 @@ export default function Register() {
     // مسار المتبرع بأرض
     landDetails: "",
     landArea: "",
+    landDimensions: "",
     landLocation: "",
     landOwner: "",
     landProofFile: null as File | null,
@@ -289,8 +290,8 @@ export default function Register() {
 
     // 2. مسار المتبرع بأرض
     if (selectedRole === "donor" && donorType === "land") {
-      if (!formData.landDetails.trim() && !formData.landLocation.trim()) {
-        toast.error("يرجى ذكر تفاصيل الأرض وموقعها");
+      if (!formData.landArea.trim() && !formData.landLocation.trim() && !formData.landDetails.trim()) {
+        toast.error("يرجى إدخال مساحة الأرض وموقعها");
         return;
       }
 
@@ -302,10 +303,11 @@ export default function Register() {
         }
 
         const combinedDetails = [
-          formData.landDetails ? `التفاصيل: ${formData.landDetails}` : "",
-          formData.landArea ? `المساحة التقريبية: ${formData.landArea} م²` : "",
-          formData.landLocation ? `الموقع/الحي: ${formData.landLocation}` : "",
+          formData.landArea ? `مساحة الأرض: ${formData.landArea}` : "",
+          formData.landDimensions ? `الأبعاد والأطوال: ${formData.landDimensions}` : "",
+          formData.landLocation ? `الموقع والحي: ${formData.landLocation}` : "",
           formData.landOwner ? `المالك الحالي: ${formData.landOwner}` : "",
+          formData.landDetails ? `معلومات وملاحظات إضافية: ${formData.landDetails}` : "",
         ].filter(Boolean).join("\n");
 
         await submitPublicRequestMutation.mutateAsync({
@@ -315,7 +317,7 @@ export default function Register() {
           phone: formData.phone.trim(),
           email: formData.email.trim() || undefined,
           city: formData.city || undefined,
-          details: combinedDetails || formData.landDetails.trim(),
+          details: combinedDetails || formData.landDetails.trim() || "طلب تبرع بأرض",
           landArea: formData.landArea || undefined,
           landLocation: formData.landLocation || undefined,
           landOwner: formData.landOwner || undefined,
@@ -1112,21 +1114,79 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>تفاصيل الأرض والتبرع</span>
-                      <span className="text-destructive">*</span>
+                  {/* مساحة الأرض والأبعاد */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="landArea" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>مساحة الأرض (م²)</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="landArea"
+                        placeholder="مثال: 900 م²"
+                        value={formData.landArea}
+                        onChange={(e) => handleChange("landArea", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="landDimensions" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>أبعاد وأطوال الأرض</span>
+                      </Label>
+                      <Input
+                        id="landDimensions"
+                        placeholder="مثال: 30م × 30م، على شارعين"
+                        value={formData.landDimensions}
+                        onChange={(e) => handleChange("landDimensions", e.target.value)}
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* موقع الأرض والمالك الحالي */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="landLocation" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>موقع الأرض / الحي</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="landLocation"
+                        placeholder="مثال: حي الروابي، بالقرب من..."
+                        value={formData.landLocation}
+                        onChange={(e) => handleChange("landLocation", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="landOwner" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>المالك الحالي للأرض</span>
+                      </Label>
+                      <Input
+                        id="landOwner"
+                        placeholder="اسم المالك أو صفة الواقف"
+                        value={formData.landOwner}
+                        onChange={(e) => handleChange("landOwner", e.target.value)}
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* معلومات وملاحظات إضافية */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-700">
+                      معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع
                     </Label>
-                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                      يرجى توضيح مساحة الأرض، أبعادها، أطوالها، موقعها، ومالكها الحالي، وأي معلومات إضافية تساعد الجمعية على دراسة التبرع.
-                    </p>
                     <Textarea
                       id="landDetails"
-                      rows={5}
-                      placeholder="اكتب هنا كافة تفاصيل الأرض (المساحة التقريبية، الموقع والحي، الأبعاد والأطوال، اسم المالك الحالي، وأي تفاصيل أخرى)..."
+                      rows={3}
+                      placeholder="اكتب هنا أي معلومات إضافية تساعد الجمعية على دراسة وتقييم التبرع..."
                       value={formData.landDetails}
                       onChange={(e) => handleChange("landDetails", e.target.value)}
-                      required
                       className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
                   </div>
