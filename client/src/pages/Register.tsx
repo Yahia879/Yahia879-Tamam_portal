@@ -556,10 +556,10 @@ export default function Register() {
         <Card className="border border-slate-200/80 shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden">
           {/* شريط الإجراء العلوي والرجوع */}
           {selectedRole && (
-            <div className="bg-slate-50 border-b border-slate-100 px-5 sm:px-8 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primaryColor }} />
-                <span className="text-xs sm:text-sm font-semibold text-slate-700">
+            <div className="bg-slate-100/90 border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: primaryColor }} />
+                <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                   {selectedRole === "donor" && !donorType
                     ? "الخطوة 2: تحديد نوع التبرع"
                     : selectedRole === "imam" || selectedRole === "muezzin"
@@ -571,8 +571,10 @@ export default function Register() {
                 </span>
               </div>
 
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   if (donorType) {
                     setDonorType("");
@@ -580,11 +582,11 @@ export default function Register() {
                     setSelectedRole("");
                   }
                 }}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1 cursor-pointer transition-colors"
+                className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-teal-300 bg-white hover:bg-teal-50 hover:border-teal-500 text-teal-900 text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
               >
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-700 group-hover:-translate-x-0.5 transition-transform" />
                 <span>تغيير الصفة</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           )}
 
