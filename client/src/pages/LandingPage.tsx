@@ -8,21 +8,9 @@ import {
   Users, 
   ArrowLeft, 
   Loader2, 
-  UserCheck, 
-  Volume2, 
-  HeartHandshake, 
-  HelpCircle,
-  X
 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import { trpc } from "@/lib/trpc";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 
 export default function LandingPage() {
   const { isAuthenticated, user, loading } = useAuth();
@@ -34,7 +22,6 @@ export default function LandingPage() {
   const secondaryColor = orgSettings?.colorPrimary2 || "#0f766e";
 
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isBeneficiaryModalOpen, setIsBeneficiaryModalOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -62,11 +49,6 @@ export default function LandingPage() {
       </div>
     );
   }
-
-  const handleSelectRole = (role: "imam" | "muezzin" | "donor" | "other") => {
-    setIsBeneficiaryModalOpen(false);
-    setLocation(`/register?role=${role}`);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background" dir="rtl">
@@ -100,18 +82,19 @@ export default function LandingPage() {
 
             {/* أزرار الدخول */}
             <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsBeneficiaryModalOpen(true)}
-                className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
-                  isScrolled 
-                    ? "text-muted-foreground hover:text-foreground" 
-                    : "text-white/90 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                دخول المستفيدين
-              </Button>
+              <Link href="/register">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
+                    isScrolled 
+                      ? "text-muted-foreground hover:text-foreground" 
+                      : "text-white/90 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  دخول المستفيدين
+                </Button>
+              </Link>
               <Link href="/admin/login">
                 <Button 
                   size="sm" 
@@ -173,15 +156,16 @@ export default function LandingPage() {
 
             {/* الأزرار الرئيسية */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
-              <Button
-                size="lg"
-                onClick={() => setIsBeneficiaryModalOpen(true)}
-                className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer"
-                style={{ color: primaryColor }}
-              >
-                <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-                طلب خدمة جديدة
-              </Button>
+              <Link href="/register">
+                <Button
+                  size="lg"
+                  className="bg-white hover:bg-white/90 font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer"
+                  style={{ color: primaryColor }}
+                >
+                  <FileText className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+                  طلب خدمة جديدة
+                </Button>
+              </Link>
               <Link href="/login">
                 <Button
                   size="lg"
@@ -216,12 +200,11 @@ export default function LandingPage() {
                 سجّل حساباً جديداً أو قدّم تبرعك واستفسارك لمسجدك من خلال البرامج المتاحة. تابع حالة طلبك بشكل مباشر.
               </p>
               <div className="flex flex-col gap-3">
-                <Button 
-                  onClick={() => setIsBeneficiaryModalOpen(true)}
-                  className="w-full gradient-primary text-white font-semibold py-5 cursor-pointer"
-                >
-                  تسجيل حساب / تقديم طلب
-                </Button>
+                <Link href="/register">
+                  <Button className="w-full gradient-primary text-white font-semibold py-5 cursor-pointer">
+                    تسجيل حساب / تقديم طلب
+                  </Button>
+                </Link>
                 <Link href="/login">
                   <Button variant="outline" className="w-full border-primary/40 text-primary hover:bg-primary/5 font-medium cursor-pointer">
                     لديك حساب؟ سجّل دخولك
@@ -266,137 +249,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* ═══════════════ مودال نموذج التسجيل وتحديد الصفة ═══════════════ */}
-      <Dialog open={isBeneficiaryModalOpen} onOpenChange={setIsBeneficiaryModalOpen}>
-        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden border-0 rounded-2xl sm:rounded-3xl bg-white shadow-2xl" dir="rtl">
-          {/* ترويسة المودال */}
-          <div className="bg-slate-50 border-b border-slate-100 p-5 sm:p-6 text-center relative">
-            <img
-              src={orgSettings?.logoUrl || "/logo.svg"}
-              alt="شعار الجمعية"
-              className="h-12 sm:h-14 mx-auto mb-2.5 object-contain"
-            />
-            <h3 className="font-bold text-base sm:text-xl text-gray-900">
-              {orgSettings?.organizationName || "بوابة منارة لإدارة طلبات المساجد"}
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              نموذج التسجيل وتقديم الطلبات والتبرعات
-            </p>
-          </div>
-
-          <div className="p-5 sm:p-7 space-y-5">
-            {/* مؤشر الخطوة */}
-            <div className="flex items-center justify-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-teal-100 text-teal-800 text-xs font-bold">
-                الخطوة 1: تحديد الصفة والعلاقة بالمسجد
-              </span>
-            </div>
-
-            <div className="text-center space-y-1.5">
-              <h4 className="text-base sm:text-lg font-bold text-gray-900">
-                اذكر الصفة (علاقتك بالمسجد)
-              </h4>
-              <p className="text-xs text-gray-500 max-w-md mx-auto leading-relaxed">
-                يرجى اختيار صفتك لتوجيهك للمسار المخصص وتقديم الخدمة المطلوبة بأفضل صورة
-              </p>
-            </div>
-
-            {/* الخيارات الأربعة */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              {/* إمام */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole("imam")}
-                className="p-4 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3 group cursor-pointer shadow-sm hover:shadow"
-              >
-                <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                  <UserCheck className="w-5 h-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-gray-900 group-hover:text-teal-900 text-sm sm:text-base">إمام</h5>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    إمام مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
-                  </p>
-                </div>
-              </button>
-
-              {/* مؤذن */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole("muezzin")}
-                className="p-4 rounded-2xl border-2 border-slate-200 hover:border-teal-600 hover:bg-teal-50/40 text-right transition-all flex items-start gap-3 group cursor-pointer shadow-sm hover:shadow"
-              >
-                <div className="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center shrink-0 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                  <Volume2 className="w-5 h-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-gray-900 group-hover:text-teal-900 text-sm sm:text-base">مؤذن</h5>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    مؤذن مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
-                  </p>
-                </div>
-              </button>
-
-              {/* متبرع */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole("donor")}
-                className="p-4 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/40 text-right transition-all flex items-start gap-3 group cursor-pointer shadow-sm hover:shadow"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                  <HeartHandshake className="w-5 h-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-gray-900 group-hover:text-emerald-900 text-sm sm:text-base">متبرع</h5>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    الرغبة في تقديم تبرع (أرض، عيني، مالي، أو غير ذلك)
-                  </p>
-                </div>
-              </button>
-
-              {/* أخرى */}
-              <button
-                type="button"
-                onClick={() => handleSelectRole("other")}
-                className="p-4 rounded-2xl border-2 border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/40 text-right transition-all flex items-start gap-3 group cursor-pointer shadow-sm hover:shadow"
-              >
-                <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                  <HelpCircle className="w-5 h-5" />
-                </div>
-                <div className="space-y-0.5">
-                  <h5 className="font-bold text-gray-900 group-hover:text-indigo-900 text-sm sm:text-base">أخرى</h5>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">
-                    جار المسجد، أحد جماعة المسجد، ممثل جهة، استفسار عام
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* الروابط السفلية */}
-            <div className="mt-4 pt-4 border-t border-slate-100 text-center space-y-2">
-              <p className="text-xs sm:text-sm text-gray-600">
-                لديك حساب إمام أو مؤذن معتمد بالفعل؟{" "}
-                <Link 
-                  href="/login" 
-                  onClick={() => setIsBeneficiaryModalOpen(false)}
-                  className="font-bold hover:underline" 
-                  style={{ color: primaryColor }}
-                >
-                  تسجيل الدخول
-                </Link>
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsBeneficiaryModalOpen(false)}
-                className="text-xs text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
-              >
-                ← العودة إلى الصفحة الرئيسية
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
