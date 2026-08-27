@@ -1315,16 +1315,16 @@ export default function Register() {
 
                   <div className="space-y-2">
                     <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>تفاصيل المواد والتجهيزات</span>
+                      <span>تفاصيل التبرع العيني</span>
                       <span className="text-destructive">*</span>
                     </Label>
                     <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
-                      يرجى توضيح تفاصيل المواد أو التجهيزات المراد التبرع بها، مثل: مواد بناء، سجاد، مكيفات، دهانات، أدوات صحية، أجهزة صوتية... إلخ، مع ذكر الكميات التقريبية وحالتها جديدة أو مستعملة، وأي تفاصيل أخرى تساعد الجمعية على تقييم التبرع والاستفادة منه.
+                      يرجى توضيح نوع التبرع العيني، الكميات المتاحة، حالتها، موقعها، وإمكانية نقلها أو تسليمها.
                     </p>
                     <Textarea
                       id="inKindDetails"
                       rows={5}
-                      placeholder="اكتب هنا تفاصيل المواد أو التجهيزات، الكميات التقريبية، حالتها، وموقع استلامها..."
+                      placeholder="يرجى توضيح نوع التبرع العيني، الكميات المتاحة، حالتها (جديدة أو مستعملة)، موقعها، وإمكانية نقلها أو تسليمها..."
                       value={formData.inKindDetails}
                       onChange={(e) => handleChange("inKindDetails", e.target.value)}
                       required
