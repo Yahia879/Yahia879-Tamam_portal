@@ -614,9 +614,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("imam")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
                       <UserCheck className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -631,9 +631,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("muezzin")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
                       <Volume2 className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -648,9 +648,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("donor")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
                       <HeartHandshake className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -665,9 +665,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
                       <HelpCircle className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -704,9 +704,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("land")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
                       <LandPlot className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -721,9 +721,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("in_kind")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
                       <Package className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -738,9 +738,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("financial")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -755,9 +755,9 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("other")}
-                    className="p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-slate-300 bg-white hover:bg-slate-50/50 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-xs hover:shadow-md"
+                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-100/60">
+                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
@@ -770,6 +770,7 @@ export default function Register() {
                 </div>
               </div>
             )}
+
 
 
 
