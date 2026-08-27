@@ -33,7 +33,8 @@ import {
   ShieldCheck,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Send
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -1017,25 +1018,21 @@ export default function Register() {
 
             {/* ---------- 2. مسار المتبرع بأرض ---------- */}
             {selectedRole === "donor" && donorType === "land" && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-xs sm:text-sm">
-                  <p className="font-bold mb-1 flex items-center gap-1.5">
-                    <LandPlot className="w-4 h-4 text-emerald-700" />
-                    مسار التبرع بأرض لبناء مسجد
-                  </p>
-                  <p className="text-emerald-800 leading-relaxed text-xs">
-                    يرجى توضيح مساحة الأرض، أبعادها، أطوالها، موقعها، ومالكها الحالي، وأي معلومات إضافية تساعد الجمعية على دراسة التبرع.
-                  </p>
-                </div>
-
-                {/* البيانات الأساسية */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* القسم الأول: بيانات المتبرع والتواصل */}
                 <div className="space-y-4">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">بيانات المتبرع والتواصل</h3>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات المتبرع والتواصل</h3>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold">
-                        الاسم الكامل <span className="text-destructive">*</span>
+                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الاسم الكامل</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="name"
@@ -1043,13 +1040,15 @@ export default function Register() {
                         value={formData.name}
                         onChange={(e) => handleChange("name", e.target.value)}
                         required
-                        className="h-10 sm:h-11 text-right"
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold">
-                        رقم الجوال <span className="text-destructive">*</span>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>رقم الجوال</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -1059,30 +1058,21 @@ export default function Register() {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
+                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold">البريد الإلكتروني (اختياري)</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        className="h-10 sm:h-11 text-left"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold">المدينة / المنطقة</Label>
+                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span>المدينة / المنطقة</span>
+                      </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-10 sm:h-11">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1094,68 +1084,60 @@ export default function Register() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>البريد الإلكتروني (اختياري)</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={formData.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* تفاصيل التبرع بالأرض */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">اذكر تفاصيل التبرع</h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landArea" className="text-xs font-semibold">المساحة التقريبية (م²)</Label>
-                      <Input
-                        id="landArea"
-                        placeholder="مثال: 900 م²"
-                        value={formData.landArea}
-                        onChange={(e) => handleChange("landArea", e.target.value)}
-                        className="h-10 text-right"
-                      />
+                {/* القسم الثاني: اذكر تفاصيل التبرع */}
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <LandPlot className="w-4 h-4" />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landLocation" className="text-xs font-semibold">موقع الأرض / الحي</Label>
-                      <Input
-                        id="landLocation"
-                        placeholder="مثال: حي الروابي"
-                        value={formData.landLocation}
-                        onChange={(e) => handleChange("landLocation", e.target.value)}
-                        className="h-10 text-right"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landOwner" className="text-xs font-semibold">المالك الحالي للأرض</Label>
-                      <Input
-                        id="landOwner"
-                        placeholder="اسم المالك"
-                        value={formData.landOwner}
-                        onChange={(e) => handleChange("landOwner", e.target.value)}
-                        className="h-10 text-right"
-                      />
-                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold">
-                      تفاصيل إضافية عن الأرض وأبعادها <span className="text-destructive">*</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>تفاصيل الأرض والتبرع</span>
+                      <span className="text-destructive">*</span>
                     </Label>
+                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                      يرجى توضيح مساحة الأرض، أبعادها، أطوالها، موقعها، ومالكها الحالي، وأي معلومات إضافية تساعد الجمعية على دراسة التبرع.
+                    </p>
                     <Textarea
                       id="landDetails"
-                      rows={4}
-                      placeholder="يرجى توضيح مساحة الأرض، أبعادها، أطوالها، موقعها، ومالكها الحالي، وأي معلومات إضافية تساعد الجمعية على دراسة التبرع..."
+                      rows={5}
+                      placeholder="اكتب هنا كافة تفاصيل الأرض (المساحة التقريبية، الموقع والحي، الأبعاد والأطوال، اسم المالك الحالي، وأي تفاصيل أخرى)..."
                       value={formData.landDetails}
                       onChange={(e) => handleChange("landDetails", e.target.value)}
                       required
-                      className="text-right leading-relaxed"
+                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
                   </div>
 
                   {/* رفع مستند أو صك اختياري */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="landProofFile" className="text-xs font-semibold flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      إرفاق صورة الصك، كروكي، أو صور الموقع (اختياري)
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="landProofFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5 text-slate-500" />
+                      <span>إرفاق صورة الصك، كروكي، أو صور الموقع (اختياري)</span>
                     </Label>
-                    <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-emerald-500 transition-colors bg-slate-50/50">
+                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
                       <input
                         id="landProofFile"
                         type="file"
@@ -1165,11 +1147,15 @@ export default function Register() {
                       />
                       <label htmlFor="landProofFile" className="cursor-pointer block text-xs text-slate-600">
                         {formData.landProofFile ? (
-                          <span className="text-emerald-700 font-semibold flex items-center justify-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4" /> {formData.landProofFile.name}
+                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
+                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.landProofFile.name}
                           </span>
                         ) : (
-                          "اضغط لاختيار ملف أو صورة (PDF أو صور)"
+                          <div className="space-y-1">
+                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
+                            <p className="font-semibold text-slate-700">اضغط لاختيار ملف أو صورة (PDF أو صور)</p>
+                            <p className="text-[11px] text-slate-400">صك الأرض، مخطط كروكي، أو صور الموقع</p>
+                          </div>
                         )}
                       </label>
                     </div>
@@ -1178,42 +1164,43 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  className="w-full text-white font-bold h-11 sm:h-12 rounded-xl shadow-md cursor-pointer transition-all bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   disabled={isSubmitting || submitPublicRequestMutation.isPending}
                 >
                   {isSubmitting || submitPublicRequestMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جاري إرسال بيانات التبرع...
                     </>
                   ) : (
-                    "إرسال بيانات التبرع بالأرض"
+                    <>
+                      <LandPlot className="w-5 h-5" />
+                      إرسال بيانات التبرع بالأرض
+                    </>
                   )}
                 </Button>
               </form>
             )}
 
+
             {/* ---------- 3. مسار المتبرع بتبرع عيني ---------- */}
             {selectedRole === "donor" && donorType === "in_kind" && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-xs sm:text-sm">
-                  <p className="font-bold mb-1 flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-emerald-700" />
-                    مسار التبرع العيني للمساجد
-                  </p>
-                  <p className="text-emerald-800 leading-relaxed text-xs">
-                    يرجى توضيح نوع التبرع العيني، الكميات المتاحة، حالتها، موقعها، وإمكانية نقلها أو تسليمها.
-                  </p>
-                </div>
-
-                {/* البيانات الأساسية */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* القسم الأول: بيانات المتبرع والتواصل */}
                 <div className="space-y-4">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">بيانات المتبرع والتواصل</h3>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات المتبرع والتواصل</h3>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold">
-                        الاسم الكامل <span className="text-destructive">*</span>
+                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الاسم الكامل</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="name"
@@ -1221,13 +1208,15 @@ export default function Register() {
                         value={formData.name}
                         onChange={(e) => handleChange("name", e.target.value)}
                         required
-                        className="h-10 sm:h-11 text-right"
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold">
-                        رقم الجوال <span className="text-destructive">*</span>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>رقم الجوال</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -1237,30 +1226,21 @@ export default function Register() {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
+                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold">البريد الإلكتروني (اختياري)</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        className="h-10 sm:h-11 text-left"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold">المدينة / الموقع</Label>
+                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span>المدينة / الموقع</span>
+                      </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-10 sm:h-11">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1272,25 +1252,50 @@ export default function Register() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>البريد الإلكتروني (اختياري)</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={formData.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* تفاصيل التبرع العيني */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">اذكر تفاصيل التبرع</h3>
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <Package className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
+                  </div>
 
-                  <div className="space-y-1.5">
-                    <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold">
-                      تفاصيل التبرع العيني والكميات والحالة <span className="text-destructive">*</span>
+                  <div className="space-y-2">
+                    <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>تفاصيل المواد والتجهيزات</span>
+                      <span className="text-destructive">*</span>
                     </Label>
+                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                      يرجى توضيح تفاصيل المواد أو التجهيزات المراد التبرع بها، مثل: مواد بناء، سجاد، مكيفات، دهانات، أدوات صحية، أجهزة صوتية... إلخ، مع ذكر الكميات التقريبية وحالتها جديدة أو مستعملة، وأي تفاصيل أخرى تساعد الجمعية على تقييم التبرع والاستفادة منه.
+                    </p>
                     <Textarea
                       id="inKindDetails"
-                      rows={4}
-                      placeholder="يرجى توضيح نوع التبرع العيني (مكيفات، سجاد، إنارة، أجهزة صوتية، دهانات...)، الكميات المتاحة، حالتها (جديدة/مستعملة)، وموقع استلامها..."
+                      rows={5}
+                      placeholder="اكتب هنا تفاصيل المواد أو التجهيزات، الكميات التقريبية، حالتها، وموقع استلامها..."
                       value={formData.inKindDetails}
                       onChange={(e) => handleChange("inKindDetails", e.target.value)}
                       required
-                      className="text-right leading-relaxed"
+                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
                   </div>
 
@@ -1300,19 +1305,19 @@ export default function Register() {
                       type="checkbox"
                       checked={formData.inKindDeliveryAvailable}
                       onChange={(e) => handleChange("inKindDeliveryAvailable", e.target.checked)}
-                      className="w-4 h-4 text-emerald-600 rounded cursor-pointer"
+                      className="w-4 h-4 text-primary rounded cursor-pointer"
                     />
-                    <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-700 cursor-pointer">
+                    <Label htmlFor="inKindDelivery" className="text-xs sm:text-sm text-slate-700 cursor-pointer font-medium">
                       إمكانية نقل وتوصيل التبرع العيني إلى موقع المسجد أو مستودعات الجمعية متاحة
                     </Label>
                   </div>
 
                   <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="inKindFile" className="text-xs font-semibold flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-emerald-600" />
-                      إرفاق صور للمواد أو جدول الكميات (اختياري)
+                    <Label htmlFor="inKindFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5 text-slate-500" />
+                      <span>إرفاق صور للمواد أو جدول الكميات (اختياري)</span>
                     </Label>
-                    <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-emerald-500 transition-colors bg-slate-50/50">
+                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
                       <input
                         id="inKindFile"
                         type="file"
@@ -1322,11 +1327,15 @@ export default function Register() {
                       />
                       <label htmlFor="inKindFile" className="cursor-pointer block text-xs text-slate-600">
                         {formData.inKindFile ? (
-                          <span className="text-emerald-700 font-semibold flex items-center justify-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4" /> {formData.inKindFile.name}
+                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
+                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.inKindFile.name}
                           </span>
                         ) : (
-                          "اضغط لاختيار صورة أو ملف للمواد العينية"
+                          <div className="space-y-1">
+                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
+                            <p className="font-semibold text-slate-700">اضغط لاختيار صورة أو ملف للمواد العينية</p>
+                            <p className="text-[11px] text-slate-400">PDF، صور المواد، أو جدول حصر الكميات</p>
+                          </div>
                         )}
                       </label>
                     </div>
@@ -1335,16 +1344,20 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  className="w-full text-white font-bold h-11 sm:h-12 rounded-xl shadow-md cursor-pointer transition-all bg-emerald-600 hover:bg-emerald-700"
+                  className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   disabled={isSubmitting || submitPublicRequestMutation.isPending}
                 >
                   {isSubmitting || submitPublicRequestMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جاري إرسال بيانات التبرع...
                     </>
                   ) : (
-                    "إرسال بيانات التبرع العيني"
+                    <>
+                      <Package className="w-5 h-5" />
+                      إرسال بيانات التبرع العيني
+                    </>
                   )}
                 </Button>
               </form>
@@ -1354,21 +1367,21 @@ export default function Register() {
             {selectedRole === "donor" && donorType === "financial" && (
               <div className="space-y-6">
                 {/* رسالة الشكر والإرشاد المعتمدة */}
-                <div className="p-4 sm:p-5 bg-gradient-to-br from-emerald-50 to-teal-50/80 border border-emerald-200 rounded-2xl text-emerald-950 text-right space-y-2 shadow-sm">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/90 text-emerald-800 text-xs font-bold">
+                <div className="p-4 sm:p-5 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl text-slate-900 text-right space-y-2 shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-xs font-bold">
                     <HeartHandshake className="w-4 h-4" />
                     رسالة شكر وتقدير
                   </div>
-                  <p className="font-semibold text-sm sm:text-base leading-relaxed text-emerald-900">
+                  <p className="font-semibold text-sm sm:text-base leading-relaxed text-slate-800">
                     نشكر لكم رغبتكم في دعم الجمعية، ويمكنكم التبرع من خلال التحويل إلى حساب الجمعية الموضح أدناه، أو من خلال اختيار إحدى فرص التبرع المتاحة على موقع التبرعات الإلكتروني.
                   </p>
                 </div>
 
                 {/* بطاقة الحساب البنكي الرسمي */}
-                <div className="rounded-2xl border-2 border-emerald-600/30 bg-gradient-to-b from-white to-slate-50 p-5 sm:p-6 shadow-md space-y-4">
+                <div className="rounded-2xl border-2 border-primary/25 bg-gradient-to-b from-white to-slate-50/70 p-5 sm:p-6 shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b pb-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
                         <CreditCard className="w-5 h-5" />
                       </div>
                       <div>
@@ -1379,7 +1392,7 @@ export default function Register() {
                       </div>
                     </div>
 
-                    <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg">
+                    <span className="text-[11px] font-bold px-2.5 py-1 bg-primary/10 text-primary rounded-lg">
                       معتمد رسمياً
                     </span>
                   </div>
@@ -1411,8 +1424,8 @@ export default function Register() {
                       >
                         {copiedField === "رقم الآيبان" ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">تم النسخ</span>
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-primary font-bold">تم النسخ</span>
                           </>
                         ) : (
                           <>
@@ -1440,8 +1453,8 @@ export default function Register() {
                       >
                         {copiedField === "رقم الحساب" ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-emerald-700">تم النسخ</span>
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                            <span className="text-primary font-bold">تم النسخ</span>
                           </>
                         ) : (
                           <>
@@ -1460,7 +1473,8 @@ export default function Register() {
                     href={donationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 w-full text-white font-bold h-12 rounded-xl shadow-md bg-emerald-600 hover:bg-emerald-700 transition-all cursor-pointer text-sm sm:text-base"
+                    className="inline-flex items-center justify-center gap-2 w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer text-sm sm:text-base"
+                    style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   >
                     <span>الانتقال إلى موقع التبرعات الإلكتروني</span>
                     <ExternalLink className="w-4 h-4" />
@@ -1473,7 +1487,7 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => setShowTransferProofSection(true)}
-                      className="text-xs sm:text-sm font-semibold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center justify-center w-full gap-1 cursor-pointer py-1"
+                      className="text-xs sm:text-sm font-semibold text-primary hover:underline flex items-center justify-center w-full gap-1 cursor-pointer py-1"
                     >
                       <span>هل قمت بالتحويل وترغب في إشعار الجمعية لتزويدك بسند قبض؟ (اضغط هنا)</span>
                     </button>
@@ -1543,7 +1557,7 @@ export default function Register() {
                       {/* رفع إيصال التحويل */}
                       <div className="space-y-1">
                         <Label htmlFor="transferReceipt" className="text-xs font-semibold">إرفاق إيصال التحويل (صورة أو PDF)</Label>
-                        <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-emerald-500 bg-white">
+                        <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-primary bg-white">
                           <input
                             id="transferReceipt"
                             type="file"
@@ -1553,8 +1567,8 @@ export default function Register() {
                           />
                           <label htmlFor="transferReceipt" className="cursor-pointer block text-xs text-slate-600">
                             {formData.transferReceiptFile ? (
-                              <span className="text-emerald-700 font-semibold flex items-center justify-center gap-1.5">
-                                <CheckCircle2 className="w-4 h-4" /> {formData.transferReceiptFile.name}
+                              <span className="text-primary font-bold flex items-center justify-center gap-1.5">
+                                <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.transferReceiptFile.name}
                               </span>
                             ) : (
                               "اضغط لاختيار صورة الإيصال البنكي"
@@ -1565,7 +1579,8 @@ export default function Register() {
 
                       <Button
                         type="submit"
-                        className="w-full text-white font-bold h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                        className="w-full text-white font-bold h-10 rounded-xl cursor-pointer"
+                        style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                         disabled={isSubmitting || submitPublicRequestMutation.isPending}
                       >
                         {isSubmitting ? "جاري الإرسال..." : "إرسال إشعار التحويل للجمعية"}
@@ -1578,107 +1593,37 @@ export default function Register() {
 
             {/* ---------- 5. مسار متبرع - أخرى ---------- */}
             {selectedRole === "donor" && donorType === "other" && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-950 text-xs sm:text-sm">
-                  <p className="font-bold mb-1">مسار التبرعات الأخرى والشراكات</p>
-                  <p className="text-emerald-800 leading-relaxed text-xs">
-                    يرجى تزويدنا بتفاصيل نوع التبرع أو المبادرة التي ترغبون في تقديمها للجمعية.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-xs sm:text-sm font-semibold">
-                      الاسم الكامل <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="name"
-                      placeholder="أدخل اسمك الكريم"
-                      value={formData.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      required
-                      className="h-10 sm:h-11 text-right"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold">
-                      رقم الجوال <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="05XXXXXXXX"
-                      value={formData.phone}
-                      onChange={(e) => handleChange("phone", e.target.value)}
-                      required
-                      maxLength={10}
-                      className="h-10 sm:h-11 text-left"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="donorOtherDetails" className="text-xs sm:text-sm font-semibold">
-                    تفاصيل التبرع المقترح <span className="text-destructive">*</span>
-                  </Label>
-                  <Textarea
-                    id="donorOtherDetails"
-                    rows={4}
-                    placeholder="اكتب تفاصيل التبرع أو المبادرة المقترحة..."
-                    value={formData.donorOtherDetails}
-                    onChange={(e) => handleChange("donorOtherDetails", e.target.value)}
-                    required
-                    className="text-right leading-relaxed"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full text-white font-bold h-11 sm:h-12 rounded-xl shadow-md cursor-pointer bg-emerald-600 hover:bg-emerald-700"
-                  disabled={isSubmitting || submitPublicRequestMutation.isPending}
-                >
-                  {isSubmitting ? "جاري الإرسال..." : "إرسال البيانات"}
-                </Button>
-              </form>
-            )}
-
-            {/* ---------- 6. مسار أخرى (استفسارات وطلبات عامة) ---------- */}
-            {selectedRole === "other" && (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-950 text-xs sm:text-sm">
-                  <p className="font-bold mb-1 flex items-center gap-1.5">
-                    <HelpCircle className="w-4 h-4 text-indigo-700" />
-                    مسار الطلبات والاستفسارات العامة
-                  </p>
-                  <p className="text-indigo-800 leading-relaxed text-xs">
-                    يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
-                  </p>
-                </div>
-
-                {/* البيانات الأساسية */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* القسم الأول: بيانات المتبرع والتواصل */}
                 <div className="space-y-4">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">بيانات مقدم الطلب</h3>
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات المتبرع والتواصل</h3>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold">
-                        الاسم الكامل <span className="text-destructive">*</span>
+                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الاسم الكامل</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="name"
-                        placeholder="أدخل اسمك الكامل"
+                        placeholder="أدخل اسمك الكريم"
                         value={formData.name}
                         onChange={(e) => handleChange("name", e.target.value)}
                         required
-                        className="h-10 sm:h-11 text-right"
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold">
-                        رقم الجوال <span className="text-destructive">*</span>
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>رقم الجوال</span>
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -1688,30 +1633,118 @@ export default function Register() {
                         onChange={(e) => handleChange("phone", e.target.value)}
                         required
                         maxLength={10}
-                        className="h-10 sm:h-11 text-left"
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
                         dir="ltr"
                       />
+                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* القسم الثاني: تفاصيل التبرع */}
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع والمقترح</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="donorOtherDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>تفاصيل التبرع المقترح</span>
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="donorOtherDetails"
+                      rows={5}
+                      placeholder="اكتب هنا تفاصيل نوع التبرع أو المبادرة أو الشراكة المقترحة للجمعية..."
+                      value={formData.donorOtherDetails}
+                      onChange={(e) => handleChange("donorOtherDetails", e.target.value)}
+                      required
+                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
+                  disabled={isSubmitting || submitPublicRequestMutation.isPending}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      جاري الإرسال...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      إرسال بيانات التبرع
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
+
+            {/* ---------- 6. مسار أخرى (استفسارات وطلبات عامة) ---------- */}
+            {selectedRole === "other" && (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* القسم الأول: بيانات مقدم الطلب */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات مقدم الطلب</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <span>الاسم الكامل</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="name"
+                        placeholder="أدخل اسمك الكريم"
+                        value={formData.name}
+                        onChange={(e) => handleChange("name", e.target.value)}
+                        required
+                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>رقم الجوال</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="05XXXXXXXX"
+                        value={formData.phone}
+                        onChange={(e) => handleChange("phone", e.target.value)}
+                        required
+                        maxLength={10}
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        dir="ltr"
+                      />
+                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold">البريد الإلكتروني (اختياري)</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        className="h-10 sm:h-11 text-left"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold">المدينة</Label>
+                      <Label htmlFor="city" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                        <span>المدينة</span>
+                      </Label>
                       <Select value={formData.city} onValueChange={(value) => handleChange("city", value)}>
-                        <SelectTrigger className="h-10 sm:h-11">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
                           <SelectValue placeholder="اختر المدينة" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1723,17 +1756,39 @@ export default function Register() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        <span>البريد الإلكتروني (اختياري)</span>
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={formData.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+                        dir="ltr"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* تحديد الصفة والطلب */}
-                <div className="space-y-4 pt-2">
-                  <h3 className="font-bold text-gray-900 text-sm border-b pb-2">تفاصيل الصفة والطلب</h3>
+                {/* القسم الثاني: تحديد الصفة والطلب */}
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                      <HelpCircle className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والطلب</h3>
+                  </div>
 
                   {/* حدد الصفة */}
                   <div className="space-y-2">
-                    <Label htmlFor="customRoleTitle" className="text-xs sm:text-sm font-semibold">
-                      حدد الصفة <span className="text-destructive">*</span>
+                    <Label htmlFor="customRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>حدد صفتك أو علاقتك بالمسجد</span>
+                      <span className="text-destructive">*</span>
                     </Label>
                     <Input
                       id="customRoleTitle"
@@ -1741,7 +1796,7 @@ export default function Register() {
                       value={formData.customRoleTitle}
                       onChange={(e) => handleChange("customRoleTitle", e.target.value)}
                       required
-                      className="h-10 sm:h-11 text-right"
+                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
                     />
 
                     {/* خيارات سريعة للنقر */}
@@ -1751,10 +1806,10 @@ export default function Register() {
                           key={tag}
                           type="button"
                           onClick={() => handleChange("customRoleTitle", tag)}
-                          className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                          className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${
                             formData.customRoleTitle === tag
-                              ? "bg-indigo-600 text-white border-indigo-600"
-                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                              ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
                           }`}
                         >
                           {tag}
@@ -1763,29 +1818,33 @@ export default function Register() {
                     </div>
                   </div>
 
-                  {/* اكتب طلبك */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="requestDetails" className="text-xs sm:text-sm font-semibold">
-                      اكتب طلبك <span className="text-destructive">*</span>
+                  {/* تفاصيل الطلب */}
+                  <div className="space-y-2 pt-1">
+                    <Label htmlFor="requestDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
+                      <span>تفاصيل الطلب أو الاستفسار</span>
+                      <span className="text-destructive">*</span>
                     </Label>
+                    <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                      يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
+                    </p>
                     <Textarea
                       id="requestDetails"
-                      rows={4}
-                      placeholder="يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد..."
+                      rows={5}
+                      placeholder="اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد..."
                       value={formData.requestDetails}
                       onChange={(e) => handleChange("requestDetails", e.target.value)}
                       required
-                      className="text-right leading-relaxed"
+                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
                   </div>
 
-                  {/* مرفق اختياري */}
+                  {/* رفع مستند أو صورة اختياري */}
                   <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="otherFile" className="text-xs font-semibold flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-indigo-600" />
-                      إرفاق مستند أو صورة توضيحية (اختياري)
+                    <Label htmlFor="otherFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <Upload className="w-3.5 h-3.5 text-slate-500" />
+                      <span>إرفاق مستند أو صورة داعمة (اختياري)</span>
                     </Label>
-                    <div className="border border-dashed border-slate-300 rounded-xl p-3 text-center cursor-pointer hover:border-indigo-500 transition-colors bg-slate-50/50">
+                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
                       <input
                         id="otherFile"
                         type="file"
@@ -1795,11 +1854,15 @@ export default function Register() {
                       />
                       <label htmlFor="otherFile" className="cursor-pointer block text-xs text-slate-600">
                         {formData.otherFile ? (
-                          <span className="text-indigo-700 font-semibold flex items-center justify-center gap-1.5">
-                            <CheckCircle2 className="w-4 h-4" /> {formData.otherFile.name}
+                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
+                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.otherFile.name}
                           </span>
                         ) : (
-                          "اضغط لاختيار ملف توضيحي"
+                          <div className="space-y-1">
+                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
+                            <p className="font-semibold text-slate-700">اضغط لاختيار ملف أو صورة (PDF أو صور)</p>
+                            <p className="text-[11px] text-slate-400">PDF أو صور توضيحية للطلب</p>
+                          </div>
                         )}
                       </label>
                     </div>
@@ -1808,16 +1871,20 @@ export default function Register() {
 
                 <Button
                   type="submit"
-                  className="w-full text-white font-bold h-11 sm:h-12 rounded-xl shadow-md cursor-pointer transition-all bg-indigo-600 hover:bg-indigo-700"
+                  className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   disabled={isSubmitting || submitPublicRequestMutation.isPending}
                 >
                   {isSubmitting || submitPublicRequestMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                       جاري إرسال الطلب...
                     </>
                   ) : (
-                    "إرسال الطلب / الاستفسار"
+                    <>
+                      <Send className="w-5 h-5" />
+                      إرسال الطلب للجمعية
+                    </>
                   )}
                 </Button>
               </form>
