@@ -1475,36 +1475,48 @@ export default function Register() {
             {selectedRole === "donor" && donorType === "financial" && (
               <div className="space-y-6">
                 {/* بطاقة الحساب البنكي الرسمي مع الـ QR */}
-                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-4 sm:p-6 shadow-sm space-y-5">
-                  <div className="text-center space-y-1.5 pb-1">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
-                      <CreditCard className="w-4 h-4" />
-                      <span>الحساب البنكي الرسمي المعتمد للتبرعات</span>
+                <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-7 shadow-sm space-y-6">
+                  {/* ترويسة الحساب البنكي */}
+                  <div className="flex items-center justify-between border-b pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold border border-primary/20">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-base">مصرف الراجحي</h4>
+                        <p className="text-xs text-slate-500">الحساب البنكي الرسمي المعتمد</p>
+                      </div>
                     </div>
-                    <h3 className="font-bold text-slate-900 text-base sm:text-lg">
-                      {orgSettings?.organizationName || "جمعية عمارة المساجد منارة"}
-                    </h3>
+
+                    <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-lg border border-primary/20">
+                      معتمد رسمياً
+                    </span>
                   </div>
 
-                  {/* صورة بطاقة الحساب والـ QR الرسمية */}
-                  <div className="max-w-xs sm:max-w-sm mx-auto rounded-2xl overflow-hidden shadow-md border-2 border-slate-200/90 bg-slate-950 group relative">
-                    <img
-                      src="/bank-rajhi-qr.jpg"
-                      alt="حساب الراجحي لجمعية عمارة المساجد منارة"
-                      className="w-full h-auto object-cover transition-transform group-hover:scale-[1.01]"
-                    />
-                    <a
-                      href="/bank-rajhi-qr.jpg"
-                      download="حساب_الراجحي_جمعية_منارة.jpg"
-                      className="absolute bottom-3 left-3 bg-black/75 hover:bg-black text-white text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 backdrop-blur-xs transition-colors cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>حفظ البطاقة</span>
-                    </a>
+                  {/* اسم المستفيد */}
+                  <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 text-right">
+                    <span className="text-[11px] font-semibold text-slate-500 block mb-0.5">اسم المستفيد (الجمعية):</span>
+                    <p className="text-sm sm:text-base font-bold text-slate-900">
+                      {orgSettings?.bankAccountName || orgSettings?.organizationName || "جمعية عمارة المساجد منارة"}
+                    </p>
+                  </div>
+
+                  {/* رمز الـ QR للتحويل السريع */}
+                  <div className="text-center space-y-2.5 py-1">
+                    <div className="w-48 h-48 sm:w-52 sm:h-52 mx-auto p-3 bg-white rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-center group hover:border-primary transition-all">
+                      <img
+                        src="/bank-qr-code.png"
+                        alt="رمز QR للتحويل السريع - مصرف الراجحي"
+                        className="w-full h-full object-contain rounded-lg"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">
+                      امسح الرمز عبر تطبيق الراجحي أو أي تطبيق بنكي للتحويل السريع
+                    </p>
                   </div>
 
                   {/* حقول النسخ السريع: رقم الحساب والآيبان */}
-                  <div className="space-y-3 pt-2">
+                  <div className="space-y-3 pt-1">
                     {/* رقم الآيبان */}
                     <div className="p-3.5 bg-slate-50 rounded-xl flex items-center justify-between gap-2 border-2 border-slate-200/80 hover:border-primary/40 transition-colors">
                       <div className="text-right overflow-hidden">
