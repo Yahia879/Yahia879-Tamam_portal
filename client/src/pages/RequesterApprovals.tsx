@@ -927,7 +927,6 @@ export default function RequesterApprovals() {
                         <TableHead className="text-right">مقدم التبرع</TableHead>
                         <TableHead className="text-right">نوع التبرع</TableHead>
                         <TableHead className="text-right">أهم تفاصيل التبرع</TableHead>
-                        <TableHead className="text-right">المرفقات</TableHead>
                         <TableHead className="text-right">تاريخ الإرسال</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-left pl-6">الإجراءات</TableHead>
@@ -984,23 +983,6 @@ export default function RequesterApprovals() {
                                 <p className="text-xs text-muted-foreground line-clamp-2" title={sub.details || ""}>
                                   {sub.details || "—"}
                                 </p>
-                              )}
-                            </TableCell>
-
-                            {/* المرفقات */}
-                            <TableCell>
-                              {sub.attachmentUrl ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-7 text-xs gap-1 border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
-                                  onClick={() => setPreviewUrl(sub.attachmentUrl)}
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  معاينة
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
                               )}
                             </TableCell>
 
