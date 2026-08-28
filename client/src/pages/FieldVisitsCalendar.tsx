@@ -1092,12 +1092,12 @@ function FieldVisitsCalendarContent() {
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 تفاصيل وملاحظات إضافية
               </Label>
-              <Textarea
-                rows={3}
+              <textarea
+                rows={4}
                 value={eventFormData.description}
                 onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
                 placeholder="أضف أي تفاصيل أو أهداف أو متطلبات خاصة بهذا الموعد..."
-                className="rounded-2xl text-xs bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all resize-none leading-relaxed text-right p-3"
+                className="w-full min-h-[110px] rounded-2xl text-xs bg-muted/20 dark:bg-muted/10 border border-border/70 focus:border-primary focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all outline-none leading-relaxed text-right p-3.5 resize-y"
               />
             </div>
 
