@@ -105,15 +105,6 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "عاجلة جداً", color: "text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800" },
 ];
 
-const EVENT_TYPE_OPTIONS = [
-  { value: "meeting", label: "اجتماع عمل", icon: "👥" },
-  { value: "inspection", label: "معاينة خاصة", icon: "🔍" },
-  { value: "follow_up", label: "متابعة دورية", icon: "📋" },
-  { value: "task", label: "مهمة ميدانية", icon: "⚡" },
-  { value: "custom", label: "حدث مخصص", icon: "✨" },
-  { value: "other", label: "أخرى", icon: "📌" },
-];
-
 function FieldVisitsCalendarContent() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(new Date());
@@ -1007,53 +998,27 @@ function FieldVisitsCalendarContent() {
               />
             </div>
 
-            {/* Category & Priority in 2 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Event Type */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">نوع الحدث</Label>
-                <Select
-                  value={eventFormData.eventType}
-                  onValueChange={(val) => setEventFormData({ ...eventFormData, eventType: val })}
-                >
-                  <SelectTrigger className="rounded-2xl h-10 text-xs border-border/70">
-                    <SelectValue placeholder="اختر النوع" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVENT_TYPE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        <span className="flex items-center gap-2">
-                          <span>{opt.icon}</span>
-                          <span>{opt.label}</span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Priority Pills */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground">مستوى الأولوية</Label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {PRIORITY_OPTIONS.map((p) => {
-                    const isSelected = eventFormData.priority === p.value;
-                    return (
-                      <button
-                        key={p.value}
-                        type="button"
-                        onClick={() => setEventFormData({ ...eventFormData, priority: p.value as any })}
-                        className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center border ${
-                          isSelected
-                            ? `${p.color} ring-2 ring-primary/30 font-black shadow-xs`
-                            : "bg-muted/40 text-muted-foreground border-border/60 hover:bg-muted"
-                        }`}
-                      >
-                        {p.label}
-                      </button>
-                    );
-                  })}
-                </div>
+            {/* Priority Pills */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground">مستوى الأولوية</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {PRIORITY_OPTIONS.map((p) => {
+                  const isSelected = eventFormData.priority === p.value;
+                  return (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setEventFormData({ ...eventFormData, priority: p.value as any })}
+                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center border ${
+                        isSelected
+                          ? `${p.color} ring-2 ring-primary/30 font-black shadow-xs`
+                          : "bg-muted/40 text-muted-foreground border-border/60 hover:bg-muted"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1100,43 +1065,18 @@ function FieldVisitsCalendarContent() {
               </div>
             </div>
 
-            {/* Staff & Location in 2 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-primary" />
-                  الموظف المسؤول
-                </Label>
-                <Select
-                  value={eventFormData.assignedTo}
-                  onValueChange={(val) => setEventFormData({ ...eventFormData, assignedTo: val })}
-                >
-                  <SelectTrigger className="rounded-2xl h-10 text-xs border-border/70">
-                    <SelectValue placeholder="اختر الموظف المسند إليه" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون إسناد</SelectItem>
-                    {staffUsers.map((u: any) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.name} ({u.role})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-primary" />
-                  الموقع أو المسجد
-                </Label>
-                <Input
-                  value={eventFormData.location}
-                  onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
-                  placeholder="مثال: قاعة الاجتماعات الرئيسية، مسجد السلام..."
-                  className="rounded-2xl h-10 text-xs border-border/70"
-                />
-              </div>
+            {/* Location */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                الموقع
+              </Label>
+              <Input
+                value={eventFormData.location}
+                onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
+                placeholder="مثال: قاعة الاجتماعات الرئيسية، مقر الجمعية، أبها..."
+                className="rounded-2xl h-10 text-xs border-border/70"
+              />
             </div>
 
             {/* Description & Notes */}
