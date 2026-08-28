@@ -83,10 +83,125 @@ export const serviceFormSettingsSchema = z.object({
   fields: z.array(serviceFieldSchema),
 });
 
-export type FormField = z.infer<typeof formFieldSchema>;
-export type EvaluationFormSettings = z.infer<typeof evaluationFormSettingsSchema>;
-export type ServiceField = z.infer<typeof serviceFieldSchema>;
-export type ServiceFormSettings = z.infer<typeof serviceFormSettingsSchema>;
+export const registrationFormSettingsSchema = z.object({
+  formId: z.string(),
+  formName: z.string().optional(),
+  description: z.string().optional(),
+  fields: z.array(serviceFieldSchema),
+});
+
+export type RegistrationFormSettings = z.infer<typeof registrationFormSettingsSchema>;
+
+const REGISTRATION_SETTING_PREFIX = "registration_form_customization_";
+
+export const REGISTRATION_FORMS_METADATA = [
+  {
+    id: "donor_land",
+    name: "مسار المتبرع بأرض",
+    track: "land",
+    role: "donor",
+    description: "استمارة تقديم بيانات قطعة أرض للتبرع بها لبناء أو توسعة مسجد",
+    icon: "LandPlot",
+    color: "bg-emerald-600",
+    badge: "متبرع بأرض",
+  },
+  {
+    id: "donor_inkind",
+    name: "مسار المتبرع بتبرع عيني",
+    track: "in_kind",
+    role: "donor",
+    description: "استمارة تقديم التبرعات العينية من مواد بناء، أجهزة تكييف، فرش، صوتيات",
+    icon: "Package",
+    color: "bg-teal-600",
+    badge: "تبرع عيني",
+  },
+  {
+    id: "donor_financial",
+    name: "مسار المتبرع بتبرع مالي",
+    track: "financial",
+    role: "donor",
+    description: "استمارة وبيانات التحويل البنكي والتبرع المالي وإشعار الجمعية",
+    icon: "CreditCard",
+    color: "bg-amber-600",
+    badge: "تبرع مالي",
+  },
+  {
+    id: "donor_other",
+    name: "مسار متبرع (شراكة / وقفية / أخرى)",
+    track: "other",
+    role: "donor",
+    description: "استمارة تقديم مقترحات المبادرات المجتمعية والأوقاف وأنواع التبرع المخصصة",
+    icon: "Sparkles",
+    color: "bg-blue-600",
+    badge: "متبرع أخرى",
+  },
+  {
+    id: "other",
+    name: "مسار أخرى (استفسارات وطلبات عامة)",
+    track: "other",
+    role: "other",
+    description: "استمارة الاستفسارات العامة وطلبات جيران وجماعة المساجد والجهات",
+    icon: "HelpCircle",
+    color: "bg-sky-600",
+    badge: "استفسارات عامة",
+  },
+];
+
+export function getDefaultFieldsForRegistrationForm(formId: string): ServiceField[] {
+  switch (formId) {
+    case "donor_land":
+      return [
+        { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: true, isActive: true, order: 1, isSystem: true },
+        { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: true, isActive: true, order: 2, isSystem: true },
+        { id: "email", type: "email", label: "البريد الإلكتروني", placeholder: "name@example.com", required: true, isActive: true, order: 3, isSystem: true },
+        { id: "customRoleTitle", type: "text", label: "الصفة أو العلاقة بالمسجد", placeholder: "مثال: مالك الأرض، فاعل خير، وكيل المالك...", required: true, isActive: true, order: 4, isSystem: true },
+        { id: "landArea", type: "text", label: "مساحة الأرض (م²)", placeholder: "مثال: 900 م²", required: true, isActive: true, order: 5, isSystem: true },
+        { id: "landDimensions", type: "text", label: "أبعاد وأطوال الأرض", placeholder: "مثال: 30م × 30م، على شارعين", required: true, isActive: true, order: 6, isSystem: true },
+        { id: "landLocation", type: "text", label: "موقع الأرض / الحي", placeholder: "مثال: حي الروابي، بالقرب من...", required: true, isActive: true, order: 7, isSystem: true },
+        { id: "landOwner", type: "text", label: "المالك الحالي للأرض", placeholder: "اسم المالك أو صفة الواقف", required: true, isActive: true, order: 8, isSystem: true },
+        { id: "landDetails", type: "textarea", label: "معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع", placeholder: "اكتب هنا أي معلومات إضافية تساعد الجمعية على دراسة وتقييم التبرع...", required: true, isActive: true, order: 9, isSystem: true },
+      ];
+    case "donor_inkind":
+      return [
+        { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: true, isActive: true, order: 1, isSystem: true },
+        { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: true, isActive: true, order: 2, isSystem: true },
+        { id: "email", type: "email", label: "البريد الإلكتروني", placeholder: "name@example.com", required: true, isActive: true, order: 3, isSystem: true },
+        { id: "customRoleTitle", type: "text", label: "الصفة أو العلاقة بالمسجد", placeholder: "مثال: متبرع، مورد، فاعل خير، جار المسجد...", required: true, isActive: true, order: 4, isSystem: true },
+        { id: "inKindItemType", type: "text", label: "نوع التبرع العيني", placeholder: "مثال: مكيفات، سجاد، إنارة، مواد بناء...", required: true, isActive: true, order: 5, isSystem: true },
+        { id: "inKindQuantity", type: "text", label: "الكميات المتاحة", placeholder: "مثال: 5 أجهزة، 200 م²...", required: true, isActive: true, order: 6, isSystem: true },
+        { id: "inKindCondition", type: "text", label: "حالة المواد", placeholder: "مثال: جديدة، مستعملة بحالة ممتازة...", required: true, isActive: true, order: 7, isSystem: true },
+        { id: "inKindLocation", type: "text", label: "موقع المواد / الاستلام", placeholder: "مثال: مستودع في حي الروابي، أبها...", required: true, isActive: true, order: 8, isSystem: true },
+        { id: "inKindDeliveryAvailable", type: "checkbox", label: "هل يوجد إمكانية لنقل وتوصيل التبرع العيني؟", helpText: "حدد إذا كانت إمكانية النقل والتوصيل متوفرة من طرفكم", required: false, isActive: true, order: 9, isSystem: true },
+        { id: "inKindDetails", type: "textarea", label: "معلومات وملاحظات إضافية عن التبرع العيني (اختياري)", placeholder: "اكتب هنا أي تفاصيل أو مواصفات إضافية عن المواد أو التجهيزات...", required: false, isActive: true, order: 10, isSystem: true },
+      ];
+    case "donor_financial":
+      return [
+        { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: false, isActive: true, order: 1, isSystem: true },
+        { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: false, isActive: true, order: 2, isSystem: true },
+        { id: "financialAmount", type: "number", label: "مبلغ التبرع (ريال سعودي)", placeholder: "مثال: 5000", required: false, isActive: true, order: 3, isSystem: true },
+        { id: "financialBankName", type: "text", label: "اسم البنك المحول منه", placeholder: "مثال: مصرف الراجحي، البنك الأهلي...", required: false, isActive: true, order: 4, isSystem: true },
+        { id: "notes", type: "textarea", label: "ملاحظات وتوجيه التبرع", placeholder: "حدد رغبتك في توجيه التبرع (مسجد محدد، مشروع محدد، عام)...", required: false, isActive: true, order: 5, isSystem: true },
+      ];
+    case "donor_other":
+      return [
+        { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: true, isActive: true, order: 1, isSystem: true },
+        { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: true, isActive: true, order: 2, isSystem: true },
+        { id: "email", type: "email", label: "البريد الإلكتروني", placeholder: "name@example.com", required: true, isActive: true, order: 3, isSystem: true },
+        { id: "customRoleTitle", type: "text", label: "الصفة أو العلاقة بالمسجد", placeholder: "مثال: فاعل خير، رجل أعمال، ممثل جهة أو شركة، جار المسجد...", required: true, isActive: true, order: 4, isSystem: true },
+        { id: "donorOtherDetails", type: "textarea", label: "تفاصيل التبرع المقترح", placeholder: "اكتب هنا تفاصيل نوع التبرع أو المبادرة أو الشراكة المقترحة للجمعية...", required: true, isActive: true, order: 5, isSystem: true },
+      ];
+    case "other":
+    case "general_inquiry":
+    default:
+      return [
+        { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: true, isActive: true, order: 1, isSystem: true },
+        { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: true, isActive: true, order: 2, isSystem: true },
+        { id: "email", type: "email", label: "البريد الإلكتروني", placeholder: "name@example.com", required: true, isActive: true, order: 3, isSystem: true },
+        { id: "customRoleTitle", type: "text", label: "الصفة أو العلاقة بالمسجد", placeholder: "مثال: جار المسجد، أحد جماعة المسجد، ممثل جهة، صاحب استفسار...", required: true, isActive: true, order: 4, isSystem: true },
+        { id: "requestDetails", type: "textarea", label: "تفاصيل الطلب أو الاستفسار", placeholder: "اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد...", required: true, isActive: true, order: 5, isSystem: true },
+      ];
+  }
+}
 
 export const DEFAULT_EVALUATION_FORM_SETTINGS: EvaluationFormSettings = {
   title: "قياس رضا المستفيدين من خدمات الجمعية",
@@ -494,6 +609,133 @@ export const formsRouter = router({
         data: {
           serviceId: input.serviceId,
           fields: getDefaultFieldsForService(input.serviceId),
+        },
+      };
+    }),
+
+  // ==================== نماذج التسجيل والتبرعات ====================
+
+  // جلب قائمة كافة نماذج التسجيل المتاحة للتخصيص
+  getRegistrationFormsList: publicProcedure.query(async () => {
+    return REGISTRATION_FORMS_METADATA;
+  }),
+
+  // جلب حقول نموذج تسجيل/تبرع محدد
+  getRegistrationFormConfig: publicProcedure
+    .input(z.object({ formId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      const settingKey = `${REGISTRATION_SETTING_PREFIX}${input.formId}`;
+      const defaultFields = getDefaultFieldsForRegistrationForm(input.formId);
+
+      const meta = REGISTRATION_FORMS_METADATA.find((f) => f.id === input.formId);
+
+      if (!db) {
+        return {
+          formId: input.formId,
+          formName: meta?.name || input.formId,
+          fields: defaultFields,
+          isCustomized: false,
+        };
+      }
+
+      try {
+        const [setting] = await db
+          .select()
+          .from(brandSettings)
+          .where(eq(brandSettings.settingKey, settingKey))
+          .limit(1);
+
+        if (setting && setting.settingValue) {
+          const parsed = JSON.parse(setting.settingValue);
+          const validated = registrationFormSettingsSchema.safeParse(parsed);
+          if (validated.success) {
+            return {
+              ...validated.data,
+              formName: meta?.name || validated.data.formName || input.formId,
+              isCustomized: true,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("Error reading registration form config:", e);
+      }
+
+      return {
+        formId: input.formId,
+        formName: meta?.name || input.formId,
+        fields: defaultFields,
+        isCustomized: false,
+      };
+    }),
+
+  // حفظ حقول نموذج تسجيل/تبرع محدد
+  saveRegistrationFormConfig: protectedProcedure
+    .input(registrationFormSettingsSchema)
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const settingKey = `${REGISTRATION_SETTING_PREFIX}${input.formId}`;
+      const serializedValue = JSON.stringify(input);
+
+      const [existing] = await db
+        .select()
+        .from(brandSettings)
+        .where(eq(brandSettings.settingKey, settingKey))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(brandSettings)
+          .set({
+            settingValue: serializedValue,
+            updatedBy: ctx.user.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(brandSettings.settingKey, settingKey));
+      } else {
+        await db.insert(brandSettings).values({
+          settingKey,
+          settingValue: serializedValue,
+          settingType: "json",
+          description: `تخصيص استمارة التسجيل: ${input.formName || input.formId}`,
+          updatedBy: ctx.user.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      return {
+        success: true,
+        message: `تم حفظ استمارة "${input.formName || input.formId}" بنجاح وتطبيقها على صفحة التسجيل`,
+        data: input,
+      };
+    }),
+
+  // إعادة تعيين حقول نموذج تسجيل/تبرع للافتراضي
+  resetRegistrationFormConfig: protectedProcedure
+    .input(z.object({ formId: z.string() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const settingKey = `${REGISTRATION_SETTING_PREFIX}${input.formId}`;
+      await db.delete(brandSettings).where(eq(brandSettings.settingKey, settingKey));
+
+      const meta = REGISTRATION_FORMS_METADATA.find((f) => f.id === input.formId);
+
+      return {
+        success: true,
+        message: `تمت استعادة الحقول الافتراضية لاستمارة "${meta?.name || input.formId}" بنجاح`,
+        data: {
+          formId: input.formId,
+          formName: meta?.name || input.formId,
+          fields: getDefaultFieldsForRegistrationForm(input.formId),
         },
       };
     }),

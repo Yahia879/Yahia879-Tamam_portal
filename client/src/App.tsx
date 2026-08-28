@@ -131,6 +131,8 @@ import FormsCustomization from "./pages/FormsCustomization";
 import FormsCustomizationEvaluation from "./pages/FormsCustomizationEvaluation";
 import FormsCustomizationServices from "./pages/FormsCustomizationServices";
 import FormsCustomizationServiceDetail from "./pages/FormsCustomizationServiceDetail";
+import FormsCustomizationRegistration from "./pages/FormsCustomizationRegistration";
+import FormsCustomizationRegistrationDetail from "./pages/FormsCustomizationRegistrationDetail";
 import FormsCustomizationOption2 from "./pages/FormsCustomizationOption2";
 import SupportTickets from "./pages/SupportTickets";
 import AdminGuard from "./components/AdminGuard";
@@ -401,6 +403,8 @@ function Router() {
       <Route path="/forms-customization/evaluation">{() => <AdminRoute component={FormsCustomizationEvaluation} />}</Route>
       <Route path="/forms-customization/services">{() => <AdminRoute component={FormsCustomizationServices} />}</Route>
       <Route path="/forms-customization/services/:serviceId">{() => <AdminRoute component={FormsCustomizationServiceDetail} />}</Route>
+      <Route path="/forms-customization/registration">{() => <AdminRoute component={FormsCustomizationRegistration} />}</Route>
+      <Route path="/forms-customization/registration/:formId">{() => <AdminRoute component={FormsCustomizationRegistrationDetail} />}</Route>
       <Route path="/forms-customization/option-2">{() => <AdminRoute component={FormsCustomizationOption2} />}</Route>
       <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
       <Route path="/support">

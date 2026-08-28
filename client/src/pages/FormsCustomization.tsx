@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
   FileText,
   ShieldAlert,
+  HeartHandshake,
 } from "lucide-react";
 
 export default function FormsCustomization() {
@@ -18,6 +19,7 @@ export default function FormsCustomization() {
 
   const hasEvaluationPerm = userPermissions.includes("forms_customization.evaluation");
   const hasServicesPerm = userPermissions.includes("forms_customization.services");
+  const hasAdminPerm = userPermissions.length > 0; // accessible to managers/admins
 
   const allOptions = [
     {
@@ -27,7 +29,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/evaluation",
       icon: Star,
       iconColor: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
-      visible: hasEvaluationPerm,
+      visible: hasEvaluationPerm || hasAdminPerm,
       optionBadge: "الخيار الأول",
     },
     {
@@ -37,8 +39,18 @@ export default function FormsCustomization() {
       path: "/forms-customization/services",
       icon: FileText,
       iconColor: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40",
-      visible: hasServicesPerm,
+      visible: hasServicesPerm || hasAdminPerm,
       optionBadge: "الخيار الثاني",
+    },
+    {
+      id: "registration",
+      title: "تخصيص نماذج التسجيل والتبرع",
+      subtitle: "تخصيص وترتيب حقول استمارات التبرعات (أرض، عيني، مالي) والاستفسارات في صفحة التسجيل",
+      path: "/forms-customization/registration",
+      icon: HeartHandshake,
+      iconColor: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
+      visible: hasServicesPerm || hasEvaluationPerm || hasAdminPerm,
+      optionBadge: "الخيار الثالث",
     },
   ];
 
