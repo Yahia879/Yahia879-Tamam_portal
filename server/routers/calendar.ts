@@ -240,7 +240,7 @@ export const calendarRouter = router({
         }
         
         if (enforceOwnOnly) {
-          quickConditions.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+          quickConditions.push(eq(mosqueRequests.assignedTo, ctx.user.id));
         } else if (input.assignedTo) {
           quickConditions.push(eq(mosqueRequests.assignedTo, input.assignedTo));
         }
@@ -332,7 +332,7 @@ export const calendarRouter = router({
         }
         
         if (enforceOwnOnly) {
-          finalConditions.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+          finalConditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
         } else if (input.assignedTo) {
           finalConditions.push(eq(mosqueRequests.finalReportAssignedTo, input.assignedTo));
         }
@@ -421,7 +421,7 @@ export const calendarRouter = router({
         }
         
         if (enforceOwnOnly) {
-          customConditions.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+          customConditions.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
         } else if (input.assignedTo) {
           customConditions.push(eq(customCalendarEvents.assignedTo, input.assignedTo));
         }
@@ -677,7 +677,7 @@ export const calendarRouter = router({
         sql`DATE(${mosqueRequests.quickResponseScheduledDate}) <= DATE(${input.endDate})`
       ];
       if (enforceOwnOnly) {
-        quickCountConditions.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+        quickCountConditions.push(eq(mosqueRequests.assignedTo, ctx.user.id));
       }
 
       const [quickResponseCount] = await db
@@ -692,7 +692,7 @@ export const calendarRouter = router({
         sql`DATE(${mosqueRequests.finalReportScheduledDate}) <= DATE(${input.endDate})`
       ];
       if (enforceOwnOnly) {
-        finalCountConditions.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+        finalCountConditions.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
       }
 
       const [finalReportsCount] = await db
@@ -706,7 +706,7 @@ export const calendarRouter = router({
         sql`DATE(${customCalendarEvents.eventDate}) <= DATE(${input.endDate})`
       ];
       if (enforceOwnOnly) {
-        customCountConditions.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+        customCountConditions.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
       }
 
       const [customEventsCount] = await db
@@ -731,17 +731,17 @@ export const calendarRouter = router({
         eq(mosqueRequests.requestTrack, "quick_response"), 
         sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayQuickCond.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+      if (enforceOwnOnly) todayQuickCond.push(eq(mosqueRequests.assignedTo, ctx.user.id));
 
       const todayFinalCond: any[] = [
         sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayFinalCond.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+      if (enforceOwnOnly) todayFinalCond.push(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id));
 
       const todayCustomCond: any[] = [
         sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`
       ];
-      if (enforceOwnOnly) todayCustomCond.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+      if (enforceOwnOnly) todayCustomCond.push(eq(customCalendarEvents.assignedTo, ctx.user.id));
 
       const [todayFieldVisits] = await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(...todayVisitCond));
       const [todayReqVisits] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayReqCond));
