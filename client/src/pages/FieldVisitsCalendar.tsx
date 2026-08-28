@@ -380,13 +380,15 @@ function FieldVisitsCalendarContent() {
             </button>
           </div>
 
-          <Button
-            onClick={handleOpenNewEventModal}
-            className="gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-9 px-4 text-xs"
-          >
-            <Plus className="h-4 w-4" />
-            إضافة حدث مخصص
-          </Button>
+          {hasViewAll && (
+            <Button
+              onClick={handleOpenNewEventModal}
+              className="gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-9 px-4 text-xs"
+            >
+              <Plus className="h-4 w-4" />
+              إضافة حدث مخصص
+            </Button>
+          )}
         </div>
       </div>
 
@@ -691,15 +693,17 @@ function FieldVisitsCalendarContent() {
                   {selectedDayEvents.length} مهمة مجدولة لهذا اليوم
                 </CardDescription>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleOpenNewEventModal}
-                className="h-8 rounded-xl text-xs gap-1 border-border/70 hover:border-primary hover:text-primary"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                إضافة حدث
-              </Button>
+              {hasViewAll && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleOpenNewEventModal}
+                  className="h-8 rounded-xl text-xs gap-1 border-border/70 hover:border-primary hover:text-primary"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  إضافة حدث
+                </Button>
+              )}
             </CardHeader>
 
             <CardContent className="p-4 flex-1 overflow-y-auto max-h-[600px] space-y-3">
@@ -707,14 +711,16 @@ function FieldVisitsCalendarContent() {
                 <div className="py-12 text-center text-muted-foreground">
                   <CalendarDays className="h-10 w-10 mx-auto opacity-30 mb-2" />
                   <p className="text-xs font-medium">لا توجد مواعيد مجدولة لهذا اليوم</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleOpenNewEventModal}
-                    className="mt-2 text-xs text-primary hover:text-primary/80 font-bold"
-                  >
-                    + جدولة حدث أو زيارة الآن
-                  </Button>
+                  {hasViewAll && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleOpenNewEventModal}
+                      className="mt-2 text-xs text-primary hover:text-primary/80 font-bold"
+                    >
+                      + جدولة حدث أو زيارة الآن
+                    </Button>
+                  )}
                 </div>
               ) : (
                 selectedDayEvents.map((ev: any) => {
@@ -783,7 +789,7 @@ function FieldVisitsCalendarContent() {
                           <div />
                         )}
 
-                        {ev.type === "custom" && (
+                        {hasViewAll && ev.type === "custom" && (
                           <div className="flex items-center gap-1">
                             <Button
                               size="icon"
@@ -821,22 +827,25 @@ function FieldVisitsCalendarContent() {
       {viewMode === "timeline" && (
         <Card className="rounded-3xl border border-border/70 shadow-xs">
           <CardHeader className="p-5 border-b border-border/60 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CalendarIcon className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle className="text-base font-black text-foreground">
-                  الجدول الزمني: {format(selectedDate, "EEEE d MMMM yyyy", { locale: ar })}
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  عرض المواعيد بالساعات على مدار اليوم
-                </CardDescription>
-              </div>
+            <div>
+              <CardTitle className="text-base font-black text-foreground">
+                الجدول الزمني لليوم: {format(selectedDate, "EEEE d MMMM yyyy", { locale: ar })}
+              </CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                توزيع المواعيد على مدار ساعات اليوم (من 08:00 صباحاً حتى 09:00 مساءً)
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Input
                 type="date"
                 value={format(selectedDate, "yyyy-MM-dd")}
-                onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const d = parseISO(e.target.value);
+                    setSelectedDate(d);
+                    setCurrentMonthDate(d);
+                  }
+                }}
                 className="w-40 h-8 text-xs rounded-xl border-border/70"
               />
             </div>
@@ -858,18 +867,25 @@ function FieldVisitsCalendarContent() {
                     </div>
                     <div className="col-span-10 sm:col-span-11 space-y-2">
                       {hourEvents.length === 0 ? (
-                        <div className="h-8 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/50 hover:bg-muted/20 transition-all cursor-pointer"
-                          onClick={() => {
-                            setEventFormData((prev) => ({
-                              ...prev,
-                              eventDate: format(selectedDate, "yyyy-MM-dd"),
-                              startTime: hourStr,
-                            }));
-                            setIsEventModalOpen(true);
-                          }}
-                        >
-                          + متاح للجدولة
-                        </div>
+                        hasViewAll ? (
+                          <div 
+                            className="h-8 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/50 hover:bg-muted/20 transition-all cursor-pointer"
+                            onClick={() => {
+                              setEventFormData((prev) => ({
+                                ...prev,
+                                eventDate: format(selectedDate, "yyyy-MM-dd"),
+                                startTime: hourStr,
+                              }));
+                              setIsEventModalOpen(true);
+                            }}
+                          >
+                            + متاح للجدولة
+                          </div>
+                        ) : (
+                          <div className="h-8 rounded-xl border border-dashed border-border/20 flex items-center px-3 text-xs text-muted-foreground/30">
+                            لا توجد زيارات مجدولة
+                          </div>
+                        )
                       ) : (
                         hourEvents.map((ev) => {
                           const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
