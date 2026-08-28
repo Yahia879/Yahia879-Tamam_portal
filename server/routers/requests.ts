@@ -3839,7 +3839,7 @@ export const requestsRouter = router({
         rating: z.number().optional(),
         comments: z.string().optional(),
         notes: z.string().optional(),
-        answers: z.record(z.any()).optional(),
+        answers: z.record(z.string(), z.any()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
