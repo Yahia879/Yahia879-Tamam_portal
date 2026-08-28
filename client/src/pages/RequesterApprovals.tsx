@@ -163,8 +163,6 @@ export default function RequesterApprovals() {
 
   // نافذة تفاصيل ومراجعة الطلب الخارجي / الاستفسار
   const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
-  const [submissionStatusEdit, setSubmissionStatusEdit] = useState<"new" | "under_review" | "contacted" | "completed" | "archived">("new");
-  const [adminNotesEdit, setAdminNotesEdit] = useState<string>("");
 
   // طلبات الاستثناء
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
@@ -294,18 +292,6 @@ export default function RequesterApprovals() {
 
   const handleOpenSubmissionDetails = (sub: any) => {
     setSelectedSubmission(sub);
-    setSubmissionStatusEdit(sub.status || "new");
-    setAdminNotesEdit(sub.adminNotes || "");
-  };
-
-  const handleSaveSubmissionStatus = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSubmission) return;
-    updateSubmissionMutation.mutate({
-      id: selectedSubmission.id,
-      status: submissionStatusEdit,
-      adminNotes: adminNotesEdit || undefined,
-    });
   };
 
   // أعداد الإشعارات في التبويبات
@@ -314,7 +300,7 @@ export default function RequesterApprovals() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0 pb-12">
+      <div className="space-y-6 max-w-6xl px-4 sm:px-0 pb-12 font-['Cairo',sans-serif]">
         {/* رأس الصفحة */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 p-5 sm:p-6 rounded-3xl shadow-xs">
           <div className="flex items-center gap-3.5">
@@ -1228,29 +1214,63 @@ export default function RequesterApprovals() {
       {/* نافذة عرض ومراجعة تفاصيل التبرع / الاستفسار الكاملة */}
       <Dialog open={!!selectedSubmission} onOpenChange={(open) => !open && setSelectedSubmission(null)}>
         {selectedSubmission && (
-          <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
+            {/* Modal Header */}
             <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">
               <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
                 {selectedSubmission.category === 'donor' ? <Gift className="h-6 w-6" /> : <MessageSquareQuote className="h-6 w-6" />}
               </div>
               <div className="text-right flex-1 min-w-0">
-                <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
-                  {submissionTypeLabels[selectedSubmission.submissionType]?.label || "تفاصيل الطلب"}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5 text-right">
-                  مقدم من: {selectedSubmission.name} • {new Date(selectedSubmission.createdAt).toLocaleDateString("ar-SA")}
+                <div className="flex items-center gap-2">
+                  <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
+                    {submissionTypeLabels[selectedSubmission.submissionType]?.label || "تفاصيل الطلب"}
+                  </DialogTitle>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${submissionStatusConfig[selectedSubmission.status]?.color || submissionStatusConfig.new.color}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${submissionStatusConfig[selectedSubmission.status]?.dot || submissionStatusConfig.new.dot}`} />
+                    {submissionStatusConfig[selectedSubmission.status]?.label || "جديد"}
+                  </span>
+                </div>
+                <DialogDescription className="text-xs text-muted-foreground mt-1 text-right">
+                  تاريخ التقديم: {new Date(selectedSubmission.createdAt).toLocaleDateString("ar-SA")}
                 </DialogDescription>
               </div>
             </div>
 
             <div className="space-y-4 my-3 text-right">
-              {/* بيانات مقدم الطلب */}
-              <div className="p-4 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 space-y-2.5">
-                <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5" />
-                  بيانات التواصل ومقدم الطلب
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              {/* بيانات مقدم الطلب مع أزرار الاتصال المباشر */}
+              <div className="p-4 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5" />
+                    بيانات مقدم الطلب والتواصل
+                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    {selectedSubmission.phone && (
+                      <a 
+                        href={`tel:${selectedSubmission.phone}`} 
+                        className="h-7 px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-[11px] font-bold flex items-center gap-1 hover:bg-sky-100 transition-all"
+                        title="اتصال هاتفي"
+                      >
+                        <PhoneCall className="w-3 h-3" />
+                        اتصال
+                      </a>
+                    )}
+                    {selectedSubmission.phone && (
+                      <a 
+                        href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="h-7 px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-100 transition-all"
+                        title="محادثة واتساب"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        واتساب
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div>
                     <span className="text-muted-foreground block text-[11px]">الاسم الكامل:</span>
                     <span className="font-bold text-foreground">{selectedSubmission.name}</span>
@@ -1285,10 +1305,10 @@ export default function RequesterApprovals() {
                     <Building2 className="h-3.5 w-3.5" />
                     بيانات الأرض المتبرع بها
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-muted-foreground block text-[11px]">المساحة الإجمالية:</span>
-                      <span className="font-bold font-mono text-foreground">{selectedSubmission.landArea || "غير محددة"}</span>
+                      <span className="font-black font-mono text-foreground text-sm">{selectedSubmission.landArea || "غير محددة"}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[11px]">الأبعاد والأطوال:</span>
@@ -1315,14 +1335,14 @@ export default function RequesterApprovals() {
                     <Package className="h-3.5 w-3.5" />
                     بيانات المواد والتبرع العيني
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
                       <span className="text-muted-foreground block text-[11px]">نوع المادة / التبرع:</span>
                       <span className="font-bold text-foreground">{selectedSubmission.inKindType || "—"}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[11px]">الكمية المعروضة:</span>
-                      <span className="font-bold text-foreground font-mono">{selectedSubmission.inKindQuantity || "—"}</span>
+                      <span className="font-black text-foreground font-mono text-sm">{selectedSubmission.inKindQuantity || "—"}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block text-[11px]">حالة المواد:</span>
@@ -1331,7 +1351,7 @@ export default function RequesterApprovals() {
                     <div>
                       <span className="text-muted-foreground block text-[11px]">إمكانية النقل والتوصيل:</span>
                       <span className="font-bold text-foreground">
-                        {selectedSubmission.inKindDeliveryAvailable ? "✅ متاح النقل من المتبرع" : "❌ يتطلب استلام من الجمعية"}
+                        {selectedSubmission.inKindDeliveryAvailable ? "✅ متاح النقل والتوصيل من المتبرع" : "❌ يتطلب استلام وتنسيق من الجمعية"}
                       </span>
                     </div>
                   </div>
@@ -1340,12 +1360,12 @@ export default function RequesterApprovals() {
 
               {/* نص الرسالة / الاستفسار / الملاحظات المرفقة */}
               {selectedSubmission.details && (
-                <div className="p-4 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 space-y-1.5">
+                <div className="p-4 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-2">
                   <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5 text-primary" />
                     نص الطلب والتفاصيل الإضافية
                   </h4>
-                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap bg-background/50 p-3 rounded-xl border border-border/40">
                     {selectedSubmission.details}
                   </p>
                 </div>
@@ -1353,98 +1373,34 @@ export default function RequesterApprovals() {
 
               {/* المرفق إن وجد */}
               {selectedSubmission.attachmentUrl && (
-                <div className="p-3 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 flex items-center justify-between">
+                <div className="p-3.5 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 flex items-center justify-between">
                   <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     <FileCheck className="h-4 w-4 text-primary" />
-                    المستند المرفق مع الطلب
+                    المستند / الصك المرفق مع الطلب
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setPreviewUrl(selectedSubmission.attachmentUrl)}
-                    className="h-8 text-xs font-bold gap-1 rounded-xl"
+                    className="h-8 text-xs font-bold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/5"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     معاينة المستند
                   </Button>
                 </div>
               )}
+            </div>
 
-              {/* تحديث الحالة والملاحظات الإدارية */}
-              <form onSubmit={handleSaveSubmissionStatus} className="pt-3 border-t border-border/60 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-foreground">تحديث حالة الطلب</Label>
-                    <Select value={submissionStatusEdit} onValueChange={(val: any) => setSubmissionStatusEdit(val)}>
-                      <SelectTrigger className="h-10 rounded-2xl text-xs border-border/70">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="new">🟡 جديد</SelectItem>
-                        <SelectItem value="under_review">🔵 قيد المراجعة</SelectItem>
-                        <SelectItem value="contacted">🟣 تم التواصل</SelectItem>
-                        <SelectItem value="completed">🟢 مكتمل ومغلق</SelectItem>
-                        <SelectItem value="archived">⚪ مؤرشف</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-foreground">تواصل سريع مع مقدم الطلب</Label>
-                    <div className="flex gap-2">
-                      {selectedSubmission.phone && (
-                        <a 
-                          href={`tel:${selectedSubmission.phone}`} 
-                          className="flex-1 h-10 rounded-2xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-sky-100 transition-all"
-                        >
-                          <PhoneCall className="w-3.5 h-3.5" />
-                          اتصال هاتفي
-                        </a>
-                      )}
-                      {selectedSubmission.phone && (
-                        <a 
-                          href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex-1 h-10 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-all"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          محادثة واتساب
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-foreground">ملاحظات الإدارة وفريق المتابعة</Label>
-                  <Textarea
-                    rows={3}
-                    value={adminNotesEdit}
-                    onChange={(e) => setAdminNotesEdit(e.target.value)}
-                    placeholder="سجل أي ملاحظات أو نتائج التواصل مع المتبرع أو مقدم الاستفسار..."
-                    className="rounded-2xl text-xs border-border/70 resize-none leading-relaxed p-3"
-                  />
-                </div>
-
-                <DialogFooter className="gap-2 pt-2 sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setSelectedSubmission(null)}
-                    className="rounded-2xl h-10 px-5 text-xs font-bold border-border/70"
-                  >
-                    إغلاق
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={updateSubmissionMutation.isPending}
-                    className="rounded-2xl h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/20"
-                  >
-                    {updateSubmissionMutation.isPending ? "جاري الحفظ..." : "حفظ التحديث والملاحظات"}
-                  </Button>
-                </DialogFooter>
-              </form>
+            {/* Footer */}
+            <div className="flex items-center justify-end pt-4 border-t border-border/60">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedSubmission(null)}
+                className="rounded-2xl h-10 px-7 text-xs font-bold border-border/70 hover:bg-muted/60"
+              >
+                إغلاق
+              </Button>
             </div>
           </DialogContent>
         )}
