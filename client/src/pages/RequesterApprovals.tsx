@@ -1034,14 +1034,14 @@ export default function RequesterApprovals() {
                                   </a>
                                 )}
 
-                                {/* زر اتصال سريع */}
-                                {sub.phone && (
+                                {/* زر بريد إلكتروني سريع */}
+                                {sub.email && (
                                   <a 
-                                    href={`tel:${sub.phone}`} 
+                                    href={`mailto:${sub.email}`} 
                                     className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
-                                    title="اتصال هاتفي"
+                                    title="إرسال بريد إلكتروني"
                                   >
-                                    <PhoneCall className="w-4 h-4" />
+                                    <Mail className="w-4 h-4" />
                                   </a>
                                 )}
 
@@ -1188,6 +1188,16 @@ export default function RequesterApprovals() {
                                   </a>
                                 )}
 
+                                {sub.email && (
+                                  <a 
+                                    href={`mailto:${sub.email}`} 
+                                    className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
+                                    title="إرسال بريد إلكتروني"
+                                  >
+                                    <Mail className="w-4 h-4" />
+                                  </a>
+                                )}
+
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1247,16 +1257,6 @@ export default function RequesterApprovals() {
                   <div className="flex items-center gap-1.5">
                     {selectedSubmission.phone && (
                       <a 
-                        href={`tel:${selectedSubmission.phone}`} 
-                        className="h-7 px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-[11px] font-bold flex items-center gap-1 hover:bg-sky-100 transition-all"
-                        title="اتصال هاتفي"
-                      >
-                        <PhoneCall className="w-3 h-3" />
-                        اتصال
-                      </a>
-                    )}
-                    {selectedSubmission.phone && (
-                      <a 
                         href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
                         target="_blank" 
                         rel="noreferrer"
@@ -1265,6 +1265,16 @@ export default function RequesterApprovals() {
                       >
                         <MessageCircle className="w-3 h-3" />
                         واتساب
+                      </a>
+                    )}
+                    {selectedSubmission.email && (
+                      <a 
+                        href={`mailto:${selectedSubmission.email}`} 
+                        className="h-7 px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-[11px] font-bold flex items-center gap-1 hover:bg-sky-100 transition-all"
+                        title="إرسال بريد إلكتروني"
+                      >
+                        <Mail className="w-3 h-3" />
+                        البريد الإلكتروني
                       </a>
                     )}
                   </div>
