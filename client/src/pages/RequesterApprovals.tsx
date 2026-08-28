@@ -1308,35 +1308,7 @@ export default function RequesterApprovals() {
                 </div>
               </div>
 
-              {/* تفاصيل التبرع بأرض */}
-              {selectedSubmission.submissionType === 'donor_land' && (
-                <div className="p-5 sm:p-6 rounded-3xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800 space-y-4">
-                  <h4 className="text-sm sm:text-base font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    بيانات الأرض المتبرع بها
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">المساحة الإجمالية:</span>
-                      <span className="text-lg sm:text-xl font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5 block">{selectedSubmission.landArea || "غير محددة"}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">الأبعاد والأطوال:</span>
-                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landDimensions || "غير محددة"}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-xs text-muted-foreground block font-medium">موقع الأرض والحي:</span>
-                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landLocation || "—"}</span>
-                    </div>
-                    {selectedSubmission.landOwner && (
-                      <div className="col-span-2">
-                        <span className="text-xs text-muted-foreground block font-medium">اسم المالك بالصك:</span>
-                        <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landOwner}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+
 
               {/* تفاصيل التبرع العيني */}
               {selectedSubmission.submissionType === 'donor_inkind' && (
