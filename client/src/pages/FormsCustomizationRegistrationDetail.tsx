@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { Link, useRoute } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -269,6 +270,7 @@ export default function FormsCustomizationRegistrationDetail() {
     { formId },
     { enabled: !!formId }
   );
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   const [fields, setFields] = useState<ServiceField[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -1555,20 +1557,22 @@ export default function FormsCustomizationRegistrationDetail() {
               <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-right bg-slate-50/70 dark:bg-background" : "space-y-6 max-w-2xl mx-auto py-2"}>
                 
                 {/* الترويسة والشعار مطابقة لـ Register.tsx */}
-                <div className="flex flex-col items-center mb-3 sm:mb-6 text-center select-none">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 border border-emerald-500/20 shadow-xs">
-                    <IconComponent className="w-6 h-6 sm:w-8 sm:h-8" />
-                  </div>
-                  <h1 className="font-bold text-sm sm:text-xl text-gray-900 dark:text-foreground">
-                    بوابة منارة
+                <div className="flex flex-col items-center mb-6 sm:mb-8 text-center select-none">
+                  <img
+                    src={orgSettings?.logoUrl || "/logo.svg"}
+                    alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
+                    className="h-16 sm:h-20 mb-3 object-contain"
+                  />
+                  <h1 className="font-bold text-lg sm:text-2xl text-gray-900 dark:text-foreground">
+                    {orgSettings?.organizationName || "بوابة منارة"}
                   </h1>
-                  <p className="text-[11px] sm:text-sm text-gray-500 dark:text-muted-foreground mt-0.5">
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-muted-foreground mt-1">
                     نموذج التسجيل وتقديم الطلبات والتبرعات
                   </p>
                 </div>
 
                 {/* كرت النموذج المطابق لـ Register.tsx */}
-                <div className="border border-slate-200/80 dark:border-border shadow-xl rounded-2xl sm:rounded-3xl bg-white dark:bg-card overflow-hidden">
+                <Card className="border border-slate-200/80 dark:border-border shadow-xl rounded-2xl sm:rounded-3xl bg-white dark:bg-card overflow-hidden">
                   
                   {/* شريط الإجراء العلوي والرجوع المطابق تماماً لـ Register.tsx */}
                   <div className="bg-slate-100/90 dark:bg-muted/60 border-b border-slate-200 dark:border-border px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3">
@@ -1585,16 +1589,18 @@ export default function FormsCustomizationRegistrationDetail() {
                       </span>
                     </div>
 
-                    <button
+                    <Button
                       type="button"
-                      className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border border-primary/30 bg-white dark:bg-background hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
                     >
                       <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
                       <span>تغيير الصفة</span>
-                    </button>
+                    </Button>
                   </div>
 
-                  <div data-slot="card-content" className="p-5 sm:p-8 space-y-6 text-right">
+                  <CardContent className="p-5 sm:p-8 space-y-6">
                     <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                       {/* القسم الأول: بيانات المتبرع والتواصل / مقدم الطلب */}
                       {activeSection1Fields.length > 0 && (
@@ -1669,8 +1675,8 @@ export default function FormsCustomizationRegistrationDetail() {
                         ← العودة إلى الصفحة الرئيسية
                       </span>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
 
               {/* شريط السحب السفلي لهواتف iPhone */}
