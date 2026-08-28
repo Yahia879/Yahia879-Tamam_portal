@@ -1589,9 +1589,8 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // فحص تعارض المواعيد الصارم للموظف
+      // فحص تعارض المواعيد الصارم للموظف في إسناد التقرير الختامي
       if (input.userId && input.scheduledDate && input.scheduledTime) {
-        // فحص التقرير الختامي
         const finalConflicts = await db.select({ id: mosqueRequests.id })
           .from(mosqueRequests)
           .where(
@@ -1604,51 +1603,10 @@ export const requestsRouter = router({
           )
           .limit(1);
 
-        // فحص الزيارة الميدانية
-        const fieldReqConflicts = await db.select({ id: mosqueRequests.id })
-          .from(mosqueRequests)
-          .where(
-            and(
-              eq(mosqueRequests.fieldVisitAssignedTo, input.userId),
-              sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.scheduledDate})`,
-              eq(mosqueRequests.fieldVisitScheduledTime, input.scheduledTime),
-              ne(mosqueRequests.id, input.requestId)
-            )
-          )
-          .limit(1);
-
-        // فحص جدول field_visits
-        const visitsConflicts = await db.select({ id: fieldVisits.id })
-          .from(fieldVisits)
-          .where(
-            and(
-              eq(fieldVisits.assignedTo, input.userId),
-              sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.scheduledDate})`,
-              eq(fieldVisits.scheduledTime, input.scheduledTime),
-              sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
-              ne(fieldVisits.requestId, input.requestId)
-            )
-          )
-          .limit(1);
-
-        // فحص الاستجابة السريعة
-        const quickConflicts = await db.select({ id: mosqueRequests.id })
-          .from(mosqueRequests)
-          .where(
-            and(
-              eq(mosqueRequests.assignedTo, input.userId),
-              eq(mosqueRequests.requestTrack, 'quick_response'),
-              sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.scheduledDate})`,
-              eq(mosqueRequests.quickResponseScheduledTime, input.scheduledTime),
-              ne(mosqueRequests.id, input.requestId)
-            )
-          )
-          .limit(1);
-
-        if (finalConflicts.length > 0 || fieldReqConflicts.length > 0 || visitsConflicts.length > 0 || quickConflicts.length > 0) {
+        if (finalConflicts.length > 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `هذا الموظف لديه مهمة مجدولة بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو موظف آخر.`,
+            message: `هذا الموظف لديه موعد تقرير ختامي محجوز بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو موظف آخر.`,
           });
         }
       }
@@ -2193,7 +2151,6 @@ export const requestsRouter = router({
 
         // فحص تعارض المواعيد لمسؤول الاستجابة السريعة
         if (input.assignedToId && input.scheduledDate && input.scheduledTime) {
-          // فحص مهام الاستجابة السريعة
           const quickConflicts = await db.select({ id: mosqueRequests.id })
             .from(mosqueRequests)
             .where(
@@ -2207,37 +2164,10 @@ export const requestsRouter = router({
             )
             .limit(1);
 
-          // فحص الزيارات الميدانية في mosqueRequests
-          const fieldReqConflicts = await db.select({ id: mosqueRequests.id })
-            .from(mosqueRequests)
-            .where(
-              and(
-                eq(mosqueRequests.fieldVisitAssignedTo, input.assignedToId),
-                sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.scheduledDate})`,
-                eq(mosqueRequests.fieldVisitScheduledTime, input.scheduledTime),
-                ne(mosqueRequests.id, input.requestId)
-              )
-            )
-            .limit(1);
-
-          // فحص جدول field_visits
-          const visitsConflicts = await db.select({ id: fieldVisits.id })
-            .from(fieldVisits)
-            .where(
-              and(
-                eq(fieldVisits.assignedTo, input.assignedToId),
-                sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.scheduledDate})`,
-                eq(fieldVisits.scheduledTime, input.scheduledTime),
-                sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
-                ne(fieldVisits.requestId, input.requestId)
-              )
-            )
-            .limit(1);
-
-          if (quickConflicts.length > 0 || fieldReqConflicts.length > 0 || visitsConflicts.length > 0) {
+          if (quickConflicts.length > 0) {
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: `هذا المسؤول لديه مهمة مجدولة بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو إسناد الطلب لمسؤول آخر.`,
+              message: `هذا المسؤول لديه مهمة استجابة سريعة محجوزة بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو إسناد الطلب لمسؤول آخر.`,
             });
           }
         }
@@ -2754,42 +2684,59 @@ export const requestsRouter = router({
         )
       );
 
-      // 2. جلب المواعيد المحجوزة للمعاينة الميدانية في mosque_requests
-      const scheduledFieldRequests = await db.select({
-        scheduledTime: mosqueRequests.fieldVisitScheduledTime,
+      // جلب المواعيد المحجوزة للاستجابة السريعة فقط
+      const scheduledQuickRequests = await db.select({
+        scheduledTime: mosqueRequests.quickResponseScheduledTime,
       })
       .from(mosqueRequests)
       .where(
         and(
-          eq(mosqueRequests.fieldVisitAssignedTo, input.userId),
-          sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.date})`,
-          sql`${mosqueRequests.fieldVisitScheduledTime} IS NOT NULL`,
+          eq(mosqueRequests.assignedTo, input.userId),
+          eq(mosqueRequests.requestTrack, 'quick_response'),
+          sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.date})`,
+          sql`${mosqueRequests.quickResponseScheduledTime} IS NOT NULL`,
           input.excludeRequestId ? ne(mosqueRequests.id, input.excludeRequestId) : sql`1=1`
         )
       );
 
-      // 3. جلب المواعيد المحجوزة من جدول field_visits
-      const scheduledVisits = await db.select({
-        scheduledTime: fieldVisits.scheduledTime,
+      const busyHours = scheduledQuickRequests
+        .map(r => r.scheduledTime)
+        .filter(Boolean) as string[];
+
+      return Array.from(new Set(busyHours));
+    }),
+
+  // الحصول على الساعات المحجوزة للتقرير الختامي لموظف في تاريخ معين
+  getFinalReportBusySlots: protectedProcedure
+    .input(z.object({
+      userId: z.number().optional().nullable(),
+      date: z.string(),
+      excludeRequestId: z.number().optional().nullable(),
+    }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      if (!input.userId || !input.date) return [];
+
+      const scheduledFinalReports = await db.select({
+        scheduledTime: mosqueRequests.finalReportScheduledTime,
       })
-      .from(fieldVisits)
+      .from(mosqueRequests)
       .where(
         and(
-          eq(fieldVisits.assignedTo, input.userId),
-          sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.date})`,
-          sql`${fieldVisits.scheduledTime} IS NOT NULL`,
-          sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
-          input.excludeRequestId ? ne(fieldVisits.requestId, input.excludeRequestId) : sql`1=1`
+          eq(mosqueRequests.finalReportAssignedTo, input.userId),
+          sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${input.date})`,
+          sql`${mosqueRequests.finalReportScheduledTime} IS NOT NULL`,
+          input.excludeRequestId ? ne(mosqueRequests.id, input.excludeRequestId) : sql`1=1`
         )
       );
 
-      const allBusy = [
-        ...scheduledQuickRequests.map(r => r.scheduledTime),
-        ...scheduledFieldRequests.map(r => r.scheduledTime),
-        ...scheduledVisits.map(v => v.scheduledTime),
-      ].filter(Boolean) as string[];
+      const busyHours = scheduledFinalReports
+        .map(r => r.scheduledTime)
+        .filter(Boolean) as string[];
 
-      return Array.from(new Set(allBusy));
+      return Array.from(new Set(busyHours));
     }),
 
   // الحصول على طلب برقم الطلب (للتتبع العام)

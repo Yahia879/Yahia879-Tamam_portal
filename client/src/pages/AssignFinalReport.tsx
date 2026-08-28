@@ -57,8 +57,8 @@ export default function AssignFinalReport() {
     "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"
   ];
 
-  // جلب المواعيد المحجوزة للموظف في التاريخ المحدد
-  const { data: busySlots = [], isLoading: isLoadingBusySlots } = trpc.fieldVisits.getBusySlots.useQuery(
+  // جلب المواعيد المحجوزة للموظف في تاريخ التقرير الختامي المحدد
+  const { data: busySlots = [], isLoading: isLoadingBusySlots } = trpc.requests.getFinalReportBusySlots.useQuery(
     {
       userId: formData.assignedUserId ? Number(formData.assignedUserId) : undefined,
       date: formData.scheduledDate,
