@@ -56,9 +56,13 @@ import { toast } from "sonner";
 const TRACK_CONFIG = {
   all: {
     label: "الكل",
+    shortLabel: "الكل",
+    icon: CalendarIcon,
+    badgeBg: "bg-primary/10 text-primary",
     color: "bg-primary text-primary-foreground",
     border: "border-primary/30",
     dot: "bg-primary",
+    cardBg: "bg-muted/40",
   },
   field_visit: {
     label: "زيارة ميدانية",

@@ -829,7 +829,7 @@ export default function RequesterApprovals() {
                                 <Button
                                   size="sm"
                                   className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
-                                  onClick={() => reviewExceptionMutation.mutate({ exceptionId: item.exception.id, action: "approve" })}
+                                  onClick={() => reviewExceptionMutation.mutate({ id: item.exception.id, status: "approved" })}
                                   disabled={reviewExceptionMutation.isPending}
                                 >
                                   قبول
@@ -840,8 +840,8 @@ export default function RequesterApprovals() {
                                   className="h-8 text-xs font-bold rounded-xl"
                                   onClick={() => {
                                     const reason = prompt("يرجى إدخال سبب الرفض:");
-                                    if (reason) {
-                                      reviewExceptionMutation.mutate({ exceptionId: item.exception.id, action: "reject", reviewNotes: reason });
+                                    if (reason !== null) {
+                                      reviewExceptionMutation.mutate({ id: item.exception.id, status: "rejected" });
                                     }
                                   }}
                                   disabled={reviewExceptionMutation.isPending}
