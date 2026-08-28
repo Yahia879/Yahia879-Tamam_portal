@@ -16,9 +16,7 @@ import {
 
 export default function FormsCustomization() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
   const userPermissions = useUserPermissions();
-  const isSuperAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
 
   const allOptions = [
     {
@@ -28,7 +26,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/evaluation",
       icon: Star,
       iconColor: "text-amber-500 bg-amber-50 dark:bg-amber-950/40",
-      visible: isSuperAdmin || userPermissions.includes("forms_customization.evaluation") || userPermissions.includes("settings_center"),
+      visible: userPermissions.includes("forms_customization.evaluation"),
       optionBadge: "الخيار الأول",
     },
     {
@@ -38,7 +36,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/services",
       icon: FileText,
       iconColor: "text-cyan-500 bg-cyan-50 dark:bg-cyan-950/40",
-      visible: isSuperAdmin || userPermissions.includes("forms_customization.services") || userPermissions.includes("settings_center"),
+      visible: userPermissions.includes("forms_customization.services"),
       optionBadge: "الخيار الثاني",
     },
     {
@@ -48,7 +46,7 @@ export default function FormsCustomization() {
       path: "/forms-customization/registration",
       icon: HeartHandshake,
       iconColor: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
-      visible: isSuperAdmin || userPermissions.includes("forms_customization.registration") || userPermissions.includes("settings_center"),
+      visible: userPermissions.includes("forms_customization.registration"),
       optionBadge: "الخيار الثالث",
     },
   ];
