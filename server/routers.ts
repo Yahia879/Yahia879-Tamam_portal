@@ -28,9 +28,13 @@ import { supportTicketsRouter } from "./routers/supportTickets";
 import { boardRouter } from "./routers/board";
 import { formsRouter } from "./routers/forms";
 import { publicSubmissionsRouter } from "./routers/publicSubmissions";
+import { calendarRouter } from "./routers/calendar";
 
 export const appRouter = router({
   system: systemRouter,
+
+  // التقويم الموحد والأحداث المخصصة
+  calendar: calendarRouter,
 
   // التبرعات والاستفسارات العامة
   publicSubmissions: publicSubmissionsRouter,

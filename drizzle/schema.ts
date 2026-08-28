@@ -2133,3 +2133,27 @@ export const publicSubmissions = mysqlTable("public_submissions", {
 
 export type PublicSubmission = typeof publicSubmissions.$inferSelect;
 export type InsertPublicSubmission = typeof publicSubmissions.$inferInsert;
+
+// ==================== الأحداث والمهام المخصصة في التقويم ====================
+export const customCalendarEvents = mysqlTable("custom_calendar_events", {
+  id: int("id").primaryKey().autoincrement(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  eventType: varchar("eventType", { length: 50 }).default("custom").notNull(), // 'meeting' | 'inspection' | 'follow_up' | 'task' | 'custom' | 'other'
+  eventDate: date("eventDate").notNull(),
+  startTime: varchar("startTime", { length: 10 }),
+  endTime: varchar("endTime", { length: 10 }),
+  assignedTo: int("assignedTo").references(() => users.id, { onDelete: "set null" }),
+  requestId: int("requestId").references(() => mosqueRequests.id, { onDelete: "set null" }),
+  mosqueId: int("mosqueId").references(() => mosques.id, { onDelete: "set null" }),
+  location: varchar("location", { length: 255 }),
+  priority: varchar("priority", { length: 20 }).default("medium").notNull(), // 'low' | 'medium' | 'high' | 'urgent'
+  status: varchar("status", { length: 20 }).default("scheduled").notNull(), // 'scheduled' | 'completed' | 'cancelled'
+  createdBy: int("createdBy").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CustomCalendarEvent = typeof customCalendarEvents.$inferSelect;
+export type InsertCustomCalendarEvent = typeof customCalendarEvents.$inferInsert;
+
