@@ -1224,85 +1224,85 @@ export default function RequesterApprovals() {
       {/* نافذة عرض ومراجعة تفاصيل التبرع / الاستفسار الكاملة */}
       <Dialog open={!!selectedSubmission} onOpenChange={(open) => !open && setSelectedSubmission(null)}>
         {selectedSubmission && (
-          <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
+          <DialogContent className="max-w-4xl sm:max-w-4xl w-full rounded-3xl p-7 sm:p-9 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
             {/* Modal Header */}
-            <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">
-              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-                {selectedSubmission.category === 'donor' ? <Gift className="h-6 w-6" /> : <MessageSquareQuote className="h-6 w-6" />}
+            <div className="flex items-center gap-4 text-right w-full pb-5 border-b border-border/60">
+              <div className="p-3.5 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+                {selectedSubmission.category === 'donor' ? <Gift className="h-8 w-8" /> : <MessageSquareQuote className="h-8 w-8" />}
               </div>
               <div className="text-right flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
+                <div className="flex items-center gap-2.5">
+                  <DialogTitle className="text-xl sm:text-2xl font-black text-foreground text-right m-0">
                     {submissionTypeLabels[selectedSubmission.submissionType]?.label || "تفاصيل الطلب"}
                   </DialogTitle>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${submissionStatusConfig[selectedSubmission.status]?.color || submissionStatusConfig.new.color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${submissionStatusConfig[selectedSubmission.status]?.dot || submissionStatusConfig.new.dot}`} />
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold border ${submissionStatusConfig[selectedSubmission.status]?.color || submissionStatusConfig.new.color}`}>
+                    <span className={`w-2 h-2 rounded-full ${submissionStatusConfig[selectedSubmission.status]?.dot || submissionStatusConfig.new.dot}`} />
                     {submissionStatusConfig[selectedSubmission.status]?.label || "جديد"}
                   </span>
                 </div>
-                <DialogDescription className="text-xs text-muted-foreground mt-1 text-right">
+                <DialogDescription className="text-sm text-muted-foreground mt-1 text-right">
                   تاريخ التقديم: {new Date(selectedSubmission.createdAt).toLocaleDateString("ar-SA")}
                 </DialogDescription>
               </div>
             </div>
 
-            <div className="space-y-4 my-3 text-right">
+            <div className="space-y-5 my-4 text-right">
               {/* بيانات مقدم الطلب مع أزرار الاتصال المباشر */}
-              <div className="p-4 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-3">
+              <div className="p-5 sm:p-6 rounded-3xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5" />
+                  <h4 className="text-sm sm:text-base font-black text-primary flex items-center gap-2">
+                    <User className="h-4 w-4" />
                     بيانات مقدم الطلب والتواصل
                   </h4>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     {selectedSubmission.phone && (
                       <a 
                         href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="h-7 px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-100 transition-all"
+                        className="h-8 px-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-all shadow-2xs"
                         title="محادثة واتساب"
                       >
-                        <MessageCircle className="w-3 h-3" />
+                        <MessageCircle className="w-3.5 h-3.5" />
                         واتساب
                       </a>
                     )}
                     {selectedSubmission.email && (
                       <a 
                         href={`mailto:${selectedSubmission.email}`} 
-                        className="h-7 px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-[11px] font-bold flex items-center gap-1 hover:bg-sky-100 transition-all"
+                        className="h-8 px-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-100 transition-all shadow-2xs"
                         title="إرسال بريد إلكتروني"
                       >
-                        <Mail className="w-3 h-3" />
+                        <Mail className="w-3.5 h-3.5" />
                         البريد الإلكتروني
                       </a>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">الاسم الكامل:</span>
-                    <span className="font-bold text-foreground">{selectedSubmission.name}</span>
+                    <span className="text-xs text-muted-foreground block font-medium">الاسم الكامل:</span>
+                    <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.name}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">رقم الجوال:</span>
-                    <span className="font-bold font-mono text-foreground">{selectedSubmission.phone}</span>
+                    <span className="text-xs text-muted-foreground block font-medium">رقم الجوال:</span>
+                    <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block">{selectedSubmission.phone}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[11px]">المدينة:</span>
-                    <span className="font-bold text-foreground">{selectedSubmission.city || "غير محددة"}</span>
+                    <span className="text-xs text-muted-foreground block font-medium">المدينة:</span>
+                    <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.city || "غير محددة"}</span>
                   </div>
                   {selectedSubmission.email && (
                     <div className="col-span-2">
-                      <span className="text-muted-foreground block text-[11px]">البريد الإلكتروني:</span>
-                      <span className="font-mono text-foreground">{selectedSubmission.email}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">البريد الإلكتروني:</span>
+                      <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block">{selectedSubmission.email}</span>
                     </div>
                   )}
                   {selectedSubmission.customRoleTitle && (
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">الصفة / المنصب:</span>
-                      <span className="text-foreground font-medium">{selectedSubmission.customRoleTitle}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">الصفة / المنصب:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.customRoleTitle}</span>
                     </div>
                   )}
                 </div>
@@ -1310,28 +1310,28 @@ export default function RequesterApprovals() {
 
               {/* تفاصيل التبرع بأرض */}
               {selectedSubmission.submissionType === 'donor_land' && (
-                <div className="p-4 rounded-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800 space-y-2.5">
-                  <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                    <Building2 className="h-3.5 w-3.5" />
+                <div className="p-5 sm:p-6 rounded-3xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800 space-y-4">
+                  <h4 className="text-sm sm:text-base font-black text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
                     بيانات الأرض المتبرع بها
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">المساحة الإجمالية:</span>
-                      <span className="font-black font-mono text-foreground text-sm">{selectedSubmission.landArea || "غير محددة"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">المساحة الإجمالية:</span>
+                      <span className="text-lg sm:text-xl font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5 block">{selectedSubmission.landArea || "غير محددة"}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">الأبعاد والأطوال:</span>
-                      <span className="font-bold text-foreground">{selectedSubmission.landDimensions || "غير محددة"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">الأبعاد والأطوال:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landDimensions || "غير محددة"}</span>
                     </div>
                     <div className="col-span-2">
-                      <span className="text-muted-foreground block text-[11px]">موقع الأرض والحي:</span>
-                      <span className="font-medium text-foreground">{selectedSubmission.landLocation || "—"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">موقع الأرض والحي:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landLocation || "—"}</span>
                     </div>
                     {selectedSubmission.landOwner && (
                       <div className="col-span-2">
-                        <span className="text-muted-foreground block text-[11px]">اسم المالك بالصك:</span>
-                        <span className="font-medium text-foreground">{selectedSubmission.landOwner}</span>
+                        <span className="text-xs text-muted-foreground block font-medium">اسم المالك بالصك:</span>
+                        <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.landOwner}</span>
                       </div>
                     )}
                   </div>
@@ -1340,27 +1340,27 @@ export default function RequesterApprovals() {
 
               {/* تفاصيل التبرع العيني */}
               {selectedSubmission.submissionType === 'donor_inkind' && (
-                <div className="p-4 rounded-2xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800 space-y-2.5">
-                  <h4 className="text-xs font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
-                    <Package className="h-3.5 w-3.5" />
+                <div className="p-5 sm:p-6 rounded-3xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800 space-y-4">
+                  <h4 className="text-sm sm:text-base font-black text-teal-800 dark:text-teal-300 flex items-center gap-2">
+                    <Package className="h-4 w-4" />
                     بيانات المواد والتبرع العيني
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">نوع المادة / التبرع:</span>
-                      <span className="font-bold text-foreground">{selectedSubmission.inKindType || "—"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">نوع المادة / التبرع:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.inKindType || "—"}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">الكمية المعروضة:</span>
-                      <span className="font-black text-foreground font-mono text-sm">{selectedSubmission.inKindQuantity || "—"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">الكمية المعروضة:</span>
+                      <span className="text-lg sm:text-xl font-black text-teal-700 dark:text-teal-300 font-mono mt-0.5 block">{selectedSubmission.inKindQuantity || "—"}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">حالة المواد:</span>
-                      <span className="font-medium text-foreground">{selectedSubmission.inKindCondition || "—"}</span>
+                      <span className="text-xs text-muted-foreground block font-medium">حالة المواد:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.inKindCondition || "—"}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground block text-[11px]">إمكانية النقل والتوصيل:</span>
-                      <span className="font-bold text-foreground">
+                      <span className="text-xs text-muted-foreground block font-medium">إمكانية النقل والتوصيل:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">
                         {selectedSubmission.inKindDeliveryAvailable ? "✅ متاح النقل والتوصيل من المتبرع" : "❌ يتطلب استلام وتنسيق من الجمعية"}
                       </span>
                     </div>
@@ -1370,12 +1370,12 @@ export default function RequesterApprovals() {
 
               {/* نص الرسالة / الاستفسار / الملاحظات المرفقة */}
               {selectedSubmission.details && (
-                <div className="p-4 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-2">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-primary" />
+                <div className="p-5 sm:p-6 rounded-3xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-3">
+                  <h4 className="text-sm sm:text-base font-black text-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
                     نص الطلب والتفاصيل الإضافية
                   </h4>
-                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap bg-background/50 p-3 rounded-xl border border-border/40">
+                  <p className="text-sm sm:text-base text-foreground leading-relaxed whitespace-pre-wrap bg-background/60 p-4 sm:p-5 rounded-2xl border border-border/40 font-medium">
                     {selectedSubmission.details}
                   </p>
                 </div>
@@ -1383,18 +1383,18 @@ export default function RequesterApprovals() {
 
               {/* المرفق إن وجد */}
               {selectedSubmission.attachmentUrl && (
-                <div className="p-3.5 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 flex items-center justify-between">
-                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <FileCheck className="h-4 w-4 text-primary" />
+                <div className="p-4 sm:p-5 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 flex items-center justify-between">
+                  <span className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                    <FileCheck className="h-5 w-5 text-primary" />
                     المستند / الصك المرفق مع الطلب
                   </span>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setPreviewUrl(selectedSubmission.attachmentUrl)}
-                    className="h-8 text-xs font-bold gap-1.5 rounded-xl border-primary/30 text-primary hover:bg-primary/5"
+                    className="h-9 px-5 text-xs sm:text-sm font-bold gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/5 shadow-2xs"
                   >
-                    <Eye className="w-3.5 h-3.5" />
+                    <Eye className="w-4 h-4" />
                     معاينة المستند
                   </Button>
                 </div>
@@ -1402,12 +1402,12 @@ export default function RequesterApprovals() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end pt-4 border-t border-border/60">
+            <div className="flex items-center justify-end pt-5 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setSelectedSubmission(null)}
-                className="rounded-2xl h-10 px-7 text-xs font-bold border-border/70 hover:bg-muted/60"
+                className="rounded-2xl h-11 px-9 text-sm font-black border-border/70 hover:bg-muted/60"
               >
                 إغلاق
               </Button>
