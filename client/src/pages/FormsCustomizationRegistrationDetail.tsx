@@ -570,22 +570,23 @@ export default function FormsCustomizationRegistrationDetail() {
   const renderPreviewField = (field: ServiceField) => {
     const value = previewValues[field.id];
     const unitSuffix = getUnitSuffix(field.id);
+    const isMobile = previewDevice === "mobile";
 
     if (field.type === "textarea") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
-          <Label htmlFor={`prev-${field.id}`} className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+        <div key={field.id} className={`space-y-1 ${isMobile ? "col-span-1" : "sm:col-span-2"}`}>
+          <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           {field.id === "requestDetails" && (
-            <div className="p-2.5 sm:p-3.5 bg-slate-50 dark:bg-muted/40 border border-slate-200/90 dark:border-border/80 rounded-xl text-right flex items-start gap-2 sm:gap-2.5 mb-1.5">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <div className="p-2.5 bg-slate-50 dark:bg-muted/40 border border-slate-200/90 dark:border-border/80 rounded-xl text-right flex items-start gap-2 mb-1.5">
+              <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Info className="w-3 h-3" />
               </div>
               <div className="space-y-0.5">
                 <span className="text-[11px] font-bold text-slate-800 dark:text-foreground block">توضيح إرشادي:</span>
-                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-muted-foreground leading-relaxed">
+                <p className="text-[11px] text-slate-600 dark:text-muted-foreground leading-relaxed">
                   يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
                 </p>
               </div>
@@ -593,14 +594,14 @@ export default function FormsCustomizationRegistrationDetail() {
           )}
           <Textarea
             id={`prev-${field.id}`}
-            rows={field.id === "donorOtherDetails" ? 4 : 3}
+            rows={field.id === "donorOtherDetails" ? 3 : 2}
             placeholder={field.placeholder || "اكتب التفاصيل هنا..."}
             value={value || ""}
             onChange={(e) => setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className="min-h-[85px] sm:min-h-[110px] rounded-xl border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all text-right leading-relaxed p-3 sm:p-3.5 text-xs sm:text-sm"
+            className={`${isMobile ? "min-h-[75px] text-xs p-2.5" : "min-h-[85px] sm:min-h-[110px] text-xs sm:text-sm p-3 sm:p-3.5"} rounded-xl border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all text-right leading-relaxed`}
           />
           {field.helpText && (
-            <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
           )}
         </div>
       );
@@ -608,9 +609,9 @@ export default function FormsCustomizationRegistrationDetail() {
 
     if (field.type === "phone") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5">
-          <Label htmlFor={`prev-${field.id}`} className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
-            <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
+        <div key={field.id} className="space-y-1">
+          <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+            <Phone className="w-3 h-3 text-slate-400" />
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
@@ -622,18 +623,18 @@ export default function FormsCustomizationRegistrationDetail() {
             placeholder={field.placeholder || "05XXXXXXXX"}
             value={value || ""}
             onChange={(e) => setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
+            className={`${isMobile ? "h-9.5 text-xs px-2.5" : "h-10 sm:h-11 text-xs sm:text-sm px-3 sm:px-3.5"} rounded-xl text-left border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all font-mono`}
           />
-          <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
         </div>
       );
     }
 
     if (field.type === "email") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5">
-          <Label htmlFor={`prev-${field.id}`} className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
-            <Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
+        <div key={field.id} className="space-y-1">
+          <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+            <Mail className="w-3 h-3 text-slate-400" />
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
@@ -644,10 +645,10 @@ export default function FormsCustomizationRegistrationDetail() {
             placeholder={field.placeholder || "name@example.com"}
             value={value || ""}
             onChange={(e) => setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
+            className={`${isMobile ? "h-9.5 text-xs px-2.5" : "h-10 sm:h-11 text-xs sm:text-sm px-3 sm:px-3.5"} rounded-xl text-left border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all font-mono`}
           />
           {field.helpText && (
-            <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
           )}
         </div>
       );
@@ -655,8 +656,8 @@ export default function FormsCustomizationRegistrationDetail() {
 
     if (field.type === "select") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5">
-          <Label htmlFor={`prev-${field.id}`} className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+        <div key={field.id} className="space-y-1">
+          <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
@@ -664,19 +665,19 @@ export default function FormsCustomizationRegistrationDetail() {
             value={value || ""}
             onValueChange={(val) => setPreviewValues((prev) => ({ ...prev, [field.id]: val }))}
           >
-            <SelectTrigger className="h-10 sm:h-11 rounded-xl text-right border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5">
+            <SelectTrigger className={`${isMobile ? "h-9.5 text-xs px-2.5" : "h-10 sm:h-11 text-xs sm:text-sm px-3 sm:px-3.5"} rounded-xl text-right border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all`}>
               <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
             </SelectTrigger>
             <SelectContent dir="rtl">
               {field.options?.map((opt: any, idx: number) => (
-                <SelectItem key={idx} value={opt.value} className="text-xs sm:text-sm">
+                <SelectItem key={idx} value={opt.value} className="text-xs">
                   {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {field.helpText && (
-            <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
           )}
         </div>
       );
@@ -684,28 +685,28 @@ export default function FormsCustomizationRegistrationDetail() {
 
     if (field.type === "radio") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
-          <Label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+        <div key={field.id} className={`space-y-1 ${isMobile ? "col-span-1" : "sm:col-span-2"}`}>
+          <Label className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <RadioGroup
             value={value || ""}
             onValueChange={(val) => setPreviewValues((prev) => ({ ...prev, [field.id]: val }))}
-            className="grid grid-cols-2 gap-2 sm:gap-3 pt-1"
+            className="grid grid-cols-2 gap-2 pt-1"
             dir="rtl"
           >
             {field.options?.map((opt: any, idx: number) => (
-              <div key={idx} className="flex items-center gap-2 p-2.5 sm:p-3 rounded-xl border border-slate-200 dark:border-border bg-slate-50/40 dark:bg-muted/30 cursor-pointer active:scale-98 transition-all">
+              <div key={idx} className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 dark:border-border bg-slate-50/40 dark:bg-muted/30 cursor-pointer active:scale-98 transition-all">
                 <RadioGroupItem value={opt.value} id={`prev-${field.id}_${idx}`} />
-                <Label htmlFor={`prev-${field.id}_${idx}`} className="text-xs sm:text-sm cursor-pointer select-none">
+                <Label htmlFor={`prev-${field.id}_${idx}`} className="text-xs cursor-pointer select-none">
                   {opt.label}
                 </Label>
               </div>
             ))}
           </RadioGroup>
           {field.helpText && (
-            <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
           )}
         </div>
       );
@@ -713,33 +714,33 @@ export default function FormsCustomizationRegistrationDetail() {
 
     if (field.type === "checkbox") {
       return (
-        <div key={field.id} className="sm:col-span-2">
+        <div key={field.id} className={isMobile ? "col-span-1" : "sm:col-span-2"}>
           <div
             onClick={() => setPreviewValues((prev) => ({ ...prev, [field.id]: !value }))}
-            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2.5 sm:gap-3 active:scale-[0.99] ${value
+            className={`p-2.5 sm:p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2.5 active:scale-[0.99] ${value
               ? "bg-primary/5 border-primary shadow-xs"
               : "bg-slate-50/60 dark:bg-muted/30 border-slate-200/90 dark:border-border/80 hover:border-slate-300 hover:bg-slate-100/50"
               }`}
           >
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               {field.id === "inKindDeliveryAvailable" && (
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 dark:bg-muted text-slate-500"
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 dark:bg-muted text-slate-500"
                   }`}>
-                  <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-foreground leading-tight truncate">
+                <p className="text-xs font-bold text-slate-900 dark:text-foreground leading-tight truncate">
                   {field.label}
                 </p>
                 {field.helpText && (
-                  <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground mt-0.5">{field.helpText}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-muted-foreground mt-0.5">{field.helpText}</p>
                 )}
               </div>
             </div>
-            <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${value ? "bg-primary border-primary text-white shadow-xs" : "bg-white dark:bg-background border-slate-300 dark:border-border"
+            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${value ? "bg-primary border-primary text-white shadow-xs" : "bg-white dark:bg-background border-slate-300 dark:border-border"
               }`}>
-              {value && <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />}
+              {value && <Check className="w-3.5 h-3.5 stroke-[3]" />}
             </div>
           </div>
         </div>
@@ -748,19 +749,19 @@ export default function FormsCustomizationRegistrationDetail() {
 
     if (field.type === "file") {
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
-          <Label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
-            <Paperclip className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
+        <div key={field.id} className={`space-y-1 ${isMobile ? "col-span-1" : "sm:col-span-2"}`}>
+          <Label className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+            <Paperclip className="w-3 h-3 text-slate-400" />
             <span>{field.label}</span>
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
-          <div className="block p-3.5 sm:p-5 border-2 border-dashed border-slate-200 dark:border-border rounded-xl sm:rounded-2xl text-center cursor-pointer hover:border-primary hover:bg-slate-50 dark:hover:bg-muted/30 active:scale-[0.99] transition-all">
-            <Paperclip className="w-5 h-5 mx-auto mb-1 text-slate-400" />
-            <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground block truncate">
+          <div className="block p-3 sm:p-4 border-2 border-dashed border-slate-200 dark:border-border rounded-xl text-center cursor-pointer hover:border-primary hover:bg-slate-50 dark:hover:bg-muted/30 active:scale-[0.99] transition-all">
+            <Paperclip className="w-4 h-4 mx-auto mb-1 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-foreground block truncate">
               {field.placeholder || "اضغط لاختيار ملف أو صورة"}
             </span>
             {field.helpText && (
-              <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-muted-foreground mt-0.5 block">{field.helpText}</span>
+              <span className="text-[10px] text-slate-500 dark:text-muted-foreground mt-0.5 block">{field.helpText}</span>
             )}
           </div>
         </div>
@@ -768,8 +769,8 @@ export default function FormsCustomizationRegistrationDetail() {
     }
 
     return (
-      <div key={field.id} className="space-y-1 sm:space-y-1.5">
-        <Label htmlFor={`prev-${field.id}`} className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
+      <div key={field.id} className="space-y-1">
+        <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
           <span>{field.label}</span>
           {field.required && <span className="text-destructive font-bold">*</span>}
         </Label>
@@ -780,22 +781,22 @@ export default function FormsCustomizationRegistrationDetail() {
             placeholder={field.placeholder || ""}
             value={value || ""}
             onChange={(e) => setPreviewValues((prev) => ({ ...prev, [field.id]: e.target.value }))}
-            className={`h-10 sm:h-11 rounded-xl text-right border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5 ${unitSuffix ? "pl-11" : ""}`}
+            className={`${isMobile ? "h-9.5 text-xs px-2.5" : "h-10 sm:h-11 text-xs sm:text-sm px-3 sm:px-3.5"} rounded-xl text-right border-slate-200 dark:border-border focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 dark:bg-muted/30 focus:bg-white transition-all ${unitSuffix ? "pl-11" : ""}`}
           />
           {unitSuffix && (
-            <span className="absolute left-2.5 text-[11px] sm:text-xs px-2 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded-md select-none pointer-events-none">
+            <span className="absolute left-2 text-[10px] px-1.5 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded select-none pointer-events-none">
               {unitSuffix}
             </span>
           )}
         </div>
         {field.id === "customRoleTitle" && formId === "other" && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-1 pt-1">
             {["جار المسجد", "أحد جماعة المسجد", "ممثل جهة أو شركة", "صاحب استفسار عام"].map((tag) => (
               <button
                 key={tag}
                 type="button"
                 onClick={() => setPreviewValues((prev) => ({ ...prev, customRoleTitle: tag }))}
-                className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-lg border transition-all cursor-pointer active:scale-95 ${previewValues["customRoleTitle"] === tag
+                className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer active:scale-95 ${previewValues["customRoleTitle"] === tag
                   ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
                   : "bg-slate-50 dark:bg-muted/40 text-slate-700 dark:text-foreground border-slate-200 dark:border-border hover:bg-slate-100"
                   }`}
@@ -806,7 +807,7 @@ export default function FormsCustomizationRegistrationDetail() {
           </div>
         )}
         {field.helpText && (
-          <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
+          <p className="text-[10px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
         )}
       </div>
     );
@@ -1554,31 +1555,31 @@ export default function FormsCustomizationRegistrationDetail() {
               )}
 
               {/* مساحة محتوى شاشة الهاتف أو الكمبيوتر */}
-              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-right bg-slate-50/70 dark:bg-background" : "space-y-6 max-w-2xl mx-auto py-2"}>
+              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 space-y-3.5 text-right bg-slate-50/70 dark:bg-background" : "space-y-6 max-w-2xl mx-auto py-2"}>
                 
                 {/* الترويسة والشعار مطابقة لـ Register.tsx */}
-                <div className="flex flex-col items-center mb-6 sm:mb-8 text-center select-none">
+                <div className={`flex flex-col items-center text-center select-none ${previewDevice === "mobile" ? "mb-3" : "mb-6 sm:mb-8"}`}>
                   <img
                     src={orgSettings?.logoUrl || "/logo.svg"}
                     alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
-                    className="h-16 sm:h-20 mb-3 object-contain"
+                    className={previewDevice === "mobile" ? "h-12 mb-1.5 object-contain" : "h-16 sm:h-20 mb-3 object-contain"}
                   />
-                  <h1 className="font-bold text-lg sm:text-2xl text-gray-900 dark:text-foreground">
+                  <h1 className={`font-bold text-gray-900 dark:text-foreground ${previewDevice === "mobile" ? "text-sm" : "text-lg sm:text-2xl"}`}>
                     {orgSettings?.organizationName || "بوابة منارة"}
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-muted-foreground mt-1">
+                  <p className={`text-gray-500 dark:text-muted-foreground ${previewDevice === "mobile" ? "text-[11px] mt-0.5" : "text-xs sm:text-sm mt-1"}`}>
                     نموذج التسجيل وتقديم الطلبات والتبرعات
                   </p>
                 </div>
 
                 {/* كرت النموذج المطابق لـ Register.tsx */}
-                <Card className="border border-slate-200/80 dark:border-border shadow-xl rounded-2xl sm:rounded-3xl bg-white dark:bg-card overflow-hidden">
+                <div className={`border border-slate-200/80 dark:border-border shadow-lg bg-white dark:bg-card overflow-hidden ${previewDevice === "mobile" ? "rounded-2xl" : "rounded-2xl sm:rounded-3xl"}`}>
                   
                   {/* شريط الإجراء العلوي والرجوع المطابق تماماً لـ Register.tsx */}
-                  <div className="bg-slate-100/90 dark:bg-muted/60 border-b border-slate-200 dark:border-border px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: "rgb(9, 112, 126)" }} />
-                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-foreground truncate">
+                  <div className={`bg-slate-100/90 dark:bg-muted/60 border-b border-slate-200 dark:border-border flex items-center justify-between gap-2 ${previewDevice === "mobile" ? "px-3 py-2" : "px-4 sm:px-6 py-3 sm:py-3.5"}`}>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full shrink-0 bg-primary" />
+                      <span className={`font-bold text-slate-800 dark:text-foreground truncate ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
                         {formId === "donor_land"
                           ? "مسار المتبرع (تبرع بأرض)"
                           : formId === "donor_inkind"
@@ -1589,32 +1590,30 @@ export default function FormsCustomizationRegistrationDetail() {
                       </span>
                     </div>
 
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
+                      className={`rounded-xl border border-primary/30 bg-white dark:bg-card hover:bg-primary/10 hover:border-primary text-primary font-bold flex items-center gap-1 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group ${previewDevice === "mobile" ? "h-7 px-2 text-[11px]" : "h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm"}`}
                     >
-                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
+                      <ArrowRight className="w-3 h-3 text-primary group-hover:-translate-x-0.5 transition-transform" />
                       <span>تغيير الصفة</span>
-                    </Button>
+                    </button>
                   </div>
 
-                  <CardContent className="p-5 sm:p-8 space-y-6">
-                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                  <div className={previewDevice === "mobile" ? "p-3 space-y-3.5 text-right" : "p-5 sm:p-8 space-y-6 text-right"}>
+                    <form className={previewDevice === "mobile" ? "space-y-3.5" : "space-y-6"} onSubmit={(e) => e.preventDefault()}>
                       {/* القسم الأول: بيانات المتبرع والتواصل / مقدم الطلب */}
                       {activeSection1Fields.length > 0 && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
-                            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
-                              <User className="w-4 h-4" />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-border/50">
+                            <div className={`${previewDevice === "mobile" ? "w-5 h-5" : "w-7 h-7"} rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0`}>
+                              <User className={previewDevice === "mobile" ? "w-3 h-3" : "w-4 h-4"} />
                             </div>
-                            <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
+                            <h3 className={`font-bold text-slate-900 dark:text-foreground ${previewDevice === "mobile" ? "text-xs font-bold" : "text-sm sm:text-base"}`}>
                               {formId === "other" ? "بيانات مقدم الطلب" : "بيانات المتبرع والتواصل"}
                             </h3>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className={previewDevice === "mobile" ? "grid grid-cols-1 gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>
                             {activeSection1Fields.map(renderPreviewField)}
                           </div>
                         </div>
@@ -1622,12 +1621,12 @@ export default function FormsCustomizationRegistrationDetail() {
 
                       {/* القسم الثاني: تفاصيل التبرع / الطلب */}
                       {activeSection2Fields.length > 0 && (
-                        <div className="space-y-4 pt-1">
-                          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
-                            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
-                              <IconComponent className="w-4 h-4" />
+                        <div className="space-y-3 pt-0.5">
+                          <div className="flex items-center gap-1.5 pb-1.5 border-b border-slate-100 dark:border-border/50">
+                            <div className={`${previewDevice === "mobile" ? "w-5 h-5" : "w-7 h-7"} rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 shrink-0`}>
+                              <IconComponent className={previewDevice === "mobile" ? "w-3 h-3" : "w-4 h-4"} />
                             </div>
-                            <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
+                            <h3 className={`font-bold text-slate-900 dark:text-foreground ${previewDevice === "mobile" ? "text-xs font-bold" : "text-sm sm:text-base"}`}>
                               {formId === "other"
                                 ? "تفاصيل الصفة والطلب"
                                 : formId === "donor_other"
@@ -1636,7 +1635,7 @@ export default function FormsCustomizationRegistrationDetail() {
                             </h3>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className={previewDevice === "mobile" ? "grid grid-cols-1 gap-2" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>
                             {activeSection2Fields.map(renderPreviewField)}
                           </div>
                         </div>
@@ -1645,10 +1644,10 @@ export default function FormsCustomizationRegistrationDetail() {
                       {/* زر الإرسال المتدرج مطابق لـ Register.tsx */}
                       <Button
                         type="button"
-                        className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${previewDevice === "mobile" ? "h-10 text-xs mt-2.5" : "h-12 text-sm sm:text-base mt-4"}`}
                         style={{ background: "linear-gradient(135deg, rgb(9, 112, 126) 0%, rgb(8, 145, 178) 100%)" }}
                       >
-                        <IconComponent className="w-5 h-5" />
+                        <IconComponent className={previewDevice === "mobile" ? "w-4 h-4" : "w-5 h-5"} />
                         <span>
                           {formId === "donor_land"
                             ? "إرسال بيانات التبرع بالأرض"
@@ -1664,19 +1663,19 @@ export default function FormsCustomizationRegistrationDetail() {
                     </form>
 
                     {/* الروابط السفلية مطابقة لـ Register.tsx */}
-                    <div className="mt-8 pt-5 border-t border-slate-100 dark:border-border/50 text-center space-y-2.5">
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-muted-foreground">
+                    <div className={`${previewDevice === "mobile" ? "mt-4 pt-3 space-y-1" : "mt-8 pt-5 space-y-2.5"} border-t border-slate-100 dark:border-border/50 text-center`}>
+                      <p className={`${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"} text-gray-600 dark:text-muted-foreground`}>
                         لديك حساب إمام أو مؤذن معتمد بالفعل؟{" "}
                         <span className="font-bold text-teal-700 dark:text-teal-400">
                           تسجيل الدخول
                         </span>
                       </p>
-                      <span className="block text-xs text-gray-500 dark:text-muted-foreground/80">
+                      <span className={`block ${previewDevice === "mobile" ? "text-[10px]" : "text-xs"} text-gray-500 dark:text-muted-foreground/80`}>
                         ← العودة إلى الصفحة الرئيسية
                       </span>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
 
               {/* شريط السحب السفلي لهواتف iPhone */}
