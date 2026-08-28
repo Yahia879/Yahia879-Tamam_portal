@@ -1661,8 +1661,6 @@ export default function FormsCustomizationRegistrationDetail() {
                 </div>
               </div>
 
-              </div>
-
               {/* شريط السحب السفلي لهواتف iPhone */}
               {previewDevice === "mobile" && (
                 <div className="pb-2.5 pt-1.5 bg-background/95 backdrop-blur shrink-0 flex justify-center border-t border-border/30">
