@@ -300,7 +300,7 @@ export default function RequesterApprovals() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0 pb-12 font-['Cairo',sans-serif]">
+      <div className="space-y-6 w-full max-w-full pb-12 font-['Cairo',sans-serif]">
         {/* رأس الصفحة */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 p-5 sm:p-6 rounded-3xl shadow-xs">
           <div className="flex items-center gap-3.5">
