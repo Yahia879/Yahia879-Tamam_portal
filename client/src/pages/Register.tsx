@@ -161,6 +161,7 @@ export default function Register() {
   // طفرة تسجيل الإمام أو المؤذن (إنشاء حساب مستخدم رسمي)
   const registerImamMuezzinMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
+      toast.success("شكراً لكم، تم استلام بياناتكم بنجاح، وسيقوم فريق الجمعية بالتواصل معكم عند الحاجة لاستكمال المعلومات أو متابعة الطلب.");
       setIsSuccess(true);
     },
     onError: (error) => {
@@ -171,6 +172,7 @@ export default function Register() {
   // طفرة إرسال طلب التبرع أو الاستفسار العام (دون حساب)
   const submitPublicRequestMutation = trpc.publicSubmissions.submit.useMutation({
     onSuccess: () => {
+      toast.success("شكراً لكم، تم استلام بياناتكم بنجاح، وسيقوم فريق الجمعية بالتواصل معكم عند الحاجة لاستكمال المعلومات أو متابعة الطلب.");
       setIsSuccess(true);
     },
     onError: (error) => {
@@ -1924,36 +1926,6 @@ export default function Register() {
                       required
                       className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
                     />
-                  </div>
-
-                  {/* رفع مستند أو صورة اختياري */}
-                  <div className="space-y-1.5 pt-1">
-                    <Label htmlFor="otherFile" className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <Upload className="w-3.5 h-3.5 text-slate-500" />
-                      <span>إرفاق مستند أو صورة داعمة (اختياري)</span>
-                    </Label>
-                    <div className="border-2 border-dashed border-slate-200 hover:border-primary rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50/50 hover:bg-primary/5">
-                      <input
-                        id="otherFile"
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,image/*"
-                        onChange={(e) => handleFileUpload("otherFile", e.target.files?.[0] || null)}
-                        className="hidden"
-                      />
-                      <label htmlFor="otherFile" className="cursor-pointer block text-xs text-slate-600">
-                        {formData.otherFile ? (
-                          <span className="text-primary font-bold flex items-center justify-center gap-2 text-sm">
-                            <CheckCircle2 className="w-4 h-4 text-primary" /> {formData.otherFile.name}
-                          </span>
-                        ) : (
-                          <div className="space-y-1">
-                            <Upload className="w-5 h-5 mx-auto text-slate-400" />
-                            <p className="font-semibold text-slate-700">اضغط لاختيار ملف أو صورة (PDF أو صور)</p>
-                            <p className="text-[11px] text-slate-400">PDF أو صور توضيحية للطلب</p>
-                          </div>
-                        )}
-                      </label>
-                    </div>
                   </div>
                 </div>
 

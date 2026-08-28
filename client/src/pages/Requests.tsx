@@ -22,9 +22,7 @@ import {
   ClipboardList,
   Languages,
   Briefcase,
-  Tag,
-  Star,
-  MessageSquare
+  Tag
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -529,33 +527,6 @@ export default function Requests({
                           {status.icon}
                           {translateStatus(request.status)}
                         </span>
-
-                        {/* تقييم رضا المستفيد - يظهر فقط عند وجود تقييم مسجل */}
-                        {request.isEvaluated && request.satisfactionRating && (() => {
-                          let comment = "";
-                          if (request.evaluationNotes) {
-                            try {
-                              const parsed = JSON.parse(request.evaluationNotes);
-                              comment = parsed.comments || parsed.notes || "";
-                            } catch {
-                              comment = request.evaluationNotes;
-                            }
-                          }
-                          return (
-                            <div className="mt-1.5 flex items-center">
-                              <span 
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-[11px] font-bold shadow-2xs cursor-help"
-                                title={comment ? `تقييم المستفيد: ${request.satisfactionRating} من 5 نجوم\nالآراء: "${comment}"` : `تقييم المستفيد: ${request.satisfactionRating} من 5 نجوم`}
-                              >
-                                <Star className="w-3 h-3 fill-amber-500 text-amber-500 shrink-0" />
-                                <span>{request.satisfactionRating}/5</span>
-                                {comment && (
-                                  <MessageSquare className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400 shrink-0 mr-0.5" />
-                                )}
-                              </span>
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Mobile Card Row: Location + Stage + Status */}
@@ -581,30 +552,6 @@ export default function Requests({
                             {translateStatus(request.status)}
                           </span>
                         </div>
-
-                        {/* تقييم رضا المستفيد للموبايل - يظهر فقط عند وجود تقييم مسجل */}
-                        {request.isEvaluated && request.satisfactionRating && (() => {
-                          let comment = "";
-                          if (request.evaluationNotes) {
-                            try {
-                              const parsed = JSON.parse(request.evaluationNotes);
-                              comment = parsed.comments || parsed.notes || "";
-                            } catch {
-                              comment = request.evaluationNotes;
-                            }
-                          }
-                          return (
-                            <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md">
-                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-                              <span className="font-bold">تقييم المستفيد: {request.satisfactionRating} من 5</span>
-                              {comment && (
-                                <span className="text-muted-foreground text-[11px] truncate mr-1">
-                                  — "{comment}"
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Desktop Action */}
