@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Building2, 
   Eye, 
@@ -36,7 +38,10 @@ import {
   MapPin,
   Send,
   Truck,
-  Download
+  Download,
+  Ruler,
+  Coins,
+  Paperclip
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -135,6 +140,42 @@ export default function Register() {
     requestDetails: "",
     otherFile: null as File | null,
   });
+
+  // معرّف النموذج المخصص للمسار النشط
+  const activeRegistrationFormId = useMemo(() => {
+    if (selectedRole === "donor") {
+      if (donorType === "land") return "donor_land";
+      if (donorType === "in_kind") return "donor_inkind";
+      if (donorType === "financial") return "donor_financial";
+      if (donorType === "other") return "donor_other";
+    }
+    if (selectedRole === "other") return "other";
+    return null;
+  }, [selectedRole, donorType]);
+
+  const { data: registrationFormConfig } = trpc.forms.getRegistrationFormConfig.useQuery(
+    { formId: activeRegistrationFormId || "" },
+    { enabled: !!activeRegistrationFormId }
+  );
+
+  const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
+
+  const handleDynamicChange = (fieldId: string, val: any) => {
+    setDynamicValues((prev) => ({ ...prev, [fieldId]: val }));
+    if (fieldId === "customRoleTitle" || fieldId === "landCustomRole" || fieldId === "inKindCustomRole" || fieldId === "donorRoleTitle") {
+      setFormData((prev) => ({ ...prev, customRoleTitle: val }));
+    } else if (fieldId in formData) {
+      setFormData((prev) => ({ ...prev, [fieldId]: val }));
+    }
+  };
+
+  const getFieldValue = (fieldId: string) => {
+    if (dynamicValues[fieldId] !== undefined) return dynamicValues[fieldId];
+    if (fieldId === "customRoleTitle" || fieldId === "landCustomRole" || fieldId === "inKindCustomRole" || fieldId === "donorRoleTitle") {
+      return formData.customRoleTitle;
+    }
+    return (formData as any)[fieldId] ?? "";
+  };
 
   // قراءة المعاملات من الرابط إن وجدت (مثل ?role=imam أو ?role=donor)
   useEffect(() => {
@@ -296,16 +337,47 @@ export default function Register() {
       return;
     }
 
+    const activeFields = registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false) || [];
+
+    // دالة مساعدة للتحقق من كافة الحقول المطلوبة النشطة
+    const validateRequiredFields = () => {
+      if (activeFields.length > 0) {
+        for (const f of activeFields) {
+          if (f.required) {
+            const val = getFieldValue(f.id);
+            if (val === undefined || val === null || (typeof val === "string" && !val.trim()) || (f.type === "file" && !val)) {
+              toast.error(`يرجى تعبئة الحقل المطلوب: "${f.label}"`);
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    };
+
+    // دالة مساعدة لتجميع كافة قيم الحقول الديناميكية
+    const getDynamicDetailsText = (excludeKeys: string[] = ["name", "phone", "email"]) => {
+      if (!activeFields.length) return "";
+      return activeFields
+        .filter((f: any) => !excludeKeys.includes(f.id))
+        .map((f: any) => {
+          const val = getFieldValue(f.id);
+          if (val === undefined || val === null || val === "" || val === false) return null;
+          if (typeof val === "boolean") return `${f.label}: نعم`;
+          return `${f.label}: ${val}`;
+        })
+        .filter(Boolean)
+        .join("\n");
+    };
+
     // 2. مسار المتبرع بأرض
     if (selectedRole === "donor" && donorType === "land") {
-      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.customRoleTitle.trim() || !formData.landArea.trim() || !formData.landDimensions.trim() || !formData.landLocation.trim() || !formData.landOwner.trim() || !formData.landDetails.trim()) {
-        toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع بالأرض");
-        return;
-      }
+      if (!validateRequiredFields()) return;
 
       setIsSubmitting(true);
       try {
-        const combinedDetails = [
+        const dynamicDetails = getDynamicDetailsText(["name", "phone", "email"]);
+        const fallbackDetails = [
           formData.customRoleTitle ? `الصفة أو العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
           `مساحة الأرض: ${formData.landArea}`,
           `الأبعاد والأطوال: ${formData.landDimensions}`,
@@ -317,14 +389,14 @@ export default function Register() {
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_land",
           category: "donor",
-          name: trimmedName,
-          phone: formData.phone.trim(),
-          email: formData.email.trim(),
-          customRoleTitle: formData.customRoleTitle.trim(),
-          details: combinedDetails,
-          landArea: formData.landArea,
-          landLocation: formData.landLocation,
-          landOwner: formData.landOwner,
+          name: trimmedName || (getFieldValue("name") as string) || "متبرع بأرض",
+          phone: (formData.phone || getFieldValue("phone") || "").trim(),
+          email: (formData.email || getFieldValue("email") || "").trim(),
+          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "").trim(),
+          details: dynamicDetails || fallbackDetails,
+          landArea: formData.landArea || getFieldValue("landArea"),
+          landLocation: formData.landLocation || getFieldValue("landLocation"),
+          landOwner: formData.landOwner || getFieldValue("landOwner"),
         });
       } catch (err: any) {
         toast.error(err.message || "حدث خطأ أثناء إرسال بيانات التبرع بالأرض");
@@ -336,37 +408,36 @@ export default function Register() {
 
     // 3. مسار المتبرع بتبرع عيني
     if (selectedRole === "donor" && donorType === "in_kind") {
-      if (!trimmedName || !formData.phone.trim() || !formData.email.trim() || !formData.customRoleTitle.trim() || !formData.inKindItemType.trim() || !formData.inKindQuantity.trim() || !formData.inKindCondition.trim() || !formData.inKindLocation.trim()) {
-        toast.error("يرجى تعبئة كافة الحقول المطلوبة لبيانات التبرع العيني");
-        return;
-      }
+      if (!validateRequiredFields()) return;
 
       setIsSubmitting(true);
       try {
         let attachmentUrl: string | undefined = undefined;
-        if (formData.inKindFile) {
-          attachmentUrl = await uploadFile(formData.inKindFile);
+        const fileVal = getFieldValue("inKindFile") || formData.inKindFile;
+        if (fileVal instanceof File) {
+          attachmentUrl = await uploadFile(fileVal);
         }
 
-        const combinedDetails = [
+        const dynamicDetails = getDynamicDetailsText(["name", "phone", "email"]);
+        const fallbackDetails = [
           formData.customRoleTitle ? `الصفة أو العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
           formData.inKindItemType ? `نوع التبرع العيني: ${formData.inKindItemType}` : "",
           formData.inKindQuantity ? `الكميات المتاحة: ${formData.inKindQuantity}` : "",
           formData.inKindCondition ? `حالة المواد: ${formData.inKindCondition}` : "",
           formData.inKindLocation ? `موقع المواد / الاستلام: ${formData.inKindLocation}` : "",
-          `إمكانية النقل والتسليم: ${formData.inKindDeliveryAvailable ? "نقل وتوصيل متاح من قبل المتبرع" : "يتطلب استلام من الموقع"}`,
+          `إمكانية النقل والتسليم: ${getFieldValue("inKindDeliveryAvailable") ? "نقل وتوصيل متاح من قبل المتبرع" : "يتطلب استلام من الموقع"}`,
           formData.inKindDetails ? `معلومات وملاحظات إضافية: ${formData.inKindDetails}` : "",
         ].filter(Boolean).join("\n");
 
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_inkind",
           category: "donor",
-          name: trimmedName,
-          phone: formData.phone.trim(),
-          email: formData.email.trim(),
-          customRoleTitle: formData.customRoleTitle.trim(),
-          details: combinedDetails || formData.inKindDetails.trim() || "طلب تبرع عيني",
-          inKindDeliveryAvailable: formData.inKindDeliveryAvailable,
+          name: trimmedName || (getFieldValue("name") as string) || "متبرع بتبرع عيني",
+          phone: (formData.phone || getFieldValue("phone") || "").trim(),
+          email: (formData.email || getFieldValue("email") || "").trim(),
+          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "").trim(),
+          details: dynamicDetails || fallbackDetails || "طلب تبرع عيني",
+          inKindDeliveryAvailable: !!getFieldValue("inKindDeliveryAvailable"),
           attachmentUrl,
         });
       } catch (err: any) {
@@ -389,9 +460,9 @@ export default function Register() {
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_financial",
           category: "donor",
-          name: trimmedName,
-          phone: formData.phone.trim(),
-          email: formData.email.trim() || undefined,
+          name: trimmedName || (getFieldValue("name") as string) || "متبرع مالي",
+          phone: (formData.phone || getFieldValue("phone") || "").trim(),
+          email: (formData.email || getFieldValue("email") || "").trim() || undefined,
           financialAmount: formData.financialAmount ? parseFloat(formData.financialAmount) : undefined,
           financialBankName: formData.financialBankName || undefined,
           details: "إشعار تحويل بنكي / رغبة في التبرع المالي",
@@ -407,26 +478,12 @@ export default function Register() {
 
     // 5. مسار متبرع - أخرى
     if (selectedRole === "donor" && donorType === "other") {
-      if (!formData.email.trim()) {
-        toast.error("يرجى إدخال البريد الإلكتروني");
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-        toast.error("البريد الإلكتروني غير صالح");
-        return;
-      }
-      if (!formData.customRoleTitle.trim()) {
-        toast.error("يرجى تحديد صفتك أو علاقتك بالمسجد");
-        return;
-      }
-      if (!formData.donorOtherDetails.trim()) {
-        toast.error("يرجى كتابة تفاصيل التبرع");
-        return;
-      }
+      if (!validateRequiredFields()) return;
 
       setIsSubmitting(true);
       try {
-        const combinedDetails = [
+        const dynamicDetails = getDynamicDetailsText(["name", "phone", "email"]);
+        const fallbackDetails = [
           formData.customRoleTitle ? `الصفة / العلاقة بالمسجد: ${formData.customRoleTitle}` : "",
           `تفاصيل التبرع والمقترح: ${formData.donorOtherDetails.trim()}`,
         ].filter(Boolean).join("\n");
@@ -434,11 +491,11 @@ export default function Register() {
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "donor_other",
           category: "donor",
-          name: trimmedName,
-          phone: formData.phone.trim(),
-          email: formData.email.trim(),
-          customRoleTitle: formData.customRoleTitle.trim(),
-          details: combinedDetails,
+          name: trimmedName || (getFieldValue("name") as string) || "متبرع",
+          phone: (formData.phone || getFieldValue("phone") || "").trim(),
+          email: (formData.email || getFieldValue("email") || "").trim(),
+          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "").trim(),
+          details: dynamicDetails || fallbackDetails,
         });
       } catch (err: any) {
         toast.error(err.message || "حدث خطأ أثناء إرسال البيانات");
@@ -450,38 +507,26 @@ export default function Register() {
 
     // 6. مسار أخرى (استفسار / جماعة المسجد / جهة)
     if (selectedRole === "other") {
-      if (!formData.email.trim()) {
-        toast.error("يرجى إدخال البريد الإلكتروني");
-        return;
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-        toast.error("البريد الإلكتروني غير صالح");
-        return;
-      }
-      if (!formData.customRoleTitle.trim()) {
-        toast.error("يرجى تحديد صفتك (مثلاً: جار المسجد، استفسار...)");
-        return;
-      }
-      if (!formData.requestDetails.trim()) {
-        toast.error("يرجى كتابة طلبك أو استفسارك بالتفصيل");
-        return;
-      }
+      if (!validateRequiredFields()) return;
 
       setIsSubmitting(true);
       try {
         let attachmentUrl: string | undefined = undefined;
-        if (formData.otherFile) {
-          attachmentUrl = await uploadFile(formData.otherFile);
+        const fileVal = getFieldValue("otherFile") || formData.otherFile;
+        if (fileVal instanceof File) {
+          attachmentUrl = await uploadFile(fileVal);
         }
+
+        const dynamicDetails = getDynamicDetailsText(["name", "phone", "email"]);
 
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "general_inquiry",
           category: "other",
-          name: trimmedName,
-          phone: formData.phone.trim(),
-          email: formData.email.trim(),
-          customRoleTitle: formData.customRoleTitle.trim(),
-          details: formData.requestDetails.trim(),
+          name: trimmedName || (getFieldValue("name") as string) || "مقدم طلب / استفسار",
+          phone: (formData.phone || getFieldValue("phone") || "").trim(),
+          email: (formData.email || getFieldValue("email") || "").trim(),
+          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "").trim(),
+          details: dynamicDetails || formData.requestDetails.trim(),
           attachmentUrl,
         });
       } catch (err: any) {
@@ -500,6 +545,282 @@ export default function Register() {
   const rawIban = "SA0580000347608011245554";
   const bankAccountNumber = "347000010006081245554";
   const donationUrl = "https://manarahstore.sa";
+
+  const getDynamicUnitSuffix = (fieldId: string) => {
+    switch (fieldId) {
+      case "landArea":
+        return "م²";
+      case "financialAmount":
+        return "ريال";
+      default:
+        return null;
+    }
+  };
+
+  const renderDynamicField = (field: any) => {
+    const value = getFieldValue(field.id);
+    const unitSuffix = getDynamicUnitSuffix(field.id);
+
+    if (field.type === "textarea") {
+      return (
+        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          {field.id === "requestDetails" && (
+            <div className="p-3 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2.5 mb-2">
+              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Info className="w-3.5 h-3.5" />
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-[11px] font-bold text-slate-800 block">توضيح إرشادي:</span>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
+                </p>
+              </div>
+            </div>
+          )}
+          <Textarea
+            id={field.id}
+            rows={field.id === "donorOtherDetails" ? 5 : 3}
+            placeholder={field.placeholder || "اكتب التفاصيل هنا..."}
+            value={value || ""}
+            onChange={(e) => handleDynamicChange(field.id, e.target.value)}
+            required={field.required}
+            className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
+          />
+          {field.helpText && (
+            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === "phone") {
+      return (
+        <div key={field.id} className="space-y-1.5">
+          <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <Phone className="w-3.5 h-3.5 text-slate-400" />
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Input
+            id={field.id}
+            type="tel"
+            dir="ltr"
+            maxLength={10}
+            placeholder={field.placeholder || "05XXXXXXXX"}
+            value={value || ""}
+            onChange={(e) => handleDynamicChange(field.id, e.target.value)}
+            required={field.required}
+            className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+          />
+          <p className="text-[11px] text-slate-500">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
+        </div>
+      );
+    }
+
+    if (field.type === "email") {
+      return (
+        <div key={field.id} className="space-y-1.5">
+          <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <Mail className="w-3.5 h-3.5 text-slate-400" />
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Input
+            id={field.id}
+            type="email"
+            dir="ltr"
+            placeholder={field.placeholder || "name@example.com"}
+            value={value || ""}
+            onChange={(e) => handleDynamicChange(field.id, e.target.value)}
+            required={field.required}
+            className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+          />
+          {field.helpText && (
+            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === "select") {
+      return (
+        <div key={field.id} className="space-y-1.5">
+          <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <Select
+            value={value || ""}
+            onValueChange={(val) => handleDynamicChange(field.id, val)}
+          >
+            <SelectTrigger className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
+              <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
+            </SelectTrigger>
+            <SelectContent dir="rtl">
+              {field.options?.map((opt: any, idx: number) => (
+                <SelectItem key={idx} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {field.helpText && (
+            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === "radio") {
+      return (
+        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+          <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <RadioGroup
+            value={value || ""}
+            onValueChange={(val) => handleDynamicChange(field.id, val)}
+            className="grid grid-cols-2 gap-3 pt-1"
+            dir="rtl"
+          >
+            {field.options?.map((opt: any, idx: number) => (
+              <div key={idx} className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/40">
+                <RadioGroupItem value={opt.value} id={`${field.id}_${idx}`} />
+                <Label htmlFor={`${field.id}_${idx}`} className="text-xs cursor-pointer">
+                  {opt.label}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+          {field.helpText && (
+            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+          )}
+        </div>
+      );
+    }
+
+    if (field.type === "checkbox") {
+      return (
+        <div key={field.id} className="sm:col-span-2">
+          <div
+            onClick={() => handleDynamicChange(field.id, !value)}
+            className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${
+              value
+                ? "bg-primary/5 border-primary shadow-xs"
+                : "bg-slate-50/60 border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/50"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {field.id === "inKindDeliveryAvailable" && (
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                  value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 text-slate-500"
+                }`}>
+                  <Truck className="w-5 h-5" />
+                </div>
+              )}
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+                  {field.label}
+                </p>
+                {field.helpText && (
+                  <p className="text-[11px] text-slate-500 mt-0.5">{field.helpText}</p>
+                )}
+              </div>
+            </div>
+            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+              value ? "bg-primary border-primary text-white shadow-xs" : "bg-white border-slate-300"
+            }`}>
+              {value && <Check className="w-4 h-4 stroke-[3]" />}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (field.type === "file") {
+      return (
+        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+          <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+            <Paperclip className="w-3.5 h-3.5 text-slate-400" />
+            <span>{field.label}</span>
+            {field.required && <span className="text-destructive">*</span>}
+          </Label>
+          <input
+            type="file"
+            id={field.id}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0] || null;
+              handleDynamicChange(field.id, file);
+            }}
+          />
+          <label
+            htmlFor={field.id}
+            className="block p-4 border-2 border-dashed border-slate-200 rounded-xl text-center cursor-pointer hover:border-primary hover:bg-slate-50 transition-all"
+          >
+            <Paperclip className="w-5 h-5 mx-auto mb-1 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-700 block">
+              {value instanceof File ? value.name : (field.placeholder || "اضغط لاختيار ملف أو صورة")}
+            </span>
+            {field.helpText && (
+              <span className="text-[10px] text-slate-500 mt-0.5 block">{field.helpText}</span>
+            )}
+          </label>
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.id} className="space-y-1.5">
+        <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
+          <span>{field.label}</span>
+          {field.required && <span className="text-destructive">*</span>}
+        </Label>
+        <div className="relative flex items-center">
+          <Input
+            id={field.id}
+            type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
+            placeholder={field.placeholder || ""}
+            value={value || ""}
+            onChange={(e) => handleDynamicChange(field.id, e.target.value)}
+            required={field.required}
+            className={`h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all ${unitSuffix ? "pl-11" : ""}`}
+          />
+          {unitSuffix && (
+            <span className="absolute left-2.5 text-xs px-2 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded-md select-none pointer-events-none">
+              {unitSuffix}
+            </span>
+          )}
+        </div>
+        {field.id === "customRoleTitle" && selectedRole === "other" && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {["جار المسجد", "أحد جماعة المسجد", "ممثل جهة أو شركة", "صاحب استفسار عام"].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleDynamicChange("customRoleTitle", tag)}
+                className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${
+                  getFieldValue("customRoleTitle") === tag
+                    ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        )}
+        {field.helpText && (
+          <p className="text-[11px] text-slate-500">{field.helpText}</p>
+        )}
+      </div>
+    );
+  };
 
   if (loading || isAuthenticated) {
     return (
@@ -1067,73 +1388,12 @@ export default function Register() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الاسم الكامل</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="أدخل اسمك الكريم"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>رقم الجوال</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="05XXXXXXXX"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                        required
-                        maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landCustomRole" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الصفة أو العلاقة بالمسجد</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="landCustomRole"
-                        placeholder="مثال: مالك الأرض، فاعل خير، وكيل المالك..."
-                        value={formData.customRoleTitle}
-                        onChange={(e) => handleChange("customRoleTitle", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && ["name", "phone", "email", "customRoleTitle", "landCustomRole"].includes(f.id)) || [
+                      { id: "name", label: "الاسم الكامل", type: "text", required: true, placeholder: "أدخل اسمك الكريم" },
+                      { id: "phone", label: "رقم الجوال", type: "phone", required: true, placeholder: "05XXXXXXXX", helpText: "صيغة: 05XXXXXXXX (10 أرقام)" },
+                      { id: "email", label: "البريد الإلكتروني", type: "email", required: true, placeholder: "name@example.com" },
+                      { id: "customRoleTitle", label: "الصفة أو العلاقة بالمسجد", type: "text", required: true, placeholder: "مثال: مالك الأرض، فاعل خير، وكيل المالك..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1146,87 +1406,14 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
                   </div>
 
-                  {/* مساحة الأرض والأبعاد */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landArea" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>مساحة الأرض (م²)</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="landArea"
-                        placeholder="مثال: 900 م²"
-                        value={formData.landArea}
-                        onChange={(e) => handleChange("landArea", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landDimensions" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>أبعاد وأطوال الأرض</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="landDimensions"
-                        placeholder="مثال: 30م × 30م، على شارعين"
-                        value={formData.landDimensions}
-                        onChange={(e) => handleChange("landDimensions", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* موقع الأرض والمالك الحالي */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landLocation" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>موقع الأرض / الحي</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="landLocation"
-                        placeholder="مثال: حي الروابي، بالقرب من..."
-                        value={formData.landLocation}
-                        onChange={(e) => handleChange("landLocation", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="landOwner" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>المالك الحالي للأرض</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="landOwner"
-                        placeholder="اسم المالك أو صفة الواقف"
-                        value={formData.landOwner}
-                        onChange={(e) => handleChange("landOwner", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* معلومات وملاحظات إضافية */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="landDetails" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                      <span>معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      id="landDetails"
-                      rows={3}
-                      placeholder="اكتب هنا أي معلومات إضافية تساعد الجمعية على دراسة وتقييم التبرع..."
-                      value={formData.landDetails}
-                      onChange={(e) => handleChange("landDetails", e.target.value)}
-                      required
-                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
-                    />
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && !["name", "phone", "email", "customRoleTitle", "landCustomRole"].includes(f.id)) || [
+                      { id: "landArea", label: "مساحة الأرض (م²)", type: "text", required: true, placeholder: "مثال: 900 م²" },
+                      { id: "landDimensions", label: "أبعاد وأطوال الأرض", type: "text", required: true, placeholder: "مثال: 30م × 30م، على شارعين" },
+                      { id: "landLocation", label: "موقع الأرض / الحي", type: "text", required: true, placeholder: "مثال: حي الروابي، بالقرب من..." },
+                      { id: "landOwner", label: "المالك الحالي للأرض", type: "text", required: true, placeholder: "اسم المالك أو صفة الواقف" },
+                      { id: "landDetails", label: "معلومات وملاحظات إضافية تساعد الجمعية على دراسة التبرع", type: "textarea", required: true, placeholder: "اكتب هنا أي معلومات إضافية تساعد الجمعية على دراسة وتقييم التبرع..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1265,73 +1452,12 @@ export default function Register() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الاسم الكامل</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="أدخل اسمك الكريم"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>رقم الجوال</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="05XXXXXXXX"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                        required
-                        maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKind-email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKind-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKindCustomRole" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الصفة أو العلاقة بالمسجد</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKindCustomRole"
-                        placeholder="مثال: متبرع، مورد، فاعل خير، جار المسجد..."
-                        value={formData.customRoleTitle}
-                        onChange={(e) => handleChange("customRoleTitle", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && ["name", "phone", "email", "customRoleTitle", "inKindCustomRole"].includes(f.id)) || [
+                      { id: "name", label: "الاسم الكامل", type: "text", required: true, placeholder: "أدخل اسمك الكريم" },
+                      { id: "phone", label: "رقم الجوال", type: "phone", required: true, placeholder: "05XXXXXXXX", helpText: "صيغة: 05XXXXXXXX (10 أرقام)" },
+                      { id: "email", label: "البريد الإلكتروني", type: "email", required: true, placeholder: "name@example.com" },
+                      { id: "customRoleTitle", label: "الصفة أو العلاقة بالمسجد", type: "text", required: true, placeholder: "مثال: متبرع، مورد، فاعل خير، جار المسجد..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1344,125 +1470,15 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">اذكر تفاصيل التبرع</h3>
                   </div>
 
-                  {/* نوع التبرع والكميات */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKindItemType" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>نوع التبرع العيني</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKindItemType"
-                        placeholder="مثال: مكيفات، سجاد، إنارة، مواد بناء..."
-                        value={formData.inKindItemType}
-                        onChange={(e) => handleChange("inKindItemType", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKindQuantity" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الكميات المتاحة</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKindQuantity"
-                        placeholder="مثال: 5 أجهزة، 200 م²..."
-                        value={formData.inKindQuantity}
-                        onChange={(e) => handleChange("inKindQuantity", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* حالة المواد والموقع */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKindCondition" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>حالة المواد</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKindCondition"
-                        placeholder="مثال: جديدة، مستعملة بحالة ممتازة..."
-                        value={formData.inKindCondition}
-                        onChange={(e) => handleChange("inKindCondition", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="inKindLocation" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>موقع المواد / الاستلام</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="inKindLocation"
-                        placeholder="مثال: مستودع في حي الروابي، أبها..."
-                        value={formData.inKindLocation}
-                        onChange={(e) => handleChange("inKindLocation", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* إمكانية النقل والتسليم */}
-                  <div
-                    onClick={() => handleChange("inKindDeliveryAvailable", !formData.inKindDeliveryAvailable)}
-                    className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${
-                      formData.inKindDeliveryAvailable
-                        ? "bg-primary/5 border-primary shadow-xs"
-                        : "bg-slate-50/60 border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                        formData.inKindDeliveryAvailable
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "bg-slate-200/80 text-slate-500"
-                      }`}>
-                        <Truck className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                          هل يوجد إمكانية لنقل وتوصيل التبرع العيني ؟
-                        </p>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {formData.inKindDeliveryAvailable
-                            ? "نعم، تتوفر إمكانية النقل والتوصيل لموقع المسجد أو مستودع الجمعية"
-                            : "اضغط هنا في حال توفرت لديكم إمكانية نقل وتوصيل المواد"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                      formData.inKindDeliveryAvailable
-                        ? "bg-primary border-primary text-white shadow-xs"
-                        : "bg-white border-slate-300"
-                    }`}>
-                      {formData.inKindDeliveryAvailable && (
-                        <Check className="w-4 h-4 stroke-[3]" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* معلومات وملاحظات إضافية */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="inKindDetails" className="text-xs sm:text-sm font-semibold text-slate-700">
-                      معلومات وملاحظات إضافية عن التبرع العيني (اختياري)
-                    </Label>
-                    <Textarea
-                      id="inKindDetails"
-                      rows={3}
-                      placeholder="اكتب هنا أي تفاصيل أو مواصفات إضافية عن المواد أو التجهيزات..."
-                      value={formData.inKindDetails}
-                      onChange={(e) => handleChange("inKindDetails", e.target.value)}
-                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
-                    />
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && !["name", "phone", "email", "customRoleTitle", "inKindCustomRole"].includes(f.id)) || [
+                      { id: "inKindItemType", label: "نوع التبرع العيني", type: "text", required: true, placeholder: "مثال: مكيفات، سجاد، إنارة، مواد بناء..." },
+                      { id: "inKindQuantity", label: "الكميات المتاحة", type: "text", required: true, placeholder: "مثال: 5 أجهزة، 200 م²..." },
+                      { id: "inKindCondition", label: "حالة المواد", type: "text", required: true, placeholder: "مثال: جديدة، مستعملة بحالة ممتازة..." },
+                      { id: "inKindLocation", label: "موقع المواد / الاستلام", type: "text", required: true, placeholder: "مثال: مستودع في حي الروابي، أبها..." },
+                      { id: "inKindDeliveryAvailable", label: "هل يوجد إمكانية لنقل وتوصيل التبرع العيني ؟", type: "checkbox", helpText: "تتوفر إمكانية النقل والتوصيل لموقع المسجد أو مستودع الجمعية" },
+                      { id: "inKindDetails", label: "معلومات وملاحظات إضافية عن التبرع العيني (اختياري)", type: "textarea", placeholder: "اكتب هنا أي تفاصيل أو مواصفات إضافية عن المواد أو التجهيزات..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1670,58 +1686,11 @@ export default function Register() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الاسم الكامل</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="أدخل اسمك الكريم"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>رقم الجوال</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="05XXXXXXXX"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                        required
-                        maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
-                    </div>
-
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="donor-email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="donor-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                    </div>
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && ["name", "phone", "email"].includes(f.id)) || [
+                      { id: "name", label: "الاسم الكامل", type: "text", required: true, placeholder: "أدخل اسمك الكريم" },
+                      { id: "phone", label: "رقم الجوال", type: "phone", required: true, placeholder: "05XXXXXXXX", helpText: "صيغة: 05XXXXXXXX (10 أرقام)" },
+                      { id: "donor-email", label: "البريد الإلكتروني", type: "email", required: true, placeholder: "name@example.com" },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1734,36 +1703,11 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والتبرع</h3>
                   </div>
 
-                  {/* الصفة أو العلاقة بالمسجد */}
-                  <div className="space-y-2">
-                    <Label htmlFor="donorRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>الصفة أو العلاقة بالمسجد</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="donorRoleTitle"
-                      placeholder="مثال: فاعل خير، رجل أعمال، ممثل جهة أو شركة، جار المسجد..."
-                      value={formData.customRoleTitle}
-                      onChange={(e) => handleChange("customRoleTitle", e.target.value)}
-                      required
-                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="donorOtherDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>تفاصيل التبرع المقترح</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      id="donorOtherDetails"
-                      rows={5}
-                      placeholder="اكتب هنا تفاصيل نوع التبرع أو المبادرة أو الشراكة المقترحة للجمعية..."
-                      value={formData.donorOtherDetails}
-                      onChange={(e) => handleChange("donorOtherDetails", e.target.value)}
-                      required
-                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && !["name", "phone", "email"].includes(f.id)) || [
+                      { id: "customRoleTitle", label: "الصفة أو العلاقة بالمسجد", type: "text", required: true, placeholder: "مثال: فاعل خير، رجل أعمال، ممثل جهة أو شركة، جار المسجد..." },
+                      { id: "donorOtherDetails", label: "تفاصيل التبرع المقترح", type: "textarea", required: true, placeholder: "اكتب هنا تفاصيل نوع التبرع أو المبادرة أو الشراكة المقترحة للجمعية..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1801,58 +1745,11 @@ export default function Register() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="name" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <span>الاسم الكامل</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        placeholder="أدخل اسمك الكريم"
-                        value={formData.name}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phone" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" />
-                        <span>رقم الجوال</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        placeholder="05XXXXXXXX"
-                        value={formData.phone}
-                        onChange={(e) => handleChange("phone", e.target.value)}
-                        required
-                        maxLength={10}
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                      <p className="text-[11px] text-slate-500">صيغة: 05XXXXXXXX (10 أرقام)</p>
-                    </div>
-
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        <span>البريد الإلكتروني</span>
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => handleChange("email", e.target.value)}
-                        required
-                        className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
-                        dir="ltr"
-                      />
-                    </div>
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && ["name", "phone", "email"].includes(f.id)) || [
+                      { id: "name", label: "الاسم الكامل", type: "text", required: true, placeholder: "أدخل اسمك الكريم" },
+                      { id: "phone", label: "رقم الجوال", type: "phone", required: true, placeholder: "05XXXXXXXX", helpText: "صيغة: 05XXXXXXXX (10 أرقام)" },
+                      { id: "email", label: "البريد الإلكتروني", type: "email", required: true, placeholder: "name@example.com" },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
@@ -1865,67 +1762,11 @@ export default function Register() {
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والطلب</h3>
                   </div>
 
-                  {/* حدد الصفة */}
-                  <div className="space-y-2">
-                    <Label htmlFor="customRoleTitle" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>الصفة أو العلاقة بالمسجد</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
-                      id="customRoleTitle"
-                      placeholder="مثال: جار المسجد، أحد جماعة المسجد، ممثل جهة، صاحب استفسار..."
-                      value={formData.customRoleTitle}
-                      onChange={(e) => handleChange("customRoleTitle", e.target.value)}
-                      required
-                      className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all"
-                    />
-
-                    {/* خيارات سريعة للنقر */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {["جار المسجد", "أحد جماعة المسجد", "ممثل جهة أو شركة", "صاحب استفسار عام"].map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => handleChange("customRoleTitle", tag)}
-                          className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${
-                            formData.customRoleTitle === tag
-                              ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
-                              : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* تفاصيل الطلب */}
-                  <div className="space-y-2 pt-1">
-                    <Label htmlFor="requestDetails" className="text-xs sm:text-sm font-semibold text-slate-800 flex items-center gap-1">
-                      <span>تفاصيل الطلب أو الاستفسار</span>
-                      <span className="text-destructive">*</span>
-                    </Label>
-                    {/* صندوق توضيح إرشادي */}
-                    <div className="p-3 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2.5">
-                      <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                        <Info className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="text-[11px] font-bold text-slate-800 block">توضيح إرشادي:</span>
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
-                        </p>
-                      </div>
-                    </div>
-                    <Textarea
-                      id="requestDetails"
-                      rows={5}
-                      placeholder="اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد..."
-                      value={formData.requestDetails}
-                      onChange={(e) => handleChange("requestDetails", e.target.value)}
-                      required
-                      className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && !["name", "phone", "email"].includes(f.id)) || [
+                      { id: "customRoleTitle", label: "الصفة أو العلاقة بالمسجد", type: "text", required: true, placeholder: "مثال: جار المسجد، أحد جماعة المسجد، ممثل جهة، صاحب استفسار..." },
+                      { id: "requestDetails", label: "تفاصيل الطلب أو الاستفسار", type: "textarea", required: true, placeholder: "اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد..." },
+                    ]).map(renderDynamicField)}
                   </div>
                 </div>
 
