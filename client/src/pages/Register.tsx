@@ -913,7 +913,7 @@ export default function Register() {
           </p>
         </Link>
 
-        <Card className="border border-slate-200/80 shadow-lg sm:shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden">
+        <Card className="border border-slate-200/80 shadow-lg sm:shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden py-0 gap-0 p-0">
           {/* شريط الإجراء العلوي والرجوع */}
           {selectedRole && (
             <div className="bg-slate-100/90 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-3">
