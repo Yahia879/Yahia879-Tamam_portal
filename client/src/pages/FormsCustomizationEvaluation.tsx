@@ -242,7 +242,7 @@ export default function FormsCustomizationEvaluation() {
   // حالة نسخ الرابط مباشرة
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const baseUrl = "https://tamamgate.manarah.org.sa";
   const publicSurveyUrl = `${baseUrl}/evaluation`;
 
   const handleCopyLink = () => {
