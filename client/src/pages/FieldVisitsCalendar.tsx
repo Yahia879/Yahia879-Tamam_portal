@@ -965,27 +965,26 @@ function FieldVisitsCalendarContent() {
 
       {/* 7. Add / Edit Custom Event Modal Dialog (Enhanced & Expanded UI) */}
       <Dialog open={isEventModalOpen} onOpenChange={setIsEventModalOpen}>
-        <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-xl">
-          <DialogHeader className="space-y-2 text-right">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20">
-                <CalendarPlus className="h-6 w-6" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-black text-foreground">
-                  {editingEventId ? "تعديل الحدث المخصص" : "إضافة حدث / مهمة مخصصة"}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  جدولة موعد أو اجتماع أو معاينة خاصة مع إسنادها للموظف وتحديد التوقيت الدقيق
-                </DialogDescription>
-              </div>
+        <DialogContent className="max-w-xl sm:max-w-xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900">
+          {/* Header */}
+          <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <CalendarPlus className="h-6 w-6" />
             </div>
-          </DialogHeader>
+            <div className="text-right flex-1 min-w-0">
+              <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
+                {editingEventId ? "تعديل الحدث المخصص" : "إضافة حدث / مهمة مخصصة"}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-1 text-right leading-relaxed">
+                جدولة موعد أو مهمة خاصة وتحديد التوقيت والموقع
+              </DialogDescription>
+            </div>
+          </div>
 
-          <form onSubmit={handleEventFormSubmit} className="space-y-4 mt-3">
+          <form onSubmit={handleEventFormSubmit} className="space-y-4 mt-2">
             {/* Title */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <div className="space-y-1.5 text-right">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                 <Tag className="h-3.5 w-3.5 text-primary" />
                 عنوان الحدث أو المهمة <span className="text-rose-500">*</span>
               </Label>
@@ -993,15 +992,18 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.title}
                 onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
                 placeholder="مثال: اجتماع فريق المعاينة الفنية، جولة ميدانية لمسجد الهدى..."
-                className="rounded-2xl h-10 text-sm border-border/70 focus:border-primary"
+                className="rounded-2xl h-11 text-sm bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
                 required
               />
             </div>
 
-            {/* Priority Pills */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground">مستوى الأولوية</Label>
-              <div className="grid grid-cols-4 gap-2">
+            {/* Priority Selector */}
+            <div className="space-y-1.5 text-right">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
+                <AlertCircle className="h-3.5 w-3.5 text-primary" />
+                مستوى الأولوية
+              </Label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {PRIORITY_OPTIONS.map((p) => {
                   const isSelected = eventFormData.priority === p.value;
                   return (
@@ -1009,13 +1011,18 @@ function FieldVisitsCalendarContent() {
                       key={p.value}
                       type="button"
                       onClick={() => setEventFormData({ ...eventFormData, priority: p.value as any })}
-                      className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center border ${
+                      className={`py-2.5 px-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
                         isSelected
-                          ? `${p.color} ring-2 ring-primary/30 font-black shadow-xs`
-                          : "bg-muted/40 text-muted-foreground border-border/60 hover:bg-muted"
+                          ? `${p.color} ring-2 ring-primary/40 font-black shadow-xs`
+                          : "bg-muted/20 dark:bg-muted/10 text-muted-foreground border-border/60 hover:bg-muted/50 hover:text-foreground"
                       }`}
                     >
-                      {p.label}
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        p.value === 'low' ? 'bg-emerald-500' :
+                        p.value === 'medium' ? 'bg-sky-500' :
+                        p.value === 'high' ? 'bg-amber-500' : 'bg-rose-500'
+                      }`} />
+                      <span>{p.label}</span>
                     </button>
                   );
                 })}
@@ -1023,9 +1030,9 @@ function FieldVisitsCalendarContent() {
             </div>
 
             {/* Date & Time in 3 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                   <CalendarIcon className="h-3.5 w-3.5 text-primary" />
                   التاريخ <span className="text-rose-500">*</span>
                 </Label>
@@ -1033,13 +1040,13 @@ function FieldVisitsCalendarContent() {
                   type="date"
                   value={eventFormData.eventDate}
                   onChange={(e) => setEventFormData({ ...eventFormData, eventDate: e.target.value })}
-                  className="rounded-2xl h-10 text-xs border-border/70"
+                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                   required
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                   <Clock className="h-3.5 w-3.5 text-primary" />
                   وقت البدء
                 </Label>
@@ -1047,12 +1054,12 @@ function FieldVisitsCalendarContent() {
                   type="time"
                   value={eventFormData.startTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, startTime: e.target.value })}
-                  className="rounded-2xl h-10 text-xs border-border/70"
+                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+              <div className="space-y-1.5 text-right">
+                <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                   <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                   وقت الانتهاء
                 </Label>
@@ -1060,14 +1067,14 @@ function FieldVisitsCalendarContent() {
                   type="time"
                   value={eventFormData.endTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, endTime: e.target.value })}
-                  className="rounded-2xl h-10 text-xs border-border/70"
+                  className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 text-right"
                 />
               </div>
             </div>
 
             {/* Location */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <div className="space-y-1.5 text-right">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                 <MapPin className="h-3.5 w-3.5 text-primary" />
                 الموقع
               </Label>
@@ -1075,13 +1082,13 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.location}
                 onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
                 placeholder="مثال: قاعة الاجتماعات الرئيسية، مقر الجمعية، أبها..."
-                className="rounded-2xl h-10 text-xs border-border/70"
+                className="rounded-2xl h-11 text-xs bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all text-right"
               />
             </div>
 
             {/* Description & Notes */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+            <div className="space-y-1.5 text-right">
+              <Label className="text-xs font-bold text-foreground flex items-center justify-start gap-1.5 text-right">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 تفاصيل وملاحظات إضافية
               </Label>
@@ -1090,30 +1097,30 @@ function FieldVisitsCalendarContent() {
                 value={eventFormData.description}
                 onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
                 placeholder="أضف أي تفاصيل أو أهداف أو متطلبات خاصة بهذا الموعد..."
-                className="rounded-2xl text-xs border-border/70 resize-none leading-relaxed"
+                className="rounded-2xl text-xs bg-muted/20 dark:bg-muted/10 border-border/70 focus:border-primary focus:bg-background transition-all resize-none leading-relaxed text-right p-3"
               />
             </div>
 
             {/* Footer */}
-            <DialogFooter className="gap-2.5 mt-6 pt-3 border-t border-border/60 sm:justify-end">
+            <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEventModalOpen(false)}
-                className="rounded-2xl h-10 px-5 text-xs font-bold border-border/70"
+                className="rounded-2xl h-11 px-6 text-xs font-bold border-border/70 hover:bg-muted/60"
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
                 disabled={createEventMutation.isPending || updateEventMutation.isPending}
-                className="rounded-2xl h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/25"
+                className="rounded-2xl h-11 px-7 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/25 transition-all"
               >
                 {createEventMutation.isPending || updateEventMutation.isPending 
                   ? "جاري الحفظ..." 
                   : (editingEventId ? "تحديث الحدث" : "حفظ الحدث")}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
