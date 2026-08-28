@@ -51,6 +51,8 @@ import {
 import { ar } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
 import { toast } from "sonner";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 
 // تصنيفات المواعيد وألوانها المتناسقة مع هوية المنصة (Teal / Primary)
 const TRACK_CONFIG = {
@@ -110,6 +112,11 @@ const PRIORITY_OPTIONS = [
 ];
 
 function FieldVisitsCalendarContent() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
+  const hasViewAll = isSuperAdmin || usePermission("appointments.view_all");
+  const isOwnOnly = !hasViewAll;
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<"month" | "timeline" | "agenda">("month");
@@ -129,7 +136,7 @@ function FieldVisitsCalendarContent() {
     eventDate: format(new Date(), "yyyy-MM-dd"),
     startTime: "09:00",
     endTime: "10:00",
-    assignedTo: "",
+    assignedTo: isOwnOnly && user?.id ? String(user.id) : "",
     location: "",
     priority: "medium" as "low" | "medium" | "high" | "urgent",
   });
@@ -144,7 +151,9 @@ function FieldVisitsCalendarContent() {
   const utils = trpc.useUtils();
 
   // جلب موظفي المنصة لاختيار المسؤول
-  const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery();
+  const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery(undefined, {
+    enabled: !isOwnOnly
+  });
 
   // جلب المواعيد الموحدة
   const { 
@@ -155,7 +164,7 @@ function FieldVisitsCalendarContent() {
     startDate: startDateStr,
     endDate: endDateStr,
     eventType: selectedTrack,
-    assignedTo: selectedStaffId !== "all" ? Number(selectedStaffId) : undefined,
+    assignedTo: !isOwnOnly && selectedStaffId !== "all" ? Number(selectedStaffId) : undefined,
     search: searchQuery || undefined,
   });
 
@@ -212,7 +221,7 @@ function FieldVisitsCalendarContent() {
       eventDate: format(selectedDate, "yyyy-MM-dd"),
       startTime: "09:00",
       endTime: "10:00",
-      assignedTo: "",
+      assignedTo: isOwnOnly && user?.id ? String(user.id) : "",
       location: "",
       priority: "medium",
     });
@@ -508,22 +517,29 @@ function FieldVisitsCalendarContent() {
 
             {/* Staff & Search Controls */}
             <div className="flex flex-col sm:flex-row items-center gap-2.5">
-              {/* Staff Select */}
-              <div className="w-full sm:w-60">
-                <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                  <SelectTrigger className="rounded-2xl h-9 text-xs border-border/70">
-                    <SelectValue placeholder="تصفية حسب المسؤول" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">كافة الموظفين والمسؤولين</SelectItem>
-                    {staffUsers.map((u: any) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Staff Select / Indicator */}
+              {isOwnOnly ? (
+                <div className="h-9 px-3.5 rounded-2xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 flex items-center gap-1.5 text-xs font-bold whitespace-nowrap shadow-2xs">
+                  <User className="w-3.5 h-3.5 text-teal-600" />
+                  <span>زياراتي ومهامي فقط</span>
+                </div>
+              ) : (
+                <div className="w-full sm:w-60">
+                  <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+                    <SelectTrigger className="rounded-2xl h-9 text-xs border-border/70">
+                      <SelectValue placeholder="تصفية حسب المسؤول" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كافة الموظفين والمسؤولين</SelectItem>
+                      {staffUsers.map((u: any) => (
+                        <SelectItem key={u.id} value={String(u.id)}>
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Search Bar */}
               <div className="relative w-full sm:w-64">

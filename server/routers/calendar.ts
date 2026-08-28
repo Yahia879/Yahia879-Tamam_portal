@@ -11,6 +11,7 @@ import {
 import { eq, and, gte, lte, ne, sql, desc, or, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification } from "./notifications";
+import { checkPermission } from "../permissions";
 
 export const calendarRouter = router({
   // 1. جلب المواعيد الموحدة (الزيارات الميدانية + الاستجابة السريعة + التقرير الختامي + الأحداث المخصصة)
@@ -32,6 +33,11 @@ export const calendarRouter = router({
       const unifiedEvents: any[] = [];
       const search = input.search?.trim().toLowerCase() || "";
 
+      // التحقق من صلاحيات العرض: عرض الكل vs عرض الزيارات الخاصة بي فقط
+      const isSuperAdmin = ctx.user.role === 'super_admin' || ctx.user.role === 'admin';
+      const hasViewAll = isSuperAdmin || (await checkPermission(ctx.user.id, "appointments.view_all"));
+      const enforceOwnOnly = !hasViewAll;
+
       // -------------------------------------------------------------
       // 1. الزيارات الميدانية (Field Visits)
       // -------------------------------------------------------------
@@ -47,7 +53,10 @@ export const calendarRouter = router({
         if (input.endDate) {
           visitConditions.push(sql`DATE(${fieldVisits.scheduledDate}) <= DATE(${input.endDate})`);
         }
-        if (input.assignedTo) {
+        
+        if (enforceOwnOnly) {
+          visitConditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
+        } else if (input.assignedTo) {
           visitConditions.push(eq(fieldVisits.assignedTo, input.assignedTo));
         }
 
@@ -137,7 +146,10 @@ export const calendarRouter = router({
         if (input.endDate) {
           reqVisitConditions.push(sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) <= DATE(${input.endDate})`);
         }
-        if (input.assignedTo) {
+        
+        if (enforceOwnOnly) {
+          reqVisitConditions.push(eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id));
+        } else if (input.assignedTo) {
           reqVisitConditions.push(eq(mosqueRequests.fieldVisitAssignedTo, input.assignedTo));
         }
 
@@ -226,7 +238,10 @@ export const calendarRouter = router({
         if (input.endDate) {
           quickConditions.push(sql`DATE(${mosqueRequests.quickResponseScheduledDate}) <= DATE(${input.endDate})`);
         }
-        if (input.assignedTo) {
+        
+        if (enforceOwnOnly) {
+          quickConditions.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+        } else if (input.assignedTo) {
           quickConditions.push(eq(mosqueRequests.assignedTo, input.assignedTo));
         }
 
@@ -315,7 +330,10 @@ export const calendarRouter = router({
         if (input.endDate) {
           finalConditions.push(sql`DATE(${mosqueRequests.finalReportScheduledDate}) <= DATE(${input.endDate})`);
         }
-        if (input.assignedTo) {
+        
+        if (enforceOwnOnly) {
+          finalConditions.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+        } else if (input.assignedTo) {
           finalConditions.push(eq(mosqueRequests.finalReportAssignedTo, input.assignedTo));
         }
 
@@ -401,7 +419,10 @@ export const calendarRouter = router({
         if (input.endDate) {
           customConditions.push(sql`DATE(${customCalendarEvents.eventDate}) <= DATE(${input.endDate})`);
         }
-        if (input.assignedTo) {
+        
+        if (enforceOwnOnly) {
+          customConditions.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+        } else if (input.assignedTo) {
           customConditions.push(eq(customCalendarEvents.assignedTo, input.assignedTo));
         }
 
@@ -607,79 +628,127 @@ export const calendarRouter = router({
         endDate: z.string(),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const todayStr = new Date().toISOString().split("T")[0];
 
-      // عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
+      // التحقق من صلاحيات العرض
+      const isSuperAdmin = ctx.user.role === 'super_admin' || ctx.user.role === 'admin';
+      const hasViewAll = isSuperAdmin || (await checkPermission(ctx.user.id, "appointments.view_all"));
+      const enforceOwnOnly = !hasViewAll;
+
+      // 1. عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
+      const visitCountConditions: any[] = [
+        sql`${fieldVisits.scheduledDate} IS NOT NULL`,
+        sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+        sql`DATE(${fieldVisits.scheduledDate}) >= DATE(${input.startDate})`,
+        sql`DATE(${fieldVisits.scheduledDate}) <= DATE(${input.endDate})`
+      ];
+      if (enforceOwnOnly) {
+        visitCountConditions.push(eq(fieldVisits.assignedTo, ctx.user.id));
+      }
+
       const [fieldVisitsCount] = await db
         .select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` })
         .from(fieldVisits)
-        .where(
-          and(
-            sql`${fieldVisits.scheduledDate} IS NOT NULL`,
-            sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
-            sql`DATE(${fieldVisits.scheduledDate}) >= DATE(${input.startDate})`,
-            sql`DATE(${fieldVisits.scheduledDate}) <= DATE(${input.endDate})`
-          )
-        );
+        .where(and(...visitCountConditions));
+
+      const reqVisitCountConditions: any[] = [
+        sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`,
+        sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) >= DATE(${input.startDate})`,
+        sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) <= DATE(${input.endDate})`,
+        sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`
+      ];
+      if (enforceOwnOnly) {
+        reqVisitCountConditions.push(eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id));
+      }
 
       const [reqVisitsCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(
-          and(
-            sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`,
-            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) >= DATE(${input.startDate})`,
-            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) <= DATE(${input.endDate})`,
-            sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`
-          )
-        );
+        .where(and(...reqVisitCountConditions));
 
-      // عدد مهام الاستجابة السريعة
+      // 2. عدد مهام الاستجابة السريعة
+      const quickCountConditions: any[] = [
+        eq(mosqueRequests.requestTrack, "quick_response"),
+        sql`${mosqueRequests.quickResponseScheduledDate} IS NOT NULL`,
+        sql`DATE(${mosqueRequests.quickResponseScheduledDate}) >= DATE(${input.startDate})`,
+        sql`DATE(${mosqueRequests.quickResponseScheduledDate}) <= DATE(${input.endDate})`
+      ];
+      if (enforceOwnOnly) {
+        quickCountConditions.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+      }
+
       const [quickResponseCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(
-          and(
-            eq(mosqueRequests.requestTrack, "quick_response"),
-            sql`${mosqueRequests.quickResponseScheduledDate} IS NOT NULL`,
-            sql`DATE(${mosqueRequests.quickResponseScheduledDate}) >= DATE(${input.startDate})`,
-            sql`DATE(${mosqueRequests.quickResponseScheduledDate}) <= DATE(${input.endDate})`
-          )
-        );
+        .where(and(...quickCountConditions));
 
-      // عدد التقارير الختامية
+      // 3. عدد التقارير الختامية
+      const finalCountConditions: any[] = [
+        sql`${mosqueRequests.finalReportScheduledDate} IS NOT NULL`,
+        sql`DATE(${mosqueRequests.finalReportScheduledDate}) >= DATE(${input.startDate})`,
+        sql`DATE(${mosqueRequests.finalReportScheduledDate}) <= DATE(${input.endDate})`
+      ];
+      if (enforceOwnOnly) {
+        finalCountConditions.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+      }
+
       const [finalReportsCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(mosqueRequests)
-        .where(
-          and(
-            sql`${mosqueRequests.finalReportScheduledDate} IS NOT NULL`,
-            sql`DATE(${mosqueRequests.finalReportScheduledDate}) >= DATE(${input.startDate})`,
-            sql`DATE(${mosqueRequests.finalReportScheduledDate}) <= DATE(${input.endDate})`
-          )
-        );
+        .where(and(...finalCountConditions));
 
-      // عدد الأحداث المخصصة
+      // 4. عدد الأحداث المخصصة
+      const customCountConditions: any[] = [
+        sql`DATE(${customCalendarEvents.eventDate}) >= DATE(${input.startDate})`,
+        sql`DATE(${customCalendarEvents.eventDate}) <= DATE(${input.endDate})`
+      ];
+      if (enforceOwnOnly) {
+        customCountConditions.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+      }
+
       const [customEventsCount] = await db
         .select({ count: sql<number>`count(*)` })
         .from(customCalendarEvents)
-        .where(
-          and(
-            sql`DATE(${customCalendarEvents.eventDate}) >= DATE(${input.startDate})`,
-            sql`DATE(${customCalendarEvents.eventDate}) <= DATE(${input.endDate})`
-          )
-        );
+        .where(and(...customCountConditions));
 
-      // مواعيد اليوم
-      const [todayFieldVisits] = await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(sql`DATE(${fieldVisits.scheduledDate}) = DATE(${todayStr})`, sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`));
-      const [todayReqVisits] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${todayStr})`, sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`));
-      const [todayQuick] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(eq(mosqueRequests.requestTrack, "quick_response"), sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`));
-      const [todayFinal] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`);
-      const [todayCustom] = await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`);
+      // 5. مواعيد اليوم
+      const todayVisitCond: any[] = [
+        sql`DATE(${fieldVisits.scheduledDate}) = DATE(${todayStr})`, 
+        sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`
+      ];
+      if (enforceOwnOnly) todayVisitCond.push(eq(fieldVisits.assignedTo, ctx.user.id));
+
+      const todayReqCond: any[] = [
+        sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${todayStr})`, 
+        sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`
+      ];
+      if (enforceOwnOnly) todayReqCond.push(eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id));
+
+      const todayQuickCond: any[] = [
+        eq(mosqueRequests.requestTrack, "quick_response"), 
+        sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`
+      ];
+      if (enforceOwnOnly) todayQuickCond.push(or(eq(mosqueRequests.assignedTo, ctx.user.id), eq(mosqueRequests.fieldVisitAssignedTo, ctx.user.id)));
+
+      const todayFinalCond: any[] = [
+        sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`
+      ];
+      if (enforceOwnOnly) todayFinalCond.push(or(eq(mosqueRequests.finalReportAssignedTo, ctx.user.id), eq(mosqueRequests.assignedTo, ctx.user.id)));
+
+      const todayCustomCond: any[] = [
+        sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`
+      ];
+      if (enforceOwnOnly) todayCustomCond.push(or(eq(customCalendarEvents.assignedTo, ctx.user.id), eq(customCalendarEvents.createdBy, ctx.user.id)));
+
+      const [todayFieldVisits] = await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(...todayVisitCond));
+      const [todayReqVisits] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayReqCond));
+      const [todayQuick] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayQuickCond));
+      const [todayFinal] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(...todayFinalCond));
+      const [todayCustom] = await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(and(...todayCustomCond));
 
       const vCount = Number(fieldVisitsCount?.count || 0) + Number(reqVisitsCount?.count || 0);
       const qCount = Number(quickResponseCount?.count || 0);
