@@ -510,7 +510,7 @@ export default function RequesterApprovals() {
                 className="gap-2 px-4 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl"
               >
                 <Gift className="h-4 w-4 text-teal-600" />
-                <span>طلبات التبرعات (أراضي وعينية)</span>
+                <span>طلبات التبرعات</span>
                 {pendingDonationsCount > 0 && (
                   <span className="bg-teal-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
                     {pendingDonationsCount}
@@ -857,7 +857,7 @@ export default function RequesterApprovals() {
                 <div>
                   <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
                     <Gift className="w-5 h-5 text-teal-600" />
-                    طلبات التبرعات الواردة (أراضي وعينية)
+                    طلبات التبرعات الواردة
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm mt-0.5">
                     مراجعة طلبات التبرع بأراضي المساجد، التبرعات العينية والمواد، والمبادرات الخاصة
