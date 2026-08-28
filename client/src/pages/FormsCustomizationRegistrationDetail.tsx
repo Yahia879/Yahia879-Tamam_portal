@@ -631,8 +631,9 @@ export default function FormsCustomizationRegistrationDetail() {
     }
 
     if (field.type === "email") {
+      const isFullWidthEmail = (formId === "other" || formId === "donor_other") && !isMobile;
       return (
-        <div key={field.id} className="space-y-1">
+        <div key={field.id} className={`space-y-1 ${isFullWidthEmail ? "sm:col-span-2" : ""}`}>
           <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
             <Mail className="w-3 h-3 text-slate-400" />
             <span>{field.label}</span>
@@ -768,8 +769,10 @@ export default function FormsCustomizationRegistrationDetail() {
       );
     }
 
+    const isFullWidthDefault = (field.id === "customRoleTitle" || field.id === "landCustomRole" || field.id === "inKindCustomRole") && (formId === "other" || formId === "donor_other") && !isMobile;
+
     return (
-      <div key={field.id} className="space-y-1">
+      <div key={field.id} className={`space-y-1 ${isFullWidthDefault ? "sm:col-span-2" : ""}`}>
         <Label htmlFor={`prev-${field.id}`} className="text-xs font-semibold text-slate-700 dark:text-foreground flex items-center gap-1">
           <span>{field.label}</span>
           {field.required && <span className="text-destructive font-bold">*</span>}

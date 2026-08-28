@@ -622,8 +622,9 @@ export default function Register() {
     }
 
     if (field.type === "email") {
+      const isFullWidth = selectedRole === "other" || (selectedRole === "donor" && donorType === "other");
       return (
-        <div key={field.id} className="space-y-1 sm:space-y-1.5">
+        <div key={field.id} className={`space-y-1 sm:space-y-1.5 ${isFullWidth ? "sm:col-span-2" : ""}`}>
           <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
             <Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
             <span>{field.label}</span>
@@ -775,8 +776,10 @@ export default function Register() {
       );
     }
 
+    const isFullWidthDefault = (field.id === "customRoleTitle" || field.id === "landCustomRole" || field.id === "inKindCustomRole") && (selectedRole === "other" || (selectedRole === "donor" && donorType === "other"));
+
     return (
-      <div key={field.id} className="space-y-1 sm:space-y-1.5">
+      <div key={field.id} className={`space-y-1 sm:space-y-1.5 ${isFullWidthDefault ? "sm:col-span-2" : ""}`}>
         <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
           <span>{field.label}</span>
           {field.required && <span className="text-destructive font-bold">*</span>}
