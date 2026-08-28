@@ -65,11 +65,10 @@ export const calendarRouter = router({
             requestNumber: mosqueRequests.requestNumber,
             programType: mosqueRequests.programType,
             currentStage: mosqueRequests.currentStage,
-            requesterName: mosqueRequests.requesterName,
-            requesterPhone: mosqueRequests.requesterPhone,
+            contactName: mosqueRequests.fieldVisitContactName,
+            contactPhone: mosqueRequests.fieldVisitContactPhone,
             mosqueName: mosques.name,
             mosqueCity: mosques.city,
-            mosqueRegion: mosques.region,
           })
           .from(fieldVisits)
           .innerJoin(mosqueRequests, eq(fieldVisits.requestId, mosqueRequests.id))
@@ -88,7 +87,7 @@ export const calendarRouter = router({
               v.mosqueName?.toLowerCase().includes(search) ||
               v.mosqueCity?.toLowerCase().includes(search) ||
               v.assignedToName?.toLowerCase().includes(search) ||
-              v.requesterName?.toLowerCase().includes(search);
+              v.contactName?.toLowerCase().includes(search);
             if (!matchesSearch) continue;
           }
 
@@ -112,8 +111,8 @@ export const calendarRouter = router({
             mosqueName: v.mosqueName,
             mosqueCity: v.mosqueCity,
             location: v.mosqueName ? `${v.mosqueName} - ${v.mosqueCity || ''}` : undefined,
-            contactName: v.requesterName,
-            contactPhone: v.requesterPhone,
+            contactName: v.contactName,
+            contactPhone: v.contactPhone,
             priority: "medium",
             status: v.status || "scheduled",
             colorTheme: {
@@ -150,14 +149,13 @@ export const calendarRouter = router({
             requestNumber: mosqueRequests.requestNumber,
             programType: mosqueRequests.programType,
             currentStage: mosqueRequests.currentStage,
-            requesterName: mosqueRequests.requesterName,
-            requesterPhone: mosqueRequests.requesterPhone,
+            contactName: mosqueRequests.fieldVisitContactName,
+            contactPhone: mosqueRequests.fieldVisitContactPhone,
             assignedToId: mosqueRequests.fieldVisitAssignedTo,
             assignedToName: users.name,
             assignedToRole: users.role,
             mosqueName: mosques.name,
             mosqueCity: mosques.city,
-            mosqueRegion: mosques.region,
           })
           .from(mosqueRequests)
           .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
@@ -173,7 +171,7 @@ export const calendarRouter = router({
               rv.mosqueName?.toLowerCase().includes(search) ||
               rv.mosqueCity?.toLowerCase().includes(search) ||
               rv.assignedToName?.toLowerCase().includes(search) ||
-              rv.requesterName?.toLowerCase().includes(search);
+              rv.contactName?.toLowerCase().includes(search);
             if (!matchesSearch) continue;
           }
 
@@ -197,8 +195,8 @@ export const calendarRouter = router({
             mosqueName: rv.mosqueName,
             mosqueCity: rv.mosqueCity,
             location: rv.mosqueName ? `${rv.mosqueName} - ${rv.mosqueCity || ''}` : undefined,
-            contactName: rv.requesterName,
-            contactPhone: rv.requesterPhone,
+            contactName: rv.contactName,
+            contactPhone: rv.contactPhone,
             priority: "medium",
             status: "scheduled",
             colorTheme: {
@@ -244,8 +242,8 @@ export const calendarRouter = router({
             assignedToId: mosqueRequests.assignedTo,
             assignedToName: users.name,
             assignedToRole: users.role,
-            requesterName: mosqueRequests.requesterName,
-            requesterPhone: mosqueRequests.requesterPhone,
+            contactName: mosqueRequests.fieldVisitContactName,
+            contactPhone: mosqueRequests.fieldVisitContactPhone,
             technicalEvalJustification: mosqueRequests.technicalEvalJustification,
             mosqueName: mosques.name,
             mosqueCity: mosques.city,
@@ -263,7 +261,7 @@ export const calendarRouter = router({
               q.mosqueName?.toLowerCase().includes(search) ||
               q.mosqueCity?.toLowerCase().includes(search) ||
               q.assignedToName?.toLowerCase().includes(search) ||
-              q.requesterName?.toLowerCase().includes(search);
+              q.contactName?.toLowerCase().includes(search);
             if (!matchesSearch) continue;
           }
 
@@ -287,8 +285,8 @@ export const calendarRouter = router({
             mosqueName: q.mosqueName,
             mosqueCity: q.mosqueCity,
             location: q.mosqueName ? `${q.mosqueName} - ${q.mosqueCity || ''}` : undefined,
-            contactName: q.requesterName,
-            contactPhone: q.requesterPhone,
+            contactName: q.contactName,
+            contactPhone: q.contactPhone,
             priority: "high",
             status: q.status || "in_progress",
             colorTheme: {
@@ -333,8 +331,8 @@ export const calendarRouter = router({
             assignedToId: mosqueRequests.finalReportAssignedTo,
             assignedToName: users.name,
             assignedToRole: users.role,
-            requesterName: mosqueRequests.requesterName,
-            requesterPhone: mosqueRequests.requesterPhone,
+            contactName: mosqueRequests.fieldVisitContactName,
+            contactPhone: mosqueRequests.fieldVisitContactPhone,
             mosqueName: mosques.name,
             mosqueCity: mosques.city,
           })
@@ -351,7 +349,7 @@ export const calendarRouter = router({
               f.mosqueName?.toLowerCase().includes(search) ||
               f.mosqueCity?.toLowerCase().includes(search) ||
               f.assignedToName?.toLowerCase().includes(search) ||
-              f.requesterName?.toLowerCase().includes(search);
+              f.contactName?.toLowerCase().includes(search);
             if (!matchesSearch) continue;
           }
 
@@ -375,8 +373,8 @@ export const calendarRouter = router({
             mosqueName: f.mosqueName,
             mosqueCity: f.mosqueCity,
             location: f.mosqueName ? `${f.mosqueName} - ${f.mosqueCity || ''}` : undefined,
-            contactName: f.requesterName,
-            contactPhone: f.requesterPhone,
+            contactName: f.contactName,
+            contactPhone: f.contactPhone,
             priority: "medium",
             status: f.status || "in_progress",
             colorTheme: {
@@ -617,7 +615,7 @@ export const calendarRouter = router({
 
       // عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
       const [fieldVisitsCount] = await db
-        .select({ count: sql<number>`count(DISTINCT fv.requestId)` })
+        .select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` })
         .from(fieldVisits)
         .where(
           and(
@@ -677,7 +675,8 @@ export const calendarRouter = router({
         );
 
       // مواعيد اليوم
-      const [todayField] = await db.select({ count: sql<number>`count(*)` }).from(fieldVisits).where(and(sql`DATE(${fieldVisits.scheduledDate}) = DATE(${todayStr})`, sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`));
+      const [todayFieldVisits] = await db.select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` }).from(fieldVisits).where(and(sql`DATE(${fieldVisits.scheduledDate}) = DATE(${todayStr})`, sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`));
+      const [todayReqVisits] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${todayStr})`, sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`));
       const [todayQuick] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(and(eq(mosqueRequests.requestTrack, "quick_response"), sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`));
       const [todayFinal] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`);
       const [todayCustom] = await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`);
@@ -686,7 +685,7 @@ export const calendarRouter = router({
       const qCount = Number(quickResponseCount?.count || 0);
       const fCount = Number(finalReportsCount?.count || 0);
       const cCount = Number(customEventsCount?.count || 0);
-      const tCount = Number(todayField?.count || 0) + Number(todayQuick?.count || 0) + Number(todayFinal?.count || 0) + Number(todayCustom?.count || 0);
+      const tCount = Number(todayFieldVisits?.count || 0) + Number(todayReqVisits?.count || 0) + Number(todayQuick?.count || 0) + Number(todayFinal?.count || 0) + Number(todayCustom?.count || 0);
 
       return {
         fieldVisits: vCount,
