@@ -333,6 +333,7 @@ export const EXEMPT_ROUTES = new Set([
   "/supplier/register",
   "/supplier/dashboard",
   "/request-form-dynamic",
+  "/evaluation",
 ]);
 
 /**
@@ -410,8 +411,8 @@ export function hasRouteAccess(
   // السماح بالوصول لصفحة التقرير الختامي لأي مستخدم مسجل
   if (/^\/final-report\/\d+$/.test(pathname)) return true;
 
-  // السماح بالوصول لصفحة تقييم رضا المستفيد لطالب الخدمة وللموظفين والإدارة
-  if (/^\/requests\/\d+\/evaluation$/.test(pathname) || /^\/requester\/requests\/\d+\/evaluation$/.test(pathname)) {
+  // السماح بالوصول لصفحة استبيان التقييم العامة أو الخاصة بالطلبات للجميع
+  if (pathname === "/evaluation" || pathname.startsWith("/evaluation?") || /^\/requests\/\d+\/evaluation$/.test(pathname) || /^\/requester\/requests\/\d+\/evaluation$/.test(pathname)) {
     return true;
   }
 

@@ -46,11 +46,12 @@ export default function PermissionRouteGuard({ children }: PermissionRouteGuardP
     // استثناء: إذا كان لديه دور مخصص (customRole)، نسمح له بالمرور للفحص الذي يليه
     if (user.role === "service_requester" && !REQUESTER_ROUTES.has(location) && !((user as any)?.customRole)) {
       // نسمح بالوصول لبعض الصفحات المشتركة (الملف الشخصي، الإشعارات، وتفاصيل الطلبات/المساجد)
-      const sharedPaths = ["/profile", "/notifications"];
+      const sharedPaths = ["/profile", "/notifications", "/evaluation"];
       const isDynamicSharedPath = 
         /^\/requests\/\d+$/.test(location) || 
         /^\/requests\/\d+\/evaluation$/.test(location) ||
         /^\/requester\/requests\/\d+\/evaluation$/.test(location) ||
+        /^\/evaluation(\?.*)?$/.test(location) ||
         /^\/mosques\/\d+$/.test(location) || 
         /^\/final-report\/\d+$/.test(location);
       
