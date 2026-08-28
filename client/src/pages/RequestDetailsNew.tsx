@@ -311,10 +311,16 @@ export default function RequestDetailsNew() {
     enabled: selectedDecision === 'quick_response' && showTechnicalEvalDialog
   });
 
-  const { data: busyHours } = trpc.requests.getTechnicianBusyHours.useQuery(
+  const QUICK_RESPONSE_HOURS = [
+    "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
+    "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"
+  ];
+
+  const { data: busyHours = [], isLoading: isLoadingBusyHours } = trpc.requests.getTechnicianBusyHours.useQuery(
     {
       userId: selectedQuickResponseMemberId ? parseInt(selectedQuickResponseMemberId) : 0,
       date: scheduledDate,
+      excludeRequestId: requestId,
     },
     {
       enabled: selectedDecision === 'quick_response' && !!selectedQuickResponseMemberId && !!scheduledDate,
@@ -2978,7 +2984,7 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {selectedQuickResponseMemberId && (
-                  <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-1 duration-200">
                     <div>
                       <label className="block text-sm font-medium mb-2 text-foreground">
                         تاريخ الاستجابة السريعة <span className="text-red-500">*</span>
@@ -2993,28 +2999,54 @@ export default function RequestDetailsNew() {
                         className="w-full text-right"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-foreground">
-                        وقت الاستجابة السريعة <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={scheduledTime || ''}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        disabled={!scheduledDate}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-right"
-                      >
-                        <option value="" disabled>-- اختر الساعة --</option>
-                        {Array.from({ length: 24 }, (_, i) => {
-                          const hourStr = String(i).padStart(2, '0') + ":00";
-                          const isBusy = busyHours?.includes(hourStr);
-                          return (
-                            <option key={hourStr} value={hourStr} disabled={isBusy}>
-                              {hourStr} {isBusy ? "(محجوز)" : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
+
+                    {scheduledDate && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm font-medium text-foreground">
+                          <label>
+                            وقت الاستجابة السريعة <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex items-center gap-2 text-xs font-normal">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                              {QUICK_RESPONSE_HOURS.filter(s => !busyHours?.includes(s)).length} متاح
+                            </span>
+                            <span>•</span>
+                            <span className="text-rose-600 dark:text-rose-400 font-medium">
+                              {busyHours?.filter(s => QUICK_RESPONSE_HOURS.includes(s)).length || 0} محجوز
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* شبكة الأوقات التفاعلية */}
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 border rounded-xl bg-muted/20">
+                          {QUICK_RESPONSE_HOURS.map((slot) => {
+                            const isBusy = busyHours?.includes(slot);
+                            const isSelected = scheduledTime === slot;
+
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => setScheduledTime(slot)}
+                                className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                                  isBusy
+                                    ? "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 opacity-60 cursor-not-allowed line-through"
+                                    : isSelected
+                                    ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                                    : "bg-card hover:bg-muted/60 border-border text-foreground cursor-pointer hover:border-primary/50 active:scale-95"
+                                }`}
+                              >
+                                <span className="text-xs font-mono">{slot}</span>
+                                <span className="text-[9px] font-normal">
+                                  {isBusy ? "محجوز" : isSelected ? "تم اختياره" : "متاح"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3083,6 +3115,10 @@ export default function RequestDetailsNew() {
                   }
                   if (selectedDecision === 'quick_response' && !scheduledTime) {
                     toast.error("يجب تحديد وقت الاستجابة السريعة");
+                    return;
+                  }
+                  if (selectedDecision === 'quick_response' && scheduledTime && busyHours?.includes(scheduledTime)) {
+                    toast.error(`عفواً، الوقت (${scheduledTime}) محجوز مسبقاً لهذا المسؤول في هذا اليوم. يرجى اختيار موعد آخر.`);
                     return;
                   }
                   

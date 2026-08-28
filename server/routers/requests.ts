@@ -2126,6 +2126,57 @@ export const requestsRouter = router({
         if (input.scheduledTime) {
           updateData.quickResponseScheduledTime = input.scheduledTime;
         }
+
+        // فحص تعارض المواعيد لمسؤول الاستجابة السريعة
+        if (input.assignedToId && input.scheduledDate && input.scheduledTime) {
+          // فحص مهام الاستجابة السريعة
+          const quickConflicts = await db.select({ id: mosqueRequests.id })
+            .from(mosqueRequests)
+            .where(
+              and(
+                eq(mosqueRequests.assignedTo, input.assignedToId),
+                eq(mosqueRequests.requestTrack, 'quick_response'),
+                sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.scheduledDate})`,
+                eq(mosqueRequests.quickResponseScheduledTime, input.scheduledTime),
+                ne(mosqueRequests.id, input.requestId)
+              )
+            )
+            .limit(1);
+
+          // فحص الزيارات الميدانية في mosqueRequests
+          const fieldReqConflicts = await db.select({ id: mosqueRequests.id })
+            .from(mosqueRequests)
+            .where(
+              and(
+                eq(mosqueRequests.fieldVisitAssignedTo, input.assignedToId),
+                sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.scheduledDate})`,
+                eq(mosqueRequests.fieldVisitScheduledTime, input.scheduledTime),
+                ne(mosqueRequests.id, input.requestId)
+              )
+            )
+            .limit(1);
+
+          // فحص جدول field_visits
+          const visitsConflicts = await db.select({ id: fieldVisits.id })
+            .from(fieldVisits)
+            .where(
+              and(
+                eq(fieldVisits.assignedTo, input.assignedToId),
+                sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.scheduledDate})`,
+                eq(fieldVisits.scheduledTime, input.scheduledTime),
+                sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+                ne(fieldVisits.requestId, input.requestId)
+              )
+            )
+            .limit(1);
+
+          if (quickConflicts.length > 0 || fieldReqConflicts.length > 0 || visitsConflicts.length > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `هذا المسؤول لديه مهمة مجدولة بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو إسناد الطلب لمسؤول آخر.`,
+            });
+          }
+        }
       }
 
       // إذا كان القرار هو التحويل لمشروع أو فرصة تبرع، إعادة تعيين المسار لـ standard وتحديد المسؤول
@@ -2616,12 +2667,16 @@ export const requestsRouter = router({
     .input(z.object({
       userId: z.number(),
       date: z.string(), // YYYY-MM-DD
+      excludeRequestId: z.number().optional().nullable(),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const scheduledRequests = await db.select({
+      if (!input.userId || !input.date) return [];
+
+      // 1. جلب المواعيد المحجوزة للاستجابة السريعة
+      const scheduledQuickRequests = await db.select({
         scheduledTime: mosqueRequests.quickResponseScheduledTime,
       })
       .from(mosqueRequests)
@@ -2629,15 +2684,48 @@ export const requestsRouter = router({
         and(
           eq(mosqueRequests.assignedTo, input.userId),
           eq(mosqueRequests.requestTrack, 'quick_response'),
-          sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = ${input.date}`
+          sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.date})`,
+          sql`${mosqueRequests.quickResponseScheduledTime} IS NOT NULL`,
+          input.excludeRequestId ? ne(mosqueRequests.id, input.excludeRequestId) : sql`1=1`
         )
       );
 
-      const busyHours = scheduledRequests
-        .map(r => r.scheduledTime)
-        .filter(Boolean) as string[];
+      // 2. جلب المواعيد المحجوزة للمعاينة الميدانية في mosque_requests
+      const scheduledFieldRequests = await db.select({
+        scheduledTime: mosqueRequests.fieldVisitScheduledTime,
+      })
+      .from(mosqueRequests)
+      .where(
+        and(
+          eq(mosqueRequests.fieldVisitAssignedTo, input.userId),
+          sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.date})`,
+          sql`${mosqueRequests.fieldVisitScheduledTime} IS NOT NULL`,
+          input.excludeRequestId ? ne(mosqueRequests.id, input.excludeRequestId) : sql`1=1`
+        )
+      );
 
-      return busyHours;
+      // 3. جلب المواعيد المحجوزة من جدول field_visits
+      const scheduledVisits = await db.select({
+        scheduledTime: fieldVisits.scheduledTime,
+      })
+      .from(fieldVisits)
+      .where(
+        and(
+          eq(fieldVisits.assignedTo, input.userId),
+          sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.date})`,
+          sql`${fieldVisits.scheduledTime} IS NOT NULL`,
+          sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+          input.excludeRequestId ? ne(fieldVisits.requestId, input.excludeRequestId) : sql`1=1`
+        )
+      );
+
+      const allBusy = [
+        ...scheduledQuickRequests.map(r => r.scheduledTime),
+        ...scheduledFieldRequests.map(r => r.scheduledTime),
+        ...scheduledVisits.map(v => v.scheduledTime),
+      ].filter(Boolean) as string[];
+
+      return Array.from(new Set(allBusy));
     }),
 
   // الحصول على طلب برقم الطلب (للتتبع العام)
