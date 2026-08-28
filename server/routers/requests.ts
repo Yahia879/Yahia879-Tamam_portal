@@ -2669,21 +2669,6 @@ export const requestsRouter = router({
 
       if (!input.userId || !input.date) return [];
 
-      // 1. جلب المواعيد المحجوزة للاستجابة السريعة
-      const scheduledQuickRequests = await db.select({
-        scheduledTime: mosqueRequests.quickResponseScheduledTime,
-      })
-      .from(mosqueRequests)
-      .where(
-        and(
-          eq(mosqueRequests.assignedTo, input.userId),
-          eq(mosqueRequests.requestTrack, 'quick_response'),
-          sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.date})`,
-          sql`${mosqueRequests.quickResponseScheduledTime} IS NOT NULL`,
-          input.excludeRequestId ? ne(mosqueRequests.id, input.excludeRequestId) : sql`1=1`
-        )
-      );
-
       // جلب المواعيد المحجوزة للاستجابة السريعة فقط
       const scheduledQuickRequests = await db.select({
         scheduledTime: mosqueRequests.quickResponseScheduledTime,
