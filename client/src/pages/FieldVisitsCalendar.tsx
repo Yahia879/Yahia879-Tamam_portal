@@ -11,7 +11,6 @@ import {
   Search, 
   Filter, 
   CheckCircle2, 
-  AlertTriangle, 
   Sparkles, 
   Zap, 
   FileText, 
@@ -22,7 +21,11 @@ import {
   Edit, 
   X,
   ExternalLink,
-  Layers
+  Layers,
+  CalendarPlus,
+  Building2,
+  Tag,
+  AlertCircle
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -49,58 +52,67 @@ import { ar } from "date-fns/locale";
 import DashboardLayout from "@/components/DashboardLayout";
 import { toast } from "sonner";
 
-// تصنيفات المواعيد وألوانها
+// تصنيفات المواعيد وألوانها المتناسقة مع هوية المنصة (Teal / Primary)
 const TRACK_CONFIG = {
   all: {
     label: "الكل",
-    color: "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900",
-    border: "border-slate-300 dark:border-slate-700",
-    dot: "bg-slate-500",
+    color: "bg-primary text-primary-foreground",
+    border: "border-primary/30",
+    dot: "bg-primary",
   },
   field_visit: {
     label: "زيارة ميدانية",
     shortLabel: "زيارة",
     icon: MapPin,
-    badgeBg: "bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300",
-    border: "border-purple-300 dark:border-purple-800",
-    dot: "bg-purple-600 dark:bg-purple-400",
-    cardBg: "bg-purple-50/50 hover:bg-purple-50 dark:bg-purple-950/20 dark:hover:bg-purple-950/30",
+    badgeBg: "bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300",
+    border: "border-teal-200 dark:border-teal-800/80",
+    dot: "bg-teal-600 dark:bg-teal-400",
+    cardBg: "bg-teal-50/40 hover:bg-teal-50/70 dark:bg-teal-950/20 dark:hover:bg-teal-950/30",
   },
   quick_response: {
     label: "استجابة سريعة",
     shortLabel: "استجابة",
     icon: Zap,
-    badgeBg: "bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300",
-    border: "border-amber-300 dark:border-amber-800",
+    badgeBg: "bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
+    border: "border-amber-200 dark:border-amber-800/80",
     dot: "bg-amber-500 dark:bg-amber-400",
-    cardBg: "bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30",
+    cardBg: "bg-amber-50/40 hover:bg-amber-50/70 dark:bg-amber-950/20 dark:hover:bg-amber-950/30",
   },
   final_report: {
     label: "تقرير ختامي",
     shortLabel: "ختامي",
     icon: FileText,
-    badgeBg: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300",
-    border: "border-emerald-300 dark:border-emerald-800",
+    badgeBg: "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+    border: "border-emerald-200 dark:border-emerald-800/80",
     dot: "bg-emerald-600 dark:bg-emerald-400",
-    cardBg: "bg-emerald-50/50 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30",
+    cardBg: "bg-emerald-50/40 hover:bg-emerald-50/70 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30",
   },
   custom: {
     label: "حدث مخصص",
     shortLabel: "مخصص",
     icon: Sparkles,
-    badgeBg: "bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300",
-    border: "border-blue-300 dark:border-blue-800",
-    dot: "bg-blue-600 dark:bg-blue-400",
-    cardBg: "bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30",
+    badgeBg: "bg-sky-50 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300",
+    border: "border-sky-200 dark:border-sky-800/80",
+    dot: "bg-sky-600 dark:bg-sky-400",
+    cardBg: "bg-sky-50/40 hover:bg-sky-50/70 dark:bg-sky-950/20 dark:hover:bg-sky-950/30",
   },
 };
 
-const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
-  low: { label: "منخفضة", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
-  medium: { label: "متوسطة", color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
-  high: { label: "عالية", color: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300" },
-  urgent: { label: "عاجلة جداً", color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" },
-};
+const PRIORITY_OPTIONS = [
+  { value: "low", label: "منخفضة", color: "text-emerald-700 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" },
+  { value: "medium", label: "متوسطة", color: "text-sky-700 bg-sky-50 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800" },
+  { value: "high", label: "عالية", color: "text-amber-700 bg-amber-50 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800" },
+  { value: "urgent", label: "عاجلة جداً", color: "text-rose-700 bg-rose-50 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800" },
+];
+
+const EVENT_TYPE_OPTIONS = [
+  { value: "meeting", label: "اجتماع عمل", icon: "👥" },
+  { value: "inspection", label: "معاينة خاصة", icon: "🔍" },
+  { value: "follow_up", label: "متابعة دورية", icon: "📋" },
+  { value: "task", label: "مهمة ميدانية", icon: "⚡" },
+  { value: "custom", label: "حدث مخصص", icon: "✨" },
+  { value: "other", label: "أخرى", icon: "📌" },
+];
 
 function FieldVisitsCalendarContent() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -256,7 +268,7 @@ function FieldVisitsCalendarContent() {
         eventDate: eventFormData.eventDate,
         startTime: eventFormData.startTime || undefined,
         endTime: eventFormData.endTime || undefined,
-        assignedTo: eventFormData.assignedTo ? Number(eventFormData.assignedTo) : undefined,
+        assignedTo: eventFormData.assignedTo && eventFormData.assignedTo !== "none" ? Number(eventFormData.assignedTo) : undefined,
         location: eventFormData.location || undefined,
         priority: eventFormData.priority,
       });
@@ -268,7 +280,7 @@ function FieldVisitsCalendarContent() {
         eventDate: eventFormData.eventDate,
         startTime: eventFormData.startTime || undefined,
         endTime: eventFormData.endTime || undefined,
-        assignedTo: eventFormData.assignedTo ? Number(eventFormData.assignedTo) : undefined,
+        assignedTo: eventFormData.assignedTo && eventFormData.assignedTo !== "none" ? Number(eventFormData.assignedTo) : undefined,
         location: eventFormData.location || undefined,
         priority: eventFormData.priority,
       });
@@ -277,94 +289,87 @@ function FieldVisitsCalendarContent() {
 
   // تجميع المواعيد حسب التاريخ
   const eventsByDate = useMemo(() => {
-    return events.reduce((acc: Record<string, typeof events>, ev: any) => {
-      if (ev.date) {
-        if (!acc[ev.date]) acc[ev.date] = [];
-        acc[ev.date].push(ev);
-      }
-      return acc;
-    }, {});
+    const map: Record<string, any[]> = {};
+    for (const ev of events) {
+      if (!ev.date) continue;
+      if (!map[ev.date]) map[ev.date] = [];
+      map[ev.date].push(ev);
+    }
+    return map;
   }, [events]);
 
-  // فحص التعارضات
-  const conflicts = useMemo(() => {
-    return events.filter((ev: any, index: number) => {
-      if (!ev.date || !ev.startTime || !ev.assignedToId) return false;
-      return events.some((other: any, otherIndex: number) => {
-        if (index >= otherIndex) return false;
-        if (!other.date || !other.startTime || !other.assignedToId) return false;
-        return (
-          ev.type === other.type &&
-          ev.date === other.date &&
-          ev.startTime === other.startTime &&
-          ev.assignedToId === other.assignedToId
-        );
-      });
-    });
-  }, [events]);
+  // المواعيد لليوم المحدد حالياً
+  const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
+  const selectedDayEvents = useMemo(() => {
+    return (eventsByDate[selectedDateStr] || []).sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+  }, [eventsByDate, selectedDateStr]);
 
-  // المواعيد لليوم المحدد
-  const selectedDateKey = format(selectedDate, "yyyy-MM-dd");
-  const selectedDateEvents = eventsByDate[selectedDateKey] || [];
-
-  // التنقل بين الشهور
-  const nextMonth = () => setCurrentMonthDate(addMonths(currentMonthDate, 1));
-  const prevMonth = () => setCurrentMonthDate(subMonths(currentMonthDate, 1));
+  const prevMonth = () => setCurrentMonthDate((prev) => subMonths(prev, 1));
+  const nextMonth = () => setCurrentMonthDate((prev) => addMonths(prev, 1));
   const goToToday = () => {
-    const today = new Date();
-    setCurrentMonthDate(today);
-    setSelectedDate(today);
+    const now = new Date();
+    setCurrentMonthDate(now);
+    setSelectedDate(now);
   };
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-card p-6 rounded-3xl border shadow-sm">
+      {/* 1. Header & Quick Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card border border-border/70 rounded-3xl p-5 sm:p-6 shadow-xs">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
-              <CalendarDays className="h-7 w-7" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-primary/10 text-primary border border-primary/20">
+              <CalendarDays className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight">تقويم المواعيد والزيارات الموحد</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                لوحة مركزية لجدولة ومتابعة الزيارات الميدانية، الاستجابة السريعة، التقارير الختامية، والأحداث المخصصة
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                التقويم الموحد للمواعيد والزيارات
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                متابعة وإدارة الزيارات الميدانية، الاستجابة السريعة، التقارير الختامية، والأحداث الخاصة
               </p>
             </div>
           </div>
         </div>
 
+        {/* View Switcher & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
-            onClick={goToToday}
             variant="outline"
-            className="rounded-xl font-bold border-border hover:bg-muted"
+            size="sm"
+            onClick={goToToday}
+            className="rounded-xl h-9 text-xs font-bold border-border/80 hover:border-primary hover:text-primary transition-all"
           >
             اليوم
           </Button>
 
-          {/* View Switcher */}
-          <div className="flex items-center bg-muted/60 p-1 rounded-2xl border">
+          <div className="bg-muted/70 p-1 rounded-2xl flex items-center gap-1 border border-border/60">
             <button
               onClick={() => setViewMode("month")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "month" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === "month" 
+                  ? "bg-card shadow-xs text-primary font-black" 
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               شهري
             </button>
             <button
               onClick={() => setViewMode("timeline")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "timeline" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === "timeline" 
+                  ? "bg-card shadow-xs text-primary font-black" 
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               جدول زمني
             </button>
             <button
               onClick={() => setViewMode("agenda")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                viewMode === "agenda" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                viewMode === "agenda" 
+                  ? "bg-card shadow-xs text-primary font-black" 
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               قائمة
@@ -373,7 +378,7 @@ function FieldVisitsCalendarContent() {
 
           <Button
             onClick={handleOpenNewEventModal}
-            className="gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md shadow-primary/20"
+            className="gap-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm shadow-primary/20 h-9 px-4 text-xs"
           >
             <Plus className="h-4 w-4" />
             إضافة حدث مخصص
@@ -382,21 +387,23 @@ function FieldVisitsCalendarContent() {
       </div>
 
       {/* 2. Top Stats KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {/* Field Visits */}
         <Card 
           onClick={() => setSelectedTrack(selectedTrack === "field_visit" ? "all" : "field_visit")}
-          className={`cursor-pointer transition-all border rounded-2xl hover:shadow-md ${
-            selectedTrack === "field_visit" ? "ring-2 ring-purple-500 bg-purple-50/40 dark:bg-purple-950/30" : "bg-card"
+          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+            selectedTrack === "field_visit" 
+              ? "ring-2 ring-teal-500 bg-teal-50/40 dark:bg-teal-950/30 border-teal-300" 
+              : "bg-card border-border/70 hover:border-teal-300"
           }`}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-teal-50 text-teal-700 dark:bg-teal-950/80 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800">
               <MapPin className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">الزيارات الميدانية</p>
-              <h3 className="text-xl font-black text-purple-700 dark:text-purple-300">{stats?.fieldVisits ?? 0}</h3>
+              <h3 className="text-xl font-black text-teal-700 dark:text-teal-300 mt-0.5">{stats?.fieldVisits ?? 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -404,17 +411,19 @@ function FieldVisitsCalendarContent() {
         {/* Quick Response */}
         <Card 
           onClick={() => setSelectedTrack(selectedTrack === "quick_response" ? "all" : "quick_response")}
-          className={`cursor-pointer transition-all border rounded-2xl hover:shadow-md ${
-            selectedTrack === "quick_response" ? "ring-2 ring-amber-500 bg-amber-50/40 dark:bg-amber-950/30" : "bg-card"
+          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+            selectedTrack === "quick_response" 
+              ? "ring-2 ring-amber-500 bg-amber-50/40 dark:bg-amber-950/30 border-amber-300" 
+              : "bg-card border-border/70 hover:border-amber-300"
           }`}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800">
               <Zap className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">الاستجابة السريعة</p>
-              <h3 className="text-xl font-black text-amber-700 dark:text-amber-300">{stats?.quickResponse ?? 0}</h3>
+              <h3 className="text-xl font-black text-amber-700 dark:text-amber-300 mt-0.5">{stats?.quickResponse ?? 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -422,17 +431,19 @@ function FieldVisitsCalendarContent() {
         {/* Final Reports */}
         <Card 
           onClick={() => setSelectedTrack(selectedTrack === "final_report" ? "all" : "final_report")}
-          className={`cursor-pointer transition-all border rounded-2xl hover:shadow-md ${
-            selectedTrack === "final_report" ? "ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30" : "bg-card"
+          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+            selectedTrack === "final_report" 
+              ? "ring-2 ring-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/30 border-emerald-300" 
+              : "bg-card border-border/70 hover:border-emerald-300"
           }`}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
               <FileText className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">التقرير الختامي</p>
-              <h3 className="text-xl font-black text-emerald-700 dark:text-emerald-300">{stats?.finalReports ?? 0}</h3>
+              <h3 className="text-xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">{stats?.finalReports ?? 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -440,17 +451,19 @@ function FieldVisitsCalendarContent() {
         {/* Custom Events */}
         <Card 
           onClick={() => setSelectedTrack(selectedTrack === "custom" ? "all" : "custom")}
-          className={`cursor-pointer transition-all border rounded-2xl hover:shadow-md ${
-            selectedTrack === "custom" ? "ring-2 ring-blue-500 bg-blue-50/40 dark:bg-blue-950/30" : "bg-card"
+          className={`cursor-pointer transition-all border rounded-3xl hover:shadow-sm ${
+            selectedTrack === "custom" 
+              ? "ring-2 ring-sky-500 bg-sky-50/40 dark:bg-sky-950/30 border-sky-300" 
+              : "bg-card border-border/70 hover:border-sky-300"
           }`}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">الأحداث المخصصة</p>
-              <h3 className="text-xl font-black text-blue-700 dark:text-blue-300">{stats?.customEvents ?? 0}</h3>
+              <h3 className="text-xl font-black text-sky-700 dark:text-sky-300 mt-0.5">{stats?.customEvents ?? 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -458,22 +471,22 @@ function FieldVisitsCalendarContent() {
         {/* Today's Events */}
         <Card 
           onClick={goToToday}
-          className="cursor-pointer transition-all border rounded-2xl hover:shadow-md bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 col-span-2 sm:col-span-1"
+          className="cursor-pointer transition-all border rounded-3xl hover:shadow-sm bg-primary/5 hover:bg-primary/10 border-primary/20 col-span-2 sm:col-span-1"
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary text-primary-foreground">
+          <CardContent className="p-4 sm:p-5 flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-primary text-primary-foreground shadow-xs">
               <Clock className="h-5 w-5" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground font-medium">مواعيد اليوم</p>
-              <h3 className="text-xl font-black text-primary">{stats?.todayCount ?? 0}</h3>
+              <h3 className="text-xl font-black text-primary mt-0.5">{stats?.todayCount ?? 0}</h3>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* 3. Filters Toolbar */}
-      <Card className="rounded-2xl border shadow-sm">
+      <Card className="rounded-3xl border border-border/70 shadow-xs">
         <CardContent className="p-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             {/* Category Pills */}
@@ -485,10 +498,10 @@ function FieldVisitsCalendarContent() {
                   <button
                     key={key}
                     onClick={() => setSelectedTrack(key)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border ${
+                    className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 border ${
                       isSelected
-                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-sm"
-                        : "bg-muted/40 hover:bg-muted text-foreground border-border"
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                        : "bg-card hover:bg-muted/60 text-foreground border-border/70"
                     }`}
                   >
                     {key !== "all" && <span className={`w-2 h-2 rounded-full ${conf.dot}`} />}
@@ -501,9 +514,9 @@ function FieldVisitsCalendarContent() {
             {/* Staff & Search Controls */}
             <div className="flex flex-col sm:flex-row items-center gap-2.5">
               {/* Staff Select */}
-              <div className="w-full sm:w-56">
+              <div className="w-full sm:w-60">
                 <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
-                  <SelectTrigger className="rounded-xl h-9 text-xs">
+                  <SelectTrigger className="rounded-2xl h-9 text-xs border-border/70">
                     <SelectValue placeholder="تصفية حسب المسؤول" />
                   </SelectTrigger>
                   <SelectContent>
@@ -524,7 +537,7 @@ function FieldVisitsCalendarContent() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="بحث برقم الطلب، المسجد..."
-                  className="pr-9 h-9 text-xs rounded-xl"
+                  className="pr-9 h-9 text-xs rounded-2xl border-border/70"
                 />
                 {searchQuery && (
                   <button
@@ -540,30 +553,15 @@ function FieldVisitsCalendarContent() {
         </CardContent>
       </Card>
 
-      {/* 4. Conflict Notification (if any) */}
-      {conflicts.length > 0 && (
-        <Card className="border-rose-200 bg-rose-50/80 dark:bg-rose-950/30 dark:border-rose-900/50 shadow-sm rounded-2xl">
-          <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-bold text-rose-900 dark:text-rose-200">تنبيه: تم رصد تعارض في المواعيد!</h4>
-              <p className="text-xs text-rose-700 dark:text-rose-300 mt-0.5">
-                يوجد {conflicts.length} موعد متداخل لنفس الموظف في نفس التوقيت. يرجى مراجعة المواعيد المحددة أدناه لتعديلها.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 5. Main Calendar & Details Grid */}
+      {/* 4. Main Calendar & Details Grid */}
       {viewMode === "month" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Calendar Grid (8 cols) */}
-          <Card className="lg:col-span-8 rounded-3xl border shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between p-5 border-b">
+          <Card className="lg:col-span-8 rounded-3xl border border-border/70 shadow-xs">
+            <CardHeader className="flex flex-row items-center justify-between p-5 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-primary" />
-                <CardTitle className="text-lg font-black font-mono">
+                <CardTitle className="text-lg font-black font-mono text-foreground">
                   {format(currentMonthDate, "MMMM yyyy", { locale: ar })}
                 </CardTitle>
               </div>
@@ -572,7 +570,7 @@ function FieldVisitsCalendarContent() {
                   variant="outline"
                   size="icon"
                   onClick={prevMonth}
-                  className="h-8 w-8 rounded-xl"
+                  className="h-8 w-8 rounded-xl border-border/70"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -580,7 +578,7 @@ function FieldVisitsCalendarContent() {
                   variant="outline"
                   size="icon"
                   onClick={nextMonth}
-                  className="h-8 w-8 rounded-xl"
+                  className="h-8 w-8 rounded-xl border-border/70"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -614,12 +612,12 @@ function FieldVisitsCalendarContent() {
                         relative p-1.5 sm:p-2 rounded-2xl border text-right transition-all flex flex-col justify-between min-h-[75px] sm:min-h-[95px] max-h-[110px] overflow-hidden
                         ${
                           isSelected
-                            ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-sm"
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5 shadow-xs"
                             : isToday
                             ? "border-primary/50 bg-primary/[0.03] hover:border-primary"
                             : hasEvents
-                            ? "border-border/80 bg-card hover:border-primary/40 hover:bg-muted/40"
-                            : "border-border/40 bg-card/50 hover:bg-muted/30 text-muted-foreground"
+                            ? "border-border/80 bg-card hover:border-primary/40 hover:bg-muted/30"
+                            : "border-border/40 bg-card/40 hover:bg-muted/20 text-muted-foreground"
                         }
                       `}
                     >
@@ -628,16 +626,16 @@ function FieldVisitsCalendarContent() {
                         <span
                           className={`text-xs font-mono font-bold w-6 h-6 rounded-full flex items-center justify-center ${
                             isToday
-                              ? "bg-primary text-primary-foreground"
+                              ? "bg-primary text-primary-foreground font-black"
                               : isSelected
-                              ? "bg-primary/20 text-primary"
+                              ? "bg-primary/20 text-primary font-black"
                               : "text-foreground"
                           }`}
                         >
                           {format(day, "d")}
                         </span>
                         {hasEvents && (
-                          <span className="text-[10px] font-bold font-mono text-muted-foreground px-1.5 py-0.5 rounded-full bg-muted">
+                          <span className="text-[10px] font-bold font-mono text-primary px-1.5 py-0.5 rounded-full bg-primary/10">
                             {dayEvents.length}
                           </span>
                         )}
@@ -650,16 +648,17 @@ function FieldVisitsCalendarContent() {
                           return (
                             <div
                               key={ev.id}
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md truncate flex items-center gap-1 border ${conf.badgeBg} ${conf.border}`}
+                              className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold truncate flex items-center gap-1 border ${conf.badgeBg} ${conf.border}`}
+                              title={`${ev.title} (${ev.startTime || ""})`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${conf.dot}`} />
-                              <span className="truncate">{ev.startTime} {ev.title}</span>
+                              <span className="truncate">{ev.startTime || ""} {ev.mosqueName || ev.title}</span>
                             </div>
                           );
                         })}
                         {dayEvents.length > 2 && (
-                          <span className="text-[9px] text-muted-foreground font-bold text-center">
-                            +{dayEvents.length - 2} المزيد
+                          <span className="text-[9px] font-mono text-muted-foreground text-center font-bold">
+                            +{dayEvents.length - 2} مواعيد أخرى
                           </span>
                         )}
                       </div>
@@ -670,151 +669,132 @@ function FieldVisitsCalendarContent() {
             </CardContent>
           </Card>
 
-          {/* Selected Date Details Panel (4 cols) */}
-          <Card className="lg:col-span-4 rounded-3xl border shadow-sm flex flex-col">
-            <CardHeader className="p-5 border-b bg-muted/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-base font-bold">
-                    {format(selectedDate, "EEEE، dd MMMM yyyy", { locale: ar })}
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    {selectedDateEvents.length} موعد مجدول في هذا اليوم
-                  </CardDescription>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleOpenNewEventModal}
-                  className="rounded-xl h-8 text-xs gap-1"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  حدث
-                </Button>
+          {/* Selected Day Drawer / Sidebar (4 cols) */}
+          <Card className="lg:col-span-4 rounded-3xl border border-border/70 shadow-xs flex flex-col">
+            <CardHeader className="p-5 border-b border-border/60 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-black text-foreground">
+                  مواعيد: {format(selectedDate, "EEEE d MMMM", { locale: ar })}
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  {selectedDayEvents.length} مهمة مجدولة لهذا اليوم
+                </CardDescription>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleOpenNewEventModal}
+                className="h-8 rounded-xl text-xs gap-1 border-border/70 hover:border-primary hover:text-primary"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                إضافة حدث
+              </Button>
             </CardHeader>
 
             <CardContent className="p-4 flex-1 overflow-y-auto max-h-[600px] space-y-3">
-              {selectedDateEvents.length === 0 ? (
-                <div className="text-center py-12 space-y-3">
-                  <div className="p-3 rounded-2xl bg-muted w-fit mx-auto text-muted-foreground">
-                    <CalendarIcon className="h-6 w-6" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground">لا توجد مواعيد مجدولة في هذا اليوم</p>
+              {selectedDayEvents.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground">
+                  <CalendarDays className="h-10 w-10 mx-auto opacity-30 mb-2" />
+                  <p className="text-xs font-medium">لا توجد مواعيد مجدولة لهذا اليوم</p>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={handleOpenNewEventModal}
-                    className="rounded-xl text-xs"
+                    className="mt-2 text-xs text-primary hover:text-primary/80 font-bold"
                   >
-                    + جدولة موعد أو حدث مخصص
+                    + جدولة حدث أو زيارة الآن
                   </Button>
                 </div>
               ) : (
-                selectedDateEvents.map((ev: any) => {
+                selectedDayEvents.map((ev: any) => {
                   const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
                   const Icon = conf.icon;
-                  const isCustom = ev.type === "custom";
+                  const priorityObj = PRIORITY_OPTIONS.find(p => p.value === ev.priority) || PRIORITY_OPTIONS[1];
 
                   return (
                     <div
                       key={ev.id}
-                      className={`p-4 rounded-2xl border transition-all ${conf.cardBg} ${conf.border}`}
+                      className={`p-3.5 rounded-2xl border transition-all ${conf.cardBg} ${conf.border}`}
                     >
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`p-1.5 rounded-lg ${conf.badgeBg}`}>
-                            <Icon className="h-3.5 w-3.5" />
-                          </span>
-                          <span className="text-xs font-bold">{ev.typeLabel}</span>
+                      {/* Header Badge & Time */}
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 gap-1 ${conf.badgeBg} ${conf.border}`}>
+                          <Icon className="h-3 w-3" />
+                          {ev.typeLabel || conf.label}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-xs font-mono font-bold text-foreground">
+                          <Clock className="h-3 w-3 text-muted-foreground" />
+                          <span>{ev.startTime || "09:00"}</span>
+                          {ev.endTime && <span className="text-muted-foreground">- {ev.endTime}</span>}
                         </div>
-                        {ev.requestNumber && (
-                          <span className="font-mono text-[10px] bg-card px-2 py-0.5 rounded-md border font-bold">
-                            {ev.requestNumber}
-                          </span>
-                        )}
                       </div>
 
                       {/* Title & Description */}
-                      <h4 className="text-sm font-bold mt-2 text-foreground">{ev.title}</h4>
+                      <h4 className="text-sm font-bold text-foreground leading-snug">
+                        {ev.title}
+                      </h4>
                       {ev.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{ev.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                          {ev.description}
+                        </p>
                       )}
 
-                      {/* Meta information */}
-                      <div className="space-y-1.5 mt-3 pt-2.5 border-t border-border/60 text-xs">
-                        {/* Time */}
-                        <div className="flex items-center gap-2 text-muted-foreground font-mono">
-                          <Clock className="h-3.5 w-3.5 text-foreground shrink-0" />
-                          <span>
-                            {ev.startTime} {ev.endTime ? ` - ${ev.endTime}` : ""}
-                          </span>
+                      {/* Location & Contact */}
+                      <div className="mt-3 pt-2.5 border-t border-border/50 space-y-1.5 text-xs text-muted-foreground">
+                        {ev.location && (
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="truncate">{ev.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span>{ev.assignedToName || "غير محدد"}</span>
+                          </div>
+                          {ev.priority && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${priorityObj.color}`}>
+                              {priorityObj.label}
+                            </span>
+                          )}
                         </div>
-
-                        {/* Location / Mosque */}
-                        {(ev.mosqueName || ev.location) && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <MapPin className="h-3.5 w-3.5 text-foreground shrink-0" />
-                            <span className="truncate">{ev.location || ev.mosqueName}</span>
-                          </div>
-                        )}
-
-                        {/* Assigned Staff */}
-                        {ev.assignedToName && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <User className="h-3.5 w-3.5 text-foreground shrink-0" />
-                            <span className="truncate">المسؤول: {ev.assignedToName}</span>
-                          </div>
-                        )}
-
-                        {/* Contact Person */}
-                        {ev.contactPhone && (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Phone className="h-3.5 w-3.5 text-foreground shrink-0" />
-                            <a href={`tel:${ev.contactPhone}`} className="hover:underline text-primary font-mono truncate">
-                              {ev.contactName ? `${ev.contactName} (${ev.contactPhone})` : ev.contactPhone}
-                            </a>
-                          </div>
-                        )}
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-border/60">
-                        {ev.linkUrl && (
+                      {/* Action Links */}
+                      <div className="mt-3 flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                        {ev.linkUrl ? (
                           <Link href={ev.linkUrl}>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs rounded-lg gap-1">
-                              <span>فتح الطلب</span>
-                              <ExternalLink className="h-3 w-3" />
+                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary hover:text-primary/90 p-0 font-bold">
+                              فتح الطلب <ExternalLink className="h-3 w-3" />
                             </Button>
                           </Link>
+                        ) : (
+                          <div />
                         )}
 
-                        {isCustom && (
-                          <>
+                        {ev.type === "custom" && (
+                          <div className="flex items-center gap-1">
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="ghost"
                               onClick={() => handleOpenEditEventModal(ev)}
-                              className="h-7 text-xs rounded-lg gap-1 text-blue-600 hover:text-blue-700"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg"
                             >
-                              <Edit className="h-3 w-3" />
-                              <span>تعديل</span>
+                              <Edit className="h-3.5 w-3.5" />
                             </Button>
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="ghost"
                               onClick={() => {
-                                if (confirm("هل أنت متأكد من حذف هذا الحدث؟")) {
+                                if (confirm("هل أنت متأكد من رغبتك في حذف هذا الحدث؟")) {
                                   deleteEventMutation.mutate({ id: ev.rawId });
                                 }
                               }}
-                              className="h-7 text-xs rounded-lg gap-1 text-rose-600 hover:text-rose-700"
+                              className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                             >
-                              <Trash2 className="h-3 w-3" />
-                              <span>حذف</span>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -826,84 +806,91 @@ function FieldVisitsCalendarContent() {
         </div>
       )}
 
-      {/* 6. Timeline View */}
+      {/* 5. Timeline View Mode */}
       {viewMode === "timeline" && (
-        <Card className="rounded-3xl border shadow-sm">
-          <CardHeader className="p-6 border-b">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <Card className="rounded-3xl border border-border/70 shadow-xs">
+          <CardHeader className="p-5 border-b border-border/60 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CalendarIcon className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle className="text-xl font-black">
-                  الجدول الزمني ليوم {format(selectedDate, "EEEE، dd MMMM yyyy", { locale: ar })}
+                <CardTitle className="text-base font-black text-foreground">
+                  الجدول الزمني: {format(selectedDate, "EEEE d MMMM yyyy", { locale: ar })}
                 </CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  توزيع المواعيد والزيارات على مدار ساعات العمل
+                <CardDescription className="text-xs mt-0.5">
+                  عرض المواعيد بالساعات على مدار اليوم
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedDate(subMonths(selectedDate, 0))}
-                  className="rounded-xl text-xs"
-                >
-                  تغيير اليوم من التقويم
-                </Button>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={format(selectedDate, "yyyy-MM-dd")}
+                onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+                className="w-40 h-8 text-xs rounded-xl border-border/70"
+              />
             </div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {[
-                "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", 
-                "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00"
-              ].map((hour) => {
-                const hourEvents = selectedDateEvents.filter(
-                  (e: any) => e.startTime?.startsWith(hour.split(":")[0])
-                );
+              {Array.from({ length: 14 }).map((_, idx) => {
+                const hourNum = 8 + idx; // 08:00 to 21:00
+                const hourStr = `${hourNum.toString().padStart(2, "0")}:00`;
+                const hourEvents = selectedDayEvents.filter((ev) => {
+                  const evHour = parseInt((ev.startTime || "09:00").split(":")[0], 10);
+                  return evHour === hourNum;
+                });
 
                 return (
-                  <div key={hour} className="flex items-start gap-4 pb-4 border-b border-border/50 last:border-0">
-                    <div className="w-16 pt-1 text-xs font-mono font-bold text-muted-foreground text-left">
-                      {hour}
+                  <div key={hourStr} className="grid grid-cols-12 gap-4 items-start border-b border-border/40 pb-4">
+                    <div className="col-span-2 sm:col-span-1 text-xs font-mono font-bold text-muted-foreground pt-1">
+                      {hourStr}
                     </div>
-                    <div className="flex-1 space-y-2">
+                    <div className="col-span-10 sm:col-span-11 space-y-2">
                       {hourEvents.length === 0 ? (
-                        <div className="p-2 rounded-xl bg-muted/20 border border-dashed text-xs text-muted-foreground/60">
-                          لا توجد مواعيد مجدولة
+                        <div className="h-8 rounded-xl border border-dashed border-border/40 flex items-center px-3 text-xs text-muted-foreground/50 hover:bg-muted/20 transition-all cursor-pointer"
+                          onClick={() => {
+                            setEventFormData((prev) => ({
+                              ...prev,
+                              eventDate: format(selectedDate, "yyyy-MM-dd"),
+                              startTime: hourStr,
+                            }));
+                            setIsEventModalOpen(true);
+                          }}
+                        >
+                          + متاح للجدولة
                         </div>
                       ) : (
-                        hourEvents.map((ev: any) => {
+                        hourEvents.map((ev) => {
                           const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
+                          const Icon = conf.icon;
                           return (
                             <div
                               key={ev.id}
-                              className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${conf.cardBg} ${conf.border}`}
+                              className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${conf.cardBg} ${conf.border}`}
                             >
                               <div className="flex items-center gap-3">
-                                <span className={`p-2 rounded-lg ${conf.badgeBg}`}>
-                                  {<conf.icon className="h-4 w-4" />}
-                                </span>
+                                <div className={`p-2 rounded-xl border ${conf.badgeBg} ${conf.border}`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
                                 <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold">{ev.title}</span>
-                                    {ev.requestNumber && (
-                                      <span className="text-[10px] font-mono bg-card px-1.5 py-0.5 rounded border">
-                                        {ev.requestNumber}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    المسؤول: {ev.assignedToName} {ev.location ? `• ${ev.location}` : ""}
+                                  <h4 className="text-sm font-bold text-foreground">{ev.title}</h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {ev.location || "بدون موقع"} • المسند إليه: {ev.assignedToName || "غير محدد"}
                                   </p>
                                 </div>
                               </div>
-                              {ev.linkUrl && (
-                                <Link href={ev.linkUrl}>
-                                  <Button size="sm" variant="outline" className="rounded-lg text-xs h-8">
-                                    عرض التفاصيل
-                                  </Button>
-                                </Link>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={`text-xs font-mono font-bold ${conf.badgeBg} ${conf.border}`}>
+                                  {ev.startTime} {ev.endTime ? `- ${ev.endTime}` : ""}
+                                </Badge>
+                                {ev.linkUrl && (
+                                  <Link href={ev.linkUrl}>
+                                    <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-primary">
+                                      فتح <ExternalLink className="h-3 w-3" />
+                                    </Button>
+                                  </Link>
+                                )}
+                              </div>
                             </div>
                           );
                         })
@@ -917,63 +904,61 @@ function FieldVisitsCalendarContent() {
         </Card>
       )}
 
-      {/* 7. Agenda / List View */}
+      {/* 6. Agenda View Mode */}
       {viewMode === "agenda" && (
-        <Card className="rounded-3xl border shadow-sm">
-          <CardHeader className="p-6 border-b">
-            <CardTitle className="text-xl font-black">
-              كافة مواعيد الشهر ({events.length})
+        <Card className="rounded-3xl border border-border/70 shadow-xs">
+          <CardHeader className="p-5 border-b border-border/60">
+            <CardTitle className="text-base font-black text-foreground">
+              جدول أعمال ومواعيد الشهر الكامل ({format(currentMonthDate, "MMMM yyyy", { locale: ar })})
             </CardTitle>
-            <CardDescription className="text-xs mt-1">
-              عرض مجدول لجميع المهام والزيارات لشهر {format(currentMonthDate, "MMMM yyyy", { locale: ar })}
+            <CardDescription className="text-xs mt-0.5">
+              عرض تفصيلي لكافة المواعيد المجدولة مرتبة حسب التاريخ والوقت
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-0">
             {events.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p className="text-sm font-medium">لا توجد مواعيد تطابق الفلاتر المحددة</p>
+              <div className="py-16 text-center text-muted-foreground">
+                <CalendarDays className="h-12 w-12 mx-auto opacity-30 mb-3" />
+                <p className="text-sm font-medium">لا توجد أي مواعيد مجدولة في هذا الشهر</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y divide-border/50">
                 {events.map((ev: any) => {
                   const conf = TRACK_CONFIG[ev.type as keyof typeof TRACK_CONFIG] || TRACK_CONFIG.custom;
                   const Icon = conf.icon;
+                  const priorityObj = PRIORITY_OPTIONS.find(p => p.value === ev.priority) || PRIORITY_OPTIONS[1];
+
                   return (
-                    <div
-                      key={ev.id}
-                      className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${conf.cardBg} ${conf.border}`}
-                    >
-                      <div className="flex items-start md:items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${conf.badgeBg} shrink-0`}>
+                    <div key={ev.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/20 transition-all">
+                      <div className="flex items-start sm:items-center gap-3.5">
+                        <div className={`p-2.5 rounded-2xl shrink-0 border ${conf.badgeBg} ${conf.border}`}>
                           <Icon className="h-5 w-5" />
                         </div>
                         <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className={`rounded-lg text-[10px] ${conf.badgeBg}`}>
-                              {ev.typeLabel}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm font-bold text-foreground">{ev.title}</h4>
+                            <Badge variant="outline" className={`text-[10px] font-bold ${conf.badgeBg} ${conf.border}`}>
+                              {ev.typeLabel || conf.label}
                             </Badge>
-                            {ev.requestNumber && (
-                              <span className="font-mono text-xs bg-card px-2 py-0.5 rounded border font-bold">
-                                {ev.requestNumber}
-                              </span>
-                            )}
-                            <span className="text-sm font-bold">{ev.title}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${priorityObj.color}`}>
+                              {priorityObj.label}
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {ev.location || ev.mosqueName} • المسؤول: {ev.assignedToName}
+                            {ev.location || "بدون موقع"} • المسؤول: <strong className="text-foreground">{ev.assignedToName || "غير محدد"}</strong>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 pt-2 md:pt-0">
-                        <div className="text-left font-mono text-xs font-bold text-muted-foreground">
-                          <div>{ev.date}</div>
-                          <div>{ev.startTime}</div>
+                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                        <div className="text-left font-mono">
+                          <p className="text-xs font-bold text-foreground">{ev.date}</p>
+                          <p className="text-[11px] text-muted-foreground">{ev.startTime || "09:00"}</p>
                         </div>
                         {ev.linkUrl && (
                           <Link href={ev.linkUrl}>
-                            <Button size="sm" variant="outline" className="rounded-xl text-xs h-8">
-                              التفاصيل
+                            <Button size="sm" variant="outline" className="h-8 rounded-xl text-xs gap-1 text-primary border-border/70 hover:border-primary">
+                              عرض <ExternalLink className="h-3 w-3" />
                             </Button>
                           </Link>
                         )}
@@ -987,161 +972,206 @@ function FieldVisitsCalendarContent() {
         </Card>
       )}
 
-      {/* 8. Add / Edit Custom Event Modal Dialog */}
+      {/* 7. Add / Edit Custom Event Modal Dialog (Enhanced & Expanded UI) */}
       <Dialog open={isEventModalOpen} onOpenChange={setIsEventModalOpen}>
-        <DialogContent className="max-w-lg rounded-3xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black">
-              {editingEventId ? "تعديل الحدث المخصص" : "إضافة حدث / مهمة مخصصة"}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              جدولة حدث أو اجتماع أو معاينة خاصة مع إسنادها للموظف المسؤول
-            </DialogDescription>
+        <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-xl">
+          <DialogHeader className="space-y-2 text-right">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20">
+                <CalendarPlus className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black text-foreground">
+                  {editingEventId ? "تعديل الحدث المخصص" : "إضافة حدث / مهمة مخصصة"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                  جدولة موعد أو اجتماع أو معاينة خاصة مع إسنادها للموظف وتحديد التوقيت الدقيق
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <form onSubmit={handleEventFormSubmit} className="space-y-4 mt-2">
+          <form onSubmit={handleEventFormSubmit} className="space-y-4 mt-3">
             {/* Title */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">عنوان الحدث / المهمة *</Label>
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-primary" />
+                عنوان الحدث أو المهمة <span className="text-rose-500">*</span>
+              </Label>
               <Input
                 value={eventFormData.title}
                 onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
-                placeholder="مثال: اجتماع فريق المعاينة، زيارة تفقدية خاصة..."
-                className="rounded-xl"
+                placeholder="مثال: اجتماع فريق المعاينة الفنية، جولة ميدانية لمسجد الهدى..."
+                className="rounded-2xl h-10 text-sm border-border/70 focus:border-primary"
+                required
               />
             </div>
 
-            {/* Category & Priority */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Category & Priority in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Event Type */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">نوع الحدث</Label>
+                <Label className="text-xs font-bold text-foreground">نوع الحدث</Label>
                 <Select
                   value={eventFormData.eventType}
                   onValueChange={(val) => setEventFormData({ ...eventFormData, eventType: val })}
                 >
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-2xl h-10 text-xs border-border/70">
                     <SelectValue placeholder="اختر النوع" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="meeting">اجتماع عمل</SelectItem>
-                    <SelectItem value="inspection">معاينة خاصة</SelectItem>
-                    <SelectItem value="follow_up">متابعة دورية</SelectItem>
-                    <SelectItem value="task">مهمة ميدانية</SelectItem>
-                    <SelectItem value="custom">حدث مخصص</SelectItem>
-                    <SelectItem value="other">أخرى</SelectItem>
+                    {EVENT_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <span className="flex items-center gap-2">
+                          <span>{opt.icon}</span>
+                          <span>{opt.label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Priority Pills */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">الأولوية</Label>
-                <Select
-                  value={eventFormData.priority}
-                  onValueChange={(val: any) => setEventFormData({ ...eventFormData, priority: val })}
-                >
-                  <SelectTrigger className="rounded-xl">
-                    <SelectValue placeholder="الأولوية" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">منخفضة</SelectItem>
-                    <SelectItem value="medium">متوسطة</SelectItem>
-                    <SelectItem value="high">عالية</SelectItem>
-                    <SelectItem value="urgent">عاجلة جداً</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-bold text-foreground">مستوى الأولوية</Label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {PRIORITY_OPTIONS.map((p) => {
+                    const isSelected = eventFormData.priority === p.value;
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setEventFormData({ ...eventFormData, priority: p.value as any })}
+                        className={`py-2 px-1 rounded-xl text-xs font-bold transition-all text-center border ${
+                          isSelected
+                            ? `${p.color} ring-2 ring-primary/30 font-black shadow-xs`
+                            : "bg-muted/40 text-muted-foreground border-border/60 hover:bg-muted"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* Date & Time */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* Date & Time in 3 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">التاريخ *</Label>
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                  التاريخ <span className="text-rose-500">*</span>
+                </Label>
                 <Input
                   type="date"
                   value={eventFormData.eventDate}
                   onChange={(e) => setEventFormData({ ...eventFormData, eventDate: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-2xl h-10 text-xs border-border/70"
+                  required
                 />
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">وقت البداية</Label>
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  وقت البدء
+                </Label>
                 <Input
                   type="time"
                   value={eventFormData.startTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, startTime: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-2xl h-10 text-xs border-border/70"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">وقت الانتهاء</Label>
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  وقت الانتهاء
+                </Label>
                 <Input
                   type="time"
                   value={eventFormData.endTime}
                   onChange={(e) => setEventFormData({ ...eventFormData, endTime: e.target.value })}
-                  className="rounded-xl"
+                  className="rounded-2xl h-10 text-xs border-border/70"
                 />
               </div>
             </div>
 
-            {/* Assigned Staff */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">الموظف المسؤول</Label>
-              <Select
-                value={eventFormData.assignedTo}
-                onValueChange={(val) => setEventFormData({ ...eventFormData, assignedTo: val })}
-              >
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="اختر الموظف المسند إليه" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">بدون إسناد</SelectItem>
-                  {staffUsers.map((u: any) => (
-                    <SelectItem key={u.id} value={String(u.id)}>
-                      {u.name} ({u.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Staff & Location in 2 columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  الموظف المسؤول
+                </Label>
+                <Select
+                  value={eventFormData.assignedTo}
+                  onValueChange={(val) => setEventFormData({ ...eventFormData, assignedTo: val })}
+                >
+                  <SelectTrigger className="rounded-2xl h-10 text-xs border-border/70">
+                    <SelectValue placeholder="اختر الموظف المسند إليه" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون إسناد</SelectItem>
+                    {staffUsers.map((u: any) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.name} ({u.role})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                  الموقع أو المسجد
+                </Label>
+                <Input
+                  value={eventFormData.location}
+                  onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
+                  placeholder="مثال: قاعة الاجتماعات الرئيسية، مسجد السلام..."
+                  className="rounded-2xl h-10 text-xs border-border/70"
+                />
+              </div>
             </div>
 
-            {/* Location */}
+            {/* Description & Notes */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">الموقع أو المسجد</Label>
-              <Input
-                value={eventFormData.location}
-                onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
-                placeholder="مثال: قاعة الاجتماعات، مسجد الهدى..."
-                className="rounded-xl"
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">تفاصيل وملاحظات</Label>
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                تفاصيل وملاحظات إضافية
+              </Label>
               <Textarea
                 rows={3}
                 value={eventFormData.description}
                 onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
-                placeholder="أي تفاصيل أو متطلبات خاصة بالحدث..."
-                className="rounded-xl resize-none"
+                placeholder="أضف أي تفاصيل أو أهداف أو متطلبات خاصة بهذا الموعد..."
+                className="rounded-2xl text-xs border-border/70 resize-none leading-relaxed"
               />
             </div>
 
-            <DialogFooter className="gap-2 mt-6">
+            {/* Footer */}
+            <DialogFooter className="gap-2.5 mt-6 pt-3 border-t border-border/60 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEventModalOpen(false)}
-                className="rounded-xl"
+                className="rounded-2xl h-10 px-5 text-xs font-bold border-border/70"
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
                 disabled={createEventMutation.isPending || updateEventMutation.isPending}
-                className="rounded-xl bg-primary text-primary-foreground font-bold"
+                className="rounded-2xl h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/25"
               >
-                {createEventMutation.isPending || updateEventMutation.isPending ? "جاري الحفظ..." : "حفظ الحدث"}
+                {createEventMutation.isPending || updateEventMutation.isPending 
+                  ? "جاري الحفظ..." 
+                  : (editingEventId ? "تحديث الحدث" : "حفظ الحدث")}
               </Button>
             </DialogFooter>
           </form>
