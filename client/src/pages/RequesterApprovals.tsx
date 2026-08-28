@@ -109,6 +109,20 @@ const submissionStatusConfig: Record<string, { label: string; color: string; dot
   archived: { label: "مؤرشف", color: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700", dot: "bg-slate-400" },
 };
 
+const formatSubmissionDate = (dateStr: string | Date | null | undefined) => {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("ar-EG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+};
+
 const submissionTypeLabels: Record<string, { label: string; shortLabel: string; icon: string; badge: string }> = {
   donor_land: { 
     label: "تبرع بأرض مسجد", 
@@ -926,7 +940,6 @@ export default function RequesterApprovals() {
                       <TableRow>
                         <TableHead className="text-right">مقدم التبرع</TableHead>
                         <TableHead className="text-right">نوع التبرع</TableHead>
-                        <TableHead className="text-right">أهم تفاصيل التبرع</TableHead>
                         <TableHead className="text-right">تاريخ الإرسال</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-left pl-6">الإجراءات</TableHead>
@@ -961,34 +974,12 @@ export default function RequesterApprovals() {
                               </span>
                             </TableCell>
 
-                            {/* التفاصيل */}
-                            <TableCell className="max-w-xs">
-                              {sub.submissionType === 'donor_land' && (
-                                <div className="text-xs space-y-0.5">
-                                  <p className="font-bold text-foreground truncate">
-                                    المساحة: <span className="text-teal-700 dark:text-teal-400 font-mono">{sub.landArea || "غير محددة"}</span>
-                                  </p>
-                                  <p className="text-muted-foreground truncate">{sub.landLocation || sub.details || "—"}</p>
-                                </div>
-                              )}
-                              {sub.submissionType === 'donor_inkind' && (
-                                <div className="text-xs space-y-0.5">
-                                  <p className="font-bold text-foreground truncate">
-                                    {sub.inKindType || "مواد عينية"} ({sub.inKindQuantity || "الكمية غير محددة"})
-                                  </p>
-                                  <p className="text-muted-foreground truncate">{sub.details || sub.inKindCondition || "—"}</p>
-                                </div>
-                              )}
-                              {sub.submissionType !== 'donor_land' && sub.submissionType !== 'donor_inkind' && (
-                                <p className="text-xs text-muted-foreground line-clamp-2" title={sub.details || ""}>
-                                  {sub.details || "—"}
-                                </p>
-                              )}
-                            </TableCell>
-
-                            {/* التاريخ */}
-                            <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
-                              {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString("ar-SA") : "—"}
+                            {/* تاريخ الإرسال */}
+                            <TableCell className="whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span>{formatSubmissionDate(sub.createdAt)}</span>
+                              </div>
                             </TableCell>
 
                             {/* الحالة */}
@@ -1144,8 +1135,12 @@ export default function RequesterApprovals() {
                               </p>
                             </TableCell>
 
-                            <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
-                              {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString("ar-SA") : "—"}
+                            {/* تاريخ الإرسال */}
+                            <TableCell className="whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                                <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span>{formatSubmissionDate(sub.createdAt)}</span>
+                              </div>
                             </TableCell>
 
                             <TableCell>
