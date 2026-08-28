@@ -3,7 +3,7 @@ import { permissionProcedure } from "../permissions";
 import { z } from "zod";
 import { getDb } from "../db";
 import { fieldVisits, requestComments, users, requestHistory, auditLogs, mosqueRequests } from "../../drizzle/schema";
-import { eq, and, gte, lte, ne } from "drizzle-orm";
+import { eq, and, gte, lte, ne, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notifyFieldVisitScheduled } from "./notifications";
 
@@ -40,29 +40,41 @@ export const fieldVisitsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
 
-      // التحقق من تعارض المواعيد للموظف المختار (في نفس اليوم ونفس الوقت)
-      if (assignedUserId) {
-        const startOfDay = new Date(`${visitDate}T00:00:00`);
-        const endOfDay = new Date(`${visitDate}T23:59:59`);
-
-        const conflict = await db
-          .select()
+      // التحقق الصارم من تعارض المواعيد للموظف المختار (في نفس اليوم ونفس الوقت بدقة)
+      if (assignedUserId && visitTime && visitDate) {
+        // فحص جدول field_visits
+        const conflictsInVisits = await db
+          .select({ id: fieldVisits.id, requestId: fieldVisits.requestId })
           .from(fieldVisits)
           .where(
             and(
               eq(fieldVisits.assignedTo, assignedUserId),
-              gte(fieldVisits.scheduledDate, startOfDay),
-              lte(fieldVisits.scheduledDate, endOfDay),
+              sql`DATE(${fieldVisits.scheduledDate}) = DATE(${visitDate})`,
               eq(fieldVisits.scheduledTime, visitTime),
-              ne(fieldVisits.requestId, requestId) // باستثناء الطلب الحالي (في حال إعادة الجدولة)
+              sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+              ne(fieldVisits.requestId, requestId)
             )
           )
           .limit(1);
 
-        if (conflict.length > 0) {
+        // فحص جدول mosque_requests
+        const conflictsInRequests = await db
+          .select({ id: mosqueRequests.id })
+          .from(mosqueRequests)
+          .where(
+            and(
+              eq(mosqueRequests.fieldVisitAssignedTo, assignedUserId),
+              sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${visitDate})`,
+              eq(mosqueRequests.fieldVisitScheduledTime, visitTime),
+              ne(mosqueRequests.id, requestId)
+            )
+          )
+          .limit(1);
+
+        if (conflictsInVisits.length > 0 || conflictsInRequests.length > 0) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "هذا الموظف لديه زيارة ميدانية مجدولة بالفعل في نفس اليوم والوقت المختارين",
+            message: `هذا الموظف لديه زيارة ميدانية محجوزة بالفعل في تاريخ (${visitDate}) الساعة (${visitTime}). لا يمكن إسناد زيارة أخرى له في نفس الوقت.`,
           });
         }
       }
@@ -282,30 +294,57 @@ export const fieldVisitsRouter = router({
   getBusySlots: protectedProcedure
     .input(
       z.object({
-        userId: z.number(),
+        userId: z.number().optional().nullable(),
         date: z.string(),
+        excludeRequestId: z.number().optional().nullable(),
       })
     )
     .query(async ({ input }) => {
-      const { userId, date } = input;
+      const { userId, date, excludeRequestId } = input;
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "فشل الاتصال بقاعدة البيانات" });
 
-      const startOfDay = new Date(`${date}T00:00:00`);
-      const endOfDay = new Date(`${date}T23:59:59`);
+      if (!date) return [];
 
+      // 1. جلب المواعيد المحجوزة من جدول field_visits
       const visits = await db
-        .select({ scheduledTime: fieldVisits.scheduledTime })
+        .select({
+          scheduledTime: fieldVisits.scheduledTime,
+          assignedTo: fieldVisits.assignedTo,
+          requestId: fieldVisits.requestId,
+        })
         .from(fieldVisits)
         .where(
           and(
-            eq(fieldVisits.assignedTo, userId),
-            gte(fieldVisits.scheduledDate, startOfDay),
-            lte(fieldVisits.scheduledDate, endOfDay)
+            sql`DATE(${fieldVisits.scheduledDate}) = DATE(${date})`,
+            sql`${fieldVisits.scheduledTime} IS NOT NULL`,
+            sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+            userId ? eq(fieldVisits.assignedTo, userId) : sql`1=1`,
+            excludeRequestId ? ne(fieldVisits.requestId, excludeRequestId) : sql`1=1`
           )
         );
 
-      // إرجاع مصفوفة من الساعات المحجوزة
-      return visits.map(v => v.scheduledTime).filter(Boolean) as string[];
+      const busyFromVisits = visits.map((v) => v.scheduledTime).filter(Boolean) as string[];
+
+      // 2. جلب المواعيد المحجوزة من جدول mosque_requests
+      const reqVisits = await db
+        .select({
+          scheduledTime: mosqueRequests.fieldVisitScheduledTime,
+          assignedTo: mosqueRequests.fieldVisitAssignedTo,
+          id: mosqueRequests.id,
+        })
+        .from(mosqueRequests)
+        .where(
+          and(
+            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${date})`,
+            sql`${mosqueRequests.fieldVisitScheduledTime} IS NOT NULL`,
+            userId ? eq(mosqueRequests.fieldVisitAssignedTo, userId) : sql`1=1`,
+            excludeRequestId ? ne(mosqueRequests.id, excludeRequestId) : sql`1=1`
+          )
+        );
+
+      const busyFromReqs = reqVisits.map((r) => r.fieldVisitScheduledTime).filter(Boolean) as string[];
+
+      return Array.from(new Set([...busyFromVisits, ...busyFromReqs]));
     }),
 });

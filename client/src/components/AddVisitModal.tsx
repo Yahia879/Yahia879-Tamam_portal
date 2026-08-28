@@ -51,11 +51,22 @@ export function AddVisitModal({ isOpen, onClose, selectedDate, onSuccess }: AddV
   // Get staff users
   const { data: staffUsers } = trpc.requests.getFieldTeamMembers.useQuery();
 
+  const visitDateStr = format(selectedDate, 'yyyy-MM-dd');
+  const { data: busySlots = [] } = trpc.fieldVisits.getBusySlots.useQuery(
+    {
+      userId: formData.assignedUserId ? Number(formData.assignedUserId) : undefined,
+      date: visitDateStr,
+      excludeRequestId: formData.requestId ? Number(formData.requestId) : undefined,
+    },
+    { enabled: !!formData.assignedUserId && !!visitDateStr }
+  );
+
   const utils = trpc.useUtils();
   const scheduleMutation = trpc.fieldVisits.scheduleVisit.useMutation({
     onSuccess: () => {
       toast.success("تم جدولة الزيارة بنجاح");
       utils.requests.getScheduledVisits.invalidate();
+      utils.fieldVisits.getBusySlots.invalidate();
       onSuccess?.();
       onClose();
     },
@@ -72,6 +83,11 @@ export function AddVisitModal({ isOpen, onClose, selectedDate, onSuccess }: AddV
     }
     if (!formData.visitTime) {
       toast.error("يرجى تحديد الوقت");
+      return;
+    }
+
+    if (formData.assignedUserId && busySlots.includes(formData.visitTime)) {
+      toast.error(`عفواً، هذا الوقت (${formData.visitTime}) محجوز مسبقاً لهذا الموظف`);
       return;
     }
 
