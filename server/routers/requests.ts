@@ -1589,6 +1589,70 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      // فحص تعارض المواعيد الصارم للموظف
+      if (input.userId && input.scheduledDate && input.scheduledTime) {
+        // فحص التقرير الختامي
+        const finalConflicts = await db.select({ id: mosqueRequests.id })
+          .from(mosqueRequests)
+          .where(
+            and(
+              eq(mosqueRequests.finalReportAssignedTo, input.userId),
+              sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${input.scheduledDate})`,
+              eq(mosqueRequests.finalReportScheduledTime, input.scheduledTime),
+              ne(mosqueRequests.id, input.requestId)
+            )
+          )
+          .limit(1);
+
+        // فحص الزيارة الميدانية
+        const fieldReqConflicts = await db.select({ id: mosqueRequests.id })
+          .from(mosqueRequests)
+          .where(
+            and(
+              eq(mosqueRequests.fieldVisitAssignedTo, input.userId),
+              sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${input.scheduledDate})`,
+              eq(mosqueRequests.fieldVisitScheduledTime, input.scheduledTime),
+              ne(mosqueRequests.id, input.requestId)
+            )
+          )
+          .limit(1);
+
+        // فحص جدول field_visits
+        const visitsConflicts = await db.select({ id: fieldVisits.id })
+          .from(fieldVisits)
+          .where(
+            and(
+              eq(fieldVisits.assignedTo, input.userId),
+              sql`DATE(${fieldVisits.scheduledDate}) = DATE(${input.scheduledDate})`,
+              eq(fieldVisits.scheduledTime, input.scheduledTime),
+              sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
+              ne(fieldVisits.requestId, input.requestId)
+            )
+          )
+          .limit(1);
+
+        // فحص الاستجابة السريعة
+        const quickConflicts = await db.select({ id: mosqueRequests.id })
+          .from(mosqueRequests)
+          .where(
+            and(
+              eq(mosqueRequests.assignedTo, input.userId),
+              eq(mosqueRequests.requestTrack, 'quick_response'),
+              sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${input.scheduledDate})`,
+              eq(mosqueRequests.quickResponseScheduledTime, input.scheduledTime),
+              ne(mosqueRequests.id, input.requestId)
+            )
+          )
+          .limit(1);
+
+        if (finalConflicts.length > 0 || fieldReqConflicts.length > 0 || visitsConflicts.length > 0 || quickConflicts.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `هذا الموظف لديه مهمة مجدولة بالفعل في تاريخ (${input.scheduledDate}) الساعة (${input.scheduledTime}). يرجى اختيار موعد آخر أو موظف آخر.`,
+          });
+        }
+      }
+
       await db.update(mosqueRequests).set({
         finalReportAssignedTo: input.userId,
         currentResponsible: input.userId,

@@ -51,6 +51,25 @@ export default function AssignFinalReport() {
 
   // حفظ موعد الزيارة
   const utils = trpc.useUtils();
+
+  const TIME_SLOTS = [
+    "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00",
+    "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"
+  ];
+
+  // جلب المواعيد المحجوزة للموظف في التاريخ المحدد
+  const { data: busySlots = [], isLoading: isLoadingBusySlots } = trpc.fieldVisits.getBusySlots.useQuery(
+    {
+      userId: formData.assignedUserId ? Number(formData.assignedUserId) : undefined,
+      date: formData.scheduledDate,
+      excludeRequestId: Number(requestId),
+    },
+    {
+      enabled: !!formData.assignedUserId && !!formData.scheduledDate,
+      refetchOnWindowFocus: true,
+    }
+  );
+
   const assignMutation = trpc.requests.assignFinalReport.useMutation({
     onSuccess: () => {
       toast.success("تم تعيين المسؤول بنجاح");
@@ -72,6 +91,11 @@ export default function AssignFinalReport() {
 
     if (!formData.scheduledDate) {
       toast.error("يرجى تحديد تاريخ التقرير الختامي");
+      return;
+    }
+
+    if (formData.scheduledTime && busySlots.includes(formData.scheduledTime)) {
+      toast.error(`عفواً، الوقت (${formData.scheduledTime}) محجوز مسبقاً لهذا الموظف في هذا اليوم. يرجى اختيار موعد آخر.`);
       return;
     }
 
@@ -150,25 +174,65 @@ export default function AssignFinalReport() {
             </div>
 
             {/* تاريخ ووقت التقرير الختامي */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduledDate">تاريخ التقرير الختامي *</Label>
+                <Label htmlFor="scheduledDate" className="font-bold">تاريخ التقرير الختامي *</Label>
                 <Input
                   id="scheduledDate"
                   type="date"
                   value={formData.scheduledDate}
-                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value, scheduledTime: "" })}
+                  className="rounded-xl"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="scheduledTime">وقت التقرير الختامي</Label>
-                <Input
-                  id="scheduledTime"
-                  type="time"
-                  value={formData.scheduledTime}
-                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                />
-              </div>
+
+              {formData.scheduledDate && (
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <Label className="font-bold">وقت إعداد/رفع التقرير الختامي</Label>
+                    {formData.assignedUserId && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                          {TIME_SLOTS.filter((s) => !busySlots.includes(s)).length} متاح
+                        </span>
+                        <span>•</span>
+                        <span className="text-rose-600 dark:text-rose-400 font-medium">
+                          {busySlots.filter((s) => TIME_SLOTS.includes(s)).length} محجوز
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* شبكة الأوقات التفاعلية */}
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-52 overflow-y-auto p-1.5 border rounded-2xl bg-muted/20">
+                    {TIME_SLOTS.map((slot) => {
+                      const isBusy = busySlots.includes(slot);
+                      const isSelected = formData.scheduledTime === slot;
+
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={isBusy}
+                          onClick={() => setFormData({ ...formData, scheduledTime: slot })}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 ${
+                            isBusy
+                              ? "bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 opacity-60 cursor-not-allowed line-through"
+                              : isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                              : "bg-card hover:bg-muted/60 border-border text-foreground cursor-pointer hover:border-primary/50 active:scale-95"
+                          }`}
+                        >
+                          <span className="text-xs font-mono">{slot}</span>
+                          <span className="text-[9px] font-normal">
+                            {isBusy ? "محجوز" : isSelected ? "تم اختياره" : "متاح"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ملاحظات */}

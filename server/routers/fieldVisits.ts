@@ -326,7 +326,7 @@ export const fieldVisitsRouter = router({
 
       const busyFromVisits = visits.map((v) => v.scheduledTime).filter(Boolean) as string[];
 
-      // 2. جلب المواعيد المحجوزة من جدول mosque_requests
+      // 2. جلب المواعيد المحجوزة من جدول mosque_requests (الزيارات الميدانية)
       const reqVisits = await db
         .select({
           scheduledTime: mosqueRequests.fieldVisitScheduledTime,
@@ -343,8 +343,47 @@ export const fieldVisitsRouter = router({
           )
         );
 
-      const busyFromReqs = reqVisits.map((r) => r.fieldVisitScheduledTime).filter(Boolean) as string[];
+      const busyFromReqs = reqVisits.map((r) => r.scheduledTime).filter(Boolean) as string[];
 
-      return Array.from(new Set([...busyFromVisits, ...busyFromReqs]));
+      // 3. جلب المواعيد المحجوزة للتقرير الختامي
+      const reqFinalReports = await db
+        .select({
+          scheduledTime: mosqueRequests.finalReportScheduledTime,
+          assignedTo: mosqueRequests.finalReportAssignedTo,
+          id: mosqueRequests.id,
+        })
+        .from(mosqueRequests)
+        .where(
+          and(
+            sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${date})`,
+            sql`${mosqueRequests.finalReportScheduledTime} IS NOT NULL`,
+            userId ? eq(mosqueRequests.finalReportAssignedTo, userId) : sql`1=1`,
+            excludeRequestId ? ne(mosqueRequests.id, excludeRequestId) : sql`1=1`
+          )
+        );
+
+      const busyFromFinal = reqFinalReports.map((r) => r.scheduledTime).filter(Boolean) as string[];
+
+      // 4. جلب المواعيد المحجوزة للاستجابة السريعة
+      const reqQuick = await db
+        .select({
+          scheduledTime: mosqueRequests.quickResponseScheduledTime,
+          assignedTo: mosqueRequests.assignedTo,
+          id: mosqueRequests.id,
+        })
+        .from(mosqueRequests)
+        .where(
+          and(
+            eq(mosqueRequests.requestTrack, 'quick_response'),
+            sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${date})`,
+            sql`${mosqueRequests.quickResponseScheduledTime} IS NOT NULL`,
+            userId ? eq(mosqueRequests.assignedTo, userId) : sql`1=1`,
+            excludeRequestId ? ne(mosqueRequests.id, excludeRequestId) : sql`1=1`
+          )
+        );
+
+      const busyFromQuick = reqQuick.map((r) => r.scheduledTime).filter(Boolean) as string[];
+
+      return Array.from(new Set([...busyFromVisits, ...busyFromReqs, ...busyFromFinal, ...busyFromQuick]));
     }),
 });
