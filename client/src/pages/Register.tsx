@@ -1255,7 +1255,7 @@ export default function Register() {
                       <ShieldCheck className="w-4 h-4" />
                     </div>
                     <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                      إثبات الصفة الرسمية (تكليف وزارة الشؤون الإسلامية) <span className="text-destructive">*</span>
+                      إثبات الصفة الرسمية <span className="text-destructive">*</span>
                     </h3>
                   </div>
 
