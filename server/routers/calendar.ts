@@ -77,7 +77,10 @@ export const calendarRouter = router({
           .leftJoin(users, eq(fieldVisits.assignedTo, users.id))
           .where(and(...visitConditions));
 
+        const existingVisitRequestIds = new Set<number>();
+
         for (const v of rawVisits) {
+          if (v.requestId) existingVisitRequestIds.add(v.requestId);
           if (input.programType && v.programType !== input.programType) continue;
           if (search) {
             const matchesSearch = 
@@ -121,6 +124,91 @@ export const calendarRouter = router({
               gradient: "from-purple-500 to-indigo-600",
             },
             linkUrl: `/requests/${v.requestId}`,
+          });
+        }
+
+        // جلب الزيارات المجدولة المباشرة في جدول mosque_requests للطلبات التي لا تملك سجلاً في field_visits
+        const reqVisitConditions: any[] = [
+          sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`,
+        ];
+
+        if (input.startDate) {
+          reqVisitConditions.push(sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) >= DATE(${input.startDate})`);
+        }
+        if (input.endDate) {
+          reqVisitConditions.push(sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) <= DATE(${input.endDate})`);
+        }
+        if (input.assignedTo) {
+          reqVisitConditions.push(eq(mosqueRequests.fieldVisitAssignedTo, input.assignedTo));
+        }
+
+        const rawReqVisits = await db
+          .select({
+            id: mosqueRequests.id,
+            scheduledDate: sql<string>`DATE_FORMAT(${mosqueRequests.fieldVisitScheduledDate}, '%Y-%m-%d')`,
+            scheduledTime: mosqueRequests.fieldVisitScheduledTime,
+            requestNumber: mosqueRequests.requestNumber,
+            programType: mosqueRequests.programType,
+            currentStage: mosqueRequests.currentStage,
+            requesterName: mosqueRequests.requesterName,
+            requesterPhone: mosqueRequests.requesterPhone,
+            assignedToId: mosqueRequests.fieldVisitAssignedTo,
+            assignedToName: users.name,
+            assignedToRole: users.role,
+            mosqueName: mosques.name,
+            mosqueCity: mosques.city,
+            mosqueRegion: mosques.region,
+          })
+          .from(mosqueRequests)
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+          .leftJoin(users, eq(mosqueRequests.fieldVisitAssignedTo, users.id))
+          .where(and(...reqVisitConditions));
+
+        for (const rv of rawReqVisits) {
+          if (existingVisitRequestIds.has(rv.id)) continue;
+          if (input.programType && rv.programType !== input.programType) continue;
+          if (search) {
+            const matchesSearch = 
+              rv.requestNumber?.toLowerCase().includes(search) ||
+              rv.mosqueName?.toLowerCase().includes(search) ||
+              rv.mosqueCity?.toLowerCase().includes(search) ||
+              rv.assignedToName?.toLowerCase().includes(search) ||
+              rv.requesterName?.toLowerCase().includes(search);
+            if (!matchesSearch) continue;
+          }
+
+          unifiedEvents.push({
+            id: `req-visit-${rv.id}`,
+            rawId: rv.id,
+            type: "field_visit",
+            typeLabel: "زيارة ميدانية",
+            title: `معاينة ميدانية: ${rv.mosqueName || rv.requestNumber}`,
+            description: "زيارة ومعاينة ميدانية مجدولة للطلب",
+            date: rv.scheduledDate,
+            startTime: rv.scheduledTime || "09:00",
+            endTime: undefined,
+            assignedToId: rv.assignedToId,
+            assignedToName: rv.assignedToName || "غير محدد",
+            assignedToRole: rv.assignedToRole,
+            requestId: rv.id,
+            requestNumber: rv.requestNumber,
+            programType: rv.programType,
+            currentStage: rv.currentStage,
+            mosqueName: rv.mosqueName,
+            mosqueCity: rv.mosqueCity,
+            location: rv.mosqueName ? `${rv.mosqueName} - ${rv.mosqueCity || ''}` : undefined,
+            contactName: rv.requesterName,
+            contactPhone: rv.requesterPhone,
+            priority: "medium",
+            status: "scheduled",
+            colorTheme: {
+              badgeBg: "bg-purple-100 dark:bg-purple-950/60",
+              badgeText: "text-purple-800 dark:text-purple-300",
+              border: "border-purple-300 dark:border-purple-800",
+              dot: "bg-purple-600 dark:bg-purple-400",
+              gradient: "from-purple-500 to-indigo-600",
+            },
+            linkUrl: `/requests/${rv.id}`,
           });
         }
       }
@@ -527,9 +615,9 @@ export const calendarRouter = router({
 
       const todayStr = new Date().toISOString().split("T")[0];
 
-      // عدد الزيارات الميدانية
+      // عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
       const [fieldVisitsCount] = await db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(DISTINCT fv.requestId)` })
         .from(fieldVisits)
         .where(
           and(
@@ -537,6 +625,18 @@ export const calendarRouter = router({
             sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`,
             sql`DATE(${fieldVisits.scheduledDate}) >= DATE(${input.startDate})`,
             sql`DATE(${fieldVisits.scheduledDate}) <= DATE(${input.endDate})`
+          )
+        );
+
+      const [reqVisitsCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(mosqueRequests)
+        .where(
+          and(
+            sql`${mosqueRequests.fieldVisitScheduledDate} IS NOT NULL`,
+            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) >= DATE(${input.startDate})`,
+            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) <= DATE(${input.endDate})`,
+            sql`${mosqueRequests.id} NOT IN (SELECT requestId FROM field_visits WHERE scheduledDate IS NOT NULL AND COALESCE(status, 'scheduled') != 'cancelled')`
           )
         );
 
@@ -582,7 +682,7 @@ export const calendarRouter = router({
       const [todayFinal] = await db.select({ count: sql<number>`count(*)` }).from(mosqueRequests).where(sql`DATE(${mosqueRequests.finalReportScheduledDate}) = DATE(${todayStr})`);
       const [todayCustom] = await db.select({ count: sql<number>`count(*)` }).from(customCalendarEvents).where(sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`);
 
-      const vCount = Number(fieldVisitsCount?.count || 0);
+      const vCount = Number(fieldVisitsCount?.count || 0) + Number(reqVisitsCount?.count || 0);
       const qCount = Number(quickResponseCount?.count || 0);
       const fCount = Number(finalReportsCount?.count || 0);
       const cCount = Number(customEventsCount?.count || 0);
