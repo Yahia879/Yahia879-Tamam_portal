@@ -563,19 +563,19 @@ export default function Register() {
 
     if (field.type === "textarea") {
       return (
-        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
           <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           {field.id === "requestDetails" && (
-            <div className="p-3 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2.5 mb-2">
-              <div className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Info className="w-3.5 h-3.5" />
+            <div className="p-2.5 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2 sm:gap-2.5 mb-1.5">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
+                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
               <div className="space-y-0.5">
                 <span className="text-[11px] font-bold text-slate-800 block">توضيح إرشادي:</span>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
                   يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
                 </p>
               </div>
@@ -583,15 +583,15 @@ export default function Register() {
           )}
           <Textarea
             id={field.id}
-            rows={field.id === "donorOtherDetails" ? 5 : 3}
+            rows={field.id === "donorOtherDetails" ? 4 : 3}
             placeholder={field.placeholder || "اكتب التفاصيل هنا..."}
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3.5"
+            className="min-h-[85px] sm:min-h-[110px] rounded-xl border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-right leading-relaxed p-3 sm:p-3.5 text-xs sm:text-sm"
           />
           {field.helpText && (
-            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
           )}
         </div>
       );
@@ -599,11 +599,11 @@ export default function Register() {
 
     if (field.type === "phone") {
       return (
-        <div key={field.id} className="space-y-1.5">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5">
           <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-            <Phone className="w-3.5 h-3.5 text-slate-400" />
+            <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <Input
             id={field.id}
@@ -614,20 +614,20 @@ export default function Register() {
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
           />
-          <p className="text-[11px] text-slate-500">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
+          <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText || "صيغة: 05XXXXXXXX (10 أرقام)"}</p>
         </div>
       );
     }
 
     if (field.type === "email") {
       return (
-        <div key={field.id} className="space-y-1.5">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5">
           <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-            <Mail className="w-3.5 h-3.5 text-slate-400" />
+            <Mail className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <Input
             id={field.id}
@@ -637,10 +637,10 @@ export default function Register() {
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className="h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono"
+            className="h-10 sm:h-11 rounded-xl text-left border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all font-mono text-xs sm:text-sm px-3 sm:px-3.5"
           />
           {field.helpText && (
-            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
           )}
         </div>
       );
@@ -648,28 +648,28 @@ export default function Register() {
 
     if (field.type === "select") {
       return (
-        <div key={field.id} className="space-y-1.5">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5">
           <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <Select
             value={value || ""}
             onValueChange={(val) => handleDynamicChange(field.id, val)}
           >
-            <SelectTrigger className="h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all">
+            <SelectTrigger className="h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5">
               <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
             </SelectTrigger>
             <SelectContent dir="rtl">
               {field.options?.map((opt: any, idx: number) => (
-                <SelectItem key={idx} value={opt.value}>
+                <SelectItem key={idx} value={opt.value} className="text-xs sm:text-sm">
                   {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {field.helpText && (
-            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
           )}
         </div>
       );
@@ -677,28 +677,28 @@ export default function Register() {
 
     if (field.type === "radio") {
       return (
-        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
           <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <RadioGroup
             value={value || ""}
             onValueChange={(val) => handleDynamicChange(field.id, val)}
-            className="grid grid-cols-2 gap-3 pt-1"
+            className="grid grid-cols-2 gap-2 sm:gap-3 pt-1"
             dir="rtl"
           >
             {field.options?.map((opt: any, idx: number) => (
-              <div key={idx} className="flex items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50/40">
+              <div key={idx} className="flex items-center gap-2 p-2.5 sm:p-3 rounded-xl border border-slate-200 bg-slate-50/40 cursor-pointer active:scale-98 transition-all">
                 <RadioGroupItem value={opt.value} id={`${field.id}_${idx}`} />
-                <Label htmlFor={`${field.id}_${idx}`} className="text-xs cursor-pointer">
+                <Label htmlFor={`${field.id}_${idx}`} className="text-xs sm:text-sm cursor-pointer select-none">
                   {opt.label}
                 </Label>
               </div>
             ))}
           </RadioGroup>
           {field.helpText && (
-            <p className="text-[11px] text-slate-500">{field.helpText}</p>
+            <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
           )}
         </div>
       );
@@ -709,33 +709,33 @@ export default function Register() {
         <div key={field.id} className="sm:col-span-2">
           <div
             onClick={() => handleDynamicChange(field.id, !value)}
-            className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${
+            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-2.5 sm:gap-3 active:scale-[0.99] ${
               value
                 ? "bg-primary/5 border-primary shadow-xs"
                 : "bg-slate-50/60 border-slate-200/90 hover:border-slate-300 hover:bg-slate-100/50"
             }`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               {field.id === "inKindDeliveryAvailable" && (
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                   value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 text-slate-500"
                 }`}>
-                  <Truck className="w-5 h-5" />
+                  <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               )}
-              <div>
-                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight truncate">
                   {field.label}
                 </p>
                 {field.helpText && (
-                  <p className="text-[11px] text-slate-500 mt-0.5">{field.helpText}</p>
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-500 mt-0.5">{field.helpText}</p>
                 )}
               </div>
             </div>
-            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+            <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
               value ? "bg-primary border-primary text-white shadow-xs" : "bg-white border-slate-300"
             }`}>
-              {value && <Check className="w-4 h-4 stroke-[3]" />}
+              {value && <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />}
             </div>
           </div>
         </div>
@@ -744,11 +744,11 @@ export default function Register() {
 
     if (field.type === "file") {
       return (
-        <div key={field.id} className="space-y-1.5 sm:col-span-2">
+        <div key={field.id} className="space-y-1 sm:space-y-1.5 sm:col-span-2">
           <Label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
-            <Paperclip className="w-3.5 h-3.5 text-slate-400" />
+            <Paperclip className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
             <span>{field.label}</span>
-            {field.required && <span className="text-destructive">*</span>}
+            {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           <input
             type="file"
@@ -761,14 +761,14 @@ export default function Register() {
           />
           <label
             htmlFor={field.id}
-            className="block p-4 border-2 border-dashed border-slate-200 rounded-xl text-center cursor-pointer hover:border-primary hover:bg-slate-50 transition-all"
+            className="block p-3.5 sm:p-5 border-2 border-dashed border-slate-200 rounded-xl sm:rounded-2xl text-center cursor-pointer hover:border-primary hover:bg-slate-50 active:scale-[0.99] transition-all"
           >
             <Paperclip className="w-5 h-5 mx-auto mb-1 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-700 block">
+            <span className="text-xs sm:text-sm font-semibold text-slate-700 block truncate">
               {value instanceof File ? value.name : (field.placeholder || "اضغط لاختيار ملف أو صورة")}
             </span>
             {field.helpText && (
-              <span className="text-[10px] text-slate-500 mt-0.5 block">{field.helpText}</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 block">{field.helpText}</span>
             )}
           </label>
         </div>
@@ -776,10 +776,10 @@ export default function Register() {
     }
 
     return (
-      <div key={field.id} className="space-y-1.5">
+      <div key={field.id} className="space-y-1 sm:space-y-1.5">
         <Label htmlFor={field.id} className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1">
           <span>{field.label}</span>
-          {field.required && <span className="text-destructive">*</span>}
+          {field.required && <span className="text-destructive font-bold">*</span>}
         </Label>
         <div className="relative flex items-center">
           <Input
@@ -789,10 +789,10 @@ export default function Register() {
             value={value || ""}
             onChange={(e) => handleDynamicChange(field.id, e.target.value)}
             required={field.required}
-            className={`h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all ${unitSuffix ? "pl-11" : ""}`}
+            className={`h-10 sm:h-11 rounded-xl text-right border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50/40 focus:bg-white transition-all text-xs sm:text-sm px-3 sm:px-3.5 ${unitSuffix ? "pl-11" : ""}`}
           />
           {unitSuffix && (
-            <span className="absolute left-2.5 text-xs px-2 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded-md select-none pointer-events-none">
+            <span className="absolute left-2.5 text-[11px] sm:text-xs px-2 py-0.5 font-semibold text-slate-500 bg-slate-200/60 rounded-md select-none pointer-events-none">
               {unitSuffix}
             </span>
           )}
@@ -804,7 +804,7 @@ export default function Register() {
                 key={tag}
                 type="button"
                 onClick={() => handleDynamicChange("customRoleTitle", tag)}
-                className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${
+                className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1 rounded-lg border transition-all cursor-pointer active:scale-95 ${
                   getFieldValue("customRoleTitle") === tag
                     ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
                     : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300"
@@ -816,7 +816,7 @@ export default function Register() {
           </div>
         )}
         {field.helpText && (
-          <p className="text-[11px] text-slate-500">{field.helpText}</p>
+          <p className="text-[10.5px] sm:text-[11px] text-slate-500">{field.helpText}</p>
         )}
       </div>
     );
@@ -896,28 +896,28 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 p-3 sm:p-6 md:p-8" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50/70 p-2.5 sm:p-6 md:p-8" dir="rtl">
       <div className="w-full max-w-2xl transition-all duration-300">
         {/* الترويسة والشعار */}
-        <Link href="/" className="flex flex-col items-center mb-6 sm:mb-8 text-center group cursor-pointer">
+        <Link href="/" className="flex flex-col items-center mb-4 sm:mb-8 text-center group cursor-pointer">
           <img
             src={orgSettings?.logoUrl || "/logo.svg"}
             alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
-            className="h-16 sm:h-20 mb-3 object-contain transition-transform group-hover:scale-105"
+            className="h-14 sm:h-20 mb-2 sm:mb-3 object-contain transition-transform group-hover:scale-105"
           />
-          <h1 className="font-bold text-lg sm:text-2xl text-gray-900">
+          <h1 className="font-bold text-base sm:text-2xl text-gray-900">
             {orgSettings?.organizationName || "بوابة منارة"}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
             نموذج التسجيل وتقديم الطلبات والتبرعات
           </p>
         </Link>
 
-        <Card className="border border-slate-200/80 shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden">
+        <Card className="border border-slate-200/80 shadow-lg sm:shadow-xl rounded-2xl sm:rounded-3xl bg-white overflow-hidden">
           {/* شريط الإجراء العلوي والرجوع */}
           {selectedRole && (
-            <div className="bg-slate-100/90 border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
+            <div className="bg-slate-100/90 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-3">
+              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: primaryColor }} />
                 <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                   {selectedRole === "donor" && !donorType
@@ -942,7 +942,7 @@ export default function Register() {
                     setSelectedRole("");
                   }
                 }}
-                className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
+                className="h-8 sm:h-9 px-2.5 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group active:scale-95"
               >
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
                 <span>تغيير الصفة</span>
@@ -950,38 +950,38 @@ export default function Register() {
             </div>
           )}
 
-          <CardContent className="p-5 sm:p-8">
+          <CardContent className="p-4 sm:p-7 md:p-8">
             {/* ============================================================
                 المرحلة 1: السؤال الرئيسي (تحديد الصفة والعلاقة بالمسجد)
                ============================================================ */}
             {!selectedRole && (
-              <div className="space-y-6">
-                <div className="text-center space-y-2">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="text-center space-y-1.5 sm:space-y-2">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                     الخطوة 1: تحديد الصفة والعلاقة بالمسجد
                   </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                  <h2 className="text-base sm:text-xl font-bold text-gray-900">
                     اذكر الصفة (علاقتك بالمسجد)
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
                     يرجى اختيار صفتك لتوجيهك للمسار المخصص وتقديم الخدمة المطلوبة بأفضل صورة
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 pt-1 sm:pt-2">
                   {/* 1. إمام */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("imam")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
                       <UserCheck className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-teal-900 text-base">إمام</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-teal-900 text-sm sm:text-base">إمام</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         إمام مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
@@ -991,14 +991,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("muezzin")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
                       <Volume2 className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-amber-900 text-base">مؤذن</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-amber-900 text-sm sm:text-base">مؤذن</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         مؤذن مسجد رسمي معتمد لتقديم ومتابعة طلبات المسجد
                       </p>
                     </div>
@@ -1008,14 +1008,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("donor")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
                       <HeartHandshake className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-emerald-900 text-base">متبرع</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-emerald-900 text-sm sm:text-base">متبرع</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         الرغبة في تقديم تبرع (أرض، تبرع عيني، تبرع مالي، أو غير ذلك)
                       </p>
                     </div>
@@ -1025,14 +1025,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
                       <HelpCircle className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-base">أخرى</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-sm sm:text-base">أخرى</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         جار المسجد، أحد جماعة المسجد، ممثل جهة، أو صاحب استفسار عام
                       </p>
                     </div>
@@ -1045,33 +1045,33 @@ export default function Register() {
                 المرحلة 2: مسار المتبرع (تحديد نوع التبرع)
                ============================================================ */}
             {selectedRole === "donor" && !donorType && (
-              <div className="space-y-6">
-                <div className="text-center space-y-2">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="text-center space-y-1.5 sm:space-y-2">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200/70">
                     <HeartHandshake className="w-3.5 h-3.5" />
                     مسار المتبرع
                   </div>
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+                  <h2 className="text-base sm:text-xl font-bold text-gray-900">
                     حدد نوع التبرع
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
                     اختر نوع التبرع لتوجيه طلبك إلى القسم المختص بالجمعية مباشرة
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3.5 pt-1 sm:pt-2">
                   {/* متبرع بأرض */}
                   <button
                     type="button"
                     onClick={() => setDonorType("land")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-emerald-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-emerald-200/80">
                       <LandPlot className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-emerald-900 text-base">متبرع بأرض</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-emerald-900 text-sm sm:text-base">متبرع بأرض</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         تبرع بقطعة أرض لبناء أو توسعة مسجد
                       </p>
                     </div>
@@ -1081,14 +1081,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("in_kind")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-teal-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-teal-200/80">
                       <Package className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-teal-900 text-base">متبرع بتبرع عيني</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-teal-900 text-sm sm:text-base">متبرع بتبرع عيني</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         مواد بناء، تجهيزات، مكيفات، فرش، أنظمة صوت أو مياه
                       </p>
                     </div>
@@ -1098,14 +1098,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("financial")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-amber-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-amber-200/80">
                       <CreditCard className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-amber-900 text-base">متبرع بتبرع مالي</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-amber-900 text-sm sm:text-base">متبرع بتبرع مالي</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         تحويل بنكي لحساب الجمعية أو عبر المتجر الإلكتروني
                       </p>
                     </div>
@@ -1115,14 +1115,14 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={() => setDonorType("other")}
-                    className="p-4 sm:p-5 rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3.5 group cursor-pointer shadow-sm hover:shadow-md"
+                    className="p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border-2 border-slate-200/90 hover:border-blue-500 bg-white hover:bg-slate-50/60 text-right transition-all flex items-start gap-3 sm:gap-3.5 group cursor-pointer shadow-sm hover:shadow-md active:scale-[0.99]"
                   >
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform border border-blue-200/80">
                       <Sparkles className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-base">تبرع آخر</h3>
-                      <p className="text-xs text-slate-500 leading-relaxed">
+                    <div className="space-y-0.5 sm:space-y-1">
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-sm sm:text-base">تبرع آخر</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                         شراكة مجتمعية، وقفية، أو نوع تبرع مخصص
                       </p>
                     </div>
