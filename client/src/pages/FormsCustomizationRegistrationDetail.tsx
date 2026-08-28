@@ -1576,27 +1576,29 @@ export default function FormsCustomizationRegistrationDetail() {
                 <div className={`border border-slate-200/80 dark:border-border shadow-lg bg-white dark:bg-card overflow-hidden ${previewDevice === "mobile" ? "rounded-2xl" : "rounded-2xl sm:rounded-3xl"}`}>
                   
                   {/* شريط الإجراء العلوي والرجوع المطابق تماماً لـ Register.tsx */}
-                  <div className={`bg-slate-100/90 dark:bg-muted/60 border-b border-slate-200 dark:border-border flex items-center justify-between gap-2 ${previewDevice === "mobile" ? "px-3 py-2" : "px-4 sm:px-6 py-3 sm:py-3.5"}`}>
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full shrink-0 bg-primary" />
-                      <span className={`font-bold text-slate-800 dark:text-foreground truncate ${previewDevice === "mobile" ? "text-[11px]" : "text-xs sm:text-sm"}`}>
+                  <div className="bg-slate-100/90 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-3">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: orgSettings?.primaryColor || "#09707e" }} />
+                      <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                         {formId === "donor_land"
                           ? "مسار المتبرع (تبرع بأرض)"
                           : formId === "donor_inkind"
                           ? "مسار المتبرع (تبرع عيني)"
                           : formId === "donor_other"
-                          ? "مسار المتبرع (شراكة / وقفية / أخرى)"
+                          ? "مسار المتبرع (تبرع آخر)"
                           : "مسار أخرى (استفسارات وطلبات عامة)"}
                       </span>
                     </div>
 
-                    <button
+                    <Button
                       type="button"
-                      className={`rounded-xl border border-primary/30 bg-white dark:bg-card hover:bg-primary/10 hover:border-primary text-primary font-bold flex items-center gap-1 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group ${previewDevice === "mobile" ? "h-7 px-2 text-[11px]" : "h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm"}`}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 sm:h-9 px-2.5 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group active:scale-95"
                     >
-                      <ArrowRight className="w-3 h-3 text-primary group-hover:-translate-x-0.5 transition-transform" />
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
                       <span>تغيير الصفة</span>
-                    </button>
+                    </Button>
                   </div>
 
                   <div className={previewDevice === "mobile" ? "p-3 space-y-3.5 text-right" : "p-5 sm:p-8 space-y-6 text-right"}>
