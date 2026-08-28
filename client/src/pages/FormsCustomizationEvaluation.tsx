@@ -70,6 +70,12 @@ import {
   Palette,
   Send,
   CheckCircle2,
+  Share2,
+  ExternalLink,
+  QrCode,
+  Link2,
+  MessageCircle,
+  Download,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -232,6 +238,37 @@ export default function FormsCustomizationEvaluation() {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [previewValues, setPreviewValues] = useState<Record<string, any>>({});
   const [hoverRating, setHoverRating] = useState<Record<string, number>>({});
+
+  // حالة استخراج ومشاركة الرابط
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [customServiceParam, setCustomServiceParam] = useState("");
+  const [customMosqueParam, setCustomMosqueParam] = useState("");
+
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const publicSurveyUrl = useMemo(() => {
+    let url = `${baseUrl}/evaluation`;
+    const params = new URLSearchParams();
+    if (customServiceParam.trim()) params.set("service", customServiceParam.trim());
+    if (customMosqueParam.trim()) params.set("mosque", customMosqueParam.trim());
+    const q = params.toString();
+    return q ? `${url}?${q}` : url;
+  }, [baseUrl, customServiceParam, customMosqueParam]);
+
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(publicSurveyUrl)}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(publicSurveyUrl);
+    setCopiedLink(true);
+    toast.success("تم نسخ رابط الاستبيان بنجاح!");
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShareWhatsApp = () => {
+    const orgTitle = orgSettings?.organizationName || "جمعية عمارة المساجد";
+    const text = `السلام عليكم ورحمة الله وبركاته،\n\nنرحب بكم في استبيان قياس رضا المستفيدين لـ (${orgTitle}).\n\nيهمنا جداً رأيكم وملاحظاتكم لتطوير خدماتنا:\n${publicSurveyUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
 
   useEffect(() => {
     if (serverConfig) {
@@ -605,10 +642,22 @@ export default function FormsCustomizationEvaluation() {
 
             <Button
               type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsShareModalOpen(true)}
+              className="text-xs font-bold gap-1.5 h-10 px-3.5 rounded-xl border-emerald-600/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:border-emerald-600/50 shadow-2xs transition-all cursor-pointer"
+              title="استخراج ومشاركة رابط الاستبيان المباشر"
+            >
+              <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>مشاركة واستخراج الرابط</span>
+            </Button>
+
+            <Button
+              type="button"
               variant="secondary"
               size="sm"
               onClick={() => setIsPreviewOpen(true)}
-              className="text-xs font-bold gap-2 h-10 px-4 rounded-xl shadow-2xs hover:bg-muted/80"
+              className="text-xs font-bold gap-2 h-10 px-4 rounded-xl shadow-2xs hover:bg-muted/80 cursor-pointer"
             >
               <Eye className="w-4 h-4 text-primary" />
               <span>معاينة حية</span>
@@ -1551,6 +1600,147 @@ export default function FormsCustomizationEvaluation() {
             >
               {resetMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
               نعم، استعادة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ========================================================================= */}
+      {/* نافذة استخراج ومشاركة رابط الاستبيان المباشر */}
+      {/* ========================================================================= */}
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="max-w-xl text-right rounded-3xl p-5 sm:p-7" dir="rtl">
+          <DialogHeader className="space-y-2 pb-3 border-b border-border/70 text-right">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <Share2 className="w-5 h-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-black text-foreground">
+                  استخراج ومشاركة رابط الاستبيان
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  رابط مباشر ومتاح للعامة لتقييم رضا المستفيدين دون اشتراط تسجيل الدخول
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* بطاقة الرابط الرئيسي والنسخ */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Link2 className="w-3.5 h-3.5 text-primary" />
+                <span>رابط الاستبيان المباشر</span>
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={publicSurveyUrl}
+                  readOnly
+                  dir="ltr"
+                  className="font-mono text-xs h-11 rounded-xl bg-muted/40 border-border select-all"
+                />
+                <Button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className={`h-11 px-4 rounded-xl font-bold text-xs gap-1.5 transition-all shrink-0 cursor-pointer ${
+                    copiedLink
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  }`}
+                >
+                  {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedLink ? "تم النسخ!" : "نسخ الرابط"}</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* أزرار الإجراءات السريعة: واتساب وفتح في نافذة */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <Button
+                type="button"
+                onClick={handleShareWhatsApp}
+                className="h-11 rounded-xl font-bold text-xs gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-xs cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>مشاركة عبر واتساب</span>
+              </Button>
+
+              <a
+                href={publicSurveyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-border bg-card hover:bg-muted/60 text-foreground font-bold text-xs transition-all shadow-2xs"
+              >
+                <ExternalLink className="w-4 h-4 text-primary" />
+                <span>فتح الاستبيان بنافذة جديدة</span>
+              </a>
+            </div>
+
+            {/* قسم رمز الاستجابة السريعة QR Code */}
+            <div className="p-4 rounded-2xl bg-muted/30 border border-border/80 flex flex-col sm:flex-row items-center gap-4">
+              <div className="bg-white p-2 rounded-xl shadow-xs border border-border shrink-0">
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code للاستبيان"
+                  className="w-24 h-24 sm:w-28 sm:h-28 object-contain"
+                />
+              </div>
+              <div className="space-y-1.5 text-center sm:text-right flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 justify-center sm:justify-start">
+                  <QrCode className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-bold text-foreground">رمز الاستجابة السريعة (QR Code)</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  يمكن مسح الرمز مباشرة بكاميرا الهاتف أو تنزيل الصورة لطباعتها في المساجد والفعاليات.
+                </p>
+                <a
+                  href={qrCodeUrl}
+                  target="_blank"
+                  download="survey-qr-code.png"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline pt-1"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>فتح وتنزيل صورة الرمز</span>
+                </a>
+              </div>
+            </div>
+
+            {/* تخصيص اختياري للرابط */}
+            <div className="p-3.5 rounded-2xl bg-card border border-border space-y-2.5">
+              <span className="text-xs font-bold text-foreground block">
+                تخصيص الرابط لخدمة أو مسجد محدد (اختياري)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[11px] text-muted-foreground block mb-1">اسم المسجد المستهدف</Label>
+                  <Input
+                    placeholder="مثال: مسجد الروابي"
+                    value={customMosqueParam}
+                    onChange={(e) => setCustomMosqueParam(e.target.value)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] text-muted-foreground block mb-1">اسم البرنامج أو الخدمة</Label>
+                  <Input
+                    placeholder="مثال: صيانة المكيفات، بنيان..."
+                    value={customServiceParam}
+                    onChange={(e) => setCustomServiceParam(e.target.value)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsShareModalOpen(false)}
+              className="w-full text-xs font-bold rounded-xl h-10"
+            >
+              إغلاق
             </Button>
           </DialogFooter>
         </DialogContent>

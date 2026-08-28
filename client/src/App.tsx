@@ -67,6 +67,7 @@ import Profile from "./pages/Profile";
 import Notifications from "./pages/Notifications";
 import NotificationCustomization from "./pages/NotificationCustomization";
 import RequestEvaluation from "./pages/RequestEvaluation";
+import PublicEvaluation from "./pages/PublicEvaluation";
 import BeneficiarySatisfaction from "./pages/BeneficiarySatisfaction";
 import Reports from "./pages/Reports";
 import PendingReports from "./pages/PendingReports";
@@ -264,7 +265,8 @@ function Router() {
       <Route path="/mosques/:id/edit-imam">{params => <AdminRoute component={() => <EditImam params={params} />} />}</Route>
       <Route path="/my-mosques">{() => <RequesterRoute component={MyMosques} />}</Route>
       
-      {/* صفحة تقييم رضا المستفيد (مخصصة لطالب الخدمة) */}
+      {/* صفحة تقييم رضا المستفيد (مخصصة لطالب الخدمة أو عامة عبر الرابط) */}
+      <Route path="/evaluation" component={PublicEvaluation} />
       <Route path="/requests/:requestId/evaluation" component={RequestEvaluation} />
       <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
       

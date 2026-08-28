@@ -345,7 +345,7 @@ export const requestHistory = mysqlTable("request_history", {
 
 export const requestEvaluations = mysqlTable("request_evaluations", {
   id: int("id").autoincrement().primaryKey(),
-  requestId: int("requestId").notNull().references(() => mosqueRequests.id),
+  requestId: int("requestId").references(() => mosqueRequests.id),
   userId: int("userId").references(() => users.id, { onDelete: "set null" }),
   rating: int("rating"),
   evaluationType: varchar("evaluationType", { length: 50 }).default("beneficiary_satisfaction"),

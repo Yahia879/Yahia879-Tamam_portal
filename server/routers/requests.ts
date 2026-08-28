@@ -3739,6 +3739,106 @@ export const requestsRouter = router({
       };
     }),
 
+  // إرسال استبيان تقييم رضا المستفيد العام والمباشر (متاح للجميع عبر الرابط المباشر)
+  submitPublicBeneficiaryEvaluation: publicProcedure
+    .input(
+      z.object({
+        requestId: z.number().optional().nullable(),
+        beneficiaryName: z.string().optional(),
+        beneficiaryPhone: z.string().optional(),
+        serviceName: z.string().optional(),
+        beneficiaryEmail: z.string().optional(),
+        servicesRating: z.number().optional(),
+        speedRating: z.number().optional(),
+        communicationRating: z.number().optional(),
+        overallSatisfaction: z.number().optional(),
+        rating: z.number().optional(),
+        comments: z.string().optional(),
+        notes: z.string().optional(),
+        answers: z.record(z.any()).optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "تعذر الاتصال بقاعدة البيانات",
+        });
+      }
+
+      if (input.requestId) {
+        const [request] = await db
+          .select()
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.requestId))
+          .limit(1);
+
+        if (request && request.isEvaluated) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "تم تسجيل تقييم لهذا الطلب سابقاً، شكراً لمشاركتك!",
+          });
+        }
+      }
+
+      // حساب التقييم العام (من 1 إلى 5)
+      let finalRating = input.overallSatisfaction || input.rating || input.servicesRating || 5;
+
+      if (input.answers) {
+        if (typeof input.answers.overallSatisfaction === "number" && input.answers.overallSatisfaction > 0) {
+          finalRating = input.answers.overallSatisfaction;
+        } else {
+          const numericRatings = Object.entries(input.answers)
+            .filter(([k, v]) => (k.toLowerCase().includes("rating") || k.toLowerCase().includes("satisfaction")) && typeof v === "number" && v > 0)
+            .map(([, v]) => v as number);
+          if (numericRatings.length > 0) {
+            const avg = Math.round(numericRatings.reduce((a, b) => a + b, 0) / numericRatings.length);
+            finalRating = Math.max(1, Math.min(5, avg));
+          }
+        }
+      }
+
+      const surveyPayload = {
+        beneficiaryName: input.beneficiaryName || input.answers?.beneficiaryName || null,
+        beneficiaryPhone: input.beneficiaryPhone || input.answers?.beneficiaryPhone || null,
+        serviceName: input.serviceName || input.answers?.serviceName || null,
+        beneficiaryEmail: input.beneficiaryEmail || input.answers?.beneficiaryEmail || null,
+        servicesRating: input.servicesRating || input.answers?.servicesRating || null,
+        speedRating: input.speedRating || input.answers?.speedRating || null,
+        communicationRating: input.communicationRating || input.answers?.communicationRating || null,
+        overallSatisfaction: input.overallSatisfaction || input.answers?.overallSatisfaction || null,
+        comments: input.comments || input.notes || input.answers?.comments || null,
+        answers: input.answers || null,
+        submittedVia: "public_link",
+      };
+
+      await db.insert(requestEvaluations).values({
+        requestId: input.requestId || null,
+        userId: (ctx.user as any)?.id || null,
+        rating: finalRating,
+        evaluationType: "beneficiary_satisfaction",
+        notes: JSON.stringify(surveyPayload),
+        createdAt: new Date(),
+      });
+
+      if (input.requestId) {
+        await db
+          .update(mosqueRequests)
+          .set({
+            isEvaluated: true,
+            satisfactionRating: finalRating,
+            evaluatedAt: new Date(),
+          })
+          .where(eq(mosqueRequests.id, input.requestId));
+      }
+
+      return {
+        success: true,
+        message: "شكراً لك! تم استلام تقييمك بنجاح ونقدر مشاركتك القيمة.",
+      };
+    }),
+
   // جلب كافة تقييمات رضا المستفيدين للموظفين والإدارة
   getAllBeneficiaryEvaluations: protectedProcedure
     .input(
@@ -3776,7 +3876,7 @@ export const requestsRouter = router({
           mosqueId: mosqueRequests.mosqueId,
         })
         .from(requestEvaluations)
-        .innerJoin(mosqueRequests, eq(requestEvaluations.requestId, mosqueRequests.id))
+        .leftJoin(mosqueRequests, eq(requestEvaluations.requestId, mosqueRequests.id))
         .leftJoin(users, eq(requestEvaluations.userId, users.id))
         .where(
           and(
