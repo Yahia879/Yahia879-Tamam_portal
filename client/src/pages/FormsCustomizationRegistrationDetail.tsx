@@ -194,9 +194,9 @@ const FORM_META_MAP: Record<string, { icon: any; color: string; label: string; t
   donor_other: {
     icon: Sparkles,
     color: "bg-blue-600",
-    label: "مسار متبرع (شراكة / وقفية / أخرى)",
-    trackName: "شراكة / وقفية / أخرى",
-    stepTitle: "تفاصيل مقترح التبرع أو الشراكة",
+    label: "مسار المتبرع (تبرع آخر)",
+    trackName: "تبرع آخر",
+    stepTitle: "تفاصيل مقترح التبرع أو المساهمة",
   },
   other: {
     icon: HelpCircle,

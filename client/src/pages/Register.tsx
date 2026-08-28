@@ -925,7 +925,7 @@ export default function Register() {
                     : selectedRole === "imam" || selectedRole === "muezzin"
                       ? `مسار ${selectedRole === "imam" ? "الإمام" : "المؤذن"} (تسجيل حساب رسمي)`
                       : selectedRole === "donor"
-                        ? `مسار المتبرع (${donorType === "land" ? "تبرع بأرض" : donorType === "in_kind" ? "تبرع عيني" : donorType === "financial" ? "تبرع مالي" : "أخرى"})`
+                        ? `مسار المتبرع (${donorType === "land" ? "تبرع بأرض" : donorType === "in_kind" ? "تبرع عيني" : donorType === "financial" ? "تبرع مالي" : "تبرع آخر"})`
                         : "مسار أخرى (استفسارات وطلبات عامة)"
                   }
                 </span>
@@ -1121,7 +1121,7 @@ export default function Register() {
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-base">أخرى</h3>
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-base">تبرع آخر</h3>
                       <p className="text-xs text-slate-500 leading-relaxed">
                         شراكة مجتمعية، وقفية، أو نوع تبرع مخصص
                       </p>
