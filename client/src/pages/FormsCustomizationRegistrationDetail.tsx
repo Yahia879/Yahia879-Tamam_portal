@@ -124,17 +124,17 @@ const FIELD_TYPES: Array<{
   icon: any;
   category: "text" | "choice" | "data" | "contact";
 }> = [
-  { type: "text", label: "نص قصير", description: "اسم، عنوان، مدخل بسيط", icon: FileText, category: "text" },
-  { type: "textarea", label: "نص طويل / وصف", description: "تفاصيل، شرح، ملاحظات", icon: AlignLeft, category: "text" },
-  { type: "number", label: "رقمي", description: "أعداد، مساحات، مبالغ", icon: Hash, category: "data" },
-  { type: "date", label: "تاريخ", description: "تاريخ معين من التقويم", icon: Calendar, category: "data" },
-  { type: "select", label: "قائمة منسدلة", description: "اختيار واحد من قائمة", icon: List, category: "choice" },
-  { type: "radio", label: "خيارات متعددة", description: "نعم/لا أو خيارات واضحة", icon: Radio, category: "choice" },
-  { type: "checkbox", label: "مربع اختيار", description: "إقرار، موافقة", icon: CheckSquare, category: "choice" },
-  { type: "file", label: "مرفق / مستند", description: "رفع PDF، صور، مستندات", icon: Paperclip, category: "contact" },
-  { type: "phone", label: "رقم جوال", description: "رقم هاتف محمول", icon: Phone, category: "contact" },
-  { type: "email", label: "بريد إلكتروني", description: "عنوان بريد إلكتروني", icon: Mail, category: "contact" },
-];
+    { type: "text", label: "نص قصير", description: "اسم، عنوان، مدخل بسيط", icon: FileText, category: "text" },
+    { type: "textarea", label: "نص طويل / وصف", description: "تفاصيل، شرح، ملاحظات", icon: AlignLeft, category: "text" },
+    { type: "number", label: "رقمي", description: "أعداد، مساحات، مبالغ", icon: Hash, category: "data" },
+    { type: "date", label: "تاريخ", description: "تاريخ معين من التقويم", icon: Calendar, category: "data" },
+    { type: "select", label: "قائمة منسدلة", description: "اختيار واحد من قائمة", icon: List, category: "choice" },
+    { type: "radio", label: "خيارات متعددة", description: "نعم/لا أو خيارات واضحة", icon: Radio, category: "choice" },
+    { type: "checkbox", label: "مربع اختيار", description: "إقرار، موافقة", icon: CheckSquare, category: "choice" },
+    { type: "file", label: "مرفق / مستند", description: "رفع PDF، صور، مستندات", icon: Paperclip, category: "contact" },
+    { type: "phone", label: "رقم جوال", description: "رقم هاتف محمول", icon: Phone, category: "contact" },
+    { type: "email", label: "بريد إلكتروني", description: "عنوان بريد إلكتروني", icon: Mail, category: "contact" },
+  ];
 
 const PRESET_OPTIONS = [
   {
@@ -194,9 +194,9 @@ const FORM_META_MAP: Record<string, { icon: any; color: string; label: string; t
   donor_other: {
     icon: Sparkles,
     color: "bg-blue-600",
-    label: "مسار المتبرع (تبرع آخر)",
-    trackName: "تبرع آخر",
-    stepTitle: "تفاصيل مقترح التبرع أو المساهمة",
+    label: "مسار متبرع (شراكة / وقفية / أخرى)",
+    trackName: "شراكة / وقفية / أخرى",
+    stepTitle: "تفاصيل مقترح التبرع أو الشراكة",
   },
   other: {
     icon: HelpCircle,
@@ -375,9 +375,9 @@ export default function FormsCustomizationRegistrationDetail() {
       options:
         type === "radio" || type === "select"
           ? [
-              { label: "الخيار الأول", value: "opt_1" },
-              { label: "الخيار الثاني", value: "opt_2" },
-            ]
+            { label: "الخيار الأول", value: "opt_1" },
+            { label: "الخيار الثاني", value: "opt_2" },
+          ]
           : [],
     };
 
@@ -714,17 +714,15 @@ export default function FormsCustomizationRegistrationDetail() {
         <div key={field.id} className="sm:col-span-2">
           <div
             onClick={() => setPreviewValues((prev) => ({ ...prev, [field.id]: !value }))}
-            className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${
-              value
+            className={`p-3.5 sm:p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex items-center justify-between gap-3 ${value
                 ? "bg-primary/5 border-primary shadow-xs"
                 : "bg-slate-50/60 dark:bg-muted/30 border-slate-200/90 dark:border-border/80 hover:border-slate-300 hover:bg-slate-100/50"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               {field.id === "inKindDeliveryAvailable" && (
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                  value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 dark:bg-muted text-slate-500"
-                }`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${value ? "bg-primary text-primary-foreground shadow-xs" : "bg-slate-200/80 dark:bg-muted text-slate-500"
+                  }`}>
                   <Truck className="w-5 h-5" />
                 </div>
               )}
@@ -737,9 +735,8 @@ export default function FormsCustomizationRegistrationDetail() {
                 )}
               </div>
             </div>
-            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-              value ? "bg-primary border-primary text-white shadow-xs" : "bg-white dark:bg-background border-slate-300 dark:border-border"
-            }`}>
+            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${value ? "bg-primary border-primary text-white shadow-xs" : "bg-white dark:bg-background border-slate-300 dark:border-border"
+              }`}>
               {value && <Check className="w-4 h-4 stroke-[3]" />}
             </div>
           </div>
@@ -796,11 +793,10 @@ export default function FormsCustomizationRegistrationDetail() {
                 key={tag}
                 type="button"
                 onClick={() => setPreviewValues((prev) => ({ ...prev, customRoleTitle: tag }))}
-                className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${
-                  previewValues["customRoleTitle"] === tag
+                className={`text-xs px-3 py-1 rounded-lg border transition-all cursor-pointer ${previewValues["customRoleTitle"] === tag
                     ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
                     : "bg-slate-50 dark:bg-muted/40 text-slate-700 dark:text-foreground border-slate-200 dark:border-border hover:bg-slate-100"
-                }`}
+                  }`}
               >
                 {tag}
               </button>
@@ -831,7 +827,7 @@ export default function FormsCustomizationRegistrationDetail() {
   return (
     <DashboardLayout>
       <div className="space-y-5 max-w-5xl mx-auto pb-24">
-        
+
         {/* شريط المسار والرجوع (Breadcrumbs) */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium select-none">
           <Link href="/forms-customization" className="hover:text-foreground transition-colors">
@@ -854,9 +850,8 @@ export default function FormsCustomizationRegistrationDetail() {
               </Button>
             </Link>
             <div
-              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${
-                meta.color
-              } text-white shadow-md transition-transform hover:scale-105`}
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${meta.color
+                } text-white shadow-md transition-transform hover:scale-105`}
             >
               <IconComponent className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
@@ -891,11 +886,10 @@ export default function FormsCustomizationRegistrationDetail() {
               size="sm"
               onClick={() => setIsResetConfirmOpen(true)}
               disabled={resetMutation.isPending || !isCustomizedFromDefault}
-              className={`text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs transition-all ${
-                isCustomizedFromDefault
+              className={`text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs transition-all ${isCustomizedFromDefault
                   ? "text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
                   : "text-muted-foreground/40 opacity-50 cursor-not-allowed hover:bg-transparent"
-              }`}
+                }`}
               title={
                 isCustomizedFromDefault
                   ? "استعادة الترتيب والحقول الافتراضية الأصلية للاستمارة"
@@ -921,11 +915,10 @@ export default function FormsCustomizationRegistrationDetail() {
               type="button"
               onClick={handleSave}
               disabled={saveMutation.isPending || !hasChanges}
-              className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${
-                hasChanges
+              className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${hasChanges
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-lg cursor-pointer"
                   : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
-              }`}
+                }`}
               title={hasChanges ? "حفظ التعديلات (Ctrl+S)" : "لا توجد تعديلات غير محفوظة"}
             >
               {saveMutation.isPending ? (
@@ -1131,15 +1124,14 @@ export default function FormsCustomizationRegistrationDetail() {
                     onDragStart={(e) => handleDragStart(e, actualIndex)}
                     onDragOver={(e) => handleDragOver(e, actualIndex)}
                     onDragEnd={handleDragEnd}
-                    className={`rounded-2xl border bg-card text-right transition-all duration-200 overflow-hidden ${
-                      isDragging
+                    className={`rounded-2xl border bg-card text-right transition-all duration-200 overflow-hidden ${isDragging
                         ? "opacity-30 border-dashed border-2 border-primary scale-[0.99]"
                         : "border-border/80 shadow-xs hover:border-primary/40 hover:shadow-md"
-                    } ${!field.isActive ? "opacity-60 bg-muted/20 border-dashed" : ""}`}
+                      } ${!field.isActive ? "opacity-60 bg-muted/20 border-dashed" : ""}`}
                   >
                     {/* الشريط الأساسي للحقل */}
                     <div className="p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center gap-3">
-                      
+
                       {/* مقبض السحب والإفلات + أزرار الترتيب السريع + رقم الترتيب */}
                       <div className="flex items-center gap-1.5 shrink-0 select-none">
                         {/* مقبض السحب */}
@@ -1207,9 +1199,9 @@ export default function FormsCustomizationRegistrationDetail() {
                               options:
                                 ["radio", "select"].includes(val) && (!field.options || field.options.length === 0)
                                   ? [
-                                      { label: "نعم", value: "yes" },
-                                      { label: "لا", value: "no" },
-                                    ]
+                                    { label: "نعم", value: "yes" },
+                                    { label: "لا", value: "no" },
+                                  ]
                                   : field.options,
                             })
                           }
@@ -1255,9 +1247,8 @@ export default function FormsCustomizationRegistrationDetail() {
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleFieldExpand(field.id)}
-                          className={`h-9 w-9 rounded-xl transition-colors ${
-                            isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
-                          }`}
+                          className={`h-9 w-9 rounded-xl transition-colors ${isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted"
+                            }`}
                           title="إعدادات وتفاصيل إضافية"
                         >
                           <Settings2 className="w-4 h-4" />
@@ -1497,11 +1488,10 @@ export default function FormsCustomizationRegistrationDetail() {
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    previewDevice === "desktop"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${previewDevice === "desktop"
                       ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                   title="عرض بنسخة الكمبيوتر"
                 >
                   <Monitor className="w-3.5 h-3.5" />
@@ -1510,11 +1500,10 @@ export default function FormsCustomizationRegistrationDetail() {
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    previewDevice === "mobile"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${previewDevice === "mobile"
                       ? "bg-card text-foreground shadow-xs"
                       : "text-muted-foreground hover:text-foreground"
-                  }`}
+                    }`}
                   title="عرض بنسخة الجوال"
                 >
                   <Smartphone className="w-3.5 h-3.5" />
@@ -1539,11 +1528,10 @@ export default function FormsCustomizationRegistrationDetail() {
           {/* محتوى المعاينة التفاعلي الواقعي */}
           <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
             <div
-              className={`w-full transition-all duration-300 ${
-                previewDevice === "mobile"
+              className={`w-full transition-all duration-300 ${previewDevice === "mobile"
                   ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[88vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
                   : "max-w-4xl mx-auto space-y-6"
-              }`}
+                }`}
             >
               {/* شريط حالة هاتف iPhone 14 Pro Max مع الجزيرة التفاعلية */}
               {previewDevice === "mobile" && (
@@ -1564,99 +1552,123 @@ export default function FormsCustomizationRegistrationDetail() {
               )}
 
               {/* مساحة محتوى شاشة الهاتف أو الكمبيوتر */}
-              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-right bg-slate-50/50 dark:bg-background" : "space-y-6"}>
+              <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 text-right bg-slate-50/70 dark:bg-background" : "space-y-6 max-w-2xl mx-auto py-2"}>
                 
+                {/* الترويسة والشعار مطابقة لـ Register.tsx */}
+                <div className="flex flex-col items-center mb-3 sm:mb-6 text-center select-none">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 border border-emerald-500/20 shadow-xs">
+                    <IconComponent className="w-6 h-6 sm:w-8 sm:h-8" />
+                  </div>
+                  <h1 className="font-bold text-sm sm:text-xl text-gray-900 dark:text-foreground">
+                    بوابة منارة
+                  </h1>
+                  <p className="text-[11px] sm:text-sm text-gray-500 dark:text-muted-foreground mt-0.5">
+                    نموذج التسجيل وتقديم الطلبات والتبرعات
+                  </p>
+                </div>
+
                 {/* كرت النموذج المطابق لـ Register.tsx */}
-                <div
-                  data-slot="card-content"
-                  className={`bg-white dark:bg-card border border-slate-200/90 dark:border-border shadow-xl space-y-6 text-right ${
-                    previewDevice === "mobile" ? "p-4 rounded-2xl" : "p-5 sm:p-8 rounded-3xl"
-                  }`}
-                >
-                  {/* شارة المسار النشط */}
-                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-border/50">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 text-primary font-bold text-xs border border-primary/20">
-                      <IconComponent className="w-4 h-4" />
-                      <span>{meta.label}</span>
+                <div className="border border-slate-200/80 dark:border-border shadow-xl rounded-2xl sm:rounded-3xl bg-white dark:bg-card overflow-hidden">
+                  
+                  {/* شريط الإجراء العلوي والرجوع المطابق تماماً لـ Register.tsx */}
+                  <div className="bg-slate-100/90 dark:bg-muted/60 border-b border-slate-200 dark:border-border px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: "rgb(9, 112, 126)" }} />
+                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-foreground truncate">
+                        {formId === "donor_land"
+                          ? "مسار المتبرع (تبرع بأرض)"
+                          : formId === "donor_inkind"
+                          ? "مسار المتبرع (تبرع عيني)"
+                          : formId === "donor_other"
+                          ? "مسار المتبرع (شراكة / وقفية / أخرى)"
+                          : "مسار أخرى (استفسارات وطلبات عامة)"}
+                      </span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground font-medium">
-                      بوابة تمام للخدمات
-                    </span>
+
+                    <button
+                      type="button"
+                      className="h-8 sm:h-9 px-3 sm:px-4 rounded-xl border border-primary/30 bg-white dark:bg-background hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group"
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
+                      <span>تغيير الصفة</span>
+                    </button>
                   </div>
 
-                  <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                    {/* القسم الأول: بيانات المتبرع والتواصل / مقدم الطلب */}
-                    {activeSection1Fields.length > 0 && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
-                            <User className="w-4 h-4" />
+                  <div data-slot="card-content" className="p-5 sm:p-8 space-y-6 text-right">
+                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+                      {/* القسم الأول: بيانات المتبرع والتواصل / مقدم الطلب */}
+                      {activeSection1Fields.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                              <User className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
+                              {formId === "other" ? "بيانات مقدم الطلب" : "بيانات المتبرع والتواصل"}
+                            </h3>
                           </div>
-                          <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
-                            {formId === "other" ? "بيانات مقدم الطلب" : "بيانات المتبرع والتواصل"}
-                          </h3>
-                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {activeSection1Fields.map(renderPreviewField)}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* القسم الثاني: تفاصيل التبرع / الطلب */}
-                    {activeSection2Fields.length > 0 && (
-                      <div className="space-y-4 pt-1">
-                        <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
-                          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
-                            <IconComponent className="w-4 h-4" />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {activeSection1Fields.map(renderPreviewField)}
                           </div>
-                          <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
-                            {formId === "other"
-                              ? "تفاصيل الصفة والطلب"
-                              : formId === "donor_other"
-                              ? "تفاصيل الصفة والتبرع"
-                              : "اذكر تفاصيل التبرع"}
-                          </h3>
                         </div>
+                      )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {activeSection2Fields.map(renderPreviewField)}
+                      {/* القسم الثاني: تفاصيل التبرع / الطلب */}
+                      {activeSection2Fields.length > 0 && (
+                        <div className="space-y-4 pt-1">
+                          <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 dark:border-border/50">
+                            <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
+                              <IconComponent className="w-4 h-4" />
+                            </div>
+                            <h3 className="font-bold text-slate-900 dark:text-foreground text-sm sm:text-base">
+                              {formId === "other"
+                                ? "تفاصيل الصفة والطلب"
+                                : formId === "donor_other"
+                                ? "تفاصيل الصفة والتبرع"
+                                : "اذكر تفاصيل التبرع"}
+                            </h3>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {activeSection2Fields.map(renderPreviewField)}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* زر الإرسال المتدرج مطابق لـ Register.tsx */}
-                    <Button
-                      type="button"
-                      className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer"
-                      style={{ background: "linear-gradient(135deg, rgb(9, 112, 126) 0%, rgb(8, 145, 178) 100%)" }}
-                    >
-                      <IconComponent className="w-5 h-5" />
-                      <span>
-                        {formId === "donor_land"
-                          ? "إرسال بيانات التبرع بالأرض"
-                          : formId === "donor_inkind"
-                          ? "إرسال بيانات التبرع العيني"
-                          : formId === "donor_financial"
-                          ? "إرسال إشعار التحويل البنكي"
-                          : formId === "donor_other"
-                          ? "إرسال بيانات التبرع"
-                          : "إرسال الطلب للجمعية"}
-                      </span>
-                    </Button>
-                  </form>
+                      {/* زر الإرسال المتدرج مطابق لـ Register.tsx */}
+                      <Button
+                        type="button"
+                        className="w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all mt-4 text-sm sm:text-base flex items-center justify-center gap-2 cursor-pointer"
+                        style={{ background: "linear-gradient(135deg, rgb(9, 112, 126) 0%, rgb(8, 145, 178) 100%)" }}
+                      >
+                        <IconComponent className="w-5 h-5" />
+                        <span>
+                          {formId === "donor_land"
+                            ? "إرسال بيانات التبرع بالأرض"
+                            : formId === "donor_inkind"
+                            ? "إرسال بيانات التبرع العيني"
+                            : formId === "donor_financial"
+                            ? "إرسال إشعار التحويل البنكي"
+                            : formId === "donor_other"
+                            ? "إرسال بيانات التبرع"
+                            : "إرسال الطلب للجمعية"}
+                        </span>
+                      </Button>
+                    </form>
 
-                  {/* الروابط السفلية مطابقة لـ Register.tsx */}
-                  <div className="mt-8 pt-5 border-t border-slate-100 dark:border-border/50 text-center space-y-2.5">
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-muted-foreground">
-                      لديك حساب إمام أو مؤذن معتمد بالفعل؟{" "}
-                      <span className="font-bold text-teal-700 dark:text-teal-400">
-                        تسجيل الدخول
+                    {/* الروابط السفلية مطابقة لـ Register.tsx */}
+                    <div className="mt-8 pt-5 border-t border-slate-100 dark:border-border/50 text-center space-y-2.5">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-muted-foreground">
+                        لديك حساب إمام أو مؤذن معتمد بالفعل؟{" "}
+                        <span className="font-bold text-teal-700 dark:text-teal-400">
+                          تسجيل الدخول
+                        </span>
+                      </p>
+                      <span className="block text-xs text-gray-500 dark:text-muted-foreground/80">
+                        ← العودة إلى الصفحة الرئيسية
                       </span>
-                    </p>
-                    <span className="block text-xs text-gray-500 dark:text-muted-foreground/80">
-                      ← العودة إلى الصفحة الرئيسية
-                    </span>
+                    </div>
                   </div>
                 </div>
               </div>
