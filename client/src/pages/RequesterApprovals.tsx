@@ -35,10 +35,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   CheckSquare,
   Users,
@@ -59,6 +62,21 @@ import {
   Download,
   Info,
   Loader2,
+  Building2,
+  Gift,
+  Package,
+  HelpCircle,
+  MessageSquareQuote,
+  PhoneCall,
+  MessageCircle,
+  ExternalLink,
+  Edit3,
+  Trash2,
+  AlertCircle,
+  Layers,
+  Sparkles,
+  Truck,
+  FileCheck
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -83,6 +101,41 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400", icon: XCircle },
 };
 
+const submissionStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
+  new: { label: "جديد", color: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800", dot: "bg-amber-500" },
+  under_review: { label: "قيد المراجعة", color: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800", dot: "bg-sky-500" },
+  contacted: { label: "تم التواصل", color: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800", dot: "bg-purple-500" },
+  completed: { label: "مكتمل ومغلق", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
+  archived: { label: "مؤرشف", color: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700", dot: "bg-slate-400" },
+};
+
+const submissionTypeLabels: Record<string, { label: string; shortLabel: string; icon: string; badge: string }> = {
+  donor_land: { 
+    label: "تبرع بأرض مسجد", 
+    shortLabel: "أرض مسجد", 
+    icon: "🏞️", 
+    badge: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300" 
+  },
+  donor_inkind: { 
+    label: "تبرع عيني ومواد", 
+    shortLabel: "تبرع عيني", 
+    icon: "📦", 
+    badge: "bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300" 
+  },
+  donor_other: { 
+    label: "مبادرات وتبرعات أخرى", 
+    shortLabel: "مبادرة أخرى", 
+    icon: "🤝", 
+    badge: "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300" 
+  },
+  general_inquiry: { 
+    label: "استفسار عام وتواصل", 
+    shortLabel: "استفسار", 
+    icon: "💬", 
+    badge: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300" 
+  },
+};
+
 export default function RequesterApprovals() {
   const { user: currentUser } = useAuth();
   const [, navigate] = useLocation();
@@ -98,9 +151,22 @@ export default function RequesterApprovals() {
     action: "active" | "suspended";
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions'>('requests');
+  // التبويبات: حسابات | استثناءات | تبرعات غير مالية | استفسارات عامة
+  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions' | 'donations' | 'inquiries'>('requests');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  // فلاتر التبرعات والاستفسارات
+  const [donationTypeFilter, setDonationTypeFilter] = useState<string>("all");
+  const [donationStatusFilter, setDonationStatusFilter] = useState<string>("all");
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState<string>("all");
+  const [submissionSearch, setSubmissionSearch] = useState<string>("");
+
+  // نافذة تفاصيل ومراجعة الطلب الخارجي / الاستفسار
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
+  const [submissionStatusEdit, setSubmissionStatusEdit] = useState<"new" | "under_review" | "contacted" | "completed" | "archived">("new");
+  const [adminNotesEdit, setAdminNotesEdit] = useState<string>("");
+
+  // طلبات الاستثناء
   const { data: exceptionRequests = [], refetch: refetchExceptions } = trpc.requests.getExceptionRequests.useQuery(undefined, {
     enabled: hasViewPermission || hasApprovePermission
   });
@@ -119,9 +185,10 @@ export default function RequesterApprovals() {
 
   const utils = trpc.useUtils();
 
+  // جلب حسابات المستخدمين
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
     role: "service_requester",
-    limit: 100, // جلب كمية كافية للمراجعة
+    limit: 100,
   });
 
   const toggleStatus = trpc.users.toggleStatus.useMutation({
@@ -143,10 +210,61 @@ export default function RequesterApprovals() {
     },
   });
 
-  // فلترة طالبي الخدمة فقط من النتائج
-  const requesters = usersResponse?.items || [];
+  // جلب التبرعات غير المالية (أراضي + عيني + أخرى) - باستثناء التبرع المالي
+  const { 
+    data: donationSubmissions = [], 
+    isLoading: isLoadingDonations, 
+    refetch: refetchDonations 
+  } = trpc.publicSubmissions.getAll.useQuery({
+    category: "donor",
+    excludeTypes: ["donor_financial"],
+    submissionType: donationTypeFilter !== "all" ? donationTypeFilter : undefined,
+    status: donationStatusFilter !== "all" ? donationStatusFilter : undefined,
+    search: submissionSearch || undefined,
+  });
 
-  // تطبيق الفلاتر المحلية (للبحث والحالة)
+  // جلب الاستفسارات العامة
+  const { 
+    data: inquirySubmissions = [], 
+    isLoading: isLoadingInquiries, 
+    refetch: refetchInquiries 
+  } = trpc.publicSubmissions.getAll.useQuery({
+    submissionType: "general_inquiry",
+    status: inquiryStatusFilter !== "all" ? inquiryStatusFilter : undefined,
+    search: submissionSearch || undefined,
+  });
+
+  // جلب إحصائيات التبرعات والاستفسارات
+  const { data: submissionStats } = trpc.publicSubmissions.getStats.useQuery();
+
+  // تحديث حالة الطلب الخارجي والملاحظات
+  const updateSubmissionMutation = trpc.publicSubmissions.updateStatus.useMutation({
+    onSuccess: () => {
+      toast.success("تم تحديث حالة الطلب والملاحظات بنجاح");
+      setSelectedSubmission(null);
+      refetchDonations();
+      refetchInquiries();
+      utils.publicSubmissions.getStats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء تحديث الطلب");
+    }
+  });
+
+  const deleteSubmissionMutation = trpc.publicSubmissions.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف الطلب بنجاح");
+      refetchDonations();
+      refetchInquiries();
+      utils.publicSubmissions.getStats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حذف الطلب");
+    }
+  });
+
+  // فلترة طالبي الخدمة
+  const requesters = usersResponse?.items || [];
   const filtered = requesters.filter(u => {
     const matchSearch =
       !search ||
@@ -157,7 +275,7 @@ export default function RequesterApprovals() {
     return matchSearch && matchStatus;
   });
 
-  // إحصائيات
+  // إحصائيات الحسابات
   const stats = {
     total: requesters.length,
     pending: requesters.filter(u => u.status === "pending").length,
@@ -174,98 +292,255 @@ export default function RequesterApprovals() {
     toggleStatus.mutate({ userId: confirmAction.userId, status: confirmAction.action });
   };
 
+  const handleOpenSubmissionDetails = (sub: any) => {
+    setSelectedSubmission(sub);
+    setSubmissionStatusEdit(sub.status || "new");
+    setAdminNotesEdit(sub.adminNotes || "");
+  };
+
+  const handleSaveSubmissionStatus = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubmission) return;
+    updateSubmissionMutation.mutate({
+      id: selectedSubmission.id,
+      status: submissionStatusEdit,
+      adminNotes: adminNotesEdit || undefined,
+    });
+  };
+
+  // أعداد الإشعارات في التبويبات
+  const pendingDonationsCount = submissionStats?.donations?.pending || 0;
+  const pendingInquiriesCount = submissionStats?.inquiries?.pending || 0;
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-6xl px-4 sm:px-0">
+      <div className="space-y-6 max-w-6xl px-4 sm:px-0 pb-12">
         {/* رأس الصفحة */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <CheckSquare className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">حسابات طالبي الخدمة</h1>
-            <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-              إدارة حسابات طالبي الخدمة ومراجعتها
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border/70 p-5 sm:p-6 rounded-3xl shadow-xs">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center flex-shrink-0">
+              <CheckSquare className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-foreground">إدارة المستفيدين والطلبات الواردة</h1>
+              <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                مراجعة حسابات طالبي الخدمة، طلبات الاستثناء، طلبات التبرعات العينية والأراضي، والاستفسارات العامة
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                  <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
+        {/* بطاقات الإحصائيات المتغيرة بحسب التبويب النشط */}
+        {activeTab === 'requests' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="border border-border/70 shadow-xs rounded-2xl hover:shadow-sm transition-all">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">الإجمالي</p>
-                  <p className="text-lg sm:text-xl font-bold text-foreground leading-tight">{stats.total}</p>
+                  <p className="text-xs text-muted-foreground font-medium">إجمالي الحسابات</p>
+                  <p className="text-xl font-black text-foreground">{stats.total}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl hover:shadow-sm transition-all">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">قيد المراجعة</p>
-                  <p className="text-lg sm:text-xl font-bold text-amber-600 leading-tight">{stats.pending}</p>
+                  <p className="text-xs text-muted-foreground font-medium">قيد المراجعة</p>
+                  <p className="text-xl font-black text-amber-600">{stats.pending}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl hover:shadow-sm transition-all">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">معتمد</p>
-                  <p className="text-lg sm:text-xl font-bold text-green-600 leading-tight">{stats.active}</p>
+                  <p className="text-xs text-muted-foreground font-medium">حسابات معتمدة</p>
+                  <p className="text-xl font-black text-emerald-600">{stats.active}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm transition-all hover:shadow-md">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 sm:gap-3">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                  <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-600 dark:text-red-400" />
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl hover:shadow-sm transition-all">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/60 flex items-center justify-center shrink-0">
+                  <XCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">موقوف</p>
-                  <p className="text-lg sm:text-xl font-bold text-red-600 leading-tight">{stats.suspended}</p>
+                  <p className="text-xs text-muted-foreground font-medium">موقوف / محظور</p>
+                  <p className="text-xl font-black text-rose-600">{stats.suspended}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* التبويبات */}
+        {activeTab === 'donations' && (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200/60 flex items-center justify-center shrink-0">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">إجمالي التبرعات</p>
+                  <p className="text-xl font-black text-teal-700 dark:text-teal-300">{submissionStats?.donations?.total ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">أراضي مساجد</p>
+                  <p className="text-xl font-black text-emerald-600">{submissionStats?.donations?.land ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200/60 flex items-center justify-center shrink-0">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">تبرعات عينية</p>
+                  <p className="text-xl font-black text-sky-600">{submissionStats?.donations?.inKind ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">مبادرات أخرى</p>
+                  <p className="text-xl font-black text-indigo-600">{submissionStats?.donations?.other ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl col-span-2 sm:col-span-1 bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">جديد / قيد المراجعة</p>
+                  <p className="text-xl font-black text-amber-700 dark:text-amber-300">{submissionStats?.donations?.pending ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'inquiries' && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200/60 flex items-center justify-center shrink-0">
+                  <MessageSquareQuote className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">إجمالي الاستفسارات</p>
+                  <p className="text-xl font-black text-sky-700 dark:text-sky-300">{submissionStats?.inquiries?.total ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">جديدة بانتظار الرد</p>
+                  <p className="text-xl font-black text-amber-700 dark:text-amber-300">{submissionStats?.inquiries?.pending ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/60 flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">تم التواصل</p>
+                  <p className="text-xl font-black text-purple-600">{submissionStats?.inquiries?.contacted ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">مكتملة ومغلقة</p>
+                  <p className="text-xl font-black text-emerald-600">{submissionStats?.inquiries?.completed ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* التبويبات الأربعة المنظمة */}
         <Tabs value={activeTab} onValueChange={(val: any) => setActiveTab(val)} dir="rtl" className="w-full">
           <div className="flex justify-center w-full mb-6">
-            <TabsList className="bg-muted/60 p-1.5 inline-flex w-fit h-auto border shadow-sm whitespace-nowrap">
+            <TabsList className="bg-muted/70 p-1.5 inline-flex w-fit h-auto border border-border/80 rounded-2xl shadow-xs whitespace-nowrap gap-1">
               <TabsTrigger 
                 value="requests" 
-                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+                className="gap-2 px-4 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl"
               >
                 <CheckSquare className="h-4 w-4" />
-                طلبات تسجيل الحسابات
+                <span>حسابات طالبي الخدمة</span>
+                {stats.pending > 0 && (
+                  <span className="bg-amber-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                    {stats.pending}
+                  </span>
+                )}
               </TabsTrigger>
+
               <TabsTrigger 
                 value="exceptions" 
-                className="gap-2 px-4 sm:px-8 py-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md transition-all rounded-md flex-shrink-0 focus:outline-none"
+                className="gap-2 px-4 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl"
               >
                 <FileText className="h-4 w-4" />
                 <span>طلبات الاستثناء</span>
                 {pendingExceptionsCount > 0 && (
-                  <span className="bg-red-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">
+                  <span className="bg-rose-500 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
                     {pendingExceptionsCount}
+                  </span>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger 
+                value="donations" 
+                className="gap-2 px-4 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl"
+              >
+                <Gift className="h-4 w-4 text-teal-600" />
+                <span>طلبات التبرعات (أراضي وعينية)</span>
+                {pendingDonationsCount > 0 && (
+                  <span className="bg-teal-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                    {pendingDonationsCount}
+                  </span>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger 
+                value="inquiries" 
+                className="gap-2 px-4 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl"
+              >
+                <MessageSquareQuote className="h-4 w-4 text-sky-600" />
+                <span>الاستفسارات العامة</span>
+                {pendingInquiriesCount > 0 && (
+                  <span className="bg-sky-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                    {pendingInquiriesCount}
                   </span>
                 )}
               </TabsTrigger>
@@ -273,13 +548,14 @@ export default function RequesterApprovals() {
           </div>
         </Tabs>
 
-        {activeTab === 'requests' ? (
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <CardHeader className="p-4 sm:p-6 pb-4">
+        {/* 1. تبويب حسابات طالبي الخدمة */}
+        {activeTab === 'requests' && (
+          <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
                 <div>
-                  <CardTitle className="text-base sm:text-lg">قائمة الحسابات</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
+                  <CardTitle className="text-base sm:text-lg font-black text-foreground">قائمة الحسابات</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
                     {filtered.length} حساب {statusFilter !== "all" ? `(${statusConfig[statusFilter]?.label ?? statusFilter})` : ""}
                   </CardDescription>
                 </div>
@@ -290,11 +566,11 @@ export default function RequesterApprovals() {
                       placeholder="بحث بالاسم أو البريد أو الهاتف..."
                       value={search}
                       onChange={e => setSearch(e.target.value)}
-                      className="pr-9 text-xs sm:text-sm h-10"
+                      className="pr-9 text-xs sm:text-sm h-10 rounded-2xl border-border/70"
                     />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-40 text-xs sm:text-sm h-10">
+                    <SelectTrigger className="w-full sm:w-40 text-xs sm:text-sm h-10 rounded-2xl border-border/70">
                       <div className="flex items-center gap-2">
                         <Filter className="w-4 h-4" />
                         <SelectValue placeholder="الحالة" />
@@ -364,7 +640,7 @@ export default function RequesterApprovals() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-8 text-xs font-bold gap-1"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl"
                                     onClick={() => navigate("/requester-approvals/" + user.id)}
                                   >
                                     <Eye className="w-3.5 h-3.5" />
@@ -376,7 +652,7 @@ export default function RequesterApprovals() {
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold"
+                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl"
                                           onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
@@ -387,7 +663,7 @@ export default function RequesterApprovals() {
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold"
+                                          className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold rounded-xl"
                                           onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
                                         >
                                           <XCircle className="w-3.5 h-3.5 ml-1" />
@@ -404,7 +680,7 @@ export default function RequesterApprovals() {
                       </TableBody>
                     </Table>
                   </div>
-  
+
                   {/* Mobile View */}
                   <div className="md:hidden divide-y">
                     {filtered.map(user => {
@@ -433,11 +709,11 @@ export default function RequesterApprovals() {
                               <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "—"}</span>
                             </div>
                           </div>
-  
+
                           <div className="pt-1 flex flex-col sm:flex-row gap-2">
                             <Button
                               variant="outline"
-                              className="w-full h-9 font-bold gap-2 rounded-lg transition-all"
+                              className="w-full h-9 font-bold gap-2 rounded-xl transition-all"
                               onClick={() => navigate("/requester-approvals/" + user.id)}
                             >
                               <Eye className="w-4 h-4" />
@@ -447,7 +723,7 @@ export default function RequesterApprovals() {
                               <>
                                 {user.status !== "active" && (
                                   <Button
-                                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-lg transition-all"
+                                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                   >
                                     <CheckCircle2 className="w-4 h-4" />
@@ -457,7 +733,7 @@ export default function RequesterApprovals() {
                                 {user.status === "active" && (
                                   <Button
                                     variant="outline"
-                                    className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-lg transition-all"
+                                    className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
                                   >
                                     <XCircle className="w-4 h-4" />
@@ -475,12 +751,15 @@ export default function RequesterApprovals() {
               )}
             </CardContent>
           </Card>
-        ) : (
-          <Card className="border-0 shadow-sm overflow-hidden animate-in fade-in-50 duration-200">
-            <CardHeader className="p-4 sm:p-6 pb-4">
+        )}
+
+        {/* 2. تبويب طلبات الاستثناء */}
+        {activeTab === 'exceptions' && (
+          <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
               <div>
-                <CardTitle className="text-base sm:text-lg">طلبات الاستثناء المرفوعة</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
+                <CardTitle className="text-base sm:text-lg font-black text-foreground">طلبات الاستثناء المرفوعة</CardTitle>
+                <CardDescription className="text-xs sm:text-sm mt-0.5">
                   مراجعة طلبات استثناء الأئمة لتقديم طلبات جديدة بالرغم من وجود طلبات سابقة معلقة.
                 </CardDescription>
               </div>
@@ -501,101 +780,81 @@ export default function RequesterApprovals() {
                   <TableBody>
                     {exceptionRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-16 text-muted-foreground text-xs sm:text-sm">
-                          لا توجد طلبات استثناء مرفوعة حالياً.
+                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                          لا توجد طلبات استثناء حالياً
                         </TableCell>
                       </TableRow>
                     ) : (
-                      exceptionRequests.map(({ exception, userName, userEmail, userPhone }) => {
-                        const isPending = exception.status === "pending";
-                        const attachmentUrl = exception.attachment 
-                          ? (exception.attachment.startsWith("http") ? exception.attachment : `${window.location.origin}${exception.attachment}`) 
-                          : "";
-
-                        return (
-                          <TableRow key={exception.id} className="hover:bg-muted/15 transition-colors">
-                            <TableCell className="py-4 pr-6">
-                              <div className="flex flex-col gap-1 text-right">
-                                <span className="font-extrabold text-sm sm:text-base text-slate-800 dark:text-slate-200">
-                                  {userName}
-                                </span>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                                  <span className="inline-flex items-center gap-1">
-                                    <Phone className="w-3.5 h-3.5 text-primary/70" />
-                                    <span className="font-semibold">{userPhone || "—"}</span>
-                                  </span>
-                                  <span className="text-slate-300 dark:text-slate-700">|</span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <Mail className="w-3.5 h-3.5 text-primary/70" />
-                                    <span>{userEmail || "—"}</span>
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm whitespace-nowrap text-right py-4">
-                              {exception.createdAt ? new Date(exception.createdAt).toLocaleDateString("ar-SA") : "—"}
-                            </TableCell>
-                            <TableCell className="py-4 text-right max-w-xs">
-                              <p className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-355 whitespace-pre-wrap leading-relaxed">
-                                {exception.reason}
-                              </p>
-                            </TableCell>
-                            <TableCell className="py-4">
-                              {exception.attachment ? (
-                                <button 
-                                  onClick={() => setPreviewUrl(attachmentUrl)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all text-xs font-bold w-fit cursor-pointer"
+                      exceptionRequests.map((item: any) => (
+                        <TableRow key={item.exception.id} className="hover:bg-muted/20">
+                          <TableCell className="font-bold text-foreground">
+                            {item.userName}
+                            <span className="block text-xs font-normal text-muted-foreground mt-0.5">
+                              {item.userPhone}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(item.exception.createdAt).toLocaleDateString("ar-SA")}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate text-xs" title={item.exception.reason}>
+                            {item.exception.reason}
+                          </TableCell>
+                          <TableCell>
+                            {item.exception.documentUrl ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
+                                onClick={() => setPreviewUrl(item.exception.documentUrl)}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                معاينة المرفق
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">لا يوجد</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              item.exception.status === "approved" ? "default" :
+                              item.exception.status === "rejected" ? "destructive" : "secondary"
+                            } className="text-[10px] font-bold">
+                              {item.exception.status === "approved" ? "مقبول" :
+                               item.exception.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-left pl-6">
+                            {item.exception.status === "pending" && canApprove ? (
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-xl"
+                                  onClick={() => reviewExceptionMutation.mutate({ exceptionId: item.exception.id, action: "approve" })}
+                                  disabled={reviewExceptionMutation.isPending}
                                 >
-                                  <FileText className="w-3.5 h-3.5" />
-                                  <span>عرض المرفق</span>
-                                </button>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">لا يوجد مرفق</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4">
-                              {exception.status === "pending" && (
-                                <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-0 font-bold px-2.5 py-1">قيد الانتظار</Badge>
-                              )}
-                              {exception.status === "approved" && (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0 font-bold px-2.5 py-1">مقبول</Badge>
-                              )}
-                              {exception.status === "rejected" && (
-                                <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-0 font-bold px-2.5 py-1">مرفوض</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="py-4 pl-6 text-left">
-                              {canApprove ? (
-                                isPending ? (
-                                  <div className="flex gap-2 justify-end">
-                                    <Button 
-                                      size="sm" 
-                                      className="bg-green-600 hover:bg-green-700 text-white font-bold h-8.5 rounded-lg text-xs px-3.5"
-                                      onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'approved' })}
-                                      disabled={reviewExceptionMutation.isPending}
-                                    >
-                                      قبول
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="destructive"
-                                      className="font-bold h-8.5 rounded-lg text-xs px-3.5"
-                                      onClick={() => reviewExceptionMutation.mutate({ id: exception.id, status: 'rejected' })}
-                                      disabled={reviewExceptionMutation.isPending}
-                                    >
-                                      رفض
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs font-semibold">تمت المراجعة</span>
-                                )
-                              ) : (
-                                <span className="text-muted-foreground text-xs font-semibold">—</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
+                                  قبول
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-8 text-xs font-bold rounded-xl"
+                                  onClick={() => {
+                                    const reason = prompt("يرجى إدخال سبب الرفض:");
+                                    if (reason) {
+                                      reviewExceptionMutation.mutate({ exceptionId: item.exception.id, action: "reject", reviewNotes: reason });
+                                    }
+                                  }}
+                                  disabled={reviewExceptionMutation.isPending}
+                                >
+                                  رفض
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">مكتمل</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
                     )}
                   </TableBody>
                 </Table>
@@ -603,39 +862,619 @@ export default function RequesterApprovals() {
             </CardContent>
           </Card>
         )}
+
+        {/* 3. تبويب طلبات التبرعات (الأراضي والعينية) - باستثناء التبرع المالي */}
+        {activeTab === 'donations' && (
+          <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+                    <Gift className="w-5 h-5 text-teal-600" />
+                    طلبات التبرعات الواردة (أراضي وعينية)
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
+                    مراجعة طلبات التبرع بأراضي المساجد، التبرعات العينية والمواد، والمبادرات الخاصة
+                  </CardDescription>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* فلتر النوع */}
+                  <Select value={donationTypeFilter} onValueChange={setDonationTypeFilter}>
+                    <SelectTrigger className="w-44 text-xs h-10 rounded-2xl border-border/70">
+                      <SelectValue placeholder="نوع التبرع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">كافة أنواع التبرعات</SelectItem>
+                      <SelectItem value="donor_land">🏞️ تبرع بأرض مسجد</SelectItem>
+                      <SelectItem value="donor_inkind">📦 تبرع عيني ومواد</SelectItem>
+                      <SelectItem value="donor_other">🤝 مبادرات وتبرعات أخرى</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* فلتر الحالة */}
+                  <Select value={donationStatusFilter} onValueChange={setDonationStatusFilter}>
+                    <SelectTrigger className="w-36 text-xs h-10 rounded-2xl border-border/70">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="new">جديد</SelectItem>
+                      <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                      <SelectItem value="contacted">تم التواصل</SelectItem>
+                      <SelectItem value="completed">مكتمل</SelectItem>
+                      <SelectItem value="archived">مؤرشف</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* بحث */}
+                  <div className="relative w-full sm:w-56">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="بحث بالاسم أو الجوال..."
+                      value={submissionSearch}
+                      onChange={e => setSubmissionSearch(e.target.value)}
+                      className="pr-9 text-xs h-10 rounded-2xl border-border/70"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {isLoadingDonations ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                  <p className="text-muted-foreground text-sm animate-pulse">جاري تحميل طلبات التبرعات...</p>
+                </div>
+              ) : donationSubmissions.length === 0 ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <Gift className="w-12 h-12 mx-auto opacity-30 mb-2" />
+                  <p className="text-sm font-semibold text-foreground">لا توجد طلبات تبرع مطابقة</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">لم يتم العثور على طلبات تبرعات غير مالية في هذه الفئة</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead className="text-right">مقدم التبرع</TableHead>
+                        <TableHead className="text-right">نوع التبرع</TableHead>
+                        <TableHead className="text-right">أهم تفاصيل التبرع</TableHead>
+                        <TableHead className="text-right">المرفقات</TableHead>
+                        <TableHead className="text-right">تاريخ الإرسال</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-left pl-6">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {donationSubmissions.map((sub: any) => {
+                        const typeInfo = submissionTypeLabels[sub.submissionType] || submissionTypeLabels.donor_other;
+                        const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
+                        const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
+                        const waPhone = cleanPhone?.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
+
+                        return (
+                          <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
+                            {/* المتبرع */}
+                            <TableCell className="font-bold text-foreground">
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <p className="text-sm">{sub.name}</p>
+                                  <div className="flex items-center gap-2 text-xs font-normal text-muted-foreground mt-0.5">
+                                    <span>{sub.phone}</span>
+                                    {sub.city && <span>• {sub.city}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            {/* نوع التبرع */}
+                            <TableCell>
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${typeInfo.badge}`}>
+                                <span>{typeInfo.icon}</span>
+                                <span>{typeInfo.shortLabel}</span>
+                              </span>
+                            </TableCell>
+
+                            {/* التفاصيل */}
+                            <TableCell className="max-w-xs">
+                              {sub.submissionType === 'donor_land' && (
+                                <div className="text-xs space-y-0.5">
+                                  <p className="font-bold text-foreground truncate">
+                                    المساحة: <span className="text-teal-700 dark:text-teal-400 font-mono">{sub.landArea || "غير محددة"}</span>
+                                  </p>
+                                  <p className="text-muted-foreground truncate">{sub.landLocation || sub.details || "—"}</p>
+                                </div>
+                              )}
+                              {sub.submissionType === 'donor_inkind' && (
+                                <div className="text-xs space-y-0.5">
+                                  <p className="font-bold text-foreground truncate">
+                                    {sub.inKindType || "مواد عينية"} ({sub.inKindQuantity || "الكمية غير محددة"})
+                                  </p>
+                                  <p className="text-muted-foreground truncate">{sub.details || sub.inKindCondition || "—"}</p>
+                                </div>
+                              )}
+                              {sub.submissionType !== 'donor_land' && sub.submissionType !== 'donor_inkind' && (
+                                <p className="text-xs text-muted-foreground line-clamp-2" title={sub.details || ""}>
+                                  {sub.details || "—"}
+                                </p>
+                              )}
+                            </TableCell>
+
+                            {/* المرفقات */}
+                            <TableCell>
+                              {sub.attachmentUrl ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 border-primary/20 text-primary hover:bg-primary/5 rounded-xl"
+                                  onClick={() => setPreviewUrl(sub.attachmentUrl)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  معاينة
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+
+                            {/* التاريخ */}
+                            <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                              {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString("ar-SA") : "—"}
+                            </TableCell>
+
+                            {/* الحالة */}
+                            <TableCell>
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusObj.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${statusObj.dot}`} />
+                                {statusObj.label}
+                              </span>
+                            </TableCell>
+
+                            {/* الإجراءات */}
+                            <TableCell className="text-left pl-6">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* زر واتساب سريع */}
+                                {waPhone && (
+                                  <a 
+                                    href={`https://wa.me/${waPhone}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="p-1.5 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                                    title="محادثة واتساب"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                  </a>
+                                )}
+
+                                {/* زر اتصال سريع */}
+                                {sub.phone && (
+                                  <a 
+                                    href={`tel:${sub.phone}`} 
+                                    className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
+                                    title="اتصال هاتفي"
+                                  >
+                                    <PhoneCall className="w-4 h-4" />
+                                  </a>
+                                )}
+
+                                {/* زر عرض ومراجعة التفاصيل الكاملة */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenSubmissionDetails(sub)}
+                                  className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  مراجعة الطلب
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 4. تبويب الاستفسارات العامة */}
+        {activeTab === 'inquiries' && (
+          <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden animate-in fade-in-50 duration-200">
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+                    <MessageSquareQuote className="w-5 h-5 text-sky-600" />
+                    الاستفسارات العامة وطلبات التواصل
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
+                    الاستفسارات الواردة من عموم المستفيدين والزوار والمبادرات المجتمعية
+                  </CardDescription>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={inquiryStatusFilter} onValueChange={setInquiryStatusFilter}>
+                    <SelectTrigger className="w-40 text-xs h-10 rounded-2xl border-border/70">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="new">جديد بانتظار الرد</SelectItem>
+                      <SelectItem value="under_review">قيد المراجعة</SelectItem>
+                      <SelectItem value="contacted">تم التواصل والرد</SelectItem>
+                      <SelectItem value="completed">مكتمل ومغلق</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="relative w-full sm:w-60">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="بحث بالاسم أو الاستفسار..."
+                      value={submissionSearch}
+                      onChange={e => setSubmissionSearch(e.target.value)}
+                      className="pr-9 text-xs h-10 rounded-2xl border-border/70"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {isLoadingInquiries ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                  <p className="text-muted-foreground text-sm animate-pulse">جاري تحميل الاستفسارات...</p>
+                </div>
+              ) : inquirySubmissions.length === 0 ? (
+                <div className="py-16 text-center text-muted-foreground">
+                  <MessageSquareQuote className="w-12 h-12 mx-auto opacity-30 mb-2" />
+                  <p className="text-sm font-semibold text-foreground">لا توجد استفسارات عامة حالياً</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">ستظهر هنا أي استفسارات أو رسائل تواصل جديدة واردة من النماذج</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/30">
+                      <TableRow>
+                        <TableHead className="text-right">مقدم الاستفسار</TableHead>
+                        <TableHead className="text-right">الصفة / الجهة</TableHead>
+                        <TableHead className="text-right">نص وتفاصيل الاستفسار</TableHead>
+                        <TableHead className="text-right">تاريخ الإرسال</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-left pl-6">الإجراءات</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inquirySubmissions.map((sub: any) => {
+                        const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
+                        const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
+                        const waPhone = cleanPhone?.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
+
+                        return (
+                          <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell className="font-bold text-foreground">
+                              <div>
+                                <p className="text-sm">{sub.name}</p>
+                                <div className="flex items-center gap-2 text-xs font-normal text-muted-foreground mt-0.5">
+                                  <span>{sub.phone}</span>
+                                  {sub.city && <span>• {sub.city}</span>}
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-xs text-muted-foreground font-medium">
+                              {sub.customRoleTitle || "مستفيد عام"}
+                            </TableCell>
+
+                            <TableCell className="max-w-md">
+                              <p className="text-xs text-foreground line-clamp-2 leading-relaxed" title={sub.details || ""}>
+                                {sub.details || "—"}
+                              </p>
+                            </TableCell>
+
+                            <TableCell className="text-xs text-muted-foreground font-mono whitespace-nowrap">
+                              {sub.createdAt ? new Date(sub.createdAt).toLocaleDateString("ar-SA") : "—"}
+                            </TableCell>
+
+                            <TableCell>
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusObj.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${statusObj.dot}`} />
+                                {statusObj.label}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className="text-left pl-6">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {waPhone && (
+                                  <a 
+                                    href={`https://wa.me/${waPhone}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="p-1.5 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                                    title="محادثة واتساب"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                  </a>
+                                )}
+
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenSubmissionDetails(sub)}
+                                  className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  الرد والمراجعة
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
+      {/* نافذة عرض ومراجعة تفاصيل التبرع / الاستفسار الكاملة */}
+      <Dialog open={!!selectedSubmission} onOpenChange={(open) => !open && setSelectedSubmission(null)}>
+        {selectedSubmission && (
+          <DialogContent className="max-w-2xl sm:max-w-2xl w-full rounded-3xl p-6 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-3.5 text-right w-full pb-4 border-b border-border/60">
+              <div className="p-3 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+                {selectedSubmission.category === 'donor' ? <Gift className="h-6 w-6" /> : <MessageSquareQuote className="h-6 w-6" />}
+              </div>
+              <div className="text-right flex-1 min-w-0">
+                <DialogTitle className="text-lg sm:text-xl font-black text-foreground text-right m-0">
+                  {submissionTypeLabels[selectedSubmission.submissionType]?.label || "تفاصيل الطلب"}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground mt-0.5 text-right">
+                  مقدم من: {selectedSubmission.name} • {new Date(selectedSubmission.createdAt).toLocaleDateString("ar-SA")}
+                </DialogDescription>
+              </div>
+            </div>
 
+            <div className="space-y-4 my-3 text-right">
+              {/* بيانات مقدم الطلب */}
+              <div className="p-4 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 space-y-2.5">
+                <h4 className="text-xs font-bold text-primary flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  بيانات التواصل ومقدم الطلب
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">الاسم الكامل:</span>
+                    <span className="font-bold text-foreground">{selectedSubmission.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">رقم الجوال:</span>
+                    <span className="font-bold font-mono text-foreground">{selectedSubmission.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">المدينة:</span>
+                    <span className="font-bold text-foreground">{selectedSubmission.city || "غير محددة"}</span>
+                  </div>
+                  {selectedSubmission.email && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-[11px]">البريد الإلكتروني:</span>
+                      <span className="font-mono text-foreground">{selectedSubmission.email}</span>
+                    </div>
+                  )}
+                  {selectedSubmission.customRoleTitle && (
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">الصفة / المنصب:</span>
+                      <span className="text-foreground font-medium">{selectedSubmission.customRoleTitle}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-      {/* نافذة تأكيد الإجراء */}
-      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !toggleStatus.isPending && setConfirmAction(open ? confirmAction : null)}>
-        <AlertDialogContent className="w-[90vw] max-w-md rounded-2xl p-6">
+              {/* تفاصيل التبرع بأرض */}
+              {selectedSubmission.submissionType === 'donor_land' && (
+                <div className="p-4 rounded-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800 space-y-2.5">
+                  <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" />
+                    بيانات الأرض المتبرع بها
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">المساحة الإجمالية:</span>
+                      <span className="font-bold font-mono text-foreground">{selectedSubmission.landArea || "غير محددة"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">الأبعاد والأطوال:</span>
+                      <span className="font-bold text-foreground">{selectedSubmission.landDimensions || "غير محددة"}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground block text-[11px]">موقع الأرض والحي:</span>
+                      <span className="font-medium text-foreground">{selectedSubmission.landLocation || "—"}</span>
+                    </div>
+                    {selectedSubmission.landOwner && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block text-[11px]">اسم المالك بالصك:</span>
+                        <span className="font-medium text-foreground">{selectedSubmission.landOwner}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* تفاصيل التبرع العيني */}
+              {selectedSubmission.submissionType === 'donor_inkind' && (
+                <div className="p-4 rounded-2xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800 space-y-2.5">
+                  <h4 className="text-xs font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5" />
+                    بيانات المواد والتبرع العيني
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">نوع المادة / التبرع:</span>
+                      <span className="font-bold text-foreground">{selectedSubmission.inKindType || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">الكمية المعروضة:</span>
+                      <span className="font-bold text-foreground font-mono">{selectedSubmission.inKindQuantity || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">حالة المواد:</span>
+                      <span className="font-medium text-foreground">{selectedSubmission.inKindCondition || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[11px]">إمكانية النقل والتوصيل:</span>
+                      <span className="font-bold text-foreground">
+                        {selectedSubmission.inKindDeliveryAvailable ? "✅ متاح النقل من المتبرع" : "❌ يتطلب استلام من الجمعية"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* نص الرسالة / الاستفسار / الملاحظات المرفقة */}
+              {selectedSubmission.details && (
+                <div className="p-4 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 space-y-1.5">
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5 text-primary" />
+                    نص الطلب والتفاصيل الإضافية
+                  </h4>
+                  <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedSubmission.details}
+                  </p>
+                </div>
+              )}
+
+              {/* المرفق إن وجد */}
+              {selectedSubmission.attachmentUrl && (
+                <div className="p-3 rounded-2xl bg-muted/20 dark:bg-muted/10 border border-border/60 flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <FileCheck className="h-4 w-4 text-primary" />
+                    المستند المرفق مع الطلب
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setPreviewUrl(selectedSubmission.attachmentUrl)}
+                    className="h-8 text-xs font-bold gap-1 rounded-xl"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    معاينة المستند
+                  </Button>
+                </div>
+              )}
+
+              {/* تحديث الحالة والملاحظات الإدارية */}
+              <form onSubmit={handleSaveSubmissionStatus} className="pt-3 border-t border-border/60 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground">تحديث حالة الطلب</Label>
+                    <Select value={submissionStatusEdit} onValueChange={(val: any) => setSubmissionStatusEdit(val)}>
+                      <SelectTrigger className="h-10 rounded-2xl text-xs border-border/70">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">🟡 جديد</SelectItem>
+                        <SelectItem value="under_review">🔵 قيد المراجعة</SelectItem>
+                        <SelectItem value="contacted">🟣 تم التواصل</SelectItem>
+                        <SelectItem value="completed">🟢 مكتمل ومغلق</SelectItem>
+                        <SelectItem value="archived">⚪ مؤرشف</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground">تواصل سريع مع مقدم الطلب</Label>
+                    <div className="flex gap-2">
+                      {selectedSubmission.phone && (
+                        <a 
+                          href={`tel:${selectedSubmission.phone}`} 
+                          className="flex-1 h-10 rounded-2xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-sky-100 transition-all"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          اتصال هاتفي
+                        </a>
+                      )}
+                      {selectedSubmission.phone && (
+                        <a 
+                          href={`https://wa.me/${selectedSubmission.phone.replace(/[^0-9]/g, "").startsWith("05") ? `966${selectedSubmission.phone.slice(1)}` : selectedSubmission.phone}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex-1 h-10 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-100 transition-all"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          محادثة واتساب
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-foreground">ملاحظات الإدارة وفريق المتابعة</Label>
+                  <Textarea
+                    rows={3}
+                    value={adminNotesEdit}
+                    onChange={(e) => setAdminNotesEdit(e.target.value)}
+                    placeholder="سجل أي ملاحظات أو نتائج التواصل مع المتبرع أو مقدم الاستفسار..."
+                    className="rounded-2xl text-xs border-border/70 resize-none leading-relaxed p-3"
+                  />
+                </div>
+
+                <DialogFooter className="gap-2 pt-2 sm:justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelectedSubmission(null)}
+                    className="rounded-2xl h-10 px-5 text-xs font-bold border-border/70"
+                  >
+                    إغلاق
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateSubmissionMutation.isPending}
+                    className="rounded-2xl h-10 px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs shadow-sm shadow-primary/20"
+                  >
+                    {updateSubmissionMutation.isPending ? "جاري الحفظ..." : "حفظ التحديث والملاحظات"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      {/* تأكيد إيقاف / اعتماد الحساب */}
+      <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-right text-lg">
+            <AlertDialogTitle className="text-right font-bold text-base">
               {confirmAction?.action === "active" ? "تأكيد اعتماد الحساب" : "تأكيد إيقاف الحساب"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-right text-sm">
+            <AlertDialogDescription className="text-right text-xs text-muted-foreground">
               {confirmAction?.action === "active"
-                ? `هل تريد اعتماد حساب "${confirmAction?.name}"؟ سيتمكن من الدخول للبوابة وتقديم الطلبات.`
-                : `هل تريد إيقاف حساب "${confirmAction?.name}"؟ لن يتمكن من الدخول للبوابة.`}
+                ? `هل أنت متأكد من رغبتك في اعتماد حساب "${confirmAction?.name}"؟ سيتمكن من تسجيل المساجد وتقديم الطلبات.`
+                : `هل أنت متأكد من رغبتك في إيقاف حساب "${confirmAction?.name}"؟ لن يتمكن من استخدام المنصة مؤقتاً.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row-reverse gap-2 mt-6">
-            <Button
-              disabled={toggleStatus.isPending}
+          <AlertDialogFooter className="flex gap-2 justify-end">
+            <AlertDialogCancel className="rounded-lg text-xs font-bold">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
               onClick={confirmToggle}
-              className={`w-full sm:w-auto font-bold gap-2 ${confirmAction?.action === "active" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
+              className={`rounded-lg text-xs font-bold text-white ${
+                confirmAction?.action === "active"
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
             >
-              {toggleStatus.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{confirmAction?.action === "active" ? "جاري الاعتماد..." : "جاري الإيقاف..."}</span>
-                </>
-              ) : (
-                confirmAction?.action === "active" ? "نعم، اعتماد" : "نعم، إيقاف"
-              )}
-            </Button>
-            <AlertDialogCancel disabled={toggleStatus.isPending} className="w-full sm:w-auto mt-0 font-medium">إلغاء</AlertDialogCancel>
+              {confirmAction?.action === "active" ? "اعتماد الحساب" : "إيقاف الحساب"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
