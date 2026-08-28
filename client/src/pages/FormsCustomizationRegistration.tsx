@@ -13,7 +13,6 @@ import {
   ChevronLeft,
   SlidersHorizontal,
   Loader2,
-  ExternalLink,
   HeartHandshake,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -57,16 +56,6 @@ export default function FormsCustomizationRegistration() {
               </p>
             </div>
           </div>
-
-          <a
-            href="/register"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-border bg-card hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all shrink-0 self-start sm:self-auto"
-          >
-            <span>معاينة صفحة التسجيل الحية</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
         </div>
 
         {/* شبكة بطاقات النماذج */}

@@ -147,9 +147,10 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "services.edit": ["settings.edit"],
   "services.delete": ["settings.edit"],
 
-  forms_customization: ["forms_customization.evaluation", "forms_customization.services"],
+  forms_customization: ["forms_customization.evaluation", "forms_customization.services", "forms_customization.registration"],
   "forms_customization.evaluation": ["settings.view"],
   "forms_customization.services": ["settings.view"],
+  "forms_customization.registration": ["settings.view"],
 
   "financial_approval.view": ["financial.view"],
   "financial_approval.approve": ["financial.approve"],
@@ -603,6 +604,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "contracts.clause_add", moduleId: "settings", action: "clause_add", nameAr: "إضافة بند للعقد", nameEn: "Add Contract Clause" },
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
+      { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
       { id: "contracts.edit_approved", moduleId: "contracts", action: "edit_approved", nameAr: "تعديل العقود المعتمدة", nameEn: "Edit Approved Contracts" },
       { id: "contracts.approve", moduleId: "contracts", action: "approve", nameAr: "اعتماد العقود", nameEn: "Approve Contracts" },
       { id: "disbursements.view", moduleId: "disbursements", action: "view", nameAr: "عرض طلبات الصرف", nameEn: "View Disbursement Requests" },
@@ -655,6 +657,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "services.delete", moduleId: "settings", action: "delete", nameAr: "حذف برنامج أو خدمة", nameEn: "Delete Service" },
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
+      { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
       { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },
@@ -1077,7 +1080,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   }
   if (
     allPermissions.has("forms_customization.evaluation") ||
-    allPermissions.has("forms_customization.services")
+    allPermissions.has("forms_customization.services") ||
+    allPermissions.has("forms_customization.registration")
   ) {
     allPermissions.add("forms_customization");
   } else {

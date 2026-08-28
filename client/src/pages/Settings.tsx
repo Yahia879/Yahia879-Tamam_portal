@@ -118,7 +118,8 @@ export default function Settings() {
     if (perm === "forms_customization") {
       return (
         userPermissions.includes("forms_customization.evaluation") ||
-        userPermissions.includes("forms_customization.services")
+        userPermissions.includes("forms_customization.services") ||
+        userPermissions.includes("forms_customization.registration")
       );
     }
     if (isAdmin) return true;

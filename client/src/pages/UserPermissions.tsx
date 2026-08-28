@@ -686,7 +686,8 @@ export default function UserPermissions() {
       },
       forms_customization: {
         evaluation: "تخصيص استمارة التقييم",
-        services: "تخصيص نماذج طلبات الخدمات"
+        services: "تخصيص نماذج طلبات الخدمات",
+        registration: "تخصيص نماذج التسجيل والتبرع"
       },
       mosque_map: {
         view: "عرض الخريطة الجغرافية للمساجد"
@@ -777,7 +778,7 @@ export default function UserPermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
-        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
