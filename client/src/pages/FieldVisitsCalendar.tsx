@@ -113,8 +113,7 @@ const PRIORITY_OPTIONS = [
 
 function FieldVisitsCalendarContent() {
   const { user } = useAuth();
-  const isSuperAdmin = user?.role === 'super_admin' || user?.role === 'admin';
-  const hasViewAll = isSuperAdmin || usePermission("appointments.view_all");
+  const hasViewAll = usePermission("appointments.view_all");
   const isOwnOnly = !hasViewAll;
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());

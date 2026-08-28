@@ -34,8 +34,8 @@ export const calendarRouter = router({
       const search = input.search?.trim().toLowerCase() || "";
 
       // التحقق من صلاحيات العرض: عرض الكل vs عرض الزيارات الخاصة بي فقط
-      const isSuperAdmin = ctx.user.role === 'super_admin' || ctx.user.role === 'admin';
-      const hasViewAll = isSuperAdmin || (await checkPermission(ctx.user.id, "appointments.view_all"));
+      const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
+      const hasViewOwn = await checkPermission(ctx.user.id, "appointments.view_own");
       const enforceOwnOnly = !hasViewAll;
 
       // -------------------------------------------------------------
@@ -635,8 +635,7 @@ export const calendarRouter = router({
       const todayStr = new Date().toISOString().split("T")[0];
 
       // التحقق من صلاحيات العرض
-      const isSuperAdmin = ctx.user.role === 'super_admin' || ctx.user.role === 'admin';
-      const hasViewAll = isSuperAdmin || (await checkPermission(ctx.user.id, "appointments.view_all"));
+      const hasViewAll = await checkPermission(ctx.user.id, "appointments.view_all");
       const enforceOwnOnly = !hasViewAll;
 
       // 1. عدد الزيارات الميدانية (دمج الجدولين بدون تكرار)
