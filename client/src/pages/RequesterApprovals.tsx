@@ -1256,7 +1256,7 @@ export default function RequesterApprovals() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <span className="text-xs text-muted-foreground block font-medium">الاسم الكامل:</span>
                     <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.name}</span>
@@ -1265,12 +1265,8 @@ export default function RequesterApprovals() {
                     <span className="text-xs text-muted-foreground block font-medium">رقم الجوال:</span>
                     <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block">{selectedSubmission.phone}</span>
                   </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground block font-medium">المدينة:</span>
-                    <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.city || "غير محددة"}</span>
-                  </div>
                   {selectedSubmission.email && (
-                    <div className="col-span-2">
+                    <div>
                       <span className="text-xs text-muted-foreground block font-medium">البريد الإلكتروني:</span>
                       <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block">{selectedSubmission.email}</span>
                     </div>
@@ -1283,38 +1279,6 @@ export default function RequesterApprovals() {
                   )}
                 </div>
               </div>
-
-
-
-              {/* تفاصيل التبرع العيني */}
-              {selectedSubmission.submissionType === 'donor_inkind' && (
-                <div className="p-5 sm:p-6 rounded-3xl bg-teal-50/40 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-800 space-y-4">
-                  <h4 className="text-sm sm:text-base font-black text-teal-800 dark:text-teal-300 flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    بيانات المواد والتبرع العيني
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">نوع المادة / التبرع:</span>
-                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.inKindType || "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">الكمية المعروضة:</span>
-                      <span className="text-lg sm:text-xl font-black text-teal-700 dark:text-teal-300 font-mono mt-0.5 block">{selectedSubmission.inKindQuantity || "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">حالة المواد:</span>
-                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedSubmission.inKindCondition || "—"}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground block font-medium">إمكانية النقل والتوصيل:</span>
-                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">
-                        {selectedSubmission.inKindDeliveryAvailable ? "✅ متاح النقل والتوصيل من المتبرع" : "❌ يتطلب استلام وتنسيق من الجمعية"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* نص الرسالة / الاستفسار / الملاحظات المرفقة */}
               {selectedSubmission.details && (
