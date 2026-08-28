@@ -872,9 +872,9 @@ export default function RequesterApprovals() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">كافة أنواع التبرعات</SelectItem>
-                      <SelectItem value="donor_land">🏞️ تبرع بأرض مسجد</SelectItem>
-                      <SelectItem value="donor_inkind">📦 تبرع عيني ومواد</SelectItem>
-                      <SelectItem value="donor_other">🤝 مبادرات وتبرعات أخرى</SelectItem>
+                      <SelectItem value="donor_land">تبرع بأرض مسجد</SelectItem>
+                      <SelectItem value="donor_inkind">تبرع عيني ومواد</SelectItem>
+                      <SelectItem value="donor_other">مبادرات وتبرعات أخرى</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -957,8 +957,7 @@ export default function RequesterApprovals() {
 
                             {/* نوع التبرع */}
                             <TableCell>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${typeInfo.badge}`}>
-                                <span>{typeInfo.icon}</span>
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold border ${typeInfo.badge}`}>
                                 <span>{typeInfo.shortLabel}</span>
                               </span>
                             </TableCell>
