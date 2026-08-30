@@ -3340,13 +3340,13 @@ export default function RequestDetailsNew() {
 
       {/* Add Review Note Dialog (Natural White Theme with Green Button) */}
       <Dialog open={addReviewNoteOpen} onOpenChange={setAddReviewNoteOpen}>
-        <DialogContent className="sm:max-w-[520px] p-6 bg-background rounded-2xl border shadow-xl" dir={isEn ? "ltr" : "rtl"}>
+        <DialogContent className="sm:max-w-[720px] p-6 sm:p-7 bg-background rounded-2xl border shadow-xl" dir={isEn ? "ltr" : "rtl"}>
           <DialogHeader className="text-right pb-3 border-b border-border/50">
-            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
-              <div className="w-9 h-9 rounded-xl bg-muted/60 text-foreground flex items-center justify-center shrink-0 border border-border">
-                <StickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <DialogTitle className="flex items-center gap-2.5 text-lg sm:text-xl font-bold text-foreground">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/60 dark:border-emerald-800/60">
+                <StickyNote className="w-5 h-5" />
               </div>
-              <span>{isEn ? "Add Review Note" : "إضافة ملاحظة على مراجعة المعلومات والمرفقات"}</span>
+              <span>{isEn ? "Add Note" : "إضافة ملاحظة"}</span>
             </DialogTitle>
           </DialogHeader>
 
@@ -3359,8 +3359,8 @@ export default function RequestDetailsNew() {
                 value={newReviewNote}
                 onChange={(e) => setNewReviewNote(e.target.value)}
                 placeholder={isEn ? "Write your notes regarding request info or attachments..." : "اكتب ملاحظاتك بخصوص مراجعة معلومات الطلب أو المرفقات..."}
-                rows={5}
-                className="w-full text-sm leading-relaxed rounded-xl bg-muted/20 border-border focus:border-emerald-500"
+                rows={7}
+                className="w-full min-h-[160px] text-sm leading-relaxed rounded-xl bg-muted/20 border-border focus:border-emerald-500 p-3.5"
               />
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {isEn ? "This note will be recorded with your name and timestamp in the review notes log." : "سيتم حفظ هذه الملاحظة باسمك وتاريخها ضمن سجل ملاحظات المراجعة."}
@@ -3374,7 +3374,7 @@ export default function RequestDetailsNew() {
               variant="outline"
               onClick={() => setAddReviewNoteOpen(false)}
               disabled={addReviewNoteMutation.isPending}
-              className="w-full sm:w-auto h-11 font-medium rounded-xl"
+              className="w-full sm:w-auto h-11 font-medium rounded-xl px-6"
             >
               {isEn ? "Cancel" : "إلغاء"}
             </Button>
@@ -3391,7 +3391,7 @@ export default function RequestDetailsNew() {
                 });
               }}
               disabled={addReviewNoteMutation.isPending || !newReviewNote.trim()}
-              className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-6 shadow-sm gap-1.5"
+              className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-7 shadow-sm gap-1.5 cursor-pointer"
             >
               {addReviewNoteMutation.isPending ? (
                 <>
