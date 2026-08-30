@@ -301,90 +301,171 @@ export default function BoardDashboard() {
         </div>
 
         {/* ==================== 👑 1. صفحة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة المطابق لـ /disbursement-orders) ==================== */}
-        {isChairmanView && data?.chairmanData && (
-          <div className="space-y-8 animate-in fade-in-50 duration-300">
-            {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {/* 1. إجمالي الأوامر المعتمدة */}
-              <Card className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 via-card to-teal-50/20 dark:from-emerald-950/20 dark:via-card dark:to-teal-950/10 shadow-xs hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-90" />
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر المعتمدة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-300">
-                      {data.chairmanData.totalApprovedCount}
-                    </h3>
-                    <p className="text-[11px] text-emerald-600/90 dark:text-emerald-400 font-medium flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 shrink-0" />
-                      جاهزة للتنفيذ والصرف
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                </CardContent>
-              </Card>
+        {isChairmanView && data?.chairmanData && (() => {
+          const pendingCount = data.chairmanData.statusCounts?.pending_approval ?? 0;
+          const executedCount = data.chairmanData.statusCounts?.executed ?? 0;
+          const totalCount = data.chairmanData.totalApprovedCount ?? 0;
 
-              {/* 2. إجمالي القيمة المالية المعتمدة */}
-              <Card className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-50/50 via-card to-yellow-50/20 dark:from-amber-950/20 dark:via-card dark:to-yellow-950/10 shadow-xs hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-500 opacity-90" />
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">إجمالي القيمة المالية</p>
-                    <h3 className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400 font-sans">
-                      {formatCurrency(totalApprovedAmount)}
-                    </h3>
-                    <p className="text-[11px] text-amber-600/90 dark:text-amber-400 font-medium flex items-center gap-1">
-                      <Wallet className="w-3 h-3 shrink-0" />
-                      إجمالي مبالغ الأوامر
-                    </p>
+          return (
+            <div className="space-y-6 animate-in fade-in-50 duration-300">
+              {/* كرت التنبيه التفاعلي عند وجود أوامر بانتظار الاعتماد */}
+              {pendingCount > 0 && (
+                <div 
+                  onClick={() => {
+                    setSelectedStatus("pending_approval");
+                    setCurrentPage(1);
+                    const el = document.getElementById("chairman-orders-table");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="cursor-pointer rounded-2xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-card dark:from-amber-950/40 dark:via-amber-900/20 dark:to-card p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/30 shrink-0">
+                      <Clock className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base sm:text-lg font-black text-amber-900 dark:text-amber-200">
+                          {pendingCount === 1 
+                            ? "يوجد أمر صرف واحد بانتظار اعتمادك" 
+                            : pendingCount === 2 
+                              ? "يوجد أمري صرف بانتظار اعتمادك" 
+                              : `يوجد ${pendingCount} أوامر صرف بانتظار اعتمادك`}
+                        </h3>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500 text-white shadow-xs animate-pulse">
+                          جديد
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-800/80 dark:text-amber-300/80 font-medium">
+                        اضغط هنا لتصفية وعرض الأوامر التي تتطلب اعتمادك المباشر أو التحويل البنكي
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-amber-500 to-yellow-500 text-white shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                    <Banknote className="w-6 h-6" />
-                  </div>
-                </CardContent>
-              </Card>
+                  <Button 
+                    size="sm" 
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl gap-1.5 shrink-0 self-end sm:self-center shadow-xs"
+                  >
+                    <span>عرض الأوامر المعلقة ({pendingCount})</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
 
-              {/* 3. أوامر مرتبطة بطلبات معتمدة */}
-              <Card className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-50/50 via-card to-cyan-50/20 dark:from-blue-950/20 dark:via-card dark:to-cyan-950/10 shadow-xs hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 opacity-90" />
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">أوامر مرتبطة بطلبات</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-300">
-                      {data.chairmanData.totalLinkedApprovedCount ?? data.chairmanData.linkedApprovedOrders?.length ?? 0}
-                    </h3>
-                    <p className="text-[11px] text-blue-600/90 dark:text-blue-400 font-medium flex items-center gap-1">
-                      <Link2 className="w-3 h-3 shrink-0" />
-                      مرتبطة بطلبات معتمدة
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                    <Link2 className="w-6 h-6" />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {/* 1. أوامر بانتظار الاعتماد */}
+                <Card 
+                  onClick={() => {
+                    setSelectedStatus("pending_approval");
+                    setCurrentPage(1);
+                  }}
+                  className={`cursor-pointer rounded-2xl border transition-all relative overflow-hidden group hover:shadow-md ${
+                    selectedStatus === "pending_approval"
+                      ? "ring-2 ring-amber-500 border-amber-500 bg-amber-50/60 dark:bg-amber-950/30"
+                      : "border-amber-500/30 bg-gradient-to-br from-amber-50/40 via-card to-amber-100/10 dark:from-amber-950/20 dark:via-card dark:to-amber-950/10"
+                  }`}
+                >
+                  <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 to-rose-500 opacity-90" />
+                  <CardContent className="p-5 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">بانتظار الاعتماد والتنفيذ</p>
+                      <h3 className="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                        <span>{pendingCount}</span>
+                        {pendingCount > 0 && (
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                        )}
+                      </h3>
+                      <p className="text-[11px] text-amber-600/90 dark:text-amber-400 font-medium flex items-center gap-1">
+                        <Clock className="w-3 h-3 shrink-0" />
+                        بانتظار اعتماد صاحب الصلاحية
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                      <Clock className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* 4. أوامر صرف مخصصة */}
-              <Card className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-50/50 via-card to-indigo-50/20 dark:from-purple-950/20 dark:via-card dark:to-indigo-950/10 shadow-xs hover:shadow-md transition-all relative overflow-hidden group">
-                <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-indigo-500 opacity-90" />
-                <CardContent className="p-5 flex items-center justify-between text-right">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-muted-foreground">أوامر صرف مخصصة</p>
-                    <h3 className="text-2xl sm:text-3xl font-black text-purple-700 dark:text-purple-300">
-                      {data.chairmanData.totalCustomApprovedCount ?? data.chairmanData.customApprovedOrders?.length ?? 0}
-                    </h3>
-                    <p className="text-[11px] text-purple-600/90 dark:text-purple-400 font-medium flex items-center gap-1">
-                      <FileSpreadsheet className="w-3 h-3 shrink-0" />
-                      مخصصة مستقلة
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-purple-600 to-indigo-500 text-white shadow-md shadow-purple-500/20 shrink-0 group-hover:scale-105 transition-transform">
-                    <FileSpreadsheet className="w-6 h-6" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                {/* 2. إجمالي الأوامر المعتمدة */}
+                <Card 
+                  onClick={() => {
+                    setSelectedStatus("all");
+                    setCurrentPage(1);
+                  }}
+                  className={`cursor-pointer rounded-2xl border transition-all relative overflow-hidden group hover:shadow-md ${
+                    selectedStatus === "all"
+                      ? "ring-2 ring-teal-500 border-teal-500 bg-teal-50/60 dark:bg-teal-950/30"
+                      : "border-teal-500/20 bg-gradient-to-br from-teal-50/40 via-card to-emerald-50/20 dark:from-teal-950/20 dark:via-card dark:to-emerald-950/10"
+                  }`}
+                >
+                  <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-90" />
+                  <CardContent className="p-5 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي الأوامر بالمركز</p>
+                      <h3 className="text-2xl sm:text-3xl font-black text-teal-700 dark:text-teal-300">
+                        {totalCount}
+                      </h3>
+                      <p className="text-[11px] text-teal-600/90 dark:text-teal-400 font-medium flex items-center gap-1">
+                        <Receipt className="w-3 h-3 shrink-0" />
+                        كافة أوامر المركز
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-teal-600 to-emerald-500 text-white shadow-md shadow-teal-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                      <Receipt className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 3. إجمالي القيمة المالية المعتمدة */}
+                <Card className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-50/50 via-card to-yellow-50/20 dark:from-amber-950/20 dark:via-card dark:to-yellow-950/10 shadow-xs hover:shadow-md transition-all relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-500 opacity-90" />
+                  <CardContent className="p-5 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">إجمالي القيمة المالية</p>
+                      <h3 className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400 font-sans">
+                        {formatCurrency(totalApprovedAmount)}
+                      </h3>
+                      <p className="text-[11px] text-amber-600/90 dark:text-amber-400 font-medium flex items-center gap-1">
+                        <Wallet className="w-3 h-3 shrink-0" />
+                        إجمالي مبالغ الأوامر
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-amber-500 to-yellow-500 text-white shadow-md shadow-amber-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                      <Banknote className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 4. أوامر منفذة ومعتمدة بنكياً */}
+                <Card 
+                  onClick={() => {
+                    setSelectedStatus("executed");
+                    setCurrentPage(1);
+                  }}
+                  className={`cursor-pointer rounded-2xl border transition-all relative overflow-hidden group hover:shadow-md ${
+                    selectedStatus === "executed"
+                      ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/30"
+                      : "border-emerald-500/20 bg-gradient-to-br from-emerald-50/40 via-card to-teal-50/20 dark:from-emerald-950/20 dark:via-card dark:to-teal-950/10"
+                  }`}
+                >
+                  <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-90" />
+                  <CardContent className="p-5 flex items-center justify-between text-right">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">أوامر تم تنفيذها واعتمادها</p>
+                      <h3 className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-300">
+                        {executedCount}
+                      </h3>
+                      <p className="text-[11px] text-emerald-600/90 dark:text-emerald-400 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 shrink-0" />
+                        منفذة ومكتملة بنكياً
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-500/20 shrink-0 group-hover:scale-105 transition-transform">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
             {/* أدوات البحث والتصفية المباشرة */}
             <Card className="border border-border/80 shadow-sm rounded-2xl bg-card overflow-hidden">
@@ -818,7 +899,8 @@ export default function BoardDashboard() {
               </CardContent>
             </Card>
           </div>
-        )}
+          );
+        })()}
 
         {/* ==================== 📊 2. صفحة عضو مجلس الإدارة (التبويبات الـ 5 للإحصائيات) ==================== */}
         {!isChairmanView && data && (

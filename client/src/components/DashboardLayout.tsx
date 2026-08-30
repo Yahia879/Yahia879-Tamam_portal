@@ -840,19 +840,33 @@ function DashboardLayoutContent({
       </div>
 
       <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <img src={mainLogoSrc} alt="شعار" className="w-8 h-8 object-contain" />
-                <span className="font-semibold text-foreground">
-                  {activeMenuItem?.label || "بوابة تمام"}
-                </span>
+        {isMobile && (() => {
+          const hasAnyPendingAction = 
+            Boolean(pendingDisbursements?.hasPendingOrders) ||
+            Boolean(pendingDisbursements?.hasPendingRequests) ||
+            Boolean(pendingDisbursements?.hasPendingBoardExecutive) ||
+            Boolean(pendingProgressReports?.hasPendingReports) ||
+            Boolean(pendingUsers && pendingUsers.length > 0);
+
+          return (
+            <div className="flex border-b h-14 items-center justify-between bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
+              <div className="flex items-center gap-2">
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
+                  {hasAnyPendingAction && (
+                    <span className="absolute -top-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-background animate-pulse pointer-events-none" />
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <img src={mainLogoSrc} alt="شعار" className="w-8 h-8 object-contain" />
+                  <span className="font-semibold text-foreground">
+                    {activeMenuItem?.label || "بوابة تمام"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
         <main className="p-4 md:p-6 lg:p-8 bg-muted/30 min-h-screen">
           {children}
         </main>
