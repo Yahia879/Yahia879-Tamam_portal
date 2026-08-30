@@ -2204,7 +2204,7 @@ export default function RequestDetailsNew() {
               <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
                       <StickyNote className="w-5 h-5" />
                     </div>
                     <div>
@@ -2221,7 +2221,7 @@ export default function RequestDetailsNew() {
                     <Button
                       size="sm"
                       onClick={() => setAddReviewNoteOpen(true)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       {isEn ? "Add Note" : "إضافة ملاحظة"}
@@ -2230,7 +2230,7 @@ export default function RequestDetailsNew() {
                 </div>
 
                 {request?.reviewNotes ? (
-                  <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-indigo-100 dark:border-indigo-900/40 shadow-xs">
+                  <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
                     <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                       {request.reviewNotes}
                     </div>
@@ -2246,7 +2246,7 @@ export default function RequestDetailsNew() {
                         variant="outline"
                         size="sm"
                         onClick={() => setAddReviewNoteOpen(true)}
-                        className="mt-3 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 rounded-lg gap-1 cursor-pointer"
+                        className="mt-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
@@ -3343,7 +3343,7 @@ export default function RequestDetailsNew() {
         open={addReviewNoteOpen}
         onOpenChange={setAddReviewNoteOpen}
         title={isEn ? "Add Review Note" : "إضافة ملاحظة على مراجعة المعلومات والمرفقات"}
-        color="blue"
+        color="emerald"
         icon={<StickyNote className="w-6 h-6" />}
       >
         <div className="space-y-4 text-right" dir="rtl">
@@ -3379,7 +3379,7 @@ export default function RequestDetailsNew() {
                 });
               }}
               disabled={addReviewNoteMutation.isPending || !newReviewNote.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
             >
               {addReviewNoteMutation.isPending ? (
                 <>
