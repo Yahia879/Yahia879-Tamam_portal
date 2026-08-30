@@ -559,6 +559,7 @@ export default function UserPermissions() {
         view: "عرض كافة الطلبات",
         create: "إضافة طلب",
         view_details: "عرض تفاصيل الطلب وإدارته",
+        add_review_note: "إضافة ملاحظة في مراجعة الطلب والمرفقات",
         manage_as_field_team: "ادارة الطلبات كفريق ميداني",
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
@@ -721,7 +722,7 @@ export default function UserPermissions() {
           id: "requests", 
           nameAr: "الطلبات", 
           icon: Zap, 
-          perms: ["view", "create", "view_details", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
+          perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
         },
         { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
