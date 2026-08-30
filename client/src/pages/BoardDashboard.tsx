@@ -306,8 +306,8 @@ export default function BoardDashboard() {
 
           return (
             <div className="space-y-6 animate-in fade-in-50 duration-300">
-              {/* كرت التنبيه التفاعلي عند وجود أوامر بانتظار الاعتماد */}
-              {pendingCount > 0 && (
+              {/* كرت التنبيه البسيط: باللون الأحمر عند وجود طلبات، وبالأخضر عند عدم وجود طلبات */}
+              {pendingCount > 0 ? (
                 <div 
                   onClick={() => {
                     setSelectedStatus("pending_approval");
@@ -315,37 +315,55 @@ export default function BoardDashboard() {
                     const el = document.getElementById("chairman-orders-table");
                     if (el) el.scrollIntoView({ behavior: "smooth" });
                   }}
-                  className="cursor-pointer rounded-2xl border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-card dark:from-amber-950/40 dark:via-amber-900/20 dark:to-card p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden"
+                  className="cursor-pointer rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-rose-50/60 to-card dark:from-rose-950/40 dark:via-rose-900/20 dark:to-card p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/30 shrink-0">
-                      <Clock className="w-6 h-6 animate-pulse" />
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-md shadow-rose-500/25 shrink-0">
+                      <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div className="space-y-1 text-right">
+                    <div className="space-y-0.5 text-right">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base sm:text-lg font-black text-amber-900 dark:text-amber-200">
+                        <h3 className="text-base sm:text-lg font-black text-rose-800 dark:text-rose-200">
                           {pendingCount === 1 
-                            ? "يوجد أمر صرف واحد بانتظار اعتمادك" 
+                            ? "يوجد طلب واحد بحاجة إلى الاعتماد" 
                             : pendingCount === 2 
-                              ? "يوجد أمري صرف بانتظار اعتمادك" 
-                              : `يوجد ${pendingCount} أوامر صرف بانتظار اعتمادك`}
+                              ? "يوجد طلبان بحاجة إلى الاعتماد" 
+                              : `يوجد ${pendingCount} طلبات بحاجة إلى الاعتماد`}
                         </h3>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500 text-white shadow-xs animate-pulse">
-                          جديد
-                        </span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
                       </div>
-                      <p className="text-xs text-amber-800/80 dark:text-amber-300/80 font-medium">
-                        اضغط هنا لتصفية وعرض الأوامر التي تتطلب اعتمادك المباشر أو التحويل البنكي
+                      <p className="text-xs text-rose-700/80 dark:text-rose-300/80 font-medium">
+                        اضغط هنا لتصفية وعرض الطلبات التي تتطلب اعتمادك المباشر
                       </p>
                     </div>
                   </div>
                   <Button 
                     size="sm" 
-                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl gap-1.5 shrink-0 self-end sm:self-center shadow-xs"
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl gap-1.5 shrink-0 self-end sm:self-center shadow-xs"
                   >
-                    <span>عرض الأوامر المعلقة ({pendingCount})</span>
+                    <span>عرض الطلبات ({pendingCount})</span>
                     <ArrowUpRight className="w-4 h-4" />
                   </Button>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-50/50 to-card dark:from-emerald-950/30 dark:via-emerald-900/15 dark:to-card p-4 sm:p-5 shadow-xs transition-all flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 shrink-0">
+                      <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div className="space-y-0.5 text-right">
+                      <h3 className="text-base sm:text-lg font-black text-emerald-800 dark:text-emerald-200">
+                        لا يوجد طلبات بحاجة إلى اعتماد
+                      </h3>
+                      <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 font-medium">
+                        جميع الأوامر والطلبات معتمدة ومحدثة بالكامل
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/40 px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 shadow-2xs shrink-0">
+                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>مكتمل</span>
+                  </Badge>
                 </div>
               )}
 
