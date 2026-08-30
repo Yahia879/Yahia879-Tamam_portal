@@ -2200,62 +2200,6 @@ export default function RequestDetailsNew() {
                 )}
               </div>
 
-              {/* قسم ملاحظات مراجعة المعلومات والمرفقات */}
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                      <StickyNote className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-base sm:text-lg text-foreground">
-                        {isEn ? "Review & Attachments Notes" : "ملاحظات مراجعة المعلومات والمرفقات"}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {isEn ? "Review notes and observations on request info & files" : "الملاحظات المسجلة أثناء مراجعة بيانات الطلب والمرفقات"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {canAddReviewNote && (
-                    <Button
-                      size="sm"
-                      onClick={() => setAddReviewNoteOpen(true)}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      {isEn ? "Add Note" : "إضافة ملاحظة"}
-                    </Button>
-                  )}
-                </div>
-
-                {request?.reviewNotes ? (
-                  <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
-                    <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                      {request.reviewNotes}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                    <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                      {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة المعلومات والمرفقات حتى الآن"}
-                    </p>
-                    {canAddReviewNote && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setAddReviewNoteOpen(true)}
-                        className="mt-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-
               {/* قسم رضا المستفيدين داخل مراجعة المعلومات والمرفقات */}
               {(request.isEvaluated || beneficiaryEvalData?.existingEvaluation || request.satisfactionRating) && (
                 <div className="bg-amber-500/5 dark:bg-amber-500/10 p-4 sm:p-6 rounded-xl border-2 border-amber-500/30 shadow-sm space-y-4" dir="rtl">
@@ -2333,6 +2277,62 @@ export default function RequestDetailsNew() {
                     );
                   })()}
                 </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* قسم ملاحظات مراجعة المعلومات والمرفقات - منفصل ومستقل وواضح */}
+        <div className="mt-6 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                <StickyNote className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-base sm:text-lg text-foreground">
+                  {isEn ? "Review & Attachments Notes" : "ملاحظات مراجعة المعلومات والمرفقات"}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isEn ? "Review notes and observations on request info & files" : "الملاحظات المسجلة أثناء مراجعة بيانات الطلب والمرفقات"}
+                </p>
+              </div>
+            </div>
+
+            {canAddReviewNote && (
+              <Button
+                size="sm"
+                onClick={() => setAddReviewNoteOpen(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                {isEn ? "Add Note" : "إضافة ملاحظة"}
+              </Button>
+            )}
+          </div>
+
+          {request?.reviewNotes ? (
+            <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
+              <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                {request.reviewNotes}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+              <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة المعلومات والمرفقات حتى الآن"}
+              </p>
+              {canAddReviewNote && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddReviewNoteOpen(true)}
+                  className="mt-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
+                </Button>
               )}
             </div>
           )}
