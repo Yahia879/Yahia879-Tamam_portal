@@ -640,19 +640,17 @@ export default function RequesterApprovals() {
                               }`}
                             >
                               <TableCell className="font-bold text-foreground">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2.5 flex-nowrap whitespace-nowrap">
                                   {isPending && (
                                     <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                                   )}
-                                  <div>
-                                    <p className="text-sm">{user.name ?? "—"}</p>
-                                    {isPending && user.createdAt && (
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200/80 dark:border-red-800/60 mt-0.5">
-                                        <Clock className="w-3 h-3 text-red-500 shrink-0" />
-                                        {getDelayDaysText(user.createdAt)}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <span className="text-sm font-bold text-foreground">{user.name ?? "—"}</span>
+                                  {isPending && user.createdAt && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80 shrink-0 shadow-2xs">
+                                      <Clock className="w-3 h-3 text-rose-500 shrink-0" />
+                                      {getDelayDaysText(user.createdAt)}
+                                    </span>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.email ?? "—"}</TableCell>
