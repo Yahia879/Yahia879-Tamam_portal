@@ -683,7 +683,8 @@ export default function RequesterApprovals() {
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl"
+                                          disabled={toggleStatus.isPending}
+                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl gap-1"
                                           onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
@@ -775,21 +776,41 @@ export default function RequesterApprovals() {
                               <>
                                 {user.status !== "active" && (
                                   <Button
+                                    disabled={toggleStatus.isPending}
                                     className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                   >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    اعتماد الحساب
+                                    {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>جاري الاعتماد...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span>اعتماد الحساب</span>
+                                      </>
+                                    )}
                                   </Button>
                                 )}
                                 {user.status === "active" && (
                                   <Button
                                     variant="outline"
+                                    disabled={toggleStatus.isPending}
                                     className="w-full h-9 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30 font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "suspended")}
                                   >
-                                    <XCircle className="w-4 h-4" />
-                                    إيقاف الحساب
+                                    {toggleStatus.isPending && toggleStatus.variables?.userId === user.id ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>جاري الإيقاف...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-4 h-4" />
+                                        <span>إيقاف الحساب</span>
+                                      </>
+                                    )}
                                   </Button>
                                 )}
                               </>
@@ -1074,13 +1095,22 @@ export default function RequesterApprovals() {
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
+                                    className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                     onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                     disabled={updateSubmissionMutation.isPending}
                                     title="تحديد الطلب كتمت المراجعة"
                                   >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    تمت المراجعة
+                                    {updateSubmissionMutation.isPending && updateSubmissionMutation.variables?.id === sub.id ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>جاري الحفظ...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>تمت المراجعة</span>
+                                      </>
+                                    )}
                                   </Button>
                                 )}
 
@@ -1258,13 +1288,22 @@ export default function RequesterApprovals() {
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
+                                    className="h-8 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                     onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                     disabled={updateSubmissionMutation.isPending}
                                     title="تحديد الاستفسار كتمت المراجعة"
                                   >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    تمت المراجعة
+                                    {updateSubmissionMutation.isPending && updateSubmissionMutation.variables?.id === sub.id ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <span>جاري الحفظ...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <span>تمت المراجعة</span>
+                                      </>
+                                    )}
                                   </Button>
                                 )}
 
@@ -1444,8 +1483,17 @@ export default function RequesterApprovals() {
                     disabled={updateSubmissionMutation.isPending}
                     className="rounded-2xl h-11 px-6 text-sm font-black bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm cursor-pointer"
                   >
-                    <CheckCircle2 className="w-4 h-4" />
-                    تمت المراجعة
+                    {updateSubmissionMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>جاري الحفظ...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>تمت المراجعة</span>
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -1476,17 +1524,34 @@ export default function RequesterApprovals() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2 justify-end">
-            <AlertDialogCancel className="rounded-lg text-xs font-bold">إلغاء</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogCancel disabled={toggleStatus.isPending} className="rounded-lg text-xs font-bold">
+              إلغاء
+            </AlertDialogCancel>
+            <Button
               onClick={confirmToggle}
-              className={`rounded-lg text-xs font-bold text-white ${
+              disabled={toggleStatus.isPending}
+              className={`rounded-lg text-xs font-bold text-white gap-1.5 ${
                 confirmAction?.action === "active"
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-red-600 hover:bg-red-700"
               }`}
             >
-              {confirmAction?.action === "active" ? "اعتماد الحساب" : "إيقاف الحساب"}
-            </AlertDialogAction>
+              {toggleStatus.isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>{confirmAction?.action === "active" ? "جاري الاعتماد..." : "جاري الإيقاف..."}</span>
+                </>
+              ) : (
+                <>
+                  {confirmAction?.action === "active" ? (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5" />
+                  )}
+                  <span>{confirmAction?.action === "active" ? "اعتماد الحساب" : "إيقاف الحساب"}</span>
+                </>
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
