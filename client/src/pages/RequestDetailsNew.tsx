@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,6 +69,7 @@ export default function RequestDetailsNew() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const requestId = parseInt(id!);
+  const canAddReviewNote = usePermission("requests.add_review_note") || user?.role === "super_admin" || user?.role === "system_admin";
 
   const [lang] = useState<"ar" | "en">(() => {
     return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
@@ -255,8 +257,22 @@ export default function RequestDetailsNew() {
   // States for add dialogs
   const [addCommentOpen, setAddCommentOpen] = useState(false);
   const [addAttachmentOpen, setAddAttachmentOpen] = useState(false);
+  const [addReviewNoteOpen, setAddReviewNoteOpen] = useState(false);
   const [newComment, setNewComment] = useState("");
+  const [newReviewNote, setNewReviewNote] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const addReviewNoteMutation = trpc.requests.addReviewNote.useMutation({
+    onSuccess: (data) => {
+      toast.success(data?.message || "تمت إضافة ملاحظة المراجعة بنجاح");
+      setNewReviewNote("");
+      setAddReviewNoteOpen(false);
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء إضافة الملاحظة");
+    },
+  });
 
   // States for descriptive name (التسمية التوضيحية)
   const [showEditCaptionDialog, setShowEditCaptionDialog] = useState(false);
@@ -2184,6 +2200,62 @@ export default function RequestDetailsNew() {
                 )}
               </div>
 
+              {/* قسم ملاحظات مراجعة المعلومات والمرفقات */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                      <StickyNote className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-base sm:text-lg text-foreground">
+                        {isEn ? "Review & Attachments Notes" : "ملاحظات مراجعة المعلومات والمرفقات"}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {isEn ? "Review notes and observations on request info & files" : "الملاحظات المسجلة أثناء مراجعة بيانات الطلب والمرفقات"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {canAddReviewNote && (
+                    <Button
+                      size="sm"
+                      onClick={() => setAddReviewNoteOpen(true)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      {isEn ? "Add Note" : "إضافة ملاحظة"}
+                    </Button>
+                  )}
+                </div>
+
+                {request?.reviewNotes ? (
+                  <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-indigo-100 dark:border-indigo-900/40 shadow-xs">
+                    <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                      {request.reviewNotes}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                      {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة المعلومات والمرفقات حتى الآن"}
+                    </p>
+                    {canAddReviewNote && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddReviewNoteOpen(true)}
+                        className="mt-3 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950/40 rounded-lg gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* قسم رضا المستفيدين داخل مراجعة المعلومات والمرفقات */}
               {(request.isEvaluated || beneficiaryEvalData?.existingEvaluation || request.satisfactionRating) && (
                 <div className="bg-amber-500/5 dark:bg-amber-500/10 p-4 sm:p-6 rounded-xl border-2 border-amber-500/30 shadow-sm space-y-4" dir="rtl">
@@ -2239,7 +2311,7 @@ export default function RequestDetailsNew() {
                         {customAnswerEntries.length > 0 && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {customAnswerEntries.map(([k, v]) => {
-                              const fDef = fieldsDef.find(f => f.id === k);
+                              const fDef = (fieldsDef as any[]).find((f: any) => f.id === k);
                               const qLabel = fDef?.label || k;
                               return (
                                 <div key={k} className="p-3 bg-white dark:bg-slate-800/60 rounded-xl border border-border/80 space-y-1">
@@ -3265,6 +3337,65 @@ export default function RequestDetailsNew() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Review Note Dialog */}
+      <ColoredDialog
+        open={addReviewNoteOpen}
+        onOpenChange={setAddReviewNoteOpen}
+        title={isEn ? "Add Review Note" : "إضافة ملاحظة على مراجعة المعلومات والمرفقات"}
+        color="blue"
+        icon={<StickyNote className="w-6 h-6" />}
+      >
+        <div className="space-y-4 text-right" dir="rtl">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+              نص الملاحظة <span className="text-red-500">*</span>
+            </label>
+            <Textarea
+              value={newReviewNote}
+              onChange={(e) => setNewReviewNote(e.target.value)}
+              placeholder="اكتب ملاحظاتك بخصوص مراجعة معلومات الطلب أو المرفقات..."
+              rows={5}
+              className="w-full text-sm leading-relaxed"
+            />
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setAddReviewNoteOpen(false)}
+              disabled={addReviewNoteMutation.isPending}
+            >
+              إلغاء
+            </Button>
+            <Button
+              onClick={() => {
+                if (!newReviewNote.trim()) {
+                  toast.error("يرجى كتابة نص الملاحظة");
+                  return;
+                }
+                addReviewNoteMutation.mutate({
+                  requestId,
+                  note: newReviewNote.trim(),
+                });
+              }}
+              disabled={addReviewNoteMutation.isPending || !newReviewNote.trim()}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-1.5"
+            >
+              {addReviewNoteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                  جاري الحفظ...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 ml-1" />
+                  حفظ الملاحظة
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </ColoredDialog>
 
       {/* Add Comment Dialog */}
       <ColoredDialog
