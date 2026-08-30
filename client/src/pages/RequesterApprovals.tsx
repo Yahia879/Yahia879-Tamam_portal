@@ -127,9 +127,13 @@ const getDelayDaysText = (createdAt: string | Date | null | undefined): string =
   if (!createdAt) return "";
   const date = new Date(createdAt);
   if (isNaN(date.getTime())) return "";
+  
   const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const createdMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  const diffInMs = todayMidnight.getTime() - createdMidnight.getTime();
+  const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
   
   if (diffInDays <= 0) return "اليوم";
   if (diffInDays === 1) return "متأخر يوم واحد";
@@ -654,12 +658,20 @@ export default function RequesterApprovals() {
                                   )}
                                   <div className="flex flex-col items-start gap-1">
                                     <span className="text-sm font-bold text-foreground leading-tight">{user.name ?? "—"}</span>
-                                    {isPending && user.createdAt && (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80 shadow-2xs">
-                                        <Clock className="w-3 h-3 text-rose-500 shrink-0" />
-                                        {getDelayDaysText(user.createdAt)}
-                                      </span>
-                                    )}
+                                    {isPending && user.createdAt && (() => {
+                                      const delayText = getDelayDaysText(user.createdAt);
+                                      const isToday = delayText === "اليوم";
+                                      return (
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold shadow-2xs ${
+                                          isToday
+                                            ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80"
+                                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                        }`}>
+                                          <Clock className={`w-3 h-3 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
+                                          {delayText}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                               </TableCell>
@@ -747,12 +759,20 @@ export default function RequesterApprovals() {
                               <p className="text-xs text-muted-foreground truncate">{user.email ?? "—"}</p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              {isPending && user.createdAt && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
-                                  <Clock className="w-2.5 h-2.5 text-red-500" />
-                                  {getDelayDaysText(user.createdAt)}
-                                </span>
-                              )}
+                              {isPending && user.createdAt && (() => {
+                                const delayText = getDelayDaysText(user.createdAt);
+                                const isToday = delayText === "اليوم";
+                                return (
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-2xs ${
+                                    isToday
+                                      ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80"
+                                      : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                  }`}>
+                                    <Clock className={`w-2.5 h-2.5 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
+                                    {delayText}
+                                  </span>
+                                );
+                              })()}
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${statusInfo?.color ?? ""}`}>
                                 <StatusIcon className={`w-3 h-3 ${isPending ? "animate-pulse text-amber-600 dark:text-amber-400" : ""}`} />
                                 {statusInfo?.label ?? user.status}

@@ -33,30 +33,16 @@ import { getUserHomeRoute } from "@/lib/routePermissions";
 function getArabicTimeAgo(createdAt: string | Date | null | undefined): string {
   if (!createdAt) return "تاريخ غير متاح";
   const date = new Date(createdAt);
+  if (isNaN(date.getTime())) return "تاريخ غير متاح";
+
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const createdMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-  if (diffInSeconds < 60) {
-    return "متأخر منذ لحظات";
-  }
+  const diffInMs = todayMidnight.getTime() - createdMidnight.getTime();
+  const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
 
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    if (diffInMinutes === 1) return "متأخر دقيقة واحدة";
-    if (diffInMinutes === 2) return "متأخر دقيقتين";
-    if (diffInMinutes >= 3 && diffInMinutes <= 10) return `متأخر ${diffInMinutes} دقائق`;
-    return `متأخر ${diffInMinutes} دقيقة`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    if (diffInHours === 1) return "متأخر ساعة واحدة";
-    if (diffInHours === 2) return "متأخر ساعتين";
-    if (diffInHours >= 3 && diffInHours <= 10) return `متأخر ${diffInHours} ساعات`;
-    return `متأخر ${diffInHours} ساعة`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays <= 0) return "مسجل اليوم";
   if (diffInDays === 1) return "متأخر يوم واحد";
   if (diffInDays === 2) return "متأخر يومين";
   if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
