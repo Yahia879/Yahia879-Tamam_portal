@@ -948,7 +948,7 @@ export default function Register() {
                 className="h-8 sm:h-9 px-2.5 sm:px-4 rounded-xl border-primary/30 bg-white hover:bg-primary/10 hover:border-primary text-primary text-xs sm:text-sm font-bold flex items-center gap-1.5 cursor-pointer shadow-sm hover:shadow transition-all shrink-0 group active:scale-95"
               >
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
-                <span>تغيير الصفة</span>
+                <span>{donorType ? "عودة" : "تغيير الصفة"}</span>
               </Button>
             </div>
           )}
@@ -1109,7 +1109,7 @@ export default function Register() {
                     <div className="space-y-0.5 sm:space-y-1">
                       <h3 className="font-bold text-slate-900 group-hover:text-amber-900 text-sm sm:text-base">متبرع بتبرع مالي</h3>
                       <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
-                        تحويل بنكي لحساب الجمعية أو عبر المتجر الإلكتروني
+                        تحويل بنكي لحساب الجمعية أو عبر موقع التبرعات الإلكتروني
                       </p>
                     </div>
                   </button>
@@ -1516,7 +1516,7 @@ export default function Register() {
                     <span>خيارات التبرع المالي لدعم المساجد</span>
                   </div>
                   <p className="font-semibold text-sm sm:text-base leading-relaxed text-slate-800">
-                    نشكر لكم رغبتكم الكريمة في دعم بيوت الله وعمارتها. يمكنكم التبرع من خلال التحويل المباشر إلى الحساب البنكي الرسمي المعتمد أو عبر متجر التبرعات الإلكتروني.
+                    نشكر لكم رغبتكم الكريمة في دعم بيوت الله وعمارتها. يمكنكم التبرع من خلال التحويل المباشر إلى الحساب البنكي الرسمي المعتمد أو عبر موقع التبرعات الإلكتروني.
                   </p>
                 </div>
 
@@ -1623,14 +1623,14 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* الخيار الثاني: التبرع عبر المتجر الإلكتروني */}
+                {/* الخيار الثاني: التبرع عبر موقع التبرعات الإلكتروني */}
                 <div className="rounded-2xl sm:rounded-3xl border-2 border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm space-y-4">
                   <div className="flex items-center gap-3 border-b pb-3">
                     <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold border border-teal-200/80">
                       <ExternalLink className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-base">الخيار الثاني: متجر التبرعات الإلكتروني</h4>
+                      <h4 className="font-bold text-slate-900 text-base">الخيار الثاني: موقع التبرعات الإلكتروني</h4>
                       <p className="text-xs text-slate-500">اختر فرص التبرع والمشاريع المتاحة وتبرع إلكترونياً</p>
                     </div>
                   </div>
@@ -1642,7 +1642,7 @@ export default function Register() {
                     className="inline-flex items-center justify-center gap-2 w-full text-white font-bold h-12 rounded-xl shadow-md hover:shadow-lg transition-all cursor-pointer text-sm sm:text-base"
                     style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)` }}
                   >
-                    <span>الانتقال إلى متجر منارة للتبرع الإلكتروني</span>
+                    <span>الانتقال إلى موقع التبرعات الإلكتروني</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>
