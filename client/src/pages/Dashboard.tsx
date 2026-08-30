@@ -428,20 +428,26 @@ export default function Dashboard() {
 
         {/* المستخدمون قيد الانتظار (للمدراء فقط) */}
         {pendingUsers && pendingUsers.length > 0 && (
-          <Card className="border-0 shadow-sm border-r-4 border-r-amber-500">
+          <Card className="border-0 shadow-sm border-r-4 border-r-red-500">
             <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 border border-red-200/80 dark:border-red-800/80">
+                    <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
                   </div>
-                  <div>
+                  <div className="space-y-1">
                     <CardTitle className="text-base sm:text-lg">مستخدمون بانتظار الاعتماد</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">{pendingUsers.length} مستخدم بانتظار المراجعة</CardDescription>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/80 shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-red-600 dark:text-red-400 font-black">{pendingUsers.length}</span>
+                        <span>مستخدم بانتظار المراجعة</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <Link href="/requester-approvals">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto h-8 sm:h-9">
+                  <Button variant="outline" size="sm" className="w-full sm:w-auto h-8 sm:h-9 hover:border-red-300 hover:text-red-600">
                     عرض الكل
                     <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
                   </Button>

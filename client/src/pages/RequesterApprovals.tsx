@@ -95,10 +95,10 @@ const getRequesterTypeLabel = (type: string | null | undefined) => {
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending: { label: "قيد المراجعة", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400", icon: Clock },
-  active: { label: "مُعتمد", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
-  suspended: { label: "موقوف", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
-  blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400", icon: XCircle },
+  pending: { label: "قيد المراجعة", color: "bg-amber-100 text-amber-900 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700/80 shadow-2xs font-bold", icon: Clock },
+  active: { label: "مُعتمد", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800", icon: CheckCircle2 },
+  suspended: { label: "موقوف", color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800", icon: XCircle },
+  blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border border-gray-200 dark:border-gray-800", icon: XCircle },
 };
 
 const submissionStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
@@ -619,11 +619,26 @@ export default function RequesterApprovals() {
                       </TableHeader>
                       <TableBody>
                         {filtered.map(user => {
+                          const isPending = (user.status ?? "pending") === "pending";
                           const statusInfo = statusConfig[user.status ?? "pending"];
                           const StatusIcon = statusInfo?.icon ?? Clock;
                           return (
-                            <TableRow key={user.id} className="hover:bg-muted/20 transition-colors">
-                              <TableCell className="font-medium">{user.name ?? "—"}</TableCell>
+                            <TableRow 
+                              key={user.id} 
+                              className={`transition-all ${
+                                isPending 
+                                  ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
+                                  : "hover:bg-muted/20"
+                              }`}
+                            >
+                              <TableCell className="font-bold text-foreground">
+                                <div className="flex items-center gap-2">
+                                  {isPending && (
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
+                                  )}
+                                  <span>{user.name ?? "—"}</span>
+                                </div>
+                              </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.email ?? "—"}</TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.phone ?? "—"}</TableCell>
                               <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
@@ -631,7 +646,7 @@ export default function RequesterApprovals() {
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${statusInfo?.color ?? ""}`}>
-                                  <StatusIcon className="w-3 h-3" />
+                                  <StatusIcon className={`w-3 h-3 ${isPending ? "animate-pulse text-amber-600 dark:text-amber-400" : ""}`} />
                                   {statusInfo?.label ?? user.status}
                                 </span>
                               </TableCell>
@@ -684,17 +699,30 @@ export default function RequesterApprovals() {
                   {/* Mobile View */}
                   <div className="md:hidden divide-y">
                     {filtered.map(user => {
+                      const isPending = (user.status ?? "pending") === "pending";
                       const statusInfo = statusConfig[user.status ?? "pending"];
                       const StatusIcon = statusInfo?.icon ?? Clock;
                       return (
-                        <div key={user.id} className="p-4 space-y-3">
+                        <div 
+                          key={user.id} 
+                          className={`p-4 space-y-3 transition-all ${
+                            isPending 
+                              ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 border-y border-amber-200/80 dark:border-amber-900/60 shadow-xs" 
+                              : ""
+                          }`}
+                        >
                           <div className="flex justify-between items-start gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="font-bold text-foreground truncate">{user.name ?? "—"}</p>
+                              <div className="flex items-center gap-2">
+                                {isPending && (
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
+                                )}
+                                <p className="font-bold text-foreground truncate">{user.name ?? "—"}</p>
+                              </div>
                               <p className="text-xs text-muted-foreground truncate">{user.email ?? "—"}</p>
                             </div>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0 ${statusInfo?.color ?? ""}`}>
-                              <StatusIcon className="w-2.5 h-2.5" />
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0 ${statusInfo?.color ?? ""}`}>
+                              <StatusIcon className={`w-3 h-3 ${isPending ? "animate-pulse text-amber-600 dark:text-amber-400" : ""}`} />
                               {statusInfo?.label ?? user.status}
                             </span>
                           </div>
@@ -785,14 +813,30 @@ export default function RequesterApprovals() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      exceptionRequests.map((item: any) => (
-                        <TableRow key={item.exception.id} className="hover:bg-muted/20">
-                          <TableCell className="font-bold text-foreground">
-                            {item.userName}
-                            <span className="block text-xs font-normal text-muted-foreground mt-0.5">
-                              {item.userPhone}
-                            </span>
-                          </TableCell>
+                      exceptionRequests.map((item: any) => {
+                        const isPending = item.exception.status === "pending";
+                        return (
+                          <TableRow 
+                            key={item.exception.id} 
+                            className={`transition-all ${
+                              isPending 
+                                ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
+                                : "hover:bg-muted/20"
+                            }`}
+                          >
+                            <TableCell className="font-bold text-foreground">
+                              <div className="flex items-center gap-2">
+                                {isPending && (
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
+                                )}
+                                <div>
+                                  <span>{item.userName}</span>
+                                  <span className="block text-xs font-normal text-muted-foreground mt-0.5">
+                                    {item.userPhone}
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {new Date(item.exception.createdAt).toLocaleDateString("ar-SA")}
                           </TableCell>
@@ -947,16 +991,27 @@ export default function RequesterApprovals() {
                     </TableHeader>
                     <TableBody>
                       {donationSubmissions.map((sub: any) => {
+                        const isPending = sub.status === "new" || sub.status === "under_review";
                         const typeInfo = submissionTypeLabels[sub.submissionType] || submissionTypeLabels.donor_other;
                         const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
                         const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
                         const waPhone = cleanPhone?.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
 
                         return (
-                          <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
+                          <TableRow 
+                            key={sub.id} 
+                            className={`transition-colors ${
+                              isPending 
+                                ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
+                                : "hover:bg-muted/20"
+                            }`}
+                          >
                             {/* المتبرع */}
                             <TableCell className="font-bold text-foreground">
                               <div className="flex items-center gap-2">
+                                {isPending && (
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
+                                )}
                                 <div>
                                   <p className="text-sm">{sub.name}</p>
                                   <div className="flex items-center gap-2 text-xs font-normal text-muted-foreground mt-0.5">
@@ -1109,18 +1164,31 @@ export default function RequesterApprovals() {
                     </TableHeader>
                     <TableBody>
                       {inquirySubmissions.map((sub: any) => {
+                        const isPending = sub.status === "new" || sub.status === "under_review";
                         const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
                         const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
                         const waPhone = cleanPhone?.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
 
                         return (
-                          <TableRow key={sub.id} className="hover:bg-muted/20 transition-colors">
+                          <TableRow 
+                            key={sub.id} 
+                            className={`transition-colors ${
+                              isPending 
+                                ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
+                                : "hover:bg-muted/20"
+                            }`}
+                          >
                             <TableCell className="font-bold text-foreground">
-                              <div>
-                                <p className="text-sm">{sub.name}</p>
-                                <div className="flex items-center gap-2 text-xs font-normal text-muted-foreground mt-0.5">
-                                  <span>{sub.phone}</span>
-                                  {sub.city && <span>• {sub.city}</span>}
+                              <div className="flex items-center gap-2">
+                                {isPending && (
+                                  <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
+                                )}
+                                <div>
+                                  <p className="text-sm">{sub.name}</p>
+                                  <div className="flex items-center gap-2 text-xs font-normal text-muted-foreground mt-0.5">
+                                    <span>{sub.phone}</span>
+                                    {sub.city && <span>• {sub.city}</span>}
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
