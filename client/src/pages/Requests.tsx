@@ -22,7 +22,8 @@ import {
   ClipboardList,
   Languages,
   Briefcase,
-  Tag
+  Tag,
+  StickyNote
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -454,15 +455,26 @@ export default function Requests({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="font-bold text-foreground text-sm md:text-sm">
-                              {request.isMultiMosque || request.programData?.isMultiMosque
-                                ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
-                                : request.programType === "bunyan" 
-                                  ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                  : (isEn 
-                                      ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
-                                      : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-foreground text-sm md:text-sm">
+                                {request.isMultiMosque || request.programData?.isMultiMosque
+                                  ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                                  : request.programType === "bunyan" 
+                                    ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                                    : (isEn 
+                                        ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                                        : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
+                              </p>
+                              {Boolean(request.reviewNotes) && (
+                                <span 
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
+                                  title="يوجد ملاحظات مسجلة على هذا الطلب"
+                                >
+                                  <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                  <span>{isEn ? "Note" : "ملاحظة"}</span>
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
                               {request.isMultiMosque || request.programData?.isMultiMosque
                                 ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
