@@ -337,13 +337,6 @@ export default function BoardDashboard() {
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    size="sm" 
-                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl gap-1.5 shrink-0 self-end sm:self-center shadow-xs"
-                  >
-                    <span>عرض الطلبات ({pendingCount})</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Button>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-50/50 to-card dark:from-emerald-950/30 dark:via-emerald-900/15 dark:to-card p-4 sm:p-5 shadow-xs transition-all flex items-center justify-between gap-4">
