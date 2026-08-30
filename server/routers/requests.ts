@@ -1659,6 +1659,75 @@ export const requestsRouter = router({
       return { success: true, message: "تم إضافة التعليق بنجاح" };
     }),
 
+  // إضافة ملاحظة على مراجعة المعلومات والمرفقات
+  addReviewNote: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      note: z.string().min(1, "يرجى كتابة الملاحظة"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const hasPerm = await checkPermission(ctx.user.id, "requests.add_review_note");
+      const isAdmin = ["super_admin", "system_admin"].includes(ctx.user.role);
+
+      if (!hasPerm && !isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إضافة ملاحظة على مراجعة الطلب" });
+      }
+
+      // إضافة الملاحظة في جدول التعليقات كتعليق داخلي
+      await db.insert(requestComments).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        comment: `[ملاحظة مراجعة المعلومات والمرفقات]: ${input.note}`,
+        isInternal: true,
+      });
+
+      // جلب الملاحظات الحالية وتحديث حقل reviewNotes في جدول الطلب
+      const [existingRequest] = await db
+        .select({ reviewNotes: mosqueRequests.reviewNotes })
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const year = now.getFullYear();
+      const month = pad(now.getMonth() + 1);
+      const day = pad(now.getDate());
+      let hoursNum = now.getHours();
+      const minutes = pad(now.getMinutes());
+      const ampm = hoursNum >= 12 ? 'م' : 'ص';
+      const hours = pad(hoursNum % 12 || 12);
+      const timestamp = `${year}/${month}/${day} ${hours}:${minutes} ${ampm}`;
+
+      const userDisplayName = ctx.user.name || "مستخدم النظام";
+      const newEntry = `• ${userDisplayName} (${timestamp}):\n${input.note.trim()}`;
+      const updatedReviewNotes = existingRequest?.reviewNotes 
+        ? `${existingRequest.reviewNotes}\n\n${newEntry}`
+        : newEntry;
+
+      await db.update(mosqueRequests).set({
+        reviewNotes: updatedReviewNotes,
+        updatedAt: new Date(),
+      }).where(eq(mosqueRequests.id, input.requestId));
+
+      // تسجيل العملية في سجل تاريخ الطلب
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: "إضافة ملاحظة على مراجعة المعلومات والمرفقات",
+        notes: input.note,
+      }).catch(() => {});
+
+      return { 
+        success: true, 
+        message: "تم إضافة ملاحظة المراجعة بنجاح",
+        reviewNotes: updatedReviewNotes
+      };
+    }),
+
   // إضافة مرفق
   addAttachment: protectedProcedure
     .input(z.object({
