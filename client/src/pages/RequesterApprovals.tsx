@@ -103,10 +103,10 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 
 const submissionStatusConfig: Record<string, { label: string; color: string; dot: string }> = {
   new: { label: "جديد", color: "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800", dot: "bg-amber-500" },
-  under_review: { label: "قيد المراجعة", color: "bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800", dot: "bg-sky-500" },
-  contacted: { label: "تم التواصل", color: "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800", dot: "bg-purple-500" },
-  completed: { label: "مكتمل ومغلق", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
-  archived: { label: "مؤرشف", color: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700", dot: "bg-slate-400" },
+  under_review: { label: "تمت المراجعة", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
+  contacted: { label: "تمت المراجعة", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
+  completed: { label: "تمت المراجعة", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
+  archived: { label: "تمت المراجعة", color: "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800", dot: "bg-emerald-500" },
 };
 
 const formatSubmissionDate = (dateStr: string | Date | null | undefined) => {
@@ -393,6 +393,30 @@ export default function RequesterApprovals() {
                 </div>
               </CardContent>
             </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">جديدة بانتظار المراجعة</p>
+                  <p className="text-xl font-black text-amber-700 dark:text-amber-300">{submissionStats?.donations?.pending ?? 0}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">تمت المراجعة</p>
+                  <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
+                    {Math.max(0, (submissionStats?.donations?.total ?? 0) - (submissionStats?.donations?.pending ?? 0))}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
             <Card className="border border-border/70 shadow-xs rounded-2xl">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 flex items-center justify-center shrink-0">
@@ -410,30 +434,8 @@ export default function RequesterApprovals() {
                   <Package className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">تبرعات عينية</p>
+                  <p className="text-xs text-muted-foreground font-medium">تبرعات عينية ومواد</p>
                   <p className="text-xl font-black text-sky-600">{submissionStats?.donations?.inKind ?? 0}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-border/70 shadow-xs rounded-2xl">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">مبادرات أخرى</p>
-                  <p className="text-xl font-black text-indigo-600">{submissionStats?.donations?.other ?? 0}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-border/70 shadow-xs rounded-2xl col-span-2 sm:col-span-1 bg-amber-50/40 dark:bg-amber-950/20 border-amber-200/80">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">جديد / قيد المراجعة</p>
-                  <p className="text-xl font-black text-amber-700 dark:text-amber-300">{submissionStats?.donations?.pending ?? 0}</p>
                 </div>
               </CardContent>
             </Card>
@@ -441,7 +443,7 @@ export default function RequesterApprovals() {
         )}
 
         {activeTab === 'inquiries' && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <Card className="border border-border/70 shadow-xs rounded-2xl">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200/60 flex items-center justify-center shrink-0">
@@ -459,30 +461,21 @@ export default function RequesterApprovals() {
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">جديدة بانتظار الرد</p>
+                  <p className="text-xs text-muted-foreground font-medium">جديدة بانتظار المراجعة</p>
                   <p className="text-xl font-black text-amber-700 dark:text-amber-300">{submissionStats?.inquiries?.pending ?? 0}</p>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border border-border/70 shadow-xs rounded-2xl">
+            <Card className="border border-border/70 shadow-xs rounded-2xl bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200/80">
               <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/60 flex items-center justify-center shrink-0">
-                  <PhoneCall className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">تم التواصل</p>
-                  <p className="text-xl font-black text-purple-600">{submissionStats?.inquiries?.contacted ?? 0}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-border/70 shadow-xs rounded-2xl">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 flex items-center justify-center shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">مكتملة ومغلقة</p>
-                  <p className="text-xl font-black text-emerald-600">{submissionStats?.inquiries?.completed ?? 0}</p>
+                  <p className="text-xs text-muted-foreground font-medium">تمت المراجعة</p>
+                  <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
+                    {Math.max(0, (submissionStats?.inquiries?.total ?? 0) - (submissionStats?.inquiries?.pending ?? 0))}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -945,10 +938,7 @@ export default function RequesterApprovals() {
                     <SelectContent>
                       <SelectItem value="all">جميع الحالات</SelectItem>
                       <SelectItem value="new">جديد</SelectItem>
-                      <SelectItem value="under_review">قيد المراجعة</SelectItem>
-                      <SelectItem value="contacted">تم التواصل</SelectItem>
-                      <SelectItem value="completed">مكتمل</SelectItem>
-                      <SelectItem value="archived">مؤرشف</SelectItem>
+                      <SelectItem value="under_review">تمت المراجعة</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -1049,7 +1039,7 @@ export default function RequesterApprovals() {
                             {/* الإجراءات */}
                             <TableCell className="text-left pl-6">
                               <div className="flex items-center justify-end gap-1.5">
-                                {/* زر تمت المراجعة السريع للطلبات الجديدة */}
+                                {/* زر تمت المراجعة للطلبات الجديدة */}
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
@@ -1060,20 +1050,6 @@ export default function RequesterApprovals() {
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     تمت المراجعة
-                                  </Button>
-                                )}
-
-                                {/* زر إكمال وإغلاق الطلب */}
-                                {sub.status !== "completed" && (
-                                  <Button
-                                    size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600 shadow-xs cursor-pointer"
-                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "completed" })}
-                                    disabled={updateSubmissionMutation.isPending}
-                                    title="إكمال وإغلاق الطلب"
-                                  >
-                                    <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
-                                    إكمال وإغلاق
                                   </Button>
                                 )}
 
@@ -1146,10 +1122,8 @@ export default function RequesterApprovals() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">جميع الحالات</SelectItem>
-                      <SelectItem value="new">جديد بانتظار الرد</SelectItem>
-                      <SelectItem value="under_review">قيد المراجعة</SelectItem>
-                      <SelectItem value="contacted">تم التواصل والرد</SelectItem>
-                      <SelectItem value="completed">مكتمل ومغلق</SelectItem>
+                      <SelectItem value="new">جديد</SelectItem>
+                      <SelectItem value="under_review">تمت المراجعة</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -1249,7 +1223,7 @@ export default function RequesterApprovals() {
 
                             <TableCell className="text-left pl-6">
                               <div className="flex items-center justify-end gap-1.5">
-                                {/* زر تمت المراجعة السريع للاستفسارات الجديدة */}
+                                {/* زر تمت المراجعة للاستفسارات الجديدة */}
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
@@ -1260,20 +1234,6 @@ export default function RequesterApprovals() {
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     تمت المراجعة
-                                  </Button>
-                                )}
-
-                                {/* زر إكمال وإغلاق الاستفسار */}
-                                {sub.status !== "completed" && (
-                                  <Button
-                                    size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600 shadow-xs cursor-pointer"
-                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "completed" })}
-                                    disabled={updateSubmissionMutation.isPending}
-                                    title="إكمال وإغلاق الاستفسار"
-                                  >
-                                    <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
-                                    إكمال وإغلاق
                                   </Button>
                                 )}
 
@@ -1455,22 +1415,6 @@ export default function RequesterApprovals() {
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     تمت المراجعة
-                  </Button>
-                )}
-                {selectedSubmission.status !== "completed" && (
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      updateSubmissionMutation.mutate({ 
-                        id: selectedSubmission.id, 
-                        status: "completed" 
-                      });
-                    }}
-                    disabled={updateSubmissionMutation.isPending}
-                    className="rounded-2xl h-11 px-6 text-sm font-black bg-primary hover:bg-primary/90 text-white gap-2 shadow-sm cursor-pointer"
-                  >
-                    <CheckSquare className="w-4 h-4" />
-                    إكمال وإغلاق الطلب
                   </Button>
                 )}
               </div>
