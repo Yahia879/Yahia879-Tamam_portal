@@ -321,7 +321,7 @@ export default function BoardDashboard() {
                     <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-md shadow-rose-500/25 shrink-0">
                       <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div className="space-y-0.5 text-right">
+                    <div className="text-right">
                       <div className="flex items-center gap-2">
                         <h3 className="text-base sm:text-lg font-black text-rose-800 dark:text-rose-200">
                           {pendingCount === 1 
@@ -332,9 +332,6 @@ export default function BoardDashboard() {
                         </h3>
                         <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
                       </div>
-                      <p className="text-xs text-rose-700/80 dark:text-rose-300/80 font-medium">
-                        اضغط هنا لتصفية وعرض الطلبات التي تتطلب اعتمادك المباشر
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -344,13 +341,10 @@ export default function BoardDashboard() {
                     <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 shrink-0">
                       <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
-                    <div className="space-y-0.5 text-right">
+                    <div className="text-right">
                       <h3 className="text-base sm:text-lg font-black text-emerald-800 dark:text-emerald-200">
                         لا يوجد طلبات بحاجة إلى اعتماد
                       </h3>
-                      <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 font-medium">
-                        جميع الأوامر والطلبات معتمدة ومحدثة بالكامل
-                      </p>
                     </div>
                   </div>
                   <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/40 px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 shadow-2xs shrink-0">
