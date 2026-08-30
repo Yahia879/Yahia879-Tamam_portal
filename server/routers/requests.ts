@@ -1680,7 +1680,7 @@ export const requestsRouter = router({
       await db.insert(requestComments).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        comment: `[ملاحظة مراجعة المعلومات والمرفقات]: ${input.note}`,
+        comment: `[ملاحظة مراجعة الطلب]: ${input.note}`,
         isInternal: true,
       });
 
@@ -1717,7 +1717,7 @@ export const requestsRouter = router({
       await db.insert(requestHistory).values({
         requestId: input.requestId,
         userId: ctx.user.id,
-        action: "إضافة ملاحظة على مراجعة المعلومات والمرفقات",
+        action: "إضافة ملاحظة على مراجعة الطلب",
         notes: input.note,
       }).catch(() => {});
 

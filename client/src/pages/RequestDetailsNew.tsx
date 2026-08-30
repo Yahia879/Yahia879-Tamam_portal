@@ -2330,7 +2330,7 @@ export default function RequestDetailsNew() {
           )}
         </div>
 
-        {/* قسم ملاحظات مراجعة المعلومات والمرفقات - منفصل ومستقل وواضح */}
+        {/* قسم ملاحظات مراجعة الطلب - منفصل ومستقل وواضح */}
         <div className="mt-6 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -2339,10 +2339,10 @@ export default function RequestDetailsNew() {
               </div>
               <div>
                 <h4 className="font-bold text-base sm:text-lg text-foreground">
-                  {isEn ? "Review & Attachments Notes" : "ملاحظات مراجعة المعلومات والمرفقات"}
+                  {isEn ? "Request Review Notes" : "ملاحظات مراجعة الطلب"}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {isEn ? "Review notes and observations on request info & files" : "الملاحظات المسجلة أثناء مراجعة بيانات الطلب والمرفقات"}
+                  {isEn ? "Review notes and observations recorded on the request" : "الملاحظات والتوجيهات المسجلة أثناء مراجعة الطلب"}
                 </p>
               </div>
             </div>
@@ -2399,7 +2399,7 @@ export default function RequestDetailsNew() {
             <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
               <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
               <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة المعلومات والمرفقات حتى الآن"}
+                {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة الطلب حتى الآن"}
               </p>
               {canAddReviewNote && (
                 <Button
