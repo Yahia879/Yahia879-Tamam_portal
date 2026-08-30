@@ -666,12 +666,11 @@ export default function RequesterApprovals() {
                                       {user.status !== "active" && (
                                         <Button
                                           size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl"
+                                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 rounded-xl shadow-xs"
                                           onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                                          اعتماد
+                                          تمت المراجعة والاعتماد
                                         </Button>
                                       )}
                                       {user.status === "active" && (
@@ -751,11 +750,11 @@ export default function RequesterApprovals() {
                               <>
                                 {user.status !== "active" && (
                                   <Button
-                                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
+                                    className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                   >
                                     <CheckCircle2 className="w-4 h-4" />
-                                    اعتماد الحساب
+                                    تمت المراجعة والاعتماد
                                   </Button>
                                 )}
                                 {user.status === "active" && (
@@ -992,7 +991,7 @@ export default function RequesterApprovals() {
                     </TableHeader>
                     <TableBody>
                       {donationSubmissions.map((sub: any) => {
-                        const isPending = sub.status === "new" || sub.status === "under_review";
+                        const isNew = sub.status === "new";
                         const typeInfo = submissionTypeLabels[sub.submissionType] || submissionTypeLabels.donor_other;
                         const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
                         const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
@@ -1002,7 +1001,7 @@ export default function RequesterApprovals() {
                           <TableRow 
                             key={sub.id} 
                             className={`transition-colors ${
-                              isPending 
+                              isNew 
                                 ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
                                 : "hover:bg-muted/20"
                             }`}
@@ -1010,7 +1009,7 @@ export default function RequesterApprovals() {
                             {/* المتبرع */}
                             <TableCell className="font-bold text-foreground">
                               <div className="flex items-center gap-2">
-                                {isPending && (
+                                {isNew && (
                                   <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                                 )}
                                 <div>
@@ -1049,6 +1048,20 @@ export default function RequesterApprovals() {
                             {/* الإجراءات */}
                             <TableCell className="text-left pl-6">
                               <div className="flex items-center justify-end gap-1.5">
+                                {/* زر تمت المراجعة السريع للطلبات الجديدة */}
+                                {sub.status === "new" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
+                                    disabled={updateSubmissionMutation.isPending}
+                                    title="تحديد الطلب كتمت المراجعة"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    تمت المراجعة
+                                  </Button>
+                                )}
+
                                 {/* زر واتساب سريع */}
                                 {waPhone && (
                                   <a 
@@ -1165,7 +1178,7 @@ export default function RequesterApprovals() {
                     </TableHeader>
                     <TableBody>
                       {inquirySubmissions.map((sub: any) => {
-                        const isPending = sub.status === "new" || sub.status === "under_review";
+                        const isNew = sub.status === "new";
                         const statusObj = submissionStatusConfig[sub.status] || submissionStatusConfig.new;
                         const cleanPhone = sub.phone?.replace(/[^0-9]/g, "");
                         const waPhone = cleanPhone?.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
@@ -1174,14 +1187,14 @@ export default function RequesterApprovals() {
                           <TableRow 
                             key={sub.id} 
                             className={`transition-colors ${
-                              isPending 
+                              isNew 
                                 ? "bg-amber-50/80 dark:bg-amber-950/30 border-r-4 border-r-amber-500 hover:bg-amber-100/70 dark:hover:bg-amber-900/40" 
                                 : "hover:bg-muted/20"
                             }`}
                           >
                             <TableCell className="font-bold text-foreground">
                               <div className="flex items-center gap-2">
-                                {isPending && (
+                                {isNew && (
                                   <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                                 )}
                                 <div>
@@ -1221,6 +1234,20 @@ export default function RequesterApprovals() {
 
                             <TableCell className="text-left pl-6">
                               <div className="flex items-center justify-end gap-1.5">
+                                {/* زر تمت المراجعة السريع للاستفسارات الجديدة */}
+                                {sub.status === "new" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
+                                    disabled={updateSubmissionMutation.isPending}
+                                    title="تحديد الاستفسار كتمت المراجعة"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    تمت المراجعة
+                                  </Button>
+                                )}
+
                                 {waPhone && (
                                   <a 
                                     href={`https://wa.me/${waPhone}`} 
@@ -1383,12 +1410,46 @@ export default function RequesterApprovals() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end pt-5 border-t border-border/60">
+            <div className="flex items-center justify-between pt-5 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                {selectedSubmission.status === "new" && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      updateSubmissionMutation.mutate({ 
+                        id: selectedSubmission.id, 
+                        status: "under_review" 
+                      });
+                    }}
+                    disabled={updateSubmissionMutation.isPending}
+                    className="rounded-2xl h-11 px-6 text-sm font-black bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    تمت المراجعة
+                  </Button>
+                )}
+                {selectedSubmission.status !== "completed" && (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      updateSubmissionMutation.mutate({ 
+                        id: selectedSubmission.id, 
+                        status: "completed" 
+                      });
+                    }}
+                    disabled={updateSubmissionMutation.isPending}
+                    className="rounded-2xl h-11 px-6 text-sm font-black bg-primary hover:bg-primary/90 text-white gap-2 shadow-sm cursor-pointer"
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                    إكمال وإغلاق الطلب
+                  </Button>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setSelectedSubmission(null)}
-                className="rounded-2xl h-11 px-9 text-sm font-black border-border/70 hover:bg-muted/60"
+                className="rounded-2xl h-11 px-9 text-sm font-black border-border/70 hover:bg-muted/60 cursor-pointer"
               >
                 إغلاق
               </Button>
