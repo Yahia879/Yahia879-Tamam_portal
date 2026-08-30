@@ -29,10 +29,11 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   ],
   mosques: ["mosques.view", "mosques.create", "mosques.edit", "mosques.delete", "mosques.approve"],
   mosques_map: ["mosque_map.view"],
-  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report"],
+  requests: ["requests.view", "requests.create", "requests.edit", "requests.delete", "requests.view_details", "requests.manage_as_field_team", "requests.manage_as_quick_response", "requests.create_quick_request", "requests.upload_final_report", "requests.add_review_note"],
   "requests.view": ["requests.view"],
   "requests.create": ["requests.create"],
   "requests.view_details": ["requests.view", "requests.edit", "requests.delete", "requests.view_details"],
+  "requests.add_review_note": ["requests.view", "requests.add_review_note"],
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
@@ -264,6 +265,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "upload_final_report",
         nameAr: "رفع التقرير الختامي",
         nameEn: "Upload final report"
+      },
+      {
+        id: "requests.add_review_note",
+        moduleId: "requests",
+        action: "add_review_note",
+        nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات",
+        nameEn: "Add review note"
       },
       {
         id: "board_chairman",
@@ -588,6 +596,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
       { id: "requests.view_details", moduleId: "requests", action: "view_details", nameAr: "عرض تفاصيل الطلب وإدارته", nameEn: "View Request Details" },
+      { id: "requests.add_review_note", moduleId: "requests", action: "add_review_note", nameAr: "إضافة ملاحظة على مراجعة المعلومات والمرفقات", nameEn: "Add review note" },
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
