@@ -471,7 +471,7 @@ export default function Requests({
                                   title="يوجد ملاحظات مسجلة على هذا الطلب"
                                 >
                                   <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                  <span>{isEn ? "Note" : "ملاحظة"}</span>
+                                  <span>{isEn ? "Notes" : "ملاحظات"}</span>
                                 </span>
                               )}
                             </div>
