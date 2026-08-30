@@ -57,26 +57,10 @@ function getArabicTimeAgo(createdAt: string | Date | null | undefined): string {
   }
 
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    if (diffInDays === 1) return "متأخر يوم واحد";
-    if (diffInDays === 2) return "متأخر يومين";
-    if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
-    return `متأخر ${diffInDays} يوماً`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    if (diffInMonths === 1) return "متأخر شهر واحد";
-    if (diffInMonths === 2) return "متأخر شهرين";
-    if (diffInMonths >= 3 && diffInMonths <= 10) return `متأخر ${diffInMonths} أشهر`;
-    return `متأخر ${diffInMonths} شهراً`;
-  }
-
-  const diffInYears = Math.floor(diffInDays / 365);
-  if (diffInYears === 1) return "متأخر سنة واحدة";
-  if (diffInYears === 2) return "متأخر سنتين";
-  if (diffInYears >= 3 && diffInYears <= 10) return `متأخر ${diffInYears} سنوات`;
-  return `متأخر ${diffInYears} سنة`;
+  if (diffInDays === 1) return "متأخر يوم واحد";
+  if (diffInDays === 2) return "متأخر يومين";
+  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
+  return `متأخر ${diffInDays} يوماً`;
 }
 
 export default function Dashboard() {

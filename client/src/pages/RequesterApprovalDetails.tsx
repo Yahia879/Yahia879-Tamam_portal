@@ -49,6 +49,35 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400", icon: XCircle },
 };
 
+const formatDateEnglish = (dateStr: string | Date | null | undefined) => {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
+  } catch {
+    return "—";
+  }
+};
+
+const getDelayDaysText = (createdAt: string | Date | null | undefined): string => {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (isNaN(date.getTime())) return "";
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  
+  if (diffInDays <= 0) return "اليوم";
+  if (diffInDays === 1) return "متأخر يوم واحد";
+  if (diffInDays === 2) return "متأخر يومين";
+  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
+  return `متأخر ${diffInDays} يوماً`;
+};
+
 interface RequesterApprovalDetailsProps {
   params: {
     id: string;
@@ -239,6 +268,12 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
           </div>
 
           <div className="flex items-center gap-2">
+            {(user.status ?? "pending") === "pending" && user.createdAt && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/80 shadow-2xs">
+                <Clock className="w-3.5 h-3.5 text-red-500" />
+                {getDelayDaysText(user.createdAt)}
+              </span>
+            )}
             <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusInfo?.color ?? ""}`}>
               <StatusIcon className="w-3.5 h-3.5" />
               {statusInfo?.label ?? user.status}
@@ -510,10 +545,18 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                 </div>
                 <div className="space-y-1">
                   <span className="text-xs text-muted-foreground font-medium block">تاريخ التسجيل</span>
-                  <span className="text-sm font-semibold flex items-center gap-2 text-foreground bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                    <Calendar className="w-4.5 h-4.5 text-muted-foreground" />
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "—"}
-                  </span>
+                  <div className="flex items-center justify-between text-sm font-semibold text-foreground bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <Calendar className="w-4.5 h-4.5 text-muted-foreground" />
+                      <span>{formatDateEnglish(user.createdAt)}</span>
+                    </div>
+                    {(user.status ?? "pending") === "pending" && user.createdAt && (
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-lg border border-red-200 dark:border-red-800">
+                        <Clock className="w-3.5 h-3.5 text-red-500" />
+                        {getDelayDaysText(user.createdAt)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {user.adminNotes && (
                   <div className="col-span-1 sm:col-span-2 space-y-1 bg-amber-50/50 dark:bg-amber-950/10 p-3.5 rounded-xl border border-amber-200/50 dark:border-amber-900/30">

@@ -123,6 +123,21 @@ const formatSubmissionDate = (dateStr: string | Date | null | undefined) => {
   }
 };
 
+const getDelayDaysText = (createdAt: string | Date | null | undefined): string => {
+  if (!createdAt) return "";
+  const date = new Date(createdAt);
+  if (isNaN(date.getTime())) return "";
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  
+  if (diffInDays <= 0) return "اليوم";
+  if (diffInDays === 1) return "متأخر يوم واحد";
+  if (diffInDays === 2) return "متأخر يومين";
+  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
+  return `متأخر ${diffInDays} يوماً`;
+};
+
 const submissionTypeLabels: Record<string, { label: string; shortLabel: string; icon: string; badge: string }> = {
   donor_land: { 
     label: "تبرع بأرض مسجد", 
@@ -629,7 +644,15 @@ export default function RequesterApprovals() {
                                   {isPending && (
                                     <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                                   )}
-                                  <span>{user.name ?? "—"}</span>
+                                  <div>
+                                    <p className="text-sm">{user.name ?? "—"}</p>
+                                    {isPending && user.createdAt && (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200/80 dark:border-red-800/60 mt-0.5">
+                                        <Clock className="w-3 h-3 text-red-500 shrink-0" />
+                                        {getDelayDaysText(user.createdAt)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.email ?? "—"}</TableCell>
@@ -714,10 +737,18 @@ export default function RequesterApprovals() {
                               </div>
                               <p className="text-xs text-muted-foreground truncate">{user.email ?? "—"}</p>
                             </div>
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0 ${statusInfo?.color ?? ""}`}>
-                              <StatusIcon className={`w-3 h-3 ${isPending ? "animate-pulse text-amber-600 dark:text-amber-400" : ""}`} />
-                              {statusInfo?.label ?? user.status}
-                            </span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {isPending && user.createdAt && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
+                                  <Clock className="w-2.5 h-2.5 text-red-500" />
+                                  {getDelayDaysText(user.createdAt)}
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${statusInfo?.color ?? ""}`}>
+                                <StatusIcon className={`w-3 h-3 ${isPending ? "animate-pulse text-amber-600 dark:text-amber-400" : ""}`} />
+                                {statusInfo?.label ?? user.status}
+                              </span>
+                            </div>
                           </div>
                           
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground py-2 border-y border-dashed">
