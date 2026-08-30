@@ -2333,49 +2333,35 @@ export default function RequestDetailsNew() {
 
         {/* زر ومحتوى ملاحظات مراجعة الطلب (Expandable Accordion) */}
         <div className="mt-6">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              className="flex-1 flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900 shadow-sm rounded-xl cursor-pointer"
-              onClick={() => setShowReviewNotes(!showReviewNotes)}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
-                  <StickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <div className="text-right min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-sm sm:text-lg truncate">
-                      {isEn ? "Request Review Notes" : "ملاحظات مراجعة الطلب"}
-                    </p>
-                    {parsedReviewNotes.length > 0 && (
-                      <span className="bg-emerald-600/10 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                        {parsedReviewNotes.length} {parsedReviewNotes.length === 1 ? (isEn ? "note" : "ملاحظة") : (isEn ? "notes" : "ملاحظات")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">
-                    {isEn ? "Review notes and observations recorded on the request" : "الملاحظات والتوجيهات المسجلة أثناء مراجعة الطلب"}
+          <Button 
+            variant="outline" 
+            className="w-full flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900 shadow-sm rounded-xl cursor-pointer"
+            onClick={() => setShowReviewNotes(!showReviewNotes)}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
+                <StickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="text-right min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-sm sm:text-lg truncate">
+                    {isEn ? "Request Review Notes" : "ملاحظات مراجعة الطلب"}
                   </p>
+                  {parsedReviewNotes.length > 0 && (
+                    <span className="bg-emerald-600/10 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                      {parsedReviewNotes.length} {parsedReviewNotes.length === 1 ? (isEn ? "note" : "ملاحظة") : (isEn ? "notes" : "ملاحظات")}
+                    </span>
+                  )}
                 </div>
+                <p className="text-[10px] sm:text-sm text-muted-foreground truncate">
+                  {isEn ? "Review notes and observations recorded on the request" : "الملاحظات والتوجيهات المسجلة أثناء مراجعة الطلب"}
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                {showReviewNotes ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-              </div>
-            </Button>
-
-            {canAddReviewNote && (
-              <Button
-                size="lg"
-                onClick={() => setAddReviewNoteOpen(true)}
-                className="h-auto min-h-[58px] sm:min-h-[76px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-sm rounded-xl px-4 sm:px-6 shrink-0 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{isEn ? "Add Note" : "إضافة ملاحظة"}</span>
-                <span className="sm:hidden">{isEn ? "Add" : "إضافة"}</span>
-              </Button>
-            )}
-          </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {showReviewNotes ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+            </div>
+          </Button>
 
           {showReviewNotes && (
             <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-4 duration-300" dir="rtl">
@@ -2386,11 +2372,10 @@ export default function RequestDetailsNew() {
                 {canAddReviewNote && (
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={() => setAddReviewNoteOpen(true)}
-                    className="text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                     {isEn ? "Add Note" : "إضافة ملاحظة"}
                   </Button>
                 )}
