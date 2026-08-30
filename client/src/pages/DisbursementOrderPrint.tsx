@@ -760,6 +760,15 @@ export default function DisbursementOrderPrint() {
 
                       <tr className="border-b border-slate-300">
                         <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          اسم المفوتر
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-bold text-right">
+                          {resolvedBillerName}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
                           رقم سداد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
@@ -767,21 +776,12 @@ export default function DisbursementOrderPrint() {
                         </td>
                       </tr>
 
-                      <tr className="border-b border-slate-300">
+                      <tr>
                         <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
                           رمز المفوتر
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
                           {resolvedBillerCode}
-                        </td>
-                      </tr>
-
-                      <tr>
-                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          اسم المفوتر
-                        </td>
-                        <td className="p-2.5 text-slate-800 font-bold text-right">
-                          {resolvedBillerName}
                         </td>
                       </tr>
                     </tbody>

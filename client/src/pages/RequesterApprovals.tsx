@@ -898,7 +898,8 @@ export default function RequesterApprovals() {
                             )}
                           </TableCell>
                         </TableRow>
-                      ))
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
