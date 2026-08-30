@@ -3338,39 +3338,51 @@ export default function RequestDetailsNew() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Review Note Dialog */}
-      <ColoredDialog
-        open={addReviewNoteOpen}
-        onOpenChange={setAddReviewNoteOpen}
-        title={isEn ? "Add Review Note" : "إضافة ملاحظة على مراجعة المعلومات والمرفقات"}
-        color="emerald"
-        icon={<StickyNote className="w-6 h-6" />}
-      >
-        <div className="space-y-4 text-right" dir="rtl">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
-              نص الملاحظة <span className="text-red-500">*</span>
-            </label>
-            <Textarea
-              value={newReviewNote}
-              onChange={(e) => setNewReviewNote(e.target.value)}
-              placeholder="اكتب ملاحظاتك بخصوص مراجعة معلومات الطلب أو المرفقات..."
-              rows={5}
-              className="w-full text-sm leading-relaxed"
-            />
+      {/* Add Review Note Dialog (Natural White Theme with Green Button) */}
+      <Dialog open={addReviewNoteOpen} onOpenChange={setAddReviewNoteOpen}>
+        <DialogContent className="sm:max-w-[520px] p-6 bg-background rounded-2xl border shadow-xl" dir={isEn ? "ltr" : "rtl"}>
+          <DialogHeader className="text-right pb-3 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
+              <div className="w-9 h-9 rounded-xl bg-muted/60 text-foreground flex items-center justify-center shrink-0 border border-border">
+                <StickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <span>{isEn ? "Add Review Note" : "إضافة ملاحظة على مراجعة المعلومات والمرفقات"}</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-3 text-right">
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-bold text-foreground">
+                {isEn ? "Note Text" : "نص الملاحظة"} <span className="text-red-500">*</span>
+              </label>
+              <Textarea
+                value={newReviewNote}
+                onChange={(e) => setNewReviewNote(e.target.value)}
+                placeholder={isEn ? "Write your notes regarding request info or attachments..." : "اكتب ملاحظاتك بخصوص مراجعة معلومات الطلب أو المرفقات..."}
+                rows={5}
+                className="w-full text-sm leading-relaxed rounded-xl bg-muted/20 border-border focus:border-emerald-500"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {isEn ? "This note will be recorded with your name and timestamp in the review notes log." : "سيتم حفظ هذه الملاحظة باسمك وتاريخها ضمن سجل ملاحظات المراجعة."}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2 justify-end pt-2">
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2.5 pt-4 border-t border-border/50">
             <Button
+              type="button"
               variant="outline"
               onClick={() => setAddReviewNoteOpen(false)}
               disabled={addReviewNoteMutation.isPending}
+              className="w-full sm:w-auto h-11 font-medium rounded-xl"
             >
-              إلغاء
+              {isEn ? "Cancel" : "إلغاء"}
             </Button>
             <Button
+              type="button"
               onClick={() => {
                 if (!newReviewNote.trim()) {
-                  toast.error("يرجى كتابة نص الملاحظة");
+                  toast.error(isEn ? "Please enter note text" : "يرجى كتابة نص الملاحظة");
                   return;
                 }
                 addReviewNoteMutation.mutate({
@@ -3379,23 +3391,23 @@ export default function RequestDetailsNew() {
                 });
               }}
               disabled={addReviewNoteMutation.isPending || !newReviewNote.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1.5"
+              className="w-full sm:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-6 shadow-sm gap-1.5"
             >
               {addReviewNoteMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 ml-1 animate-spin" />
-                  جاري الحفظ...
+                  {isEn ? "Saving..." : "جاري الحفظ..."}
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4 ml-1" />
-                  حفظ الملاحظة
+                  {isEn ? "Save Note" : "حفظ الملاحظة"}
                 </>
               )}
             </Button>
-          </div>
-        </div>
-      </ColoredDialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Comment Dialog */}
       <ColoredDialog
