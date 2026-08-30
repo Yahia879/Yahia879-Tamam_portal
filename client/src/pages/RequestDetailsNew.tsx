@@ -525,6 +525,54 @@ export default function RequestDetailsNew() {
     }, 0);
   }, [boqResult]);
 
+  // تحليل وفرز ملاحظات مراجعة المعلومات والمرفقات لتظهر الأحدث أولاً
+  const parsedReviewNotes = useMemo(() => {
+    if (!request?.reviewNotes || !request.reviewNotes.trim()) return [];
+    
+    const rawText = request.reviewNotes;
+    const rawEntries = rawText.split(/(?:^|\n)(?=•\s)/g).map((s: string) => s.trim()).filter(Boolean);
+    
+    const parseArabicDateToTimestamp = (dateStr: string): number => {
+      if (!dateStr) return 0;
+      try {
+        const parts = dateStr.trim().match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\s+(\d{1,2}):(\d{1,2})\s*(م|ص|AM|PM)?/i);
+        if (parts) {
+          let [_, y, m, d, h, min, ampm] = parts;
+          let hour = parseInt(h, 10);
+          if ((ampm === 'م' || ampm?.toUpperCase() === 'PM') && hour < 12) hour += 12;
+          if ((ampm === 'ص' || ampm?.toUpperCase() === 'AM') && hour === 12) hour = 0;
+          return new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10), hour, parseInt(min, 10)).getTime();
+        }
+      } catch (e) {}
+      return 0;
+    };
+
+    const parsed = rawEntries.map((entry: string, idx: number) => {
+      const match = entry.match(/^•\s*([^(]+?)\s*\(([^)]+)\):\s*([\s\S]*)$/);
+      if (match) {
+        const author = match[1].trim();
+        const date = match[2].trim();
+        const content = match[3].trim();
+        const timestamp = parseArabicDateToTimestamp(date);
+        return { id: idx, author, date, content, timestamp };
+      }
+      return {
+        id: idx,
+        author: null,
+        date: null,
+        content: entry.replace(/^•\s*/, '').trim(),
+        timestamp: 0,
+      };
+    });
+
+    // فرز الملاحظات بحيث تظهر الأحدث في الأعلى دائماً
+    const hasTimestamps = parsed.some((p: any) => p.timestamp > 0);
+    if (hasTimestamps) {
+      return parsed.sort((a: any, b: any) => b.timestamp - a.timestamp);
+    }
+    return parsed.reverse();
+  }, [request?.reviewNotes]);
+
   // حالات نموذج التزام طالب الخدمة
   const [commitmentFormOpen, setCommitmentFormOpen] = useState(false);
   const [commitmentFormMode, setCommitmentFormMode] = useState<'edit' | 'print_preview'>('edit');
@@ -2311,11 +2359,41 @@ export default function RequestDetailsNew() {
             )}
           </div>
 
-          {request?.reviewNotes ? (
-            <div className="p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs">
-              <div className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                {request.reviewNotes}
-              </div>
+          {parsedReviewNotes.length > 0 ? (
+            <div className="space-y-3">
+              {parsedReviewNotes.map((noteItem: any, index: number) => (
+                <div 
+                  key={noteItem.id ?? index} 
+                  className="p-4 sm:p-5 bg-white dark:bg-slate-800/90 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs space-y-2.5 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/60"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                        {noteItem.author || (isEn ? "Reviewer" : "مُراجع الطلب")}
+                      </span>
+                      {index === 0 && (
+                        <span className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                          {isEn ? "Latest" : "الأحدث"}
+                        </span>
+                      )}
+                    </div>
+
+                    {noteItem.date && (
+                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800" dir="ltr">
+                        <span>{noteItem.date}</span>
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-xs sm:text-sm md:text-base text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal pt-0.5 pr-1">
+                    {noteItem.content}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">

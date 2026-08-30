@@ -1705,7 +1705,7 @@ export const requestsRouter = router({
       const userDisplayName = ctx.user.name || "مستخدم النظام";
       const newEntry = `• ${userDisplayName} (${timestamp}):\n${input.note.trim()}`;
       const updatedReviewNotes = existingRequest?.reviewNotes 
-        ? `${existingRequest.reviewNotes}\n\n${newEntry}`
+        ? `${newEntry}\n\n${existingRequest.reviewNotes}`
         : newEntry;
 
       await db.update(mosqueRequests).set({
