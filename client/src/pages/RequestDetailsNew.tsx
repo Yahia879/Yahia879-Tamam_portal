@@ -216,6 +216,7 @@ export default function RequestDetailsNew() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [boqOpen, setBoqOpen] = useState(false);
   const [showReviewInfo, setShowReviewInfo] = useState(() => user?.role === "service_requester");
+  const [showReviewNotes, setShowReviewNotes] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; contentType?: string } | null>(null);
 
   useEffect(() => {
@@ -2330,87 +2331,125 @@ export default function RequestDetailsNew() {
           )}
         </div>
 
-        {/* قسم ملاحظات مراجعة الطلب - منفصل ومستقل وواضح */}
-        <div className="mt-6 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4" dir="rtl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
-                <StickyNote className="w-5 h-5" />
+        {/* زر ومحتوى ملاحظات مراجعة الطلب (Expandable Accordion) */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              className="flex-1 flex items-center justify-between p-4 sm:p-6 h-auto border-2 border-slate-200 hover:bg-slate-50 transition-all dark:border-slate-800 dark:hover:bg-slate-900 shadow-sm rounded-xl cursor-pointer"
+              onClick={() => setShowReviewNotes(!showReviewNotes)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
+                  <StickyNote className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="text-right min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-sm sm:text-lg truncate">
+                      {isEn ? "Request Review Notes" : "ملاحظات مراجعة الطلب"}
+                    </p>
+                    {parsedReviewNotes.length > 0 && (
+                      <span className="bg-emerald-600/10 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                        {parsedReviewNotes.length} {parsedReviewNotes.length === 1 ? (isEn ? "note" : "ملاحظة") : (isEn ? "notes" : "ملاحظات")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] sm:text-sm text-muted-foreground truncate">
+                    {isEn ? "Review notes and observations recorded on the request" : "الملاحظات والتوجيهات المسجلة أثناء مراجعة الطلب"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-base sm:text-lg text-foreground">
-                  {isEn ? "Request Review Notes" : "ملاحظات مراجعة الطلب"}
-                </h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {isEn ? "Review notes and observations recorded on the request" : "الملاحظات والتوجيهات المسجلة أثناء مراجعة الطلب"}
-                </p>
+              <div className="flex items-center gap-2">
+                {showReviewNotes ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
               </div>
-            </div>
+            </Button>
 
             {canAddReviewNote && (
               <Button
-                size="sm"
+                size="lg"
                 onClick={() => setAddReviewNoteOpen(true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-sm rounded-xl px-4 py-2 self-start sm:self-auto cursor-pointer"
+                className="h-auto min-h-[58px] sm:min-h-[76px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-sm rounded-xl px-4 sm:px-6 shrink-0 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                {isEn ? "Add Note" : "إضافة ملاحظة"}
+                <span className="hidden sm:inline">{isEn ? "Add Note" : "إضافة ملاحظة"}</span>
+                <span className="sm:hidden">{isEn ? "Add" : "إضافة"}</span>
               </Button>
             )}
           </div>
 
-          {parsedReviewNotes.length > 0 ? (
-            <div className="space-y-3">
-              {parsedReviewNotes.map((noteItem: any, index: number) => (
-                <div 
-                  key={noteItem.id ?? index} 
-                  className="p-4 sm:p-5 bg-white dark:bg-slate-800/90 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs space-y-2.5 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/60"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shadow-xs">
-                        <User className="w-4 h-4" />
+          {showReviewNotes && (
+            <div className="mt-4 bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-6 rounded-xl border-2 border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-4 duration-300" dir="rtl">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <h5 className="font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+                  {isEn ? "Recorded Review Notes List" : "سجل الملاحظات المسجلة"}
+                </h5>
+                {canAddReviewNote && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAddReviewNoteOpen(true)}
+                    className="text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {isEn ? "Add Note" : "إضافة ملاحظة"}
+                  </Button>
+                )}
+              </div>
+
+              {parsedReviewNotes.length > 0 ? (
+                <div className="space-y-3">
+                  {parsedReviewNotes.map((noteItem: any, index: number) => (
+                    <div 
+                      key={noteItem.id ?? index} 
+                      className="p-4 sm:p-5 bg-white dark:bg-slate-800/90 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 shadow-xs space-y-2.5 transition-all hover:border-emerald-200 dark:hover:border-emerald-800/60"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-200 dark:border-emerald-800 shadow-xs">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                            {noteItem.author || (isEn ? "Reviewer" : "مُراجع الطلب")}
+                          </span>
+                          {index === 0 && (
+                            <span className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
+                              {isEn ? "Latest" : "الأحدث"}
+                            </span>
+                          )}
+                        </div>
+
+                        {noteItem.date && (
+                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800" dir="ltr">
+                            <span>{noteItem.date}</span>
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          </div>
+                        )}
                       </div>
-                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                        {noteItem.author || (isEn ? "Reviewer" : "مُراجع الطلب")}
-                      </span>
-                      {index === 0 && (
-                        <span className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-xs">
-                          {isEn ? "Latest" : "الأحدث"}
-                        </span>
-                      )}
+
+                      <div className="text-xs sm:text-sm md:text-base text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal pt-0.5 pr-1">
+                        {noteItem.content}
+                      </div>
                     </div>
-
-                    {noteItem.date && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800" dir="ltr">
-                        <span>{noteItem.date}</span>
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="text-xs sm:text-sm md:text-base text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed font-normal pt-0.5 pr-1">
-                    {noteItem.content}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-              <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة الطلب حتى الآن"}
-              </p>
-              {canAddReviewNote && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAddReviewNoteOpen(true)}
-                  className="mt-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
-                </Button>
+              ) : (
+                <div className="text-center py-8 bg-white dark:bg-slate-800/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                  <StickyNote className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                    {isEn ? "No review notes recorded yet" : "لم يتم تسجيل أي ملاحظات على مراجعة الطلب حتى الآن"}
+                  </p>
+                  {canAddReviewNote && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddReviewNoteOpen(true)}
+                      className="mt-3 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950/40 rounded-lg gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {isEn ? "Add First Note" : "إضافة ملاحظة الآن"}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           )}
