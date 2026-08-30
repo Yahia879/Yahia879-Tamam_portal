@@ -113,11 +113,11 @@ const formatSubmissionDate = (dateStr: string | Date | null | undefined) => {
   if (!dateStr) return "—";
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("ar-EG", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    if (isNaN(d.getTime())) return "—";
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}/${month}/${day}`;
   } catch {
     return "—";
   }
@@ -641,8 +641,8 @@ export default function RequesterApprovals() {
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.email ?? "—"}</TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.phone ?? "—"}</TableCell>
-                              <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                                {user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "—"}
+                              <TableCell className="text-muted-foreground text-sm whitespace-nowrap" dir="ltr">
+                                {formatSubmissionDate(user.createdAt)}
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${statusInfo?.color ?? ""}`}>
@@ -666,11 +666,12 @@ export default function RequesterApprovals() {
                                       {user.status !== "active" && (
                                         <Button
                                           size="sm"
-                                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-1 rounded-xl shadow-xs"
+                                          variant="outline"
+                                          className="h-8 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-950/30 font-bold rounded-xl"
                                           onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5 ml-1" />
-                                          تمت المراجعة والاعتماد
+                                          اعتماد
                                         </Button>
                                       )}
                                       {user.status === "active" && (
@@ -731,9 +732,9 @@ export default function RequesterApprovals() {
                               <Users className="w-3 h-3" />
                               <span>{user.phone ?? "—"}</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5" dir="ltr">
                               <Clock className="w-3 h-3" />
-                              <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "—"}</span>
+                              <span>{formatSubmissionDate(user.createdAt)}</span>
                             </div>
                           </div>
 
@@ -750,11 +751,11 @@ export default function RequesterApprovals() {
                               <>
                                 {user.status !== "active" && (
                                   <Button
-                                    className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 rounded-xl transition-all"
+                                    className="w-full h-9 bg-green-600 hover:bg-green-700 text-white font-bold gap-2 rounded-xl transition-all"
                                     onClick={() => handleAction(user.id, user.name ?? "المستخدم", "active")}
                                   >
                                     <CheckCircle2 className="w-4 h-4" />
-                                    تمت المراجعة والاعتماد
+                                    اعتماد الحساب
                                   </Button>
                                 )}
                                 {user.status === "active" && (
@@ -836,8 +837,8 @@ export default function RequesterApprovals() {
                                 </div>
                               </div>
                             </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {new Date(item.exception.createdAt).toLocaleDateString("ar-SA")}
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap" dir="ltr">
+                            {formatSubmissionDate(item.exception.createdAt)}
                           </TableCell>
                           <TableCell className="max-w-xs truncate text-xs" title={item.exception.reason}>
                             {item.exception.reason}
@@ -1313,7 +1314,7 @@ export default function RequesterApprovals() {
                   </span>
                 </div>
                 <DialogDescription className="text-sm text-muted-foreground mt-1 text-right">
-                  تاريخ التقديم: {new Date(selectedSubmission.createdAt).toLocaleDateString("ar-SA")}
+                  تاريخ التقديم: <span dir="ltr">{formatSubmissionDate(selectedSubmission.createdAt)}</span>
                 </DialogDescription>
               </div>
             </div>
