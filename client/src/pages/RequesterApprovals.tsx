@@ -640,17 +640,19 @@ export default function RequesterApprovals() {
                               }`}
                             >
                               <TableCell className="font-bold text-foreground">
-                                <div className="flex items-center gap-2.5 flex-nowrap whitespace-nowrap">
+                                <div className="flex items-center gap-2.5">
                                   {isPending && (
                                     <span className="w-2 h-2 rounded-full bg-amber-500 ring-2 ring-amber-300 dark:ring-amber-800 animate-pulse shrink-0" />
                                   )}
-                                  <span className="text-sm font-bold text-foreground">{user.name ?? "—"}</span>
-                                  {isPending && user.createdAt && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80 shrink-0 shadow-2xs">
-                                      <Clock className="w-3 h-3 text-rose-500 shrink-0" />
-                                      {getDelayDaysText(user.createdAt)}
-                                    </span>
-                                  )}
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span className="text-sm font-bold text-foreground leading-tight">{user.name ?? "—"}</span>
+                                    {isPending && user.createdAt && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80 shadow-2xs">
+                                        <Clock className="w-3 h-3 text-rose-500 shrink-0" />
+                                        {getDelayDaysText(user.createdAt)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">{user.email ?? "—"}</TableCell>
