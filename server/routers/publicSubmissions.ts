@@ -156,21 +156,25 @@ export const publicSubmissionsRouter = router({
     const nonFinancialDonations = all.filter((s) => s.category === "donor" && s.submissionType !== "donor_financial");
     const inquiries = all.filter((s) => s.submissionType === "general_inquiry" || s.category === "other");
 
+    const newDonations = nonFinancialDonations.filter((s) => s.status === "new").length;
+    const reviewedDonations = nonFinancialDonations.filter((s) => s.status !== "new").length;
+
+    const newInquiries = inquiries.filter((s) => s.status === "new").length;
+    const reviewedInquiries = inquiries.filter((s) => s.status !== "new").length;
+
     return {
       donations: {
         total: nonFinancialDonations.length,
-        pending: nonFinancialDonations.filter((s) => s.status === "new" || s.status === "under_review").length,
-        contacted: nonFinancialDonations.filter((s) => s.status === "contacted").length,
-        completed: nonFinancialDonations.filter((s) => s.status === "completed").length,
+        pending: newDonations,
+        reviewed: reviewedDonations,
         land: nonFinancialDonations.filter((s) => s.submissionType === "donor_land").length,
         inKind: nonFinancialDonations.filter((s) => s.submissionType === "donor_inkind").length,
         other: nonFinancialDonations.filter((s) => s.submissionType === "donor_other").length,
       },
       inquiries: {
         total: inquiries.length,
-        pending: inquiries.filter((s) => s.status === "new" || s.status === "under_review").length,
-        contacted: inquiries.filter((s) => s.status === "contacted").length,
-        completed: inquiries.filter((s) => s.status === "completed").length,
+        pending: newInquiries,
+        reviewed: reviewedInquiries,
       },
     };
   }),

@@ -262,16 +262,20 @@ export default function RequesterApprovals() {
   });
 
   // جلب إحصائيات التبرعات والاستفسارات
-  const { data: submissionStats } = trpc.publicSubmissions.getStats.useQuery();
+  const { data: submissionStats, refetch: refetchSubmissionStats } = trpc.publicSubmissions.getStats.useQuery();
 
   // تحديث حالة الطلب الخارجي والملاحظات
   const updateSubmissionMutation = trpc.publicSubmissions.updateStatus.useMutation({
-    onSuccess: () => {
-      toast.success("تم تحديث حالة الطلب والملاحظات بنجاح");
+    onSuccess: async () => {
+      toast.success("تم تحديث حالة الطلب بنجاح");
       setSelectedSubmission(null);
-      refetchDonations();
-      refetchInquiries();
-      utils.publicSubmissions.getStats.invalidate();
+      await Promise.all([
+        refetchDonations(),
+        refetchInquiries(),
+        refetchSubmissionStats(),
+        utils.publicSubmissions.getStats.invalidate(),
+        utils.publicSubmissions.getAll.invalidate(),
+      ]);
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء تحديث الطلب");
@@ -279,11 +283,15 @@ export default function RequesterApprovals() {
   });
 
   const deleteSubmissionMutation = trpc.publicSubmissions.delete.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("تم حذف الطلب بنجاح");
-      refetchDonations();
-      refetchInquiries();
-      utils.publicSubmissions.getStats.invalidate();
+      await Promise.all([
+        refetchDonations(),
+        refetchInquiries(),
+        refetchSubmissionStats(),
+        utils.publicSubmissions.getStats.invalidate(),
+        utils.publicSubmissions.getAll.invalidate(),
+      ]);
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حذف الطلب");
@@ -427,7 +435,7 @@ export default function RequesterApprovals() {
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">تمت المراجعة</p>
                   <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
-                    {Math.max(0, (submissionStats?.donations?.total ?? 0) - (submissionStats?.donations?.pending ?? 0))}
+                    {submissionStats?.donations?.reviewed ?? Math.max(0, (submissionStats?.donations?.total ?? 0) - (submissionStats?.donations?.pending ?? 0))}
                   </p>
                 </div>
               </CardContent>
@@ -489,7 +497,7 @@ export default function RequesterApprovals() {
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">تمت المراجعة</p>
                   <p className="text-xl font-black text-emerald-700 dark:text-emerald-300">
-                    {Math.max(0, (submissionStats?.inquiries?.total ?? 0) - (submissionStats?.inquiries?.pending ?? 0))}
+                    {submissionStats?.inquiries?.reviewed ?? Math.max(0, (submissionStats?.inquiries?.total ?? 0) - (submissionStats?.inquiries?.pending ?? 0))}
                   </p>
                 </div>
               </CardContent>
