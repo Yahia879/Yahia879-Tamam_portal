@@ -42,6 +42,39 @@ const PAYMENT_METHOD_MAP: Record<string, string> = {
   sadad: "سداد",
 };
 
+const SADAD_BILLERS_MAP: Record<string, string> = {
+  "001": "شركة الاتصالات السعودية (STC)",
+  "002": "الشركة السعودية للطاقة",
+  "004": "موبايلي",
+  "008": "زين السعودية",
+  "013": "وزارة التجارة",
+  "020": "هيئة الزكاة والضريبة والجمارك",
+  "021": "البريد السعودي (سبل)",
+  "022": "الخطوط الجوية العربية السعودية",
+  "040": "صندوق التنمية العقارية",
+  "042": "هيئة الاتصالات وتقنية المعلومات",
+  "049": "الهيئة السعودية للمواصفات والمقاييس والجودة",
+  "050": "وزارة العمل",
+  "051": "وزارة الثقافة والإعلام",
+  "058": "بنك التنمية الاجتماعية",
+  "060": "المؤسسة العامة للتأمينات الاجتماعية",
+  "075": "وزارة النقل",
+  "084": "أمانة منطقة عسير",
+  "085": "شركة علم المملكة العربية السعودية",
+  "090": "وزارة الداخلية – الوافدين",
+  "091": "وزارة الداخلية – رخص القيادة",
+  "092": "وزارة الداخلية – الجوازات السعودية",
+  "093": "وزارة الداخلية – المخالفات المرورية",
+  "094": "وزارة الداخلية – المركبات",
+  "096": "وزارة الداخلية (الأحوال المدنية، خدمات أبشر)",
+  "130": "بوبا",
+  "138": "شركة المياه الوطنية",
+  "144": "خدمات أعمالي (وزارة التجارة)",
+  "279": "المركز السعودي للأعمال الاقتصادية",
+  "368": "قوى",
+  "903": "منصة تأميني",
+};
+
 export default function DisbursementOrderPrint() {
   const { user: currentUser } = useAuth();
   const params = useParams<{ id: string }>();
@@ -104,6 +137,8 @@ export default function DisbursementOrderPrint() {
     { id: parseInt(params.id || "0") },
     { enabled: !!params.id }
   );
+
+  const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
 
   // تحديث عنوان الصفحة بسلاسة عبر سياق عناوين المستندات
   useDocumentTitle(order?.orderNumber ? `طباعة أمر صرف رقم ${order.orderNumber}` : "طباعة أمر الصرف");
@@ -281,6 +316,35 @@ export default function DisbursementOrderPrint() {
   const isSadadInvoice = customSupplier?.requestType === "sadad_invoice" || 
                          linkedRequestInfo?.requestType === "sadad_invoice" ||
                          order?.paymentMethod === "sadad";
+
+  const resolvedSadadNumber = isSadadInvoice 
+    ? (customSupplier?.sadadNumber || order?.sadadNumber || order?.beneficiaryIban || "—")
+    : (order?.sadadNumber || "—");
+
+  const resolvedBillerCode = isSadadInvoice 
+    ? (customSupplier?.billerCode || order?.billerCode || order?.beneficiaryBank || "—")
+    : (order?.billerCode || "—");
+
+  const rawCode = (resolvedBillerCode && resolvedBillerCode !== "—" ? String(resolvedBillerCode) : "")?.trim();
+  const paddedCode = rawCode && rawCode.length < 3 ? rawCode.padStart(3, "0") : rawCode;
+
+  const matchedBillerCategory = sadadBillersData?.values?.find((v: any) => 
+    v.value === rawCode || 
+    v.value === paddedCode || 
+    (rawCode && v.value?.replace(/^0+/, "") === rawCode.replace(/^0+/, ""))
+  );
+
+  const matchedBillerNameFromMap = (rawCode && SADAD_BILLERS_MAP[rawCode]) || 
+                                   (paddedCode && SADAD_BILLERS_MAP[paddedCode]) || "";
+
+  const resolvedBillerName = customSupplier?.billerName || 
+    linkedRequestInfo?.billerName || 
+    matchedBillerCategory?.valueAr || 
+    matchedBillerNameFromMap || 
+    (order?.paymentMethod === "sadad" && order?.beneficiaryName ? order.beneficiaryName : "") || 
+    (isSadadInvoice && customSupplier?.name ? customSupplier.name : "") || 
+    (order as any)?.billerName || 
+    "—";
 
   const showRequestNumber = !!request && !request.isDirect;
 
@@ -699,20 +763,25 @@ export default function DisbursementOrderPrint() {
                           رقم سداد
                         </td>
                         <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {isSadadInvoice 
-                            ? (customSupplier?.sadadNumber || order.beneficiaryIban || order.sadadNumber || "—")
-                            : (order.sadadNumber || "—")}
+                          {resolvedSadadNumber}
+                        </td>
+                      </tr>
+
+                      <tr className="border-b border-slate-300">
+                        <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
+                          رمز المفوتر
+                        </td>
+                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
+                          {resolvedBillerCode}
                         </td>
                       </tr>
 
                       <tr>
                         <td className="p-2.5 bg-slate-100 font-bold w-48 border-l border-slate-300 text-slate-700 text-right">
-                          رمز المفوتر
+                          اسم المفوتر
                         </td>
-                        <td className="p-2.5 text-slate-800 font-mono font-bold text-right">
-                          {isSadadInvoice 
-                            ? (customSupplier?.billerCode || order.beneficiaryBank || order.billerCode || "—")
-                            : (order.billerCode || "—")}
+                        <td className="p-2.5 text-slate-800 font-bold text-right">
+                          {resolvedBillerName}
                         </td>
                       </tr>
                     </tbody>
