@@ -1053,13 +1053,27 @@ export default function RequesterApprovals() {
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                     onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                     disabled={updateSubmissionMutation.isPending}
                                     title="تحديد الطلب كتمت المراجعة"
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     تمت المراجعة
+                                  </Button>
+                                )}
+
+                                {/* زر إكمال وإغلاق الطلب */}
+                                {sub.status !== "completed" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600 shadow-xs cursor-pointer"
+                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "completed" })}
+                                    disabled={updateSubmissionMutation.isPending}
+                                    title="إكمال وإغلاق الطلب"
+                                  >
+                                    <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                    إكمال وإغلاق
                                   </Button>
                                 )}
 
@@ -1239,13 +1253,27 @@ export default function RequesterApprovals() {
                                 {sub.status === "new" && (
                                   <Button
                                     size="sm"
-                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
                                     onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "under_review" })}
                                     disabled={updateSubmissionMutation.isPending}
                                     title="تحديد الاستفسار كتمت المراجعة"
                                   >
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                     تمت المراجعة
+                                  </Button>
+                                )}
+
+                                {/* زر إكمال وإغلاق الاستفسار */}
+                                {sub.status !== "completed" && (
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl bg-slate-800 hover:bg-slate-900 text-white dark:bg-slate-700 dark:hover:bg-slate-600 shadow-xs cursor-pointer"
+                                    onClick={() => updateSubmissionMutation.mutate({ id: sub.id, status: "completed" })}
+                                    disabled={updateSubmissionMutation.isPending}
+                                    title="إكمال وإغلاق الاستفسار"
+                                  >
+                                    <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                                    إكمال وإغلاق
                                   </Button>
                                 )}
 
