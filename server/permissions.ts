@@ -58,6 +58,21 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   reports: ["reports.view_stats", "reports.export_data"],
   "reports.view_stats": ["reports.view_stats", "reports.view"],
   "reports.export_data": ["reports.export_data", "reports.view"],
+
+  // مركز الإحصائيات والتحليلات الشامل
+  analytics_hub: [
+    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view", "project_reports.view"
+  ],
+  "analytics_hub.kpi": ["reports.view_stats", "reports.view"],
+  "analytics_hub.technical": ["reports.view_stats", "reports.view", "reports.export_data"],
+  "analytics_hub.financial_report": ["financial_reports.view", "financial.view"],
+  "analytics_hub.financial_dash": ["financial_reports.view", "financial.view"],
+  "analytics_hub.board": ["financial_reports.view", "reports.view"],
+  "analytics_hub.beneficiary": ["reports.view"],
+  "analytics_hub.operations": ["requests.view", "reports.view"],
+  "analytics_hub.project_reports": ["project_reports.view"],
+  "analytics_hub.progress": ["progress_reports.view"],
+
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
@@ -590,7 +605,30 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: beneficiary_evaluations");
     }
 
+    // Ensure 'analytics_hub' module exists in the modules table
+    const [existingAnalyticsModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "analytics_hub")).limit(1);
+    if (!existingAnalyticsModule) {
+      await db.insert(modules).values({
+        id: "analytics_hub",
+        nameAr: "مركز الإحصائيات والتحليلات",
+        nameEn: "Analytics Hub",
+        icon: "BarChart3",
+        displayOrder: 8,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: analytics_hub");
+    }
+
     const customPerms = [
+      { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
+      { id: "analytics_hub.technical", moduleId: "analytics_hub", action: "technical", nameAr: "عرض التقارير الإحصائية والفنية", nameEn: "View Technical Reports" },
+      { id: "analytics_hub.financial_report", moduleId: "analytics_hub", action: "financial_report", nameAr: "عرض التقرير المالي الشامل", nameEn: "View Financial Report" },
+      { id: "analytics_hub.financial_dash", moduleId: "analytics_hub", action: "financial_dash", nameAr: "عرض لوحة التحكم المالية", nameEn: "View Financial Dashboard" },
+      { id: "analytics_hub.board", moduleId: "analytics_hub", action: "board", nameAr: "عرض تحليلات الإدارة العليا", nameEn: "View Board Analytics" },
+      { id: "analytics_hub.beneficiary", moduleId: "analytics_hub", action: "beneficiary", nameAr: "عرض رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
+      { id: "analytics_hub.operations", moduleId: "analytics_hub", action: "operations", nameAr: "عرض تقارير العمليات والمعاينات", nameEn: "View Operations & Pending Reports" },
+      { id: "analytics_hub.project_reports", moduleId: "analytics_hub", action: "project_reports", nameAr: "عرض مركز تقارير المشاريع", nameEn: "View Project Reports" },
+      { id: "analytics_hub.progress", moduleId: "analytics_hub", action: "progress", nameAr: "عرض تقارير ونسب الإنجاز", nameEn: "View Progress Reports" },
       { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض تقييمات المستفيدين", nameEn: "View Beneficiary Evaluations" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
