@@ -191,6 +191,7 @@ export default function AnalyticsHub() {
                     لوحة موحدة لجميع التحليلات ومؤشرات الأداء والتقارير المالية والفنية
                   </p>
                 </div>
+              </div>
             </div>
           </div>
 
