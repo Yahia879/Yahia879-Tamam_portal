@@ -143,30 +143,27 @@ export default function AnalyticsHub() {
     },
   ], []);
 
-  // التحقق من صلاحية الوصول لكل تاب
+  // التحقق الدقيق من صلاحية الوصول لكل تاب (إلغاء الصلاحية يخفي التاب فوراً حتى للمدير العام)
   const hasTabPermission = (tabId: string) => {
-    if (isAdmin) return true;
-    if (userPermissions.includes("analytics_hub")) return true;
-
     switch (tabId) {
       case "kpi":
-        return userPermissions.includes("analytics_hub.kpi") || userPermissions.includes("reports.view_stats");
+        return userPermissions.includes("analytics_hub.kpi");
       case "technical":
-        return userPermissions.includes("analytics_hub.technical") || userPermissions.includes("reports.view_stats") || userPermissions.includes("reports.view");
+        return userPermissions.includes("analytics_hub.technical");
       case "financial-report":
-        return userPermissions.includes("analytics_hub.financial_report") || userPermissions.includes("financial_reports.view");
+        return userPermissions.includes("analytics_hub.financial_report");
       case "financial-dash":
-        return userPermissions.includes("analytics_hub.financial_dash") || userPermissions.includes("financial_reports.view");
+        return userPermissions.includes("analytics_hub.financial_dash");
       case "board":
-        return userPermissions.includes("analytics_hub.board") || userPermissions.includes("board_leadership.board_chairman") || userPermissions.includes("board_leadership.board_member");
+        return userPermissions.includes("analytics_hub.board");
       case "beneficiary":
-        return userPermissions.includes("analytics_hub.beneficiary") || userPermissions.includes("beneficiary_evaluations.view");
+        return userPermissions.includes("analytics_hub.beneficiary");
       case "operations":
-        return userPermissions.includes("analytics_hub.operations") || userPermissions.includes("pending_reports.view") || userPermissions.includes("field_visits.view");
+        return userPermissions.includes("analytics_hub.operations");
       case "project-reports":
-        return userPermissions.includes("analytics_hub.project_reports") || userPermissions.includes("project_reports.view");
+        return userPermissions.includes("analytics_hub.project_reports");
       case "progress":
-        return userPermissions.includes("analytics_hub.progress") || userPermissions.includes("progress_reports.view");
+        return userPermissions.includes("analytics_hub.progress");
       default:
         return false;
     }
@@ -175,7 +172,7 @@ export default function AnalyticsHub() {
   // تصفية التابات المصرح للمستخدم برؤيتها فقط
   const visibleTabs = useMemo(() => {
     return tabs.filter((t) => hasTabPermission(t.id));
-  }, [tabs, userPermissions, isAdmin]);
+  }, [tabs, userPermissions]);
 
   // التاب النشط الحالي مع الرجوع لأول تاب مصرح إذا لم يكن التاب المختار متاحاً
   const activeTab = useMemo(() => {
