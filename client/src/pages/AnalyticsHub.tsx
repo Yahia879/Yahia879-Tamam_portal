@@ -206,9 +206,9 @@ export default function AnalyticsHub() {
             </div>
           </div>
 
-          {/* ==================== 📑 شريط التابات العلوي المدمج ==================== */}
+          {/* ==================== 📑 شريط التابات العلوي المدمج بكامل عرض الهيدر ==================== */}
           <div className="mt-4 pt-3 border-t border-border/50">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 pt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-1.5 w-full">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = tab.id === activeTab.id;
@@ -217,15 +217,15 @@ export default function AnalyticsHub() {
                     key={tab.id}
                     type="button"
                     onClick={() => handleTabChange(tab.id)}
-                    className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 whitespace-nowrap select-none cursor-pointer ${
+                    className={`group flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-all duration-200 w-full select-none cursor-pointer text-center ${
                       isActive
                         ? "bg-primary text-primary-foreground shadow-xs shadow-primary/25 scale-[1.02]"
                         : "bg-background/90 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/70"
                     }`}
                     title={tab.description}
                   >
-                    <Icon className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`} />
-                    <span>{tab.shortLabel}</span>
+                    <Icon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`} />
+                    <span className="truncate">{tab.shortLabel}</span>
                   </button>
                 );
               })}
