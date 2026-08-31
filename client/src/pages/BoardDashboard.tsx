@@ -88,7 +88,13 @@ const TOOLTIP_LABEL_STYLE = {
   marginBottom: "4px",
 };
 
-export default function BoardDashboard() {
+export default function BoardDashboard({
+  embedded = false,
+  forceAnalytics = false,
+}: {
+  embedded?: boolean;
+  forceAnalytics?: boolean;
+}) {
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("mosques");
   const [approvingId, setApprovingId] = useState<number | null>(null);
@@ -232,11 +238,11 @@ export default function BoardDashboard() {
   });
 
   // تحديد نوع الصفحات والتوجيه بناءً على المسار والصلاحيات
-  const isExecutiveRoute = location === "/board-executive";
-  const isAnalyticsRoute = location === "/board-analytics";
+  const isExecutiveRoute = !forceAnalytics && location === "/board-executive";
+  const isAnalyticsRoute = forceAnalytics || location === "/board-analytics";
 
   // إذا دخل على المسار العام /board-dashboard نحدد الصفحة حسب صلاحياته
-  const isChairmanView = isExecutiveRoute || (!isAnalyticsRoute && data?.isChairman);
+  const isChairmanView = !forceAnalytics && (isExecutiveRoute || (!isAnalyticsRoute && data?.isChairman));
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -249,9 +255,8 @@ export default function BoardDashboard() {
   const totalApprovedAmount = data?.chairmanData?.totalApprovedAmount || 0;
   const pendingCount = data?.chairmanData?.statusCounts?.pending_approval ?? 0;
 
-  return (
-    <DashboardLayout>
-      <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
+  const content = (
+    <div className="container py-8 max-w-7xl mx-auto space-y-8 text-right" dir="rtl">
         {/* ==================== 👑 الهيدر التنفيذي والتمايز القيادي ==================== */}
         <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/10 via-background to-amber-500/10 dark:from-primary/15 dark:via-background dark:to-amber-950/20 p-6 sm:p-7 shadow-sm transition-all">
           <div className="absolute top-0 right-0 left-0 h-1.5 bg-gradient-to-r from-primary via-amber-500 to-emerald-600" />
@@ -1863,6 +1868,15 @@ export default function BoardDashboard() {
           </DialogContent>
         </Dialog>
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
