@@ -651,28 +651,27 @@ function DashboardLayoutContent({
           disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative">
+            {/* زر عائم أنيق على حافة السايد بار للطي والتوسيع دون التأثير على مساحة اسم وشعار الجمعية */}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="absolute -left-3.5 top-1/2 -translate-y-1/2 z-40 hidden md:flex items-center justify-center w-7 h-7 rounded-full bg-card border border-border shadow-xs text-muted-foreground hover:text-primary hover:border-primary/40 hover:scale-105 transition-all cursor-pointer"
+              title={isCollapsed ? "توسيع القائمة الجانبية" : "طي القائمة الجانبية"}
+            >
+              <PanelRightClose className={`w-3.5 h-3.5 transition-transform duration-200 ${isCollapsed ? "rotate-180 text-primary" : ""}`} />
+            </button>
+
             {!isCollapsed ? (
-              <div className="flex items-center justify-between px-2 transition-all w-full">
-                <div className="flex items-center gap-3 min-w-0">
-                  <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
-                  <div className="min-w-0">
-                    <span className="font-bold text-sidebar-foreground block leading-tight truncate">
-                      {orgName}
-                    </span>
-                    <span className="text-xs text-sidebar-foreground/50 truncate block">
-                      {orgNameShort}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-3 px-3.5 transition-all w-full min-w-0">
+                <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
+                <div className="min-w-0 flex-1">
+                  <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
+                    {orgName}
+                  </span>
+                  <span className="text-xs text-sidebar-foreground/50 truncate block mt-0.5">
+                    {orgNameShort}
+                  </span>
                 </div>
-                {/* زر طي القائمة داخل الهيدر */}
-                <button
-                  type="button"
-                  onClick={toggleSidebar}
-                  className="h-8 w-8 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent flex items-center justify-center shrink-0 transition-colors cursor-pointer mr-1"
-                  title="طي القائمة الجانبية"
-                >
-                  <PanelRightClose className="w-4 h-4" />
-                </button>
               </div>
             ) : (
               <button
