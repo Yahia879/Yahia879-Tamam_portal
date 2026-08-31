@@ -94,7 +94,7 @@ function ProgressiveImage({ src, alt, className }: { src: string; alt: string; c
   );
 }
 
-export default function PendingReports() {
+export default function PendingReports({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
@@ -131,16 +131,15 @@ export default function PendingReports() {
   });
 
   if (!hasViewPermission) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
-          <ShieldAlert className="w-16 h-16 text-red-500 mb-4 animate-bounce" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح بالدخول</h2>
-          <p className="text-muted-foreground mb-4">هذه الصفحة مخصصة لمدير النظام فقط.</p>
-          <Button onClick={() => setLocation("/dashboard")}>العودة للوحة التحكم</Button>
-        </div>
-      </DashboardLayout>
+    const errorContent = (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
+        <ShieldAlert className="w-16 h-16 text-red-500 mb-4 animate-bounce" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">غير مصرح بالدخول</h2>
+        <p className="text-muted-foreground mb-4">هذه الصفحة مخصصة لمدير النظام فقط.</p>
+        <Button onClick={() => setLocation("/dashboard")}>العودة للوحة التحكم</Button>
+      </div>
     );
+    return embedded ? errorContent : <DashboardLayout>{errorContent}</DashboardLayout>;
   }
 
   const reportsList = reportsData?.reports ?? [];
@@ -157,10 +156,8 @@ export default function PendingReports() {
 
   const totalPages = Math.ceil(total / limit);
 
-  return (
-    <>
-      <DashboardLayout>
-        <div className="space-y-6" dir="rtl">
+  const mainContent = (
+    <div className="space-y-6" dir="rtl">
         {/* العنوان والإجراءات */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -643,7 +640,11 @@ export default function PendingReports() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    );
+
+  return (
+    <>
+      {embedded ? mainContent : <DashboardLayout>{mainContent}</DashboardLayout>}
 
     {/* Dialog لعرض التقرير الميداني أو الاستجابة السريعة */}
     <ColoredDialog
