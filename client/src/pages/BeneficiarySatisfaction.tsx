@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { PROGRAM_LABELS } from "@shared/constants";
 
-export default function BeneficiarySatisfaction() {
+export default function BeneficiarySatisfaction({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRating, setSelectedRating] = useState<string>("all");
@@ -111,9 +111,8 @@ export default function BeneficiarySatisfaction() {
       .sort((a, b) => a.order - b.order);
   }, [evalFormConfig]);
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 pb-12" dir="rtl">
+  const content = (
+    <div className="space-y-6 pb-12" dir="rtl">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-5 sm:p-6 rounded-2xl border border-border/80 shadow-xs">
           <div className="flex items-center gap-3.5">
@@ -506,7 +505,7 @@ export default function BeneficiarySatisfaction() {
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
                             <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60">
-                              {field.options?.find((o) => o.value === value)?.label || getArabicLabel(String(value))}
+                              {field.options?.find((o: any) => o.value === value)?.label || getArabicLabel(String(value))}
                             </div>
                           )}
 
@@ -564,6 +563,15 @@ export default function BeneficiarySatisfaction() {
           </DialogContent>
         </Dialog>
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
