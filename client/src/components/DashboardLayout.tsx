@@ -27,9 +27,6 @@ import {
   LogOut, 
   PanelLeft, 
   PanelRightClose,
-  PanelRightOpen,
-  PanelLeftClose,
-  PanelLeftOpen,
   Users, 
   Building2, 
   FileText, 
@@ -741,29 +738,7 @@ function DashboardLayoutContent({
             ))}
           </SidebarContent>
 
-          <SidebarFooter className="p-2.5 border-t border-sidebar-border space-y-1.5">
-            {/* زر دائم لطي وتوسيع القائمة الجانبية */}
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className={`flex items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-sidebar-accent/80 text-sidebar-foreground/75 hover:text-sidebar-foreground border border-sidebar-border/60 hover:border-sidebar-border transition-all w-full text-xs font-bold cursor-pointer select-none ${
-                isCollapsed ? "justify-center" : "justify-between"
-              }`}
-              title={isCollapsed ? "توسيع القائمة الجانبية" : "طي القائمة الجانبية"}
-            >
-              {!isCollapsed ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <PanelRightClose className="w-4 h-4 text-sidebar-foreground/70" />
-                    <span>طي القائمة</span>
-                  </div>
-                  <span className="text-[10px] text-sidebar-foreground/40 font-mono">⌘B</span>
-                </>
-              ) : (
-                <PanelRightOpen className="w-4 h-4 text-sidebar-foreground/90 hover:scale-110 transition-transform" />
-              )}
-            </button>
-
+          <SidebarFooter className="p-2.5 border-t border-sidebar-border">
             {/* الملف الشخصي للمستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
