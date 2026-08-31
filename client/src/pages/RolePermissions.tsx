@@ -123,8 +123,6 @@ export default function RolePermissions() {
   };
 
   const handleTogglePermission = (permId: string) => {
-    if (isSuperAdmin) return;
-    
     // منع تفعيل أي صلاحية فرعية للمساجد إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("mosques.") && permId !== "mosques.view") {
       if (!selectedPerms.includes("mosques.view")) {
@@ -359,7 +357,6 @@ export default function RolePermissions() {
   };
 
   const handleToggleModuleAll = (modulePerms: any[]) => {
-    if (isSuperAdmin) return;
     const permIds = modulePerms.map(p => p.id);
     const allSelected = permIds.every(id => selectedPerms.includes(id));
     if (allSelected) {
