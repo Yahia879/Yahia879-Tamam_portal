@@ -12,13 +12,9 @@ import {
   Layers, 
   Activity,
   ArrowRight,
-  Sparkles,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Home
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/components/ui/sidebar";
 
 // استيراد كافة صفحات الإحصائيات والتحليلات بالكامل
 import KPIDashboard from "@/pages/KPIDashboard";
@@ -164,23 +160,19 @@ export default function AnalyticsHub() {
         <div className="relative overflow-hidden rounded-2xl bg-card border border-border/80 p-4 sm:p-5 shadow-xs transition-all">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            {/* جهة اليمين: زر الرجوع للرئيسية + زر الشريط الجانبي + العنوان والأيقونة */}
+            {/* جهة اليمين: زر الرجوع للرئيسية + العنوان والأيقونة */}
             <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-              {/* أزرار التحكم تبدأ من اليمين */}
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/dashboard")}
-                  className="h-9 px-3 text-xs font-bold gap-1.5 rounded-xl border-border/80 hover:bg-muted/80 bg-background shadow-xs text-foreground hover:text-primary transition-colors cursor-pointer"
-                  title="العودة إلى لوحة التحكم الرئيسية"
-                >
-                  <ArrowRight className="w-4 h-4 ml-0.5 text-primary" />
-                  <span>الرئيسية</span>
-                </Button>
-
-                <SidebarStateToggle />
-              </div>
+              {/* زر الرجوع للرئيسية في البداية على اليمين */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/dashboard")}
+                className="h-9 px-3 text-xs font-bold gap-1.5 rounded-xl border-border/80 hover:bg-muted/80 bg-background shadow-xs text-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+                title="العودة إلى لوحة التحكم الرئيسية"
+              >
+                <ArrowRight className="w-4 h-4 ml-0.5 text-primary" />
+                <span>الرئيسية</span>
+              </Button>
 
               {/* خط فاصل رأسي */}
               <div className="hidden sm:block w-px h-7 bg-border/60 mx-1 shrink-0" />
@@ -247,35 +239,5 @@ export default function AnalyticsHub() {
         </div>
       </div>
     </DashboardLayout>
-  );
-}
-
-/**
- * زر لتبديل وتوسيع/طي الشريط الجانبي من الهيدر
- */
-function SidebarStateToggle() {
-  const { state, toggleSidebar } = useSidebar();
-  const isCollapsed = state === "collapsed";
-
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={toggleSidebar}
-      className="h-9 px-2.5 text-xs font-semibold text-muted-foreground hover:text-foreground rounded-xl border border-border/80 bg-background hover:bg-muted/80 shadow-xs cursor-pointer"
-      title={isCollapsed ? "توسيع القائمة الجانبية" : "تصغير القائمة الجانبية"}
-    >
-      {isCollapsed ? (
-        <>
-          <PanelLeftOpen className="w-4 h-4 ml-1 text-primary" />
-          <span className="hidden sm:inline">القائمة</span>
-        </>
-      ) : (
-        <>
-          <PanelLeftClose className="w-4 h-4 ml-1 text-muted-foreground" />
-          <span className="hidden sm:inline">طي القائمة</span>
-        </>
-      )}
-    </Button>
   );
 }
