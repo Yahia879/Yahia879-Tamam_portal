@@ -13,7 +13,9 @@ export function usePermission(permission: string): boolean {
     { userId: user?.id ?? 0 },
     { 
       enabled: !!user,
-      staleTime: 5 * 60 * 1000 // 5 دقائق
+      staleTime: 10 * 1000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true
     }
   );
 
@@ -38,7 +40,9 @@ export function usePermissions(requiredPermissions: string[]): boolean {
     { userId: user?.id ?? 0 },
     { 
       enabled: !!user,
-      staleTime: 5 * 60 * 1000
+      staleTime: 10 * 1000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true
     }
   );
 
@@ -62,7 +66,9 @@ export function useAnyPermission(permissionsList: string[]): boolean {
     { userId: user?.id ?? 0 },
     { 
       enabled: !!user,
-      staleTime: 5 * 60 * 1000
+      staleTime: 10 * 1000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true
     }
   );
 
@@ -85,7 +91,9 @@ export function useUserPermissions(): string[] {
     { userId: user?.id ?? 0 },
     { 
       enabled: !!user,
-      staleTime: 5 * 60 * 1000
+      staleTime: 10 * 1000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true
     }
   );
 
