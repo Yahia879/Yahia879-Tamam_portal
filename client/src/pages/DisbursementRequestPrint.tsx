@@ -469,173 +469,179 @@ export default function DisbursementRequestPrint() {
   })();
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 print:py-0 print:bg-white" dir="rtl">
+    <div className="min-h-screen bg-gray-100 py-3 sm:py-8 print:py-0 print:bg-white" dir="rtl">
       {/* أزرار التحكم والخيارات */}
-      <div className="print:hidden w-full bg-white/90 backdrop-blur border-b p-3 sticky top-0 z-50 flex flex-wrap justify-between items-center gap-2 sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:justify-end">
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              navigate("/disbursements");
-            }
-          }}
-          className="bg-white border shadow-sm sm:bg-white/90 font-semibold"
-        >
-          <ArrowRight className="ml-2 h-4 w-4" />
-          رجوع
-        </Button>
-
-        <Button onClick={handlePrint} className="shadow-md gradient-primary text-white font-semibold">
-          <Printer className="ml-2 h-4 w-4" />
-          تنزيل PDF / طباعة
-        </Button>
-
-        {/* زر اعتماد طلب الصرف لصاحبي الاعتماد */}
-        {canApproveRequest && (
+      <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border/70 p-2 sm:p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-1.5 sm:gap-2">
           <Button
-            onClick={() => approveRequestMutation.mutate({ id: requestId })}
-            disabled={approveRequestMutation.isPending}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                navigate("/disbursements");
+              }
+            }}
+            className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs sm:bg-white/90 font-bold text-xs sm:text-sm gap-1"
           >
-            {approveRequestMutation.isPending ? (
-              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4 ml-2" />
-            )}
-            اعتماد طلب الصرف
+            <ArrowRight className="h-3.5 w-3.5 ml-1" />
+            رجوع
           </Button>
-        )}
 
-        {/* تحديد صلاحية التحكم لكل زر توقيع - كل مستخدم يتحكم بتوقيعه فقط */}
-        {(() => {
-          const isCreator = currentUser?.id === request?.requestedBy;
-          const isExecutiveDirector = 
-            currentUser?.role === "general_manager" ||
-            currentUser?.role === "executive_director" ||
-            (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
+          <Button 
+            size="sm"
+            onClick={handlePrint} 
+            className="h-8 sm:h-9 shadow-md gradient-primary text-white font-bold text-xs sm:text-sm gap-1.5"
+          >
+            <Printer className="h-3.5 w-3.5 ml-1" />
+            <span>تنزيل PDF / طباعة</span>
+          </Button>
 
-          const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
-          const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
-
-          const isExceptionApprover = (request as any)?.exceptionApprovedBy
-            ? currentUser?.id === (request as any)?.exceptionApprovedBy
-            : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursements.exception_approve"));
-          const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
-          const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
-
-          return (
-            <>
-              {/* خيار إظهار/إخفاء توقيع مُعدّ الطلب - لمُعدّ الطلب فقط */}
-              {canControlCreatorSig && (
-                <label
-                  htmlFor="show-creator-sig"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-                >
-                  <PenTool className={`w-3.5 h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-                  <span>توقيع مُعدّ الطلب</span>
-                  <Checkbox
-                    id="show-creator-sig"
-                    checked={showCreatorSignature}
-                    onCheckedChange={(checked) => {
-                    const val = !!checked;
-                    setShowCreatorSignature(val);
-                    if (request?.id) {
-                      updateRequestSigVisibilityMutation.mutate({ id: request.id, showCreatorSignature: val });
-                    }
-                  }}
-                    className="scale-90"
-                  />
-                </label>
+          {/* زر اعتماد طلب الصرف لصاحبي الاعتماد */}
+          {canApproveRequest && (
+            <Button
+              size="sm"
+              onClick={() => approveRequestMutation.mutate({ id: requestId })}
+              disabled={approveRequestMutation.isPending}
+              className="h-8 sm:h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm gap-1 animate-pulse"
+            >
+              {approveRequestMutation.isPending ? (
+                <Loader2 className="h-3.5 w-3.5 ml-1 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5 ml-1" />
               )}
+              اعتماد طلب الصرف
+            </Button>
+          )}
 
-              {/* خيار إظهار/إخفاء توقيع المدير التنفيذي - للمدير التنفيذي والآدمن فقط */}
-              {canControlExecSig && (
-                <label
-                  htmlFor="show-exec-sig"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white shadow-sm hover:bg-slate-50 transition-colors cursor-pointer select-none text-xs font-medium text-slate-700"
-                >
-                  <PenTool className={`w-3.5 h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
-                  <span>توقيع المدير التنفيذي</span>
-                  <Checkbox
-                    id="show-exec-sig"
-                    checked={showExecutiveDirectorSignature}
-                    onCheckedChange={(checked) => {
-                    const val = !!checked;
-                    setShowExecutiveDirectorSignature(val);
-                    if (request?.id) {
-                      updateRequestSigVisibilityMutation.mutate({ id: request.id, showExecutiveDirectorSignature: val });
-                    }
-                  }}
-                    className="scale-90"
-                  />
-                </label>
-              )}
-            </>
-          );
-        })()}
+          {/* خيارات التوقيع */}
+          {(() => {
+            const isCreator = currentUser?.id === request?.requestedBy;
+            const isExecutiveDirector = 
+              currentUser?.role === "general_manager" ||
+              currentUser?.role === "executive_director" ||
+              (currentUser as any)?.customRole?.nameAr === "المدير التنفيذي";
+
+            const isRequestStage1Approved = request?.status === "pending_executive" || request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
+            const isRequestStage2Approved = request?.status === "approved" || request?.status === "paid" || !!request?.approvedAt;
+
+            const isExceptionApprover = (request as any)?.exceptionApprovedBy
+              ? currentUser?.id === (request as any)?.exceptionApprovedBy
+              : (currentUser?.role === "super_admin" || userPermissionsList.includes("disbursements.exception_approve"));
+            const canControlCreatorSig = (isExceptionApproved ? isExceptionApprover : isCreator) && !!resolvedSignatureUrl && isRequestStage1Approved;
+            const canControlExecSig = isExecutiveDirector && !!executiveDirectorSignatureUrl && isRequestStage2Approved;
+
+            if (!canControlCreatorSig && !canControlExecSig) return null;
+
+            return (
+              <div className="flex items-center gap-1.5 w-full sm:w-auto mt-1 sm:mt-0 justify-end">
+                {canControlCreatorSig && (
+                  <label
+                    htmlFor="show-creator-sig"
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
+                  >
+                    <PenTool className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${showCreatorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                    <span>توقيع مُعدّ الطلب</span>
+                    <Checkbox
+                      id="show-creator-sig"
+                      checked={showCreatorSignature}
+                      onCheckedChange={(checked) => {
+                        const val = !!checked;
+                        setShowCreatorSignature(val);
+                        if (request?.id) {
+                          updateRequestSigVisibilityMutation.mutate({ id: request.id, showCreatorSignature: val });
+                        }
+                      }}
+                      className="scale-75 sm:scale-90"
+                    />
+                  </label>
+                )}
+
+                {canControlExecSig && (
+                  <label
+                    htmlFor="show-exec-sig"
+                    className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 shadow-xs hover:bg-slate-50 transition-colors cursor-pointer select-none text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200"
+                  >
+                    <PenTool className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${showExecutiveDirectorSignature ? "text-emerald-600" : "text-slate-400"}`} />
+                    <span>توقيع المدير</span>
+                    <Checkbox
+                      id="show-exec-sig"
+                      checked={showExecutiveDirectorSignature}
+                      onCheckedChange={(checked) => {
+                        const val = !!checked;
+                        setShowExecutiveDirectorSignature(val);
+                        if (request?.id) {
+                          updateRequestSigVisibilityMutation.mutate({ id: request.id, showExecutiveDirectorSignature: val });
+                        }
+                      }}
+                      className="scale-75 sm:scale-90"
+                    />
+                  </label>
+                )}
+              </div>
+            );
+          })()}
+        </div>
       </div>
 
       {/* صفحة الطباعة - تصميم متوازن لصفحة A4 */}
-      <div className="print-container w-full max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-4 sm:p-8 print:p-0 min-h-[297mm] relative flex flex-col justify-start">
+      <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-lg print:shadow-none p-2 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-start overflow-hidden">
         {/* إطار مزدوج فاخر للمستند */}
-        <div className="print-inner border-[3px] border-[#1a5f4a] p-4 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start">
+        <div className="print-inner border-[2px] sm:border-[3px] border-[#1a5f4a] p-2.5 sm:p-6 rounded-lg relative overflow-hidden bg-white print:border-[2px] print:p-5 h-full flex-1 flex flex-col justify-start">
           {/* خط ذهبي داخلي رفيع للإطار */}
-          <div className="absolute inset-1.5 border border-[#d4a574] rounded pointer-events-none"></div>
+          <div className="absolute inset-1 border border-[#d4a574] rounded pointer-events-none"></div>
 
           {/* محتوى المستند */}
-          <div className="relative z-10 flex-1 flex flex-col justify-start space-y-8">
+          <div className="relative z-10 flex-1 flex flex-col justify-start space-y-4 sm:space-y-8">
             <div>
               {/* الترويسة - الشعار والتاريخ ورقم الطلب */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-4">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-row justify-between items-start gap-2 mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-10 sm:h-14 w-auto" />
                   ) : (
-                    <div className="w-12 h-12 bg-primary/10 rounded flex items-center justify-center">
-                      <span className="text-primary font-bold text-lg">تمام</span>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded flex items-center justify-center">
+                      <span className="text-primary font-bold text-base sm:text-lg">تمام</span>
                     </div>
                   )}
                   <div>
-                    <div className="text-sm font-bold text-gray-800">
+                    <div className="text-xs sm:text-sm font-bold text-gray-800 leading-tight">
                       {orgSettings?.officialReportsName || ""}
                     </div>
                     <div className="text-[10px] text-gray-500">مكتب إدارة المشاريع</div>
                   </div>
                 </div>
 
-                <div className="text-xs space-y-1 text-right sm:text-left">
-                  <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">التاريخ:</span>
-                    <span className="border-b border-dotted border-gray-400 px-2">{formatGregorianDate(requestDate)} م</span>
+                <div className="text-[10.5px] sm:text-xs space-y-0.5 sm:space-y-1 text-left shrink-0">
+                  <div className="flex gap-1 justify-end">
+                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">التاريخ:</span>
+                    <span className="border-b border-dotted border-gray-400 px-1">{formatGregorianDate(requestDate)} م</span>
                   </div>
-                  <div className="flex gap-1.5 justify-start sm:justify-end">
-                    <span className="font-bold text-gray-600">رقم الطلب:</span>
-                    <span className="border-b border-dotted border-gray-400 px-2 font-mono text-gray-900 font-bold">{request.requestNumber}</span>
+                  <div className="flex gap-1 justify-end">
+                    <span className="font-bold text-gray-600 hidden xs:inline sm:inline">رقم الطلب:</span>
+                    <span className="border-b border-dotted border-gray-400 px-1 font-mono text-gray-900 font-bold">{request.requestNumber}</span>
                   </div>
                 </div>
               </div>
 
               {/* عنوان النموذج الفاخر */}
-              <div className="text-center mb-6">
-                <h1 className="text-xl sm:text-2xl font-black text-gray-800 pb-1 inline-block px-4 tracking-wide">
+              <div className="text-center mb-3 sm:mb-6">
+                <h1 className="text-base sm:text-2xl font-black text-gray-800 pb-1 inline-block px-2 sm:px-4 tracking-wide">
                   طلب صرف رقم {request.requestNumber}
                 </h1>
               </div>
 
-              {/* تم إزالة الخانات الأربعة المثبتة لعرض الجهات الداعمة ديناميكياً بالجدول أدناه */}
-
               {/* 2. خاص بدعم المؤسسات المانحة والمسؤولية المجتمعية */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="grid grid-cols-2 text-xs sm:text-sm">
-                  <div className="flex border-l border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الجهة الداعمة:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupportingEntitiesText || "—"}</span>
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الجهة الداعمة:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{resolvedSupportingEntitiesText || "—"}</span>
                   </div>
                   <div className="flex">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">مبلغ الدعم:</span>
-                    <span className="p-2.5 text-gray-800 font-bold font-mono flex-1">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">مبلغ الدعم:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold font-mono flex-1">
                       {totalSupportedAmount ? `${totalSupportedAmount.toLocaleString()} ريال` : `${totalOpportunityValue.toLocaleString()} ريال`}
                     </span>
                   </div>
@@ -643,113 +649,113 @@ export default function DisbursementRequestPrint() {
               </div>
 
               {/* 3. معلومات المشروع */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="grid grid-cols-2 text-xs sm:text-sm">
-                  <div className="flex border-l border-b border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">المشروع الرئيسي:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedMainProjectName}</span>
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white text-[10.5px] sm:text-xs sm:text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2">
+                  <div className="flex border-b sm:border-l border-gray-200">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">المشروع الرئيسي:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{resolvedMainProjectName}</span>
                   </div>
                   <div className="flex border-b border-gray-200">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-32 border-l border-gray-200 text-gray-750 shrink-0">اسم المشروع:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{isCustomType ? (customSupplier?.customProjectName || "—") : (project?.name || "—")}</span>
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">اسم المشروع:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{isCustomType ? (customSupplier?.customProjectName || "—") : (project?.name || "—")}</span>
                   </div>
-                  <div className="flex col-span-2">
-                    <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">عنوان المشروع:</span>
-                    <span className="p-2.5 text-gray-800 font-bold flex-1">{projectAddress}</span>
+                  <div className="flex col-span-1 sm:col-span-2">
+                    <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">عنوان المشروع:</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{projectAddress}</span>
                   </div>
                 </div>
               </div>
 
               {/* 4. وصف الأعمال المطلوبة */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-gray-800">
                   وصف الأعمال المطلوبة
                 </div>
-                <div className={`bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold min-h-[60px] ${descFontSizeClass ? descFontSizeClass : "p-3 text-xs sm:text-sm"}`}>
+                <div className={`bg-white text-gray-800 leading-relaxed whitespace-pre-wrap break-words font-semibold min-h-[45px] sm:min-h-[60px] ${descFontSizeClass ? descFontSizeClass : "p-2 sm:p-3 text-[11px] sm:text-sm"}`}>
                   {descriptionText}
                 </div>
               </div>
 
               {/* 5. جدول التكلفة والرسوم الإدارية */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <table className="w-full text-xs sm:text-sm text-center border-collapse">
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <table className="w-full text-[10.5px] sm:text-xs sm:text-sm text-center border-collapse">
                   <tbody>
                     <tr className="border-b border-gray-200">
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/3">تكلفة المشروع الفعلية</td>
-                      <td className="p-2.5 font-bold font-mono text-gray-800 border-l border-gray-200 w-1/3">
+                      <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/3">تكلفة المشروع الفعلية</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-gray-800 border-l border-gray-200 w-1/3">
                         {actualProjectCost.toLocaleString()}
                       </td>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">الأجور الإدارية</td>
-                      <td className="p-2.5 font-bold font-mono text-gray-800 w-1/6">
+                      <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">الأجور الإدارية</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-gray-800 w-1/6">
                         {adminFees > 0 ? adminFees.toLocaleString() : "0"}
                       </td>
                     </tr>
                     <tr>
-                      <td className="p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
-                      <td className="p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
+                      <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200">إجمالي قيمة الفرصة</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-800 border-l border-gray-200">
                         {totalOpportunityValue.toLocaleString()}
                       </td>
-                      <td className="p-2.5 border-l border-gray-200" colSpan={2}></td>
+                      <td className="p-1.5 sm:p-2.5 border-l border-gray-200" colSpan={2}></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* 6. الموردون والمقاولون */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
                   الموردون والمقاولون
                 </div>
-                <table className="w-full text-xs sm:text-sm text-center border-collapse">
+                <table className="w-full text-[10.5px] sm:text-xs sm:text-sm text-center border-collapse">
                   <thead>
                     <tr className="bg-gray-55 border-b border-gray-200 text-gray-750">
-                      <th className="p-2 font-bold border-l border-gray-200 w-1/2">اسم المورد</th>
-                      <th className="p-2 font-bold w-1/2">المبلغ</th>
+                      <th className="p-1.5 sm:p-2 font-bold border-l border-gray-200 w-1/2">اسم المورد</th>
+                      <th className="p-1.5 sm:p-2 font-bold w-1/2">المبلغ</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-4">{resolvedSupplierName}</td>
-                      <td className="p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
+                      <td className="p-1.5 sm:p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-2 sm:pr-4">{resolvedSupplierName}</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
               {/* المعلومات البنكية للمورد */}
-              <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
-                <div className="bg-gray-100/80 p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
+              <div className="mb-3 sm:mb-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                <div className="bg-gray-100/80 p-1.5 sm:p-2 font-bold text-xs sm:text-sm border-b text-center text-gray-800">
                   {customSupplier?.requestType === "sadad_invoice" ? "تفاصيل نظام سداد" : "المعلومات البنكية للمورد"}
                 </div>
-                <div className="flex flex-col text-xs sm:text-sm">
+                <div className="flex flex-col text-[10.5px] sm:text-xs sm:text-sm">
                   {customSupplier?.requestType === "sadad_invoice" ? (
                     <>
                       <div className="flex border-b border-gray-200">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">المفوتر:</span>
-                        <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{customSupplier?.billerName || "—"}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">المفوتر:</span>
+                        <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1 truncate">{customSupplier?.billerName || "—"}</span>
                       </div>
                       <div className="flex border-b border-gray-200">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">رمز المفوتر:</span>
-                        <span className="p-2.5 text-gray-800 font-bold flex-1 font-mono">{customSupplier?.billerCode || "—"}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رمز المفوتر:</span>
+                        <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1 font-mono">{customSupplier?.billerCode || "—"}</span>
                       </div>
                       <div className="flex">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم سداد:</span>
-                        <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{customSupplier?.sadadNumber || "—"}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">رقم سداد:</span>
+                        <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold font-mono flex-1 text-[10px] sm:text-xs tracking-wider">{customSupplier?.sadadNumber || "—"}</span>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="flex border-b border-gray-200">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
-                        <span className="p-2.5 text-gray-800 font-bold flex-1 truncate">{resolvedSupplierAccountName}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الحساب:</span>
+                        <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1 truncate">{resolvedSupplierAccountName}</span>
                       </div>
                       <div className="flex border-b border-gray-200">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
-                        <span className="p-2.5 text-gray-800 font-bold flex-1">{resolvedSupplierBankName}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم البنك:</span>
+                        <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{resolvedSupplierBankName}</span>
                       </div>
                       <div className="flex">
-                        <span className="p-2.5 bg-gray-50/50 font-bold w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان:</span>
-                        <span className="p-2.5 text-gray-800 font-bold font-mono flex-1 text-[11px] sm:text-xs tracking-wider">{resolvedSupplierIban}</span>
+                        <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">الآيبان:</span>
+                        <span className="p-1.5 sm:p-2.5 text-slate-800 font-mono font-bold flex-1 text-[10px] sm:text-xs tracking-wider break-all" dir="ltr">{resolvedSupplierIban}</span>
                       </div>
                     </>
                   )}
@@ -758,49 +764,49 @@ export default function DisbursementRequestPrint() {
             </div>
 
             {/* 7. التوقيعات والاعتماد */}
-            <div className="break-inside-avoid pt-4">
-              <div className={`grid ${(resolvedSignatureName && resolvedSignatureDepartment) ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-6 text-center`}>
+            <div className="break-inside-avoid pt-2 sm:pt-4">
+              <div className={`grid ${(resolvedSignatureName && resolvedSignatureDepartment) ? "grid-cols-2" : "grid-cols-1 max-w-xs mx-auto"} gap-3 sm:gap-6 text-center`}>
                 {/* معد الطلب */}
                 {(resolvedSignatureName && resolvedSignatureDepartment) && (
-                  <div className="p-2">
-                    <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
+                  <div className="p-1 sm:p-2">
+                    <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
                       {resolvedSignatureDepartment}
                     </div>
                     <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                       {(showCreatorSignature && resolvedSignatureUrl && (request.status === "pending_executive" || request.status === "approved" || request.status === "paid" || !!request.approvedAt)) ? (
-                        <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                        <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
                           <img 
                             src={resolvedSignatureUrl} 
                             alt="التوقيع الرقمي" 
-                            className="max-h-12 max-w-full object-contain" 
+                            className="max-h-9 sm:max-h-12 max-w-full object-contain" 
                           />
                         </div>
                       ) : (
-                        <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                        <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
                       )}
-                      <div className="text-gray-900 font-bold">{resolvedSignatureName}</div>
+                      <div className="text-gray-900 font-bold text-[10px] sm:text-xs">{resolvedSignatureName}</div>
                     </div>
                   </div>
                 )}
 
                 {/* المدير التنفيذي */}
-                <div className="p-2">
-                  <div className="font-bold text-gray-800 text-xs sm:text-sm mb-4">
+                <div className="p-1 sm:p-2">
+                  <div className="font-bold text-gray-800 text-[11px] sm:text-sm mb-2 sm:mb-4">
                     {executiveDirectorDepartment}
                   </div>
                   <div className="space-y-1 text-xs flex flex-col items-center justify-center">
                     {(showExecutiveDirectorSignature && executiveDirectorSignatureUrl && (request.status === "approved" || request.status === "paid" || !!request.approvedAt)) ? (
-                      <div className="h-12 flex items-center justify-center mx-auto w-36 overflow-hidden my-1">
+                      <div className="h-9 sm:h-12 flex items-center justify-center mx-auto w-24 sm:w-36 overflow-hidden my-0.5 sm:my-1">
                         <img
                           src={executiveDirectorSignatureUrl}
                           alt="توقيع المدير التنفيذي"
-                          className="max-h-12 max-w-full object-contain"
+                          className="max-h-9 sm:max-h-12 max-w-full object-contain"
                         />
                       </div>
                     ) : (
-                      <div className="h-10 border-b border-dashed border-gray-300 mx-auto w-36"></div>
+                      <div className="h-8 sm:h-10 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-36"></div>
                     )}
-                    <div className="text-gray-900 font-bold">{executiveDirectorName}</div>
+                    <div className="text-gray-900 font-bold text-[10px] sm:text-xs">{executiveDirectorName}</div>
                   </div>
                 </div>
               </div>
@@ -811,7 +817,7 @@ export default function DisbursementRequestPrint() {
 
       {/* نافذة / زر الروابط المرفقة العائم */}
       {documentationLinks.length > 0 && (
-        <div className="fixed top-24 right-4 sm:right-6 z-30 print:hidden text-right" dir="rtl">
+        <div className="fixed bottom-4 sm:bottom-auto sm:top-24 left-4 sm:left-auto sm:right-6 z-30 print:hidden text-right" dir="rtl">
           {showLinksCard ? (
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/90 dark:border-slate-700 shadow-2xl p-4 space-y-3 w-64 max-w-[260px] animate-in fade-in-50 slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/80 pb-2.5">
