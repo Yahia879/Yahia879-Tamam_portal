@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { DocumentTitleProvider } from "./contexts/DocumentTitleContext";
@@ -244,7 +244,7 @@ function Router() {
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
       <Route path="/board-dashboard">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/board-executive">{() => <AdminRoute component={BoardDashboard} />}</Route>
-      <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
+      <Route path="/board-analytics">{() => <Redirect to="/analytics-hub?tab=board" />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/my-requests">
@@ -286,7 +286,7 @@ function Router() {
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
       <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
-      <Route path="/beneficiary-satisfaction">{() => <AdminRoute component={BeneficiarySatisfaction} />}</Route>
+      <Route path="/beneficiary-satisfaction">{() => <Redirect to="/analytics-hub?tab=beneficiary" />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic">{() => <DynamicServiceRequestForm />}</Route>      
@@ -305,7 +305,7 @@ function Router() {
       <Route path="/projects/new">{() => <AdminRoute component={NewMultiMosqueProjectPage} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
-      <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
+      <Route path="/project-reports">{() => <Redirect to="/analytics-hub?tab=project-reports" />}</Route>
       <Route path="/project-reports/new">{() => <AdminRoute component={NewProjectReportPage} />}</Route>
       <Route path="/project-reports/:id/print">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
       <Route path="/project-reports/:id/pdf">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
@@ -320,8 +320,8 @@ function Router() {
       <Route path="/settings">{() => <AdminRoute component={Settings} />}</Route>
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
-      <Route path="/reports">{() => <AdminRoute component={Reports} />}</Route>
-      <Route path="/pending-reports">{() => <AdminRoute component={PendingReports} />}</Route>
+      <Route path="/reports">{() => <Redirect to="/analytics-hub?tab=technical" />}</Route>
+      <Route path="/pending-reports">{() => <Redirect to="/analytics-hub?tab=operations" />}</Route>
       <Route path="/analytics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       <Route path="/statistics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       
@@ -355,7 +355,7 @@ function Router() {
       <Route path="/categories">{() => <AdminRoute component={CategoriesManagement} />}</Route>
       
       {/* طلبات الصرف - إدارية */}
-      <Route path="/financial-dashboard">{() => <AdminRoute component={FinancialDashboard} />}</Route>
+      <Route path="/financial-dashboard">{() => <Redirect to="/analytics-hub?tab=financial-dash" />}</Route>
       <Route path="/disbursements">{() => <AdminRoute component={DisbursementRequests} />}</Route>
       <Route path="/disbursement-requests">{() => <AdminRoute component={DisbursementRequests} />}</Route>
       <Route path="/disbursements/new">{() => <AdminRoute component={NewDisbursementRequest} />}</Route>
@@ -381,17 +381,18 @@ function Router() {
       <Route path="/receipt-vouchers/:id">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       
       {/* تقارير الإنجاز - إدارية */}
-      <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
+      <Route path="/progress-reports">{() => <Redirect to="/analytics-hub?tab=progress" />}</Route>
       <Route path="/progress-reports/:id/print">{() => <AdminRoute component={ProgressReportPrint} />}</Route>
       
       {/* الاستلامات - إدارية */}
       <Route path="/handovers">{() => <AdminRoute component={Handovers} />}</Route>
       <Route path="/final-report/new">{() => <AdminRoute component={FinalReportForm} />}</Route>
       <Route path="/final-report/:reportId" component={FinalReportView} />
-      <Route path="/kpi-dashboard">{() => <AdminRoute component={KPIDashboard} />}</Route>
+      <Route path="/kpi-dashboard">{() => <Redirect to="/analytics-hub?tab=kpi" />}</Route>
       
       {/* التقرير المالي - إدارية */}
-      <Route path="/financial-report">{() => <AdminRoute component={FinancialReport} />}</Route>
+      <Route path="/financial-report">{() => <Redirect to="/analytics-hub?tab=financial-report" />}</Route>
+      <Route path="/financial-reports">{() => <Redirect to="/analytics-hub?tab=financial-report" />}</Route>
       
       {/* إعدادات المراحل - إدارية */}
       <Route path="/stage-settings">{() => <AdminRoute component={StageSettings} />}</Route>

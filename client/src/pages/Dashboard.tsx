@@ -165,7 +165,7 @@ export default function Dashboard() {
     
     if (user?.role === "financial") {
       links.push(
-        { title: "التقارير المالية", href: "/financial-reports", icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+        { title: "التقارير المالية", href: "/analytics-hub?tab=financial-report", icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
         { title: "الدفعات", href: "/payments", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
       );
     }

@@ -90,9 +90,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
   if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
-  if (role === "board_member" || ["super_admin", "system_admin"].includes(role)) {
-    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
-  }
   if (mainItems.length > 0) {
     groups.push({
       label: isEn ? "Home" : "الرئيسية",
@@ -106,12 +103,8 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Building2, label: "المساجد", path: "/mosques" },
       { icon: MapPin, label: "خريطة المساجد", path: "/mosques/map" },
       { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
+      { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
     ];
-    if (["super_admin", "system_admin", "general_manager", "executive_director"].includes(role) || isExecDirector) {
-      items.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
-    }
-    items.push({ icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" });
-    items.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
     groups.push({
       label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
       items,
@@ -123,10 +116,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     const items: MenuItem[] = [];
     if (["super_admin", "system_admin", "projects_office", "project_manager", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
-    }
-    if (["super_admin", "system_admin", "projects_office", "general_manager", "executive_director"].includes(role) || isExecDirector) {
-      items.push({ icon: TrendingUp, label: "تقارير الإنجاز", path: "/progress-reports" });
-      items.push({ icon: BarChart3, label: "التقارير الفنية", path: "/reports" });
     }
     if (role === "field_team") {
       items.push({ icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" });
@@ -151,7 +140,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
-      { icon: BarChart3, label: "التقرير المالي", path: "/financial-report" },
     ];
     groups.push({
       label: isEn ? "Procurement & Finance" : "المشتريات والمالية",
@@ -174,7 +162,6 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     ];
     if (role === "corporate_comm") {
       items.push({ icon: Palette, label: "الهوية البصرية", path: "/branding" });
-      items.push({ icon: BarChart3, label: "التقارير", path: "/reports" });
     }
     groups.push({
       label: isEn ? "Corporate Communication" : "الاتصال المؤسسي",
@@ -231,9 +218,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
     mainItems.push({ icon: BadgeCheck, label: isEn ? "Financial Approval Center" : "مركز الاعتماد المالي", path: "/board-executive" });
   }
-  if (has("board_member") || role === "board_member") {
-    mainItems.push({ icon: PieChart, label: isEn ? "Executive Management Dashboard" : "لوحة الإدارة العليا", path: "/board-analytics" });
-  }
   if (mainItems.length > 0) {
     groups.push({
       label: isEn ? "Home" : "الرئيسية",
@@ -246,13 +230,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("mosques"))                      mosqueItems.push({ icon: Building2,     label: "المساجد",               path: "/mosques" });
   if (has("mosques_map"))                  mosqueItems.push({ icon: MapPin,        label: "خريطة المساجد",         path: "/mosques/map" });
   if (has("requests") || has("requests.view") || has("requests.create") || has("requests.view_details"))                     mosqueItems.push({ icon: FileText,      label: isEn ? "Requests" : "الطلبات",               path: "/requests" });
-  if (has("pending_reports.view") || has("pending_reports.intervene")) {
-    mosqueItems.push({ icon: ShieldAlert, label: "تقارير الطلبات", path: "/pending-reports" });
-  }
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
-  if (has("beneficiary_evaluations.view") || has("beneficiary_evaluations") || has("beneficiary_satisfaction") || (["super_admin", "system_admin"].includes(role) && !permissions.length)) {
-    mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
-  }
   
   if (mosqueItems.length > 0) {
     groups.push({ 
@@ -265,15 +243,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const engineeringItems: MenuItem[] = [];
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
-  }
-  if (has("progress_reports") || has("progress_reports.view") || has("progress_reports.add")) {
-    engineeringItems.push({ icon: TrendingUp,  label: "تقارير الإنجاز", path: "/progress-reports" });
-  }
-  if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
-    engineeringItems.push({ icon: FileText,      label: "تقارير المشاريع",     path: "/project-reports" });
-  }
-  if (has("reports.view_stats") || has("reports.export_data")) {
-    engineeringItems.push({ icon: BarChart3,     label: "التقارير الفنية",              path: "/reports" });
   }
   if (engineeringItems.length > 0) {
     groups.push({
@@ -294,7 +263,6 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
   if (has("receipt_vouchers") || has("receipt_vouchers.view") || has("receipt_vouchers.edit") || has("receipt_vouchers.exception_approve")) finItems.push({ icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" });
-  if (has("financial_report"))    finItems.push({ icon: BarChart3,   label: "التقرير المالي", path: "/financial-report" });
   
   if (finItems.length > 0) {
     groups.push({ 
