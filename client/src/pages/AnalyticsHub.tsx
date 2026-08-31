@@ -11,9 +11,12 @@ import {
   FileSpreadsheet, 
   Layers, 
   Activity,
-  ArrowRight
+  ArrowRight,
+  ShieldAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/usePermission";
 
 // استيراد كافة صفحات الإحصائيات والتحليلات بالكامل
 import KPIDashboard from "@/pages/KPIDashboard";
@@ -37,6 +40,10 @@ export interface AnalyticsTabItem {
 
 export default function AnalyticsHub() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const userPermissions = useUserPermissions();
+
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
 
   // إدارة حالة التاب النشط بـ React State محلي مع القراءة الأولية من الرابط
   const [activeTabId, setActiveTabId] = useState<string>(() => {
@@ -136,9 +143,45 @@ export default function AnalyticsHub() {
     },
   ], []);
 
+  // التحقق من صلاحية الوصول لكل تاب
+  const hasTabPermission = (tabId: string) => {
+    if (isAdmin) return true;
+    if (userPermissions.includes("analytics_hub")) return true;
+
+    switch (tabId) {
+      case "kpi":
+        return userPermissions.includes("analytics_hub.kpi") || userPermissions.includes("reports.view_stats");
+      case "technical":
+        return userPermissions.includes("analytics_hub.technical") || userPermissions.includes("reports.view_stats") || userPermissions.includes("reports.view");
+      case "financial-report":
+        return userPermissions.includes("analytics_hub.financial_report") || userPermissions.includes("financial_reports.view");
+      case "financial-dash":
+        return userPermissions.includes("analytics_hub.financial_dash") || userPermissions.includes("financial_reports.view");
+      case "board":
+        return userPermissions.includes("analytics_hub.board") || userPermissions.includes("board_leadership.board_chairman") || userPermissions.includes("board_leadership.board_member");
+      case "beneficiary":
+        return userPermissions.includes("analytics_hub.beneficiary") || userPermissions.includes("beneficiary_evaluations.view");
+      case "operations":
+        return userPermissions.includes("analytics_hub.operations") || userPermissions.includes("pending_reports.view") || userPermissions.includes("field_visits.view");
+      case "project-reports":
+        return userPermissions.includes("analytics_hub.project_reports") || userPermissions.includes("project_reports.view");
+      case "progress":
+        return userPermissions.includes("analytics_hub.progress") || userPermissions.includes("progress_reports.view");
+      default:
+        return false;
+    }
+  };
+
+  // تصفية التابات المصرح للمستخدم برؤيتها فقط
+  const visibleTabs = useMemo(() => {
+    return tabs.filter((t) => hasTabPermission(t.id));
+  }, [tabs, userPermissions, isAdmin]);
+
+  // التاب النشط الحالي مع الرجوع لأول تاب مصرح إذا لم يكن التاب المختار متاحاً
   const activeTab = useMemo(() => {
-    return tabs.find((t) => t.id === activeTabId) || tabs[0];
-  }, [tabs, activeTabId]);
+    if (visibleTabs.length === 0) return null;
+    return visibleTabs.find((t) => t.id === activeTabId) || visibleTabs[0];
+  }, [visibleTabs, activeTabId]);
 
   // التبديل الفوري للتاب وتحديث الرابط
   const handleTabChange = (tabId: string) => {
@@ -196,36 +239,59 @@ export default function AnalyticsHub() {
           </div>
 
           {/* ==================== 📑 شريط التابات العلوي المدمج بكامل عرض الهيدر ==================== */}
-          <div className="mt-4 pt-3 border-t border-border/50">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-1.5 w-full">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = tab.id === activeTab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`group flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-all duration-200 w-full select-none cursor-pointer text-center ${
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-xs shadow-primary/25 scale-[1.02]"
-                        : "bg-background/90 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/70"
-                    }`}
-                    title={tab.description}
-                  >
-                    <Icon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`} />
-                    <span className="truncate">{tab.shortLabel}</span>
-                  </button>
-                );
-              })}
+          {visibleTabs.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-1.5 w-full">
+                {visibleTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab && tab.id === activeTab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`group flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold transition-all duration-200 w-full select-none cursor-pointer text-center ${
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-xs shadow-primary/25 scale-[1.02]"
+                          : "bg-background/90 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/70"
+                      }`}
+                      title={tab.description}
+                    >
+                      <Icon className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`} />
+                      <span className="truncate">{tab.shortLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* ==================== 📊 عرض محتوى التاب النشط ==================== */}
-        <div key={activeTab.id} className="animate-in fade-in-50 duration-200">
-          {activeTab.component}
-        </div>
+        {/* ==================== 📊 عرض محتوى التاب النشط أو رسالة عدم الصلاحية ==================== */}
+        {visibleTabs.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-12 text-center shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mx-auto mb-4 border border-destructive/20 shadow-xs">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">لا تتوفر صلاحيات للوصول</h2>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto mt-2 leading-relaxed">
+              عذراً، ليس لديك صلاحية للوصول إلى أي من أقسام مركز الإحصائيات والتحليلات. يرجى التواصل مع مسؤول النظام لتفعيل الصلاحيات المطلوبة لحسابك.
+            </p>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={() => setLocation("/dashboard")}
+              className="mt-6 rounded-xl gap-2 font-semibold"
+            >
+              <ArrowRight className="w-4 h-4 ml-1" />
+              العودة للوحة التحكم الرئيسية
+            </Button>
+          </div>
+        ) : activeTab ? (
+          <div key={activeTab.id} className="animate-in fade-in-50 duration-200">
+            {activeTab.component}
+          </div>
+        ) : null}
       </div>
     </DashboardLayout>
   );
