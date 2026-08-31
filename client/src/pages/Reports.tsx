@@ -91,7 +91,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export default function Reports() {
+export default function Reports({ embedded = false }: { embedded?: boolean }) {
   const canExport = usePermission("reports.export_data");
   const [programFilter, setProgramFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -158,34 +158,16 @@ export default function Reports() {
 
   // تحديث البيانات يدوياً بدون تحديث الصفحة كاملة
   const handleRefresh = async () => {
-    toast.promise(
-      Promise.all([refetchKPI(), refetchRequests()]),
-      {
-        loading: 'جاري تحديث البيانات الإحصائية...',
-        success: 'تم تحديث البيانات بنجاح!',
-        error: 'فشل تحديث البيانات، يرجى المحاولة لاحقاً.'
-      }
-    );
+    await Promise.all([refetchKPI(), refetchRequests()]);
+    toast.success("تم تحديث البيانات بنجاح");
   };
 
-  // تصدير التقرير بملف PDF المنسق والجميل جداً
-  const handleExport = () => {
-    const params = new URLSearchParams();
-    if (dateRange.fromDate) params.append("fromDate", dateRange.fromDate);
-    if (programFilter !== "all") params.append("programType", programFilter);
-    if (statusFilter !== "all") params.append("status", statusFilter);
-
-    // توجيه المتصفح لتنزيل ملف PDF المصدّر
-    window.location.href = `/api/reports/pdf?${params.toString()}`;
-    toast.success("جاري إعداد وتحميل التقرير الإحصائي بملف PDF...");
-  };
-
-  // تصدير البيانات إلى شيت إكسل مميز جداً
+  // تصدير البيانات إلى Excel عبر رابط الـ API المباشر
   const handleExportExcel = () => {
     const params = new URLSearchParams();
-    if (dateRange.fromDate) params.append("fromDate", dateRange.fromDate);
     if (programFilter !== "all") params.append("programType", programFilter);
     if (statusFilter !== "all") params.append("status", statusFilter);
+    if (dateRange.fromDate) params.append("fromDate", dateRange.fromDate);
 
     // توجيه المتصفح لتنزيل ملف Excel المصدّر
     window.location.href = `/api/reports/excel?${params.toString()}`;
@@ -195,20 +177,18 @@ export default function Reports() {
   const isLoading = kpiLoading || requestsLoading;
 
   if (kpiError) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-          <h2 className="text-xl font-bold">حدث خطأ أثناء تحميل البيانات</h2>
-          <Button className="mt-4" onClick={() => refetchKPI()}>إعادة المحاولة</Button>
-        </div>
-      </DashboardLayout>
+    const errorContent = (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h2 className="text-xl font-bold">حدث خطأ أثناء تحميل البيانات</h2>
+        <Button className="mt-4" onClick={() => refetchKPI()}>إعادة المحاولة</Button>
+      </div>
     );
+    return embedded ? errorContent : <DashboardLayout>{errorContent}</DashboardLayout>;
   }
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">التقارير الإحصائية</h1>
@@ -571,6 +551,15 @@ export default function Reports() {
           </CardContent>
         </Card>
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
