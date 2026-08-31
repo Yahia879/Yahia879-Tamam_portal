@@ -210,7 +210,7 @@ const CustomPieOrdersStatusTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export default function FinancialReport() {
+export default function FinancialReport({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("projects");
@@ -463,21 +463,19 @@ export default function FinancialReport() {
   }
 
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">جاري تحميل التقرير...</p>
-          </div>
+    const loadingContent = (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">جاري تحميل التقرير...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
+    return embedded ? loadingContent : <DashboardLayout>{loadingContent}</DashboardLayout>;
   }
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 print:space-y-4">
+  const content = (
+    <div className="space-y-6 print:space-y-4">
         {/* العنوان */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between print:hidden">
           <div>
@@ -1233,6 +1231,15 @@ export default function FinancialReport() {
           </div>
         </div>
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
