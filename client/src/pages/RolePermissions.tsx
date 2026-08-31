@@ -40,7 +40,8 @@ import {
   LifeBuoy,
   PenLine,
   SlidersHorizontal,
-  HeartHandshake
+  HeartHandshake,
+  BarChart3
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -432,6 +433,21 @@ export default function RolePermissions() {
           ]
         }
       ]
+    },
+    {
+      title: "مركز الإحصائيات والتحليلات",
+      modules: [
+        {
+          id: "analytics_hub",
+          nameAr: "مركز الإحصائيات والتحليلات",
+          icon: BarChart3,
+          permissions: [
+            { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
+            { id: "analytics_hub.project_reports", nameAr: "عرض مركز تقارير المشاريع" },
+            { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
+          ]
+        }
+      ]
     }
   ];
 
@@ -458,6 +474,15 @@ export default function RolePermissions() {
         { id: "branding.edit", nameAr: "تعديل عناصر الهوية" },
         { id: "branding.delete", nameAr: "حذف عنصر هوية" },
         { id: "branding.assets", nameAr: "إدارة أصول الهوية البصرية" },
+      ]
+    },
+    {
+      id: "analytics_hub",
+      nameAr: "مركز الإحصائيات والتحليلات",
+      icon: BarChart3,
+      permissions: [
+        { id: "analytics_hub.beneficiary", nameAr: "عرض رضا المستفيدين" },
+        { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
       ]
     }
   ];
@@ -515,12 +540,22 @@ export default function RolePermissions() {
           ]
         },
         {
+          id: "boq",
+          nameAr: "إعداد جداول الكميات",
+          icon: FileSpreadsheet,
+          permissions: [
+            { id: "boq.add", nameAr: "إضافة بند جديد" },
+            { id: "boq.edit", nameAr: "تعديل بنود" },
+            { id: "boq.delete", nameAr: "حذف بنود" },
+          ]
+        },
+        {
           id: "quotations",
           nameAr: "عروض الأسعار",
           icon: Receipt,
           permissions: [
             { id: "quotations.view", nameAr: "عرض عروض الأسعار" },
-            { id: "quotations.add", nameAr: "إضافة عرض سعر" },
+            { id: "quotations.add", nameAr: "إضافة عرض سعر جديد" },
             { id: "quotations.edit", nameAr: "تعديل عرض سعر" },
             { id: "quotations.approve", nameAr: "اعتماد عروض الأسعار" },
           ]
@@ -550,12 +585,13 @@ export default function RolePermissions() {
           ]
         },
         {
-          id: "disbursement_requests",
+          id: "disbursements",
           nameAr: "طلبات الصرف",
           icon: Wallet,
           permissions: [
             { id: "disbursements.view", nameAr: "عرض طلبات الصرف" },
             { id: "disbursements.add", nameAr: "إنشاء طلب صرف" },
+            { id: "disbursements.edit", nameAr: "تعديل طلب الصرف" },
             { id: "disbursements.approve", nameAr: "اعتماد طلبات الصرف" },
             { id: "disbursements.create_custom", nameAr: "انشاء طلبات صرف مخصصة" },
             { id: "disbursements.exception_approve", nameAr: "استثناء اعتماد مُعد الطلب" },
@@ -579,6 +615,23 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
+          ]
+        }
+      ]
+    },
+    {
+      title: "مركز الإحصائيات والتحليلات",
+      modules: [
+        {
+          id: "analytics_hub",
+          nameAr: "مركز الإحصائيات والتحليلات",
+          icon: BarChart3,
+          permissions: [
+            { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
+            { id: "analytics_hub.technical", nameAr: "عرض التقارير الإحصائية والفنية" },
+            { id: "analytics_hub.project_reports", nameAr: "عرض مركز تقارير المشاريع" },
+            { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
+            { id: "analytics_hub.operations", nameAr: "عرض تقارير العمليات والمعاينات" },
           ]
         }
       ]
@@ -770,6 +823,27 @@ export default function RolePermissions() {
       ]
     },
     {
+      title: "مركز الإحصائيات والتحليلات",
+      modules: [
+        {
+          id: "analytics_hub",
+          nameAr: "مركز الإحصائيات والتحليلات",
+          icon: BarChart3,
+          perms: [
+            "kpi",
+            "technical",
+            "financial_report",
+            "financial_dash",
+            "board",
+            "beneficiary",
+            "operations",
+            "project_reports",
+            "progress"
+          ]
+        }
+      ]
+    },
+    {
       title: "إدارة المستخدمين",
       modules: [
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
@@ -823,6 +897,27 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+      ]
+    },
+    {
+      title: "مركز الإحصائيات والتحليلات",
+      modules: [
+        {
+          id: "analytics_hub",
+          nameAr: "مركز الإحصائيات والتحليلات",
+          icon: BarChart3,
+          perms: [
+            "kpi",
+            "technical",
+            "financial_report",
+            "financial_dash",
+            "board",
+            "beneficiary",
+            "operations",
+            "project_reports",
+            "progress"
+          ]
+        }
       ]
     },
     {
@@ -891,6 +986,17 @@ export default function RolePermissions() {
   // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      analytics_hub: {
+        kpi: "مؤشرات الأداء العامة (KPI)",
+        technical: "التقارير الإحصائية والفنية",
+        financial_report: "التقرير المالي الشامل",
+        financial_dash: "لوحة التحكم المالية",
+        board: "تحليلات الإدارة العليا",
+        beneficiary: "رضا المستفيدين",
+        operations: "تقارير العمليات والمعاينات",
+        project_reports: "مركز تقارير المشاريع",
+        progress: "تقارير ونسب الإنجاز"
+      },
       board_leadership: {
         board_chairman: "عرض مركز الاعتماد المالي",
         board_member: "عرض لوحة عضو مجلس الإدارة",
