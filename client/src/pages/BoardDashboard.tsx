@@ -163,6 +163,8 @@ export default function BoardDashboard() {
     onSuccess: () => {
       toast.success("تم الاعتماد والتحويل البنكي المباشر للمبلغ بنجاح");
       setApprovingId(null);
+      setSelectedStatus("all");
+      setCurrentPage(1);
       refetch();
       utils.board.getExecutiveStats.invalidate();
       utils.disbursements.invalidate();
@@ -179,6 +181,8 @@ export default function BoardDashboard() {
       setRejectingOrder(null);
       setRejectionReason("");
       setIsRejecting(false);
+      setSelectedStatus("all");
+      setCurrentPage(1);
       refetch();
       utils.board.getExecutiveStats.invalidate();
       utils.disbursements.invalidate();
@@ -241,8 +245,9 @@ export default function BoardDashboard() {
     }).format(amount) + " ريال";
   };
 
-  // حساب المبالغ الكلية للأوامر المعتمدة من الاستجابة المباشرة
+  // حساب المبالغ الكلية والطلبات المعلقة للأوامر المعتمدة من الاستجابة المباشرة
   const totalApprovedAmount = data?.chairmanData?.totalApprovedAmount || 0;
+  const pendingCount = data?.chairmanData?.statusCounts?.pending_approval ?? 0;
 
   return (
     <DashboardLayout>
@@ -284,17 +289,38 @@ export default function BoardDashboard() {
 
             {isChairmanView && (
               <div className="flex items-center gap-3 self-start lg:self-center">
-                <div className="px-4 py-2.5 rounded-xl bg-primary/10 dark:bg-primary/15 border border-primary/25 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center font-bold">
-                    <Banknote className="w-5 h-5" />
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[11px] text-muted-foreground block font-medium">إجمالي المبالغ المعتمدة</span>
-                    <span className="text-sm font-black font-sans text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(totalApprovedAmount)}
+                {pendingCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStatus("pending_approval");
+                      setCurrentPage(1);
+                      const el = document.getElementById("chairman-orders-table");
+                      if (el) el.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-rose-400 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white transition-all shadow-xs hover:shadow-sm flex items-center gap-2.5 cursor-pointer font-bold text-sm"
+                    title="انقر للانتقال المباشر وتصفية الطلبات المعلقة"
+                  >
+                    <div className="relative flex h-2.5 w-2.5 items-center justify-center shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-85"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </div>
+                    <span>
+                      {pendingCount === 1 
+                        ? "طلب واحد بحاجة إلى اعتماد" 
+                        : pendingCount === 2 
+                          ? "طلبان بحاجة إلى اعتماد" 
+                          : `${pendingCount} طلبات بحاجة إلى اعتماد`}
                     </span>
+                  </button>
+                ) : (
+                  <div
+                    className="px-4 py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 transition-all shadow-xs flex items-center gap-2.5 font-bold text-sm"
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                    <span>لا توجد طلبات بحاجة إلى اعتماد</span>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -302,58 +328,8 @@ export default function BoardDashboard() {
 
         {/* ==================== 👑 1. صفحة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة المطابق لـ /disbursement-orders) ==================== */}
         {isChairmanView && data?.chairmanData && (() => {
-          const pendingCount = data.chairmanData.statusCounts?.pending_approval ?? 0;
-
           return (
             <div className="space-y-6 animate-in fade-in-50 duration-300">
-              {/* كرت التنبيه البسيط: باللون الأحمر عند وجود طلبات، وبالأخضر عند عدم وجود طلبات */}
-              {pendingCount > 0 ? (
-                <div 
-                  onClick={() => {
-                    setSelectedStatus("pending_approval");
-                    setCurrentPage(1);
-                    const el = document.getElementById("chairman-orders-table");
-                    if (el) el.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="cursor-pointer rounded-2xl border-2 border-rose-500/40 bg-gradient-to-r from-rose-500/15 via-rose-50/60 to-card dark:from-rose-950/40 dark:via-rose-900/20 dark:to-card p-4 sm:p-5 shadow-xs hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden"
-                >
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold shadow-md shadow-rose-500/25 shrink-0">
-                      <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base sm:text-lg font-black text-rose-800 dark:text-rose-200">
-                          {pendingCount === 1 
-                            ? "يوجد طلب واحد بحاجة إلى الاعتماد" 
-                            : pendingCount === 2 
-                              ? "يوجد طلبان بحاجة إلى الاعتماد" 
-                              : `يوجد ${pendingCount} طلبات بحاجة إلى الاعتماد`}
-                        </h3>
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-50/50 to-card dark:from-emerald-950/30 dark:via-emerald-900/15 dark:to-card p-4 sm:p-5 shadow-xs transition-all flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold shadow-md shadow-emerald-500/20 shrink-0">
-                      <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </div>
-                    <div className="text-right">
-                      <h3 className="text-base sm:text-lg font-black text-emerald-800 dark:text-emerald-200">
-                        لا يوجد طلبات بحاجة إلى اعتماد
-                      </h3>
-                    </div>
-                  </div>
-                  <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/40 px-3 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 shadow-2xs shrink-0">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    <span>مكتمل</span>
-                  </Badge>
-                </div>
-              )}
-
               {/* كروت المؤشرات السريعة لأوامر رئيس مجلس الإدارة المطابقة لنمط المنظومة */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {/* 1. إجمالي الأوامر المعتمدة */}
@@ -438,7 +414,7 @@ export default function BoardDashboard() {
               </div>
 
             {/* أدوات البحث والتصفية المباشرة */}
-            <Card className="border border-border/80 shadow-sm rounded-2xl bg-card overflow-hidden">
+            <Card id="chairman-orders-table" className="border border-border/80 shadow-sm rounded-2xl bg-card overflow-hidden">
               <CardHeader className="p-5 sm:p-6 pb-4 border-b border-border/60 bg-gradient-to-r from-muted/40 via-card to-primary/5 text-right">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div>
@@ -616,7 +592,7 @@ export default function BoardDashboard() {
                                                       title: "ملاحظات وتوجيهات أمر الصرف",
                                                       subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                                       orderNumber: order.orderNumber,
-                                                      reason: order.executiveNotes,
+                                                      reason: order.executiveNotes || "",
                                                     });
                                                   }}
                                                   className="inline-flex items-center justify-center p-1 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors shrink-0 cursor-pointer shadow-2xs"
@@ -733,7 +709,7 @@ export default function BoardDashboard() {
                                               title: "ملاحظات وتوجيهات أمر الصرف",
                                               subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                               orderNumber: order.orderNumber,
-                                              reason: order.executiveNotes,
+                                              reason: order.executiveNotes || "",
                                             })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                           >
