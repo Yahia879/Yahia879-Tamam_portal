@@ -430,18 +430,6 @@ export default function RolePermissions() {
             { id: "projects.delete", nameAr: "حذف مشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
           ]
-        },
-        {
-          id: "reports",
-          nameAr: "التقارير",
-          icon: FileText,
-          permissions: [
-            { id: "reports.view", nameAr: "عرض التقارير" },
-            { id: "reports.add", nameAr: "إضافة تقارير جديدة" },
-            { id: "reports.edit", nameAr: "تعديل التقارير" },
-            { id: "reports.delete", nameAr: "حذف التقارير" },
-            { id: "reports.approve", nameAr: "اعتماد التقارير" },
-          ]
         }
       ]
     }
@@ -458,18 +446,6 @@ export default function RolePermissions() {
         { id: "partners.add", nameAr: "إضافة شريك جديد" },
         { id: "partners.edit", nameAr: "تعديل بيانات شريك" },
         { id: "partners.delete", nameAr: "حذف شريك" },
-      ]
-    },
-    {
-      id: "reports",
-      nameAr: "التقارير",
-      icon: FileText,
-      permissions: [
-        { id: "reports.view", nameAr: "عرض التقارير" },
-        { id: "reports.add", nameAr: "إضافة تقارير جديدة" },
-        { id: "reports.edit", nameAr: "تعديل التقارير" },
-        { id: "reports.delete", nameAr: "حذف التقارير" },
-        { id: "reports.approve", nameAr: "اعتماد التقارير" },
       ]
     },
     {
@@ -604,15 +580,6 @@ export default function RolePermissions() {
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
           ]
-        },
-        {
-          id: "financial_report",
-          nameAr: "التقرير المالي",
-          icon: FileBarChart,
-          permissions: [
-            { id: "financial_report.view", nameAr: "عرض التقرير المالي" },
-            { id: "financial_report.export", nameAr: "تصدير البيانات المالية" },
-          ]
         }
       ]
     }
@@ -673,15 +640,6 @@ export default function RolePermissions() {
             { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
-          ]
-        },
-        {
-          id: "reports",
-          nameAr: "التقارير",
-          icon: FileBarChart,
-          permissions: [
-            { id: "reports.view_stats", nameAr: "عرض احصائيات الطلبات" },
-            { id: "reports.export_data", nameAr: "تصدير البيانات" },
           ]
         }
       ]
@@ -767,35 +725,6 @@ export default function RolePermissions() {
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
           ]
-        },
-        {
-          id: "progress_reports",
-          nameAr: "تقارير الإنجاز",
-          icon: ClipboardCheck,
-          permissions: [
-            { id: "progress_reports.view", nameAr: "عرض تقارير الإنجاز" },
-            { id: "progress_reports.add", nameAr: "إضافة تقرير إنجاز" },
-            { id: "progress_reports.edit", nameAr: "تعديل التقرير" },
-            { id: "progress_reports.exception_approve", nameAr: "استثناء اعتماد مدير المشروع" },
-          ]
-        },
-        {
-          id: "project_reports",
-          nameAr: "تقارير المشاريع",
-          icon: FileText,
-          permissions: [
-            { id: "project_reports.view", nameAr: "عرض تقارير المشاريع" },
-            { id: "project_reports.create", nameAr: "إنشاء تقارير مشاريع" },
-          ]
-        },
-        {
-          id: "financial_reports",
-          nameAr: "التقرير المالي",
-          icon: FileBarChart,
-          permissions: [
-            { id: "financial_reports.view", nameAr: "عرض تقرير المالية والإحصائيات" },
-            { id: "financial_reports.export", nameAr: "تصدير البيانات" },
-          ]
         }
       ]
     }
@@ -826,8 +755,6 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-        { id: "reports", nameAr: "التقارير", icon: FileBarChart, perms: ["view_stats", "export_data"] },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       ]
     },
     {
@@ -840,9 +767,6 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "exception_approve"] },
-        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
-        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
     {
@@ -879,8 +803,6 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
-        { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
     },
@@ -888,9 +810,6 @@ export default function RolePermissions() {
       title: "الهندسة والمشاريع",
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-        { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "exception_approve"] },
-        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
-        { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
       ]
     },
     {
@@ -904,7 +823,6 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
-        { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
     {
@@ -920,7 +838,7 @@ export default function RolePermissions() {
           id: "signing",
           nameAr: "صلاحيات التوقيع",
           icon: PenLine,
-          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
+          perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
         }
       ]
     },
@@ -956,7 +874,7 @@ export default function RolePermissions() {
           id: "board_leadership",
           nameAr: "مجلس الإدارة والقيادة العليا",
           icon: Shield,
-          perms: ["board_chairman", "board_member"]
+          perms: ["board_chairman"]
         }
       ]
     }

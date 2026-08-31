@@ -56,8 +56,6 @@ const superAdminGroups = [
       { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
       { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
       { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
-      { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
-      { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
     ]
   },
@@ -65,9 +63,6 @@ const superAdminGroups = [
     title: "الهندسة والمشاريع",
     modules: [
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
-      { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "exception_approve"] },
-      { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
-      { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
     ]
   },
   {
@@ -90,7 +85,7 @@ const superAdminGroups = [
         id: "signing",
         nameAr: "صلاحيات التوقيع",
         icon: PenLine,
-        perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign", "progress_reports_sign"]
+        perms: ["disbursements_sign", "disbursement_orders_sign", "final_reports_sign"]
       }
     ]
   },
@@ -132,7 +127,7 @@ const superAdminGroups = [
         id: "board_leadership",
         nameAr: "مجلس الإدارة والقيادة العليا",
         icon: Shield,
-        perms: ["board_chairman", "board_member"]
+        perms: ["board_chairman"]
       }
     ]
   }
