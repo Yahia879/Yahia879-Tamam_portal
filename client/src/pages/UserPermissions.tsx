@@ -26,6 +26,7 @@ import {
   Wallet,
   Banknote,
   FileBarChart,
+  BarChart3,
   LayoutGrid,
   Zap,
   Map,
@@ -706,6 +707,17 @@ export default function UserPermissions() {
       technical_support: {
         view: "عرض التذاكر",
         create: "إرسال التذاكر"
+      },
+      analytics_hub: {
+        kpi: "مؤشرات الأداء العامة (KPI)",
+        technical: "التقارير الإحصائية والفنية",
+        financial_report: "التقرير المالي الشامل",
+        financial_dash: "لوحة التحكم المالية",
+        board: "تحليلات الإدارة العليا",
+        beneficiary: "رضا المستفيدين",
+        operations: "تقارير العمليات والمعاينات",
+        project_reports: "مركز تقارير المشاريع",
+        progress: "تقارير ونسب الإنجاز"
       }
     };
     return mapping[moduleId]?.[action] || action;
@@ -744,6 +756,27 @@ export default function UserPermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+      ]
+    },
+    {
+      title: "مركز الإحصائيات والتحليلات",
+      modules: [
+        {
+          id: "analytics_hub",
+          nameAr: "مركز الإحصائيات والتحليلات",
+          icon: BarChart3,
+          perms: [
+            "kpi",
+            "technical",
+            "financial_report",
+            "financial_dash",
+            "board",
+            "beneficiary",
+            "operations",
+            "project_reports",
+            "progress"
+          ]
+        }
       ]
     },
     {
