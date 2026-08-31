@@ -131,7 +131,7 @@ function formatMonth(yearMonth: string): string {
   return date.toLocaleDateString('ar-SA', { month: 'short', year: '2-digit' });
 }
 
-export default function KPIDashboard() {
+export default function KPIDashboard({ embedded = false }: { embedded?: boolean }) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: kpiData, isLoading, refetch } = trpc.analytics.getKPIs.useQuery(
@@ -144,26 +144,24 @@ export default function KPIDashboard() {
   };
 
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-gray-500">جاري تحميل البيانات...</p>
-          </div>
+    const loadingContent = (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">جاري تحميل البيانات...</p>
         </div>
-      </DashboardLayout>
+      </div>
     );
+    return embedded ? loadingContent : <DashboardLayout>{loadingContent}</DashboardLayout>;
   }
 
   if (!kpiData) {
-    return (
-      <DashboardLayout>
-        <div className="text-center py-12 text-gray-500">
-          لا توجد بيانات متاحة
-        </div>
-      </DashboardLayout>
+    const emptyContent = (
+      <div className="text-center py-12 text-gray-500">
+        لا توجد بيانات متاحة
+      </div>
     );
+    return embedded ? emptyContent : <DashboardLayout>{emptyContent}</DashboardLayout>;
   }
 
   const { summary, byProgram, byStage, recentReports, monthlyTrend } = kpiData;
@@ -188,9 +186,8 @@ export default function KPIDashboard() {
     طلبات: item.count,
   }));
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6" dir="rtl">
+  const content = (
+    <div className="space-y-6" dir="rtl">
         {/* رأس الصفحة */}
         <div className="flex items-center justify-between">
           <div>
@@ -368,22 +365,16 @@ export default function KPIDashboard() {
               {stageChartData.length > 0 ? (
                 <div className="h-[220px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stageChartData} layout="vertical" margin={{ right: 30, left: 0 }}>
+                    <BarChart
+                      data={stageChartData}
+                      layout="vertical"
+                      margin={{ top: 10, right: 20, left: 60, bottom: 10 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        tick={{ fontSize: 10, fontFamily: 'inherit' }}
-                        width={90}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <Tooltip
-                        formatter={(value: any) => [value, 'عدد الطلبات']}
-                        contentStyle={{ direction: 'rtl', fontFamily: 'inherit', borderRadius: '8px' }}
-                      />
-                      <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={16}>
+                      <XAxis type="number" allowDecimals={false} />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} />
+                      <Tooltip formatter={(value: any) => [value, "طلب"]} />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                         {stageChartData.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
@@ -392,97 +383,172 @@ export default function KPIDashboard() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="text-center py-12 text-gray-400 text-sm">لا توجد بيانات</div>
+                <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">
+                  لا توجد طلبات نشطة حالياً
+                </div>
               )}
             </CardContent>
-          </Card>
-        </div>
-
-        {/* الاتجاه الشهري */}
-        {trendChartData.length > 0 && (
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="p-4 sm:p-6 pb-2">
-              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
-                <div className="w-1 h-5 bg-emerald-500 rounded-full" />
-                الاتجاه الشهري للطلبات
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trendChartData} margin={{ right: 5, left: 0, top: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      formatter={(value: any) => [value, 'عدد الطلبات']}
-                      contentStyle={{ direction: 'rtl', fontFamily: 'inherit', borderRadius: '8px' }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="طلبات"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                      dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* آخر التقارير الختامية */}
-        {recentReports.length > 0 && (
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <CardHeader className="p-4 sm:p-6 pb-2">
-              <CardTitle className="text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
-                <div className="w-1 h-5 bg-purple-500 rounded-full" />
-                آخر التقارير الختامية
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0 sm:p-6 pt-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">رقم الطلب</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600 hidden sm:table-cell">تاريخ الإنجاز</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">التكلفة</th>
-                      <th className="text-right py-3 px-4 font-semibold text-gray-600">الجودة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentReports.map((report: any) => (
-                      <tr key={report.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
-                        <td className="py-3 px-4 text-gray-700 font-medium">#{report.requestId}</td>
-                        <td className="py-3 px-4 text-gray-500 hidden sm:table-cell">
-                          {report.completionDate
-                            ? new Date(report.completionDate).toLocaleDateString('ar-SA')
-                            : new Date(report.createdAt).toLocaleDateString('ar-SA')}
-                        </td>
-                        <td className="py-3 px-4 text-gray-700">
-                          {report.totalCost
-                            ? formatCurrency(Number(report.totalCost))
-                            : '—'}
-                        </td>
-                        <td className="py-3 px-4 min-w-[100px]">
-                          {report.satisfactionRating ? (
-                            <StarDisplay rating={report.satisfactionRating} />
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        </Card>
       </div>
+
+      {/* رسم الاتجاه الشهري */}
+      {trendChartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-bold text-gray-700 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-500" />
+              حركة الطلبات الشهرية (آخر 6 أشهر)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendChartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip formatter={(value: any) => [value, "طلب"]} />
+                  <Line
+                    type="monotone"
+                    dataKey="طلبات"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    dot={{ fill: "#3b82f6", r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* مؤشرات رضا المستفيدين */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-bold text-gray-700 flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500" />
+            مؤشرات رضا المستفيدين
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="flex flex-col items-center justify-center p-4 bg-yellow-50 rounded-xl">
+              <p className="text-sm text-yellow-700 font-medium mb-1">التقييم العام</p>
+              <p className="text-4xl font-bold text-yellow-600 mb-2">
+                {((summary as any)?.avgQualityRating || summary.avgRating) > 0 ? ((summary as any)?.avgQualityRating || summary.avgRating) : "—"}
+              </p>
+              {((summary as any)?.avgQualityRating || summary.avgRating) > 0 && (
+                <StarDisplay rating={(summary as any)?.avgQualityRating || summary.avgRating} />
+              )}
+              <p className="text-xs text-yellow-600 mt-2">من أصل 5 نجوم</p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-4 bg-emerald-50 rounded-xl">
+              <p className="text-sm text-emerald-700 font-medium mb-1">نسبة الرضا</p>
+              <p className="text-4xl font-bold text-emerald-600 mb-2">
+                {(summary as any)?.satisfactionRate || 0}%
+              </p>
+              <div className="w-full bg-emerald-200 rounded-full h-2 mt-2">
+                <div
+                  className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${(summary as any)?.satisfactionRate || 0}%` }}
+                />
+              </div>
+              <p className="text-xs text-emerald-600 mt-2">تقييم 4 نجوم فما فوق</p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-xl">
+              <p className="text-sm text-blue-700 font-medium mb-1">إجمالي التقييمات</p>
+              <p className="text-4xl font-bold text-blue-600 mb-2">
+                {(summary as any)?.totalEvaluated || 0}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">تقرير ختامي تم تقييمه</p>
+              <p className="text-xs text-gray-400 mt-2">
+                من إجمالي {summary.closedRequests} طلب مكتمل
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* آخر التقارير الختامية */}
+      {recentReports && recentReports.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base font-bold text-gray-700 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
+              آخر التقارير الختامية والتقييمات
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-right">
+                <thead className="bg-gray-50 text-gray-500 text-xs border-b">
+                  <tr>
+                    <th className="py-3 px-4">رقم التقرير</th>
+                    <th className="py-3 px-4">المسجد</th>
+                    <th className="py-3 px-4">البرنامج</th>
+                    <th className="py-3 px-4 hidden sm:table-cell">تاريخ الإنجاز</th>
+                    <th className="py-3 px-4">التكلفة</th>
+                    <th className="py-3 px-4">تقييم المستفيد</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {recentReports.map((report: any) => (
+                    <tr key={report.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3 px-4 font-mono font-medium text-gray-700">
+                        {report.reportNumber}
+                      </td>
+                      <td className="py-3 px-4 font-medium text-gray-800">
+                        {report.mosqueName}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          style={{
+                            backgroundColor: `${PROGRAM_COLORS[report.programType] || '#94a3b8'}20`,
+                            color: PROGRAM_COLORS[report.programType] || '#64748b',
+                            border: `1px solid ${PROGRAM_COLORS[report.programType] || '#94a3b8'}40`,
+                          }}
+                        >
+                          {PROGRAM_LABELS[report.programType] || report.programType}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 hidden sm:table-cell">
+                        {report.completionDate
+                          ? new Date(report.completionDate).toLocaleDateString('ar-SA')
+                          : new Date(report.createdAt).toLocaleDateString('ar-SA')}
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">
+                        {report.totalCost
+                          ? formatCurrency(Number(report.totalCost))
+                          : '—'}
+                      </td>
+                      <td className="py-3 px-4 min-w-[100px]">
+                        {report.satisfactionRating ? (
+                          <StarDisplay rating={report.satisfactionRating} />
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
