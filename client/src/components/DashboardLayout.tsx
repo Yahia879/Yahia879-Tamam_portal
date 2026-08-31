@@ -650,41 +650,37 @@ function DashboardLayoutContent({
           side="right"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative p-1.5">
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative p-1.5 overflow-hidden">
             <button
               type="button"
               onClick={toggleSidebar}
-              className={`flex items-center rounded-xl hover:bg-sidebar-accent/80 transition-all cursor-pointer select-none group w-full ${
-                !isCollapsed ? "gap-3 px-2.5 py-1.5 text-right min-w-0" : "justify-center p-1"
-              }`}
+              className="flex items-center gap-3 px-2.5 py-1.5 rounded-xl hover:bg-sidebar-accent/80 transition-all duration-300 ease-in-out cursor-pointer select-none group w-full text-right min-w-0"
               title={isCollapsed ? "انقر لتوسيع القائمة الجانبية" : "انقر لطي القائمة الجانبية"}
             >
               <img
                 src={sidebarLogoSrc}
                 alt="شعار"
-                className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform"
+                className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform duration-300 ease-in-out"
               />
-              {!isCollapsed && (
-                <div className="min-w-0 flex-1 transition-all duration-300 ease-in-out animate-in fade-in">
-                  <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
-                    {orgName}
-                  </span>
-                  <span className="text-xs text-sidebar-foreground/50 truncate block mt-0.5">
-                    {orgNameShort}
-                  </span>
-                </div>
-              )}
+              <div className="min-w-0 flex-1 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none overflow-hidden whitespace-nowrap">
+                <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
+                  {orgName}
+                </span>
+                <span className="text-xs text-sidebar-foreground/50 truncate block mt-0.5">
+                  {orgNameShort}
+                </span>
+              </div>
             </button>
           </SidebarHeader>
 
-          <SidebarContent className="gap-0 py-2 overflow-y-auto">
+          <SidebarContent className="gap-0 py-2 overflow-y-auto overflow-x-hidden">
             {menuGroups.map((group, groupIdx) => (
               <div key={group.label}>
-                {groupIdx > 0 && !isCollapsed && (
-                  <div className="mx-3 my-1 border-t border-sidebar-border" />
+                {groupIdx > 0 && (
+                  <div className="mx-3 my-1 border-t border-sidebar-border transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:opacity-0" />
                 )}
-                {!isCollapsed && group.label && (
-                  <p className="px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+                {group.label && (
+                  <p className="px-4 py-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider transition-all duration-300 ease-in-out group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:py-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap">
                     {group.label}
                   </p>
                 )}
@@ -709,7 +705,7 @@ function DashboardLayoutContent({
                           isActive={isActive}
                           onClick={() => setLocation(item.path)}
                           tooltip={item.label}
-                          className={`h-9 transition-all font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
+                          className={`h-9 transition-all duration-300 ease-in-out font-normal text-sm relative ${isActive ? 'bg-white/20 !text-white' : ''}`}
                         >
                           <div className="relative shrink-0 flex items-center justify-center">
                             <item.icon
@@ -719,7 +715,9 @@ function DashboardLayoutContent({
                               <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
                             ) : null}
                           </div>
-                          <span className={isActive ? "text-white font-bold" : "text-sidebar-foreground"}>{item.label}</span>
+                          <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
+                            {item.label}
+                          </span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
@@ -729,11 +727,11 @@ function DashboardLayoutContent({
             ))}
           </SidebarContent>
 
-          <SidebarFooter className="p-2.5 border-t border-sidebar-border">
+          <SidebarFooter className="p-2.5 border-t border-sidebar-border overflow-hidden">
             {/* الملف الشخصي للمستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring cursor-pointer">
+                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring cursor-pointer overflow-hidden min-w-0">
                   <div className="relative shrink-0">
                     <Avatar className="h-9 w-9 border border-sidebar-border">
                       <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
@@ -744,7 +742,7 @@ function DashboardLayoutContent({
                       <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-sidebar" />
                     ) : null}
                   </div>
-                  <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                  <div className="flex-1 min-w-0 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none overflow-hidden whitespace-nowrap">
                     <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
                       {user?.name || "-"}
                     </p>
@@ -752,7 +750,7 @@ function DashboardLayoutContent({
                       {roleDisplayLabel}
                     </p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden" />
+                  <ChevronDown className="w-4 h-4 text-sidebar-foreground/50 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 shrink-0" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
