@@ -42,7 +42,7 @@ const STATUS_COLORS = {
   executed: "bg-emerald-100 text-emerald-800",
 };
 
-export default function FinancialDashboard() {
+export default function FinancialDashboard({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedProject, setSelectedProject] = useState<number | null>(null);
@@ -101,9 +101,8 @@ export default function FinancialDashboard() {
     );
   };
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
+  const content = (
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -540,6 +539,15 @@ export default function FinancialDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
