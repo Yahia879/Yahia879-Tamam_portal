@@ -296,7 +296,7 @@ const uploadFile = async (fileObj: { name: string; base64: string }): Promise<st
   }
 };
 
-export default function ProgressReports() {
+export default function ProgressReports({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("list");
@@ -1031,9 +1031,8 @@ export default function ProgressReports() {
 
 
   if (activeTab === "create" || activeTab === "edit") {
-    return (
-      <DashboardLayout>
-        <div className="space-y-6 max-w-4xl mx-auto">
+    const formContent = (
+      <div className="space-y-6 max-w-4xl mx-auto">
           {/* Page Header */}
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-3">
@@ -1228,7 +1227,7 @@ export default function ProgressReports() {
             {/* Card 2: Report Info & Progress */}
             {newReport.projectId > 0 && (
               <>
-                 {hasIncompleteSchedule && (
+                {hasIncompleteSchedule && (
                   <div className="bg-amber-50/80 border border-amber-200/60 dark:bg-amber-950/20 dark:border-amber-900/40 rounded-xl p-4 flex items-start gap-3 text-right backdrop-blur-sm animate-in fade-in">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 flex-shrink-0" />
                     <div className="space-y-1.5 flex-1">
@@ -1314,28 +1313,6 @@ export default function ProgressReports() {
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-1">تطابق نسبة الإنجاز الفعلية تلقائياً</p>
                       </div>
-                    </div>
-
-                    {/* Progress Deviation Display */}
-                    <div className={`p-4 rounded-xl border flex items-center gap-3 ${
-                      newReport.actualProgress - newReport.plannedProgress > 0 
-                        ? "bg-green-50/50 border-green-200/60 dark:bg-green-950/20 dark:border-green-900/40" 
-                        : newReport.actualProgress - newReport.plannedProgress < 0
-                        ? "bg-red-50/50 border-red-200/60 dark:bg-red-950/20 dark:border-red-900/40"
-                        : "bg-gray-50/50 border-gray-200/60 dark:bg-gray-800/40 dark:border-gray-700/40"
-                    }`}>
-                      <div className="p-1 rounded-full bg-background border">
-                        {getVarianceIcon(newReport.actualProgress - newReport.plannedProgress)}
-                      </div>
-                      <span className={`font-bold text-sm ${getVarianceColor(newReport.actualProgress - newReport.plannedProgress)}`}>
-                        الانحراف عن الخطة المحددة للدفعة: {newReport.actualProgress - newReport.plannedProgress > 0 ? "+" : ""}
-                        {newReport.actualProgress - newReport.plannedProgress}%
-                        {newReport.actualProgress - newReport.plannedProgress > 0 
-                          ? " (متقدم عن النسبة المخططة للدفعة)" 
-                          : newReport.actualProgress - newReport.plannedProgress < 0
-                          ? " (متأخر عن النسبة المخططة للدفعة)"
-                          : " (مطابق للنسبة المخططة للدفعة)"}
-                      </span>
                     </div>
                   </CardContent>
                 </Card>
@@ -1481,13 +1458,12 @@ export default function ProgressReports() {
             )}
           </div>
         </div>
-      </DashboardLayout>
-    );
+      );
+    return embedded ? formContent : <DashboardLayout>{formContent}</DashboardLayout>;
   }
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
+  const listContent = (
+    <div className="space-y-6">
         {/* العنوان والإجراءات */}
         <div className="flex items-center justify-between">
           <div>
@@ -2454,6 +2430,15 @@ export default function ProgressReports() {
           </DialogContent>
         </Dialog>
       </div>
+    );
+
+  if (embedded) {
+    return listContent;
+  }
+
+  return (
+    <DashboardLayout>
+      {listContent}
     </DashboardLayout>
   );
 }
