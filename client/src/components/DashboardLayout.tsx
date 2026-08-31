@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarRail,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -25,6 +26,10 @@ import {
   LayoutDashboard, 
   LogOut, 
   PanelLeft, 
+  PanelRightClose,
+  PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
   Users, 
   Building2, 
   FileText, 
@@ -680,20 +685,40 @@ function DashboardLayoutContent({
           side="right"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
-              <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
-              {!isCollapsed ? (
-                <div>
-                  <span className="font-bold text-sidebar-foreground block leading-tight">
-                    {orgName}
-                  </span>
-                  <span className="text-xs text-sidebar-foreground/50">
-                    {orgNameShort}
-                  </span>
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative">
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between px-2 transition-all w-full">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
+                  <div className="min-w-0">
+                    <span className="font-bold text-sidebar-foreground block leading-tight truncate">
+                      {orgName}
+                    </span>
+                    <span className="text-xs text-sidebar-foreground/50 truncate block">
+                      {orgNameShort}
+                    </span>
+                  </div>
                 </div>
-              ) : null}
-            </div>
+                {/* زر طي القائمة داخل الهيدر */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="h-8 w-8 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent flex items-center justify-center shrink-0 transition-colors cursor-pointer mr-1"
+                  title="طي القائمة الجانبية"
+                >
+                  <PanelRightClose className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="w-full flex items-center justify-center p-1 rounded-xl hover:bg-sidebar-accent/80 transition-colors cursor-pointer group"
+                title="توسيع القائمة الجانبية"
+              >
+                <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform" />
+              </button>
+            )}
           </SidebarHeader>
 
           <SidebarContent className="gap-0 py-2 overflow-y-auto">
@@ -748,10 +773,33 @@ function DashboardLayoutContent({
             ))}
           </SidebarContent>
 
-          <SidebarFooter className="p-3 border-t border-sidebar-border">
+          <SidebarFooter className="p-2.5 border-t border-sidebar-border space-y-1.5">
+            {/* زر دائم لطي وتوسيع القائمة الجانبية */}
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className={`flex items-center gap-2 rounded-xl px-2.5 py-2 hover:bg-sidebar-accent/80 text-sidebar-foreground/75 hover:text-sidebar-foreground border border-sidebar-border/60 hover:border-sidebar-border transition-all w-full text-xs font-bold cursor-pointer select-none ${
+                isCollapsed ? "justify-center" : "justify-between"
+              }`}
+              title={isCollapsed ? "توسيع القائمة الجانبية" : "طي القائمة الجانبية"}
+            >
+              {!isCollapsed ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <PanelRightClose className="w-4 h-4 text-sidebar-foreground/70" />
+                    <span>طي القائمة</span>
+                  </div>
+                  <span className="text-[10px] text-sidebar-foreground/40 font-mono">⌘B</span>
+                </>
+              ) : (
+                <PanelRightOpen className="w-4 h-4 text-sidebar-foreground/90 hover:scale-110 transition-transform" />
+              )}
+            </button>
+
+            {/* الملف الشخصي للمستخدم */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+                <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-sidebar-accent transition-colors w-full text-right group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring cursor-pointer">
                   <div className="relative shrink-0">
                     <Avatar className="h-9 w-9 border border-sidebar-border">
                       <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
@@ -831,6 +879,7 @@ function DashboardLayoutContent({
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarFooter>
+          <SidebarRail />
         </Sidebar>
         <div
           className={`absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
