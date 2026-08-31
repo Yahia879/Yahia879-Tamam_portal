@@ -665,7 +665,7 @@ function DashboardLayoutContent({
                 className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform"
               />
               {!isCollapsed && (
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 transition-all duration-300 ease-in-out animate-in fade-in">
                   <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
                     {orgName}
                   </span>
