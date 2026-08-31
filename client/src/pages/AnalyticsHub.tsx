@@ -187,10 +187,6 @@ export default function AnalyticsHub() {
                     <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight truncate">
                       مركز الإحصائيات والتحليلات الشامل
                     </h1>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary border border-primary/20">
-                      <Sparkles className="w-3 h-3" />
-                      {tabs.length} أقسام
-                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     لوحة موحدة لجميع التحليلات ومؤشرات الأداء والتقارير المالية والفنية
