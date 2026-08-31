@@ -71,6 +71,7 @@ import PublicEvaluation from "./pages/PublicEvaluation";
 import BeneficiarySatisfaction from "./pages/BeneficiarySatisfaction";
 import Reports from "./pages/Reports";
 import PendingReports from "./pages/PendingReports";
+import AnalyticsHub from "./pages/AnalyticsHub";
 
 // صفحات الموردين
 import SupplierRegistration from "./pages/SupplierRegistration";
@@ -321,6 +322,8 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/reports">{() => <AdminRoute component={Reports} />}</Route>
       <Route path="/pending-reports">{() => <AdminRoute component={PendingReports} />}</Route>
+      <Route path="/analytics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
+      <Route path="/statistics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       
       {/* الموردين - إدارية */}
       <Route path="/supplier/register" component={SupplierRegistration} />
