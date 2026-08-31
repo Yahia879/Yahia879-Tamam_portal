@@ -650,20 +650,21 @@ function DashboardLayoutContent({
           side="right"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative">
-            {/* زر عائم أنيق على حافة السايد بار للطي والتوسيع دون التأثير على مساحة اسم وشعار الجمعية */}
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative p-1.5">
             <button
               type="button"
               onClick={toggleSidebar}
-              className="absolute -left-3.5 top-1/2 -translate-y-1/2 z-40 hidden md:flex items-center justify-center w-7 h-7 rounded-full bg-card border border-border shadow-xs text-muted-foreground hover:text-primary hover:border-primary/40 hover:scale-105 transition-all cursor-pointer"
-              title={isCollapsed ? "توسيع القائمة الجانبية" : "طي القائمة الجانبية"}
+              className={`flex items-center rounded-xl hover:bg-sidebar-accent/80 transition-all cursor-pointer select-none group w-full ${
+                !isCollapsed ? "gap-3 px-2.5 py-1.5 text-right min-w-0" : "justify-center p-1"
+              }`}
+              title={isCollapsed ? "انقر لتوسيع القائمة الجانبية" : "انقر لطي القائمة الجانبية"}
             >
-              <PanelRightClose className={`w-3.5 h-3.5 transition-transform duration-200 ${isCollapsed ? "rotate-180 text-primary" : ""}`} />
-            </button>
-
-            {!isCollapsed ? (
-              <div className="flex items-center gap-3 px-3.5 transition-all w-full min-w-0">
-                <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain" />
+              <img
+                src={sidebarLogoSrc}
+                alt="شعار"
+                className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform"
+              />
+              {!isCollapsed && (
                 <div className="min-w-0 flex-1">
                   <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
                     {orgName}
@@ -672,17 +673,8 @@ function DashboardLayoutContent({
                     {orgNameShort}
                   </span>
                 </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="w-full flex items-center justify-center p-1 rounded-xl hover:bg-sidebar-accent/80 transition-colors cursor-pointer group"
-                title="توسيع القائمة الجانبية"
-              >
-                <img src={sidebarLogoSrc} alt="شعار" className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform" />
-              </button>
-            )}
+              )}
+            </button>
           </SidebarHeader>
 
           <SidebarContent className="gap-0 py-2 overflow-y-auto">
