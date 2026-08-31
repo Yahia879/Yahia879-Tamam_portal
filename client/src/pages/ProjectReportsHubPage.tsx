@@ -83,7 +83,7 @@ const formatPeriodArabic = (startVal: any, endVal: any, reportDateVal: any): str
   return "—";
 };
 
-export default function ProjectReportsHubPage() {
+export default function ProjectReportsHubPage({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const serverPermissions = useUserPermissions();
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
@@ -278,9 +278,8 @@ export default function ProjectReportsHubPage() {
     return reports.filter((r) => r.typeKey === filterType);
   }, [reports, filterType]);
 
-  return (
-    <DashboardLayout>
-      <div className="w-full space-y-6 animate-in fade-in duration-300" dir="rtl">
+  const content = (
+    <div className="w-full space-y-6 animate-in fade-in duration-300" dir="rtl">
         {/* Header Block with New Report Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -524,6 +523,15 @@ export default function ProjectReportsHubPage() {
           />
         )}
       </div>
+    );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <DashboardLayout>
+      {content}
     </DashboardLayout>
   );
 }
