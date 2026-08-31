@@ -206,6 +206,17 @@ export default function Dashboard() {
                 <Target className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
               </div>
+              <Link href="/analytics-hub">
+                <Button
+                  size="default"
+                  variant="ghost"
+                  className="group flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white rounded-xl px-4 h-10 border border-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-sm"
+                  title="مركز الإحصائيات والتحليلات الشامل"
+                >
+                  <BarChart3 className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110 duration-300" />
+                  <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">مركز الإحصائيات</span>
+                </Button>
+              </Link>
               <Link href="/support">
                 <Button 
                   size="default" 
