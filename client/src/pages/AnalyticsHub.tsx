@@ -191,13 +191,6 @@ export default function AnalyticsHub() {
                     لوحة موحدة لجميع التحليلات ومؤشرات الأداء والتقارير المالية والفنية
                   </p>
                 </div>
-              </div>
-            </div>
-
-            {/* جهة اليسار: التاب الحالي المحدد */}
-            <div className="flex items-center gap-2 self-start md:self-center shrink-0 text-xs font-bold text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-xl border border-border/50">
-              <span className="text-[11px] text-muted-foreground font-normal">القسم الحالي:</span>
-              <span className="text-primary font-bold">{activeTab.shortLabel}</span>
             </div>
           </div>
 
