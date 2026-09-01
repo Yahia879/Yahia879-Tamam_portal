@@ -121,6 +121,7 @@ import FinancialDashboard from "./pages/FinancialDashboard";
 import FinancialReport from "./pages/FinancialReport";
 import StageSettings from "./pages/StageSettings";
 import ActionSettings from "./pages/ActionSettings";
+import Escalation from "./pages/Escalation";
 import Roles from "./pages/Roles";
 import RoleEdit from "./pages/RoleEdit";
 import RolePermissions from "./pages/RolePermissions";
@@ -288,6 +289,10 @@ function Router() {
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
       <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
       <Route path="/beneficiary-satisfaction">{() => <Redirect to="/analytics-hub?tab=beneficiary" />}</Route>
+      
+      {/* التصعيد الإداري ومتابعة التأخيرات */}
+      <Route path="/escalation">{() => <AdminRoute component={Escalation} />}</Route>
+      <Route path="/admin-escalation">{() => <AdminRoute component={Escalation} />}</Route>
       
       {/* النموذج الديناميكي - طلب خدمة موحد */}
       <Route path="/request-form-dynamic">{() => <DynamicServiceRequestForm />}</Route>      
