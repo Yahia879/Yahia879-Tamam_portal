@@ -12,13 +12,15 @@ import {
   Layers, 
   Activity,
   ArrowRight,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
 
 // استيراد كافة صفحات الإحصائيات والتحليلات بالكامل
+import CustomAnalyticsDashboard from "@/pages/CustomAnalyticsDashboard";
 import KPIDashboard from "@/pages/KPIDashboard";
 import Reports from "@/pages/Reports";
 import FinancialReport from "@/pages/FinancialReport";
@@ -67,8 +69,16 @@ export default function AnalyticsHub() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // تعريف كافة صفحات الإحصائيات الـ 9 في النظام
+  // تعريف كافة صفحات الإحصائيات الـ 10 في النظام
   const tabs: AnalyticsTabItem[] = useMemo(() => [
+    {
+      id: "custom",
+      label: "لوحة الإحصائيات المخصصة",
+      shortLabel: "اللوحة المخصصة",
+      icon: Sparkles,
+      description: "لوحة مخصصة ومصممة حسب اختياراتك للكروت والمؤشرات",
+      component: <CustomAnalyticsDashboard />
+    },
     {
       id: "kpi",
       label: "مؤشرات الأداء العامة (KPI)",
@@ -146,6 +156,8 @@ export default function AnalyticsHub() {
   // التحقق الدقيق من صلاحية الوصول لكل تاب (إلغاء الصلاحية يخفي التاب فوراً حتى للمدير العام)
   const hasTabPermission = (tabId: string) => {
     switch (tabId) {
+      case "custom":
+        return userPermissions.includes("analytics_hub.custom") || userPermissions.some(p => p.startsWith("analytics_hub.")) || userPermissions.includes("reports.view") || userPermissions.includes("reports.view_stats") || isAdmin;
       case "kpi":
         return userPermissions.includes("analytics_hub.kpi");
       case "technical":
@@ -238,7 +250,7 @@ export default function AnalyticsHub() {
           {/* ==================== 📑 شريط التابات العلوي المدمج بكامل عرض الهيدر ==================== */}
           {visibleTabs.length > 0 && (
             <div className="mt-4 pt-3 border-t border-border/50">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-1.5 w-full">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-1.5 w-full">
                 {visibleTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab && tab.id === activeTab.id;
