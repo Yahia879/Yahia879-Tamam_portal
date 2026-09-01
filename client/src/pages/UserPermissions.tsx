@@ -689,7 +689,8 @@ export default function UserPermissions() {
       forms_customization: {
         evaluation: "تخصيص استمارة التقييم",
         services: "تخصيص نماذج طلبات الخدمات",
-        registration: "تخصيص نماذج التسجيل والتبرع"
+        registration: "تخصيص نماذج التسجيل والتبرع",
+        analytics: "لوحة الإحصائيات المخصصة"
       },
       mosque_map: {
         view: "عرض الخريطة الجغرافية للمساجد"
@@ -709,6 +710,7 @@ export default function UserPermissions() {
         create: "إرسال التذاكر"
       },
       analytics_hub: {
+        custom: "اللوحة المخصصة",
         kpi: "مؤشرات الأداء العامة (KPI)",
         technical: "التقارير الإحصائية والفنية",
         financial_report: "التقرير المالي الشامل",
@@ -766,6 +768,7 @@ export default function UserPermissions() {
           nameAr: "مركز الإحصائيات والتحليلات",
           icon: BarChart3,
           perms: [
+            "custom",
             "kpi",
             "technical",
             "financial_report",
@@ -806,7 +809,7 @@ export default function UserPermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
-        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
