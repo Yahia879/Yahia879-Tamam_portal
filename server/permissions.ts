@@ -61,7 +61,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   // مركز الإحصائيات والتحليلات الشامل
   analytics_hub: [
-    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view", "project_reports.view"
+    "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view"
   ],
   "analytics_hub.custom": ["reports.view_stats", "reports.view"],
   "analytics_hub.kpi": ["reports.view_stats", "reports.view"],
@@ -71,7 +71,6 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "analytics_hub.board": ["financial_reports.view", "reports.view"],
   "analytics_hub.beneficiary": ["reports.view"],
   "analytics_hub.operations": ["requests.view", "reports.view"],
-  "analytics_hub.project_reports": ["project_reports.view"],
   "analytics_hub.progress": ["progress_reports.view"],
 
   "forms_customization.analytics": ["settings.view", "settings.edit"],
@@ -621,6 +620,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: analytics_hub");
     }
 
+    // تنظيف الصلاحيات الملغاة
+    try {
+      await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
+      await db.delete(permissions).where(eq(permissions.id, "analytics_hub.project_reports"));
+    } catch {}
+
     const customPerms = [
       { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
       { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
@@ -630,7 +635,6 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "analytics_hub.board", moduleId: "analytics_hub", action: "board", nameAr: "عرض تحليلات الإدارة العليا", nameEn: "View Board Analytics" },
       { id: "analytics_hub.beneficiary", moduleId: "analytics_hub", action: "beneficiary", nameAr: "عرض رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
       { id: "analytics_hub.operations", moduleId: "analytics_hub", action: "operations", nameAr: "عرض تقارير العمليات والمعاينات", nameEn: "View Operations & Pending Reports" },
-      { id: "analytics_hub.project_reports", moduleId: "analytics_hub", action: "project_reports", nameAr: "عرض مركز تقارير المشاريع", nameEn: "View Project Reports" },
       { id: "analytics_hub.progress", moduleId: "analytics_hub", action: "progress", nameAr: "عرض تقارير ونسب الإنجاز", nameEn: "View Progress Reports" },
       { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض تقييمات المستفيدين", nameEn: "View Beneficiary Evaluations" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },

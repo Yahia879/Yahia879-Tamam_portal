@@ -306,7 +306,7 @@ function Router() {
       <Route path="/projects/new">{() => <AdminRoute component={NewMultiMosqueProjectPage} />}</Route>
       <Route path="/projects/:id">{() => <AdminRoute component={ProjectDetailsPage} />}</Route>
       <Route path="/project-management">{() => <AdminRoute component={ProjectManagement} />}</Route>
-      <Route path="/project-reports">{() => <Redirect to="/analytics-hub?tab=project-reports" />}</Route>
+      <Route path="/project-reports">{() => <AdminRoute component={ProjectReportsHubPage} />}</Route>
       <Route path="/project-reports/new">{() => <AdminRoute component={NewProjectReportPage} />}</Route>
       <Route path="/project-reports/:id/print">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>
       <Route path="/project-reports/:id/pdf">{() => <AdminRoute component={ProjectReportPrintPage} />}</Route>

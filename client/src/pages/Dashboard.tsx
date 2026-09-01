@@ -181,14 +181,15 @@ export default function Dashboard() {
 
   const userPermissions = useUserPermissions();
   const hasAnalyticsAccess = [
+    "analytics_hub.custom",
     "analytics_hub.kpi",
     "analytics_hub.technical",
     "analytics_hub.financial_report",
     "analytics_hub.financial_dash",
+    "board_analytics.view",
     "analytics_hub.board",
     "analytics_hub.beneficiary",
     "analytics_hub.operations",
-    "analytics_hub.project_reports",
     "analytics_hub.progress"
   ].some(perm => userPermissions.includes(perm));
 

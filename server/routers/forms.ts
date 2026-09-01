@@ -406,7 +406,7 @@ export const ANALYTICS_CATEGORIES = [
   { id: "board", name: "تحليلات الإدارة العليا" },
   { id: "beneficiary", name: "رضا المستفيدين" },
   { id: "operations", name: "العمليات والمعاينات" },
-  { id: "progress", name: "تقارير المشاريع ونسب الإنجاز" },
+  { id: "progress", name: "تقارير ونسب الإنجاز" },
 ];
 
 export const ANALYTICS_CARD_DEFINITIONS = [

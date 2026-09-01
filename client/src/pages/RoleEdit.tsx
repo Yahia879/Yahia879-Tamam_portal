@@ -64,6 +64,7 @@ const superAdminGroups = [
     title: "الهندسة والمشاريع",
     modules: [
       { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
+      { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
     ]
   },
   {
@@ -95,7 +96,6 @@ const superAdminGroups = [
           "board",
           "beneficiary",
           "operations",
-          "project_reports",
           "progress"
         ]
       }

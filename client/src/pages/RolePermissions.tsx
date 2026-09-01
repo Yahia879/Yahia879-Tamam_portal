@@ -428,6 +428,15 @@ export default function RolePermissions() {
             { id: "projects.delete", nameAr: "حذف مشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
           ]
+        },
+        {
+          id: "project_reports",
+          nameAr: "تقارير المشاريع",
+          icon: FileText,
+          permissions: [
+            { id: "project_reports.view", nameAr: "عرض تقارير المشاريع" },
+            { id: "project_reports.create", nameAr: "إنشاء تقارير مشاريع" },
+          ]
         }
       ]
     },
@@ -440,7 +449,6 @@ export default function RolePermissions() {
           icon: BarChart3,
           permissions: [
             { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
-            { id: "analytics_hub.project_reports", nameAr: "عرض مركز تقارير المشاريع" },
             { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
           ]
         }
@@ -627,7 +635,6 @@ export default function RolePermissions() {
             { id: "analytics_hub.custom", nameAr: "عرض وتخصيص اللوحة المخصصة" },
             { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
             { id: "analytics_hub.technical", nameAr: "عرض التقارير الإحصائية والفنية" },
-            { id: "analytics_hub.project_reports", nameAr: "عرض مركز تقارير المشاريع" },
             { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
             { id: "analytics_hub.operations", nameAr: "عرض تقارير العمليات والمعاينات" },
           ]
@@ -691,6 +698,15 @@ export default function RolePermissions() {
             { id: "projects.create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد" },
             { id: "projects.edit", nameAr: "تعديل بيانات المشروع" },
             { id: "projects.export", nameAr: "تصدير سجل المشاريع" },
+          ]
+        },
+        {
+          id: "project_reports",
+          nameAr: "تقارير المشاريع",
+          icon: FileText,
+          permissions: [
+            { id: "project_reports.view", nameAr: "عرض تقارير المشاريع" },
+            { id: "project_reports.create", nameAr: "إنشاء تقارير مشاريع" },
           ]
         }
       ]
@@ -806,6 +822,7 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       ]
     },
     {
@@ -836,7 +853,6 @@ export default function RolePermissions() {
             "board",
             "beneficiary",
             "operations",
-            "project_reports",
             "progress"
           ]
         }
@@ -883,6 +899,7 @@ export default function RolePermissions() {
       title: "الهندسة والمشاريع",
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       ]
     },
     {
@@ -914,7 +931,6 @@ export default function RolePermissions() {
             "board",
             "beneficiary",
             "operations",
-            "project_reports",
             "progress"
           ]
         }

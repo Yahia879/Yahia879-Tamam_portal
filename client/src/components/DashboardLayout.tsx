@@ -113,6 +113,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
     const items: MenuItem[] = [];
     if (["super_admin", "system_admin", "projects_office", "project_manager", "general_manager", "executive_director"].includes(role) || isExecDirector) {
       items.push({ icon: ClipboardList, label: "المشاريع", path: "/projects" });
+      items.push({ icon: FileText, label: "تقارير المشاريع", path: "/project-reports" });
     }
     if (role === "field_team") {
       items.push({ icon: MapPin, label: "الزيارات الميدانية", path: "/field-visits" });
@@ -240,6 +241,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   const engineeringItems: MenuItem[] = [];
   if (has("projects") || has("projects.view") || has("projects.view_details") || has("projects.create_multi_mosque") || has("projects.financials")) {
     engineeringItems.push({ icon: ClipboardList, label: "المشاريع",              path: "/projects" });
+  }
+  if (has("project_reports") || has("project_reports.view") || has("project_reports.create")) {
+    engineeringItems.push({ icon: FileText, label: "تقارير المشاريع", path: "/project-reports" });
   }
   if (engineeringItems.length > 0) {
     groups.push({

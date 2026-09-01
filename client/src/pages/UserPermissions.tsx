@@ -718,7 +718,6 @@ export default function UserPermissions() {
         board: "تحليلات الإدارة العليا",
         beneficiary: "رضا المستفيدين",
         operations: "تقارير العمليات والمعاينات",
-        project_reports: "مركز تقارير المشاريع",
         progress: "تقارير ونسب الإنجاز"
       }
     };
@@ -745,6 +744,7 @@ export default function UserPermissions() {
       title: "الهندسة والمشاريع",
       modules: [
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
+        { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
       ]
     },
     {
@@ -776,7 +776,6 @@ export default function UserPermissions() {
             "board",
             "beneficiary",
             "operations",
-            "project_reports",
             "progress"
           ]
         }

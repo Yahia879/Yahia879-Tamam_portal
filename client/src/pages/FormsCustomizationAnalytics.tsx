@@ -68,7 +68,7 @@ const TAB_SECTION_META: Record<
     iconBg: "bg-cyan-500/10 border-cyan-200/60 dark:bg-cyan-950/40 dark:border-cyan-800/40",
   },
   progress: {
-    tabTitle: "تقارير المشاريع ونسب الإنجاز",
+    tabTitle: "تقارير ونسب الإنجاز",
     icon: Activity,
     accentColor: "text-purple-600 dark:text-purple-400",
     iconBg: "bg-purple-500/10 border-purple-200/60 dark:bg-purple-950/40 dark:border-purple-800/40",

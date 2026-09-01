@@ -28,7 +28,6 @@ import FinancialDashboard from "@/pages/FinancialDashboard";
 import BoardDashboard from "@/pages/BoardDashboard";
 import BeneficiarySatisfaction from "@/pages/BeneficiarySatisfaction";
 import PendingReports from "@/pages/PendingReports";
-import ProjectReportsHubPage from "@/pages/ProjectReportsHubPage";
 import ProgressReports from "@/pages/ProgressReports";
 
 export interface AnalyticsTabItem {
@@ -136,14 +135,6 @@ export default function AnalyticsHub() {
       component: <PendingReports embedded={true} />
     },
     {
-      id: "project-reports",
-      label: "مركز تقارير المشاريع",
-      shortLabel: "تقارير المشاريع",
-      icon: Layers,
-      description: "التقارير النصف شهرية والشهرية والربعية للمشاريع",
-      component: <ProjectReportsHubPage embedded={true} />
-    },
-    {
       id: "progress",
       label: "تقارير ونسب الإنجاز",
       shortLabel: "نسب الإنجاز",
@@ -172,8 +163,6 @@ export default function AnalyticsHub() {
         return userPermissions.includes("analytics_hub.beneficiary");
       case "operations":
         return userPermissions.includes("analytics_hub.operations");
-      case "project-reports":
-        return userPermissions.includes("analytics_hub.project_reports");
       case "progress":
         return userPermissions.includes("analytics_hub.progress");
       default:
@@ -250,7 +239,7 @@ export default function AnalyticsHub() {
           {/* ==================== 📑 شريط التابات العلوي المدمج بكامل عرض الهيدر ==================== */}
           {visibleTabs.length > 0 && (
             <div className="mt-4 pt-3 border-t border-border/50">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10 gap-1.5 w-full">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9 gap-1.5 w-full">
                 {visibleTabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab && tab.id === activeTab.id;
