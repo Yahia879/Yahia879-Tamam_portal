@@ -77,6 +77,7 @@ function CustomStatCard({
   icon: Icon,
   color,
   badgeText,
+  compact = false,
 }: {
   title: string;
   value: string | number;
@@ -84,25 +85,26 @@ function CustomStatCard({
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   badgeText?: string;
+  compact?: boolean;
 }) {
   return (
     <Card className="overflow-hidden border border-border/80 bg-card hover:shadow-xs transition-all">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
+      <CardContent className={compact ? "p-2.5 sm:p-3" : "p-3.5 sm:p-5"}>
+        <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-muted-foreground truncate mb-1">{title}</p>
-            <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">{value}</p>
+            <p className={`font-semibold text-muted-foreground truncate ${compact ? "text-[10px] mb-0.5" : "text-xs mb-1"}`}>{title}</p>
+            <p className={`font-black text-foreground tracking-tight truncate ${compact ? "text-base sm:text-lg" : "text-xl sm:text-3xl"}`}>{value}</p>
             {subtitle && (
-              <p className="text-[11px] text-muted-foreground mt-1 truncate">{subtitle}</p>
+              <p className={`text-muted-foreground truncate ${compact ? "text-[9px] mt-0.5" : "text-[10.5px] sm:text-[11px] mt-1"}`}>{subtitle}</p>
             )}
             {badgeText && (
-              <span className="inline-block text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md mt-1.5 border border-primary/20">
+              <span className={`inline-block font-bold text-primary bg-primary/10 rounded-md border border-primary/20 ${compact ? "text-[8.5px] px-1.5 py-0.5 mt-0.5" : "text-[10px] px-2 py-0.5 mt-1.5"}`}>
                 {badgeText}
               </span>
             )}
           </div>
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${color}`}>
-            <Icon className="w-5 h-5 text-white" />
+          <div className={`flex items-center justify-center shrink-0 shadow-2xs ${compact ? "w-7 h-7 rounded-lg" : "w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl"} ${color}`}>
+            <Icon className={compact ? "w-3.5 h-3.5 text-white" : "w-4 h-4 sm:w-5 sm:h-5 text-white"} />
           </div>
         </div>
       </CardContent>
@@ -112,7 +114,7 @@ function CustomStatCard({
 
 // تنسيق المبالغ
 function formatCurrency(amount: number): string {
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2)} مليون ر.س`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(2)} م ر.س`;
   if (amount >= 1_000) return `${(amount / 1_000).toFixed(0)} ألف ر.س`;
   return `${amount.toLocaleString("ar-SA")} ر.س`;
 }
@@ -120,11 +122,13 @@ function formatCurrency(amount: number): string {
 export interface CustomAnalyticsDashboardProps {
   overrideEnabledIds?: string[];
   isPreview?: boolean;
+  isMobilePreview?: boolean;
 }
 
 export default function CustomAnalyticsDashboard({
   overrideEnabledIds,
   isPreview = false,
+  isMobilePreview = false,
 }: CustomAnalyticsDashboardProps = {}) {
   const [, setLocation] = useLocation();
 
@@ -259,39 +263,49 @@ export default function CustomAnalyticsDashboard({
 
   const enabledCount = enabledIds.size;
 
+  const statGridClass = isMobilePreview
+    ? "grid grid-cols-2 gap-2"
+    : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5";
+
+  const stat3GridClass = isMobilePreview
+    ? "grid grid-cols-2 gap-2"
+    : "grid grid-cols-1 sm:grid-cols-3 gap-3.5";
+
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className={isMobilePreview ? "space-y-4" : "space-y-6"} dir="rtl">
       {/* ==================== 🌟 ترويسة اللوحة المخصصة والشريط التفاعلي ==================== */}
-      <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/50">
-              <Sparkles className="w-5 h-5" />
+      <div className={`rounded-2xl border border-border/80 bg-card ${isMobilePreview ? "p-3" : "p-4 sm:p-5"} shadow-2xs`}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`${isMobilePreview ? "w-8 h-8 rounded-xl" : "w-11 h-11 rounded-2xl"} bg-purple-500/10 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/50`}>
+              <Sparkles className={isMobilePreview ? "w-4 h-4" : "w-5 h-5"} />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-foreground tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className={`${isMobilePreview ? "text-xs font-black" : "text-base sm:text-lg font-black"} text-foreground tracking-tight truncate`}>
                   لوحة الإحصائيات المخصصة
                 </h2>
-                <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-200 font-bold text-[11px]">
-                  {enabledCount} كارد معروض
+                <Badge variant="outline" className={`bg-purple-500/10 text-purple-600 border-purple-200 font-bold ${isMobilePreview ? "text-[9.5px] px-1 py-0" : "text-[11px]"}`}>
+                  {enabledCount} كارد
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                تعرض هذه اللوحة المؤشرات والكروت التي تم اختيارها وتفعيلها في إعدادات النظام
-              </p>
+              {!isMobilePreview && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  تعرض هذه اللوحة المؤشرات والكروت التي تم اختيارها وتفعيلها في إعدادات النظام
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-1.5 shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefreshAll}
-              className="h-9 px-3 text-xs font-bold gap-1.5 rounded-xl border-border hover:bg-muted bg-background cursor-pointer"
+              className={`${isMobilePreview ? "h-7 px-2 text-[10px]" : "h-9 px-3 text-xs"} font-bold gap-1 rounded-lg sm:rounded-xl border-border hover:bg-muted bg-background cursor-pointer`}
               title="تحديث كافة بيانات اللوحة"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className={isMobilePreview ? "w-3 h-3" : "w-3.5 h-3.5"} />
               <span>تحديث</span>
             </Button>
 
@@ -313,33 +327,27 @@ export default function CustomAnalyticsDashboard({
 
       {/* في حال عدم تفعيل أي كارد */}
       {enabledCount === 0 ? (
-        <div className="p-12 rounded-2xl border border-border bg-card text-center space-y-4 shadow-2xs">
-          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mx-auto border border-purple-200/50">
-            <SlidersHorizontal className="w-8 h-8" />
+        <div className="p-8 sm:p-12 rounded-2xl border border-border bg-card text-center space-y-3 shadow-2xs">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mx-auto border border-purple-200/50">
+            <SlidersHorizontal className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
-          <h3 className="text-lg font-black text-foreground">لم يتم اختيار أي كروت للوحة المخصصة</h3>
+          <h3 className="text-sm sm:text-lg font-black text-foreground">لم يتم اختيار أي كروت للوحة المخصصة</h3>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-            يمكنك تخصيص هذه اللوحة لتشمل المؤشرات والرسوم البيانية التي تهمك بدقة. اضغط على الزر أدناه لاختيار الكروت المراد تفعيلها.
+            يمكنك تخصيص هذه اللوحة لتشمل المؤشرات والرسوم البيانية التي تهمك بدقة.
           </p>
-          <Link href="/forms-customization/analytics">
-            <Button className="mt-2 text-xs font-bold rounded-xl gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-              <SlidersHorizontal className="w-4 h-4" />
-              <span>تخصيص اللوحة الآن</span>
-            </Button>
-          </Link>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className={isMobilePreview ? "space-y-5" : "space-y-8"}>
           {/* ==================== 1️⃣ مؤشرات الأداء العامة (KPIs) ==================== */}
           {hasKpiCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-foreground">مؤشرات الأداء العامة (KPIs)</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">مؤشرات الأداء العامة (KPIs)</h3>
               </div>
 
               {/* شبكة البطاقات الرقمية لـ KPI */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className={statGridClass}>
                 {has("kpi_total_requests") && (
                   <CustomStatCard
                     title="إجمالي الطلبات"
@@ -347,69 +355,77 @@ export default function CustomAnalyticsDashboard({
                     subtitle="منذ بداية النظام"
                     icon={FileText}
                     color="bg-blue-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_completed_requests") && (
                   <CustomStatCard
                     title="الطلبات المكتملة"
                     value={summary.closedRequests}
-                    subtitle={`${summary.completionRate}% نسبة الإنجاز الإجمالية`}
+                    subtitle={`${summary.completionRate}% نسبة الإنجاز`}
                     icon={CheckCircle}
                     color="bg-emerald-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_active_requests") && (
                   <CustomStatCard
                     title="الطلبات قيد التنفيذ"
                     value={summary.activeRequests}
-                    subtitle="طلب نشط جاري العمل عليه"
+                    subtitle="طلب نشط جاري"
                     icon={Activity}
                     color="bg-amber-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_new_requests") && (
                   <CustomStatCard
                     title="الطلبات الجديدة"
                     value={summary.newRequests}
-                    subtitle="بانتظار المراجعة والتدقيق"
+                    subtitle="بانتظار المراجعة"
                     icon={Clock}
                     color="bg-purple-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_avg_rating") && (
                   <CustomStatCard
                     title="متوسط تقييم الجودة"
                     value={summary.avgRating > 0 ? `${summary.avgRating}/5` : "4.8/5"}
-                    subtitle="من واقع التقارير الختامية"
+                    subtitle="تقييم الجودة"
                     icon={Star}
                     color="bg-yellow-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_total_spending") && (
                   <CustomStatCard
                     title="إجمالي الإنفاق"
                     value={formatCurrency(summary.totalCost)}
-                    subtitle="التكاليف الفعلية المعتمدة"
+                    subtitle="التكاليف المعتمدة"
                     icon={DollarSign}
                     color="bg-teal-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_benefited_mosques") && (
                   <CustomStatCard
                     title="المساجد المستفيدة"
                     value={summary.benefitedMosques}
-                    subtitle="مسجد وجامع مخدوم"
+                    subtitle="مسجد وجامع"
                     icon={Building2}
                     color="bg-indigo-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("kpi_completed_projects") && (
                   <CustomStatCard
                     title="المشاريع المنجزة"
                     value={summary.completedProjects}
-                    subtitle="مشروع مكتمل ومسلّم"
+                    subtitle="مشروع مكتمل"
                     icon={Target}
                     color="bg-rose-500"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
@@ -490,28 +506,52 @@ export default function CustomAnalyticsDashboard({
 
                 {has("kpi_stage_chart") && (
                   <Card className="border border-border/80 bg-card shadow-2xs">
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-2">
-                        <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
-                        توزيع الطلبات حسب المرحلة
+                    <CardHeader className="p-3.5 sm:p-4 pb-2">
+                      <CardTitle className="text-xs sm:text-sm font-bold text-foreground flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
+                          <span>توزيع الطلبات حسب المرحلة</span>
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] text-muted-foreground font-normal">
+                          {stageChartData.length} مراحل
+                        </span>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
+                    <CardContent className="p-3.5 sm:p-4 pt-1">
                       {stageChartData.length > 0 ? (
-                        <div className="h-[180px] w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={stageChartData} layout="vertical" margin={{ top: 5, right: 10, left: 45, bottom: 5 }}>
-                              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                              <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10 }} />
-                              <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} />
-                              <Tooltip formatter={(val: any) => [val, "طلب"]} />
-                              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                                {stageChartData.map((entry: any, index: number) => (
-                                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                              </Bar>
-                            </BarChart>
-                          </ResponsiveContainer>
+                        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                          {stageChartData.map((item: any, idx: number) => {
+                            const maxCount = Math.max(...stageChartData.map((s: any) => s.count), 1);
+                            const percentage = Math.round((item.count / maxCount) * 100);
+                            return (
+                              <div key={idx} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <div
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: item.fill }}
+                                    />
+                                    <span className="text-foreground font-medium truncate text-[11px] sm:text-xs">
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                                    <span className="font-bold text-foreground text-xs">{item.count}</span>
+                                    <span className="text-[10px]">طلب</span>
+                                  </div>
+                                </div>
+                                <div className="w-full bg-muted/60 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{
+                                      width: `${Math.max(percentage, 4)}%`,
+                                      backgroundColor: item.fill,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground text-center py-8">لا توجد بيانات مراحل</p>
@@ -556,13 +596,13 @@ export default function CustomAnalyticsDashboard({
 
           {/* ==================== 2️⃣ التقارير واللوحة المالية ==================== */}
           {hasFinancialCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-foreground">التقارير واللوحة المالية</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">التقارير واللوحة المالية</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className={stat3GridClass}>
                 {has("fin_approved_orders") && (
                   <CustomStatCard
                     title="أوامر الصرف المعتمدة"
@@ -570,6 +610,7 @@ export default function CustomAnalyticsDashboard({
                     subtitle="إجمالي المصروفات المنفذة"
                     icon={Banknote}
                     color="bg-emerald-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("fin_receipt_vouchers") && (
@@ -579,6 +620,7 @@ export default function CustomAnalyticsDashboard({
                     subtitle="إجمالي التبرعات والمقبوضات"
                     icon={Receipt}
                     color="bg-teal-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("fin_remaining_budget") && (
@@ -588,6 +630,7 @@ export default function CustomAnalyticsDashboard({
                     subtitle="صافي الرصيد المتاح"
                     icon={Wallet}
                     color="bg-blue-600"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
@@ -596,47 +639,51 @@ export default function CustomAnalyticsDashboard({
 
           {/* ==================== 3️⃣ تحليلات الإدارة العليا ==================== */}
           {hasBoardCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <Briefcase className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-foreground">تحليلات الإدارة العليا ومجلس الإدارة</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">تحليلات الإدارة العليا ومجلس الإدارة</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className={statGridClass}>
                 {has("board_exec_overview") && (
                   <CustomStatCard
                     title="الأداء التنفيذي"
                     value="98.2%"
-                    subtitle="كفاءة القرارات والاعتمادات"
+                    subtitle="كفاءة القرارات"
                     icon={ShieldCheck}
                     color="bg-indigo-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("board_mosques_overview") && (
                   <CustomStatCard
                     title="التغطية الجغرافية"
                     value={`${summary.benefitedMosques} مسجد`}
-                    subtitle="توزيع المساجد في المناطق"
+                    subtitle="توزيع المساجد"
                     icon={MapPin}
                     color="bg-purple-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("board_budget_performance") && (
                   <CustomStatCard
                     title="كفاءة الموازنات"
                     value="94.5%"
-                    subtitle="نسبة الصرف الفعلي للمستهدف"
+                    subtitle="نسبة الصرف للهدف"
                     icon={TrendingUp}
                     color="bg-emerald-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("board_contractors_summary") && (
                   <CustomStatCard
                     title="التزام المقاولين"
                     value="96%"
-                    subtitle="معدل تسليم الأعمال بالموعد"
+                    subtitle="تسليم بالموعد"
                     icon={CheckCircle2}
                     color="bg-cyan-600"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
@@ -645,48 +692,52 @@ export default function CustomAnalyticsDashboard({
 
           {/* ==================== 4️⃣ رضا المستفيدين ==================== */}
           {hasBeneficiaryCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <HeartHandshake className="w-4 h-4 text-amber-600" />
-                <h3 className="text-sm font-bold text-foreground">رضا المستفيدين والتغذية الراجعة</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <HeartHandshake className="w-3.5 h-3.5 text-amber-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">رضا المستفيدين والتغذية الراجعة</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <div className={statGridClass}>
                 {has("bene_overall_score") && (
                   <CustomStatCard
                     title="معدل الرضا العام"
                     value={`${avgEvalRating} / 5`}
-                    subtitle="تقييم المستفيدين الإجمالي"
+                    subtitle="تقييم المستفيدين"
                     icon={Star}
                     color="bg-amber-500"
                     badgeText="ممتاز"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("bene_total_responses") && (
                   <CustomStatCard
                     title="التقييمات المستلمة"
                     value={totalEvalsCount || "120+"}
-                    subtitle="استمارة تقييم معتمدة"
+                    subtitle="استمارة تقييم"
                     icon={HeartHandshake}
                     color="bg-rose-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("bene_speed_rating") && (
                   <CustomStatCard
                     title="سرعة الاستجابة"
                     value="4.9 / 5"
-                    subtitle="تلبية طلبات المستفيدين"
+                    subtitle="تلبية الطلبات"
                     icon={Clock}
                     color="bg-teal-500"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("bene_service_rating") && (
                   <CustomStatCard
                     title="جودة الخدمات"
                     value="4.8 / 5"
-                    subtitle="تنفيذ أعمال الصيانة والبناء"
+                    subtitle="تنفيذ الأعمال"
                     icon={CheckCircle}
                     color="bg-indigo-500"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
@@ -695,38 +746,41 @@ export default function CustomAnalyticsDashboard({
 
           {/* ==================== 5️⃣ العمليات والمعاينات ==================== */}
           {hasOpsCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <FileSpreadsheet className="w-4 h-4 text-cyan-600" />
-                <h3 className="text-sm font-bold text-foreground">العمليات والمعاينات الميدانية</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-cyan-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">العمليات والمعاينات الميدانية</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className={stat3GridClass}>
                 {has("ops_field_visits") && (
                   <CustomStatCard
                     title="الزيارات الميدانية"
                     value={summary.activeRequests}
-                    subtitle="معاينة منفذة وقيد الجدولة"
+                    subtitle="معاينة منفذة"
                     icon={MapPin}
                     color="bg-cyan-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("ops_quick_response") && (
                   <CustomStatCard
                     title="الاستجابة السريعة"
                     value="100%"
-                    subtitle="تغطية بلاغات الطوارئ"
+                    subtitle="بلاغات الطوارئ"
                     icon={Activity}
                     color="bg-amber-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("ops_handover_queue") && (
                   <CustomStatCard
-                    title="طابور استلام المواقع"
+                    title="طابور الاستلام"
                     value={summary.completedProjects}
-                    subtitle="محاضر تسليم جاهزة للاعتماد"
+                    subtitle="محاضر جاهزة"
                     icon={CheckCircle2}
                     color="bg-emerald-600"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
@@ -735,38 +789,41 @@ export default function CustomAnalyticsDashboard({
 
           {/* ==================== 6️⃣ تقارير المشاريع ونسب الإنجاز ==================== */}
           {hasProgressCards && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-1 border-b border-border/50">
-                <Activity className="w-4 h-4 text-purple-600" />
-                <h3 className="text-sm font-bold text-foreground">تقارير المشاريع ونسب الإنجاز</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
+                <Activity className="w-3.5 h-3.5 text-purple-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-foreground">تقارير المشاريع ونسب الإنجاز</h3>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className={stat3GridClass}>
                 {has("proj_on_track_ratio") && (
                   <CustomStatCard
-                    title="الالتزام بالجدول الزمني"
+                    title="الالتزام بالجدول"
                     value="94%"
-                    subtitle="مشاريع منتظمة بالمواعيد"
+                    subtitle="مشاريع منتظمة"
                     icon={CheckCircle}
                     color="bg-purple-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("proj_progress_average") && (
                   <CustomStatCard
-                    title="متوسط نسبة الإنجاز العام"
+                    title="متوسط الإنجاز"
                     value={`${summary.completionRate}%`}
-                    subtitle="لجميع المشاريع الجارية"
+                    subtitle="لجميع المشاريع"
                     icon={Target}
                     color="bg-emerald-600"
+                    compact={isMobilePreview}
                   />
                 )}
                 {has("proj_periodic_reports") && (
                   <CustomStatCard
-                    title="التقارير الدورية المرفوعة"
+                    title="التقارير الدورية"
                     value={`${(Array.isArray(projectsData) ? projectsData.length : 10) * 2}+`}
-                    subtitle="تقارير نصف شهرية وشهرية"
+                    subtitle="تقارير مرفوعة"
                     icon={Layers}
                     color="bg-blue-600"
+                    compact={isMobilePreview}
                   />
                 )}
               </div>
