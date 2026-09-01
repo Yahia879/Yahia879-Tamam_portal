@@ -117,12 +117,22 @@ function formatCurrency(amount: number): string {
   return `${amount.toLocaleString("ar-SA")} ر.س`;
 }
 
-export default function CustomAnalyticsDashboard() {
+export interface CustomAnalyticsDashboardProps {
+  overrideEnabledIds?: string[];
+  isPreview?: boolean;
+}
+
+export default function CustomAnalyticsDashboard({
+  overrideEnabledIds,
+  isPreview = false,
+}: CustomAnalyticsDashboardProps = {}) {
   const [, setLocation] = useLocation();
 
   // جلب التخصيص المحفوظ
   const { data: config, isLoading: isConfigLoading, refetch: refetchConfig } =
-    trpc.forms.getAnalyticsCustomizationConfig.useQuery();
+    trpc.forms.getAnalyticsCustomizationConfig.useQuery(undefined, {
+      enabled: !overrideEnabledIds,
+    });
 
   // جلب بيانات مؤشرات الأداء
   const { data: kpiData, isLoading: isKpiLoading, refetch: refetchKpi } =
@@ -141,18 +151,25 @@ export default function CustomAnalyticsDashboard() {
     trpc.projects.getAll.useQuery({ limit: 100 });
 
   const handleRefreshAll = () => {
-    refetchConfig();
+    if (!overrideEnabledIds) {
+      refetchConfig();
+    }
     refetchKpi();
     refetchFin();
     refetchEval();
     refetchProjects();
   };
 
-  const enabledIds = useMemo(() => new Set(config?.enabledCardIds || []), [config]);
+  const enabledIds = useMemo(() => {
+    if (overrideEnabledIds) {
+      return new Set(overrideEnabledIds);
+    }
+    return new Set(config?.enabledCardIds || []);
+  }, [config, overrideEnabledIds]);
 
   const has = (id: string) => enabledIds.has(id);
 
-  const isLoading = isConfigLoading || isKpiLoading;
+  const isLoading = (!overrideEnabledIds && isConfigLoading) || isKpiLoading;
 
   if (isLoading) {
     return (
@@ -278,16 +295,18 @@ export default function CustomAnalyticsDashboard() {
               <span>تحديث</span>
             </Button>
 
-            <Link href="/forms-customization/analytics">
-              <Button
-                size="sm"
-                className="h-9 px-3.5 text-xs font-bold gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
-                title="تخصيص الكروت المعروضة في اللوحة"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>تخصيص عناصر اللوحة</span>
-              </Button>
-            </Link>
+            {!isPreview && (
+              <Link href="/forms-customization/analytics">
+                <Button
+                  size="sm"
+                  className="h-9 px-3.5 text-xs font-bold gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
+                  title="تخصيص الكروت المعروضة في اللوحة"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>تخصيص عناصر اللوحة</span>
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
