@@ -1,31 +1,47 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowRight,
   Save,
   RotateCcw,
+  Eye,
   Search,
   CheckCircle2,
-  XCircle,
-  LayoutGrid,
+  X,
+  Loader2,
+  Layers,
+  ChevronLeft,
+  Monitor,
+  Smartphone,
+  Signal,
+  Wifi,
+  Battery,
+  SlidersHorizontal,
   TrendingUp,
   DollarSign,
   Briefcase,
   HeartHandshake,
   FileSpreadsheet,
   Activity,
-  Sparkles,
-  ExternalLink,
-  Loader2,
+  AlertCircle,
+  LayoutGrid,
   Check,
-  Eye,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import CustomAnalyticsDashboard from "@/pages/CustomAnalyticsDashboard";
 
 // خريطة الأقسام وعناوينها وأيقوناتها
 const TAB_SECTION_META: Record<
@@ -76,12 +92,17 @@ const TAB_SECTION_META: Record<
 };
 
 export default function FormsCustomizationAnalytics() {
-  const [, navigate] = useLocation();
   const utils = trpc.useUtils();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [enabledIds, setEnabledIds] = useState<string[]>([]);
+  const [initialIds, setInitialIds] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // حالات النوافذ المنبثقة
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
 
   // جلب إعدادات التخصيص من الخادم
   const { data: configData, isLoading } = trpc.forms.getAnalyticsCustomizationConfig.useQuery();
@@ -90,10 +111,11 @@ export default function FormsCustomizationAnalytics() {
   const saveMutation = trpc.forms.saveAnalyticsCustomizationConfig.useMutation({
     onSuccess: (res) => {
       toast.success(res.message || "تم حفظ تخصيص اللوحة المخصصة بنجاح");
+      setInitialIds([...enabledIds]);
       utils.forms.getAnalyticsCustomizationConfig.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ الإعدادات");
+      toast.error(err.message || "حدث خطأ أثناء حفظ التخصيص");
     },
   });
 
@@ -101,86 +123,120 @@ export default function FormsCustomizationAnalytics() {
   const resetMutation = trpc.forms.resetAnalyticsCustomizationConfig.useMutation({
     onSuccess: (res) => {
       toast.success(res.message || "تمت استعادة الإعدادات الافتراضية بنجاح");
-      if (res.data?.enabledCardIds) {
-        setEnabledIds(res.data.enabledCardIds);
-      }
+      const restored = res.data?.enabledCardIds || [];
+      setEnabledIds([...restored]);
+      setInitialIds([...restored]);
+      setIsResetConfirmOpen(false);
       utils.forms.getAnalyticsCustomizationConfig.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء استعادة الإعدادات");
+      toast.error(err.message || "حدث خطأ أثناء استعادة الافتراضي");
     },
   });
 
-  // تهيئة الحالة المحلية عند تحميل البيانات
+  // تهيئة الحالة عند وصول البيانات من الخادم
   useEffect(() => {
     if (configData && !isInitialized) {
       setEnabledIds(configData.enabledCardIds || []);
+      setInitialIds(configData.enabledCardIds || []);
       setIsInitialized(true);
     }
   }, [configData, isInitialized]);
 
-  const cards = configData?.cards || [];
+  // فحص وجود تغييرات غير محفوظة
+  const hasChanges = useMemo(() => {
+    if (!isInitialized) return false;
+    if (enabledIds.length !== initialIds.length) return true;
+    const initialSet = new Set(initialIds);
+    return enabledIds.some((id) => !initialSet.has(id));
+  }, [enabledIds, initialIds, isInitialized]);
 
-  // تبديل حالة كارد محدد
+  // حماية المستخدم عند محاولة مغادرة الصفحة مع وجود تغييرات غير محفوظة
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
+
+  // اختصار لوحة المفاتيح للحفظ السريع (Ctrl+S / Cmd+S)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (hasChanges && !saveMutation.isPending) {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enabledIds, hasChanges, saveMutation.isPending]);
+
+  const cards = useMemo(() => configData?.cards || [], [configData]);
+
+  // تبديل حالة كرت واحد
   const handleToggleCard = (cardId: string) => {
-    setEnabledIds((prev) =>
-      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
-    );
-  };
-
-  // تحديد الكل
-  const handleSelectAll = () => {
-    const allIds = cards.map((c) => c.id);
-    setEnabledIds(allIds);
-    toast.info("تم تحديد كافة العناصر للوحة المخصصة");
-  };
-
-  // إلغاء تحديد الكل
-  const handleDeselectAll = () => {
-    setEnabledIds([]);
-    toast.info("تم إلغاء تحديد كافة العناصر");
-  };
-
-  // تفعيل / إلغاء تفعيل كل عناصر قسم (تاب) معين
-  const handleToggleCategoryAll = (categoryId: string, enable: boolean) => {
-    const categoryCardIds = cards.filter((c) => c.category === categoryId).map((c) => c.id);
     setEnabledIds((prev) => {
-      if (enable) {
-        return Array.from(new Set([...prev, ...categoryCardIds]));
+      if (prev.includes(cardId)) {
+        return prev.filter((id) => id !== cardId);
       } else {
-        return prev.filter((id) => !categoryCardIds.includes(id));
+        return [...prev, cardId];
       }
     });
   };
 
-  // حفظ الإعدادات
+  // تفعيل أو تعطيل قسم كامل
+  const handleToggleCategoryAll = (categoryId: string, enable: boolean) => {
+    const categoryCardIds = cards.filter((c) => c.category === categoryId).map((c) => c.id);
+    setEnabledIds((prev) => {
+      const filtered = prev.filter((id) => !categoryCardIds.includes(id));
+      if (enable) {
+        return [...filtered, ...categoryCardIds];
+      }
+      return filtered;
+    });
+  };
+
+  // تفعيل الكل العام
+  const handleSelectAllGlobal = () => {
+    setEnabledIds(cards.map((c) => c.id));
+  };
+
+  // إلغاء تحديد الكل العام
+  const handleDeselectAllGlobal = () => {
+    setEnabledIds([]);
+  };
+
+  // تنفيذ الحفظ
   const handleSave = () => {
+    if (enabledIds.length === 0) {
+      toast.error("يرجى تفعيل مؤشر أو كرت واحد على الأقل في اللوحة المخصصة");
+      return;
+    }
     saveMutation.mutate({ enabledCardIds: enabledIds });
   };
 
-  // إعادة التعيين للافتراضي
-  const handleReset = () => {
-    if (window.confirm("هل أنت متأكد من رغبتك في استعادة الإعدادات الافتراضية للوحة المخصصة؟")) {
-      resetMutation.mutate();
-    }
-  };
-
-  // فلترة الكروت حسب البحث
+  // تصفية الكروت حسب البحث
   const filteredCards = useMemo(() => {
     if (!searchQuery.trim()) return cards;
-    const query = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     return cards.filter(
-      (card) =>
-        card.title.toLowerCase().includes(query) ||
-        card.description.toLowerCase().includes(query) ||
-        card.categoryName.toLowerCase().includes(query)
+      (c) =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q) ||
+        c.categoryName.toLowerCase().includes(q)
     );
   }, [cards, searchQuery]);
 
-  // تجميع الكروت حسب التاب للعرض المنظم في مكان واحد
+  // تجميع الكروت حسب القسم لسهولة الاستعراض
   const groupedCards = useMemo(() => {
     const order = ["kpi", "financial", "board", "beneficiary", "operations", "progress"];
-    const groups: { categoryId: string; cards: typeof cards }[] = [];
+    const groups: Array<{ categoryId: string; cards: typeof cards }> = [];
 
     order.forEach((catId) => {
       const catCards = filteredCards.filter((c) => c.category === catId);
@@ -189,30 +245,27 @@ export default function FormsCustomizationAnalytics() {
       }
     });
 
-    // إضافة أي أقسام أخرى قد توجد
-    filteredCards.forEach((c) => {
-      if (!order.includes(c.category) && !groups.some((g) => g.categoryId === c.category)) {
-        const extraCards = filteredCards.filter((item) => item.category === c.category);
-        groups.push({ categoryId: c.category, cards: extraCards });
-      }
-    });
+    const otherCards = filteredCards.filter((c) => !order.includes(c.category));
+    if (otherCards.length > 0) {
+      groups.push({ categoryId: "other", cards: otherCards });
+    }
 
     return groups;
   }, [filteredCards]);
 
   const totalCardsCount = cards.length;
   const enabledCardsCount = enabledIds.length;
+  const disabledCardsCount = totalCardsCount - enabledCardsCount;
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center animate-pulse">
-            <Loader2 className="w-6 h-6 animate-spin" />
+        <div className="flex items-center justify-center min-h-[350px]">
+          <div className="text-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+            <p className="text-sm font-semibold text-foreground">جاري تحميل عناصر اللوحة المخصصة...</p>
+            <p className="text-xs text-muted-foreground">يتم جلب المؤشرات والكروت المتاحة</p>
           </div>
-          <p className="text-sm font-semibold text-muted-foreground">
-            جاري تحميل عناصر اللوحة المخصصة...
-          </p>
         </div>
       </DashboardLayout>
     );
@@ -220,162 +273,172 @@ export default function FormsCustomizationAnalytics() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-5xl mx-auto pb-20">
-        {/* ==================== 🌟 رأس الصفحة ==================== */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-border/70">
-          <div className="flex items-center gap-3">
+      <div className="space-y-5 max-w-5xl mx-auto pb-24">
+        
+        {/* ==================== 1. شريط المسار (Breadcrumbs) ==================== */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium select-none">
+          <Link href="/forms-customization" className="hover:text-foreground transition-colors">
+            تخصيص النماذج
+          </Link>
+          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/50" />
+          <span className="text-foreground font-bold">اللوحة المخصصة</span>
+        </div>
+
+        {/* ==================== 2. رأس الصفحة التفاعلي ==================== */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-border/80 bg-card shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
             <Link href="/forms-customization">
               <Button
                 variant="ghost"
                 size="icon"
                 type="button"
-                className="shrink-0 rounded-xl hover:bg-muted"
+                className="shrink-0 rounded-2xl hover:bg-muted"
                 title="العودة لتخصيص النماذج"
               >
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
 
-            <div className="w-11 h-11 rounded-2xl bg-purple-500/10 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/50 shadow-xs">
-              <LayoutGrid className="w-5 h-5" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 text-primary border border-primary/20 shadow-xs transition-transform hover:scale-105">
+              <LayoutGrid className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-black text-foreground tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight">
                   تخصيص اللوحة المخصصة
                 </h1>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200/40">
-                  الخيار الرابع
-                </span>
+                {hasChanges && (
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-bold text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/30 animate-pulse flex items-center gap-1"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <span>تعديلات غير محفوظة</span>
+                  </Badge>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                حدد العناصر والمؤشرات التي ترغب في إظهارها داخل اللوحة المخصصة في مركز الإحصائيات
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                تحديد وترتيب المؤشرات والكروت المعروضة في اللوحة المخصصة بمركز الإحصائيات
               </p>
             </div>
           </div>
 
           {/* أزرار الإجراءات العلوية */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            <Link href="/analytics-hub?tab=custom">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 text-xs font-bold gap-1.5 rounded-xl border-border hover:bg-muted bg-background cursor-pointer"
-                title="معاينة اللوحة المخصصة"
-              >
-                <Eye className="w-4 h-4 text-primary" />
-                <span>معاينة اللوحة</span>
-                <ExternalLink className="w-3 h-3 opacity-60 ml-0.5" />
-              </Button>
-            </Link>
-
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Button
+              type="button"
               variant="outline"
               size="sm"
-              onClick={handleReset}
+              onClick={() => setIsResetConfirmOpen(true)}
               disabled={resetMutation.isPending}
-              className="h-9 px-3 text-xs font-bold gap-1.5 rounded-xl border-border hover:bg-muted bg-background cursor-pointer"
-              title="استعادة الإعدادات الافتراضية"
+              className="text-xs h-10 px-3.5 rounded-xl border-border/80 shadow-2xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer"
+              title="استعادة الكروت والمؤشرات الافتراضية"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${resetMutation.isPending ? "animate-spin" : ""}`} />
-              <span>استعادة الافتراضي</span>
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              <span>الافتراضي</span>
             </Button>
 
             <Button
+              type="button"
+              variant="secondary"
               size="sm"
+              onClick={() => setIsPreviewOpen(true)}
+              className="text-xs font-bold gap-2 h-10 px-4 rounded-xl shadow-2xs hover:bg-muted/80 cursor-pointer"
+              title="معاينة حية لشاشة اللوحة المخصصة"
+            >
+              <Eye className="w-4 h-4 text-primary" />
+              <span>معاينة حية</span>
+            </Button>
+
+            <Button
+              type="button"
               onClick={handleSave}
-              disabled={saveMutation.isPending}
-              className="h-9 px-4 text-xs font-bold gap-1.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm cursor-pointer"
+              disabled={saveMutation.isPending || !hasChanges}
+              className={`text-xs font-bold px-5 h-10 rounded-xl shadow-md gap-2 transition-all ${
+                hasChanges
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 hover:shadow-lg cursor-pointer"
+                  : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed shadow-none hover:bg-muted"
+              }`}
+              title={hasChanges ? "حفظ التعديلات (Ctrl+S)" : "لا توجد تعديلات غير محفوظة"}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              <span>حفظ التخصيص</span>
+              <span>حفظ التعديلات</span>
+              <span className="hidden lg:inline text-[10px] opacity-75 font-mono">(Ctrl+S)</span>
             </Button>
           </div>
         </div>
 
-        {/* ==================== 📊 شريط التحكم الموحد السريع ==================== */}
-        <div className="rounded-2xl border border-border/80 bg-card p-4 sm:p-5 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* مؤشر العدد */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-foreground">
-                  عناصر اللوحة المخصصة
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  تم تفعيل <span className="font-black text-primary">{enabledCardsCount}</span> من أصل{" "}
-                  <span className="font-bold">{totalCardsCount}</span> عنصر متاح
-                </p>
-              </div>
+        {/* ==================== 3. شريط الإحصائيات والإجراءات السريعة ==================== */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 px-5 rounded-2xl bg-muted/40 border border-border/80 text-xs">
+          <div className="flex items-center gap-3 sm:gap-5 text-muted-foreground flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-primary" />
+              <span>إجمالي العناصر: <strong className="text-foreground">{totalCardsCount}</strong></span>
             </div>
-
-            {/* أزرار التحديد السريع */}
-            <div className="flex items-center gap-2 self-start sm:self-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-                className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl border-border/80 hover:bg-muted"
-              >
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>تحديد الكل</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeselectAll}
-                className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl border-border/80 hover:bg-muted text-muted-foreground hover:text-foreground"
-              >
-                <XCircle className="w-3.5 h-3.5 text-destructive" />
-                <span>إلغاء التحديد</span>
-              </Button>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>مفعّلة: <strong className="text-foreground">{enabledCardsCount}</strong></span>
             </div>
-          </div>
-
-          {/* شريط نسبة التفعيل */}
-          <div className="w-full bg-muted/70 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-l from-primary to-purple-600 transition-all duration-300"
-              style={{
-                width: `${totalCardsCount > 0 ? (enabledCardsCount / totalCardsCount) * 100 : 0}%`,
-              }}
-            />
-          </div>
-
-          {/* شريط البحث المباشر */}
-          <div className="relative w-full">
-            <Search className="w-4 h-4 absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="بحث في أسماء العناصر والمؤشرات..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 h-10 text-xs rounded-xl border-border bg-background"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs bg-muted px-1.5 py-0.5 rounded-md"
-              >
-                مسح
-              </button>
+            {disabledCardsCount > 0 && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="w-2 h-2 rounded-full bg-slate-400" />
+                <span>معطلة: <strong className="text-foreground">{disabledCardsCount}</strong></span>
+              </div>
             )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSelectAllGlobal}
+              className="text-xs h-8 px-3 rounded-lg border-border/70 hover:bg-background cursor-pointer"
+            >
+              تحديد الكل
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleDeselectAllGlobal}
+              className="text-xs h-8 px-3 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              إلغاء التحديد
+            </Button>
           </div>
         </div>
 
-        {/* ==================== 📋 قائمة عناصر التابات في مكان واحد منظم ==================== */}
-        {groupedCards.length === 0 ? (
-          <div className="p-12 rounded-2xl border border-border bg-card text-center space-y-3 shadow-2xs">
-            <div className="w-12 h-12 rounded-2xl bg-muted text-muted-foreground flex items-center justify-center mx-auto">
+        {/* ==================== 4. شريط البحث ==================== */}
+        <div className="relative">
+          <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="ابحث عن مؤشر، رسم بياني، أو كرت إحصائي بالاسم أو الوصف..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-11 pr-10 pl-10 rounded-2xl bg-card border-border/80 text-xs sm:text-sm shadow-2xs focus-visible:ring-primary/20"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* ==================== 5. قائمة الأقسام والكروت ==================== */}
+        {filteredCards.length === 0 ? (
+          <div className="p-12 text-center rounded-3xl border border-dashed border-border bg-card/50 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto text-muted-foreground">
               <Search className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-foreground">لا توجد نتائج مطابقة</h3>
@@ -408,9 +471,9 @@ export default function FormsCustomizationAnalytics() {
               return (
                 <div
                   key={categoryId}
-                  className="rounded-2xl border border-border/80 bg-card overflow-hidden shadow-2xs transition-all"
+                  className="rounded-3xl border border-border/80 bg-card overflow-hidden shadow-2xs transition-all"
                 >
-                  {/* ترويسة التاب الواضحة */}
+                  {/* ترويسة القسم */}
                   <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 bg-muted/40 border-b border-border/70">
                     <div className="flex items-center gap-3">
                       <div
@@ -439,7 +502,7 @@ export default function FormsCustomizationAnalytics() {
                     </Button>
                   </div>
 
-                  {/* شبكة كروت التاب البسيطة والمختصرة */}
+                  {/* شبكة كروت القسم */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 sm:p-5">
                     {categoryCards.map((card) => {
                       const isEnabled = enabledIds.includes(card.id);
@@ -448,7 +511,7 @@ export default function FormsCustomizationAnalytics() {
                         <div
                           key={card.id}
                           onClick={() => handleToggleCard(card.id)}
-                          className={`group flex items-center justify-between gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                          className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
                             isEnabled
                               ? "border-primary/50 bg-primary/[0.06] shadow-xs"
                               : "border-border/70 bg-background/60 hover:bg-muted/40 hover:border-border"
@@ -456,31 +519,29 @@ export default function FormsCustomizationAnalytics() {
                         >
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                              className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                                 isEnabled
-                                  ? "bg-primary text-primary-foreground"
+                                  ? "bg-primary text-white shadow-xs"
                                   : "bg-muted text-muted-foreground group-hover:text-foreground"
                               }`}
                             >
                               <SectionIcon className="w-4 h-4" />
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-xs font-bold text-foreground truncate">
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-xs font-bold truncate ${isEnabled ? "text-foreground" : "text-foreground/80"}`}>
                                 {card.title}
-                              </h3>
+                              </p>
                               <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                                 {card.description}
                               </p>
                             </div>
                           </div>
 
-                          {/* زر السويتش */}
-                          <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                          <div onClick={(e) => e.stopPropagation()} className="shrink-0 mr-1">
                             <Switch
                               checked={isEnabled}
                               onCheckedChange={() => handleToggleCard(card.id)}
-                              aria-label={`تفعيل ${card.title}`}
                             />
                           </div>
                         </div>
@@ -493,41 +554,151 @@ export default function FormsCustomizationAnalytics() {
           </div>
         )}
 
-        {/* ==================== 💾 شريط الحفظ العائم في الأسفل ==================== */}
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-lg bg-card/95 backdrop-blur-md border border-border shadow-xl rounded-2xl p-3 flex items-center justify-between gap-3 animate-in fade-in-50 duration-200">
-          <div className="flex items-center gap-2 pr-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-foreground">
-              {enabledCardsCount} عنصر محدد للوحة المخصصة
-            </span>
-          </div>
+        {/* ==================== 6. نافذة المعاينة الحية التفاعلية (Dialog) ==================== */}
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent
+            showCloseButton={false}
+            className="w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] p-0 flex flex-col overflow-hidden rounded-3xl border-border/80 shadow-2xl bg-card"
+          >
+            {/* شريط رأس المعاينة وأزرار التحكم بالتبديل بين الكمبيوتر والجوال */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-border/80 bg-card z-10 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
+                  <Eye className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <DialogTitle className="text-sm sm:text-base font-black text-foreground tracking-tight">
+                      معاينة حية: اللوحة المخصصة
+                    </DialogTitle>
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200 text-[10px] font-bold">
+                      {enabledCardsCount} كارد مفعّل
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground hidden sm:block">
+                    معاينة تفاعلية لما سيظهر للمستخدم في مركز الإحصائيات وفق التخصيص الحالي
+                  </p>
+                </div>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <Link href="/analytics-hub?tab=custom">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-xs font-bold rounded-xl border-border hover:bg-muted"
+              <div className="flex items-center gap-3 shrink-0">
+                {/* مبدل أجهزة المعاينة (كمبيوتر / جوال) */}
+                <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("desktop")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      previewDevice === "desktop"
+                        ? "bg-card text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="عرض بنسخة الكمبيوتر"
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">كمبيوتر</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("mobile")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      previewDevice === "mobile"
+                        ? "bg-card text-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="عرض بنسخة الجوال"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">جوال</span>
+                  </button>
+                </div>
+
+                {/* زر الإغلاق */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsPreviewOpen(false)}
+                  className="w-8.5 h-8.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors shrink-0"
+                  title="إغلاق المعاينة"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* محتوى المعاينة التفاعلي الواقعي */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
+              <div
+                className={`w-full transition-all duration-300 ${
+                  previewDevice === "mobile"
+                    ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[84vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
+                    : "max-w-5xl mx-auto space-y-6"
+                }`}
               >
-                معاينة
-              </Button>
-            </Link>
+                {/* شريط حالة هاتف iPhone مع الجزيرة التفاعلية (Dynamic Island) */}
+                {previewDevice === "mobile" && (
+                  <div className="pt-3 px-5 pb-2 shrink-0 bg-background/95 backdrop-blur z-20 select-none border-b border-border/30">
+                    <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+                      <span className="font-semibold tracking-tight text-xs">9:41</span>
+                      <div className="w-24 h-5.5 bg-black dark:bg-zinc-900 rounded-full flex items-center justify-end px-2.5 gap-1.5 shadow-inner">
+                        <div className="w-2 h-2 rounded-full bg-slate-900/90 border border-slate-800" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 animate-pulse" />
+                      </div>
+                      <div className="flex items-center gap-1.5 text-foreground/80">
+                        <Signal className="w-3.5 h-3.5" />
+                        <Wifi className="w-3.5 h-3.5" />
+                        <Battery className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-              className="h-8 px-4 text-xs font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
-              ) : (
-                <Save className="w-3.5 h-3.5 ml-1" />
-              )}
-              <span>حفظ الآن</span>
-            </Button>
-          </div>
-        </div>
+                {/* مساحة محتوى شاشة الهاتف أو الكمبيوتر القابلة للتمرير والتفاعل */}
+                <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right bg-background" : "space-y-6"}>
+                  <CustomAnalyticsDashboard overrideEnabledIds={enabledIds} isPreview={true} />
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* ==================== 7. نافذة تأكيد استعادة الافتراضي ==================== */}
+        <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+          <DialogContent className="max-w-md rounded-3xl border-border p-6 shadow-xl">
+            <DialogHeader className="text-right space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <DialogTitle className="text-lg font-black text-foreground">
+                استعادة الإعدادات الافتراضية للوحة
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-right">
+              هل أنت متأكد من رغبتك في استعادة المؤشرات والكروت الافتراضية؟ سيتم تفعيل العناصر القياسية الموصى بها للوحة المخصصة.
+            </p>
+            <DialogFooter className="flex-row-reverse justify-start gap-2 pt-3">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => resetMutation.mutate()}
+                disabled={resetMutation.isPending}
+                className="text-xs font-bold rounded-xl h-10 px-5 gap-1.5"
+              >
+                {resetMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>استعادة الافتراضي</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="text-xs font-semibold rounded-xl h-10 px-4"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </DashboardLayout>
   );
