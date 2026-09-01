@@ -624,6 +624,7 @@ export default function RolePermissions() {
           nameAr: "مركز الإحصائيات والتحليلات",
           icon: BarChart3,
           permissions: [
+            { id: "analytics_hub.custom", nameAr: "عرض وتخصيص اللوحة المخصصة" },
             { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
             { id: "analytics_hub.technical", nameAr: "عرض التقارير الإحصائية والفنية" },
             { id: "analytics_hub.project_reports", nameAr: "عرض مركز تقارير المشاريع" },
@@ -827,6 +828,7 @@ export default function RolePermissions() {
           nameAr: "مركز الإحصائيات والتحليلات",
           icon: BarChart3,
           perms: [
+            "custom",
             "kpi",
             "technical",
             "financial_report",
@@ -904,6 +906,7 @@ export default function RolePermissions() {
           nameAr: "مركز الإحصائيات والتحليلات",
           icon: BarChart3,
           perms: [
+            "custom",
             "kpi",
             "technical",
             "financial_report",
@@ -955,7 +958,7 @@ export default function RolePermissions() {
         { id: "settings_branding", nameAr: "الهوية البصرية", icon: Palette, perms: ["edit"] },
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
-        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration"] },
+        { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
@@ -983,7 +986,14 @@ export default function RolePermissions() {
   // دالة مساعدة لتحويل الأفعال العامة إلى مسميات مهنية وصفية
   const getDescriptiveLabel = (moduleId: string, action: string) => {
     const mapping: Record<string, Record<string, string>> = {
+      forms_customization: {
+        evaluation: "استمارة تقييم رضا المستفيد",
+        services: "نماذج طلبات الخدمات",
+        registration: "نماذج التسجيل والتبرع",
+        analytics: "لوحة الإحصائيات المخصصة",
+      },
       analytics_hub: {
+        custom: "اللوحة المخصصة",
         kpi: "مؤشرات الأداء العامة (KPI)",
         technical: "التقارير الإحصائية والفنية",
         financial_report: "التقرير المالي الشامل",
@@ -1170,11 +1180,6 @@ export default function RolePermissions() {
         add: "اضافة برامج",
         edit: "تعديل برامج",
         delete: "حذف برامج"
-      },
-      forms_customization: {
-        evaluation: "تخصيص استمارة التقييم",
-        services: "تخصيص نماذج طلبات الخدمات",
-        registration: "تخصيص نماذج التسجيل والتبرع"
       },
       mosque_map: {
         view: "عرض الخريطة التفاعلية"
