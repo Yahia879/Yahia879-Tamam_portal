@@ -221,7 +221,7 @@ export default function Dashboard() {
                 <span className="text-[10px] sm:text-xs font-medium whitespace-nowrap">نسبة الإنجاز: {completionRate}%</span>
               </div>
               {hasAnalyticsAccess && (
-                <Link href="/analytics-hub">
+                <Link href="/analytics-hub?tab=custom">
                   <Button
                     size="default"
                     variant="ghost"
