@@ -170,6 +170,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/forms-customization\/services\/[^/]+\/?$/, title: "تخصيص نموذج الخدمة" },
   { pattern: /^\/forms-customization\/registration\/?$/, title: "تخصيص نماذج التسجيل والتبرع" },
   { pattern: /^\/forms-customization\/registration\/[^/]+\/?$/, title: "تخصيص نموذج التسجيل" },
+  { pattern: /^\/forms-customization\/analytics\/?$/, title: "تخصيص لوحة الإحصائيات" },
   { pattern: /^\/forms-customization\/option-2\/?$/, title: "الخيار الثاني (تخصيص النماذج)" },
   { pattern: /^\/partners\/?$/, title: "الشركاء" },
 ];
