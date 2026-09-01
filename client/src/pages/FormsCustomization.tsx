@@ -12,6 +12,8 @@ import {
   FileText,
   ShieldAlert,
   HeartHandshake,
+  LayoutGrid,
+  Sparkles,
 } from "lucide-react";
 
 export default function FormsCustomization() {
@@ -48,6 +50,16 @@ export default function FormsCustomization() {
       iconColor: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40",
       visible: userPermissions.includes("forms_customization.registration"),
       optionBadge: "الخيار الثالث",
+    },
+    {
+      id: "analytics",
+      title: "تخصيص اللوحة المخصصة",
+      subtitle: "تحديد العناصر والمؤشرات المعروضة في التاب المخصصة بمركز الإحصائيات",
+      path: "/forms-customization/analytics",
+      icon: LayoutGrid,
+      iconColor: "text-purple-600 bg-purple-50 dark:bg-purple-950/40",
+      visible: userPermissions.includes("forms_customization.analytics") || userPermissions.includes("forms_customization.evaluation") || userPermissions.includes("forms_customization.services") || userPermissions.includes("forms_customization.registration") || userPermissions.includes("settings_center") || userPermissions.includes("analytics_hub"),
+      optionBadge: "الخيار الرابع",
     },
   ];
 
