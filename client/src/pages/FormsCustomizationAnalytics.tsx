@@ -502,8 +502,8 @@ export default function FormsCustomizationAnalytics() {
                     </Button>
                   </div>
 
-                  {/* شبكة كروت القسم */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 sm:p-5">
+                  {/* شبكة كروت القسم - بدون تقطيع في النص ومع مساحة مريحة */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 p-4 sm:p-5">
                     {categoryCards.map((card) => {
                       const isEnabled = enabledIds.includes(card.id);
 
@@ -511,15 +511,15 @@ export default function FormsCustomizationAnalytics() {
                         <div
                           key={card.id}
                           onClick={() => handleToggleCard(card.id)}
-                          className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                          className={`group flex items-start justify-between gap-3.5 p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                             isEnabled
-                              ? "border-primary/50 bg-primary/[0.06] shadow-xs"
+                              ? "border-primary/50 bg-primary/[0.05] shadow-xs"
                               : "border-border/70 bg-background/60 hover:bg-muted/40 hover:border-border"
                           }`}
                         >
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
                             <div
-                              className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                                 isEnabled
                                   ? "bg-primary text-white shadow-xs"
                                   : "bg-muted text-muted-foreground group-hover:text-foreground"
@@ -529,16 +529,16 @@ export default function FormsCustomizationAnalytics() {
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className={`text-xs font-bold truncate ${isEnabled ? "text-foreground" : "text-foreground/80"}`}>
+                              <p className={`text-xs sm:text-sm font-bold leading-snug ${isEnabled ? "text-foreground" : "text-foreground/85"}`}>
                                 {card.title}
                               </p>
-                              <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                              <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed mt-1">
                                 {card.description}
                               </p>
                             </div>
                           </div>
 
-                          <div onClick={(e) => e.stopPropagation()} className="shrink-0 mr-1">
+                          <div onClick={(e) => e.stopPropagation()} className="shrink-0 mt-0.5 mr-1">
                             <Switch
                               checked={isEnabled}
                               onCheckedChange={() => handleToggleCard(card.id)}
@@ -554,35 +554,36 @@ export default function FormsCustomizationAnalytics() {
           </div>
         )}
 
-        {/* ==================== 6. نافذة المعاينة الحية التفاعلية (Dialog) ==================== */}
+        {/* ========================================================================= */}
+        {/* نافذة المعاينة الحية بصفحة كاملة (Full Screen) المطابقة لصفحة تخصيص الخدمات */}
+        {/* ========================================================================= */}
         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
           <DialogContent
             showCloseButton={false}
-            className="w-[96vw] max-w-6xl h-[92vh] max-h-[92vh] p-0 flex flex-col overflow-hidden rounded-3xl border-border/80 shadow-2xl bg-card"
+            className="fixed inset-0 top-0 left-0 w-screen h-[100dvh] max-w-none max-h-none sm:max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 overflow-hidden flex flex-col text-right shadow-none bg-slate-100 dark:bg-zinc-950 duration-200"
+            dir="rtl"
           >
-            {/* شريط رأس المعاينة وأزرار التحكم بالتبديل بين الكمبيوتر والجوال */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-border/80 bg-card z-10 shrink-0">
+            {/* Header المعاينة الصلب والأنيق والمطابق تماماً */}
+            <div className="p-3.5 sm:p-4 border-b border-border/80 bg-card flex items-center justify-between gap-3 shrink-0 shadow-xs z-10">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
-                  <Eye className="w-5 h-5" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center bg-primary text-white shadow-xs shrink-0">
+                  <LayoutGrid className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <DialogTitle className="text-sm sm:text-base font-black text-foreground tracking-tight">
-                      معاينة حية: اللوحة المخصصة
-                    </DialogTitle>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200 text-[10px] font-bold">
+                  <DialogTitle className="text-sm sm:text-base font-bold text-foreground flex items-center gap-2">
+                    <span className="truncate">معاينة حية: اللوحة المخصصة</span>
+                    <Badge variant="outline" className="text-[10px] h-5 bg-primary/10 text-primary border-primary/20 hidden md:inline-flex shrink-0">
                       {enabledCardsCount} كارد مفعّل
                     </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground hidden sm:block">
-                    معاينة تفاعلية لما سيظهر للمستخدم في مركز الإحصائيات وفق التخصيص الحالي
+                  </DialogTitle>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    تظهر هذه المعاينة التفاعلية تماماً كما ستظهر للمستخدم في مركز الإحصائيات
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                {/* مبدل أجهزة المعاينة (كمبيوتر / جوال) */}
+              {/* محول الجهاز (Desktop vs Mobile) وزر الإغلاق */}
+              <div className="flex items-center gap-2 shrink-0">
                 <div className="flex items-center gap-1 bg-muted/70 p-1 rounded-xl border border-border/60">
                   <button
                     type="button"
@@ -626,13 +627,13 @@ export default function FormsCustomizationAnalytics() {
               </div>
             </div>
 
-            {/* محتوى المعاينة التفاعلي الواقعي */}
+            {/* محتوى المعاينة التفاعلي الواقعي الكامل */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex justify-center items-start bg-slate-100/90 dark:bg-zinc-950">
               <div
                 className={`w-full transition-all duration-300 ${
                   previewDevice === "mobile"
-                    ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[84vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
-                    : "max-w-5xl mx-auto space-y-6"
+                    ? "relative w-[395px] max-w-[395px] h-[820px] max-h-[88vh] bg-background rounded-[50px] border-[10px] border-slate-900 dark:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5),0_0_0_2px_rgba(255,255,255,0.08)] flex flex-col overflow-hidden select-none my-auto ring-1 ring-black/20 shrink-0"
+                    : "max-w-6xl mx-auto space-y-6 bg-card rounded-3xl p-5 sm:p-8 border border-border/80 shadow-md min-h-[85vh]"
                 }`}
               >
                 {/* شريط حالة هاتف iPhone مع الجزيرة التفاعلية (Dynamic Island) */}
@@ -654,8 +655,12 @@ export default function FormsCustomizationAnalytics() {
                 )}
 
                 {/* مساحة محتوى شاشة الهاتف أو الكمبيوتر القابلة للتمرير والتفاعل */}
-                <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3.5 space-y-4 text-right bg-background" : "space-y-6"}>
-                  <CustomAnalyticsDashboard overrideEnabledIds={enabledIds} isPreview={true} />
+                <div className={previewDevice === "mobile" ? "flex-1 overflow-y-auto p-3 space-y-3.5 text-right bg-background" : "space-y-6"}>
+                  <CustomAnalyticsDashboard
+                    overrideEnabledIds={enabledIds}
+                    isPreview={true}
+                    isMobilePreview={previewDevice === "mobile"}
+                  />
                 </div>
               </div>
             </div>
@@ -682,7 +687,7 @@ export default function FormsCustomizationAnalytics() {
                 variant="destructive"
                 onClick={() => resetMutation.mutate()}
                 disabled={resetMutation.isPending}
-                className="text-xs font-bold rounded-xl h-10 px-5 gap-1.5"
+                className="text-xs font-bold rounded-xl h-10 px-5 gap-1.5 cursor-pointer"
               >
                 {resetMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 <span>استعادة الافتراضي</span>
@@ -691,7 +696,7 @@ export default function FormsCustomizationAnalytics() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsResetConfirmOpen(false)}
-                className="text-xs font-semibold rounded-xl h-10 px-4"
+                className="text-xs font-semibold rounded-xl h-10 px-4 cursor-pointer"
               >
                 إلغاء
               </Button>
