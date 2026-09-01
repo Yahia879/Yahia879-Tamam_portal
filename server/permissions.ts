@@ -43,6 +43,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
   "projects.financials": ["projects.view", "projects.financials"],
   service_requester_accounts: ["users.view", "users.edit"],
+  escalation: ["escalation.view", "escalation.manage", "requests.view"],
+  "escalation.view": ["escalation.view", "requests.view"],
   suppliers: [
     "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
     "suppliers.approve", "suppliers.reject", "suppliers.suspend"
