@@ -976,7 +976,7 @@ export default function FormsCustomizationRegistrationDetail() {
                   <ChevronDown className="w-3 h-3 opacity-70" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-1.5 shadow-xl border-border" dir="rtl">
+              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-1.5 shadow-xl border-border">
                 <DropdownMenuLabel className="text-xs font-bold text-muted-foreground px-2 py-1.5">
                   اختر نوع الحقل:
                 </DropdownMenuLabel>
@@ -1581,7 +1581,7 @@ export default function FormsCustomizationRegistrationDetail() {
                   {/* شريط الإجراء العلوي والرجوع المطابق تماماً لـ Register.tsx */}
                   <div className="bg-slate-100/90 border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2.5 sm:gap-3">
                     <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: orgSettings?.primaryColor || "#09707e" }} />
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: (orgSettings as any)?.primaryColor || "#09707e" }} />
                       <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">
                         {formId === "donor_land"
                           ? "مسار المتبرع (تبرع بأرض)"
