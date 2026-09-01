@@ -29,6 +29,7 @@ import { boardRouter } from "./routers/board";
 import { formsRouter } from "./routers/forms";
 import { publicSubmissionsRouter } from "./routers/publicSubmissions";
 import { calendarRouter } from "./routers/calendar";
+import { escalationRouter } from "./routers/escalation";
 
 export const appRouter = router({
   system: systemRouter,
@@ -109,6 +110,9 @@ export const appRouter = router({
   // الإحصاءات والتحليلات
   analytics: analyticsRouter,
   jobPositions: jobPositionsRouter,
+
+  // التصعيد الإداري ومتابعة التأخيرات
+  escalation: escalationRouter,
 });
 
 export type AppRouter = typeof appRouter;
