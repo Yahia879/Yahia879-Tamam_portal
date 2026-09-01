@@ -63,6 +63,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   analytics_hub: [
     "reports.view", "reports.view_stats", "financial_reports.view", "progress_reports.view", "project_reports.view"
   ],
+  "analytics_hub.custom": ["reports.view_stats", "reports.view"],
   "analytics_hub.kpi": ["reports.view_stats", "reports.view"],
   "analytics_hub.technical": ["reports.view_stats", "reports.view", "reports.export_data"],
   "analytics_hub.financial_report": ["financial_reports.view", "financial.view"],
@@ -73,6 +74,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "analytics_hub.project_reports": ["project_reports.view"],
   "analytics_hub.progress": ["progress_reports.view"],
 
+  "forms_customization.analytics": ["settings.view", "settings.edit"],
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
@@ -620,6 +622,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
     }
 
     const customPerms = [
+      { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
       { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
       { id: "analytics_hub.technical", moduleId: "analytics_hub", action: "technical", nameAr: "عرض التقارير الإحصائية والفنية", nameEn: "View Technical Reports" },
       { id: "analytics_hub.financial_report", moduleId: "analytics_hub", action: "financial_report", nameAr: "عرض التقرير المالي الشامل", nameEn: "View Financial Report" },
