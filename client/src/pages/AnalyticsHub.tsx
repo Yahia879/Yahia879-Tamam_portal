@@ -51,9 +51,9 @@ export default function AnalyticsHub() {
   const [activeTabId, setActiveTabId] = useState<string>(() => {
     try {
       const searchParams = new URLSearchParams(window.location.search);
-      return searchParams.get("tab") || "kpi";
+      return searchParams.get("tab") || "custom";
     } catch {
-      return "kpi";
+      return "custom";
     }
   });
 
@@ -61,7 +61,7 @@ export default function AnalyticsHub() {
   useEffect(() => {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
-      const tab = searchParams.get("tab") || "kpi";
+      const tab = searchParams.get("tab") || "custom";
       setActiveTabId(tab);
     };
 
