@@ -54,10 +54,10 @@ export default function FormsCustomization() {
     {
       id: "analytics",
       title: "تخصيص اللوحة المخصصة",
-      subtitle: "تحديد العناصر والمؤشرات المعروضة في التاب المخصصة بمركز الإحصائيات",
+      subtitle: "تحديد وترتيب المؤشرات والكروت المعروضة في اللوحة المخصصة بمركز الإحصائيات",
       path: "/forms-customization/analytics",
       icon: LayoutGrid,
-      iconColor: "text-purple-600 bg-purple-50 dark:bg-purple-950/40",
+      iconColor: "text-primary bg-primary/10 dark:bg-primary/20",
       visible: userPermissions.includes("forms_customization.analytics") || userPermissions.includes("forms_customization.evaluation") || userPermissions.includes("forms_customization.services") || userPermissions.includes("forms_customization.registration") || userPermissions.includes("settings_center") || userPermissions.includes("analytics_hub"),
       optionBadge: "الخيار الرابع",
     },
