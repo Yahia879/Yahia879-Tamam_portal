@@ -344,8 +344,8 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 const getMenuItems = (role: string) => getMenuGroups(role).flatMap(g => g.items);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
-const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
+const DEFAULT_WIDTH = 295;
+const MIN_WIDTH = 240;
 const MAX_WIDTH = 480;
 
 export default function DashboardLayout({
@@ -357,7 +357,8 @@ export default function DashboardLayout({
 }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
+    const parsed = saved ? parseInt(saved, 10) : DEFAULT_WIDTH;
+    return parsed < 290 ? DEFAULT_WIDTH : parsed;
   });
   const { loading, user } = useAuth();
 
@@ -654,26 +655,51 @@ function DashboardLayoutContent({
           side="right"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative p-1.5 overflow-hidden">
+          <SidebarHeader className="h-16 justify-center border-b border-sidebar-border relative px-2 py-1.5 overflow-hidden">
+            {/* وضع القائمة الموسعة: الشعار + الاسم + زر طي السايد بار المخصص */}
+            <div className="flex items-center justify-between gap-2 w-full min-w-0 group-data-[collapsible=icon]:hidden">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2.5 min-w-0 flex-1 px-1.5 py-1 rounded-xl hover:bg-sidebar-accent/60 transition-colors"
+                title={orgName}
+              >
+                <img
+                  src={sidebarLogoSrc}
+                  alt="شعار"
+                  className="w-9 h-9 shrink-0 object-contain"
+                />
+                <div className="min-w-0 flex-1 text-right">
+                  <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
+                    {orgName}
+                  </span>
+                  <span className="text-[11px] text-sidebar-foreground/60 truncate block mt-0.5">
+                    {orgNameShort}
+                  </span>
+                </div>
+              </Link>
+
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all shrink-0 cursor-pointer border border-sidebar-border/50 hover:border-sidebar-border"
+                title="طي القائمة الجانبية"
+              >
+                <PanelRightClose className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* وضع القائمة المطوية (Icon Mode): الشعار كزر لتوسيع القائمة الجانبية */}
             <button
               type="button"
               onClick={toggleSidebar}
-              className="flex items-center gap-3 px-2.5 py-1.5 rounded-xl hover:bg-sidebar-accent/80 transition-all duration-300 ease-in-out cursor-pointer select-none group w-full text-right min-w-0"
-              title={isCollapsed ? "انقر لتوسيع القائمة الجانبية" : "انقر لطي القائمة الجانبية"}
+              className="hidden group-data-[collapsible=icon]:flex items-center justify-center w-full h-full p-1 rounded-xl hover:bg-sidebar-accent/80 transition-all cursor-pointer"
+              title="توسيع القائمة الجانبية"
             >
               <img
                 src={sidebarLogoSrc}
                 alt="شعار"
-                className="w-9 h-9 shrink-0 object-contain group-hover:scale-105 transition-transform duration-300 ease-in-out"
+                className="w-8 h-8 object-contain hover:scale-110 transition-transform"
               />
-              <div className="min-w-0 flex-1 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none overflow-hidden whitespace-nowrap">
-                <span className="font-bold text-sm text-sidebar-foreground block leading-tight truncate">
-                  {orgName}
-                </span>
-                <span className="text-xs text-sidebar-foreground/50 truncate block mt-0.5">
-                  {orgNameShort}
-                </span>
-              </div>
             </button>
           </SidebarHeader>
 
