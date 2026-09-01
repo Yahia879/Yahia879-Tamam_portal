@@ -359,7 +359,7 @@ export default function RequestEvaluation() {
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
                             <div className="font-bold text-xs sm:text-sm text-foreground bg-white dark:bg-card p-2.5 rounded-lg border border-border/60">
-                              {field.options?.find((o) => o.value === ans)?.label || String(ans)}
+                              {field.options?.find((o: any) => o.value === ans)?.label || String(ans)}
                             </div>
                           )}
 
@@ -561,7 +561,7 @@ export default function RequestEvaluation() {
                                 <SelectValue placeholder={field.placeholder || "اختر من القائمة..."} />
                               </SelectTrigger>
                               <SelectContent>
-                                {field.options?.map((opt, oIdx) => (
+                                {field.options?.map((opt: any, oIdx: number) => (
                                   <SelectItem key={oIdx} value={opt.value}>
                                     {opt.label}
                                   </SelectItem>
@@ -573,7 +573,7 @@ export default function RequestEvaluation() {
                           {/* 5. اختيار أحادي Radio */}
                           {field.type === "radio" && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                              {field.options?.map((opt, oIdx) => {
+                              {field.options?.map((opt: any, oIdx: number) => {
                                 const selected = value === opt.value;
                                 return (
                                   <button
