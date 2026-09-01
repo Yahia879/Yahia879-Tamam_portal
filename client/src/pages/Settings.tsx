@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Bell,
   SlidersHorizontal,
+  ShieldAlert,
 } from "lucide-react";
 
 interface SettingCard {
@@ -82,6 +83,16 @@ const settingCards: SettingCard[] = [
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
     group: "البيانات",
     permission: "forms_customization",
+  },
+  {
+    icon: ShieldAlert,
+    title: "التصعيد الإداري ومهل SLA",
+    description: "متابعة الطلبات والمستفيدين المتأخرين وضبط مدد المراحل الزمنية",
+    path: "/escalation",
+    color: "text-rose-600",
+    bgColor: "bg-rose-50 dark:bg-rose-950/30",
+    group: "العمليات",
+    permission: "requests.view",
   },
   // مجموعة: المستخدمون
   {
