@@ -277,18 +277,13 @@ export default function CustomAnalyticsDashboard({
       <div className={`rounded-2xl border border-border/80 bg-card ${isMobilePreview ? "p-2.5" : "p-3.5 sm:p-4"} shadow-2xs`}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`${isMobilePreview ? "w-7.5 h-7.5 rounded-lg" : "w-9 h-9 sm:w-10 sm:h-10 rounded-xl"} bg-purple-500/10 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/50`}>
+            <div className={`${isMobilePreview ? "w-7.5 h-7.5 rounded-lg" : "w-9 h-9 sm:w-10 sm:h-10 rounded-xl"} bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20`}>
               <Sparkles className={isMobilePreview ? "w-3.5 h-3.5" : "w-4 h-4 sm:w-5 sm:h-5"} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h2 className={`${isMobilePreview ? "text-xs font-black" : "text-sm sm:text-base font-black"} text-foreground tracking-tight truncate`}>
-                  لوحة الإحصائيات المخصصة
-                </h2>
-                <Badge variant="outline" className={`bg-purple-500/10 text-purple-600 border-purple-200 font-bold ${isMobilePreview ? "text-[9px] px-1 py-0" : "text-[10.5px] h-5"}`}>
-                  {enabledCount} كارد
-                </Badge>
-              </div>
+              <h2 className={`${isMobilePreview ? "text-xs font-black" : "text-sm sm:text-base font-black"} text-foreground tracking-tight truncate`}>
+                لوحة الإحصائيات المخصصة
+              </h2>
               {!isMobilePreview && (
                 <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
                   تعرض هذه اللوحة المؤشرات والكروت التي تم اختيارها وتفعيلها في إعدادات النظام
@@ -313,7 +308,7 @@ export default function CustomAnalyticsDashboard({
               <Link href="/forms-customization/analytics">
                 <Button
                   size="sm"
-                  className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-xs cursor-pointer"
+                  className="h-8 px-3 text-xs font-bold gap-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
                   title="تخصيص الكروت المعروضة في اللوحة"
                 >
                   <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -328,7 +323,7 @@ export default function CustomAnalyticsDashboard({
       {/* في حال عدم تفعيل أي كارد */}
       {enabledCount === 0 ? (
         <div className="p-6 sm:p-10 rounded-2xl border border-border bg-card text-center space-y-3 shadow-2xs">
-          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-purple-500/10 text-purple-600 flex items-center justify-center mx-auto border border-purple-200/50">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto border border-primary/20">
             <SlidersHorizontal className="w-5 h-5 sm:w-7 sm:h-7" />
           </div>
           <h3 className="text-xs sm:text-base font-black text-foreground">لم يتم اختيار أي كروت للوحة المخصصة</h3>
