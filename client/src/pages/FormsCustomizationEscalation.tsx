@@ -66,7 +66,7 @@ export default function FormsCustomizationEscalation() {
   // تحديث الإعدادات على الخادم
   const updateSettingsMutation = trpc.escalation.updateSettings.useMutation({
     onSuccess: (res) => {
-      toast.success(res.message || "تم حفظ مدد التصعيد بنجاح");
+      toast.success(res.message || "تم حفظ مدة التصعيد بنجاح");
       refetch();
     },
     onError: (err) => {
@@ -133,7 +133,7 @@ export default function FormsCustomizationEscalation() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">
-                تحديد المدد الزمنية لمراحل الطلبات ومهلة قبول المستفيدين
+                تحديد مدة مراحل الطلبات ومهلة قبول المستفيدين
               </p>
             </div>
           </div>
@@ -233,9 +233,9 @@ export default function FormsCustomizationEscalation() {
           </Card>
         </div>
 
-        {/* 5. القسم الثاني: مدد مراحل الطلبات العشر */}
+        {/* 5. القسم الثاني: مدة مراحل الطلبات العشر */}
         <div className="space-y-2.5">
-          <h3 className="text-xs font-bold text-muted-foreground px-1">مدد مراحل الطلبات</h3>
+          <h3 className="text-xs font-bold text-muted-foreground px-1">مدة مراحل الطلبات</h3>
 
           <div className="space-y-2">
             {draftStages.map((stg, index) => (
