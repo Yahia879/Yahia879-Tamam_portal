@@ -366,9 +366,9 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
@@ -656,6 +656,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       await db.delete(permissions).where(eq(permissions.id, "analytics_hub.project_reports"));
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "عرض قسم إدارة المستفيدين" }).where(eq(permissions.id, "requesters.view"));
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "اعتماد ورفض المستفيدين" }).where(eq(permissions.id, "requesters.approve"));
+      await db.update(permissions).set({ moduleId: "beneficiary_evaluations", nameAr: "عرض قسم رضا المستفيدين" }).where(eq(permissions.id, "beneficiary_evaluations.view"));
     } catch {}
 
     const customPerms = [
