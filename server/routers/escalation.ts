@@ -451,6 +451,8 @@ export const escalationRouter = router({
       severity: z.enum(["all", "warning", "medium", "critical"]).optional(),
       search: z.string().optional(),
       sortBy: z.enum(["delay_desc", "delay_asc", "created_desc"]).optional(),
+      page: z.number().min(1).default(1).optional(),
+      limit: z.number().min(1).max(100).default(10).optional(),
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -648,7 +650,19 @@ export const escalationRouter = router({
         delayedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
 
-      return delayedList;
+      const total = delayedList.length;
+      const page = input?.page || 1;
+      const limit = input?.limit || 10;
+      const offset = (page - 1) * limit;
+      const paginatedRequests = delayedList.slice(offset, offset + limit);
+
+      return {
+        requests: paginatedRequests,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
     }),
 
   // جلب قائمة المستفيدين المعلقين المتأخرين في القبول
@@ -658,6 +672,8 @@ export const escalationRouter = router({
       requesterType: z.string().optional(),
       search: z.string().optional(),
       sortBy: z.enum(["delay_desc", "delay_asc", "created_desc"]).optional(),
+      page: z.number().min(1).default(1).optional(),
+      limit: z.number().min(1).max(100).default(10).optional(),
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -768,7 +784,19 @@ export const escalationRouter = router({
         delayedBeneficiaries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       }
 
-      return delayedBeneficiaries;
+      const total = delayedBeneficiaries.length;
+      const page = input?.page || 1;
+      const limit = input?.limit || 10;
+      const offset = (page - 1) * limit;
+      const paginatedBeneficiaries = delayedBeneficiaries.slice(offset, offset + limit);
+
+      return {
+        beneficiaries: paginatedBeneficiaries,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
     }),
 
   // إرسال تذكير أو تنبيه تصعيدي للطلب أو المستفيد

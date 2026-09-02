@@ -173,7 +173,17 @@ export default function EscalationPage() {
   const [alertTarget, setAlertTarget] = useState<{ type: "request" | "beneficiary"; id: number; title: string } | null>(null);
   const [alertCustomMessage, setAlertCustomMessage] = useState("");
 
-  // استعلامات البيانات من الخادم (مربوطة بالكامل مع فلاتر الـ Backend)
+  const [requestsPage, setRequestsPage] = useState(1);
+  const [beneficiariesPage, setBeneficiariesPage] = useState(1);
+  const limit = 10;
+
+  // إعادة الصفحة إلى 1 عند تغيير أي فلتر
+  useEffect(() => {
+    setRequestsPage(1);
+    setBeneficiariesPage(1);
+  }, [debouncedSearch, stageFilter, programFilter, severityFilter, requesterTypeFilter, sortBy]);
+
+  // استعلامات البيانات من الخادم (مربوطة بالكامل مع فلاتر الـ Backend و Pagination)
   const { 
     data: stats, 
     isLoading: isLoadingStats, 
@@ -183,7 +193,7 @@ export default function EscalationPage() {
   });
 
   const { 
-    data: delayedRequests = [], 
+    data: requestsResult, 
     isLoading: isLoadingRequests,
     isFetching: isFetchingRequests,
     refetch: refetchRequests 
@@ -193,10 +203,12 @@ export default function EscalationPage() {
     severity: severityFilter !== "all" ? severityFilter : undefined,
     search: debouncedSearch.trim() || undefined,
     sortBy: sortBy,
+    page: requestsPage,
+    limit,
   });
 
   const { 
-    data: delayedBeneficiaries = [], 
+    data: beneficiariesResult, 
     isLoading: isLoadingBeneficiaries,
     isFetching: isFetchingBeneficiaries,
     refetch: refetchBeneficiaries 
@@ -205,7 +217,17 @@ export default function EscalationPage() {
     requesterType: requesterTypeFilter !== "all" ? requesterTypeFilter : undefined,
     search: debouncedSearch.trim() || undefined,
     sortBy: sortBy,
+    page: beneficiariesPage,
+    limit,
   });
+
+  const delayedRequests = requestsResult?.requests || [];
+  const requestsTotal = requestsResult?.total || 0;
+  const requestsTotalPages = requestsResult?.totalPages || 0;
+
+  const delayedBeneficiaries = beneficiariesResult?.beneficiaries || [];
+  const beneficiariesTotal = beneficiariesResult?.total || 0;
+  const beneficiariesTotalPages = beneficiariesResult?.totalPages || 0;
 
   const { 
     data: slaSettingsData, 
@@ -234,6 +256,8 @@ export default function EscalationPage() {
     setSeverityFilter("all");
     setRequesterTypeFilter("all");
     setSortBy("delay_desc");
+    setRequestsPage(1);
+    setBeneficiariesPage(1);
   };
 
   const hasActiveFilters = Boolean(
@@ -244,6 +268,16 @@ export default function EscalationPage() {
     requesterTypeFilter !== "all" ||
     sortBy !== "delay_desc"
   );
+
+  const handleRequestsPageChange = (newPage: number) => {
+    setRequestsPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBeneficiariesPageChange = (newPage: number) => {
+    setBeneficiariesPage(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // الاعتماد مباشرة على البيانات المفلترة والمرتبة من الـ Backend
   const sortedRequests = delayedRequests;
@@ -555,7 +589,7 @@ export default function EscalationPage() {
                   <span className="text-xs text-muted-foreground">
                     نتائج البحث والفلترة من الخادم:{" "}
                     <strong className="text-foreground font-mono tabular-nums">
-                      {activeTab === "delayed-requests" ? delayedRequests.length : delayedBeneficiaries.length}
+                      {activeTab === "delayed-requests" ? requestsTotal : beneficiariesTotal}
                     </strong>{" "}
                     عنصر متطابق
                   </span>
@@ -712,6 +746,64 @@ export default function EscalationPage() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Footer with Pagination (مطابق لصفحة الطلبات /requests) */}
+                  <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-3">
+                    <div className="text-xs text-muted-foreground text-center font-mono tabular-nums">
+                      يعرض {(requestsPage - 1) * limit + 1} - {Math.min(requestsPage * limit, requestsTotal)} من أصل {requestsTotal} طلب متأخر
+                    </div>
+
+                    {requestsTotalPages > 1 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleRequestsPageChange(requestsPage - 1)}
+                          disabled={requestsPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4 rotate-180" />
+                        </Button>
+
+                        {Array.from({ length: requestsTotalPages }, (_, i) => i + 1).map((p) => {
+                          if (
+                            requestsTotalPages <= 5 ||
+                            p === 1 ||
+                            p === requestsTotalPages ||
+                            (p >= requestsPage - 1 && p <= requestsPage + 1)
+                          ) {
+                            return (
+                              <Button
+                                key={p}
+                                variant={requestsPage === p ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 font-mono tabular-nums ${requestsPage === p ? 'gradient-primary text-white border-0' : ''}`}
+                                onClick={() => handleRequestsPageChange(p)}
+                              >
+                                {p}
+                              </Button>
+                            );
+                          } else if (
+                            (p === requestsPage - 2 && requestsPage > 3) ||
+                            (p === requestsPage + 2 && requestsPage < requestsTotalPages - 2)
+                          ) {
+                            return <span key={p} className="px-0.5 text-muted-foreground font-mono">...</span>;
+                          }
+                          return null;
+                        })}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleRequestsPageChange(requestsPage + 1)}
+                          disabled={requestsPage === requestsTotalPages}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -880,6 +972,64 @@ export default function EscalationPage() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Footer with Pagination (مطابق لصفحة الطلبات /requests) */}
+                  <div className="px-4 py-4 bg-muted/20 border-t flex flex-col items-center justify-center gap-3">
+                    <div className="text-xs text-muted-foreground text-center font-mono tabular-nums">
+                      يعرض {(beneficiariesPage - 1) * limit + 1} - {Math.min(beneficiariesPage * limit, beneficiariesTotal)} من أصل {beneficiariesTotal} مستفيد متأخر
+                    </div>
+
+                    {beneficiariesTotalPages > 1 && (
+                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleBeneficiariesPageChange(beneficiariesPage - 1)}
+                          disabled={beneficiariesPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4 rotate-180" />
+                        </Button>
+
+                        {Array.from({ length: beneficiariesTotalPages }, (_, i) => i + 1).map((p) => {
+                          if (
+                            beneficiariesTotalPages <= 5 ||
+                            p === 1 ||
+                            p === beneficiariesTotalPages ||
+                            (p >= beneficiariesPage - 1 && p <= beneficiariesPage + 1)
+                          ) {
+                            return (
+                              <Button
+                                key={p}
+                                variant={beneficiariesPage === p ? "default" : "outline"}
+                                size="sm"
+                                className={`h-8 min-w-[32px] px-2 text-[11px] shrink-0 font-mono tabular-nums ${beneficiariesPage === p ? 'gradient-primary text-white border-0' : ''}`}
+                                onClick={() => handleBeneficiariesPageChange(p)}
+                              >
+                                {p}
+                              </Button>
+                            );
+                          } else if (
+                            (p === beneficiariesPage - 2 && beneficiariesPage > 3) ||
+                            (p === beneficiariesPage + 2 && beneficiariesPage < beneficiariesTotalPages - 2)
+                          ) {
+                            return <span key={p} className="px-0.5 text-muted-foreground font-mono">...</span>;
+                          }
+                          return null;
+                        })}
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleBeneficiariesPageChange(beneficiariesPage + 1)}
+                          disabled={beneficiariesPage === beneficiariesTotalPages}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
