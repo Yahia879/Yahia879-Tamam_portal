@@ -750,7 +750,7 @@ function DashboardLayoutContent({
                               <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-sidebar animate-pulse" />
                             ) : null}
                           </div>
-                          <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
+                          <span className={`transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 overflow-hidden whitespace-nowrap pb-1 pt-0.5 leading-normal ${isActive ? "text-white font-bold" : "text-sidebar-foreground"}`}>
                             {item.label}
                           </span>
                         </SidebarMenuButton>
