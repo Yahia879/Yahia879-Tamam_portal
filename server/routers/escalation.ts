@@ -372,9 +372,11 @@ export const escalationRouter = router({
       const allowedDays = slaMap.get(stageKey) ?? slaMap.get(req.currentStage) ?? 5;
       if (allowedDays <= 0) continue;
 
-      const stageEntryDate = latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
-                             latestTransitionByReqStage.get(`${req.id}_${stageKey}`) ||
-                             new Date(req.updatedAt || req.createdAt);
+      const stageEntryDate = req.currentStage === "submitted"
+        ? new Date(req.submittedAt || req.createdAt)
+        : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
+           latestTransitionByReqStage.get(`${req.id}_${stageKey}`) ||
+           new Date(req.updatedAt || req.createdAt));
 
       const diffMs = now.getTime() - stageEntryDate.getTime();
       const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
@@ -533,9 +535,11 @@ export const escalationRouter = router({
         const allowedDays = slaMap.get(normalizedStage) ?? slaMap.get(req.currentStage) ?? 5;
         if (allowedDays <= 0) continue;
 
-        const stageEntryDate = latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
-                               latestTransitionByReqStage.get(`${req.id}_${normalizedStage}`) ||
-                               new Date(req.updatedAt || req.createdAt);
+        const stageEntryDate = req.currentStage === "submitted"
+          ? new Date(req.submittedAt || req.createdAt)
+          : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
+             latestTransitionByReqStage.get(`${req.id}_${normalizedStage}`) ||
+             new Date(req.updatedAt || req.createdAt));
 
         const diffMs = now.getTime() - stageEntryDate.getTime();
         const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
