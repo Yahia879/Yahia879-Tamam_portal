@@ -287,7 +287,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("staff_users.view") || has("staff_roles.view") || has("staff_custom_roles.view")) {
     userManagementItems.push({ icon: Users, label: "إدارة المستخدمين", path: "/staff" });
   }
-  if (has("service_requester_accounts")) {
+  if (has("service_requester_accounts") || has("requesters") || has("requesters.view") || has("requesters.approve")) {
     userManagementItems.push({ icon: CheckSquare, label: "إدارة المستفيدين", path: "/requester-approvals" });
   }
   if (userManagementItems.length > 0) {

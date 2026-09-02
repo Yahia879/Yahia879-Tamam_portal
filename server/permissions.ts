@@ -636,10 +636,26 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: escalation");
     }
 
-    // تنظيف الصلاحيات الملغاة
+    // Ensure 'requesters' module exists in the modules table
+    const [existingRequestersModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "requesters")).limit(1);
+    if (!existingRequestersModule) {
+      await db.insert(modules).values({
+        id: "requesters",
+        nameAr: "إدارة المستفيدين",
+        nameEn: "Beneficiary Management",
+        icon: "Users",
+        displayOrder: 14,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: requesters");
+    }
+
+    // تنظيف الصلاحيات الملغاة وتحديث وحدات الصلاحيات
     try {
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
       await db.delete(permissions).where(eq(permissions.id, "analytics_hub.project_reports"));
+      await db.update(permissions).set({ moduleId: "requesters", nameAr: "عرض قسم إدارة المستفيدين" }).where(eq(permissions.id, "requesters.view"));
+      await db.update(permissions).set({ moduleId: "requesters", nameAr: "اعتماد ورفض المستفيدين" }).where(eq(permissions.id, "requesters.approve"));
     } catch {}
 
     const customPerms = [
@@ -662,8 +678,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "appointments.view_all", moduleId: "settings", action: "view_all", nameAr: "عرض كافة المواعيد والزيارات للمنشأة", nameEn: "View All Appointments" },
       { id: "appointments.view_own", moduleId: "settings", action: "view_own", nameAr: "عرض زياراتي الميدانية الخاصة بي فقط", nameEn: "View Own Appointments" },
       { id: "projects.view_details", moduleId: "projects", action: "view_details", nameAr: "عرض تفاصيل المشروع وادارته", nameEn: "View Project Details" },
-      { id: "requesters.view", moduleId: "users", action: "view", nameAr: "عرض بيانات طالبي الخدمة", nameEn: "View Requesters" },
-      { id: "requesters.approve", moduleId: "users", action: "approve", nameAr: "الاعتمادات (رفض أو اعتماد الحساب)", nameEn: "Approve Requesters" },
+      { id: "requesters.view", moduleId: "requesters", action: "view", nameAr: "عرض قسم إدارة المستفيدين", nameEn: "View Requesters" },
+      { id: "requesters.approve", moduleId: "requesters", action: "approve", nameAr: "اعتماد ورفض المستفيدين", nameEn: "Approve Requesters" },
       { id: "suppliers.view_details", moduleId: "suppliers", action: "view_details", nameAr: "عرض تفاصيل المورد", nameEn: "View Supplier Details" },
       { id: "suppliers.add", moduleId: "suppliers", action: "add", nameAr: "إضافة مورد", nameEn: "Add Supplier" },
       { id: "quotations.add", moduleId: "quotations", action: "add", nameAr: "إضافة عرض سعر", nameEn: "Add Quotation" },
@@ -1041,11 +1057,18 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("reports");
   }
-  if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
+  if (revokedPermissions.has("requesters.view") || revokedPermissions.has("requesters")) {
+    allPermissions.delete("requesters");
+    allPermissions.delete("requesters.view");
+    allPermissions.delete("requesters.approve");
+    allPermissions.delete("service_requester_accounts");
+  } else if (allPermissions.has("requesters.view") || allPermissions.has("requesters.approve")) {
     allPermissions.add("requesters");
+    allPermissions.add("requesters.view");
     allPermissions.add("service_requester_accounts");
   } else {
     allPermissions.delete("requesters");
+    allPermissions.delete("requesters.view");
     allPermissions.delete("service_requester_accounts");
   }
 

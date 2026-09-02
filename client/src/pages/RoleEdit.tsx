@@ -225,7 +225,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       delete: "حذف بنود"
     },
     requesters: {
-      view: "عرض بيانات طالبي الخدمة",
+      view: "عرض قسم إدارة المستفيدين",
       approve: "الاعتمادات (رفض أو اعتماد الحساب)",
       edit: "تعديل بيانات الحساب",
       delete: "حذف الحساب",

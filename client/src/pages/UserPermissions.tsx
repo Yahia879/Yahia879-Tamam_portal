@@ -631,7 +631,7 @@ export default function UserPermissions() {
         financials: "مالية المشاريع"
       },
       requesters: {
-        view: "عرض بيانات طالبي الخدمة",
+        view: "عرض قسم إدارة المستفيدين",
         approve: "الاعتمادات (رفض أو اعتماد الحساب)"
       },
       suppliers: {
