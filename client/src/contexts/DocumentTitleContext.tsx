@@ -172,7 +172,7 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/forms-customization\/registration\/[^/]+\/?$/, title: "تخصيص نموذج التسجيل" },
   { pattern: /^\/forms-customization\/analytics\/?$/, title: "تخصيص لوحة الإحصائيات" },
   { pattern: /^\/forms-customization\/option-2\/?$/, title: "الخيار الثاني (تخصيص النماذج)" },
-  { pattern: /^\/forms-customization\/escalation\/?$/, title: "تخصيص مدة التصعيد ومُهل الـ SLA" },
+  { pattern: /^\/forms-customization\/escalation\/?$/, title: "تخصيص مدة التصعيد" },
   { pattern: /^\/partners\/?$/, title: "الشركاء" },
 ];
 
