@@ -41,7 +41,6 @@ import {
   Users,
   Building2,
   User,
-  RefreshCw,
   ExternalLink,
   Bell,
   SlidersHorizontal,
@@ -167,15 +166,6 @@ export default function EscalationPage() {
     },
   });
 
-  // إعادة تحميل البيانات
-  const handleRefreshAll = () => {
-    refetchStats();
-    refetchRequests();
-    refetchBeneficiaries();
-    refetchSettings();
-    toast.info("تم تحديث بيانات التصعيد الإداري");
-  };
-
   // مسح الفلاتر
   const handleResetFilters = () => {
     setSearch("");
@@ -241,17 +231,7 @@ export default function EscalationPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 self-start sm:self-center flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshAll}
-              className="h-10 px-3.5 gap-2 shadow-2xs font-medium"
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoadingRequests || isLoadingBeneficiaries ? "animate-spin" : ""}`} />
-              <span>تحديث</span>
-            </Button>
-
+          <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
             <Link href="/forms-customization/escalation">
               <Button
                 className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
