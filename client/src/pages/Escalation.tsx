@@ -280,45 +280,41 @@ export default function EscalationPage() {
           </div>
         </div>
 
-        {/* Stats Row - كروت إحصائيات تفاعلية تبدأ بالطلبات المتأخرة أولاً على اليمين */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4" dir="rtl">
+        {/* Stats Row - 3 كروت إحصائية رئيسية مطابقة للمطلوب */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4" dir="rtl">
           {[
             {
               id: "requests",
               label: "الطلبات المتأخرة",
+              hint: "طلبات تجاوزت مهلة المرحلة",
               value: stats?.totalDelayedRequests || 0,
               icon: <Clock className="w-5 h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
+              borderHover: "hover:border-amber-300 dark:hover:border-amber-800",
               onClick: () => {
                 setActiveTab("delayed-requests");
               },
             },
             {
               id: "beneficiaries",
-              label: "مستفيدون معلقون",
+              label: "المستفيدون المتأخرون بالاعتماد",
+              hint: "بانتظار قبول طلب التسجيل",
               value: stats?.totalDelayedBeneficiaries || 0,
               icon: <Users className="w-5 h-5" />,
               iconBg: "bg-teal-100 dark:bg-teal-950/40 text-teal-600",
+              borderHover: "hover:border-teal-300 dark:hover:border-teal-800",
               onClick: () => {
                 setActiveTab("delayed-beneficiaries");
               },
             },
             {
-              id: "critical",
-              label: "تأخير حرج (> 7 أيام)",
-              value: stats?.criticalEscalations || 0,
-              icon: <Flame className="w-5 h-5" />,
-              iconBg: "bg-rose-100 dark:bg-rose-950/40 text-rose-600",
-              onClick: () => {
-                setSeverityFilter("critical");
-              },
-            },
-            {
               id: "all",
-              label: "إجمالي المتأخرات",
+              label: "إجمالي التأخير",
+              hint: "مجموع الطلبات والمستفيدين",
               value: stats?.totalDelayedItems || 0,
               icon: <FileText className="w-5 h-5" />,
               iconBg: "bg-primary/10 text-primary",
+              borderHover: "hover:border-primary/40",
               onClick: () => {
                 setActiveTab("delayed-requests");
                 setSeverityFilter("all");
@@ -326,21 +322,22 @@ export default function EscalationPage() {
             },
           ].map((stat) => (
             <Card 
-              key={stat.label} 
+              key={stat.id} 
               onClick={stat.onClick}
-              className="border-0 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right"
+              className={`border border-border/60 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right ${stat.borderHover}`}
               dir="rtl"
             >
               <CardContent className="p-4 md:p-5">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
-                    {stat.icon}
-                  </div>
+                <div className="flex items-center justify-between">
                   <div className="min-w-0 text-right">
-                    <p className="text-xs text-muted-foreground truncate font-medium">{stat.label}</p>
-                    <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5 font-mono tabular-nums">
-                      {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
+                    <p className="text-xs md:text-sm text-muted-foreground font-semibold truncate">{stat.label}</p>
+                    <p className="text-2xl md:text-3xl font-extrabold text-foreground truncate mt-1 font-mono tabular-nums">
+                      {isLoadingStats ? <Loader2 className="w-5 h-5 animate-spin inline-block text-muted-foreground" /> : stat.value}
                     </p>
+                    <p className="text-2xs text-muted-foreground mt-1 truncate">{stat.hint}</p>
+                  </div>
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                    {stat.icon}
                   </div>
                 </div>
               </CardContent>
