@@ -549,6 +549,13 @@ export const escalationRouter = router({
         if (diffMs > allowedMs) {
           const delayMs = diffMs - allowedMs;
           const delayDays = Math.max(1, Math.ceil(delayMs / (1000 * 60 * 60 * 24)));
+          const totalDelayHours = Math.floor(delayMs / (1000 * 60 * 60));
+          const delayDaysOnly = Math.floor(totalDelayHours / 24);
+          const delayHoursOnly = totalDelayHours % 24;
+
+          const totalElapsedHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const elapsedDaysOnly = Math.floor(totalElapsedHours / 24);
+          const elapsedHoursOnly = totalElapsedHours % 24;
           const elapsedDays = Math.max(allowedDays + 1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
           const severity = getSeverityLevel(delayDays);
 
@@ -633,7 +640,13 @@ export const escalationRouter = router({
             stageEntryDate,
             allowedDays,
             elapsedDays,
+            elapsedDaysOnly,
+            elapsedHoursOnly,
+            totalElapsedHours,
             delayDays,
+            delayDaysOnly,
+            delayHoursOnly,
+            totalDelayHours,
             severity,
             createdAt: req.createdAt,
           });
@@ -746,6 +759,10 @@ export const escalationRouter = router({
             }
           }
 
+          const totalDelayHours = Math.floor(delayMs / (1000 * 60 * 60));
+          const delayDaysOnly = Math.floor(totalDelayHours / 24);
+          const delayHoursOnly = totalDelayHours % 24;
+
           const totalElapsedHours = Math.floor(diffMs / (1000 * 60 * 60));
           const elapsedDaysOnly = Math.floor(totalElapsedHours / 24);
           const elapsedHoursOnly = totalElapsedHours % 24;
@@ -767,6 +784,9 @@ export const escalationRouter = router({
             elapsedHoursOnly,
             totalElapsedHours,
             delayDays,
+            delayDaysOnly,
+            delayHoursOnly,
+            totalDelayHours,
             severity,
             adminNotes: u.adminNotes,
             notesRequiredType: u.notesRequiredType,

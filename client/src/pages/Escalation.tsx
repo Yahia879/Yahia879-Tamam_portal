@@ -62,6 +62,7 @@ import {
   Phone,
   Mail,
   Calendar,
+  CreditCard,
 } from "lucide-react";
 import { STAGE_LABELS, PROGRAM_LABELS } from "@shared/constants";
 
@@ -141,6 +142,24 @@ function formatElapsedDetailed(dateInput: string | Date | null | undefined) {
   }
 
   return { text, days, hours, totalHours };
+}
+
+function formatDelayText(delayDaysOnly?: number, delayHoursOnly?: number, delayDays?: number) {
+  const days = delayDaysOnly ?? 0;
+  const hours = delayHoursOnly ?? 0;
+  if (days > 0 && hours > 0) {
+    return `${days} يوم و ${hours} س`;
+  }
+  if (days > 0) {
+    return `${days} يوم`;
+  }
+  if (hours > 0) {
+    return `${hours} ساعة`;
+  }
+  if (delayDays && delayDays > 0) {
+    return `${delayDays} يوم`;
+  }
+  return `ساعة واحدة`;
 }
 
 export default function EscalationPage() {
@@ -688,9 +707,9 @@ export default function EscalationPage() {
                               </div>
                             </div>
                             <div className="md:hidden shrink-0 text-left">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${severity.bg} ${severity.color}`}>
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                                 {severity.icon}
-                                <span>متأخر <strong className="font-mono tabular-nums">{req.delayDays}</strong> يوم</span>
+                                <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
                               </span>
                             </div>
                           </div>
@@ -717,9 +736,9 @@ export default function EscalationPage() {
 
                           {/* Delay Status Badge (Desktop) */}
                           <div className="hidden md:block shrink-0 text-right">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                               {severity.icon}
-                              <span>متأخر <strong className="font-mono tabular-nums">{req.delayDays}</strong> {req.delayDays === 1 ? "يوماً" : "أيام"}</span>
+                              <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
                             </span>
                           </div>
 
@@ -739,8 +758,8 @@ export default function EscalationPage() {
                               <span>المسؤول: {req.responsibleText}</span>
                             </div>
                             <div className="flex items-center justify-between text-muted-foreground">
-                              <span>المنقضي في المرحلة: <strong className="text-rose-600 font-mono tabular-nums">{req.elapsedDays}</strong> يوم</span>
-                              <span>المسموح: <strong className="font-mono tabular-nums text-foreground">{req.allowedDays}</strong> يوم</span>
+                              <span>المنقضي في المرحلة: <strong className="text-rose-600 font-mono tabular-nums font-bold">{req.elapsedDaysOnly ? `${req.elapsedDaysOnly} يوم و ${req.elapsedHoursOnly || 0} س` : `${req.elapsedDays} يوم`}</strong></span>
+                              <span>المسموح: <strong className="font-mono tabular-nums font-bold text-foreground">{req.allowedDays}</strong> يوم</span>
                             </div>
                           </div>
                         </div>
@@ -859,9 +878,17 @@ export default function EscalationPage() {
                           </div>
 
                           {/* Beneficiary Name */}
-                          <div className="min-w-0 text-right">
-                            <p className="font-bold text-foreground text-sm truncate">{ben.name}</p>
-                            <p className="text-xs text-muted-foreground truncate">{ben.email || "بدون بريد"}</p>
+                          <div className="flex items-start justify-between md:block gap-3 min-w-0">
+                            <div className="min-w-0 text-right">
+                              <p className="font-bold text-foreground text-sm truncate">{ben.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{ben.email || "بدون بريد"}</p>
+                            </div>
+                            <div className="md:hidden shrink-0 text-left">
+                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
+                                {severity.icon}
+                                <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
+                              </span>
+                            </div>
                           </div>
 
                           {/* Role & City */}
@@ -872,51 +899,62 @@ export default function EscalationPage() {
                             <p className="text-xs text-muted-foreground mt-1 truncate">{ben.city || "—"}</p>
                           </div>
 
-                          {/* Contacts */}
-                          <div className="hidden md:block min-w-0 text-xs text-right">
-                            <p className="font-mono text-foreground tabular-nums" dir="ltr">{ben.phone || "—"}</p>
-                            <p className="font-mono text-muted-foreground mt-0.5 tabular-nums">{ben.nationalId || "—"}</p>
+                          {/* Contacts: الهوية والجوال بارزة بوضوح وبأرقام واضحة */}
+                          <div className="hidden md:flex flex-col gap-1.5 min-w-0 text-xs text-right">
+                            {/* رقم الجوال */}
+                            <div className="flex items-center gap-1.5" title="رقم الجوال">
+                              <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                              <span className="font-mono font-bold text-foreground text-xs md:text-sm tabular-nums tracking-wide" dir="ltr">
+                                {ben.phone || "—"}
+                              </span>
+                            </div>
+                            {/* رقم الهوية الوطنية */}
+                            <div className="flex items-center gap-1.5" title="رقم الهوية الوطنية">
+                              <CreditCard className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="font-mono font-bold text-foreground text-xs tabular-nums bg-muted/80 dark:bg-muted/50 px-2 py-0.5 rounded-md border border-border/80 tracking-wider shadow-2xs" dir="ltr">
+                                {ben.nationalId || "—"}
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Registration Date & Elapsed */}
+                          {/* Registration Date & Elapsed: أرقام واضحة وبارزة */}
                           {(() => {
                             const { date, time } = formatRegisteredDateTime(ben.createdAt);
                             const { days, hours } = formatElapsedDetailed(ben.createdAt);
 
                             return (
-                              <div className="hidden md:flex flex-col gap-1 min-w-0 text-xs text-right">
-                                {/* الوقت المنقضي بالأيام والساعات مع أرقام إنجليزية */}
+                              <div className="hidden md:flex flex-col gap-1.5 min-w-0 text-xs text-right">
+                                {/* الوقت المنقضي بالأيام والساعات مع أرقام إنجليزية بارزة */}
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-muted-foreground text-2xs font-medium">المنقضي:</span>
-                                  <span className="inline-flex items-center gap-1 font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200/80 dark:border-rose-800/60 shadow-2xs">
-                                    <Clock className="w-3 h-3 text-rose-600 dark:text-rose-400 shrink-0" />
-                                    <span className="font-mono tabular-nums text-xs">
+                                  <span className="text-muted-foreground text-2xs font-semibold">المنقضي:</span>
+                                  <span className="inline-flex items-center gap-1 font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 rounded-md border border-rose-300/80 dark:border-rose-800/80 shadow-2xs">
+                                    <Clock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                                    <span className="font-mono tabular-nums font-extrabold text-xs md:text-sm">
                                       {days > 0 ? (
                                         <>
-                                          <span>{days}</span> يوم {hours > 0 && <>و <span>{hours}</span> س</>}
+                                          <span className="text-sm">{days}</span> يوم {hours > 0 && <>و <span className="text-sm">{hours}</span> س</>}
                                         </>
                                       ) : (
                                         <>
-                                          <span>{hours}</span> ساعة
+                                          <span className="text-sm">{hours}</span> ساعة
                                         </>
                                       )}
                                     </span>
                                   </span>
                                 </div>
 
-                                {/* تاريخ ووقت التسجيل بالإنجليزية */}
-                                <div className="flex items-center gap-1.5 text-2xs text-muted-foreground mt-0.5" title="تاريخ ووقت التسجيل">
-                                  <Calendar className="w-3 h-3 text-muted-foreground/70 shrink-0" />
-                                  <span className="font-mono tabular-nums font-medium" dir="ltr">{date}</span>
-                                  <span className="text-muted-foreground/40">•</span>
-                                  <span className="font-mono tabular-nums" dir="ltr">{time}</span>
+                                {/* تاريخ ووقت التسجيل بالإنجليزية بأرقام بارزة */}
+                                <div className="flex items-center gap-1.5 text-xs text-foreground font-medium" title="تاريخ ووقت التسجيل">
+                                  <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                  <span className="font-mono tabular-nums font-bold text-foreground" dir="ltr">{date}</span>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span className="font-mono tabular-nums font-bold text-muted-foreground" dir="ltr">{time}</span>
                                 </div>
 
                                 {/* المهلة المحددة */}
-                                <div className="text-3xs text-muted-foreground/80 flex items-center gap-1">
-                                  <span>المهلة المحددة:</span>
-                                  <span className="font-mono tabular-nums font-bold text-foreground">{ben.allowedDays}</span>
-                                  <span>{ben.allowedDays === 1 ? "يوم" : "أيام"}</span>
+                                <div className="text-2xs text-muted-foreground flex items-center gap-1">
+                                  <span>المهلة:</span>
+                                  <span className="font-mono tabular-nums font-bold text-foreground bg-muted/70 px-1.5 py-0.5 rounded border border-border/70">{ben.allowedDays} {ben.allowedDays === 1 ? "يوم" : "أيام"}</span>
                                 </div>
                               </div>
                             );
@@ -924,9 +962,9 @@ export default function EscalationPage() {
 
                           {/* Delay Status Badge */}
                           <div className="hidden md:block shrink-0 text-right">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                               {severity.icon}
-                              <span>متأخر <strong className="font-mono tabular-nums">{ben.delayDays}</strong> {ben.delayDays === 1 ? "يوماً" : "أيام"}</span>
+                              <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
                             </span>
                           </div>
 
@@ -948,23 +986,29 @@ export default function EscalationPage() {
                               <div className="md:hidden flex flex-col gap-2 pt-2.5 border-t border-border/50 text-xs text-right">
                                 <div className="flex items-center justify-between">
                                   <span className="text-muted-foreground">الصفة: <strong className="text-foreground">{REQUESTER_TYPE_LABELS[ben.requesterType || ""] || "طالب خدمة"}</strong></span>
-                                  <span className="font-mono text-muted-foreground tabular-nums" dir="ltr">{ben.phone}</span>
+                                  <span className="font-mono font-bold text-foreground tabular-nums text-xs" dir="ltr">{ben.phone}</span>
                                 </div>
-                                <div className="flex items-center justify-between bg-muted/40 p-2 rounded-lg border border-border/60">
+                                {ben.nationalId && (
+                                  <div className="flex items-center justify-between text-2xs">
+                                    <span className="text-muted-foreground">الهوية الوطنية:</span>
+                                    <span className="font-mono font-bold text-foreground tabular-nums bg-muted/80 px-2 py-0.5 rounded border border-border/70" dir="ltr">{ben.nationalId}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-between bg-muted/40 p-2.5 rounded-lg border border-border/60">
                                   <div className="flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                    <span className="text-muted-foreground">المنقضي:</span>
-                                    <strong className="text-rose-600 dark:text-rose-400 font-mono tabular-nums">
+                                    <span className="text-muted-foreground font-medium">المنقضي:</span>
+                                    <strong className="text-rose-600 dark:text-rose-400 font-mono font-extrabold text-xs tabular-nums">
                                       {days > 0 ? `${days} يوم و ${hours} ساعة` : `${hours} ساعة`}
                                     </strong>
                                   </div>
                                   <div className="text-muted-foreground text-2xs">
-                                    <span>المهلة: <strong className="font-mono tabular-nums text-foreground">{ben.allowedDays}</strong> يوم</span>
+                                    <span>المهلة: <strong className="font-mono tabular-nums font-bold text-foreground">{ben.allowedDays}</strong> يوم</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center justify-between text-2xs text-muted-foreground">
                                   <span>تاريخ التسجيل:</span>
-                                  <span className="font-mono tabular-nums" dir="ltr">{date} - {time}</span>
+                                  <span className="font-mono tabular-nums font-bold text-foreground" dir="ltr">{date} - {time}</span>
                                 </div>
                               </div>
                             );
