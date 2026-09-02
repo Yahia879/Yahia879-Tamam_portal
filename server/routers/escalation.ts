@@ -8,8 +8,11 @@ import {
   mosques, 
   users, 
   notifications,
+  programs,
+  projects,
+  projectMosques,
 } from "../../drizzle/schema";
-import { eq, desc, asc, and, inArray, isNull } from "drizzle-orm";
+import { eq, desc, asc, and, inArray, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification } from "./notifications";
 
@@ -462,52 +465,33 @@ export const escalationRouter = router({
         }
       }
 
-      // جلب الطلبات النشطة
-      const allRequests = await db.select().from(mosqueRequests);
-
-      // جلب معرفات المساجد والمستخدمين
-      const mosqueIds = Array.from(new Set(allRequests.map(r => r.mosqueId).filter((id): id is number => typeof id === "number")));
-      const userIds = Array.from(new Set(allRequests.map(r => r.userId).filter((id): id is number => typeof id === "number")));
-      const assignedUserIds = Array.from(new Set(allRequests.map(r => r.assignedTo).filter((id): id is number => typeof id === "number")));
-
-      // جلب المساجد
-      const mosquesMap = new Map<number, { id: number; name: string; city: string; district: string }>();
-      if (mosqueIds.length > 0) {
-        const mList = await db.select({
-          id: mosques.id,
-          name: mosques.name,
-          city: mosques.city,
-          district: mosques.district,
-        }).from(mosques).where(inArray(mosques.id, mosqueIds));
-        for (const m of mList) {
-          mosquesMap.set(m.id, {
-            id: m.id,
-            name: m.name,
-            city: m.city || "",
-            district: m.district || "",
-          });
-        }
-      }
-
-      // جلب المستخدمين (طالبي الخدمة والموظفين)
-      const allUserIdsToFetch = Array.from(new Set([...userIds, ...assignedUserIds]));
-      const usersMap = new Map<number, { id: number; name: string; phone: string; email: string }>();
-      if (allUserIdsToFetch.length > 0) {
-        const uList = await db.select({
-          id: users.id,
-          name: users.name,
-          phone: users.phone,
-          email: users.email,
-        }).from(users).where(inArray(users.id, allUserIdsToFetch));
-        for (const u of uList) {
-          usersMap.set(u.id, {
-            id: u.id,
-            name: u.name,
-            phone: u.phone || "",
-            email: u.email || "",
-          });
-        }
-      }
+      // جلب الطلبات مع الربط الكامل بالمسجد ومقدم الطلب والبرنامج والمشروع المسند
+      const allRows = await db.select({
+        request: mosqueRequests,
+        mosqueName: mosques.name,
+        mosqueCity: mosques.city,
+        mosqueDistrict: mosques.district,
+        requesterName: users.name,
+        requesterPhone: users.phone,
+        requesterEmail: users.email,
+        programName: programs.name,
+        projectId: projects.id,
+        projectNumber: projects.projectNumber,
+        projectName: projects.name,
+        isMultiMosque: projects.isMultiMosque,
+        multiMosqueNames: sql<string | null>`(
+          SELECT GROUP_CONCAT(m.name SEPARATOR '، ') 
+          FROM project_mosques pm 
+          JOIN mosques m ON pm.mosqueId = m.id 
+          WHERE pm.projectId = projects.id
+        )`,
+        assigneeName: sql<string | null>`(SELECT name FROM users WHERE users.id = mosque_requests.assignedTo)`,
+        assigneeEmail: sql<string | null>`(SELECT email FROM users WHERE users.id = mosque_requests.assignedTo)`,
+      }).from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
+        .leftJoin(projects, eq(mosqueRequests.id, projects.requestId));
 
       // جلب سجل التحولات لتحديد تاريخ دخول المرحلة
       const transitions = await db.select({
@@ -528,7 +512,8 @@ export const escalationRouter = router({
 
       const delayedList = [];
 
-      for (const req of allRequests) {
+      for (const row of allRows) {
+        const req = row.request;
         if (
           req.status === "completed" || 
           req.status === "rejected" || 
@@ -552,9 +537,25 @@ export const escalationRouter = router({
           const delayDays = elapsedDays - allowedDays;
           const severity = getSeverityLevel(delayDays);
 
-          const mosqueInfo = req.mosqueId ? mosquesMap.get(req.mosqueId) : null;
-          const requesterInfo = req.userId ? usersMap.get(req.userId) : null;
-          const assigneeInfo = req.assignedTo ? usersMap.get(req.assignedTo) : null;
+          let parsedProgramData: any = null;
+          if (req.programData) {
+            try {
+              parsedProgramData = typeof req.programData === 'string' ? JSON.parse(req.programData) : req.programData;
+            } catch (e) {}
+          }
+
+          const isMultiMosque = Boolean(row.isMultiMosque || parsedProgramData?.isMultiMosque);
+          let effectiveMosqueName = row.multiMosqueNames || row.mosqueName || "";
+          let effectiveMosqueCity = row.mosqueCity || "";
+          let effectiveMosqueDistrict = row.mosqueDistrict || "";
+
+          if (!effectiveMosqueName && parsedProgramData) {
+            if (parsedProgramData.customMosqueName) {
+              effectiveMosqueName = parsedProgramData.customMosqueName;
+              effectiveMosqueCity = parsedProgramData.customMosqueCity || "";
+              effectiveMosqueDistrict = parsedProgramData.customMosqueDistrict || "";
+            }
+          }
 
           // فلاتر البحث
           if (input?.stageCode && input.stageCode !== "all") {
@@ -573,11 +574,12 @@ export const escalationRouter = router({
           if (input?.search && input.search.trim()) {
             const term = input.search.toLowerCase().trim();
             const matchNumber = req.requestNumber?.toLowerCase().includes(term);
-            const matchMosque = mosqueInfo?.name?.toLowerCase().includes(term);
-            const matchUser = requesterInfo?.name?.toLowerCase().includes(term);
-            const matchPhone = requesterInfo?.phone?.toLowerCase().includes(term);
+            const matchMosque = effectiveMosqueName.toLowerCase().includes(term);
+            const matchProject = row.projectName?.toLowerCase().includes(term);
+            const matchUser = row.requesterName?.toLowerCase().includes(term);
+            const matchPhone = row.requesterPhone?.toLowerCase().includes(term);
             const matchDescriptive = req.descriptiveName?.toLowerCase().includes(term);
-            if (!matchNumber && !matchMosque && !matchUser && !matchPhone && !matchDescriptive) {
+            if (!matchNumber && !matchMosque && !matchProject && !matchUser && !matchPhone && !matchDescriptive) {
               continue;
             }
           }
@@ -590,20 +592,26 @@ export const escalationRouter = router({
             status: req.status,
             priority: req.priority || "medium",
             programType: req.programType,
+            programName: row.programName || req.programType,
             descriptiveName: req.descriptiveName,
+            projectId: row.projectId,
+            projectName: row.projectName,
+            isMultiMosque,
+            multiMosqueNames: row.multiMosqueNames,
             mosque: {
               id: req.mosqueId,
-              name: mosqueInfo?.name || "غير محدد",
-              city: mosqueInfo?.city || "",
-              district: mosqueInfo?.district || "",
+              name: effectiveMosqueName || (req.programType === "bunyan" ? "مشروع بنيان" : "غير محدد"),
+              city: effectiveMosqueCity,
+              district: effectiveMosqueDistrict,
             },
             requester: {
               id: req.userId,
-              name: requesterInfo?.name || "طالب خدمة",
-              phone: requesterInfo?.phone || "",
+              name: row.requesterName || "طالب خدمة",
+              phone: row.requesterPhone || "",
+              email: row.requesterEmail || "",
             },
-            assignee: assigneeInfo ? { id: req.assignedTo, name: assigneeInfo.name, email: assigneeInfo.email } : null,
-            responsibleText: req.currentResponsible || assigneeInfo?.name || req.currentResponsibleDepartment || "مكتب المشاريع",
+            assignee: row.assigneeName ? { id: req.assignedTo, name: row.assigneeName, email: row.assigneeEmail } : null,
+            responsibleText: req.currentResponsible || row.assigneeName || req.currentResponsibleDepartment || "مكتب المشاريع",
             stageEntryDate,
             allowedDays,
             elapsedDays,
