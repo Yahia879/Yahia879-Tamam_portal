@@ -691,6 +691,25 @@ export default function RoleEdit() {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (permId === "appointments.view_own") {
           next = next.filter(id => id !== "appointments.view_all");
+        } else if (permId === "escalation.view" || permId === "escalation") {
+          const cascadePerms = [
+            "requests.view",
+            "requests.create",
+            "requests.view_details",
+            "requests.add_review_note",
+            "requests.manage_as_field_team",
+            "requests.manage_as_quick_response",
+            "requests.upload_final_report",
+            "requests.create_quick_request",
+            "requesters.view",
+            "requesters.approve",
+          ];
+          cascadePerms.forEach(pId => {
+            if (!next.includes(pId)) next.push(pId);
+          });
+          toast.info("تم منح كافة صلاحيات قسمي 'الطلبات' و'إدارة المستفيدين' تلقائياً مع تفعيل التصعيد الإداري", {
+            duration: 4500,
+          });
         }
         return next;
       }
@@ -713,6 +732,26 @@ export default function RoleEdit() {
           next = next.filter(id => id !== "appointments.view_own");
         } else if (added.includes("appointments.view_own")) {
           next = next.filter(id => id !== "appointments.view_all");
+        }
+        if (permIds.includes("escalation.view") || permIds.includes("escalation")) {
+          const cascadePerms = [
+            "requests.view",
+            "requests.create",
+            "requests.view_details",
+            "requests.add_review_note",
+            "requests.manage_as_field_team",
+            "requests.manage_as_quick_response",
+            "requests.upload_final_report",
+            "requests.create_quick_request",
+            "requesters.view",
+            "requesters.approve",
+          ];
+          cascadePerms.forEach(pId => {
+            if (!next.includes(pId)) next.push(pId);
+          });
+          toast.info("تم منح كافة صلاحيات قسمي 'الطلبات' و'إدارة المستفيدين' تلقائياً مع تفعيل التصعيد الإداري", {
+            duration: 4500,
+          });
         }
         return next;
       });
