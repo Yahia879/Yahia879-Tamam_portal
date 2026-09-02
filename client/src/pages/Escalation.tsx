@@ -443,7 +443,8 @@ export default function EscalationPage() {
           </div>
 
           {/* شريط الفلاتر والبحث - RTL منسق ومتقن */}
-          <Card className="border-0 shadow-xs">
+          {activeTab !== "sla-overview" && (
+            <Card className="border-0 shadow-xs">
             <CardContent className="p-4 md:p-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                 {/* 1. حقل البحث المشترك */}
@@ -605,6 +606,7 @@ export default function EscalationPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {/* تبويب 1: قائمة الطلبات المتأخرة */}
           <TabsContent value="delayed-requests" className="space-y-4">
@@ -1027,62 +1029,128 @@ export default function EscalationPage() {
             </Card>
           </TabsContent>
 
-          {/* تبويب 3: خريطة المراحل */}
-          <TabsContent value="sla-overview" className="space-y-4">
-            <Card className="border-0 shadow-xs">
-              <CardContent className="p-5 md:p-6 space-y-4 text-right">
-                <div className="border-b border-border pb-3">
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-primary" />
-                    <span>متابعة تأخير المراحل</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    عدد الطلبات المتأخرة في كل مرحلة مقارنة بالمدة الزمنية المعتمدة
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {slaSettingsData?.stages.map((stg) => {
-                    const delayedCount = stats?.stageCounts?.[stg.stageCode] || 0;
-                    const maxCount = Math.max(...Object.values(stats?.stageCounts || { a: 1 }), 1);
-                    const percentage = Math.round((delayedCount / maxCount) * 100);
-
-                    return (
-                      <div key={stg.stageCode} className="p-3.5 bg-muted/40 rounded-xl border border-border/50 space-y-2 text-right">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-2xs">
-                              {stg.stageOrder}
-                            </span>
-                            <span className="font-bold text-foreground">{stg.stageName}</span>
-                            <span className="text-muted-foreground">({stg.durationDays} أيام)</span>
-                          </div>
-                          <div>
-                            {delayedCount > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                                {delayedCount} طلب متأخر
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                ضمن المهلة
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* شريط التقدم */}
-                        <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all ${delayedCount > 5 ? 'bg-rose-500' : delayedCount > 0 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                            style={{ width: `${Math.max(delayedCount > 0 ? 8 : 0, percentage)}%` }}
-                          />
-                        </div>
+          {/* تبويب 3: خريطة مدد المراحل والتصعيد الإداري (SLA) */}
+          <TabsContent value="sla-overview" className="space-y-5" dir="rtl">
+            {/* بطاقة التعريف بالمدد الزمنية */}
+            <Card className="border-0 shadow-xs bg-gradient-to-r from-primary/5 via-card to-card">
+              <CardContent className="p-5 md:p-6 text-right">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base md:text-lg font-bold text-foreground flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 shadow-2xs">
+                        <Clock className="w-5 h-5" />
                       </div>
-                    );
-                  })}
+                      <span>المدد الزمنية المحددة لاتفاقية مستوى الخدمة (SLA)</span>
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                      المهل الزمنية المعتمدة نظاماً لكل مرحلة من مراحل معالجة الطلبات وقبول المستفيدين قبل احتساب التأخير والدخول في مسار التصعيد الإداري.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                    <Badge variant="outline" className="px-3 py-1 text-xs font-mono font-bold bg-muted/60">
+                      SLA Standards
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* قسم 1: مهلة تأخير المستفيدين */}
+            <div className="space-y-3 text-right">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-teal-500 shrink-0" />
+                <h4 className="text-sm font-bold text-foreground">تأخير اعتماد المستفيدين (طالبي الخدمة)</h4>
+              </div>
+
+              <Card className="border border-teal-200/60 dark:border-teal-800/40 bg-teal-50/20 dark:bg-teal-950/10 shadow-xs hover:shadow-md transition-shadow">
+                <CardContent className="p-4 md:p-5 text-right">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
+                    <div className="flex items-start gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0 shadow-2xs">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h5 className="font-bold text-sm md:text-base text-foreground">
+                            {slaSettingsData?.beneficiarySLA?.stageName || "قبول تسجيل المستفيد"}
+                          </h5>
+                          <Badge variant="outline" className="text-2xs bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-200">
+                            طالبو الخدمة
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          {slaSettingsData?.beneficiarySLA?.description || "المهلة المحددة لمراجعة واعتماد حساب طالب الخدمة الجديد بعد التسجيل قبل التصعيد الإداري"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-teal-100 dark:border-teal-900/40">
+                      <span className="text-2xs text-muted-foreground">المدة المحددة للتأخير:</span>
+                      <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-100/90 dark:bg-teal-900/60 text-teal-950 dark:text-teal-200 border border-teal-200/80 dark:border-teal-800 font-bold text-sm shadow-2xs">
+                        <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <span className="font-mono tabular-nums font-extrabold text-base">
+                          {slaSettingsData?.beneficiarySLA?.durationDays || 3}
+                        </span>
+                        <span>
+                          {(slaSettingsData?.beneficiarySLA?.durationDays || 3) === 1 ? "يوم" : (slaSettingsData?.beneficiarySLA?.durationDays || 3) === 2 ? "يومان" : (slaSettingsData?.beneficiarySLA?.durationDays || 3) <= 10 ? "أيام" : "يوماً"}
+                        </span>
+                      </div>
+                      <span className="text-3xs text-muted-foreground mt-0.5">
+                        مهلة التحذير: {slaSettingsData?.beneficiarySLA?.warningDays || 1} يوم
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* قسم 2: مدد تأخير مراحل معالجة الطلبات */}
+            <div className="space-y-3 text-right">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />
+                <h4 className="text-sm font-bold text-foreground">المدد المحددة لمراحل الطلبات ({slaSettingsData?.stages?.length || 10} مراحل)</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {slaSettingsData?.stages?.map((stg) => {
+                  const duration = stg.durationDays;
+                  const unit = duration === 1 ? "يوم" : duration === 2 ? "يومان" : duration <= 10 ? "أيام" : "يوماً";
+
+                  return (
+                    <Card key={stg.stageCode} className="border border-border/70 shadow-xs hover:shadow-md transition-all hover:border-primary/40 text-right">
+                      <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 font-mono shadow-2xs">
+                              {stg.stageOrder}
+                            </span>
+                            <div className="min-w-0">
+                              <h5 className="font-bold text-sm text-foreground truncate">{stg.stageName}</h5>
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                                {stg.description || "معالجة متطلبات المرحلة ومتابعة الإجراءات اللازمة"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-border/50 text-xs">
+                          <span className="text-2xs text-muted-foreground">
+                            مهلة التحذير: <strong className="font-mono text-foreground font-semibold">{stg.warningDays || 1}</strong> يوم
+                          </span>
+
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20 font-bold">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className="text-xs">المهلة المحددة:</span>
+                            <strong className="font-mono tabular-nums font-extrabold text-sm">{duration}</strong>
+                            <span>{unit}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
