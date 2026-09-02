@@ -318,20 +318,9 @@ export default function EscalationPage() {
           </div>
         </div>
 
-        {/* Stats Row - كروت إحصائيات تفاعلية */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* Stats Row - كروت إحصائيات تفاعلية تبدأ بالطلبات المتأخرة أولاً على اليمين */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4" dir="rtl">
           {[
-            {
-              id: "all",
-              label: "إجمالي المتأخرات",
-              value: stats?.totalDelayedItems || 0,
-              icon: <FileText className="w-5 h-5" />,
-              iconBg: "bg-primary/10 text-primary",
-              onClick: () => {
-                setActiveTab("delayed-requests");
-                setSeverityFilter("all");
-              },
-            },
             {
               id: "requests",
               label: "الطلبات المتأخرة",
@@ -362,18 +351,30 @@ export default function EscalationPage() {
                 setSeverityFilter("critical");
               },
             },
+            {
+              id: "all",
+              label: "إجمالي المتأخرات",
+              value: stats?.totalDelayedItems || 0,
+              icon: <FileText className="w-5 h-5" />,
+              iconBg: "bg-primary/10 text-primary",
+              onClick: () => {
+                setActiveTab("delayed-requests");
+                setSeverityFilter("all");
+              },
+            },
           ].map((stat) => (
             <Card 
               key={stat.label} 
               onClick={stat.onClick}
-              className="border-0 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              className="border-0 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right"
+              dir="rtl"
             >
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 text-right">
                     <p className="text-xs text-muted-foreground truncate font-medium">{stat.label}</p>
                     <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5">
                       {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
@@ -385,10 +386,10 @@ export default function EscalationPage() {
           ))}
         </div>
 
-        {/* التبويبات الرئيسية */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <div className="border-b border-border pb-2">
-            <TabsList className="bg-muted p-1 rounded-xl">
+        {/* التبويبات الرئيسية - محاذاة لليمين بالكامل في RTL */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" dir="rtl">
+          <div className="flex justify-start border-b border-border pb-2" dir="rtl">
+            <TabsList className="bg-muted p-1 rounded-xl inline-flex w-auto justify-start gap-1 h-auto" dir="rtl">
               <TabsTrigger 
                 value="delayed-requests" 
                 className="gap-2 px-4 py-2 text-xs md:text-sm data-[state=active]:bg-background data-[state=active]:shadow-xs rounded-lg font-medium"
@@ -537,54 +538,20 @@ export default function EscalationPage() {
                 )}
               </div>
 
-              {/* أشرطة المراحل السريعة (Pills) وزر مسح الفلاتر */}
-              {activeTab === "delayed-requests" && (
-                <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3.5 border-t border-border">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground font-semibold ml-1">تصفية المراحل:</span>
-                    <button
-                      onClick={() => setStageFilter("all")}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                        stageFilter === "all"
-                          ? "bg-foreground text-background shadow-xs"
-                          : "bg-muted hover:bg-muted/80 text-muted-foreground"
-                      }`}
-                    >
-                      الكل ({delayedRequests?.length || 0})
-                    </button>
-                    {slaSettingsData?.stages.map((stg) => {
-                      const count = stats?.stageCounts?.[stg.stageCode] || 0;
-                      if (count === 0 && stageFilter !== stg.stageCode) return null;
-                      return (
-                        <button
-                          key={stg.stageCode}
-                          onClick={() => setStageFilter(stg.stageCode)}
-                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
-                            stageFilter === stg.stageCode
-                              ? "bg-primary text-primary-foreground shadow-xs"
-                              : "bg-muted hover:bg-muted/80 text-foreground"
-                          }`}
-                        >
-                          <span>{stg.stageName}</span>
-                          <span className={`px-1.5 py-0.2 rounded-full text-2xs ${stageFilter === stg.stageCode ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-muted-foreground"}`}>
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleResetFilters}
-                      className="h-8 px-2.5 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 gap-1"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>مسح الفلاتر</span>
-                    </Button>
-                  )}
+              {hasActiveFilters && (
+                <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-border">
+                  <span className="text-xs text-muted-foreground">
+                    يتم عرض النتائج حسب الفلاتر المحددة
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-7 px-2.5 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>إعادة ضبط الفلاتر</span>
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -1018,10 +985,10 @@ export default function EscalationPage() {
         </Tabs>
 
         {/* ========================================================================= */}
-        {/* نافذة تخصيص مدة التصعيد (بسيطة ونظيفة وبدون حشو) */}
+        {/* نافذة تخصيص مدة التصعيد (واضحة، مقروءة بالكامل وبدون حشو) */}
         {/* ========================================================================= */}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto p-5 md:p-6" dir="rtl">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-5 md:p-6" dir="rtl">
             <DialogHeader className="border-b border-border pb-3 text-right">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-primary/10 text-primary rounded-lg">
@@ -1033,17 +1000,16 @@ export default function EscalationPage() {
               </div>
             </DialogHeader>
 
-            <div className="space-y-5 py-3 text-right">
+            <div className="space-y-4 py-3 text-right">
               {/* 1. مهلة قبول تسجيل المستفيد */}
-              <div className="p-4 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-lg">
+              <div className="p-3.5 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-lg shrink-0">
                     <Users className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-foreground">مهلة قبول تسجيل المستفيد</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">عدد الأيام المسموحة لمراجعة حساب طالب الخدمة</p>
-                  </div>
+                  <span className="text-sm font-bold text-foreground">
+                    مهلة قبول تسجيل المستفيد
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border shrink-0">
@@ -1077,27 +1043,29 @@ export default function EscalationPage() {
                 </div>
               </div>
 
-              {/* 2. مدد مراحل الطلبات العشر */}
-              <div className="space-y-3">
+              {/* 2. مدد مراحل الطلبات العشر (قائمة واضحة ومقروءة بالكامل) */}
+              <div className="space-y-2.5">
                 <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Layers className="w-4 h-4 text-primary" />
                   <span>مدد مراحل الطلبات:</span>
                 </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-2">
                   {draftStages.map((stg, index) => (
                     <div 
                       key={stg.stageCode} 
-                      className="p-3 bg-muted/30 rounded-xl border border-border flex items-center justify-between gap-3"
+                      className="p-3 bg-muted/30 hover:bg-muted/50 transition-colors rounded-xl border border-border flex items-center justify-between gap-3 text-right"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
-                          {index + 1}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-bold shrink-0">
+                          مرحلة {index + 1}
                         </span>
-                        <span className="text-xs font-bold text-foreground truncate">{stg.stageName}</span>
+                        <span className="text-sm font-bold text-foreground">
+                          {stg.stageName}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border shrink-0">
+                      <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border shrink-0">
                         <Button
                           type="button"
                           variant="ghost"
@@ -1107,9 +1075,9 @@ export default function EscalationPage() {
                               idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
                             ));
                           }}
-                          className="h-6 w-6 p-0 rounded hover:bg-muted"
+                          className="h-7 w-7 p-0 rounded hover:bg-muted"
                         >
-                          <Minus className="w-3 h-3" />
+                          <Minus className="w-3.5 h-3.5" />
                         </Button>
 
                         <Input
@@ -1121,7 +1089,7 @@ export default function EscalationPage() {
                             const val = parseInt(e.target.value) || 0;
                             setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
                           }}
-                          className="w-10 text-center font-bold text-xs h-6 border-0 shadow-none focus-visible:ring-0 p-0"
+                          className="w-12 text-center font-bold text-sm h-7 border-0 shadow-none focus-visible:ring-0 p-0"
                         />
 
                         <Button
@@ -1133,12 +1101,12 @@ export default function EscalationPage() {
                               idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
                             ));
                           }}
-                          className="h-6 w-6 p-0 rounded hover:bg-muted"
+                          className="h-7 w-7 p-0 rounded hover:bg-muted"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </Button>
 
-                        <span className="text-2xs text-muted-foreground px-1">يوم</span>
+                        <span className="text-xs text-muted-foreground px-1.5 font-medium">أيام</span>
                       </div>
                     </div>
                   ))}
@@ -1146,46 +1114,29 @@ export default function EscalationPage() {
               </div>
             </div>
 
-            <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border pt-4">
+            <DialogFooter className="flex items-center justify-end gap-2.5 border-t border-border pt-4">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  if (confirm("هل أنت متأكد من استعادة مدد المراحل الافتراضية؟")) {
-                    resetSettingsMutation.mutate();
-                  }
-                }}
-                disabled={resetSettingsMutation.isPending}
-                className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                onClick={() => setSettingsOpen(false)}
+                className="text-xs h-9 px-4"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>استعادة الافتراضي</span>
+                إلغاء
               </Button>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSettingsOpen(false)}
-                  className="text-xs"
-                >
-                  إلغاء
-                </Button>
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={updateSettingsMutation.isPending}
-                  className="gradient-primary text-white font-semibold text-xs px-5 h-9"
-                >
-                  {updateSettingsMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
-                      <span>جاري الحفظ...</span>
-                    </>
-                  ) : (
-                    <span>حفظ التغييرات</span>
-                  )}
-                </Button>
-              </div>
+              <Button
+                onClick={handleSaveSettings}
+                disabled={updateSettingsMutation.isPending}
+                className="gradient-primary text-white font-semibold text-xs px-6 h-9"
+              >
+                {updateSettingsMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <span>حفظ التغييرات</span>
+                )}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
