@@ -220,7 +220,7 @@ export default function EscalationPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-bold text-foreground truncate">
+              <h1 className="text-xl md:text-2xl font-bold text-foreground pb-1 leading-normal">
                 التصعيد الإداري
               </h1>
               <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs px-2.5 py-0.5 font-medium">
@@ -413,15 +413,15 @@ export default function EscalationPage() {
                       </Select>
                     </div>
 
-                    {/* 4. مستوى التأخير (2 أعمدة) */}
+                    {/* 4. التأخير (2 أعمدة) */}
                     <div className="lg:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">مستوى التأخير</label>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">التأخير</label>
                       <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)} dir="rtl">
                         <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
-                          <SelectValue placeholder="كل المستويات" />
+                          <SelectValue placeholder="الكل" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
-                          <SelectItem value="all">كل المستويات</SelectItem>
+                          <SelectItem value="all">الكل</SelectItem>
                           <SelectItem value="warning">تأخير خفيف (1-3 أيام)</SelectItem>
                           <SelectItem value="medium">تأخير متوسط (4-7 أيام)</SelectItem>
                           <SelectItem value="critical">تأخير حرج (&gt; 7 أيام)</SelectItem>
@@ -433,13 +433,13 @@ export default function EscalationPage() {
                   <>
                     {/* فلاتر المستفيدين */}
                     <div className="lg:col-span-4">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">مستوى التأخير</label>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">التأخير</label>
                       <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)} dir="rtl">
                         <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
-                          <SelectValue placeholder="كل المستويات" />
+                          <SelectValue placeholder="الكل" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
-                          <SelectItem value="all">كل المستويات</SelectItem>
+                          <SelectItem value="all">الكل</SelectItem>
                           <SelectItem value="warning">تأخير خفيف (1-3 أيام)</SelectItem>
                           <SelectItem value="medium">تأخير متوسط (4-7 أيام)</SelectItem>
                           <SelectItem value="critical">تأخير حرج (&gt; 7 أيام)</SelectItem>
@@ -499,8 +499,8 @@ export default function EscalationPage() {
                     <div className="text-right">الطلب</div>
                     <div className="text-right">المسجد</div>
                     <div className="text-right">المرحلة</div>
-                    <div className="text-right">مستوى التأخير</div>
-                    <div className="w-24 text-left pl-2">الإجراءات</div>
+                    <div className="text-right">التأخير</div>
+                    <div className="w-20 text-center">عرض</div>
                   </div>
 
                   {/* صفوف الطلبات */}
@@ -599,62 +599,11 @@ export default function EscalationPage() {
                             </span>
                           </div>
 
-                          {/* Action Buttons */}
-                          <div 
-                            className="flex items-center justify-end gap-1.5 shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setAlertTarget({
-                                        type: "request",
-                                        id: req.id,
-                                        title: `الطلب ${req.requestNumber}`,
-                                      });
-                                      setAlertCustomMessage(`تنبيه بخصوص تأخر الطلب ${req.requestNumber} بمقدار ${req.delayDays} يوم في مرحلة (${stageLabel}). يرجى اتخاذ الإجراء اللازم.`);
-                                      setAlertModalOpen(true);
-                                    }}
-                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 rounded-lg"
-                                  >
-                                    <Bell className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>إرسال تنبيه للمسؤول</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedRequestId(req.id);
-                                      setDetailsModalOpen(true);
-                                    }}
-                                    className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted rounded-lg"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>معاينة سريعة</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
+                          {/* Action Button */}
+                          <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
                             <Link href={`/requests/${req.id}`}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 px-3 text-xs text-primary border-primary/20 hover:bg-primary/10 gap-1 rounded-lg"
-                              >
-                                <span>فتح</span>
-                                <ChevronLeft className="w-3.5 h-3.5" />
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                                <ChevronLeft className="w-4 h-4" />
                               </Button>
                             </Link>
                           </div>
@@ -706,8 +655,8 @@ export default function EscalationPage() {
                     <div className="text-right">الصفة والمدينة</div>
                     <div className="text-right">الهوية والجوال</div>
                     <div className="text-right">تاريخ التسجيل والمنقضي</div>
-                    <div className="text-right">مستوى التأخير</div>
-                    <div className="w-24 text-left pl-2">الإجراءات</div>
+                    <div className="text-right">التأخير</div>
+                    <div className="w-20 text-center">عرض</div>
                   </div>
 
                   {/* Rows */}
@@ -766,57 +715,11 @@ export default function EscalationPage() {
                             </span>
                           </div>
 
-                          {/* Actions */}
-                          <div className="flex items-center justify-end gap-1.5 shrink-0">
-                            {ben.proofDocument && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <a
-                                      href={ben.proofDocument}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                                    >
-                                      <ExternalLink className="w-4 h-4" />
-                                    </a>
-                                  </TooltipTrigger>
-                                  <TooltipContent>عرض إثبات الصفة</TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setAlertTarget({
-                                        type: "beneficiary",
-                                        id: ben.id,
-                                        title: `المستفيد ${ben.name}`,
-                                      });
-                                      setAlertCustomMessage(`تنبيه بخصوص تأخر اعتماد تسجيل المستفيد ${ben.name} المسجل منذ ${ben.elapsedDays} يوماً.`);
-                                      setAlertModalOpen(true);
-                                    }}
-                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 rounded-lg"
-                                  >
-                                    <Bell className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>إرسال تذكير إداري</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
+                          {/* Action Button */}
+                          <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
                             <Link href="/requester-approvals">
-                              <Button
-                                size="sm"
-                                className="h-8 px-3 text-xs gradient-primary text-white gap-1 rounded-lg"
-                              >
-                                <span>مراجعة</span>
-                                <ChevronLeft className="w-3.5 h-3.5" />
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                                <ChevronLeft className="w-4 h-4" />
                               </Button>
                             </Link>
                           </div>
