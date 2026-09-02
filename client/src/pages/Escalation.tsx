@@ -154,40 +154,6 @@ export default function EscalationPage() {
     refetch: refetchSettings 
   } = trpc.escalation.getSettings.useQuery();
 
-  // تعديل الإعدادات محلياً
-  const [draftStages, setDraftStages] = useState<Array<{ stageCode: string; stageName: string; durationDays: number; warningDays?: number }>>([]);
-  const [draftBeneficiaryDays, setDraftBeneficiaryDays] = useState<number>(3);
-
-  // تحديث الإعدادات
-  const updateSettingsMutation = trpc.escalation.updateSettings.useMutation({
-    onSuccess: (res) => {
-      toast.success(res.message || "تم حفظ الإعدادات بنجاح");
-      setSettingsOpen(false);
-      refetchSettings();
-      refetchStats();
-      refetchRequests();
-      refetchBeneficiaries();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ الإعدادات");
-    },
-  });
-
-  // استعادة الافتراضي
-  const resetSettingsMutation = trpc.escalation.resetSettings.useMutation({
-    onSuccess: (res) => {
-      toast.success(res.message || "تمت استعادة الإعدادات الافتراضية");
-      setSettingsOpen(false);
-      refetchSettings();
-      refetchStats();
-      refetchRequests();
-      refetchBeneficiaries();
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء الاستعادة");
-    },
-  });
-
   // إرسال تنبيه تصعيدي
   const sendAlertMutation = trpc.escalation.sendEscalationAlert.useMutation({
     onSuccess: (res) => {
@@ -200,28 +166,6 @@ export default function EscalationPage() {
       toast.error(err.message || "فشل إرسال التنبيه");
     },
   });
-
-  // فتح نافذة الإعدادات
-  const handleOpenSettings = () => {
-    if (slaSettingsData) {
-      setDraftStages(slaSettingsData.stages.map(s => ({
-        stageCode: s.stageCode,
-        stageName: s.stageName,
-        durationDays: s.durationDays,
-        warningDays: s.warningDays,
-      })));
-      setDraftBeneficiaryDays(slaSettingsData.beneficiarySLA.durationDays);
-    }
-    setSettingsOpen(true);
-  };
-
-  // حفظ الإعدادات
-  const handleSaveSettings = () => {
-    updateSettingsMutation.mutate({
-      stages: draftStages,
-      beneficiaryDays: draftBeneficiaryDays,
-    });
-  };
 
   // إعادة تحميل البيانات
   const handleRefreshAll = () => {
@@ -308,13 +252,14 @@ export default function EscalationPage() {
               <span>تحديث</span>
             </Button>
 
-            <Button
-              onClick={handleOpenSettings}
-              className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              <span>تخصيص مدة التصعيد</span>
-            </Button>
+            <Link href="/forms-customization/escalation">
+              <Button
+                className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span>تخصيص مدة التصعيد</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -984,162 +929,7 @@ export default function EscalationPage() {
           </TabsContent>
         </Tabs>
 
-        {/* ========================================================================= */}
-        {/* نافذة تخصيص مدة التصعيد (واضحة، مقروءة بالكامل وبدون حشو) */}
-        {/* ========================================================================= */}
-        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-5 md:p-6" dir="rtl">
-            <DialogHeader className="border-b border-border pb-3 text-right">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-primary/10 text-primary rounded-lg">
-                  <SlidersHorizontal className="w-5 h-5" />
-                </div>
-                <DialogTitle className="text-lg font-bold text-foreground">
-                  تخصيص مدة التصعيد
-                </DialogTitle>
-              </div>
-            </DialogHeader>
 
-            <div className="space-y-4 py-3 text-right">
-              {/* 1. مهلة قبول تسجيل المستفيد */}
-              <div className="p-3.5 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-lg shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">
-                    مهلة قبول تسجيل المستفيد
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border shrink-0">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
-                    className="h-7 w-7 p-0 rounded hover:bg-muted"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </Button>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={60}
-                    value={draftBeneficiaryDays}
-                    onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
-                    className="w-12 text-center font-bold text-sm h-7 border-0 shadow-none focus-visible:ring-0 p-0"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
-                    className="h-7 w-7 p-0 rounded hover:bg-muted"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground px-1.5 font-medium">أيام</span>
-                </div>
-              </div>
-
-              {/* 2. مدد مراحل الطلبات العشر (قائمة واضحة ومقروءة بالكامل) */}
-              <div className="space-y-2.5">
-                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-primary" />
-                  <span>مدد مراحل الطلبات:</span>
-                </h4>
-
-                <div className="space-y-2">
-                  {draftStages.map((stg, index) => (
-                    <div 
-                      key={stg.stageCode} 
-                      className="p-3 bg-muted/30 hover:bg-muted/50 transition-colors rounded-xl border border-border flex items-center justify-between gap-3 text-right"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-bold shrink-0">
-                          مرحلة {index + 1}
-                        </span>
-                        <span className="text-sm font-bold text-foreground">
-                          {stg.stageName}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border shrink-0">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDraftStages(prev => prev.map((item, idx) => 
-                              idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
-                            ));
-                          }}
-                          className="h-7 w-7 p-0 rounded hover:bg-muted"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </Button>
-
-                        <Input
-                          type="number"
-                          min={0}
-                          max={180}
-                          value={stg.durationDays}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0;
-                            setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
-                          }}
-                          className="w-12 text-center font-bold text-sm h-7 border-0 shadow-none focus-visible:ring-0 p-0"
-                        />
-
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDraftStages(prev => prev.map((item, idx) => 
-                              idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
-                            ));
-                          }}
-                          className="h-7 w-7 p-0 rounded hover:bg-muted"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </Button>
-
-                        <span className="text-xs text-muted-foreground px-1.5 font-medium">أيام</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter className="flex items-center justify-end gap-2.5 border-t border-border pt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSettingsOpen(false)}
-                className="text-xs h-9 px-4"
-              >
-                إلغاء
-              </Button>
-              <Button
-                onClick={handleSaveSettings}
-                disabled={updateSettingsMutation.isPending}
-                className="gradient-primary text-white font-semibold text-xs px-6 h-9"
-              >
-                {updateSettingsMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin ml-1.5" />
-                    <span>جاري الحفظ...</span>
-                  </>
-                ) : (
-                  <span>حفظ التغييرات</span>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* نافذة إرسال تنبيه تصعيدي */}
         <Dialog open={alertModalOpen} onOpenChange={setAlertModalOpen}>
