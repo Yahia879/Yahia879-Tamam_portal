@@ -71,7 +71,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import ExcelJS from "exceljs";
+import { exportStyledExcel } from "@/lib/excelExportHelper";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "مسودة", variant: "secondary" },
@@ -108,7 +108,6 @@ export default function DisbursementRequests() {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
-      const workbook = new ExcelJS.Workbook();
 
       if (activeTab === "requests") {
         const allData = await utils.disbursements.listRequests.fetch({
@@ -119,45 +118,41 @@ export default function DisbursementRequests() {
           limit: 5000,
         });
 
-        const worksheet = workbook.addWorksheet("طلبات الصرف", {
-          views: [{ showGridLines: true, rightToLeft: true }]
-        });
+        const columns = [
+          { header: "رقم الطلب", align: "center" as const, minWidth: 16 },
+          { header: "العنوان", align: "right" as const, minWidth: 28 },
+          { header: "المشروع", align: "right" as const, minWidth: 26 },
+          { header: "المبلغ (ريال)", align: "center" as const, isAmount: true, numFmt: "#,##0.00", minWidth: 18 },
+          { header: "الحالة", align: "center" as const, minWidth: 18 },
+          { header: "تاريخ الطلب", align: "center" as const, minWidth: 18 },
+        ];
 
-        // Add headers
-        worksheet.addRow(["رقم الطلب", "العنوان", "المشروع", "المبلغ (ريال)", "الحالة", "تاريخ الطلب"]);
-
-        // Add rows
-        (allData?.requests || []).forEach((req: any) => {
+        const rows = (allData?.requests || []).map((req: any) => {
           const statusText = req.status === "draft" ? "مسودة" :
-                             req.status === "pending" ? "قيد الاعتماد" :
+                             req.status === "pending" ? "بانتظار اعتماد مُعد الطلب" :
+                             req.status === "pending_executive" ? "بانتظار اعتماد المدير التنفيذي" :
                              req.status === "approved" ? "معتمد" :
                              req.status === "rejected" ? "مرفوض" :
-                             req.status === "paid" ? "مدفوع" : req.status || "-";
+                             req.status === "paid" ? "مصروف" : req.status || "-";
 
-          worksheet.addRow([
+          return [
             req.requestNumber || "-",
             req.title || req.description || "-",
             req.projectName || "-",
             Number(req.amount) || 0,
             statusText,
-            req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ar-SA") : "-",
-          ]);
+            req.requestedAt ? new Intl.DateTimeFormat('en-CA').format(new Date(req.requestedAt)) : "-",
+          ];
         });
 
-        // Set column widths
-        ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
-          worksheet.getColumn(col).width = 30;
+        await exportStyledExcel({
+          sheetName: "طلبات الصرف",
+          fileName: `تقرير_طلبات_الصرف_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`,
+          columns,
+          rows,
+          includeIndex: true,
+          showTotalRow: true,
         });
-
-        // Write buffer and download
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `تقرير_طلبات_الصرف_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
       } else {
         const allData = await utils.disbursements.listOrders.fetch({
           status: statusFilter !== "all" ? statusFilter as any : undefined,
@@ -166,15 +161,19 @@ export default function DisbursementRequests() {
           limit: 5000,
         });
 
-        const worksheet = workbook.addWorksheet("أوامر الصرف", {
-          views: [{ showGridLines: true, rightToLeft: true }]
-        });
+        const columns = [
+          { header: "رقم الأمر", align: "center" as const, minWidth: 16 },
+          { header: "رقم طلب الصرف", align: "center" as const, minWidth: 20 },
+          { header: "المشروع", align: "right" as const, minWidth: 26 },
+          { header: "المستفيد", align: "right" as const, minWidth: 24 },
+          { header: "المبلغ (ريال)", align: "center" as const, isAmount: true, numFmt: "#,##0.00", minWidth: 18 },
+          { header: "طريقة الدفع", align: "center" as const, minWidth: 16 },
+          { header: "الحالة", align: "center" as const, minWidth: 16 },
+          { header: "البنك / رقم السداد", align: "center" as const, minWidth: 20 },
+          { header: "الآيبان / رقم المفوتر", align: "center" as const, minWidth: 26 },
+        ];
 
-        // Add headers
-        worksheet.addRow(["رقم الأمر", "رقم طلب الصرف", "المشروع", "المستفيد", "المبلغ (ريال)", "طريقة الدفع", "الحالة", "البنك / رقم السداد", "الآيبان / رقم المفوتر"]);
-
-        // Add rows
-        (allData?.orders || []).forEach((order: any) => {
+        const rows = (allData?.orders || []).map((order: any) => {
           const paymentMethodText = order.paymentMethod === "bank_transfer" ? "تحويل بنكي" :
                                     order.paymentMethod === "check" ? "شيك" :
                                     order.paymentMethod === "custody" ? "عهدة" : 
@@ -188,7 +187,7 @@ export default function DisbursementRequests() {
           const bankOrSadad = order.paymentMethod === "sadad" ? (order.sadadNumber || "-") : (order.beneficiaryBank || "-");
           const ibanOrBiller = order.paymentMethod === "sadad" ? (order.billerCode || "-") : (order.beneficiaryIban || "-");
 
-          worksheet.addRow([
+          return [
             order.orderNumber || "-",
             order.requestNumber || "-",
             order.projectName || "-",
@@ -198,23 +197,17 @@ export default function DisbursementRequests() {
             statusText,
             bankOrSadad,
             ibanOrBiller,
-          ]);
+          ];
         });
 
-        // Set column widths
-        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].forEach(col => {
-          worksheet.getColumn(col).width = 30;
+        await exportStyledExcel({
+          sheetName: "أوامر الصرف",
+          fileName: `تقرير_أوامر_الصرف_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`,
+          columns,
+          rows,
+          includeIndex: true,
+          showTotalRow: true,
         });
-
-        // Write buffer and download
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `تقرير_أوامر_الصرف_${new Intl.DateTimeFormat('en-CA').format(new Date())}.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
       }
       toast.success("تم تصدير ملف Excel بنجاح");
     } catch (error) {
