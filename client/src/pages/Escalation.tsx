@@ -494,12 +494,11 @@ export default function EscalationPage() {
               ) : sortedRequests.length > 0 ? (
                 <div>
                   {/* Table Header (Desktop Only) */}
-                  <div className="hidden md:grid grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
+                  <div className="hidden md:grid grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                     <div className="w-8"></div>
                     <div className="text-right">الطلب</div>
                     <div className="text-right">المسجد</div>
-                    <div className="text-right">المرحلة والمسؤول</div>
-                    <div className="text-right">المدة المنقضية</div>
+                    <div className="text-right">المرحلة</div>
                     <div className="text-right">مستوى التأخير</div>
                     <div className="w-24 text-left pl-2">الإجراءات</div>
                   </div>
@@ -514,35 +513,53 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={req.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
                           onClick={() => navigate(`/requests/${req.id}`)}
                         >
                           {/* Desktop: Program Icon */}
                           <div className="hidden md:flex w-8 justify-center shrink-0">
-                            <ProgramIcon program={req.programType} size="md" />
+                            {req.isMultiMosque ? (
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
+                                <MultiMosquesIcon className="w-4.5 h-4.5" />
+                              </div>
+                            ) : (
+                              <ProgramIcon program={req.programType} size="md" />
+                            )}
                           </div>
 
                           {/* Request Info */}
                           <div className="flex items-start justify-between md:block gap-3 min-w-0">
                             <div className="flex items-center gap-3 md:block min-w-0">
                               <div className="md:hidden shrink-0">
-                                <ProgramIcon program={req.programType} size="md" />
+                                {req.isMultiMosque ? (
+                                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                                    <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                  </div>
+                                ) : (
+                                  <ProgramIcon program={req.programType} size="md" />
+                                )}
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   <p className="font-bold text-foreground text-sm truncate">
-                                    {req.mosque?.name 
-                                      ? (req.mosque.name.startsWith("مسجد") ? `طلب ${req.mosque.name}` : `طلب مسجد ${req.mosque.name}`)
-                                      : (req.descriptiveName || `طلب ${req.requester?.name || req.requestNumber}`)}
+                                    {req.isMultiMosque
+                                      ? (req.projectName || req.descriptiveName || "مشروع لعدة مساجد")
+                                      : req.programType === "bunyan" 
+                                        ? `طلب ${req.requester?.name || ""}`
+                                        : (req.mosque?.name && req.mosque.name !== "غير محدد"
+                                            ? (req.mosque.name.trim().startsWith("مسجد") ? `طلب ${req.mosque.name}` : `طلب مسجد ${req.mosque.name}`)
+                                            : (req.descriptiveName || `طلب ${req.requester?.name || req.requestNumber}`))}
                                   </p>
-                                  {req.descriptiveName && req.mosque?.name && (
-                                    <span className="text-2xs px-2 py-0.5 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 rounded border border-purple-200/60 font-medium">
+                                  {req.descriptiveName && (!req.isMultiMosque || req.descriptiveName !== req.projectName) && (
+                                    <span className="text-2xs px-2 py-0.5 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 rounded border border-purple-200/60 font-medium truncate max-w-[150px]" title={req.descriptiveName}>
                                       {req.descriptiveName}
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                  {progName} <span className="font-mono">({req.requestNumber})</span>
+                                  {req.isMultiMosque
+                                    ? `مشروع مباشر لعدة مساجد (${req.requestNumber})`
+                                    : `${req.programName || progName} (${req.requestNumber})`}
                                 </p>
                               </div>
                             </div>
@@ -558,8 +575,8 @@ export default function EscalationPage() {
                           <div className="hidden md:flex items-center gap-2 min-w-0 text-right">
                             <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-sm text-foreground truncate" title={req.mosque?.name || "—"}>
-                                {req.mosque?.name || "—"}
+                              <p className="text-sm text-foreground truncate" title={req.multiMosqueNames || req.mosque?.name || "—"}>
+                                {req.multiMosqueNames || req.mosque?.name || "—"}
                               </p>
                               {req.mosque?.city && (
                                 <p className="text-2xs text-muted-foreground truncate">{req.mosque.city}</p>
@@ -567,28 +584,11 @@ export default function EscalationPage() {
                             </div>
                           </div>
 
-                          {/* Stage & Responsible (Desktop) */}
+                          {/* Stage (Desktop) */}
                           <div className="hidden md:block min-w-0 text-right">
                             <Badge variant="outline" className="text-xs font-medium py-0.5">
                               {stageLabel}
                             </Badge>
-                            <p className="text-xs text-muted-foreground mt-1 truncate">
-                              {req.responsibleText}
-                            </p>
-                          </div>
-
-                          {/* Duration vs Elapsed */}
-                          <div className="hidden md:block min-w-0 text-right">
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span>المنقضي: <strong className="text-foreground">{req.elapsedDays}</strong> يوم</span>
-                              <span>(الحد: {req.allowedDays} د)</span>
-                            </div>
-                            <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden mt-1.5">
-                              <div 
-                                className={`h-full ${req.severity === 'critical' ? 'bg-rose-500' : req.severity === 'medium' ? 'bg-orange-500' : 'bg-amber-500'}`}
-                                style={{ width: `${Math.min(100, Math.round((req.elapsedDays / (req.allowedDays || 1)) * 100))}%` }}
-                              />
-                            </div>
                           </div>
 
                           {/* Delay Status Badge (Desktop) */}
