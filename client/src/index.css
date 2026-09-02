@@ -497,6 +497,10 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
+  /* تحسين عرض ونقاط الحروف العربية السفلية ومنع اقتصاصها */
+  [dir="rtl"] [data-sidebar="menu-button"] span {
+    line-height: 1.45;
+    padding-bottom: 2px;
   }
 }
 
