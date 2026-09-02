@@ -43,8 +43,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
   "projects.financials": ["projects.view", "projects.financials"],
   service_requester_accounts: ["users.view", "users.edit"],
-  escalation: ["escalation.view", "escalation.manage", "requests.view"],
-  "escalation.view": ["escalation.view", "requests.view"],
+  escalation: ["escalation.view"],
+  "escalation.view": ["escalation.view"],
   suppliers: [
     "suppliers.view", "suppliers.create", "suppliers.edit", "suppliers.delete", 
     "suppliers.approve", "suppliers.reject", "suppliers.suspend"
@@ -1049,7 +1049,10 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("service_requester_accounts");
   }
 
-  if (allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
+  if (revokedPermissions.has("escalation.view") || revokedPermissions.has("escalation")) {
+    allPermissions.delete("escalation");
+    allPermissions.delete("escalation.view");
+  } else if (allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
     allPermissions.add("escalation");
     allPermissions.add("escalation.view");
   } else {

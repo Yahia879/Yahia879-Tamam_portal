@@ -117,9 +117,21 @@ function getSeverityLevel(delayDays: number): "warning" | "medium" | "critical" 
   return "critical";
 }
 
+const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const { checkPermission } = await import("../permissions");
+  const hasPerm = await checkPermission(ctx.user.id, "escalation.view");
+  if (!hasPerm) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "ليس لديك صلاحية عرض قسم التصعيد الإداري",
+    });
+  }
+  return next({ ctx });
+});
+
 export const escalationRouter = router({
   // جلب إعدادات مدد المراحل ومهلة المستفيدين
-  getSettings: protectedProcedure.query(async () => {
+  getSettings: escalationProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -156,7 +168,7 @@ export const escalationRouter = router({
   }),
 
   // تحديث إعدادات مدد المراحل ومهلة المستفيدين
-  updateSettings: protectedProcedure
+  updateSettings: escalationProcedure
     .input(z.object({
       stages: z.array(z.object({
         stageCode: z.string(),
@@ -230,7 +242,7 @@ export const escalationRouter = router({
     }),
 
   // استعادة الإعدادات الافتراضية
-  resetSettings: protectedProcedure.mutation(async () => {
+  resetSettings: escalationProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -294,7 +306,7 @@ export const escalationRouter = router({
   }),
 
   // جلب إحصائيات التصعيد العام
-  getStats: protectedProcedure.query(async () => {
+  getStats: escalationProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
@@ -444,7 +456,7 @@ export const escalationRouter = router({
   }),
 
   // جلب قائمة الطلبات المتأخرة بالتفصيل
-  getDelayedRequests: protectedProcedure
+  getDelayedRequests: escalationProcedure
     .input(z.object({
       stageCode: z.string().optional(),
       programType: z.string().optional(),
@@ -679,7 +691,7 @@ export const escalationRouter = router({
     }),
 
   // جلب قائمة المستفيدين المعلقين المتأخرين في القبول
-  getDelayedBeneficiaries: protectedProcedure
+  getDelayedBeneficiaries: escalationProcedure
     .input(z.object({
       severity: z.enum(["all", "warning", "medium", "critical"]).optional(),
       requesterType: z.string().optional(),
@@ -820,7 +832,7 @@ export const escalationRouter = router({
     }),
 
   // إرسال تذكير أو تنبيه تصعيدي للطلب أو المستفيد
-  sendEscalationAlert: protectedProcedure
+  sendEscalationAlert: escalationProcedure
     .input(z.object({
       targetType: z.enum(["request", "beneficiary"]),
       targetId: z.number(),
