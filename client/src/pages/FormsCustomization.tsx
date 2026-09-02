@@ -14,6 +14,7 @@ import {
   HeartHandshake,
   LayoutGrid,
   Sparkles,
+  Clock,
 } from "lucide-react";
 
 export default function FormsCustomization() {
@@ -60,6 +61,16 @@ export default function FormsCustomization() {
       iconColor: "text-primary bg-primary/10 dark:bg-primary/20",
       visible: userPermissions.includes("forms_customization.analytics") || userPermissions.includes("forms_customization.evaluation") || userPermissions.includes("forms_customization.services") || userPermissions.includes("forms_customization.registration") || userPermissions.includes("settings_center") || userPermissions.includes("analytics_hub"),
       optionBadge: "الخيار الرابع",
+    },
+    {
+      id: "escalation",
+      title: "تخصيص مدة التصعيد ومُهل الـ SLA",
+      subtitle: "تحديد وضبط المدد الزمنية القصوى لكل مرحلة من مراحل الطلبات ومهلة قبول تسجيل المستفيدين",
+      path: "/forms-customization/escalation",
+      icon: Clock,
+      iconColor: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
+      visible: userPermissions.includes("escalation") || userPermissions.includes("forms_customization.services") || userPermissions.includes("forms_customization.registration") || userPermissions.includes("settings_center") || true,
+      optionBadge: "الخيار الخامس",
     },
   ];
 
