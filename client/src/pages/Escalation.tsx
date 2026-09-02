@@ -847,7 +847,8 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={ben.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center text-right"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
+                          onClick={() => navigate(`/requester-approvals/${ben.id}`)}
                         >
                           {/* User Avatar */}
                           <div className="hidden md:flex w-8 justify-center shrink-0">
@@ -905,8 +906,8 @@ export default function EscalationPage() {
                           </div>
 
                           {/* Action Button */}
-                          <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
-                            <Link href="/requester-approvals">
+                          <div className="hidden md:flex justify-center w-20">
+                            <Link href={`/requester-approvals/${ben.id}`} onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
                                 <ChevronLeft className="w-4 h-4" />
                               </Button>
