@@ -15,6 +15,7 @@ import {
   Palette, 
   FileText,
   AlertCircle,
+  AlertTriangle,
   MapPin,
   CalendarDays,
   ClipboardList,
@@ -679,6 +680,14 @@ export default function RolePermissions() {
           ]
         },
         {
+          id: "escalation",
+          nameAr: "التصعيد الإداري",
+          icon: AlertTriangle,
+          permissions: [
+            { id: "escalation.view", nameAr: "عرض قسم التصعيد الإداري" },
+          ]
+        },
+        {
           id: "appointments",
           nameAr: "تقويم المواعيد",
           icon: Calendar,
@@ -820,6 +829,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "requests.manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
         { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
@@ -892,6 +902,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد", icon: Building2, perms: ["view", "create", "edit", "delete", "approve"] },
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
+        { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
       ]
     },
@@ -1052,6 +1063,9 @@ export default function RolePermissions() {
         manage_as_quick_response: "ادارة الطلبات كفريق استجابة سريعة",
         upload_final_report: "رفع التقرير الختامي",
         create_quick_request: "إنشاء طلب سريع",
+      },
+      escalation: {
+        view: "عرض قسم التصعيد الإداري",
       },
       beneficiary_evaluations: {
         view: "عرض تقييمات المستفيدين",
@@ -1227,6 +1241,7 @@ export default function RolePermissions() {
         { id: "mosques", nameAr: "المساجد" },
         { id: "mosques_map", nameAr: "خريطة المساجد" },
         { id: "requests", nameAr: "الطلبات" },
+        { id: "escalation", nameAr: "التصعيد الإداري" },
         { id: "appointments_calendar", nameAr: "تقويم المواعيد" },
         { id: "projects", nameAr: "المشاريع" },
         { id: "service_requester_accounts", nameAr: "حسابات طالبي الخدمة" },

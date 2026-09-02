@@ -366,16 +366,16 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
       project_manager: ["requests.view", "requests.create", "requests.view_details"],
       corporate_comm: ["requests.view", "requests.upload_final_report"],
-      super_admin: ["beneficiary_evaluations.view"],
-      system_admin: ["beneficiary_evaluations.view"],
+      super_admin: ["beneficiary_evaluations.view", "escalation.view"],
+      system_admin: ["beneficiary_evaluations.view", "escalation.view"],
     };
 
     const roleNamesAr: Record<string, string> = {
@@ -622,6 +622,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: analytics_hub");
     }
 
+    // Ensure 'escalation' module exists in the modules table
+    const [existingEscalationModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "escalation")).limit(1);
+    if (!existingEscalationModule) {
+      await db.insert(modules).values({
+        id: "escalation",
+        nameAr: "التصعيد الإداري",
+        nameEn: "Administrative Escalation",
+        icon: "AlertTriangle",
+        displayOrder: 3,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: escalation");
+    }
+
     // تنظيف الصلاحيات الملغاة
     try {
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
@@ -629,6 +643,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
     } catch {}
 
     const customPerms = [
+      { id: "escalation.view", moduleId: "escalation", action: "view", nameAr: "عرض قسم التصعيد الإداري", nameEn: "View Administrative Escalation" },
       { id: "analytics_hub.custom", moduleId: "analytics_hub", action: "custom", nameAr: "عرض وتخصيص اللوحة المخصصة", nameEn: "View & Customize Dashboard" },
       { id: "analytics_hub.kpi", moduleId: "analytics_hub", action: "kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)", nameEn: "View KPI Dashboard" },
       { id: "analytics_hub.technical", moduleId: "analytics_hub", action: "technical", nameAr: "عرض التقارير الإحصائية والفنية", nameEn: "View Technical Reports" },
@@ -1032,6 +1047,14 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("requesters");
     allPermissions.delete("service_requester_accounts");
+  }
+
+  if (allPermissions.has("escalation.view") || allPermissions.has("escalation")) {
+    allPermissions.add("escalation");
+    allPermissions.add("escalation.view");
+  } else {
+    allPermissions.delete("escalation");
+    allPermissions.delete("escalation.view");
   }
 
 

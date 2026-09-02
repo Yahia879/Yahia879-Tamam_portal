@@ -21,21 +21,21 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   system_admin: ["*"], // كل الصلاحيات
 
   general_manager: [
-    "dashboard", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   executive_director: [
-    "dashboard", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   projects_office: [
-    "mosques", "mosques_map", "requests", "appointments_calendar",
+    "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
@@ -124,6 +124,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/requests/quick-create": ["requests.create_quick_request", "requests.manage_as_quick_response"],
   "/field-visits": "requests.view",
   "/field-visits/calendar": "appointments_calendar",
+  "/escalation": ["escalation", "escalation.view"],
+  "/admin-escalation": ["escalation", "escalation.view"],
 
   // ── المشاريع ──
   "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials"],

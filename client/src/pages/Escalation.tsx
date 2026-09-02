@@ -173,7 +173,6 @@ export default function EscalationPage() {
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
   const [severityFilter, setSeverityFilter] = useState<"all" | "warning" | "medium" | "critical">("all");
-  const [requesterTypeFilter, setRequesterTypeFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"delay_desc" | "delay_asc" | "created_desc">("delay_desc");
 
   // تأخير إرسال استعلام البحث للخادم لمنع إرهاق الشبكة مع كل حرف مكتوب
@@ -200,7 +199,7 @@ export default function EscalationPage() {
   useEffect(() => {
     setRequestsPage(1);
     setBeneficiariesPage(1);
-  }, [debouncedSearch, stageFilter, programFilter, severityFilter, requesterTypeFilter, sortBy]);
+  }, [debouncedSearch, stageFilter, programFilter, severityFilter, sortBy]);
 
   // استعلامات البيانات من الخادم (مربوطة بالكامل مع فلاتر الـ Backend و Pagination)
   const { 
@@ -233,7 +232,6 @@ export default function EscalationPage() {
     refetch: refetchBeneficiaries 
   } = trpc.escalation.getDelayedBeneficiaries.useQuery({
     severity: severityFilter !== "all" ? severityFilter : undefined,
-    requesterType: requesterTypeFilter !== "all" ? requesterTypeFilter : undefined,
     search: debouncedSearch.trim() || undefined,
     sortBy: sortBy,
     page: beneficiariesPage,
@@ -273,7 +271,6 @@ export default function EscalationPage() {
     setStageFilter("all");
     setProgramFilter("all");
     setSeverityFilter("all");
-    setRequesterTypeFilter("all");
     setSortBy("delay_desc");
     setRequestsPage(1);
     setBeneficiariesPage(1);
@@ -284,7 +281,6 @@ export default function EscalationPage() {
     stageFilter !== "all" || 
     programFilter !== "all" || 
     severityFilter !== "all" || 
-    requesterTypeFilter !== "all" ||
     sortBy !== "delay_desc"
   );
 
@@ -451,7 +447,7 @@ export default function EscalationPage() {
             <CardContent className="p-4 md:p-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                 {/* 1. حقل البحث المشترك */}
-                <div className={activeTab === "delayed-requests" ? "lg:col-span-3 relative" : "lg:col-span-4 relative"}>
+                <div className={activeTab === "delayed-requests" ? "lg:col-span-3 relative" : "lg:col-span-6 relative"}>
                   <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center justify-between text-right">
                     <span className="flex items-center gap-1.5">
                       <Search className="w-3.5 h-3.5" />
@@ -552,25 +548,9 @@ export default function EscalationPage() {
                   </>
                 ) : (
                   <>
-                    {/* فلاتر المستفيدين */}
-                    {/* صفة طالب الخدمة */}
+                    {/* فلاتر المستفيدين: التأخير والترتيب */}
+                    {/* التأخير (3 أعمدة) */}
                     <div className="lg:col-span-3">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">صفة طالب الخدمة</label>
-                      <Select value={requesterTypeFilter} onValueChange={setRequesterTypeFilter} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
-                          <SelectValue placeholder="جميع الصفات" />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl" align="end" className="text-right">
-                          <SelectItem value="all">جميع الصفات</SelectItem>
-                          {Object.entries(REQUESTER_TYPE_LABELS).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* التأخير */}
-                    <div className="lg:col-span-2">
                       <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">التأخير</label>
                       <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)} dir="rtl">
                         <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
@@ -585,7 +565,7 @@ export default function EscalationPage() {
                       </Select>
                     </div>
 
-                    {/* الترتيب */}
+                    {/* الترتيب (3 أعمدة) */}
                     <div className="lg:col-span-3">
                       <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">الترتيب</label>
                       <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)} dir="rtl">
@@ -850,12 +830,11 @@ export default function EscalationPage() {
               ) : sortedBeneficiaries.length > 0 ? (
                 <div>
                   {/* Table Header */}
-                  <div className="hidden md:grid grid-cols-[auto_1.4fr_1fr_1.1fr_1.6fr_1fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
+                  <div className="hidden md:grid grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                     <div className="w-8"></div>
                     <div className="text-right">طالب الخدمة</div>
                     <div className="text-right">الصفة والمدينة</div>
                     <div className="text-right">الهوية والجوال</div>
-                    <div className="text-right">تاريخ التسجيل والمنقضي</div>
                     <div className="text-right">التأخير</div>
                     <div className="w-20 text-center">عرض</div>
                   </div>
@@ -868,7 +847,7 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={ben.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.4fr_1fr_1.1fr_1.6fr_1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center text-right"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center text-right"
                         >
                           {/* User Avatar */}
                           <div className="hidden md:flex w-8 justify-center shrink-0">
@@ -916,49 +895,6 @@ export default function EscalationPage() {
                               </span>
                             </div>
                           </div>
-
-                          {/* Registration Date & Elapsed: أرقام واضحة وبارزة */}
-                          {(() => {
-                            const { date, time } = formatRegisteredDateTime(ben.createdAt);
-                            const { days, hours } = formatElapsedDetailed(ben.createdAt);
-
-                            return (
-                              <div className="hidden md:flex flex-col gap-1.5 min-w-0 text-xs text-right">
-                                {/* الوقت المنقضي بالأيام والساعات مع أرقام إنجليزية بارزة */}
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-muted-foreground text-2xs font-semibold">المنقضي:</span>
-                                  <span className="inline-flex items-center gap-1 font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 rounded-md border border-rose-300/80 dark:border-rose-800/80 shadow-2xs">
-                                    <Clock className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                                    <span className="font-mono tabular-nums font-extrabold text-xs md:text-sm">
-                                      {days > 0 ? (
-                                        <>
-                                          <span className="text-sm">{days}</span> يوم {hours > 0 && <>و <span className="text-sm">{hours}</span> س</>}
-                                        </>
-                                      ) : (
-                                        <>
-                                          <span className="text-sm">{hours}</span> ساعة
-                                        </>
-                                      )}
-                                    </span>
-                                  </span>
-                                </div>
-
-                                {/* تاريخ ووقت التسجيل بالإنجليزية بأرقام بارزة */}
-                                <div className="flex items-center gap-1.5 text-xs text-foreground font-medium" title="تاريخ ووقت التسجيل">
-                                  <Calendar className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                  <span className="font-mono tabular-nums font-bold text-foreground" dir="ltr">{date}</span>
-                                  <span className="text-muted-foreground/50">•</span>
-                                  <span className="font-mono tabular-nums font-bold text-muted-foreground" dir="ltr">{time}</span>
-                                </div>
-
-                                {/* المهلة المحددة */}
-                                <div className="text-2xs text-muted-foreground flex items-center gap-1">
-                                  <span>المهلة:</span>
-                                  <span className="font-mono tabular-nums font-bold text-foreground bg-muted/70 px-1.5 py-0.5 rounded border border-border/70">{ben.allowedDays} {ben.allowedDays === 1 ? "يوم" : "أيام"}</span>
-                                </div>
-                              </div>
-                            );
-                          })()}
 
                           {/* Delay Status Badge */}
                           <div className="hidden md:block shrink-0 text-right">
