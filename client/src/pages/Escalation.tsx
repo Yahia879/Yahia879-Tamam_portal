@@ -393,7 +393,7 @@ export default function EscalationPage() {
                 </div>
                 <span className="whitespace-nowrap font-bold">الطلبات المتأخرة</span>
                 <span className="inline-flex items-center justify-center min-w-6 h-5 px-2 rounded-full text-xs font-bold font-mono tabular-nums bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-700/60 shadow-2xs">
-                  {delayedRequests?.length || 0}
+                  {requestsResult ? requestsResult.total : (stats?.totalDelayedRequests || 0)}
                 </span>
               </TabsTrigger>
 
@@ -407,7 +407,7 @@ export default function EscalationPage() {
                 </div>
                 <span className="whitespace-nowrap font-bold">المستفيدون المعلقون</span>
                 <span className="inline-flex items-center justify-center min-w-6 h-5 px-2 rounded-full text-xs font-bold font-mono tabular-nums bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300/70 dark:border-teal-700/60 shadow-2xs">
-                  {delayedBeneficiaries?.length || 0}
+                  {beneficiariesResult ? beneficiariesResult.total : (stats?.totalDelayedBeneficiaries || 0)}
                 </span>
               </TabsTrigger>
 
