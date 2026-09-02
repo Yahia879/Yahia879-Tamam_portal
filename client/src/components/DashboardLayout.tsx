@@ -103,6 +103,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: FileText, label: isEn ? "Requests" : "الطلبات", path: "/requests" },
       { icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" },
       { icon: Clock, label: "تقويم المواعيد", path: "/field-visits/calendar" },
+      { icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" },
     ];
     groups.push({
       label: isEn ? "Mosques and Requests" : "المساجد والطلبات",
@@ -234,6 +235,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     mosqueItems.push({ icon: AlertTriangle, label: isEn ? "Admin Escalation" : "التصعيد الإداري", path: "/escalation" });
   }
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
+  if (has("beneficiary_evaluations.view") || has("beneficiary_evaluations") || has("beneficiary_satisfaction")) {
+    mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
+  }
   
   if (mosqueItems.length > 0) {
     groups.push({ 

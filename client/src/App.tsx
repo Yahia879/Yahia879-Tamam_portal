@@ -289,7 +289,7 @@ function Router() {
       <Route path="/field-visits/report/:requestId">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requester/requests/:id">{() => <RequesterRoute component={RequestDetails} />}</Route>
       <Route path="/requester/requests/:requestId/evaluation" component={RequestEvaluation} />
-      <Route path="/beneficiary-satisfaction">{() => <Redirect to="/analytics-hub?tab=beneficiary" />}</Route>
+      <Route path="/beneficiary-satisfaction">{() => <AdminRoute component={BeneficiarySatisfaction} />}</Route>
       
       {/* التصعيد الإداري ومتابعة التأخيرات */}
       <Route path="/escalation">{() => <AdminRoute component={Escalation} />}</Route>

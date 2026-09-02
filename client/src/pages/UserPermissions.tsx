@@ -621,7 +621,7 @@ export default function UserPermissions() {
         view: "عرض قسم التصعيد الإداري",
       },
       beneficiary_evaluations: {
-        view: "عرض تقييمات المستفيدين",
+        view: "عرض قسم رضا المستفيدين",
       },
       projects: {
         view: "عرض المشاريع",
@@ -793,6 +793,7 @@ export default function UserPermissions() {
         },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
       ]
     },
     {

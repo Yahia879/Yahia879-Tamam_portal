@@ -943,6 +943,7 @@ export default function RolePermissions() {
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
       ]
     },
     {
@@ -1107,7 +1108,7 @@ export default function RolePermissions() {
         view: "عرض قسم التصعيد الإداري",
       },
       beneficiary_evaluations: {
-        view: "عرض تقييمات المستفيدين",
+        view: "عرض قسم رضا المستفيدين",
       },
       projects: {
         view: "عرض المشاريع",

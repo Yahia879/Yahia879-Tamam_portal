@@ -669,7 +669,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "analytics_hub.beneficiary", moduleId: "analytics_hub", action: "beneficiary", nameAr: "عرض رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
       { id: "analytics_hub.operations", moduleId: "analytics_hub", action: "operations", nameAr: "عرض تقارير العمليات والمعاينات", nameEn: "View Operations & Pending Reports" },
       { id: "analytics_hub.progress", moduleId: "analytics_hub", action: "progress", nameAr: "عرض تقارير ونسب الإنجاز", nameEn: "View Progress Reports" },
-      { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض تقييمات المستفيدين", nameEn: "View Beneficiary Evaluations" },
+      { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض قسم رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
@@ -1081,6 +1081,20 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   } else {
     allPermissions.delete("escalation");
     allPermissions.delete("escalation.view");
+  }
+
+  if (revokedPermissions.has("beneficiary_evaluations.view") || revokedPermissions.has("beneficiary_evaluations") || revokedPermissions.has("beneficiary_satisfaction")) {
+    allPermissions.delete("beneficiary_evaluations");
+    allPermissions.delete("beneficiary_evaluations.view");
+    allPermissions.delete("beneficiary_satisfaction");
+  } else if (allPermissions.has("beneficiary_evaluations.view") || allPermissions.has("beneficiary_evaluations") || allPermissions.has("beneficiary_satisfaction")) {
+    allPermissions.add("beneficiary_evaluations");
+    allPermissions.add("beneficiary_evaluations.view");
+    allPermissions.add("beneficiary_satisfaction");
+  } else {
+    allPermissions.delete("beneficiary_evaluations");
+    allPermissions.delete("beneficiary_evaluations.view");
+    allPermissions.delete("beneficiary_satisfaction");
   }
 
 
