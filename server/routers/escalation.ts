@@ -223,7 +223,7 @@ export const escalationRouter = router({
         });
       }
 
-      return { success: true, message: "تم حفظ إعدادات مدد التصعيد بنجاح" };
+      return { success: true, message: "تم حفظ إعدادات مدة التصعيد بنجاح" };
     }),
 
   // استعادة الإعدادات الافتراضية
