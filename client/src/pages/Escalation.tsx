@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -35,18 +34,13 @@ import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import {
   AlertTriangle,
-  AlertCircle,
   Clock,
-  Settings,
   CheckCircle,
-  Filter,
   Search,
   FileText,
   Users,
   Building2,
   User,
-  Phone,
-  Calendar,
   RefreshCw,
   ExternalLink,
   Bell,
@@ -57,19 +51,12 @@ import {
   Send,
   Loader2,
   ChevronLeft,
-  ChevronRight,
-  TrendingUp,
-  BarChart3,
   Flame,
   Plus,
   Minus,
-  Sparkles,
-  Zap,
-  MapPin,
-  Tag,
-  StickyNote,
+  BarChart3,
 } from "lucide-react";
-import { STAGE_LABELS, PROGRAM_LABELS, PROGRAM_COLORS, getStageLabel } from "@shared/constants";
+import { STAGE_LABELS, PROGRAM_LABELS } from "@shared/constants";
 
 // تسميات صفة طالب الخدمة
 const REQUESTER_TYPE_LABELS: Record<string, string> = {
@@ -81,25 +68,25 @@ const REQUESTER_TYPE_LABELS: Record<string, string> = {
   other: "أخرى",
 };
 
-// ألوان شارات الخطورة المتوافقة تماماً مع ثيم الموقع
+// إعدادات مستويات التأخير
 const SEVERITY_CONFIG = {
   warning: {
     label: "تأخير خفيف (1-3 أيام)",
     bg: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800",
     color: "text-amber-700 dark:text-amber-400",
-    icon: <Clock className="w-3 h-3" />,
+    icon: <Clock className="w-3.5 h-3.5" />,
   },
   medium: {
     label: "تأخير متوسط (4-7 أيام)",
     bg: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800",
     color: "text-orange-700 dark:text-orange-400",
-    icon: <AlertTriangle className="w-3 h-3" />,
+    icon: <AlertTriangle className="w-3.5 h-3.5" />,
   },
   critical: {
     label: "تأخير حرج (> 7 أيام)",
     bg: "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800",
     color: "text-rose-700 dark:text-rose-400",
-    icon: <Flame className="w-3 h-3 text-rose-600 animate-pulse" />,
+    icon: <Flame className="w-3.5 h-3.5 text-rose-600 animate-pulse" />,
   },
 };
 
@@ -154,12 +141,11 @@ export default function EscalationPage() {
 
   const { 
     data: slaSettingsData, 
-    isLoading: isLoadingSettings, 
     refetch: refetchSettings 
   } = trpc.escalation.getSettings.useQuery();
 
-  // تعديل الإعدادات محلياً قبل الحفظ
-  const [draftStages, setDraftStages] = useState<Array<{ stageCode: string; stageName: string; durationDays: number; warningDays?: number; description?: string }>>([]);
+  // تعديل الإعدادات محلياً
+  const [draftStages, setDraftStages] = useState<Array<{ stageCode: string; stageName: string; durationDays: number; warningDays?: number }>>([]);
   const [draftBeneficiaryDays, setDraftBeneficiaryDays] = useState<number>(3);
 
   // تحديث الإعدادات
@@ -213,7 +199,6 @@ export default function EscalationPage() {
         stageName: s.stageName,
         durationDays: s.durationDays,
         warningDays: s.warningDays,
-        description: s.description,
       })));
       setDraftBeneficiaryDays(slaSettingsData.beneficiarySLA.durationDays);
     }
@@ -228,7 +213,7 @@ export default function EscalationPage() {
     });
   };
 
-  // إعادة تحميل جميع البيانات
+  // إعادة تحميل البيانات
   const handleRefreshAll = () => {
     refetchStats();
     refetchRequests();
@@ -268,8 +253,8 @@ export default function EscalationPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-full overflow-x-hidden" dir="rtl">
-        {/* Header - متطابق تماماً مع هيدر صفحة الطلبات Requests.tsx */}
+      <div className="space-y-6 max-w-full overflow-x-hidden text-right" dir="rtl">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
@@ -277,20 +262,20 @@ export default function EscalationPage() {
                 التصعيد الإداري
               </h1>
               <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs px-2.5 py-0.5">
-                متابعة الـ SLA
+                متابعة التأخير
               </Badge>
             </div>
             <p className="text-xs md:text-sm text-muted-foreground mt-1 break-words">
-              عرض ومتابعة الطلبات المتأخرة حسب المراحل الزمنية واعتماد المستفيدين المعلقين
+              عرض ومتابعة الطلبات المتأخرة حسب المراحل وطلبات المستفيدين المعلقة
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2.5 self-start sm:self-center">
             <Button
               variant="outline"
               size="sm"
               onClick={handleRefreshAll}
-              className="h-10 gap-1.5 shadow-2xs"
+              className="h-10 px-3.5 gap-2 shadow-2xs font-medium"
             >
               <RefreshCw className={`w-4 h-4 ${isLoadingRequests || isLoadingBeneficiaries ? "animate-spin" : ""}`} />
               <span>تحديث</span>
@@ -298,55 +283,51 @@ export default function EscalationPage() {
 
             <Button
               onClick={handleOpenSettings}
-              className="gradient-primary text-white gap-2 h-10 shadow-xs font-semibold"
+              className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
             >
               <SlidersHorizontal className="w-4 h-4" />
-              <span>تخصيص مدد التصعيد (SLA)</span>
+              <span>تخصيص مدة التصعيد</span>
             </Button>
           </div>
         </div>
 
-        {/* Stats Row - متطابق مع بطاقات الإحصائيات في Requests.tsx */}
+        {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
             {
-              label: "إجمالي العناصر المصعدة",
+              label: "إجمالي المتأخرات",
               value: stats?.totalDelayedItems || 0,
-              icon: <FileText className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: <FileText className="w-5 h-5" />,
               iconBg: "bg-primary/10 text-primary",
-              subtitle: "طلبات ومستفيدون",
             },
             {
               label: "الطلبات المتأخرة",
               value: stats?.totalDelayedRequests || 0,
-              icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: <Clock className="w-5 h-5" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
-              subtitle: "حسب المراحل",
             },
             {
               label: "مستفيدون معلقون",
               value: stats?.totalDelayedBeneficiaries || 0,
-              icon: <Users className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: <Users className="w-5 h-5" />,
               iconBg: "bg-teal-100 dark:bg-teal-950/40 text-teal-600",
-              subtitle: `مهلة ${slaSettingsData?.beneficiarySLA?.durationDays || 3} أيام`,
             },
             {
               label: "تأخير حرج (> 7 أيام)",
               value: stats?.criticalEscalations || 0,
-              icon: <Flame className="w-4 h-4 md:w-5 md:h-5" />,
+              icon: <Flame className="w-5 h-5" />,
               iconBg: "bg-rose-100 dark:bg-rose-950/40 text-rose-600",
-              subtitle: "يتطلب تدخلاً عاجلاً",
             },
           ].map((stat) => (
             <Card key={stat.label} className="border-0 shadow-xs overflow-hidden">
-              <CardContent className="p-3 md:p-4">
-                <div className="flex items-center gap-2 md:gap-3">
-                  <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center shrink-0 ${stat.iconBg}`}>
+              <CardContent className="p-4 md:p-5">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] md:text-xs text-muted-foreground truncate">{stat.label}</p>
-                    <p className="text-lg md:text-xl font-bold text-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate font-medium">{stat.label}</p>
+                    <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5">
                       {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
                     </p>
                   </div>
@@ -387,40 +368,40 @@ export default function EscalationPage() {
                 className="gap-2 px-4 py-2 text-xs md:text-sm data-[state=active]:bg-background data-[state=active]:shadow-xs rounded-lg font-medium"
               >
                 <BarChart3 className="w-4 h-4 text-primary" />
-                <span>خريطة المراحل والاختناقات</span>
+                <span>خريطة المراحل</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* شريط الفلاتر والبحث - متطابق مع Requests.tsx */}
+          {/* شريط الفلاتر والبحث */}
           <Card className="border-0 shadow-xs">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+            <CardContent className="p-4 md:p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
                 {/* البحث */}
                 <div className="sm:col-span-2 relative">
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <Search className="w-3 h-3" />
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <Search className="w-3.5 h-3.5" />
                     <span>البحث</span>
                   </label>
                   <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder={activeTab === "delayed-beneficiaries" ? "البحث بالاسم، الجوال، الهوية، المدينة..." : "رقم الطلب أو اسم المسجد أو طالب الخدمة..."}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="h-10 w-full pr-10 text-xs md:text-sm"
+                      className="h-10 w-full pr-10 pl-3 text-xs md:text-sm text-right"
                     />
                   </div>
                 </div>
 
                 {/* الفلاتر المنسدلة */}
-                <div className="grid grid-cols-2 gap-2 sm:col-span-2">
+                <div className="grid grid-cols-2 gap-3 sm:col-span-2">
                   {activeTab === "delayed-requests" ? (
                     <>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">البرنامج</label>
                         <Select value={programFilter} onValueChange={setProgramFilter}>
-                          <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                          <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
                             <SelectValue placeholder="البرنامج" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -435,7 +416,7 @@ export default function EscalationPage() {
                       <div>
                         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">المرحلة</label>
                         <Select value={stageFilter} onValueChange={setStageFilter}>
-                          <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                          <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
                             <SelectValue placeholder="المرحلة" />
                           </SelectTrigger>
                           <SelectContent dir="rtl">
@@ -450,33 +431,31 @@ export default function EscalationPage() {
                       </div>
                     </>
                   ) : (
-                    <>
-                      <div className="col-span-2">
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">مستوى التأخير</label>
-                        <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)}>
-                          <SelectTrigger className="w-full h-10 text-xs md:text-sm">
-                            <SelectValue placeholder="مستوى التأخير" />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl">
-                            <SelectItem value="all">كل المستويات</SelectItem>
-                            <SelectItem value="warning">تأخير خفيف (1-3 أيام)</SelectItem>
-                            <SelectItem value="medium">تأخير متوسط (4-7 أيام)</SelectItem>
-                            <SelectItem value="critical">تأخير حرج (&gt; 7 أيام)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">مستوى التأخير</label>
+                      <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)}>
+                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                          <SelectValue placeholder="مستوى التأخير" />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          <SelectItem value="all">كل المستويات</SelectItem>
+                          <SelectItem value="warning">تأخير خفيف (1-3 أيام)</SelectItem>
+                          <SelectItem value="medium">تأخير متوسط (4-7 أيام)</SelectItem>
+                          <SelectItem value="critical">تأخير حرج (&gt; 7 أيام)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* أشرطة المراحل السريعة (Pills) */}
               {activeTab === "delayed-requests" && slaSettingsData && (
-                <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-border">
+                <div className="flex flex-wrap items-center gap-2 mt-4 pt-3.5 border-t border-border">
                   <span className="text-xs text-muted-foreground font-medium ml-1">تصفية المراحل:</span>
                   <button
                     onClick={() => setStageFilter("all")}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                       stageFilter === "all"
                         ? "bg-foreground text-background shadow-xs"
                         : "bg-muted hover:bg-muted/80 text-muted-foreground"
@@ -491,7 +470,7 @@ export default function EscalationPage() {
                       <button
                         key={stg.stageCode}
                         onClick={() => setStageFilter(stg.stageCode)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
+                        className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all ${
                           stageFilter === stg.stageCode
                             ? "bg-primary text-primary-foreground shadow-xs"
                             : "bg-muted hover:bg-muted/80 text-foreground"
@@ -509,28 +488,28 @@ export default function EscalationPage() {
             </CardContent>
           </Card>
 
-          {/* تبويب 1: قائمة الطلبات المتأخرة - مطابقة لتصميم جدول/صفوف /requests */}
+          {/* تبويب 1: قائمة الطلبات المتأخرة */}
           <TabsContent value="delayed-requests" className="space-y-4">
             <Card className="border-0 shadow-xs overflow-hidden">
               {isLoadingRequests ? (
                 <div className="p-12 text-center">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-muted-foreground mt-4 text-sm">جاري جلب الطلبات المتأخرة وحساب مدد الـ SLA...</p>
+                  <p className="text-muted-foreground mt-4 text-sm">جاري جلب الطلبات المتأخرة...</p>
                 </div>
               ) : sortedRequests.length > 0 ? (
                 <div>
-                  {/* Table Header (Desktop Only) - نفس تقسيم وأبعاد /requests */}
-                  <div className="hidden md:grid grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {/* Table Header (Desktop Only) */}
+                  <div className="hidden md:grid grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                     <div className="w-8"></div>
                     <div>الطلب</div>
                     <div>المسجد</div>
                     <div>المرحلة والمسؤول</div>
-                    <div>مدة المرحلة / المنقضي</div>
+                    <div>المدة المنقضية</div>
                     <div>مستوى التأخير</div>
-                    <div className="w-24 text-center">الإجراءات</div>
+                    <div className="w-24 text-left pl-2">الإجراءات</div>
                   </div>
 
-                  {/* صفوف الطلبات - نفس التصميم التفاعلي في /requests */}
+                  {/* صفوف الطلبات */}
                   <div className="divide-y divide-border">
                     {sortedRequests.map((req) => {
                       const severity = SEVERITY_CONFIG[req.severity];
@@ -540,7 +519,7 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={req.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.4fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
                           onClick={() => navigate(`/requests/${req.id}`)}
                         >
                           {/* Desktop: Program Icon */}
@@ -566,7 +545,7 @@ export default function EscalationPage() {
                               </div>
                             </div>
                             <div className="md:hidden shrink-0 text-left">
-                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${severity.bg} ${severity.color}`}>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${severity.bg} ${severity.color}`}>
                                 {severity.icon}
                                 <span>متأخر {req.delayDays} يوم</span>
                               </span>
@@ -583,10 +562,10 @@ export default function EscalationPage() {
 
                           {/* Stage & Responsible (Desktop) */}
                           <div className="hidden md:block min-w-0">
-                            <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
+                            <Badge variant="outline" className="text-xs font-medium py-0.5">
                               {stageLabel}
                             </Badge>
-                            <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
                               {req.responsibleText}
                             </p>
                           </div>
@@ -607,7 +586,7 @@ export default function EscalationPage() {
 
                           {/* Delay Status Badge (Desktop) */}
                           <div className="hidden md:block shrink-0">
-                            <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
                               {severity.icon}
                               <span>متأخر {req.delayDays} يوماً</span>
                             </span>
@@ -633,7 +612,7 @@ export default function EscalationPage() {
                                       setAlertCustomMessage(`تنبيه بخصوص تأخر الطلب ${req.requestNumber} بمقدار ${req.delayDays} يوم في مرحلة (${stageLabel}). يرجى اتخاذ الإجراء اللازم.`);
                                       setAlertModalOpen(true);
                                     }}
-                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 rounded-lg"
                                   >
                                     <Bell className="w-4 h-4" />
                                   </Button>
@@ -652,7 +631,7 @@ export default function EscalationPage() {
                                       setSelectedRequestId(req.id);
                                       setDetailsModalOpen(true);
                                     }}
-                                    className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:bg-muted rounded-lg"
                                   >
                                     <Eye className="w-4 h-4" />
                                   </Button>
@@ -665,7 +644,7 @@ export default function EscalationPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 px-2.5 text-xs text-primary border-primary/20 hover:bg-primary/10 gap-1"
+                                className="h-8 px-3 text-xs text-primary border-primary/20 hover:bg-primary/10 gap-1 rounded-lg"
                               >
                                 <span>فتح</span>
                                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -674,7 +653,7 @@ export default function EscalationPage() {
                           </div>
 
                           {/* Mobile Detailed View */}
-                          <div className="md:hidden flex flex-col gap-2 pt-1 border-t border-border/50 text-xs">
+                          <div className="md:hidden flex flex-col gap-2 pt-2 border-t border-border/50 text-xs">
                             <div className="flex items-center justify-between text-muted-foreground">
                               <span>المرحلة: <strong className="text-foreground">{stageLabel}</strong></span>
                               <span>المسؤول: {req.responsibleText}</span>
@@ -696,7 +675,7 @@ export default function EscalationPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">لا توجد طلبات متأخرة حالياً</h3>
                   <p className="text-xs md:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    جميع الطلبات النشطة تسير وفق المدد الزمنية المحددة في معايير مستوى الخدمة (SLA).
+                    جميع الطلبات النشطة تسير وفق المدد الزمنية المحددة.
                   </p>
                 </div>
               )}
@@ -709,19 +688,19 @@ export default function EscalationPage() {
               {isLoadingBeneficiaries ? (
                 <div className="p-12 text-center">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-muted-foreground mt-4 text-sm">جاري مراجعة طالبي الخدمة الجدد...</p>
+                  <p className="text-muted-foreground mt-4 text-sm">جاري جلب المستفيدين المعلقين...</p>
                 </div>
               ) : sortedBeneficiaries.length > 0 ? (
                 <div>
                   {/* Table Header */}
-                  <div className="hidden md:grid grid-cols-[auto_1.5fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  <div className="hidden md:grid grid-cols-[auto_1.5fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                     <div className="w-8"></div>
                     <div>طالب الخدمة</div>
                     <div>الصفة والمدينة</div>
                     <div>الهوية والجوال</div>
                     <div>تاريخ التسجيل والمنقضي</div>
                     <div>مستوى التأخير</div>
-                    <div className="w-24 text-center">الإجراءات</div>
+                    <div className="w-24 text-left pl-2">الإجراءات</div>
                   </div>
 
                   {/* Rows */}
@@ -732,7 +711,7 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={ben.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.5fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.5fr_1.1fr_1.1fr_1.2fr_1.1fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center text-right"
                         >
                           {/* User Avatar */}
                           <div className="hidden md:flex w-8 justify-center shrink-0">
@@ -749,7 +728,7 @@ export default function EscalationPage() {
 
                           {/* Role & City */}
                           <div className="hidden md:block min-w-0">
-                            <Badge variant="outline" className="text-2xs bg-teal-50/50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200">
+                            <Badge variant="outline" className="text-xs bg-teal-50/50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200">
                               {REQUESTER_TYPE_LABELS[ben.requesterType || ""] || ben.requesterType || "طالب خدمة"}
                             </Badge>
                             <p className="text-xs text-muted-foreground mt-1 truncate">{ben.city || "—"}</p>
@@ -767,14 +746,14 @@ export default function EscalationPage() {
                               <span>منذ: <strong className="text-foreground">{ben.elapsedDays}</strong> يوم</span>
                               <span>(المهلة: {ben.allowedDays} د)</span>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-1">
+                            <p className="text-2xs text-muted-foreground mt-1">
                               سُجل في: {new Date(ben.createdAt).toLocaleDateString("ar-SA")}
                             </p>
                           </div>
 
                           {/* Delay Status Badge */}
                           <div className="hidden md:block shrink-0">
-                            <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
+                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border ${severity.bg} ${severity.color}`}>
                               {severity.icon}
                               <span>متأخر {ben.delayDays} يوماً</span>
                             </span>
@@ -790,7 +769,7 @@ export default function EscalationPage() {
                                       href={ben.proofDocument}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
                                     >
                                       <ExternalLink className="w-4 h-4" />
                                     </a>
@@ -815,7 +794,7 @@ export default function EscalationPage() {
                                       setAlertCustomMessage(`تنبيه بخصوص تأخر اعتماد تسجيل المستفيد ${ben.name} المسجل منذ ${ben.elapsedDays} يوماً.`);
                                       setAlertModalOpen(true);
                                     }}
-                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50"
+                                    className="h-8 w-8 p-0 text-amber-600 hover:bg-amber-50 rounded-lg"
                                   >
                                     <Bell className="w-4 h-4" />
                                   </Button>
@@ -827,7 +806,7 @@ export default function EscalationPage() {
                             <Link href="/requester-approvals">
                               <Button
                                 size="sm"
-                                className="h-8 px-3 text-xs gradient-primary text-white gap-1"
+                                className="h-8 px-3 text-xs gradient-primary text-white gap-1 rounded-lg"
                               >
                                 <span>مراجعة</span>
                                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -836,7 +815,7 @@ export default function EscalationPage() {
                           </div>
 
                           {/* Mobile View details */}
-                          <div className="md:hidden flex flex-col gap-1.5 pt-1 border-t border-border/50 text-xs">
+                          <div className="md:hidden flex flex-col gap-1.5 pt-2 border-t border-border/50 text-xs">
                             <div className="flex items-center justify-between">
                               <span>الصفة: {REQUESTER_TYPE_LABELS[ben.requesterType || ""] || "طالب خدمة"}</span>
                               <span className="font-mono text-muted-foreground" dir="ltr">{ben.phone}</span>
@@ -858,24 +837,24 @@ export default function EscalationPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">لا يوجد مستفيدون معلقون متأخرون</h3>
                   <p className="text-xs md:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    جميع طلبات تسجيل المستفيدين الجدد تمت مراجعتها ضمن المهلة المحددة ({slaSettingsData?.beneficiarySLA?.durationDays || 3} أيام).
+                    جميع طلبات تسجيل المستفيدين تمت مراجعتها ضمن المهلة المحددة ({slaSettingsData?.beneficiarySLA?.durationDays || 3} أيام).
                   </p>
                 </div>
               )}
             </Card>
           </TabsContent>
 
-          {/* تبويب 3: خريطة المراحل والاختناقات */}
+          {/* تبويب 3: خريطة المراحل */}
           <TabsContent value="sla-overview" className="space-y-4">
             <Card className="border-0 shadow-xs">
-              <CardContent className="p-6 space-y-4">
+              <CardContent className="p-5 md:p-6 space-y-4">
                 <div className="border-b border-border pb-3">
                   <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-primary" />
-                    <span>تحليل نقاط الاختناق في مراحل الطلبات (SLA Bottlenecks)</span>
+                    <span>متابعة تأخير المراحل</span>
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    يوضح المخطط أدناه عدد الطلبات المتأخرة في كل مرحلة مقارنة بالمدة الزمنية المعتمدة
+                    عدد الطلبات المتأخرة في كل مرحلة مقارنة بالمدة الزمنية المعتمدة
                   </p>
                 </div>
 
@@ -886,14 +865,14 @@ export default function EscalationPage() {
                     const percentage = Math.round((delayedCount / maxCount) * 100);
 
                     return (
-                      <div key={stg.stageCode} className="p-3 bg-muted/40 rounded-xl border border-border/50 space-y-2">
+                      <div key={stg.stageCode} className="p-3.5 bg-muted/40 rounded-xl border border-border/50 space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2">
                             <span className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-2xs">
                               {stg.stageOrder}
                             </span>
                             <span className="font-bold text-foreground">{stg.stageName}</span>
-                            <span className="text-muted-foreground">({stg.durationDays} أيام كحد أقصى)</span>
+                            <span className="text-muted-foreground">({stg.durationDays} أيام)</span>
                           </div>
                           <div>
                             {delayedCount > 0 ? (
@@ -915,8 +894,6 @@ export default function EscalationPage() {
                             style={{ width: `${Math.max(delayedCount > 0 ? 8 : 0, percentage)}%` }}
                           />
                         </div>
-
-                        <p className="text-2xs text-muted-foreground">{stg.description}</p>
                       </div>
                     );
                   })}
@@ -927,103 +904,86 @@ export default function EscalationPage() {
         </Tabs>
 
         {/* ========================================================================= */}
-        {/* نافذة تخصيص الوقت الكبيرة والواضحة (Large & Polished SLA Settings Dialog) */}
+        {/* نافذة تخصيص مدة التصعيد (بسيطة ونظيفة وبدون حشو) */}
         {/* ========================================================================= */}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6 md:p-8" dir="rtl">
-            <DialogHeader className="border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 text-primary rounded-xl">
-                  <SlidersHorizontal className="w-6 h-6" />
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto p-5 md:p-6" dir="rtl">
+            <DialogHeader className="border-b border-border pb-3 text-right">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-primary/10 text-primary rounded-lg">
+                  <SlidersHorizontal className="w-5 h-5" />
                 </div>
-                <div>
-                  <DialogTitle className="text-xl font-bold text-foreground">
-                    تخصيص مدد التصعيد الإداري ومستويات الخدمة (SLA)
-                  </DialogTitle>
-                  <DialogDescription className="text-xs md:text-sm text-muted-foreground mt-1">
-                    حدد عدد الأيام المسموحة لكل مرحلة قبل أن يُعتبر الطلب متأخراً، بالإضافة إلى مهلة قبول تسجيل المستفيدين الجدد.
-                  </DialogDescription>
-                </div>
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  تخصيص مدة التصعيد
+                </DialogTitle>
               </div>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              {/* قسم 1: مهلة قبول المستفيدين الجدد (بطاقة بارزة وواضحة) */}
-              <div className="p-5 bg-teal-50/70 dark:bg-teal-950/30 rounded-2xl border border-teal-200/80 dark:border-teal-800/60 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-3.5">
-                    <div className="p-2.5 bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 rounded-xl mt-0.5">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm md:text-base font-bold text-teal-950 dark:text-teal-100">
-                        مهلة مراجعة واعتماد طلبات تسجيل المستفيدين
-                      </h4>
-                      <p className="text-xs text-teal-700 dark:text-teal-300 mt-1 max-w-xl leading-relaxed">
-                        يظهر المستفيد تلقائياً في قائمة المتأخرين إذا تجاوزت مدة تسجيله هذه المهلة دون اتخاذ قرار بقبوله من قبل إدارة المستفيدين.
-                      </p>
-                    </div>
+            <div className="space-y-5 py-3">
+              {/* 1. مهلة قبول تسجيل المستفيد */}
+              <div className="p-4 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-300 rounded-lg">
+                    <Users className="w-4 h-4" />
                   </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground">مهلة قبول تسجيل المستفيد</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">عدد الأيام المسموحة لمراجعة حساب طالب الخدمة</p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-2 bg-background p-1.5 rounded-xl border border-teal-300/60 dark:border-teal-700 shrink-0 self-end sm:self-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
-                      className="h-8 w-8 p-0 rounded-lg hover:bg-muted"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={draftBeneficiaryDays}
-                      onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
-                      className="w-16 text-center font-bold text-base h-8 border-0 shadow-none focus-visible:ring-0 p-0"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
-                      className="h-8 w-8 p-0 rounded-lg hover:bg-muted"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <span className="text-xs font-bold text-teal-900 dark:text-teal-200 px-2">أيام</span>
-                  </div>
+                <div className="flex items-center gap-1.5 bg-background p-1 rounded-lg border border-border shrink-0">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDraftBeneficiaryDays(prev => Math.max(1, prev - 1))}
+                    className="h-7 w-7 p-0 rounded hover:bg-muted"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={draftBeneficiaryDays}
+                    onChange={(e) => setDraftBeneficiaryDays(parseInt(e.target.value) || 1)}
+                    className="w-12 text-center font-bold text-sm h-7 border-0 shadow-none focus-visible:ring-0 p-0"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDraftBeneficiaryDays(prev => Math.min(60, prev + 1))}
+                    className="h-7 w-7 p-0 rounded hover:bg-muted"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground px-1.5 font-medium">أيام</span>
                 </div>
               </div>
 
-              {/* قسم 2: مدد مراحل الطلبات العشر (Grid بتصميم أنيق ومنسق) */}
+              {/* 2. مدد مراحل الطلبات العشر */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-primary" />
-                    <span>المدد الزمنية المسموحة لمراحل الطلبات (SLA):</span>
-                  </h4>
-                  <span className="text-xs text-muted-foreground font-medium">10 مراحل عمل معتمدة</span>
-                </div>
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <span>مدد مراحل الطلبات:</span>
+                </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {draftStages.map((stg, index) => (
                     <div 
                       key={stg.stageCode} 
-                      className="p-4 bg-muted/30 hover:bg-muted/60 transition-colors rounded-xl border border-border flex items-center justify-between gap-3"
+                      className="p-3 bg-muted/30 rounded-xl border border-border flex items-center justify-between gap-3"
                     >
-                      <div className="flex items-start gap-3 min-w-0">
-                        <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
                           {index + 1}
                         </span>
-                        <div className="min-w-0">
-                          <h5 className="text-xs md:text-sm font-bold text-foreground truncate">{stg.stageName}</h5>
-                          <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{stg.description}</p>
-                        </div>
+                        <span className="text-xs font-bold text-foreground truncate">{stg.stageName}</span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0 bg-background p-1 rounded-lg border border-border">
+                      <div className="flex items-center gap-1 bg-background p-0.5 rounded-lg border border-border shrink-0">
                         <Button
                           type="button"
                           variant="ghost"
@@ -1033,9 +993,9 @@ export default function EscalationPage() {
                               idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
                             ));
                           }}
-                          className="h-7 w-7 p-0 rounded hover:bg-muted"
+                          className="h-6 w-6 p-0 rounded hover:bg-muted"
                         >
-                          <Minus className="w-3.5 h-3.5" />
+                          <Minus className="w-3 h-3" />
                         </Button>
 
                         <Input
@@ -1047,7 +1007,7 @@ export default function EscalationPage() {
                             const val = parseInt(e.target.value) || 0;
                             setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
                           }}
-                          className="w-12 text-center font-bold text-xs h-7 border-0 shadow-none focus-visible:ring-0 p-0"
+                          className="w-10 text-center font-bold text-xs h-6 border-0 shadow-none focus-visible:ring-0 p-0"
                         />
 
                         <Button
@@ -1059,12 +1019,12 @@ export default function EscalationPage() {
                               idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
                             ));
                           }}
-                          className="h-7 w-7 p-0 rounded hover:bg-muted"
+                          className="h-6 w-6 p-0 rounded hover:bg-muted"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3" />
                         </Button>
 
-                        <span className="text-xs text-muted-foreground px-1">يوم</span>
+                        <span className="text-2xs text-muted-foreground px-1">يوم</span>
                       </div>
                     </div>
                   ))}
@@ -1108,7 +1068,7 @@ export default function EscalationPage() {
                       <span>جاري الحفظ...</span>
                     </>
                   ) : (
-                    <span>حفظ وتطبيق التغييرات</span>
+                    <span>حفظ التغييرات</span>
                   )}
                 </Button>
               </div>
@@ -1116,26 +1076,23 @@ export default function EscalationPage() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة إرسال تنبيه تصعيدي (Alert Modal) */}
+        {/* نافذة إرسال تنبيه تصعيدي */}
         <Dialog open={alertModalOpen} onOpenChange={setAlertModalOpen}>
           <DialogContent className="max-w-md" dir="rtl">
-            <DialogHeader>
+            <DialogHeader className="text-right">
               <DialogTitle className="flex items-center gap-2 text-base font-bold">
                 <Bell className="w-5 h-5 text-amber-600" />
                 <span>إرسال تنبيه تصعيد إداري</span>
               </DialogTitle>
-              <DialogDescription>
-                {alertTarget?.title}
-              </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-3">
-              <Label className="text-xs font-semibold">نص التنبيه:</Label>
+            <div className="space-y-3 py-2 text-right">
+              <p className="text-xs font-bold text-foreground">{alertTarget?.title}</p>
               <textarea
                 value={alertCustomMessage}
                 onChange={(e) => setAlertCustomMessage(e.target.value)}
                 rows={4}
-                className="w-full text-xs p-3 rounded-lg border border-border bg-background focus:outline-hidden focus:ring-2 focus:ring-primary"
+                className="w-full text-xs p-3 rounded-lg border border-border bg-background focus:outline-hidden focus:ring-2 focus:ring-primary text-right"
                 placeholder="أدخل رسالة التنبيه المخصصة..."
               />
             </div>
@@ -1168,13 +1125,13 @@ export default function EscalationPage() {
                 ) : (
                   <Send className="w-3.5 h-3.5" />
                 )}
-                <span>إرسال التنبيه الآن</span>
+                <span>إرسال التنبيه</span>
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* نافذة تفاصيل الطلب السريعة (RequestDetailsModal) */}
+        {/* نافذة تفاصيل الطلب السريعة */}
         {selectedRequestId && (
           <RequestDetailsModal
             requestId={selectedRequestId}
