@@ -701,7 +701,7 @@ export default function EscalationPage() {
                   </div>
                   <h3 className="text-base font-bold text-foreground">لا توجد طلبات متأخرة حالياً</h3>
                   <p className="text-xs md:text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                    جميع الطلبات النشطة تسير وفق المدد الزمنية المحددة.
+                    جميع الطلبات النشطة تسير وفق المدة الزمنية المحددة.
                   </p>
                 </div>
               )}
