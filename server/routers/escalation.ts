@@ -376,10 +376,12 @@ export const escalationRouter = router({
                              latestTransitionByReqStage.get(`${req.id}_${stageKey}`) ||
                              new Date(req.updatedAt || req.createdAt);
 
-      const elapsedDays = Math.max(0, Math.floor((now.getTime() - stageEntryDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const diffMs = now.getTime() - stageEntryDate.getTime();
+      const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
 
-      if (elapsedDays > allowedDays) {
-        const delayDays = elapsedDays - allowedDays;
+      if (diffMs > allowedMs) {
+        const delayMs = diffMs - allowedMs;
+        const delayDays = Math.max(1, Math.ceil(delayMs / (1000 * 60 * 60 * 24)));
         totalDelayedRequests++;
         sumDelayDays += delayDays;
 
@@ -412,9 +414,12 @@ export const escalationRouter = router({
 
     for (const ben of pendingRequesters) {
       const regDate = new Date(ben.createdAt);
-      const elapsedDays = Math.max(0, Math.floor((now.getTime() - regDate.getTime()) / (1000 * 60 * 60 * 24)));
-      if (elapsedDays > beneficiaryAllowedDays) {
-        const delayDays = elapsedDays - beneficiaryAllowedDays;
+      const diffMs = now.getTime() - regDate.getTime();
+      const allowedMs = beneficiaryAllowedDays * 24 * 60 * 60 * 1000;
+
+      if (diffMs > allowedMs) {
+        const delayMs = diffMs - allowedMs;
+        const delayDays = Math.max(1, Math.ceil(delayMs / (1000 * 60 * 60 * 24)));
         totalDelayedBeneficiaries++;
         if (delayDays > 7) {
           criticalDelayedBeneficiaries++;
@@ -443,6 +448,7 @@ export const escalationRouter = router({
       programType: z.string().optional(),
       severity: z.enum(["all", "warning", "medium", "critical"]).optional(),
       search: z.string().optional(),
+      sortBy: z.enum(["delay_desc", "delay_asc", "created_desc"]).optional(),
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -531,10 +537,13 @@ export const escalationRouter = router({
                                latestTransitionByReqStage.get(`${req.id}_${normalizedStage}`) ||
                                new Date(req.updatedAt || req.createdAt);
 
-        const elapsedDays = Math.max(0, Math.floor((now.getTime() - stageEntryDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const diffMs = now.getTime() - stageEntryDate.getTime();
+        const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
 
-        if (elapsedDays > allowedDays) {
-          const delayDays = elapsedDays - allowedDays;
+        if (diffMs > allowedMs) {
+          const delayMs = diffMs - allowedMs;
+          const delayDays = Math.max(1, Math.ceil(delayMs / (1000 * 60 * 60 * 24)));
+          const elapsedDays = Math.max(allowedDays + 1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
           const severity = getSeverityLevel(delayDays);
 
           let parsedProgramData: any = null;
@@ -575,11 +584,14 @@ export const escalationRouter = router({
             const term = input.search.toLowerCase().trim();
             const matchNumber = req.requestNumber?.toLowerCase().includes(term);
             const matchMosque = effectiveMosqueName.toLowerCase().includes(term);
+            const matchCity = effectiveMosqueCity.toLowerCase().includes(term);
+            const matchDistrict = effectiveMosqueDistrict.toLowerCase().includes(term);
             const matchProject = row.projectName?.toLowerCase().includes(term);
             const matchUser = row.requesterName?.toLowerCase().includes(term);
             const matchPhone = row.requesterPhone?.toLowerCase().includes(term);
+            const matchEmail = row.requesterEmail?.toLowerCase().includes(term);
             const matchDescriptive = req.descriptiveName?.toLowerCase().includes(term);
-            if (!matchNumber && !matchMosque && !matchProject && !matchUser && !matchPhone && !matchDescriptive) {
+            if (!matchNumber && !matchMosque && !matchCity && !matchDistrict && !matchProject && !matchUser && !matchPhone && !matchEmail && !matchDescriptive) {
               continue;
             }
           }
@@ -622,8 +634,15 @@ export const escalationRouter = router({
         }
       }
 
-      // ترتيب تنازلي حسب أيام التأخير (الأكثر تأخيراً أولاً)
-      delayedList.sort((a, b) => b.delayDays - a.delayDays);
+      // فرز القائمة من الخادم بناءً على sortBy
+      const sortBy = input?.sortBy || "delay_desc";
+      if (sortBy === "delay_desc") {
+        delayedList.sort((a, b) => b.delayDays - a.delayDays);
+      } else if (sortBy === "delay_asc") {
+        delayedList.sort((a, b) => a.delayDays - b.delayDays);
+      } else if (sortBy === "created_desc") {
+        delayedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
 
       return delayedList;
     }),
@@ -632,7 +651,9 @@ export const escalationRouter = router({
   getDelayedBeneficiaries: protectedProcedure
     .input(z.object({
       severity: z.enum(["all", "warning", "medium", "critical"]).optional(),
+      requesterType: z.string().optional(),
       search: z.string().optional(),
+      sortBy: z.enum(["delay_desc", "delay_asc", "created_desc"]).optional(),
     }).optional())
     .query(async ({ input }) => {
       const db = await getDb();
@@ -675,13 +696,20 @@ export const escalationRouter = router({
 
       for (const u of pendingUsers) {
         const regDate = new Date(u.createdAt);
-        const elapsedDays = Math.max(0, Math.floor((now.getTime() - regDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const diffMs = now.getTime() - regDate.getTime();
+        const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
 
-        if (elapsedDays > allowedDays) {
-          const delayDays = elapsedDays - allowedDays;
+        if (diffMs > allowedMs) {
+          const delayMs = diffMs - allowedMs;
+          const delayDays = Math.max(1, Math.ceil(delayMs / (1000 * 60 * 60 * 24)));
+          const elapsedDays = Math.max(allowedDays + 1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
           const severity = getSeverityLevel(delayDays);
 
           if (input?.severity && input.severity !== "all" && severity !== input.severity) {
+            continue;
+          }
+
+          if (input?.requesterType && input.requesterType !== "all" && u.requesterType !== input.requesterType) {
             continue;
           }
 
@@ -692,10 +720,15 @@ export const escalationRouter = router({
             const matchNationalId = u.nationalId?.toLowerCase().includes(term);
             const matchEmail = u.email?.toLowerCase().includes(term);
             const matchCity = u.city?.toLowerCase().includes(term);
-            if (!matchName && !matchPhone && !matchNationalId && !matchEmail && !matchCity) {
+            const matchType = u.requesterType?.toLowerCase().includes(term);
+            if (!matchName && !matchPhone && !matchNationalId && !matchEmail && !matchCity && !matchType) {
               continue;
             }
           }
+
+          const totalElapsedHours = Math.floor(diffMs / (1000 * 60 * 60));
+          const elapsedDaysOnly = Math.floor(totalElapsedHours / 24);
+          const elapsedHoursOnly = totalElapsedHours % 24;
 
           delayedBeneficiaries.push({
             id: u.id,
@@ -710,6 +743,9 @@ export const escalationRouter = router({
             createdAt: u.createdAt,
             allowedDays,
             elapsedDays,
+            elapsedDaysOnly,
+            elapsedHoursOnly,
+            totalElapsedHours,
             delayDays,
             severity,
             adminNotes: u.adminNotes,
@@ -718,8 +754,15 @@ export const escalationRouter = router({
         }
       }
 
-      // ترتيب تنازلي حسب أيام التأخير
-      delayedBeneficiaries.sort((a, b) => b.delayDays - a.delayDays);
+      // ترتيب قائمة المستفيدين بناءً على خيار الفرز
+      const sortBy = input?.sortBy || "delay_desc";
+      if (sortBy === "delay_desc") {
+        delayedBeneficiaries.sort((a, b) => b.delayDays - a.delayDays);
+      } else if (sortBy === "delay_asc") {
+        delayedBeneficiaries.sort((a, b) => a.delayDays - b.delayDays);
+      } else if (sortBy === "created_desc") {
+        delayedBeneficiaries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      }
 
       return delayedBeneficiaries;
     }),
