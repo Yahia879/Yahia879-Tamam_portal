@@ -1033,19 +1033,14 @@ export default function EscalationPage() {
           <TabsContent value="sla-overview" className="space-y-4" dir="rtl">
             <Card className="border-0 shadow-xs">
               <CardContent className="p-5 md:p-6 space-y-4 text-right">
-                <div className="border-b border-border pb-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-primary" />
-                      <span>المدد المعتمدة للتأخير (SLA)</span>
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      المهل الزمنية المحددة لكل مرحلة من مراحل الطلب واعتماد المستفيدين قبل احتساب التأخير والدخول في مسار التصعيد الإداري
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="px-2.5 py-1 text-2xs font-semibold bg-muted/50 self-start sm:self-center font-mono">
-                    SLA Standards
-                  </Badge>
+                <div className="border-b border-border pb-3.5 text-right">
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <span>المدد المعتمدة للتأخير (SLA)</span>
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    المهل الزمنية المحددة لكل مرحلة من مراحل الطلب واعتماد المستفيدين قبل احتساب التأخير والدخول في مسار التصعيد الإداري
+                  </p>
                 </div>
 
                 <div className="space-y-2.5">
