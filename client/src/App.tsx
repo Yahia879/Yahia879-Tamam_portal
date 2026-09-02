@@ -138,6 +138,7 @@ import FormsCustomizationRegistration from "./pages/FormsCustomizationRegistrati
 import FormsCustomizationRegistrationDetail from "./pages/FormsCustomizationRegistrationDetail";
 import FormsCustomizationAnalytics from "./pages/FormsCustomizationAnalytics";
 import FormsCustomizationOption2 from "./pages/FormsCustomizationOption2";
+import FormsCustomizationEscalation from "./pages/FormsCustomizationEscalation";
 import SupportTickets from "./pages/SupportTickets";
 import AdminGuard from "./components/AdminGuard";
 import GuestGuard from "./components/GuestGuard";
@@ -419,6 +420,7 @@ function Router() {
       <Route path="/forms-customization/registration/:formId">{() => <AdminRoute component={FormsCustomizationRegistrationDetail} />}</Route>
       <Route path="/forms-customization/analytics">{() => <AdminRoute component={FormsCustomizationAnalytics} />}</Route>
       <Route path="/forms-customization/option-2">{() => <AdminRoute component={FormsCustomizationOption2} />}</Route>
+      <Route path="/forms-customization/escalation">{() => <AdminRoute component={FormsCustomizationEscalation} />}</Route>
       <Route path="/notifications/customization">{() => <AdminRoute component={NotificationCustomization} />}</Route>
       <Route path="/support">
         {() => (
