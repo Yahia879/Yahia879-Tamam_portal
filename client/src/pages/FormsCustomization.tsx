@@ -64,8 +64,8 @@ export default function FormsCustomization() {
     },
     {
       id: "escalation",
-      title: "تخصيص مدة التصعيد ومُهل الـ SLA",
-      subtitle: "تحديد وضبط المدد الزمنية القصوى لكل مرحلة من مراحل الطلبات ومهلة قبول تسجيل المستفيدين",
+      title: "تخصيص مدة التصعيد",
+      subtitle: "تحديد المدد الزمنية لمراحل الطلبات ومهلة قبول تسجيل المستفيدين",
       path: "/forms-customization/escalation",
       icon: Clock,
       iconColor: "text-rose-500 bg-rose-50 dark:bg-rose-950/40",
