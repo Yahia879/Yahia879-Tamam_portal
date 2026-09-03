@@ -103,6 +103,25 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
         console.error("Failed to send email survey notification in background:", e);
       });
     }
+
+    // 3. تسجيل عملية الإرسال في سجل التدقيق (audit_logs)
+    await db.insert(auditLogs).values({
+      userId: beneficiary.id,
+      action: "survey_dispatched_on_closed",
+      entityType: "request",
+      entityId: request.id,
+      newValues: JSON.stringify({
+        dispatchType: "request_closed",
+        dispatchTypeLabel: "إرسال تلقائي عند انتهاء الطلب",
+        requestId: request.id,
+        requestNumber: request.requestNumber,
+        programType: request.programType,
+        mosqueName: null,
+        recipientName: beneficiary.name || "",
+        recipientEmail: beneficiary.email || "",
+        dispatchedAt: new Date().toISOString(),
+      }),
+    });
   } catch (error) {
     console.error("Error triggering beneficiary satisfaction survey:", error);
   }
@@ -4344,6 +4363,7 @@ export const requestsRouter = router({
         const evaluationUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${row.requestId}/evaluation`;
 
         return {
+          id: `req-${row.requestId}`,
           requestId: row.requestId,
           requestNumber: row.requestNumber,
           programType: row.programType,
@@ -4358,10 +4378,13 @@ export const requestsRouter = router({
             email: row.requesterEmail || null,
             phone: row.requesterPhone || null,
             role: row.requesterRole,
+            categoryLabel: "طالب خدمة (طلب مكتمل)",
           },
           survey: {
             isDispatched: true,
             dispatchedAt,
+            dispatchType: "request_closed" as const,
+            dispatchTypeLabel: "إرسال تلقائي عند انتهاء الطلب",
             isEvaluated: isCompletedEval,
             evaluatedAt: row.evaluatedAt || (isCompletedEval ? dispatchedAt : null),
             rating: effectiveRating,
@@ -4370,21 +4393,103 @@ export const requestsRouter = router({
         };
       });
 
+      // جلب سجلات إرسال الاستبيانات والتذكيرات الإضافية من جدول التدقيق (audit_logs)
+      let parsedAuditRows: typeof mapped = [];
+      try {
+        const auditLogRows = await db
+          .select()
+          .from(auditLogs)
+          .where(
+            inArray(auditLogs.action, [
+              "survey_reminder_sent",
+              "survey_invite_sent",
+            ])
+          )
+          .orderBy(desc(auditLogs.createdAt));
+
+        parsedAuditRows = auditLogRows.map((row) => {
+          let details: any = row.newValues;
+          while (typeof details === "string") {
+            try {
+              details = JSON.parse(details);
+            } catch {
+              break;
+            }
+          }
+          if (!details || typeof details !== "object") details = {};
+
+          const isReminder = row.action === "survey_reminder_sent";
+          const reqId = details.requestId || (isReminder ? row.entityId : null);
+          const reqNumber = details.requestNumber || (reqId ? `REQ-${reqId}` : null);
+          const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl.replace(/\/+$/, '')}/requests/${reqId}/evaluation` : null);
+
+          // التحقق مما إذا كان الطلب المرتبط قد تم تقييمه
+          const matchedRequest = reqId ? allRows.find((r) => r.requestId === reqId) : null;
+          const isCompletedEval = matchedRequest ? Boolean(matchedRequest.isEvaluated || matchedRequest.evalRating) : false;
+          const effectiveRating = matchedRequest ? (matchedRequest.satisfactionRating || matchedRequest.evalRating || null) : null;
+
+          return {
+            id: `audit-${row.id}`,
+            requestId: reqId,
+            requestNumber: reqNumber,
+            programType: details.programType || (matchedRequest ? matchedRequest.programType : "general_satisfaction"),
+            descriptiveName: isReminder ? `رسالة تذكيرية للاستبيان` : "استبيان رضا مباشر (بدون طلب مرتبط)",
+            stage: matchedRequest ? matchedRequest.stage : null,
+            status: matchedRequest ? matchedRequest.status : null,
+            mosqueName: details.mosqueName || (matchedRequest ? matchedRequest.mosqueName : null),
+            mosqueCity: matchedRequest ? matchedRequest.mosqueCity : null,
+            beneficiary: {
+              id: isReminder ? (matchedRequest ? matchedRequest.userId : null) : (row.entityId || null),
+              name: details.recipientName || (matchedRequest ? matchedRequest.requesterName : "غير محدد"),
+              email: details.recipientEmail || (matchedRequest ? matchedRequest.requesterEmail : null),
+              phone: details.recipientPhone || (matchedRequest ? matchedRequest.requesterPhone : null),
+              role: details.recipientRole || "service_requester",
+              categoryLabel: isReminder 
+                ? "طالب خدمة (رسالة تذكيرية)" 
+                : (details.categoryLabel || "طالب خدمة / جهة مسجلة"),
+            },
+            survey: {
+              isDispatched: true,
+              dispatchedAt: row.createdAt,
+              dispatchType: isReminder ? ("reminder" as const) : ("general_invite" as const),
+              dispatchTypeLabel: isReminder ? "رسالة تذكيرية للاستبيان" : "استبيان مباشر لطالب خدمة (بدون طلب)",
+              isEvaluated: isCompletedEval,
+              evaluatedAt: isCompletedEval ? (matchedRequest?.evaluatedAt || row.createdAt) : null,
+              rating: effectiveRating,
+              evaluationUrl: evalUrl,
+            },
+          };
+        });
+      } catch (err) {
+        console.error("Error reading survey audit logs:", err);
+      }
+
+      // دمج جميع سجلات الإرسال وفرزها زمنياً من الأحدث إلى الأقدم
+      let combined = [...mapped, ...parsedAuditRows];
+      combined.sort((a, b) => {
+        const timeA = a.survey.dispatchedAt ? new Date(a.survey.dispatchedAt).getTime() : 0;
+        const timeB = b.survey.dispatchedAt ? new Date(b.survey.dispatchedAt).getTime() : 0;
+        return timeB - timeA;
+      });
+
       // إحصائيات السجلات الإجمالية قبل الفلترة
-      const totalDispatched = mapped.length;
-      const totalEvaluated = mapped.filter((m) => m.survey.isEvaluated).length;
+      const totalDispatched = combined.length;
+      const totalEvaluated = combined.filter((m) => m.survey.isEvaluated).length;
       const totalPending = totalDispatched - totalEvaluated;
       const responseRate = totalDispatched > 0 ? Math.round((totalEvaluated / totalDispatched) * 100) : 0;
 
       // تطبيق الفلاتر
+      let filtered = combined;
       if (input?.search && input.search.trim()) {
         const q = input.search.trim().toLowerCase();
-        mapped = mapped.filter((item) => {
+        filtered = filtered.filter((item) => {
           return (
             item.requestNumber?.toLowerCase().includes(q) ||
             item.beneficiary.name?.toLowerCase().includes(q) ||
             item.beneficiary.email?.toLowerCase().includes(q) ||
             item.beneficiary.phone?.toLowerCase().includes(q) ||
+            item.beneficiary.categoryLabel?.toLowerCase().includes(q) ||
+            item.survey.dispatchTypeLabel?.toLowerCase().includes(q) ||
             item.mosqueName?.toLowerCase().includes(q) ||
             item.mosqueCity?.toLowerCase().includes(q) ||
             item.descriptiveName?.toLowerCase().includes(q)
@@ -4394,19 +4499,19 @@ export const requestsRouter = router({
 
       if (input?.statusFilter && input.statusFilter !== "all") {
         if (input.statusFilter === "evaluated") {
-          mapped = mapped.filter((item) => item.survey.isEvaluated);
+          filtered = filtered.filter((item) => item.survey.isEvaluated);
         } else if (input.statusFilter === "pending") {
-          mapped = mapped.filter((item) => !item.survey.isEvaluated);
+          filtered = filtered.filter((item) => !item.survey.isEvaluated);
         }
       }
 
       if (input?.programType && input.programType !== "all") {
         const prog = input.programType.toLowerCase().trim();
-        mapped = mapped.filter((item) => item.programType?.toLowerCase().trim() === prog);
+        filtered = filtered.filter((item) => item.programType?.toLowerCase().trim() === prog);
       }
 
-      const totalFiltered = mapped.length;
-      const paginatedItems = mapped.slice(offset, offset + limit);
+      const totalFiltered = filtered.length;
+      const paginatedItems = filtered.slice(offset, offset + limit);
 
       return {
         items: paginatedItems,
@@ -4512,6 +4617,31 @@ export const requestsRouter = router({
         relatedType: "request_evaluation",
         relatedId: request.id,
       });
+
+      // تسجيل إرسال الرسالة التذكيرية في سجل التدقيق (audit_logs)
+      try {
+        await db.insert(auditLogs).values({
+          userId: ctx.user.id,
+          action: "survey_reminder_sent",
+          entityType: "request",
+          entityId: request.id,
+          newValues: JSON.stringify({
+            dispatchType: "reminder",
+            dispatchTypeLabel: "رسالة تذكيرية للاستبيان",
+            requestId: request.id,
+            requestNumber: request.requestNumber,
+            programType: request.programType,
+            mosqueName: null,
+            recipientName: beneficiary.name || "",
+            recipientEmail: beneficiary.email || "",
+            recipientPhone: beneficiary.phone || null,
+            recipientRole: beneficiary.role,
+            dispatchedAt: new Date().toISOString(),
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to log survey reminder to audit_logs:", err);
+      }
 
       return {
         success: true,
@@ -4849,6 +4979,33 @@ export const requestsRouter = router({
           relatedType: "evaluation",
           relatedId: input.userId,
         });
+      }
+
+      // تسجيل إرسال الاستبيان في سجل التدقيق (audit_logs)
+      try {
+        await db.insert(auditLogs).values({
+          userId: ctx.user?.id || null,
+          action: "survey_invite_sent",
+          entityType: "survey_invite",
+          entityId: input.userId || null,
+          newValues: JSON.stringify({
+            dispatchType: "general_invite",
+            dispatchTypeLabel: "إرسال استبيان لطالب خدمة / جهة مسجلة",
+            requestId: null,
+            requestNumber: null,
+            programType: "general_satisfaction",
+            mosqueName: null,
+            recipientName: input.recipientName,
+            recipientEmail: input.recipientEmail,
+            recipientPhone: input.recipientPhone || null,
+            category: input.category,
+            categoryLabel: input.category === "donor" ? "متبرع / داعم" : input.category === "inquiry" ? "صاحب استفسار" : "مستفيد معتمد",
+            evalUrl,
+            dispatchedAt: new Date().toISOString(),
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to log survey invite to audit_logs:", err);
       }
 
       return {

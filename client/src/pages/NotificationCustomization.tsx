@@ -1036,6 +1036,22 @@ export default function NotificationCustomization() {
     return template;
   };
 
+  const renderTruncatedPreview = (triggerId: string) => {
+    const raw = getTemplatePreview(triggerId)?.replace(/[\r\n]+/g, " ").trim() || "";
+    if (!raw) return null;
+    const maxChars = 85;
+    const isLong = raw.length > maxChars;
+    const truncated = isLong ? raw.substring(0, maxChars).trim() + "..." : raw;
+    return (
+      <div 
+        className="text-[10px] sm:text-xs text-muted-foreground mt-1 truncate max-w-[280px] sm:max-w-[420px] md:max-w-[550px] cursor-default" 
+        title={raw}
+      >
+        {truncated}
+      </div>
+    );
+  };
+
   const handleOpenEditTemplateModal = (trigger: any) => {
     lastInitializedTriggerId.current = null;
     setSelectedTriggerForEdit(trigger);
@@ -1479,7 +1495,7 @@ export default function NotificationCustomization() {
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
                               <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
+                              {renderTruncatedPreview(trig.id)}
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <TooltipProvider delayDuration={200}>
@@ -1536,7 +1552,7 @@ export default function NotificationCustomization() {
                           <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
                             <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
                               <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">{getTemplatePreview(trig.id)}</div>
+                              {renderTruncatedPreview(trig.id)}
                             </TableCell>
                             <TableCell className="text-center py-3 sm:py-4">
                               <TooltipProvider delayDuration={200}>

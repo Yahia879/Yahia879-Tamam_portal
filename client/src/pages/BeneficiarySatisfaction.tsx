@@ -27,6 +27,7 @@ import {
   Loader2,
   AlertCircle,
   RotateCcw,
+  BellRing,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -807,7 +808,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         <span>سجل استبيانات رضا المستفيدين المرسلة</span>
                       </CardTitle>
                       <CardDescription className="text-xs text-right mt-1">
-                        عرض <span className="font-mono font-bold">{logsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{logsData?.total || 0}</span> استبيان تم إرساله تلقائياً لطالبي الخدمة (service_requester) عند إغلاق طلباتهم
+                        عرض <span className="font-mono font-bold">{logsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{logsData?.total || 0}</span> استبيان تم إرساله تلقائياً لطالبي الخدمة عند إغلاق طلباتهم
                       </CardDescription>
                     </div>
                   </CardHeader>
@@ -824,7 +825,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         <p className="text-sm font-bold text-foreground">لا توجد سجلات مطابقة</p>
                         <p className="text-xs text-muted-foreground">
                           {logsData?.stats.totalDispatched === 0
-                            ? "لا توجد حالياً طلبات مغلقة لطالبي الخدمة (service_requester). يتم إرسال الاستبيان آلياً للعميل فور إغلاق طلبه."
+                            ? "لا توجد حالياً استبيانات مرسلة. يتم تسجيل وإرسال الاستبيانات آلياً فور إغلاق الطلبات أو إرسال التذكيرات والاستبيانات المباشرة."
                             : "لم يتم العثور على أي سجلات استبيان وفق معايير البحث والفلترة المحددة."}
                         </p>
                       </div>
@@ -833,35 +834,68 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         <table className="w-full text-right text-xs" dir="rtl">
                           <thead>
                             <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                              <th className="p-3.5 px-4 text-right">رقم الطلب والمسجد</th>
+                              <th className="p-3.5 px-4 text-right">الطلب والمسجد / نوع الإرسال</th>
                               <th className="p-3.5 px-4 text-right">معلومات العميل (المستفيد)</th>
-                              <th className="p-3.5 px-4 text-right">حالة الإرسال</th>
+                              <th className="p-3.5 px-4 text-right">حالة وطريقة الإرسال</th>
                               <th className="p-3.5 px-4 text-right">حالة التقييم</th>
                               <th className="p-3.5 px-4 text-center">إجراءات وتذكير</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
-                            {logsData.items.map((item) => {
+                            {logsData.items.map((item: any) => {
                               const isEvaluated = item.survey.isEvaluated;
                               const hasEmail = Boolean(item.beneficiary.email);
-                              const isSendingThis = sendingReminderId === item.requestId;
+                              const isSendingThis = item.requestId ? sendingReminderId === item.requestId : sendingSurveyKey === item.id;
+                              const isReminder = item.survey.dispatchType === "reminder";
+                              const isGeneralInvite = item.survey.dispatchType === "general_invite";
+                              const isClosedRequest = item.survey.dispatchType === "request_closed";
 
                               return (
-                                <tr key={item.requestId} className="hover:bg-muted/30 transition-colors">
-                                  {/* رقم الطلب والمسجد */}
+                                <tr key={item.id || item.requestId} className="hover:bg-muted/30 transition-colors">
+                                  {/* رقم الطلب والمسجد / نوع الإرسال */}
                                   <td className="p-3.5 px-4 text-right">
                                     <div className="space-y-1 text-right">
-                                      <Link 
-                                        href={`/requests/${item.requestId}`}
-                                        className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-xs"
-                                      >
-                                        <FileText className="w-3.5 h-3.5" />
-                                        <span>{item.requestNumber}</span>
-                                      </Link>
+                                      {item.requestId ? (
+                                        <Link 
+                                          href={`/requests/${item.requestId}`}
+                                          className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-xs"
+                                        >
+                                          <FileText className="w-3.5 h-3.5" />
+                                          <span>{item.requestNumber}</span>
+                                        </Link>
+                                      ) : (
+                                        <div className="font-bold text-foreground flex items-center gap-1.5 text-xs">
+                                          <HeartHandshake className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                          <span>استبيان رضا مباشر (بدون طلب)</span>
+                                        </div>
+                                      )}
+
                                       <div className="flex items-center gap-1.5 flex-wrap justify-start">
-                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold">
-                                          {getArabicLabel(item.programType)}
-                                        </Badge>
+                                        {isReminder && (
+                                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                            <BellRing className="w-2.5 h-2.5" />
+                                            <span>رسالة تذكيرية</span>
+                                          </Badge>
+                                        )}
+                                        {isClosedRequest && (
+                                          <Badge variant="outline" className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                            <CheckCircle2 className="w-2.5 h-2.5" />
+                                            <span>اكتمال الطلب</span>
+                                          </Badge>
+                                        )}
+                                        {isGeneralInvite && (
+                                          <Badge variant="outline" className="bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-500/30 text-[10px] py-0 px-1.5 font-bold gap-1">
+                                            <Send className="w-2.5 h-2.5" />
+                                            <span>{item.beneficiary.categoryLabel || "استبيان مباشر"}</span>
+                                          </Badge>
+                                        )}
+
+                                        {item.programType && item.programType !== "general_satisfaction" && (
+                                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold">
+                                            {getArabicLabel(item.programType)}
+                                          </Badge>
+                                        )}
+
                                         {item.mosqueName && (
                                           <span className="text-[11px] text-muted-foreground truncate max-w-[160px] inline-flex items-center gap-1">
                                             <Building2 className="w-3 h-3 text-muted-foreground/70 shrink-0" />
@@ -878,6 +912,11 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                       <div className="font-bold text-foreground flex items-center gap-1.5 justify-start text-right">
                                         <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                                         <span className="truncate max-w-[170px]">{item.beneficiary.name}</span>
+                                        {item.beneficiary.categoryLabel && (
+                                          <Badge variant="secondary" className="text-[9px] py-0 px-1 font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40">
+                                            {item.beneficiary.categoryLabel}
+                                          </Badge>
+                                        )}
                                       </div>
                                       {hasEmail ? (
                                         <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
@@ -898,13 +937,22 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     </div>
                                   </td>
 
-                                  {/* حالة الإرسال */}
+                                  {/* حالة وطريقة الإرسال */}
                                   <td className="p-3.5 px-4 text-right">
                                     <div className="space-y-1.5 text-right">
                                       <div className="flex items-center justify-start">
-                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
-                                          <CheckCircle2 className="w-3 h-3 text-blue-600" />
-                                          <span>تم إرسال الاستبيان للعميل</span>
+                                        <Badge 
+                                          variant="outline" 
+                                          className={`text-[11px] gap-1 py-0.5 px-2 inline-flex items-center ${
+                                            isReminder 
+                                              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50" 
+                                              : isGeneralInvite
+                                              ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/30 dark:text-teal-300 dark:border-teal-900/50"
+                                              : "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50"
+                                          }`}
+                                        >
+                                          <CheckCircle2 className="w-3 h-3" />
+                                          <span>{item.survey.dispatchTypeLabel || "تم إرسال الاستبيان"}</span>
                                         </Badge>
                                       </div>
                                       <div className="text-[10px] text-muted-foreground flex items-center gap-1 justify-start text-right font-mono">
@@ -962,26 +1010,50 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   {/* إجراءات وتذكير */}
                                   <td className="p-3.5 px-4 text-center whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                      {/* زر إرسال إيميل تذكيري */}
-                                      <Button
-                                        size="sm"
-                                        variant={isEvaluated ? "outline" : "default"}
-                                        disabled={!hasEmail || isSendingThis}
-                                        onClick={() => handleSendReminder(item.requestId)}
-                                        title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
-                                        className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
-                                          !isEvaluated 
-                                            ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
-                                            : "text-muted-foreground hover:text-foreground"
-                                        }`}
-                                      >
-                                        {isSendingThis ? (
-                                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                          <Send className="w-3.5 h-3.5" />
-                                        )}
-                                        <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
-                                      </Button>
+                                      {item.requestId ? (
+                                        <Button
+                                          size="sm"
+                                          variant={isEvaluated ? "outline" : "default"}
+                                          disabled={!hasEmail || isSendingThis}
+                                          onClick={() => handleSendReminder(item.requestId)}
+                                          title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
+                                          className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
+                                            !isEvaluated 
+                                              ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
+                                              : "text-muted-foreground hover:text-foreground"
+                                          }`}
+                                        >
+                                          {isSendingThis ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Send className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={!hasEmail || isSendingThis}
+                                          onClick={() => handleInitiateSendSurvey({
+                                            id: item.id,
+                                            name: item.beneficiary.name,
+                                            email: item.beneficiary.email,
+                                            phone: item.beneficiary.phone,
+                                            category: item.beneficiary.category || "approved_beneficiary",
+                                            userId: item.beneficiary.id,
+                                          })}
+                                          title={hasEmail ? "إعادة إرسال استبيان الرضا" : "لا يوجد بريد إلكتروني مسجل"}
+                                          className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/60 hover:bg-teal-50 dark:hover:bg-teal-950/30"
+                                        >
+                                          {isSendingThis ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <Send className="w-3.5 h-3.5 text-teal-600" />
+                                          )}
+                                          <span>إعادة إرسال</span>
+                                        </Button>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
