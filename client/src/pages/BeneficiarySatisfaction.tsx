@@ -192,9 +192,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </div>
 
         {/* Tabs Control */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-            <TabsList className="w-full sm:w-auto p-1 h-12 bg-muted/80 rounded-2xl border border-border/70 shadow-xs">
+        <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-3 mb-2">
+            <TabsList dir="rtl" className="w-full sm:w-auto p-1 h-12 bg-muted/80 rounded-2xl border border-border/70 shadow-xs flex items-center justify-start gap-1">
               <TabsTrigger value="evaluations" className="gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 التقييمات والنتائج
@@ -213,18 +213,18 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
           </div>
 
           {/* تبويب 1: نتائج وتقييمات المستفيدين */}
-          <TabsContent value="evaluations" className="space-y-6 mt-2">
+          <TabsContent value="evaluations" className="space-y-6 mt-2" dir="rtl">
             {/* KPI Cards - ديناميكية بالكامل بناءً على بيانات الاستبيانات الحقيقية */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* إجمالي التقييمات */}
               <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-muted-foreground block">إجمالي التقييمات</span>
-                    <span className="text-2xl sm:text-3xl font-black text-foreground block">
+                <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1 text-right">
+                    <span className="text-xs font-semibold text-muted-foreground block text-right">إجمالي التقييمات</span>
+                    <span className="text-2xl sm:text-3xl font-black text-foreground block text-right">
                       {stats.totalEvaluations}
                     </span>
-                    <span className="text-[11px] text-muted-foreground block">
+                    <span className="text-[11px] text-muted-foreground block text-right">
                       استبيان مكتمل من المستفيدين
                     </span>
                   </div>
@@ -236,16 +236,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
               {/* متوسط الرضا العام */}
               <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-muted-foreground block">متوسط الرضا العام</span>
-                    <div className="flex items-baseline gap-1.5">
+                <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1 text-right">
+                    <span className="text-xs font-semibold text-muted-foreground block text-right">متوسط الرضا العام</span>
+                    <div className="flex items-baseline gap-1.5 justify-start">
                       <span className="text-2xl sm:text-3xl font-black text-amber-500">
                         {stats.avgRating > 0 ? stats.avgRating : "0.0"}
                       </span>
                       <span className="text-xs font-bold text-muted-foreground">/ 5.0</span>
                     </div>
-                    <div className="flex items-center gap-1 pt-0.5" dir="ltr">
+                    <div className="flex items-center gap-1 pt-0.5 justify-start" dir="rtl">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Star
                           key={s}
@@ -266,13 +266,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
               {/* نسبة الرضا الإيجابي */}
               <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-muted-foreground block">نسبة الرضا الإيجابي</span>
-                    <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 block">
+                <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1 text-right">
+                    <span className="text-xs font-semibold text-muted-foreground block text-right">نسبة الرضا الإيجابي</span>
+                    <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 block text-right">
                       %{stats.totalEvaluations > 0 ? stats.positivePercent : 0}
                     </span>
-                    <span className="text-[11px] text-muted-foreground block">
+                    <span className="text-[11px] text-muted-foreground block text-right">
                       تقييمات 4 و 5 نجوم
                     </span>
                   </div>
@@ -284,13 +284,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
               {/* الآراء والمقترحات */}
               <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <span className="text-xs font-semibold text-muted-foreground block">الملاحظات والمقترحات</span>
-                    <span className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 block">
+                <CardContent className="p-4 sm:p-5 flex items-center justify-between text-right">
+                  <div className="space-y-1 text-right">
+                    <span className="text-xs font-semibold text-muted-foreground block text-right">الملاحظات والمقترحات</span>
+                    <span className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 block text-right">
                       {stats.withCommentsCount}
                     </span>
-                    <span className="text-[11px] text-muted-foreground block">
+                    <span className="text-[11px] text-muted-foreground block text-right">
                       مستفيد قدّم ملاحظات تفصيلية
                     </span>
                   </div>
@@ -302,17 +302,18 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             </div>
 
             {/* Filter and Search Bar */}
-            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card">
+            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
               <CardContent className="p-4 space-y-3">
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   {/* بحث نصي */}
-                  <div className="relative w-full md:flex-1">
-                    <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <div className="relative w-full md:flex-1" dir="rtl">
+                    <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="ابحث برقم الطلب، اسم المستفيد، الجوال، المسجد، أو الملاحظات..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pr-9 h-10 rounded-xl text-xs"
+                      className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
+                      dir="rtl"
                     />
                     {searchQuery && (
                       <button
@@ -327,31 +328,31 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                   {/* فلتر النجوم */}
                   <div className="w-full sm:w-48">
-                    <Select value={selectedRating} onValueChange={setSelectedRating}>
-                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                    <Select value={selectedRating} onValueChange={setSelectedRating} dir="rtl">
+                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
                         <SelectValue placeholder="تصفية حسب النجوم" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">كل التقييمات</SelectItem>
-                        <SelectItem value="5">5 نجوم ★★★★★</SelectItem>
-                        <SelectItem value="4">4 نجوم ★★★★</SelectItem>
-                        <SelectItem value="3">3 نجوم ★★★</SelectItem>
-                        <SelectItem value="2">نجمتان ★★</SelectItem>
-                        <SelectItem value="1">نجمة واحدة ★</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="all" className="text-right">كل التقييمات</SelectItem>
+                        <SelectItem value="5" className="text-right">5 نجوم ★★★★★</SelectItem>
+                        <SelectItem value="4" className="text-right">4 نجوم ★★★★</SelectItem>
+                        <SelectItem value="3" className="text-right">3 نجوم ★★★</SelectItem>
+                        <SelectItem value="2" className="text-right">نجمتان ★★</SelectItem>
+                        <SelectItem value="1" className="text-right">نجمة واحدة ★</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   {/* فلتر البرنامج - ديناميكي 100% من قاعدة البيانات */}
                   <div className="w-full sm:w-48">
-                    <Select value={selectedProgram} onValueChange={setSelectedProgram}>
-                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                    <Select value={selectedProgram} onValueChange={setSelectedProgram} dir="rtl">
+                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
                         <SelectValue placeholder="تصفية حسب البرنامج" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">كل البرامج والخدمات</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="all" className="text-right">كل البرامج والخدمات</SelectItem>
                         {allPrograms.map((prog: any) => (
-                          <SelectItem key={prog.code || String(prog.id)} value={prog.code || String(prog.id)}>
+                          <SelectItem key={prog.code || String(prog.id)} value={prog.code || String(prog.id)} className="text-right">
                             {prog.nameAr || prog.name}
                           </SelectItem>
                         ))}
@@ -391,16 +392,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-right text-xs">
+                  <div className="overflow-x-auto" dir="rtl">
+                    <table className="w-full text-right text-xs" dir="rtl">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                          <th className="p-3.5 px-4">رقم الطلب</th>
-                          <th className="p-3.5 px-4">المستفيد</th>
-                          <th className="p-3.5 px-4">الخدمة / البرنامج</th>
+                          <th className="p-3.5 px-4 text-right">رقم الطلب</th>
+                          <th className="p-3.5 px-4 text-right">المستفيد</th>
+                          <th className="p-3.5 px-4 text-right">الخدمة / البرنامج</th>
                           <th className="p-3.5 px-4 text-center">التقييم</th>
-                          <th className="p-3.5 px-4">الآراء والملاحظات</th>
-                          <th className="p-3.5 px-4">تاريخ التقييم</th>
+                          <th className="p-3.5 px-4 text-right">الآراء والملاحظات</th>
+                          <th className="p-3.5 px-4 text-right">تاريخ التقييم</th>
                           <th className="p-3.5 px-4 text-center">الإجراءات</th>
                         </tr>
                       </thead>
@@ -410,7 +411,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           return (
                             <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                               {/* رقم الطلب */}
-                              <td className="p-3.5 px-4 font-mono font-bold text-foreground">
+                              <td className="p-3.5 px-4 font-mono font-bold text-foreground text-right">
                                 <span>{item.requestNumber}</span>
                                 <span className="text-[10px] text-muted-foreground font-normal block font-sans">
                                   {getArabicLabel(item.programType)}
@@ -418,15 +419,16 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               </td>
 
                               {/* المستفيد */}
-                              <td className="p-3.5 px-4">
-                                <div className="space-y-0.5">
-                                  <span className="font-bold text-foreground block truncate max-w-[150px]">
+                              <td className="p-3.5 px-4 text-right">
+                                <div className="space-y-0.5 text-right">
+                                  <span className="font-bold text-foreground block truncate max-w-[150px] text-right">
                                     {item.requesterName}
                                   </span>
                                   {item.requesterPhone && (
-                                    <span className="text-[11px] text-muted-foreground font-mono block" dir="ltr">
-                                      {item.requesterPhone}
-                                    </span>
+                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                      <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                      <span dir="ltr" className="inline-block">{item.requesterPhone}</span>
+                                    </div>
                                   )}
                                 </div>
                               </td>
@@ -563,12 +565,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             </div>
 
             {/* Filter and Search Bar للسجلات */}
-            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card">
+            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
               <CardContent className="p-4 space-y-3">
                 <div className="flex flex-col md:flex-row items-center gap-3">
                   {/* بحث نصي */}
-                  <div className="relative w-full md:flex-1">
-                    <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <div className="relative w-full md:flex-1" dir="rtl">
+                    <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="ابحث برقم الطلب، اسم العميل، الجوال، البريد، أو المسجد..."
                       value={logSearchQuery}
@@ -576,7 +578,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         setLogSearchQuery(e.target.value);
                         setLogPage(1);
                       }}
-                      className="pr-9 h-10 rounded-xl text-xs"
+                      className="pr-9 pl-9 h-10 rounded-xl text-xs text-right"
+                      dir="rtl"
                     />
                     {logSearchQuery && (
                       <button
@@ -600,14 +603,15 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         setLogStatusFilter(val);
                         setLogPage(1);
                       }}
+                      dir="rtl"
                     >
-                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
                         <SelectValue placeholder="حالة الاستبيان" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">كل الحالات</SelectItem>
-                        <SelectItem value="pending">بانتظار رد العميل ⏳</SelectItem>
-                        <SelectItem value="evaluated">تم التقييم بنجاح ✅</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="all" className="text-right">كل الحالات</SelectItem>
+                        <SelectItem value="pending" className="text-right">بانتظار رد العميل ⏳</SelectItem>
+                        <SelectItem value="evaluated" className="text-right">تم التقييم بنجاح ✅</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -620,14 +624,15 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         setLogProgramFilter(val);
                         setLogPage(1);
                       }}
+                      dir="rtl"
                     >
-                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                      <SelectTrigger className="h-10 rounded-xl text-xs font-bold text-right" dir="rtl">
                         <SelectValue placeholder="تصفية حسب البرنامج" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">كل البرامج والخدمات</SelectItem>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="all" className="text-right">كل البرامج والخدمات</SelectItem>
                         {allPrograms.map((prog: any) => (
-                          <SelectItem key={prog.code || String(prog.id)} value={prog.code || String(prog.id)}>
+                          <SelectItem key={prog.code || String(prog.id)} value={prog.code || String(prog.id)} className="text-right">
                             {prog.nameAr || prog.name}
                           </SelectItem>
                         ))}
@@ -639,14 +644,14 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             </Card>
 
             {/* جدول سجلات إرسال الاستبيانات */}
-            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-              <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2">
-                <div>
-                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+            <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
+              <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2 text-right">
+                <div className="text-right">
+                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
                     <Send className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" />
-                    سجل استبيانات رضا المستفيدين المرسلة
+                    <span>سجل استبيانات رضا المستفيدين المرسلة</span>
                   </CardTitle>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-xs text-right mt-1">
                     عرض {logsData?.items.length || 0} من أصل {logsData?.total || 0} استبيان تم إرساله تلقائياً لطالبي الخدمة (service_requester) عند إغلاق طلباتهم
                   </CardDescription>
                 </div>
@@ -669,14 +674,14 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-right text-xs">
+                  <div className="overflow-x-auto" dir="rtl">
+                    <table className="w-full text-right text-xs" dir="rtl">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                          <th className="p-3.5 px-4">رقم الطلب والمسجد</th>
-                          <th className="p-3.5 px-4">معلومات العميل (المستفيد)</th>
-                          <th className="p-3.5 px-4">حالة الإرسال</th>
-                          <th className="p-3.5 px-4">حالة التقييم</th>
+                          <th className="p-3.5 px-4 text-right">رقم الطلب والمسجد</th>
+                          <th className="p-3.5 px-4 text-right">معلومات العميل (المستفيد)</th>
+                          <th className="p-3.5 px-4 text-right">حالة الإرسال</th>
+                          <th className="p-3.5 px-4 text-right">حالة التقييم</th>
                           <th className="p-3.5 px-4 text-center">إجراءات وتذكير</th>
                         </tr>
                       </thead>
@@ -690,8 +695,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           return (
                             <tr key={item.requestId} className="hover:bg-muted/30 transition-colors">
                               {/* رقم الطلب والمسجد */}
-                              <td className="p-3.5 px-4">
-                                <div className="space-y-1">
+                              <td className="p-3.5 px-4 text-right">
+                                <div className="space-y-1 text-right">
                                   <Link 
                                     href={`/requests/${item.requestId}`}
                                     className="font-mono font-bold text-primary hover:underline inline-flex items-center gap-1 text-xs"
@@ -699,7 +704,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     <FileText className="w-3.5 h-3.5" />
                                     <span>{item.requestNumber}</span>
                                   </Link>
-                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                  <div className="flex items-center gap-1.5 flex-wrap justify-start">
                                     <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-bold">
                                       {getArabicLabel(item.programType)}
                                     </Badge>
@@ -714,80 +719,86 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               </td>
 
                               {/* معلومات العميل */}
-                              <td className="p-3.5 px-4">
-                                <div className="space-y-1">
-                                  <div className="font-bold text-foreground flex items-center gap-1.5">
+                              <td className="p-3.5 px-4 text-right">
+                                <div className="space-y-1 text-right">
+                                  <div className="font-bold text-foreground flex items-center gap-1.5 justify-start text-right">
                                     <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                                     <span className="truncate max-w-[170px]">{item.beneficiary.name}</span>
                                   </div>
                                   {hasEmail ? (
-                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
+                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
                                       <Mail className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
-                                      <span className="truncate max-w-[170px]">{item.beneficiary.email}</span>
+                                      <span dir="ltr" className="truncate max-w-[170px] inline-block">{item.beneficiary.email}</span>
                                     </div>
                                   ) : (
-                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block">
+                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block text-right">
                                       ⚠️ لا يوجد بريد إلكتروني مسجل
                                     </span>
                                   )}
                                   {item.beneficiary.phone && (
-                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5" dir="ltr">
+                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
                                       <Phone className="w-3 h-3 text-blue-500 shrink-0" />
-                                      <span>{item.beneficiary.phone}</span>
+                                      <span dir="ltr" className="inline-block">{item.beneficiary.phone}</span>
                                     </div>
                                   )}
                                 </div>
                               </td>
 
                               {/* حالة الإرسال */}
-                              <td className="p-3.5 px-4">
-                                <div className="space-y-1.5">
-                                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50 text-[11px] gap-1 py-0.5 px-2">
-                                    <CheckCircle2 className="w-3 h-3 text-blue-600" />
-                                    <span>تم إرسال الاستبيان للعميل</span>
-                                  </Badge>
-                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
+                              <td className="p-3.5 px-4 text-right">
+                                <div className="space-y-1.5 text-right">
+                                  <div className="flex items-center justify-start">
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
+                                      <CheckCircle2 className="w-3 h-3 text-blue-600" />
+                                      <span>تم إرسال الاستبيان للعميل</span>
+                                    </Badge>
+                                  </div>
+                                  <div className="text-[10px] text-muted-foreground flex items-center gap-1 justify-start text-right">
+                                    <Calendar className="w-3 h-3 shrink-0" />
                                     <span>
                                       {item.survey.dispatchedAt 
                                         ? `تاريخ الإرسال: ${new Date(item.survey.dispatchedAt).toLocaleDateString("ar-SA")}` 
                                         : "عند إغلاق الطلب"}
                                     </span>
                                   </div>
-                                  <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1">
-                                    <Mail className="w-2.5 h-2.5" />
+                                  <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 justify-start text-right">
+                                    <Mail className="w-2.5 h-2.5 shrink-0" />
                                     <span>عبر البريد الإلكتروني والإشعارات</span>
                                   </div>
                                 </div>
                               </td>
 
                               {/* حالة التقييم */}
-                              <td className="p-3.5 px-4">
+                              <td className="p-3.5 px-4 text-right">
                                 {isEvaluated ? (
-                                  <div className="space-y-1">
-                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[11px] gap-1 py-0.5 px-2">
-                                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                      <span>تم التقييم بنجاح</span>
-                                    </Badge>
+                                  <div className="space-y-1 text-right">
+                                    <div className="flex items-center justify-start">
+                                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
+                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                        <span>تم التقييم بنجاح</span>
+                                      </Badge>
+                                    </div>
                                     {item.survey.rating && (
-                                      <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                      <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 justify-start" dir="rtl">
                                         <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                                         <span>{item.survey.rating} من 5 نجوم</span>
                                       </div>
                                     )}
                                     {item.survey.evaluatedAt && (
-                                      <span className="text-[10px] text-muted-foreground block">
+                                      <span className="text-[10px] text-muted-foreground block text-right">
                                         {new Date(item.survey.evaluatedAt).toLocaleDateString("ar-SA")}
                                       </span>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className="space-y-1">
-                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 text-[11px] gap-1 py-0.5 px-2">
-                                      <Clock className="w-3 h-3 text-amber-600" />
-                                      <span>بانتظار رد العميل</span>
-                                    </Badge>
-                                    <span className="text-[10px] text-muted-foreground block">
+                                  <div className="space-y-1 text-right">
+                                    <div className="flex items-center justify-start">
+                                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50 text-[11px] gap-1 py-0.5 px-2 inline-flex items-center">
+                                        <Clock className="w-3 h-3 text-amber-600" />
+                                        <span>بانتظار رد العميل</span>
+                                      </Badge>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground block text-right">
                                       لم يقم بتعبئة التقييم بعد
                                     </span>
                                   </div>
@@ -973,7 +984,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                           {/* تقييم بالنجوم */}
                           {field.type === "rating" && (
-                            <div className="flex items-center gap-1.5 py-1 justify-end" dir="ltr">
+                            <div className="flex items-center gap-1.5 py-1 justify-start" dir="rtl">
                               {Array.from({ length: field.maxRating || 5 }).map((_, sIdx) => {
                                 const starVal = sIdx + 1;
                                 const active = Number(value) >= starVal;
@@ -988,7 +999,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   />
                                 );
                               })}
-                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 mr-2">
+                              <span className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300 ml-2">
                                 {value} من {field.maxRating || 5}
                               </span>
                             </div>
@@ -996,15 +1007,19 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                           {/* خيارات أو قوائم */}
                           {["select", "radio"].includes(field.type) && (
-                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60">
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right" dir="rtl">
                               {field.options?.find((o: any) => o.value === value)?.label || getArabicLabel(String(value))}
                             </div>
                           )}
 
                           {/* نصوص / هاتف / بريد / رقم */}
                           {["text", "phone", "email", "number"].includes(field.type) && (
-                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60" dir={field.type === "phone" || field.type === "email" ? "ltr" : "rtl"}>
-                              {field.id === "serviceName" || field.id === "programType" ? getArabicLabel(String(value)) : String(value)}
+                            <div className="font-bold text-xs sm:text-sm text-foreground bg-card p-3 rounded-xl border border-border/60 text-right" dir="rtl">
+                              {field.type === "phone" || field.type === "email" ? (
+                                <span dir="ltr" className="inline-block font-mono">{String(value)}</span>
+                              ) : (
+                                field.id === "serviceName" || field.id === "programType" ? getArabicLabel(String(value)) : String(value)
+                              )}
                             </div>
                           )}
 
