@@ -40,6 +40,7 @@ import { PROGRAM_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
+import BoqFormDialog from "@/components/BoqFormDialog";
 import {
   Receipt,
   Search,
@@ -62,6 +63,8 @@ import {
   Link2,
   ExternalLink,
   RotateCcw,
+  Edit,
+  Trash2,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -242,11 +245,40 @@ export default function Quotations() {
     { enabled: !!selectedRequestId }
   );
 
+  const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
+  const hasAcceptedQuotation = useMemo(() => {
+    return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved") ||
+      Boolean((singleRequestData as any)?.hasAcceptedQuotation || (singleRequestData as any)?.request?.hasAcceptedQuotation);
+  }, [allQuotations, singleRequestData]);
+
   // جلب جدول الكميات للطلب المحدد
-  const { data: boqData, isLoading: boqLoading } = trpc.projects.getBOQ.useQuery(
+  const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
     { requestId: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
+
+  const [showBoqDialog, setShowBoqDialog] = useState(false);
+  const [editingBoqItem, setEditingBoqItem] = useState<any>(null);
+
+  const deleteBoqItemMutation = trpc.projects.deleteBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف البند بنجاح");
+      refetchBOQ();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف البند");
+    },
+  });
+
+  const handleDeleteBoqItem = (id: number) => {
+    if (hasAcceptedQuotation) {
+      toast.error("لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر");
+      return;
+    }
+    if (confirm("هل أنت متأكد من حذف هذا البند من جدول الكميات؟")) {
+      deleteBoqItemMutation.mutate({ id });
+    }
+  };
 
   // تهيئة بنود التسعير عند فتح نافذة الإضافة
   useEffect(() => {
@@ -1410,14 +1442,37 @@ export default function Quotations() {
         {/* عرض جدول الكميات للطلب المحدد */}
         {selectedRequestId && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5" />
-                جدول الكميات للطلب
-              </CardTitle>
-              <CardDescription>
-                البنود المطلوب تسعيرها من الموردين
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5" />
+                  جدول الكميات للطلب
+                </CardTitle>
+                <CardDescription>
+                  البنود المطلوب تسعيرها من الموردين
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasAcceptedQuotation ? (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    عرض السعر معتمد (الجدول مقفل)
+                  </Badge>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => {
+                      setEditingBoqItem(null);
+                      setShowBoqDialog(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة بند جديد
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {boqLoading ? (
@@ -1436,6 +1491,9 @@ export default function Quotations() {
                         <TableHead className="text-center font-bold">الكمية</TableHead>
                         <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
                         <TableHead className="text-center font-bold">الإجمالي</TableHead>
+                        {!hasAcceptedQuotation && (
+                          <TableHead className="text-center font-bold w-24">الإجراءات</TableHead>
+                        )}
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
@@ -1451,13 +1509,42 @@ export default function Quotations() {
                             {item.itemDescription || "-"}
                           </TableCell>
                           <TableCell>{item.unit}</TableCell>
-                          <TableCell className="text-center">{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
+                          <TableCell className="text-center">
+                            {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
+                          </TableCell>
                           <TableCell className="text-center">
                             {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال` : "-"}
                           </TableCell>
                           <TableCell className="text-center font-medium">
                             {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("ar-SA")} ريال` : "-"}
                           </TableCell>
+                          {!hasAcceptedQuotation && (
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="تعديل البند"
+                                  onClick={() => {
+                                    setEditingBoqItem(item);
+                                    setShowBoqDialog(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="حذف البند"
+                                  onClick={() => handleDeleteBoqItem(item.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1472,19 +1559,42 @@ export default function Quotations() {
                 <div className="text-center py-8 text-muted-foreground">
                   <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>لا يوجد جدول كميات لهذا الطلب</p>
-                  <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً قبل طلب عروض الأسعار</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => navigate(`/projects/boq?requestId=${selectedRequestId}`)}
-                  >
-                    <Plus className="h-4 w-4 ml-2" />
-                    إعداد جدول الكميات
-                  </Button>
+                  <p className="text-sm mt-2">
+                    {hasAcceptedQuotation
+                      ? "لم يتم إعداد جدول كميات لهذا الطلب"
+                      : "يمكنك إضافة بنود جدول الكميات للطلب مباشرة من هنا قبل طلب واعتماد عروض الأسعار"}
+                  </p>
+                  {!hasAcceptedQuotation && (
+                    <Button
+                      variant="outline"
+                      className="mt-4 gap-1.5"
+                      onClick={() => {
+                        setEditingBoqItem(null);
+                        setShowBoqDialog(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة بند جديد
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* نافذة إضافة وتعديل بند في جدول الكميات */}
+        {showBoqDialog && (
+          <BoqFormDialog
+            requestId={parseInt(selectedRequestId)}
+            open={showBoqDialog}
+            onClose={() => {
+              setShowBoqDialog(false);
+              setEditingBoqItem(null);
+              refetchBOQ();
+            }}
+            item={editingBoqItem}
+          />
         )}
 
         {/* جدول عروض الأسعار */}
@@ -1529,10 +1639,8 @@ export default function Quotations() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (() => {
-                const allQuotations = quotationsData?.quotations ?? [];
                 const linkQuotations = allQuotations.filter((q: any) => q.documentUrl && parseFloat(q.totalAmount) === 0);
                 const normalQuotations = allQuotations.filter((q: any) => !q.documentUrl || parseFloat(q.totalAmount) > 0);
-                const hasAcceptedQuotation = normalQuotations.some((q: any) => q.status === "accepted");
 
                 return (
                   <div className="space-y-6">

@@ -862,6 +862,30 @@ export const projectsRouter = router({
         }
       }
 
+      // التحقق من عدم اعتماد أي عرض سعر
+      const targetReqId = input.requestId || (projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, projectId)).limit(1))[0]?.requestId : null);
+      const [acceptedQuotation] = await db
+        .select({ id: quotations.id })
+        .from(quotations)
+        .where(
+          and(
+            or(
+              input.requestId ? eq(quotations.requestId, input.requestId) : undefined,
+              projectId ? eq(quotations.projectId, projectId) : undefined,
+              targetReqId ? eq(quotations.requestId, targetReqId) : undefined
+            ),
+            inArray(quotations.status, ["accepted", "approved"])
+          )
+        )
+        .limit(1);
+
+      if (acceptedQuotation) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن استيراد بنود إلى جدول الكميات بعد اعتماد عرض السعر",
+        });
+      }
+
       if (input.items.length === 0) return { success: true, count: 0 };
 
       // تحضير القيم للإدخال
@@ -933,6 +957,30 @@ export const projectsRouter = router({
         }
       }
 
+      // التحقق من عدم اعتماد أي عرض سعر
+      const targetReqId = input.requestId || (projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, projectId)).limit(1))[0]?.requestId : null);
+      const [acceptedQuotation] = await db
+        .select({ id: quotations.id })
+        .from(quotations)
+        .where(
+          and(
+            or(
+              input.requestId ? eq(quotations.requestId, input.requestId) : undefined,
+              projectId ? eq(quotations.projectId, projectId) : undefined,
+              targetReqId ? eq(quotations.requestId, targetReqId) : undefined
+            ),
+            inArray(quotations.status, ["accepted", "approved"])
+          )
+        )
+        .limit(1);
+
+      if (acceptedQuotation) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن إضافة بند إلى جدول الكميات بعد اعتماد عرض السعر",
+        });
+      }
+
       const totalPrice = input.unitPrice ? input.quantity * input.unitPrice : null;
 
       const [item] = await db.insert(quantitySchedules).values({
@@ -981,6 +1029,28 @@ export const projectsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
       }
 
+      // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
+      const [acceptedQuotation] = await db
+        .select({ id: quotations.id })
+        .from(quotations)
+        .where(
+          and(
+            or(
+              currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
+              currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
+            ),
+            inArray(quotations.status, ["accepted", "approved"])
+          )
+        )
+        .limit(1);
+
+      if (acceptedQuotation) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر",
+        });
+      }
+
       const quantity = updateData.quantity ?? parseFloat(currentItem.quantity);
       const unitPrice = updateData.unitPrice ?? (currentItem.unitPrice ? parseFloat(currentItem.unitPrice) : null);
       const totalPrice = unitPrice ? quantity * unitPrice : null;
@@ -1009,6 +1079,37 @@ export const projectsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [currentItem] = await db
+        .select()
+        .from(quantitySchedules)
+        .where(eq(quantitySchedules.id, input.id));
+
+      if (!currentItem) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "البند غير موجود" });
+      }
+
+      // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
+      const [acceptedQuotation] = await db
+        .select({ id: quotations.id })
+        .from(quotations)
+        .where(
+          and(
+            or(
+              currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
+              currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
+            ),
+            inArray(quotations.status, ["accepted", "approved"])
+          )
+        )
+        .limit(1);
+
+      if (acceptedQuotation) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر",
+        });
+      }
 
       await db.delete(quantitySchedules).where(eq(quantitySchedules.id, input.id));
       return { success: true };

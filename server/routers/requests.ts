@@ -33,7 +33,7 @@ import {
   requestExceptions,
   donationOpportunities,
 } from "../../drizzle/schema";
-import { eq, ne, and, desc, sql, inArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
+import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
 import { randomBytes } from "crypto";
 import { 
@@ -164,6 +164,7 @@ const searchRequestsSchema = z.object({
   search: z.string().optional(),
   programType: z.string().optional(),
   currentStage: z.enum(requestStages).optional(),
+  boqPreparationsView: z.boolean().optional(),
   status: z.enum(requestStatuses).optional(),
   priority: z.enum(["urgent", "medium", "normal"]).optional(),
   mosqueId: z.number().optional(),
@@ -545,6 +546,22 @@ export const requestsRouter = router({
       const isMultiMosque = Boolean(project?.isMultiMosque || (typeof request.programData === 'object' && (request.programData as any)?.isMultiMosque));
       const multiProjectName = project?.name || (typeof request.programData === 'object' && (request.programData as any)?.projectName) || null;
 
+      // التحقق من وجود عرض سعر معتمد
+      const [acceptedQuotation] = await db
+        .select({ id: quotations.id })
+        .from(quotations)
+        .where(
+          and(
+            or(
+              eq(quotations.requestId, input.id),
+              project?.id ? eq(quotations.projectId, project.id) : undefined
+            ),
+            inArray(quotations.status, ["accepted", "approved"])
+          )
+        )
+        .limit(1);
+      const hasAcceptedQuotation = !!acceptedQuotation;
+
       return {
         ...request,
         mosque: isMultiMosque ? null : mosque,
@@ -559,6 +576,7 @@ export const requestsRouter = router({
         projectName: multiProjectName,
         multiMosques,
         progressPercentage,
+        hasAcceptedQuotation,
         isOwner,
         fieldVisitAssignedToUser,
         assignedToUser,
@@ -635,7 +653,25 @@ export const requestsRouter = router({
       if (input.programType) {
         conditions.push(eq(mosqueRequests.programType, input.programType));
       }
-      if (input.currentStage) {
+      if (input.boqPreparationsView) {
+        // إظهار جداول الكميات التي لم يتم اعتماد عرض سعر لها:
+        // تشمل مرحلة إعداد جدول الكميات (boq_preparation) ومرحلة التقييم المالي وعروض الأسعار (financial_eval_and_approval)
+        // طالما لم يتم اعتماد أي عرض سعر
+        conditions.push(
+          inArray(mosqueRequests.currentStage, ["boq_preparation", "financial_eval_and_approval"])
+        );
+        conditions.push(
+          ne(mosqueRequests.status, "rejected")
+        );
+        conditions.push(
+          sql`NOT EXISTS (
+            SELECT 1 FROM quotations 
+            LEFT JOIN projects ON quotations.projectId = projects.id
+            WHERE (quotations.requestId = ${mosqueRequests.id} OR projects.requestId = ${mosqueRequests.id})
+              AND quotations.status IN ('accepted', 'approved')
+          )`
+        );
+      } else if (input.currentStage) {
         // إذا كان المستخدم من الفريق الميداني وطلب مرحلة الزيارة الميدانية، لا نفلتر بها لكي لا تختفي طلباته بعد رفع التقرير
         if (isFieldTeam && !hasViewDetailsPermission && input.currentStage === "field_visit") {
           // لا تفعل شيئاً
@@ -712,6 +748,12 @@ export const requestsRouter = router({
           WHERE pm.projectId = projects.id
         )`,
         evaluationNotes: sql<string | null>`(select notes from request_evaluations where request_evaluations.requestId = mosque_requests.id and request_evaluations.evaluationType = 'beneficiary_satisfaction' order by id desc limit 1)`,
+        hasAcceptedQuotation: sql<number>`case when exists(
+          select 1 from quotations 
+          left join projects on quotations.projectId = projects.id
+          where (quotations.requestId = mosque_requests.id or projects.requestId = mosque_requests.id)
+            and quotations.status in ('accepted', 'approved')
+        ) then 1 else 0 end`,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
@@ -814,6 +856,7 @@ export const requestsRouter = router({
             projectNumber: r.projectNumber,
             projectName: r.projectName,
             evaluationNotes: r.evaluationNotes,
+            hasAcceptedQuotation: Boolean(r.hasAcceptedQuotation),
           };
         }),
         total,

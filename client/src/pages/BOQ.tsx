@@ -28,6 +28,7 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  Receipt,
 } from "lucide-react";
 import BoqTab from "@/components/BoqTab";
 import { PROGRAM_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
@@ -82,11 +83,11 @@ export default function BOQ() {
     setSelectedRequestId(params.requestId || "");
   }, [params.requestId]);
 
-  // جلب الطلبات في مرحلة إعداد جداول الكميات مع الفلترة والبحث السيرفر
+  // جلب الطلبات التي لم يتم اعتماد عرض سعر لها مع الفلترة والبحث السيرفر
   const { data: requestsData, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
     search: searchQuery || undefined,
     programType: filterProgram !== "all" ? filterProgram as any : undefined,
-    currentStage: "boq_preparation",
+    boqPreparationsView: true,
     page,
     limit,
   });
@@ -173,25 +174,36 @@ export default function BOQ() {
                       إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")} ريال
                     </p>
                   </div>
-                  <Button
-                    size="lg"
-                    onClick={() => {
-                      completeBOQMutation.mutate({
-                        requestId: parseInt(selectedRequestId),
-                        newStage: "financial_eval_and_approval",
-                        notes: "تم إنهاء إعداد جدول الكميات واعتماده للمرحلة المالية",
-                      });
-                    }}
-                    disabled={completeBOQMutation.isPending}
-                    className="w-full sm:w-auto gap-2"
-                  >
-                    {completeBOQMutation.isPending ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <FileText className="h-5 w-5" />
-                    )}
-                    اعتماد وإنهاء جدول الكميات
-                  </Button>
+                  {requestDetails?.currentStage === "boq_preparation" ? (
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        completeBOQMutation.mutate({
+                          requestId: parseInt(selectedRequestId),
+                          newStage: "financial_eval_and_approval",
+                          notes: "تم إنهاء إعداد جدول الكميات واعتماده للمرحلة المالية",
+                        });
+                      }}
+                      disabled={completeBOQMutation.isPending}
+                      className="w-full sm:w-auto gap-2"
+                    >
+                      {completeBOQMutation.isPending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <FileText className="h-5 w-5" />
+                      )}
+                      اعتماد وإنهاء جدول الكميات
+                    </Button>
+                  ) : (
+                    <Button
+                      size="lg"
+                      onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                      className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                    >
+                      <Receipt className="h-5 w-5" />
+                      إدارة عروض الأسعار
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -418,7 +430,7 @@ export default function BOQ() {
                   </div>
                   <p className="text-foreground font-medium mb-1">لا توجد طلبات</p>
                   <p className="text-muted-foreground text-sm">
-                    لا توجد حالياً طلبات في مرحلة إعداد جداول الكميات مطابقة لمعايير التصفية.
+                    لا توجد حالياً طلبات بانتظار إعداد جدول الكميات أو اعتماد عرض السعر مطابقة لمعايير التصفية.
                   </p>
                 </div>
               )}

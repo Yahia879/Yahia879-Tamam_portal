@@ -182,7 +182,7 @@ export default function ProjectDetailsPage() {
   const currentRequestStage = project?.request?.currentStage || "";
   const quotationApprovalStageOrder = getStageOrder("quotation_approval");
   const currentStageOrder = getStageOrder(currentRequestStage);
-  const hasApprovedQuotation = (project?.quotations || []).some((q: any) => q.status === "approved");
+  const hasApprovedQuotation = (project?.quotations || []).some((q: any) => q.status === "approved" || q.status === "accepted");
   const isQuotationPhaseDone = (project?.phases || []).some((p: any) => 
     (p.phaseName?.includes("اعتماد") || p.phaseName?.includes("عرض السعر")) && p.completionPercentage === 100
   );
@@ -308,11 +308,10 @@ export default function ProjectDetailsPage() {
     return `${year}/${month}/${day} ${hours}:${minutes}`;
   };
 
-  // التحقق مما إذا كان جدول الكميات مقفلاً (إذا اكتملت المرحلة الثانية أو بدأت مراحل بعدها)
-  const isBOQLocked = project?.phases?.some(p => 
-    (p.phaseOrder === 2 && p.status === "completed") || 
-    (p.phaseOrder > 2 && (p.status === "in_progress" || p.status === "completed"))
-  );
+  // التحقق مما إذا كان جدول الكميات مقفلاً (يتوقف التعديل عند اعتماد عرض سعر أو بدء مرحلة التعاقد والتنفيذ)
+  const isBOQLocked = hasApprovedQuotation || Boolean(project?.phases?.some(p => 
+    p.phaseOrder >= 4 && (p.status === "in_progress" || p.status === "completed")
+  ));
 
   // التحقق مما إذا كانت العقود مقفلة (إذا لم تكتمل المرحلة الثالثة بعد)
   const isContractsLocked = !project?.phases?.some(p => 

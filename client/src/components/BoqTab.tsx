@@ -48,9 +48,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     const { user } = useAuth();
     const userPermissions = (user as any)?.permissions ?? [];
     const hasViewDetails = userPermissions.includes("requests.view_details") || ["super_admin", "system_admin", "projects_office"].includes(user?.role || "");
-    const canAdd = userPermissions.includes("boq.add") || hasViewDetails;
-    const canEdit = userPermissions.includes("boq.edit") || hasViewDetails;
-    const canDelete = userPermissions.includes("boq.delete") || hasViewDetails;
+    const canAdd = userPermissions.includes("boq.add") || userPermissions.includes("quotations") || hasViewDetails;
+    const canEdit = userPermissions.includes("boq.edit") || userPermissions.includes("quotations") || hasViewDetails;
+    const canDelete = userPermissions.includes("boq.delete") || userPermissions.includes("quotations") || hasViewDetails;
 
     const [showAddDialog, setShowAddDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -66,6 +66,11 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     const { data: projectData } = trpc.projects.getById.useQuery(
       { id: projectId! },
       { enabled: !!projectId && !requestId }
+    );
+
+    const { data: quotationsData } = trpc.projects.getQuotationsByRequest.useQuery(
+      { requestId: requestId! },
+      { enabled: !!requestId }
     );
 
     const { data: boqResult, isLoading, refetch } = trpc.projects.getBOQ.useQuery(
@@ -102,18 +107,30 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const [selectedMosqueTab, setSelectedMosqueTab] = useState<string>("all");
 
+    // التحقق مما إذا كان هناك عرض سعر معتمد
+    const hasAcceptedQuotation = Boolean(
+      (request as any)?.hasAcceptedQuotation ||
+      quotationsData?.quotations?.some((q: any) => q.status === "accepted" || q.status === "approved")
+    );
+
+    // يتوقف التعديل والحذف عند اعتماد عرض سعر، أو عند تجاوز مرحلة التقييم المالي واعتماد العرض
     const isLocked =
       externalIsLocked !== undefined
          ? externalIsLocked
-        : !!(
-            request?.currentStage &&
-            getStageOrder(request.currentStage) > getStageOrder("boq_preparation")
+        : Boolean(
+            hasAcceptedQuotation ||
+            (request?.currentStage &&
+              getStageOrder(request.currentStage) > getStageOrder("financial_eval_and_approval"))
           );
+
+    const lockMessage = hasAcceptedQuotation
+      ? "لا يمكن تعديل أو حذف جدول الكميات بعد اعتماد عرض السعر"
+      : "لا يمكن تعديل جدول الكميات في هذه المرحلة";
 
     useImperativeHandle(ref, () => ({
       openAddDialog: () => {
         if (isLocked) {
-          toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+          toast.error(lockMessage);
           return;
         }
         if (!canAdd) {
@@ -247,7 +264,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
       if (!file) return;
 
       if (isLocked) {
-        toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        toast.error(lockMessage);
         e.target.value = "";
         return;
       }
@@ -369,7 +386,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const handleDeleteItem = (id: number) => {
       if (isLocked) {
-        toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        toast.error(lockMessage);
         return;
       }
       if (!canDelete) {
@@ -383,7 +400,7 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     const openEditDialog = (item: any) => {
       if (isLocked) {
-        toast.error("لا يمكن تعديل جدول الكميات في هذه المرحلة");
+        toast.error(lockMessage);
         return;
       }
       if (!canEdit) {
