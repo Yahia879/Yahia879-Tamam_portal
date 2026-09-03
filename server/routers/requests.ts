@@ -4241,4 +4241,253 @@ export const requestsRouter = router({
         },
       };
     }),
+
+  // جلب سجلات إرسال استبيانات رضا المستفيدين (الطلبات المغلقة والمكتملة المرسل لها استبيان)
+  getBeneficiarySurveyLogs: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        statusFilter: z.enum(["all", "pending", "evaluated"]).optional(),
+        programType: z.string().optional(),
+        page: z.number().default(1),
+        limit: z.number().default(15),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const isStaff = ctx.user.role !== "service_requester";
+      if (!isStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذا القسم متاح للموظفين والإدارة فقط." });
+      }
+
+      const page = input?.page || 1;
+      const limit = input?.limit || 15;
+      const offset = (page - 1) * limit;
+
+      // الطلبات التي تم إغلاقها أو اكتمالها وترسل لها استبيانات
+      const baseConditions = [
+        or(
+          eq(mosqueRequests.currentStage, "closed"),
+          eq(mosqueRequests.status, "completed")
+        ),
+      ];
+
+      // جلب جميع الطلبات المؤهلة
+      const allRows = await db
+        .select({
+          requestId: mosqueRequests.id,
+          requestNumber: mosqueRequests.requestNumber,
+          programType: mosqueRequests.programType,
+          descriptiveName: mosqueRequests.descriptiveName,
+          stage: mosqueRequests.currentStage,
+          status: mosqueRequests.status,
+          isEvaluated: mosqueRequests.isEvaluated,
+          satisfactionRating: mosqueRequests.satisfactionRating,
+          evaluatedAt: mosqueRequests.evaluatedAt,
+          closedAt: mosqueRequests.updatedAt,
+          userId: mosqueRequests.userId,
+          requesterName: users.name,
+          requesterEmail: users.email,
+          requesterPhone: users.phone,
+          requesterRole: users.role,
+          mosqueId: mosqueRequests.mosqueId,
+          mosqueName: mosques.name,
+          mosqueCity: mosques.city,
+          evalId: sql<number | null>`(
+            SELECT id FROM request_evaluations 
+            WHERE request_evaluations.requestId = mosque_requests.id 
+              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
+            ORDER BY id DESC LIMIT 1
+          )`,
+          evalRating: sql<number | null>`(
+            SELECT rating FROM request_evaluations 
+            WHERE request_evaluations.requestId = mosque_requests.id 
+              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
+            ORDER BY id DESC LIMIT 1
+          )`,
+          evalNotes: sql<string | null>`(
+            SELECT notes FROM request_evaluations 
+            WHERE request_evaluations.requestId = mosque_requests.id 
+              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
+            ORDER BY id DESC LIMIT 1
+          )`,
+          actualClosedDate: sql<Date | null>`(
+            SELECT createdAt FROM request_history 
+            WHERE request_history.requestId = mosque_requests.id 
+              AND request_history.toStage = 'closed' 
+            ORDER BY id DESC LIMIT 1
+          )`,
+        })
+        .from(mosqueRequests)
+        .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(and(...baseConditions))
+        .orderBy(desc(mosqueRequests.updatedAt));
+
+      const appBaseUrl = 
+        process.env.APP_URL || 
+        process.env.BASE_URL || 
+        "https://tamamgate.manarah.org.sa";
+
+      // معالجة السجلات وتشكيل البيانات
+      let mapped = allRows.map((row) => {
+        const isCompletedEval = Boolean(row.isEvaluated || (row.evalRating !== null && row.evalRating !== undefined));
+        const effectiveRating = row.satisfactionRating || row.evalRating || null;
+        const dispatchedAt = row.actualClosedDate || row.closedAt;
+        const evaluationUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${row.requestId}/evaluation`;
+
+        return {
+          requestId: row.requestId,
+          requestNumber: row.requestNumber,
+          programType: row.programType,
+          descriptiveName: row.descriptiveName,
+          stage: row.stage,
+          status: row.status,
+          mosqueName: row.mosqueName,
+          mosqueCity: row.mosqueCity,
+          beneficiary: {
+            id: row.userId,
+            name: row.requesterName || "غير محدد",
+            email: row.requesterEmail || null,
+            phone: row.requesterPhone || null,
+            role: row.requesterRole,
+          },
+          survey: {
+            isDispatched: true,
+            dispatchedAt,
+            isEvaluated: isCompletedEval,
+            evaluatedAt: row.evaluatedAt || (isCompletedEval ? dispatchedAt : null),
+            rating: effectiveRating,
+            evaluationUrl,
+          },
+        };
+      });
+
+      // إحصائيات السجلات الإجمالية قبل الفلترة
+      const totalDispatched = mapped.length;
+      const totalEvaluated = mapped.filter((m) => m.survey.isEvaluated).length;
+      const totalPending = totalDispatched - totalEvaluated;
+      const responseRate = totalDispatched > 0 ? Math.round((totalEvaluated / totalDispatched) * 100) : 0;
+
+      // تطبيق الفلاتر
+      if (input?.search && input.search.trim()) {
+        const q = input.search.trim().toLowerCase();
+        mapped = mapped.filter((item) => {
+          return (
+            item.requestNumber?.toLowerCase().includes(q) ||
+            item.beneficiary.name?.toLowerCase().includes(q) ||
+            item.beneficiary.email?.toLowerCase().includes(q) ||
+            item.beneficiary.phone?.toLowerCase().includes(q) ||
+            item.mosqueName?.toLowerCase().includes(q) ||
+            item.mosqueCity?.toLowerCase().includes(q) ||
+            item.descriptiveName?.toLowerCase().includes(q)
+          );
+        });
+      }
+
+      if (input?.statusFilter && input.statusFilter !== "all") {
+        if (input.statusFilter === "evaluated") {
+          mapped = mapped.filter((item) => item.survey.isEvaluated);
+        } else if (input.statusFilter === "pending") {
+          mapped = mapped.filter((item) => !item.survey.isEvaluated);
+        }
+      }
+
+      if (input?.programType && input.programType !== "all") {
+        const prog = input.programType.toLowerCase().trim();
+        mapped = mapped.filter((item) => item.programType?.toLowerCase().trim() === prog);
+      }
+
+      const totalFiltered = mapped.length;
+      const paginatedItems = mapped.slice(offset, offset + limit);
+
+      return {
+        items: paginatedItems,
+        total: totalFiltered,
+        page,
+        limit,
+        totalPages: Math.ceil(totalFiltered / limit) || 1,
+        stats: {
+          totalDispatched,
+          totalEvaluated,
+          totalPending,
+          responseRate,
+        },
+      };
+    }),
+
+  // إرسال بريد تذكيري للمستفيد لتقييم الطلب
+  sendBeneficiarySurveyReminder: protectedProcedure
+    .input(z.object({ requestId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      if (!request.userId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يوجد مستخدم مرتبط بهذا الطلب" });
+      }
+
+      const [beneficiary] = await db
+        .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+        .from(users)
+        .where(eq(users.id, request.userId))
+        .limit(1);
+
+      if (!beneficiary) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "بيانات المستفيد غير موجودة" });
+      }
+
+      if (!beneficiary.email) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: `المستفيد (${beneficiary.name || 'العميل'}) ليس لديه بريد إلكتروني مسجل بالنظام لإرسال التذكير.` 
+        });
+      }
+
+      const appBaseUrl = 
+        process.env.APP_URL || 
+        process.env.BASE_URL || 
+        "https://tamamgate.manarah.org.sa";
+      const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
+      const emailTitle = `تذكير: تقييم رضا المستفيد - الطلب رقم ${request.requestNumber}`;
+      const emailMessage = `السلام عليكم ورحمة الله وبركاته ${beneficiary.name ? `الأستاذ/ة ${beneficiary.name}` : ''}،\n\nنود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nرأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا، نأمل منكم التكرم بتخصيص دقيقة واحدة لتقييم الخدمة المقدمة من خلال الضغط على الزر أدناه:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
+
+      // إرسال الإيميل
+      await sendEmailNotification(
+        beneficiary.email,
+        emailTitle,
+        emailMessage,
+        evalUrl,
+        "⭐️ تقييم الخدمة الآن ⭐️"
+      );
+
+      // إرسال إشعار داخل النظام للمستفيد
+      await createNotification({
+        userId: beneficiary.id,
+        title: `تذكير: تقييم رضا المستفيد (طلب ${request.requestNumber})`,
+        message: `نود تذكيركم بمشاركتنا تقييم مستوى الخدمة لطلبكم المكتمل رقم ${request.requestNumber}.`,
+        type: "request",
+        relatedType: "request_evaluation",
+        relatedId: request.id,
+      });
+
+      return {
+        success: true,
+        message: `تم إرسال بريد التذكير بنجاح إلى ${beneficiary.email}`,
+        email: beneficiary.email,
+        evalUrl,
+      };
+    }),
 });
