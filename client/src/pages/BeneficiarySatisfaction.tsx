@@ -685,26 +685,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   </Badge>
                 </button>
               </div>
-
-              {logsSubView === "contacts" && (
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setCustomSurveyData({
-                      name: "",
-                      email: "",
-                      phone: "",
-                      category: "approved_beneficiary",
-                      customMessage: "",
-                    });
-                    setIsCustomSurveyOpen(true);
-                  }}
-                  className="h-9 px-3.5 text-xs font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>إرسال استبيان مخصص</span>
-                </Button>
-              )}
             </div>
 
             {/* عند اختيار استبيانات الطلبات المغلقة */}
@@ -1085,45 +1065,45 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   </CardContent>
                 </Card>
 
-                {/* جدول المستفيدين المعتمدين والمتبرعين والاستفسارات */}
+                {/* جدول المستفيدين المعتمدين والمتبرعين والاستفسارات من صفحة اعتمادات طالبي الخدمة */}
                 <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden" dir="rtl">
                   <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2 text-right">
                     <div className="text-right">
-                      <CardTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
-                        <Users className="w-4.5 h-4.5 text-teal-600 dark:text-teal-400" />
+                      <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2 text-right">
+                        <Users className="w-5 h-5 text-teal-600 dark:text-teal-400" />
                         <span>دليل المستفيدين المعتمدين، المتبرعين، وأصحاب الاستفسارات</span>
                       </CardTitle>
-                      <CardDescription className="text-xs text-right mt-1">
-                        عرض <span className="font-mono font-bold">{contactsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{contactsData?.total || 0}</span> جهة مؤهلة لاستلام استبيان قياس الرضا
+                      <CardDescription className="text-xs sm:text-sm text-right mt-1">
+                        عرض <span className="font-mono font-bold">{contactsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{contactsData?.total || 0}</span> جهة معتمدة من صفحة اعتمادات طالبي الخدمة
                       </CardDescription>
                     </div>
                   </CardHeader>
 
                   <CardContent className="p-0">
                     {isLoadingContacts ? (
-                      <div className="p-12 text-center text-muted-foreground text-xs flex flex-col items-center justify-center gap-2">
+                      <div className="p-12 text-center text-muted-foreground text-xs sm:text-sm flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
                         <span>جاري تحميل قائمة المستفيدين والمتبرعين...</span>
                       </div>
                     ) : !contactsData?.items || contactsData.items.length === 0 ? (
                       <div className="p-12 text-center space-y-2">
                         <Users className="w-12 h-12 mx-auto text-muted-foreground/40" />
-                        <p className="text-sm font-bold text-foreground">لا توجد جهات مطابقة</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm sm:text-base font-bold text-foreground">لا توجد جهات مطابقة</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground">
                           لم يتم العثور على أي جهات اتصال وفق معايير البحث والفلترة المحددة.
                         </p>
                       </div>
                     ) : (
                       <div className="overflow-x-auto" dir="rtl">
-                        <table className="w-full text-right text-xs" dir="rtl">
+                        <table className="w-full text-right" dir="rtl">
                           <thead>
-                            <tr className="border-b border-border bg-muted/40 text-muted-foreground font-semibold">
-                              <th className="p-3.5 px-4 text-right">الاسم والتصنيف</th>
-                              <th className="p-3.5 px-4 text-right">رقم الجوال</th>
-                              <th className="p-3.5 px-4 text-right">البريد الإلكتروني</th>
-                              <th className="p-3.5 px-4 text-right">تاريخ التسجيل / المعاملة</th>
-                              <th className="p-3.5 px-4 text-right">حالة التقييم</th>
-                              <th className="p-3.5 px-4 text-center">الإجراء</th>
+                            <tr className="border-b border-border bg-muted/50 text-muted-foreground font-bold text-xs sm:text-sm">
+                              <th className="p-4 px-5 text-right">الاسم وصفة طالب الخدمة</th>
+                              <th className="p-4 px-5 text-right">رقم الجوال</th>
+                              <th className="p-4 px-5 text-right">البريد الإلكتروني</th>
+                              <th className="p-4 px-5 text-right">تاريخ الاعتماد / التسجيل</th>
+                              <th className="p-4 px-5 text-right">حالة التقييم</th>
+                              <th className="p-4 px-5 text-center">الإجراء</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
@@ -1132,33 +1112,41 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               const hasEmail = Boolean(contact.email);
 
                               return (
-                                <tr key={contact.id} className="hover:bg-muted/30 transition-colors">
-                                  {/* الاسم والتصنيف */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="space-y-1 text-right">
-                                      <div className="font-bold text-foreground flex items-center gap-1.5 justify-start text-right">
-                                        <span className="truncate max-w-[180px]">{contact.name}</span>
+                                <tr key={contact.id} className="hover:bg-muted/40 transition-colors">
+                                  {/* الاسم والصفة */}
+                                  <td className="p-4 px-5 text-right">
+                                    <div className="space-y-1.5 text-right">
+                                      <div className="font-black text-sm sm:text-base text-foreground flex items-center gap-2 justify-start text-right">
+                                        <span className="truncate max-w-[220px]">{contact.name}</span>
                                       </div>
-                                      <div className="flex items-center gap-1.5 flex-wrap justify-start">
-                                        {contact.category === "approved_beneficiary" && (
-                                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] gap-1 py-0 px-2 font-bold inline-flex items-center">
-                                            <UserCheck className="w-3 h-3 text-emerald-600" />
-                                            <span>مستفيد معتمد</span>
+                                      <div className="flex items-center gap-2 flex-wrap justify-start">
+                                        {/* صفة المستفيد: إمام / مؤذن / متبرع / صاحب استفسار / أخرى */}
+                                        {contact.requesterType === "imam" ? (
+                                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                            <span>🕌 إمام مسجد</span>
                                           </Badge>
-                                        )}
-                                        {contact.category === "donor" && (
-                                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900/50 text-[10px] gap-1 py-0 px-2 font-bold inline-flex items-center">
+                                        ) : contact.requesterType === "muezzin" ? (
+                                          <Badge className="bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                            <span>📢 مؤذن</span>
+                                          </Badge>
+                                        ) : contact.category === "donor" || contact.requesterType === "donor" ? (
+                                          <Badge className="bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
                                             <HeartHandshake className="w-3 h-3 text-purple-600" />
-                                            <span>متبرع / داعم</span>
+                                            <span>{contact.requesterTypeLabel || "متبرع / داعم"}</span>
+                                          </Badge>
+                                        ) : contact.category === "inquiry" ? (
+                                          <Badge className="bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                            <MessageSquare className="w-3 h-3 text-sky-600" />
+                                            <span>صاحب استفسار عام</span>
+                                          </Badge>
+                                        ) : (
+                                          <Badge className="bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800 text-xs py-0.5 px-2.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                            <UserCheck className="w-3 h-3 text-amber-600" />
+                                            <span>{contact.requesterTypeLabel || "مستفيد معتمد"}</span>
                                           </Badge>
                                         )}
-                                        {contact.category === "inquiry" && (
-                                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/50 text-[10px] gap-1 py-0 px-2 font-bold inline-flex items-center">
-                                            <MessageSquare className="w-3 h-3 text-blue-600" />
-                                            <span>صاحب استفسار</span>
-                                          </Badge>
-                                        )}
-                                        <span className="text-[11px] text-muted-foreground truncate max-w-[170px]">
+
+                                        <span className="text-xs text-muted-foreground font-medium">
                                           {contact.subText}
                                         </span>
                                       </div>
@@ -1166,75 +1154,75 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   </td>
 
                                   {/* رقم الجوال */}
-                                  <td className="p-3.5 px-4 text-right">
+                                  <td className="p-4 px-5 text-right">
                                     {contact.phone ? (
-                                      <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                        <Phone className="w-3 h-3 text-blue-500 shrink-0" />
+                                      <div className="text-sm font-semibold text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                        <Phone className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                         <span dir="ltr" className="inline-block">{contact.phone}</span>
                                       </div>
                                     ) : (
-                                      <span className="text-[11px] text-muted-foreground/60">—</span>
+                                      <span className="text-xs text-muted-foreground/60">—</span>
                                     )}
                                   </td>
 
                                   {/* البريد الإلكتروني */}
-                                  <td className="p-3.5 px-4 text-right">
+                                  <td className="p-4 px-5 text-right">
                                     {hasEmail ? (
-                                      <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
-                                        <Mail className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
-                                        <span dir="ltr" className="truncate max-w-[170px] inline-block">{contact.email}</span>
+                                      <div className="text-sm font-medium text-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                        <Mail className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
+                                        <span dir="ltr" className="truncate max-w-[200px] inline-block">{contact.email}</span>
                                       </div>
                                     ) : (
-                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium block text-right">
+                                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-200 dark:border-amber-800 block text-right">
                                         ⚠️ لا يوجد بريد مسجل
                                       </span>
                                     )}
                                   </td>
 
-                                  {/* تاريخ التسجيل / المعاملة */}
-                                  <td className="p-3.5 px-4 text-right">
-                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1 justify-start text-right">
-                                      <Calendar className="w-3 h-3 shrink-0 text-muted-foreground/70" />
+                                  {/* تاريخ التسجيل / الاعتماد */}
+                                  <td className="p-4 px-5 text-right">
+                                    <div className="text-sm text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
+                                      <Calendar className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
                                       <span>{formatDateEn(contact.date)}</span>
                                     </div>
                                   </td>
 
                                   {/* حالة التقييم */}
-                                  <td className="p-3.5 px-4 text-right">
+                                  <td className="p-4 px-5 text-right">
                                     {contact.isEvaluated ? (
                                       <div className="space-y-1 text-right">
-                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900/50 text-[10px] gap-1 py-0.5 px-2 inline-flex items-center font-bold">
-                                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                          <span>تم التقييم</span>
+                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs gap-1 py-1 px-2.5 inline-flex items-center font-bold">
+                                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>تم التقييم بنجاح</span>
                                         </Badge>
                                         {contact.rating && (
-                                          <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 font-mono justify-start">
-                                            <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                          <div className="flex items-center gap-1 text-sm font-black text-amber-600 dark:text-amber-400 font-mono justify-start">
+                                            <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                                             <span>{contact.rating} / 5</span>
                                           </div>
                                         )}
                                       </div>
                                     ) : (
-                                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] gap-1 py-0.5 px-2 inline-flex items-center">
-                                        <Clock className="w-3 h-3" />
+                                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs gap-1 py-1 px-2.5 inline-flex items-center font-medium">
+                                        <Clock className="w-3.5 h-3.5" />
                                         <span>لم يقم بالتقييم بعد</span>
                                       </Badge>
                                     )}
                                   </td>
 
                                   {/* الإجراء */}
-                                  <td className="p-3.5 px-4 text-center whitespace-nowrap">
+                                  <td className="p-4 px-5 text-center whitespace-nowrap">
                                     <Button
                                       size="sm"
                                       disabled={isSendingThis}
                                       onClick={() => handleSendGeneralSurvey(contact)}
                                       title={hasEmail ? "إرسال رابط الاستبيان عبر البريد" : "إدخال البريد الإلكتروني وإرسال الاستبيان"}
-                                      className="h-8 px-3 text-xs font-bold gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
+                                      className="h-9 px-4 text-xs sm:text-sm font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
                                     >
                                       {isSendingThis ? (
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        <Loader2 className="w-4 h-4 animate-spin" />
                                       ) : (
-                                        <Send className="w-3.5 h-3.5" />
+                                        <Send className="w-4 h-4" />
                                       )}
                                       <span>إرسال استبيان</span>
                                     </Button>

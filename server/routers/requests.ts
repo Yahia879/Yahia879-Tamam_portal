@@ -4529,13 +4529,25 @@ export const requestsRouter = router({
       const search = input?.search?.trim().toLowerCase() || "";
       const selectedCat = input?.category || "all";
 
-      // 1. المستفيدين المعتمدين (users role = service_requester and status = active)
+      const getRequesterTypeLabel = (type: string | null | undefined): string => {
+        if (!type) return "طالب خدمة";
+        const types: Record<string, string> = {
+          imam: "إمام",
+          muezzin: "مؤذن",
+          donor: "متبرع",
+          other: "أخرى",
+        };
+        return types[type] || type;
+      };
+
+      // 1. المستفيدين المعتمدين من صفحة اعتمادات طالبي الخدمة (users role = service_requester and status = active)
       const approvedUsers = await db
         .select({
           id: users.id,
           name: users.name,
           email: users.email,
           phone: users.phone,
+          requesterType: users.requesterType,
           createdAt: users.createdAt,
         })
         .from(users)
@@ -4556,34 +4568,24 @@ export const requestsRouter = router({
         if (r.userId) requestCountMap.set(r.userId, Number(r.count));
       }
 
-      // 2. المتبرعين من سندات القبض ومشاركات التبرع العامة
-      const voucherPayers = await db
-        .select({
-          id: receiptVouchers.id,
-          payerName: receiptVouchers.payerName,
-          amount: receiptVouchers.amount,
-          createdAt: receiptVouchers.createdAt,
-        })
-        .from(receiptVouchers)
-        .where(isNotNull(receiptVouchers.payerName));
-
+      // 2. طلبات التبرعات الواردة من صفحة اعتمادات طالبي الخدمة (الأراضي والعينية والمبادرات)
       const donorSubmissions = await db
         .select({
           id: publicSubmissions.id,
           name: publicSubmissions.name,
           email: publicSubmissions.email,
           phone: publicSubmissions.phone,
+          submissionType: publicSubmissions.submissionType,
           details: publicSubmissions.details,
-          amount: publicSubmissions.financialAmount,
           createdAt: publicSubmissions.createdAt,
         })
         .from(publicSubmissions)
-        .where(or(
+        .where(and(
           eq(publicSubmissions.category, "donor"),
-          inArray(publicSubmissions.submissionType, ["donor_financial", "donor_inkind", "donor_land", "donor_other"])
+          ne(publicSubmissions.submissionType, "donor_financial")
         ));
 
-      // 3. أصحاب الاستفسارات من publicSubmissions
+      // 3. أصحاب الاستفسارات من صفحة اعتمادات طالبي الخدمة
       const inquirers = await db
         .select({
           id: publicSubmissions.id,
@@ -4612,12 +4614,14 @@ export const requestsRouter = router({
         if (ev.userId) evalByUserId.set(ev.userId, { rating: ev.rating, date: ev.createdAt });
       }
 
-      // تجميع القائمة الموحدة
+      // تجميع القائمة الموحدة الخاصة بصفحة اعتمادات طالبي الخدمة
       const allItems: Array<{
         id: string;
         sourceId: number;
         category: "approved_beneficiary" | "donor" | "inquiry";
         categoryLabel: string;
+        requesterType: string | null;
+        requesterTypeLabel: string;
         name: string;
         email: string | null;
         phone: string | null;
@@ -4632,11 +4636,16 @@ export const requestsRouter = router({
       for (const u of approvedUsers) {
         const reqCount = requestCountMap.get(u.id) || 0;
         const ev = evalByUserId.get(u.id);
+        const reqTypeLabel = getRequesterTypeLabel(u.requesterType);
+        const isDonorType = u.requesterType === "donor" || u.requesterType === "متبرع";
+
         allItems.push({
           id: `ben-${u.id}`,
           sourceId: u.id,
-          category: "approved_beneficiary",
-          categoryLabel: "مستفيد معتمد",
+          category: isDonorType ? "donor" : "approved_beneficiary",
+          categoryLabel: isDonorType ? "متبرع معتمد" : "مستفيد معتمد",
+          requesterType: u.requesterType || null,
+          requesterTypeLabel: reqTypeLabel,
           name: u.name || "مستفيد مسجل",
           email: u.email || null,
           phone: u.phone || null,
@@ -4648,17 +4657,24 @@ export const requestsRouter = router({
         });
       }
 
-      // ب) إضافة المتبرعين من المشاركات العامة
+      // ب) إضافة طلبات التبرعات الواردة من صفحة اعتمادات طالبي الخدمة
       for (const d of donorSubmissions) {
+        let typeLabel = "متبرع";
+        if (d.submissionType === "donor_land") typeLabel = "تبرع بأرض مسجد";
+        else if (d.submissionType === "donor_inkind") typeLabel = "تبرع عيني ومواد";
+        else if (d.submissionType === "donor_other") typeLabel = "مبادرة تبرع";
+
         allItems.push({
           id: `sub-don-${d.id}`,
           sourceId: d.id,
           category: "donor",
           categoryLabel: "متبرع",
+          requesterType: d.submissionType || "donor",
+          requesterTypeLabel: typeLabel,
           name: d.name,
           email: d.email || null,
           phone: d.phone || null,
-          subText: d.amount ? `مبلغ دعم: ${d.amount} ر.س` : (d.details ? d.details.slice(0, 45) : "مساهمة / تبرع"),
+          subText: d.details ? d.details.slice(0, 50) : typeLabel,
           date: d.createdAt,
           userId: null,
           isEvaluated: false,
@@ -4666,41 +4682,19 @@ export const requestsRouter = router({
         });
       }
 
-      // ج) إضافة المتبرعين من سندات القبض (مع منع التكرار بالاسم)
-      const seenPayerNames = new Set<string>();
-      for (const v of voucherPayers) {
-        if (!v.payerName) continue;
-        const normalized = v.payerName.trim();
-        if (seenPayerNames.has(normalized)) continue;
-        seenPayerNames.add(normalized);
-
-        allItems.push({
-          id: `vouch-${v.id}`,
-          sourceId: v.id,
-          category: "donor",
-          categoryLabel: "متبرع",
-          name: normalized,
-          email: null,
-          phone: null,
-          subText: `سند قبض: ${v.amount} ر.س`,
-          date: v.createdAt,
-          userId: null,
-          isEvaluated: false,
-          rating: null,
-        });
-      }
-
-      // د) إضافة أصحاب الاستفسارات
+      // ج) إضافة أصحاب الاستفسارات من صفحة اعتمادات طالبي الخدمة
       for (const inq of inquirers) {
         allItems.push({
           id: `inq-${inq.id}`,
           sourceId: inq.id,
           category: "inquiry",
           categoryLabel: "صاحب استفسار",
+          requesterType: "inquiry",
+          requesterTypeLabel: "استفسار عام",
           name: inq.name,
           email: inq.email || null,
           phone: inq.phone || null,
-          subText: inq.details ? inq.details.slice(0, 45) : "استفسار عام",
+          subText: inq.details ? inq.details.slice(0, 50) : "استفسار عام وتواصل",
           date: inq.createdAt,
           userId: null,
           isEvaluated: false,
@@ -4708,18 +4702,22 @@ export const requestsRouter = router({
         });
       }
 
-      // حساب الإحصائيات
+      // حساب الإحصائيات الدقيقة
       const stats = {
-        totalApprovedBeneficiaries: allItems.filter(i => i.category === "approved_beneficiary").length,
+        totalApprovedBeneficiaries: approvedUsers.length,
         totalDonors: allItems.filter(i => i.category === "donor").length,
-        totalInquirers: allItems.filter(i => i.category === "inquiry").length,
+        totalInquirers: inquirers.length,
         totalAll: allItems.length,
       };
 
       // تطبيق الفلترة
       let filtered = allItems;
       if (selectedCat !== "all") {
-        filtered = filtered.filter(i => i.category === selectedCat);
+        if (selectedCat === "approved_beneficiary") {
+          filtered = filtered.filter(i => i.category === "approved_beneficiary" || i.userId !== null);
+        } else {
+          filtered = filtered.filter(i => i.category === selectedCat);
+        }
       }
       if (search) {
         filtered = filtered.filter(i => 
