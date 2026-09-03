@@ -647,6 +647,9 @@ export function canChangeStatus(userRole: string, action: string): boolean {
 
 // الحصول على اسم المرحلة التالية (للمسار العادي)
 export function getNextStage(currentStage: string, track: 'standard' | 'quick_response' = 'standard'): string | null {
+  if (currentStage === 'financial_eval_and_approval') {
+    return 'contracting';
+  }
   const standardStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
   const quickResponseStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'execution', 'closed'];
   
@@ -660,8 +663,10 @@ export function getNextStage(currentStage: string, track: 'standard' | 'quick_re
 
 // الحصول على رقم المرحلة الحالية
 export function getStageOrder(stage: string): number {
+  if (stage === 'financial_eval_and_approval') return 6;
   const stages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
-  return stages.indexOf(stage) + 1;
+  const index = stages.indexOf(stage);
+  return index >= 0 ? index + 1 : 0;
 }
 
 // ==================== خيارات التقييم الفني (الخيارات الأربعة) ====================

@@ -40,6 +40,7 @@ import { PROGRAM_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
+import BoqTab from "@/components/BoqTab";
 import {
   Receipt,
   Search,
@@ -241,6 +242,12 @@ export default function Quotations() {
     { requestId: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
+
+  const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
+  const hasAcceptedQuotation = useMemo(() => {
+    return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved") ||
+      Boolean((singleRequestData as any)?.hasAcceptedQuotation || (singleRequestData as any)?.request?.hasAcceptedQuotation);
+  }, [allQuotations, singleRequestData]);
 
   // جلب جدول الكميات للطلب المحدد
   const { data: boqData, isLoading: boqLoading } = trpc.projects.getBOQ.useQuery(
@@ -1407,84 +1414,34 @@ export default function Quotations() {
           </CardContent>
         </Card>
 
-        {/* عرض جدول الكميات للطلب المحدد */}
+        {/* عرض جدول الكميات للطلب المحدد مع إمكانية التعديل والحذف قبل اعتماد أي عرض سعر */}
         {selectedRequestId && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5" />
-                جدول الكميات للطلب
-              </CardTitle>
-              <CardDescription>
-                البنود المطلوب تسعيرها من الموردين
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {boqLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : boqData?.items && boqData.items.length > 0 ? (
-                <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-b-2 border-slate-300 dark:border-slate-700">
-                        <TableHead className="w-12 text-center font-bold">#</TableHead>
-                        <TableHead className="font-bold">البند</TableHead>
-                        <TableHead className="font-bold">الوصف</TableHead>
-                        <TableHead className="font-bold">الوحدة</TableHead>
-                        <TableHead className="text-center font-bold">الكمية</TableHead>
-                        <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
-                        <TableHead className="text-center font-bold">الإجمالي</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
-                      {boqData.items.map((item: any, index: number) => (
-                        <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                          <TableCell className="text-center">{index + 1}</TableCell>
-                          <TableCell className="font-medium align-middle max-w-[400px] min-w-[180px]">
-                            <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
-                              {item.itemName}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {item.itemDescription || "-"}
-                          </TableCell>
-                          <TableCell>{item.unit}</TableCell>
-                          <TableCell className="text-center">{parseFloat(item.quantity).toLocaleString("ar-SA")}</TableCell>
-                          <TableCell className="text-center">
-                            {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال` : "-"}
-                          </TableCell>
-                          <TableCell className="text-center font-medium">
-                            {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("ar-SA")} ريال` : "-"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  <div className="flex justify-end">
-                    <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold">
-                      إجمالي جدول الكميات: {boqTotal.toLocaleString("ar-SA")} ريال
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد جدول كميات لهذا الطلب</p>
-                  <p className="text-sm mt-2">يجب إعداد جدول الكميات أولاً قبل طلب عروض الأسعار</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => navigate(`/projects/boq?requestId=${selectedRequestId}`)}
-                  >
-                    <Plus className="h-4 w-4 ml-2" />
-                    إعداد جدول الكميات
-                  </Button>
-                </div>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5 text-teal-600" />
+                  جدول الكميات للطلب
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {hasAcceptedQuotation 
+                    ? "تم قفل تعديل وحذف جدول الكميات نظراً لاعتماد عرض سعر لهذا الطلب" 
+                    : "يمكنك إضافة وتعديل وحذف بنود جدول الكميات مباشرة من هنا طالما لم يتم اعتماد عرض سعر"}
+                </p>
+              </div>
+              {hasAcceptedQuotation && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5 w-fit">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  عرض السعر معتمد (الجدول مقفل)
+                </Badge>
               )}
-            </CardContent>
-          </Card>
+            </div>
+
+            <BoqTab 
+              requestId={parseInt(selectedRequestId)} 
+              isLocked={hasAcceptedQuotation} 
+            />
+          </div>
         )}
 
         {/* جدول عروض الأسعار */}
@@ -1529,10 +1486,8 @@ export default function Quotations() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (() => {
-                const allQuotations = quotationsData?.quotations ?? [];
                 const linkQuotations = allQuotations.filter((q: any) => q.documentUrl && parseFloat(q.totalAmount) === 0);
                 const normalQuotations = allQuotations.filter((q: any) => !q.documentUrl || parseFloat(q.totalAmount) > 0);
-                const hasAcceptedQuotation = normalQuotations.some((q: any) => q.status === "accepted");
 
                 return (
                   <div className="space-y-6">
