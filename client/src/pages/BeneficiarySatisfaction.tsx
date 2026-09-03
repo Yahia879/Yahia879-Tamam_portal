@@ -17,8 +17,6 @@ import {
   Send,
   Mail,
   Phone,
-  Copy,
-  Check,
   Clock,
   TrendingUp,
   User,
@@ -61,7 +59,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const [logProgramFilter, setLogProgramFilter] = useState<string>("all");
   const [logPage, setLogPage] = useState(1);
   const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
-  const [copiedRequestId, setCopiedRequestId] = useState<number | null>(null);
 
   // استعلام سجلات إرسال الاستبيانات
   const { data: logsData, isLoading: isLoadingLogs, refetch: refetchLogs } = trpc.requests.getBeneficiarySurveyLogs.useQuery({
@@ -88,13 +85,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const handleSendReminder = (requestId: number) => {
     setSendingReminderId(requestId);
     sendReminderMutation.mutate({ requestId });
-  };
-
-  const handleCopyLink = (reqId: number, url: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedRequestId(reqId);
-    toast.success("تم نسخ رابط الاستبيان المباشر بنجاح");
-    setTimeout(() => setCopiedRequestId(null), 2500);
   };
 
   // استرجاع كافة التقييمات المسجلة والبرامج وتخصيص الاستمارة ديناميكياً مع ربط البحث والفلترة من الباك إند
@@ -690,7 +680,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                           const isEvaluated = item.survey.isEvaluated;
                           const hasEmail = Boolean(item.beneficiary.email);
                           const isSendingThis = sendingReminderId === item.requestId;
-                          const isCopiedThis = copiedRequestId === item.requestId;
 
                           return (
                             <tr key={item.requestId} className="hover:bg-muted/30 transition-colors">
@@ -815,7 +804,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     disabled={!hasEmail || isSendingThis}
                                     onClick={() => handleSendReminder(item.requestId)}
                                     title={hasEmail ? "إرسال إيميل تذكيري للعميل" : "لا يوجد بريد إلكتروني مسجل"}
-                                    className={`h-8 px-2.5 text-xs font-bold gap-1.5 rounded-lg ${
+                                    className={`h-8 px-3 text-xs font-bold gap-1.5 rounded-lg ${
                                       !isEvaluated 
                                         ? "bg-teal-600 hover:bg-teal-700 text-white shadow-xs" 
                                         : "text-muted-foreground hover:text-foreground"
@@ -827,38 +816,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                       <Send className="w-3.5 h-3.5" />
                                     )}
                                     <span>{isEvaluated ? "إعادة تذكير" : "إرسال تذكير"}</span>
-                                  </Button>
-
-                                  {/* زر نسخ رابط الاستبيان المباشر */}
-                                  <Button
-                                    size="icon"
-                                    variant="outline"
-                                    onClick={() => handleCopyLink(item.requestId, item.survey.evaluationUrl)}
-                                    title="نسخ رابط الاستبيان المباشر"
-                                    className="h-8 w-8 rounded-lg hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300"
-                                  >
-                                    {isCopiedThis ? (
-                                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                    ) : (
-                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                                    )}
-                                  </Button>
-
-                                  {/* زر فتح الاستبيان */}
-                                  <Button
-                                    size="icon"
-                                    variant="outline"
-                                    asChild
-                                    title="فتح صفحة الاستبيان في نافذة جديدة"
-                                    className="h-8 w-8 rounded-lg"
-                                  >
-                                    <a 
-                                      href={`/requests/${item.requestId}/evaluation`} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                    >
-                                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </a>
                                   </Button>
                                 </div>
                               </td>
