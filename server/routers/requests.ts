@@ -32,6 +32,9 @@ import {
   payments,
   requestExceptions,
   donationOpportunities,
+  publicSubmissions,
+  receiptVouchers,
+  donations,
 } from "../../drizzle/schema";
 import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -4495,6 +4498,326 @@ export const requestsRouter = router({
         success: true,
         message: `تم إرسال بريد التذكير بنجاح إلى ${beneficiary.email}`,
         email: beneficiary.email,
+        evalUrl,
+      };
+    }),
+
+  /**
+   * جلب المستفيدين المعتمدين، المتبرعين، وأصحاب الاستفسارات لإرسال استبيانات رضا لهم
+   */
+  getApprovedBeneficiariesAndContacts: protectedProcedure
+    .input(
+      z.object({
+        search: z.string().optional(),
+        category: z.enum(["all", "approved_beneficiary", "donor", "inquiry"]).default("all"),
+        page: z.number().default(1),
+        limit: z.number().default(20),
+      }).optional()
+    )
+    .query(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متوفرة" });
+
+      const isStaff = ctx.user.role !== "service_requester";
+      if (!isStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
+      }
+
+      const page = input?.page || 1;
+      const limit = input?.limit || 20;
+      const offset = (page - 1) * limit;
+      const search = input?.search?.trim().toLowerCase() || "";
+      const selectedCat = input?.category || "all";
+
+      // 1. المستفيدين المعتمدين (users role = service_requester and status = active)
+      const approvedUsers = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          phone: users.phone,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(and(eq(users.role, "service_requester"), eq(users.status, "active")));
+
+      // جلب عدد الطلبات لكل مستفيد
+      const userRequestsCount = await db
+        .select({
+          userId: mosqueRequests.userId,
+          count: sql<number>`count(*)`,
+        })
+        .from(mosqueRequests)
+        .where(isNotNull(mosqueRequests.userId))
+        .groupBy(mosqueRequests.userId);
+
+      const requestCountMap = new Map<number, number>();
+      for (const r of userRequestsCount) {
+        if (r.userId) requestCountMap.set(r.userId, Number(r.count));
+      }
+
+      // 2. المتبرعين من سندات القبض ومشاركات التبرع العامة
+      const voucherPayers = await db
+        .select({
+          id: receiptVouchers.id,
+          payerName: receiptVouchers.payerName,
+          amount: receiptVouchers.amount,
+          createdAt: receiptVouchers.createdAt,
+        })
+        .from(receiptVouchers)
+        .where(isNotNull(receiptVouchers.payerName));
+
+      const donorSubmissions = await db
+        .select({
+          id: publicSubmissions.id,
+          name: publicSubmissions.name,
+          email: publicSubmissions.email,
+          phone: publicSubmissions.phone,
+          details: publicSubmissions.details,
+          amount: publicSubmissions.financialAmount,
+          createdAt: publicSubmissions.createdAt,
+        })
+        .from(publicSubmissions)
+        .where(or(
+          eq(publicSubmissions.category, "donor"),
+          inArray(publicSubmissions.submissionType, ["donor_financial", "donor_inkind", "donor_land", "donor_other"])
+        ));
+
+      // 3. أصحاب الاستفسارات من publicSubmissions
+      const inquirers = await db
+        .select({
+          id: publicSubmissions.id,
+          name: publicSubmissions.name,
+          email: publicSubmissions.email,
+          phone: publicSubmissions.phone,
+          details: publicSubmissions.details,
+          createdAt: publicSubmissions.createdAt,
+        })
+        .from(publicSubmissions)
+        .where(eq(publicSubmissions.submissionType, "general_inquiry"));
+
+      // 4. تقييمات تم إرسالها أو تسجيلها مسبقاً
+      const existingEvals = await db
+        .select({
+          userId: requestEvaluations.userId,
+          rating: requestEvaluations.rating,
+          createdAt: requestEvaluations.createdAt,
+        })
+        .from(requestEvaluations)
+        .where(isNotNull(requestEvaluations.userId));
+
+      const evalByUserId = new Map<number, { rating: number | null; date: Date }>();
+
+      for (const ev of existingEvals) {
+        if (ev.userId) evalByUserId.set(ev.userId, { rating: ev.rating, date: ev.createdAt });
+      }
+
+      // تجميع القائمة الموحدة
+      const allItems: Array<{
+        id: string;
+        sourceId: number;
+        category: "approved_beneficiary" | "donor" | "inquiry";
+        categoryLabel: string;
+        name: string;
+        email: string | null;
+        phone: string | null;
+        subText: string;
+        date: Date;
+        userId: number | null;
+        isEvaluated: boolean;
+        rating: number | null;
+      }> = [];
+
+      // أ) إضافة المستفيدين المعتمدين
+      for (const u of approvedUsers) {
+        const reqCount = requestCountMap.get(u.id) || 0;
+        const ev = evalByUserId.get(u.id);
+        allItems.push({
+          id: `ben-${u.id}`,
+          sourceId: u.id,
+          category: "approved_beneficiary",
+          categoryLabel: "مستفيد معتمد",
+          name: u.name || "مستفيد مسجل",
+          email: u.email || null,
+          phone: u.phone || null,
+          subText: reqCount > 0 ? `${reqCount} طلب مسجل بالمنصة` : "حساب نشط ومعتمد",
+          date: u.createdAt,
+          userId: u.id,
+          isEvaluated: Boolean(ev),
+          rating: ev?.rating || null,
+        });
+      }
+
+      // ب) إضافة المتبرعين من المشاركات العامة
+      for (const d of donorSubmissions) {
+        allItems.push({
+          id: `sub-don-${d.id}`,
+          sourceId: d.id,
+          category: "donor",
+          categoryLabel: "متبرع",
+          name: d.name,
+          email: d.email || null,
+          phone: d.phone || null,
+          subText: d.amount ? `مبلغ دعم: ${d.amount} ر.س` : (d.details ? d.details.slice(0, 45) : "مساهمة / تبرع"),
+          date: d.createdAt,
+          userId: null,
+          isEvaluated: false,
+          rating: null,
+        });
+      }
+
+      // ج) إضافة المتبرعين من سندات القبض (مع منع التكرار بالاسم)
+      const seenPayerNames = new Set<string>();
+      for (const v of voucherPayers) {
+        if (!v.payerName) continue;
+        const normalized = v.payerName.trim();
+        if (seenPayerNames.has(normalized)) continue;
+        seenPayerNames.add(normalized);
+
+        allItems.push({
+          id: `vouch-${v.id}`,
+          sourceId: v.id,
+          category: "donor",
+          categoryLabel: "متبرع",
+          name: normalized,
+          email: null,
+          phone: null,
+          subText: `سند قبض: ${v.amount} ر.س`,
+          date: v.createdAt,
+          userId: null,
+          isEvaluated: false,
+          rating: null,
+        });
+      }
+
+      // د) إضافة أصحاب الاستفسارات
+      for (const inq of inquirers) {
+        allItems.push({
+          id: `inq-${inq.id}`,
+          sourceId: inq.id,
+          category: "inquiry",
+          categoryLabel: "صاحب استفسار",
+          name: inq.name,
+          email: inq.email || null,
+          phone: inq.phone || null,
+          subText: inq.details ? inq.details.slice(0, 45) : "استفسار عام",
+          date: inq.createdAt,
+          userId: null,
+          isEvaluated: false,
+          rating: null,
+        });
+      }
+
+      // حساب الإحصائيات
+      const stats = {
+        totalApprovedBeneficiaries: allItems.filter(i => i.category === "approved_beneficiary").length,
+        totalDonors: allItems.filter(i => i.category === "donor").length,
+        totalInquirers: allItems.filter(i => i.category === "inquiry").length,
+        totalAll: allItems.length,
+      };
+
+      // تطبيق الفلترة
+      let filtered = allItems;
+      if (selectedCat !== "all") {
+        filtered = filtered.filter(i => i.category === selectedCat);
+      }
+      if (search) {
+        filtered = filtered.filter(i => 
+          i.name.toLowerCase().includes(search) ||
+          (i.email && i.email.toLowerCase().includes(search)) ||
+          (i.phone && i.phone.includes(search)) ||
+          i.subText.toLowerCase().includes(search)
+        );
+      }
+
+      // الترتيب: الأحدث أولاً
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / limit) || 1;
+      const items = filtered.slice(offset, offset + limit);
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+        stats,
+      };
+    }),
+
+  /**
+   * إرسال استبيان رضا عام للمستفيدين المعتمدين، المتبرعين، أو أصحاب الاستفسارات
+   */
+  sendGeneralSatisfactionSurvey: protectedProcedure
+    .input(
+      z.object({
+        recipientEmail: z.string().email("يرجى إدخال بريد إلكتروني صحيح"),
+        recipientName: z.string().min(1, "اسم المستلم مطلوب"),
+        recipientPhone: z.string().optional(),
+        category: z.enum(["approved_beneficiary", "donor", "inquiry", "custom"]).default("approved_beneficiary"),
+        userId: z.number().optional(),
+        customMessage: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متوفرة" });
+
+      const isStaff = ctx.user.role !== "service_requester";
+      if (!isStaff) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
+      }
+
+      const appBaseUrl = 
+        process.env.APP_URL || 
+        process.env.BASE_URL || 
+        "https://tamamgate.manarah.org.sa";
+
+      const cleanBaseUrl = appBaseUrl.replace(/\/+$/, '');
+      const evalUrl = `${cleanBaseUrl}/evaluation?type=${input.category}&name=${encodeURIComponent(input.recipientName)}&email=${encodeURIComponent(input.recipientEmail)}&phone=${encodeURIComponent(input.recipientPhone || "")}`;
+
+      let emailTitle = "استبيان قياس رضا المستفيدين - جمعية عمارة المساجد (منارة)";
+      let emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة).\n\nرأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
+
+      if (input.category === "donor") {
+        emailTitle = "استبيان رضا الشركاء والداعمين - جمعية عمارة المساجد (منارة)";
+        emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنشكركم جزيلاً على عطائكم المبارك ودعمكم لبيوت الله من خلال جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تقديم أعلى معايير الشفافية والتميز لشركائنا والداعمين الكرام، يسعدنا قياس رضاكم واقتراحاتكم الكريمة من خلال الرابط أدناه:\n\nجزاكم الله خيراً وبارك في عطائكم.`;
+      } else if (input.category === "inquiry") {
+        emailTitle = "استبيان رضا المستفيدين عن خدمات الاستفسار والتواصل - جمعية عمارة المساجد (منارة)";
+        emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nيسرنا التواصل معكم بعد استفساركم وتواصلكم الكريم مع جمعية عمارة المساجد (منارة).\n\nنأمل منكم التكرم بتقييم سرعة وجودة التجاوب والخدمة المقدمة لكم من خلال الرابط أدناه:\n\nشاكرين لكم وقتكم واهتمامكم.`;
+      }
+
+      if (input.customMessage?.trim()) {
+        emailMessage += `\n\nملاحظة خاصة: ${input.customMessage.trim()}`;
+      }
+
+      // إرسال الإيميل
+      await sendEmailNotification(
+        input.recipientEmail,
+        emailTitle,
+        emailMessage,
+        evalUrl,
+        "⭐️ تعبئة استبيان الرضا الآن ⭐️"
+      );
+
+      // إرسال إشعار داخل النظام إذا كان للمستلم حساب
+      if (input.userId) {
+        await createNotification({
+          userId: input.userId,
+          title: emailTitle,
+          message: "ندعوكم للمشاركة في استبيان قياس رضا المستفيدين لتطوير جودة الخدمات.",
+          type: "general",
+          relatedType: "evaluation",
+          relatedId: input.userId,
+        });
+      }
+
+      return {
+        success: true,
+        message: `تم إرسال رابط الاستبيان بنجاح إلى ${input.recipientEmail}`,
+        email: input.recipientEmail,
         evalUrl,
       };
     }),

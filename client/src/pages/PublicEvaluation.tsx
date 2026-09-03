@@ -42,16 +42,28 @@ export default function PublicEvaluation() {
 
   const mainLogoSrc = orgSettings?.logoUrl || "/logo.svg";
 
+  const queryName = searchParams.get("name") || "";
+  const queryPhone = searchParams.get("phone") || "";
+  const queryEmail = searchParams.get("email") || "";
+  const queryType = searchParams.get("type") || "";
+
   // تهيئة القيم التلقائية
   useEffect(() => {
+    let defaultService = prefilledService || (prefilledMosque ? `مسجد ${prefilledMosque}` : "");
+    if (!defaultService) {
+      if (queryType === "donor") defaultService = "خدمات التبرع والدعم";
+      else if (queryType === "inquiry") defaultService = "خدمات الاستفسار والتواصل";
+      else if (queryType === "approved_beneficiary") defaultService = "خدمات المستفيدين وعمارة المساجد";
+    }
+
     setFormValues((prev) => ({
       ...prev,
-      beneficiaryName: prev.beneficiaryName || user?.name || "",
-      beneficiaryPhone: prev.beneficiaryPhone || user?.phone || (user as any)?.mobileNumber || "",
-      beneficiaryEmail: prev.beneficiaryEmail || user?.email || "",
-      serviceName: prev.serviceName || prefilledService || (prefilledMosque ? `مسجد ${prefilledMosque}` : ""),
+      beneficiaryName: prev.beneficiaryName || user?.name || queryName || "",
+      beneficiaryPhone: prev.beneficiaryPhone || user?.phone || (user as any)?.mobileNumber || queryPhone || "",
+      beneficiaryEmail: prev.beneficiaryEmail || user?.email || queryEmail || "",
+      serviceName: prev.serviceName || defaultService,
     }));
-  }, [user, prefilledService, prefilledMosque]);
+  }, [user, prefilledService, prefilledMosque, queryName, queryPhone, queryEmail, queryType]);
 
   const activeFields = useMemo(() => {
     if (!formConfig?.fields) return [];
