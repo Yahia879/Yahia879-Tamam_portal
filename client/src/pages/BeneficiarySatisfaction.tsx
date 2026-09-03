@@ -647,7 +647,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     سجل استبيانات رضا المستفيدين المرسلة
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    عرض {logsData?.items.length || 0} من أصل {logsData?.total || 0} استبيان تم إرساله تلقائياً للعميل عند إغلاق الطلب
+                    عرض {logsData?.items.length || 0} من أصل {logsData?.total || 0} استبيان تم إرساله تلقائياً لطالبي الخدمة (service_requester) عند إغلاق طلباتهم
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -664,7 +664,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     <p className="text-sm font-bold text-foreground">لا توجد سجلات مطابقة</p>
                     <p className="text-xs text-muted-foreground">
                       {logsData?.stats.totalDispatched === 0
-                        ? "لا توجد حالياً طلبات مغلقة مرسل لها استبيان. يتم إرسال الاستبيان آلياً للعميل فور إغلاق طلبه."
+                        ? "لا توجد حالياً طلبات مغلقة لطالبي الخدمة (service_requester). يتم إرسال الاستبيان آلياً للعميل فور إغلاق طلبه."
                         : "لم يتم العثور على أي سجلات استبيان وفق معايير البحث والفلترة المحددة."}
                     </p>
                   </div>

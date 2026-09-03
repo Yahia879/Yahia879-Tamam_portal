@@ -67,7 +67,7 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
       .where(eq(users.id, request.userId))
       .limit(1);
 
-    if (!beneficiary) return;
+    if (!beneficiary || beneficiary.role !== "service_requester") return;
 
     const appBaseUrl = 
       process.env.APP_URL || 
@@ -4266,15 +4266,16 @@ export const requestsRouter = router({
       const limit = input?.limit || 15;
       const offset = (page - 1) * limit;
 
-      // الطلبات التي تم إغلاقها أو اكتمالها وترسل لها استبيانات
+      // الطلبات التي تم إغلاقها أو اكتمالها وترسل لها استبيانات حصراً لطالبي الخدمة (service_requester)
       const baseConditions = [
         or(
           eq(mosqueRequests.currentStage, "closed"),
           eq(mosqueRequests.status, "completed")
         ),
+        eq(users.role, "service_requester"),
       ];
 
-      // جلب جميع الطلبات المؤهلة
+      // جلب جميع الطلبات المؤهلة لطالبي الخدمة
       const allRows = await db
         .select({
           requestId: mosqueRequests.id,
@@ -4321,7 +4322,7 @@ export const requestsRouter = router({
           )`,
         })
         .from(mosqueRequests)
-        .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .innerJoin(users, eq(mosqueRequests.userId, users.id))
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .where(and(...baseConditions))
         .orderBy(desc(mosqueRequests.updatedAt));
@@ -4440,13 +4441,20 @@ export const requestsRouter = router({
       }
 
       const [beneficiary] = await db
-        .select({ id: users.id, name: users.name, email: users.email, phone: users.phone })
+        .select({ id: users.id, name: users.name, email: users.email, phone: users.phone, role: users.role })
         .from(users)
         .where(eq(users.id, request.userId))
         .limit(1);
 
       if (!beneficiary) {
         throw new TRPCError({ code: "NOT_FOUND", message: "بيانات المستفيد غير موجودة" });
+      }
+
+      if (beneficiary.role !== "service_requester") {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: "لا يمكن إرسال استبيان رضا المستفيد لهذا الطلب لأنه لم يتم إنشاؤه بواسطة طالب خدمة (service_requester)." 
+        });
       }
 
       if (!beneficiary.email) {
