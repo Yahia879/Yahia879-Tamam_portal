@@ -420,6 +420,11 @@ export function hasRouteAccess(
     return true;
   }
 
+  // السماح بالوصول للصفحة الرئيسية لجميع الموظفين والمستخدمين الإداريين (غير طالبي الخدمة)
+  if (pathname === "/dashboard" || pathname === "/dashboard/") {
+    return userRole !== "service_requester";
+  }
+
   const required = getRequiredPermission(pathname);
 
   // لا توجد قيود صلاحية خاصة على هذا المسار (معفى أو مسار طالب خدمة)
@@ -452,66 +457,7 @@ export function getUserHomeRoute(user: any): string {
   if (!user) return "/login";
   if (user.role === "service_requester") return "/requester";
 
-  const isExecDirector =
-    user.role === "general_manager" ||
-    user.role === "executive_director" ||
-    user?.customRole?.nameAr === "المدير التنفيذي" ||
-    user?.customRole?.nameEn?.toLowerCase() === "executive director";
-
-  if (user.role === "super_admin" || user.role === "system_admin" || isExecDirector) return "/dashboard";
-
-  const userPerms: string[] = user.permissions ?? [];
-  const isBaseRole = ["super_admin", "system_admin", "board_chairman", "board_member", "general_manager", "executive_director", "projects_office", "field_team", "quick_response", "financial", "financial_manager", "project_manager", "corporate_comm", "service_requester"].includes(user.role);
-  const hasCustom = !!user.customRole || !isBaseRole;
-
-  // 1. التحقق من المسار الافتراضي المخصص للدور أولاً
-  const roleDefaultRoutes: Record<string, string> = {
-    general_manager: "/dashboard",
-    executive_director: "/dashboard",
-    board_chairman: "/dashboard",
-    board_member: "/dashboard",
-    projects_office: "/dashboard",
-    field_team: "/dashboard",
-    quick_response: "/dashboard",
-    financial: "/dashboard",
-    financial_manager: "/dashboard",
-    project_manager: "/dashboard",
-    corporate_comm: "/dashboard",
-  };
-
-  const defaultRoute = roleDefaultRoutes[user.role];
-  if (defaultRoute && hasRouteAccess(defaultRoute, user.role, userPerms, hasCustom)) {
-    return defaultRoute;
-  }
-
-  // 2. التحقق من بقية المسارات حسب الأولوية
-  const fallbackPaths = [
-    "/mosques",
-    "/requests",
-    "/projects",
-    "/suppliers",
-    "/staff",
-    "/settings",
-    "/field-visits",
-    "/program-customization",
-    "/field-visits/calendar",
-    "/quotations",
-    "/financial-approval",
-    "/contracts",
-    "/disbursements",
-    "/disbursement-orders",
-    "/progress-reports",
-    "/financial-report",
-    "/partners",
-  ];
-
-  for (const path of fallbackPaths) {
-    if (hasRouteAccess(path, user.role, userPerms, hasCustom)) {
-      return path;
-    }
-  }
-
-  // 3. الملاذ الأخير هو الملف الشخصي العام
-  return "/profile";
+  // جميع الموظفين والمستخدمين الإداريين صفحتهم الرئيسية هي لوحة التحكم المخصصة لدورهم
+  return "/dashboard";
 }
 

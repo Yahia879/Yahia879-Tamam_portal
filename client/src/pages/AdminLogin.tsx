@@ -83,7 +83,7 @@ export default function AdminLogin() {
   // إعادة توجيه المستخدم إذا كان مسجلاً للدخول بالفعل
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      const path = user?.role === "service_requester" ? "/requester" : "/";
+      const path = user?.role === "service_requester" ? "/requester" : "/dashboard";
       setLocation(path, { replace: true });
     }
   }, [isAuthenticated, authLoading, user, setLocation]);
@@ -97,7 +97,8 @@ export default function AdminLogin() {
       if (data?.user?.role === "quick_response") {
         localStorage.setItem("quick-response-lang", "en");
       }
-      setLocation("/", { replace: true });
+      const targetPath = data?.user?.role === "service_requester" ? "/requester" : "/dashboard";
+      setLocation(targetPath, { replace: true });
     },
     onError: (error) => {
       if (error.message?.includes("ROLE_SUSPENDED") || error.message?.includes("موقوف") || error.message?.includes("مراجعة الإدارة")) {

@@ -213,7 +213,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role) || isExecDirector || has("dashboard") || has("dashboard.view")) {
+  if (role !== "service_requester") {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (has("board_chairman") || has("board_chairman_view") || role === "board_chairman") {
