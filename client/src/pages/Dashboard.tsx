@@ -224,44 +224,44 @@ export default function Dashboard() {
   // بطاقات الإحصائيات للمسؤول المالي
   const financialStatsCards = [
     {
-      title: "طلبات الصرف (بانتظار الاعتماد)",
-      value: (disbursementStats?.pendingRequests || 0).toLocaleString("en-US"),
-      subtext: `إجمالي ${((disbursementStats?.pendingRequests || 0) + (disbursementStats?.approvedRequests || 0)).toLocaleString("en-US")} طلب صرف معتمد وجاري`,
+      title: "إجمالي طلبات الصرف",
+      value: (disbursementStats?.totalRequests || 0).toLocaleString("en-US"),
+      subtext: `معتمد: ${(disbursementStats?.approvedRequests || 0).toLocaleString("en-US")} | بانتظار الاعتماد: ${(disbursementStats?.pendingRequests || 0).toLocaleString("en-US")}`,
       icon: Receipt,
       gradient: "from-blue-600 to-indigo-700",
       bgLight: "bg-blue-50 dark:bg-blue-950/40",
       link: "/disbursements",
-      badgeText: `معتمد: ${(disbursementStats?.approvedRequests || 0).toLocaleString("en-US")}`,
+      badgeText: "طلبات الصرف",
     },
     {
-      title: "أوامر الصرف (قيد الإجراء)",
-      value: (disbursementStats?.pendingOrders || 0).toLocaleString("en-US"),
-      subtext: "أوامر صرف جاهزة للتنفيذ البنكي",
+      title: "إجمالي أوامر الصرف",
+      value: (disbursementStats?.totalOrders || 0).toLocaleString("en-US"),
+      subtext: `منفذ: ${(disbursementStats?.executedOrders || 0).toLocaleString("en-US")} | قيد الإجراء: ${(disbursementStats?.pendingOrders || 0).toLocaleString("en-US")}`,
       icon: FileCheck2,
       gradient: "from-emerald-600 to-teal-700",
       bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
       link: "/disbursement-orders",
-      badgeText: "تحويل وسداد",
+      badgeText: "أوامر الصرف",
     },
     {
-      title: "دليل الموردين المعتمدين",
-      value: (supplierStats?.approved || 0).toLocaleString("en-US"),
-      subtext: `إجمالي ${(supplierStats?.total || 0).toLocaleString("en-US")} مورد مسجل (${(supplierStats?.pending || 0).toLocaleString("en-US")} قيد الاعتماد)`,
+      title: "إجمالي الموردين",
+      value: (supplierStats?.total || 0).toLocaleString("en-US"),
+      subtext: `معتمد: ${(supplierStats?.approved || 0).toLocaleString("en-US")} | قيد المراجعة: ${(supplierStats?.pending || 0).toLocaleString("en-US")}`,
       icon: Store,
       gradient: "from-purple-600 to-violet-700",
       bgLight: "bg-purple-50 dark:bg-purple-950/40",
       link: "/suppliers",
-      badgeText: `قيد المراجعة: ${(supplierStats?.pending || 0).toLocaleString("en-US")}`,
+      badgeText: "دليل الموردين",
     },
     {
-      title: "إجمالي المبالغ المصروفة",
+      title: "إجمالي المصروف",
       value: formatCurrencyEn(disbursementStats?.totalPaid || 0),
-      subtext: "المبالغ المحولة والمسددة فعلياً",
+      subtext: `من واقع ${(disbursementStats?.executedOrders || 0).toLocaleString("en-US")} أمر صرف منفذ بالكامل`,
       icon: Wallet,
       gradient: "from-amber-500 to-orange-600",
       bgLight: "bg-amber-50 dark:bg-amber-950/40",
-      link: "/analytics-hub?tab=financial-report",
-      badgeText: "إجمالي الصرف",
+      link: "/disbursement-orders",
+      badgeText: "أوامر منفذة",
     },
   ];
 
@@ -633,124 +633,7 @@ export default function Dashboard() {
         {/* ========================================================================= */}
         {isFinancialRole && (
           <div className="space-y-6">
-            {/* ملخص الحركة المالية والموردين */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* بطاقة ملخص الميزانية والتدفق المالي */}
-              <Card className="lg:col-span-2 border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                      <Banknote className="w-4.5 h-4.5 text-emerald-600 dark:text-emerald-400" />
-                      <span>ملخص الميزانية والتدفق المالي</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-1">
-                      حركة المبالغ المعتمدة والمصروفة والمتبقية في النظام
-                    </CardDescription>
-                  </div>
-                  <Link href="/analytics-hub?tab=financial-report">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                      <span>التقرير المالي</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-1">
-                      <span className="text-xs text-muted-foreground font-medium">إجمالي المبلغ المعتمد</span>
-                      <p className="text-base sm:text-lg font-bold font-mono text-foreground">
-                        {formatCurrencyEn(financialSummary?.totalApproved || 0)}
-                      </p>
-                      <span className="text-[10px] text-muted-foreground block">من واقع العقود النشطة</span>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 space-y-1">
-                      <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">إجمالي المبلغ المصروف</span>
-                      <p className="text-base sm:text-lg font-bold font-mono text-emerald-700 dark:text-emerald-300">
-                        {formatCurrencyEn(financialSummary?.totalPaid || 0)}
-                      </p>
-                      <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block">طلبات الصرف المسددة</span>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 space-y-1">
-                      <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">المبلغ المتبقي</span>
-                      <p className="text-base sm:text-lg font-bold font-mono text-blue-700 dark:text-blue-300">
-                        {formatCurrencyEn(financialSummary?.totalRemaining || 0)}
-                      </p>
-                      <span className="text-[10px] text-blue-600/80 dark:text-blue-400/80 block">متاح للصرف</span>
-                    </div>
-                  </div>
-
-                  {/* نسبة الصرف */}
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground font-medium">معدل الإنجاز المالي والصرف الفعلي:</span>
-                      <span className="font-bold font-mono text-emerald-700 dark:text-emerald-400">
-                        {(financialSummary?.paidPercentage || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                    <Progress value={financialSummary?.paidPercentage || 0} className="h-2.5" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* بطاقة دليل الموردين والاعتمادات السريعة */}
-              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card flex flex-col justify-between">
-                <CardHeader className="p-4 sm:p-5 border-b border-border/80">
-                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Store className="w-4.5 h-4.5 text-purple-600 dark:text-purple-400" />
-                    <span>الموردون والاعتمادات</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    إدارة بيانات الموردين والشركات المؤهلة
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200/60 dark:border-purple-900/40 text-center">
-                      <span className="text-[11px] text-purple-700 dark:text-purple-300 font-medium block">مورد معتمد</span>
-                      <span className="text-xl font-bold font-mono text-purple-800 dark:text-purple-200">
-                        {(supplierStats?.approved || 0).toLocaleString("en-US")}
-                      </span>
-                    </div>
-                    <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-center">
-                      <span className="text-[11px] text-amber-700 dark:text-amber-300 font-medium block">قيد المراجعة</span>
-                      <span className="text-xl font-bold font-mono text-amber-800 dark:text-amber-200">
-                        {(supplierStats?.pending || 0).toLocaleString("en-US")}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <Link href="/suppliers" className="block">
-                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                        <span className="flex items-center gap-2">
-                          <Store className="w-3.5 h-3.5 text-purple-600" />
-                          <span>دليل الموردين الشامل</span>
-                        </span>
-                        <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    </Link>
-                    <Link href="/financial-approval" className="block">
-                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                        <span className="flex items-center gap-2">
-                          <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                          <span>الاعتمادات المالية للطلبات</span>
-                        </span>
-                        <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    </Link>
-                    <Link href="/quotations" className="block">
-                      <Button variant="outline" className="w-full justify-between h-9 text-xs">
-                        <span className="flex items-center gap-2">
-                          <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>عروض الأسعار والـ BOQ</span>
-                        </span>
-                        <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) */}
 
             {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
@@ -1113,37 +996,39 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* الروابط السريعة المخصصة للدور */}
-        <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-          <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
-            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Sparkles className="w-4.5 h-4.5 text-primary" />
-              <span>الوصول السريع لمهام {roleLabel}</span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-              روابط مباشرة لأهم الصفحات والوظائف الخاصة بدورك
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-5">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {getQuickLinks().map((link, idx) => {
-                const IconComponent = link.icon;
-                return (
-                  <Link key={idx} href={link.href} className="group block">
-                    <div className="p-3.5 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-xs transition-all text-center flex flex-col items-center gap-2 bg-muted/20 hover:bg-muted/40">
-                      <div className={`w-10 h-10 rounded-xl ${link.bg} flex items-center justify-center ${link.color} transition-transform group-hover:scale-110 shadow-2xs`}>
-                        <IconComponent className="w-5 h-5" />
+        {/* الروابط السريعة المخصصة للدور - تظهر لجميع الأدوار ما عدا المسؤول المالي */}
+        {!isFinancialRole && (
+          <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+            <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
+              <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Sparkles className="w-4.5 h-4.5 text-primary" />
+                <span>الوصول السريع لمهام {roleLabel}</span>
+              </CardTitle>
+              <CardDescription className="text-xs">
+                روابط مباشرة لأهم الصفحات والوظائف الخاصة بدورك
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {getQuickLinks().map((link, idx) => {
+                  const IconComponent = link.icon;
+                  return (
+                    <Link key={idx} href={link.href} className="group block">
+                      <div className="p-3.5 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-xs transition-all text-center flex flex-col items-center gap-2 bg-muted/20 hover:bg-muted/40">
+                        <div className={`w-10 h-10 rounded-xl ${link.bg} flex items-center justify-center ${link.color} transition-transform group-hover:scale-110 shadow-2xs`}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate w-full">
+                          {link.title}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate w-full">
-                        {link.title}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -52,6 +52,29 @@ import {
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
 
+export function getSurveyBaseUrl(req?: any): string {
+  // إذا توفر كائن الطلب في الجلسة، نستخرج الرابط الذي يعمل عليه المتصفح حالياً
+  if (req) {
+    const origin = req.headers?.origin;
+    if (origin && typeof origin === "string" && origin.trim()) {
+      return origin.replace(/\/+$/, "");
+    }
+    const host = req.headers?.["x-forwarded-host"] || req.headers?.host;
+    if (host && typeof host === "string" && host.trim()) {
+      const proto = req.headers?.["x-forwarded-proto"] || (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
+      return `${proto}://${host}`.replace(/\/+$/, "");
+    }
+  }
+
+  // في التطوير والتشغيل المحلي، نستخدم localhost:3000
+  const envUrl = process.env.APP_URL || process.env.BASE_URL;
+  if (envUrl && (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"))) {
+    return envUrl.replace(/\/+$/, "");
+  }
+
+  return "http://localhost:3000";
+}
+
 export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
   const db = await getDb();
   if (!db) return;
@@ -73,11 +96,8 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
 
     if (!beneficiary || beneficiary.role !== "service_requester") return;
 
-    const appBaseUrl = 
-      process.env.APP_URL || 
-      process.env.BASE_URL || 
-      "https://tamamgate.manarah.org.sa";
-    const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
+    const appBaseUrl = getSurveyBaseUrl();
+    const evalUrl = `${appBaseUrl}/requests/${request.id}/evaluation`;
     const emailTitle = `📋 تقييم رضا المستفيد - تم إغلاق الطلب رقم ${request.requestNumber}`;
     const emailMessage = `السلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تحسين وتطوير خدماتنا، نأمل منكم تكرمكم بتقييم مستوى رضاكم عن الخدمة المقدمة من خلال الضغط على زر التقييم أدناه:\n\nشكراً لتعاونكم معنا.`;
 
@@ -4350,17 +4370,14 @@ export const requestsRouter = router({
         .where(and(...baseConditions))
         .orderBy(desc(mosqueRequests.updatedAt));
 
-      const appBaseUrl = 
-        process.env.APP_URL || 
-        process.env.BASE_URL || 
-        "https://tamamgate.manarah.org.sa";
+      const appBaseUrl = getSurveyBaseUrl(ctx.req);
 
       // معالجة السجلات وتشكيل البيانات
       let mapped = allRows.map((row) => {
         const isCompletedEval = Boolean(row.isEvaluated || (row.evalRating !== null && row.evalRating !== undefined));
         const effectiveRating = row.satisfactionRating || row.evalRating || null;
         const dispatchedAt = row.actualClosedDate || row.closedAt;
-        const evaluationUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${row.requestId}/evaluation`;
+        const evaluationUrl = `${appBaseUrl}/requests/${row.requestId}/evaluation`;
 
         return {
           id: `req-${row.requestId}`,
@@ -4421,7 +4438,7 @@ export const requestsRouter = router({
           const isReminder = row.action === "survey_reminder_sent";
           const reqId = details.requestId || (isReminder ? row.entityId : null);
           const reqNumber = details.requestNumber || (reqId ? `REQ-${reqId}` : null);
-          const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl.replace(/\/+$/, '')}/requests/${reqId}/evaluation` : null);
+          const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl}/requests/${reqId}/evaluation` : null);
 
           // التحقق مما إذا كان الطلب المرتبط قد تم تقييمه
           const matchedRequest = reqId ? allRows.find((r) => r.requestId === reqId) : null;
@@ -4573,11 +4590,8 @@ export const requestsRouter = router({
         });
       }
 
-      const appBaseUrl = 
-        process.env.APP_URL || 
-        process.env.BASE_URL || 
-        "https://tamamgate.manarah.org.sa";
-      const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
+      const appBaseUrl = getSurveyBaseUrl(ctx.req);
+      const evalUrl = `${appBaseUrl}/requests/${request.id}/evaluation`;
       const emailTitle = `تذكير: تقييم رضا المستفيد - الطلب رقم ${request.requestNumber}`;
 
       // استرجاع القالب المخصص من قسم الطلبات والمساجد في حال وجوده
@@ -4917,13 +4931,8 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
       }
 
-      const appBaseUrl = 
-        process.env.APP_URL || 
-        process.env.BASE_URL || 
-        "https://tamamgate.manarah.org.sa";
-
-      const cleanBaseUrl = appBaseUrl.replace(/\/+$/, '');
-      const evalUrl = `${cleanBaseUrl}/evaluation?type=${input.category}&name=${encodeURIComponent(input.recipientName)}&email=${encodeURIComponent(input.recipientEmail)}&phone=${encodeURIComponent(input.recipientPhone || "")}`;
+      const appBaseUrl = getSurveyBaseUrl(ctx.req);
+      const evalUrl = `${appBaseUrl}/evaluation?type=${input.category}&name=${encodeURIComponent(input.recipientName)}&email=${encodeURIComponent(input.recipientEmail)}&phone=${encodeURIComponent(input.recipientPhone || "")}`;
 
       let emailTitle = "استبيان قياس رضا المستفيدين - جمعية عمارة المساجد (منارة)";
       if (input.category === "donor") {

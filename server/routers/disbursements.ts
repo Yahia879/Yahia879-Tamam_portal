@@ -3342,11 +3342,34 @@ export const disbursementsRouter = router({
         eq(payments.status, "approved")
       ));
 
+    // إجمالي طلبات الصرف
+    const [totalRequestsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(disbursementRequests)
+      .where(eq(disbursementRequests.isDirect, false));
+
+    // إجمالي أوامر الصرف
+    const [totalOrdersRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(disbursementOrders);
+
+    // أوامر الصرف المنفذة (المصروف الفعلي وإجمالي المبالغ)
+    const [executedOrdersRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(amount), 0)`
+      })
+      .from(disbursementOrders)
+      .where(eq(disbursementOrders.status, "executed"));
+
     return {
       pendingRequests: pendingRequests?.count || 0,
       approvedRequests: approvedRequests?.count || 0,
       pendingOrders: pendingOrders?.count || 0,
-      totalPaid: Number(totalPaidDisb?.total || 0) + Number(totalPaidManual?.total || 0),
+      totalPaid: Number(executedOrdersRow?.totalAmount || 0),
+      totalRequests: totalRequestsRow?.count || 0,
+      totalOrders: totalOrdersRow?.count || 0,
+      executedOrders: executedOrdersRow?.count || 0,
     };
   }),
 

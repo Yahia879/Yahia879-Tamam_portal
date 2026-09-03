@@ -693,7 +693,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5 text-primary" />
-                  <span>استبيانات الطلبات المغلقة</span>
+                  <span>سجل الارسال</span>
                   <Badge variant="secondary" className="mr-1 text-[10px] h-5 px-1.5 font-mono">
                     {logsData?.total || 0}
                   </Badge>
