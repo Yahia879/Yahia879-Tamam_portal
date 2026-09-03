@@ -43,6 +43,16 @@ import {
   DialogDescription, 
   DialogFooter 
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Select, 
   SelectContent, 
@@ -152,12 +162,24 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     },
   });
 
-  const handleSendGeneralSurvey = (contact: {
+  // حالة تأكيد إرسال الاستبيان
+  const [confirmSurveyContact, setConfirmSurveyContact] = useState<{
     id: string;
     name: string;
     email: string | null;
     phone: string | null;
     category: "approved_beneficiary" | "donor" | "inquiry";
+    requesterTypeLabel?: string;
+    userId?: number | null;
+  } | null>(null);
+
+  const handleInitiateSendSurvey = (contact: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    category: "approved_beneficiary" | "donor" | "inquiry";
+    requesterTypeLabel?: string;
     userId?: number | null;
   }) => {
     if (!contact.email) {
@@ -173,14 +195,26 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
       return;
     }
 
-    setSendingSurveyKey(contact.id);
-    sendGeneralSurveyMutation.mutate({
-      recipientEmail: contact.email,
-      recipientName: contact.name,
-      recipientPhone: contact.phone || undefined,
-      category: contact.category,
-      userId: contact.userId || undefined,
-    });
+    setConfirmSurveyContact(contact);
+  };
+
+  const handleConfirmSendSurvey = () => {
+    if (!confirmSurveyContact || !confirmSurveyContact.email) return;
+    setSendingSurveyKey(confirmSurveyContact.id);
+    sendGeneralSurveyMutation.mutate(
+      {
+        recipientEmail: confirmSurveyContact.email,
+        recipientName: confirmSurveyContact.name,
+        recipientPhone: confirmSurveyContact.phone || undefined,
+        category: confirmSurveyContact.category,
+        userId: confirmSurveyContact.userId || undefined,
+      },
+      {
+        onSettled: () => {
+          setConfirmSurveyContact(null);
+        },
+      }
+    );
   };
 
   // استرجاع كافة التقييمات المسجلة والبرامج وتخصيص الاستمارة ديناميكياً مع ربط البحث والفلترة من الباك إند
@@ -1101,7 +1135,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               <th className="p-4 px-5 text-right">الاسم وصفة طالب الخدمة</th>
                               <th className="p-4 px-5 text-right">رقم الجوال</th>
                               <th className="p-4 px-5 text-right">البريد الإلكتروني</th>
-                              <th className="p-4 px-5 text-right">تاريخ الاعتماد / التسجيل</th>
+                              <th className="p-4 px-5 text-right">تاريخ التسجيل</th>
                               <th className="p-4 px-5 text-right">حالة التقييم</th>
                               <th className="p-4 px-5 text-center">الإجراء</th>
                             </tr>
@@ -1179,7 +1213,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     )}
                                   </td>
 
-                                  {/* تاريخ التسجيل / الاعتماد */}
+                                  {/* تاريخ التسجيل */}
                                   <td className="p-4 px-5 text-right">
                                     <div className="text-sm text-muted-foreground font-mono flex items-center gap-1.5 justify-start text-right">
                                       <Calendar className="w-3.5 h-3.5 shrink-0 text-muted-foreground/70" />
@@ -1215,7 +1249,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     <Button
                                       size="sm"
                                       disabled={isSendingThis}
-                                      onClick={() => handleSendGeneralSurvey(contact)}
+                                      onClick={() => handleInitiateSendSurvey(contact)}
                                       title={hasEmail ? "إرسال رابط الاستبيان عبر البريد" : "إدخال البريد الإلكتروني وإرسال الاستبيان"}
                                       className="h-9 px-4 text-xs sm:text-sm font-bold gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white shadow-xs"
                                     >
@@ -1564,6 +1598,79 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* حوار تأكيد إرسال استبيان قياس الرضا عند النقر على زر الإجراء */}
+        <AlertDialog
+          open={Boolean(confirmSurveyContact)}
+          onOpenChange={(open) => !open && setConfirmSurveyContact(null)}
+        >
+          <AlertDialogContent className="max-w-md w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
+            <AlertDialogHeader className="text-right space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-1">
+                <Send className="w-6 h-6" />
+              </div>
+              <AlertDialogTitle className="text-base sm:text-lg font-bold text-foreground text-right">
+                تأكيد إرسال استبيان قياس الرضا
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs sm:text-sm text-muted-foreground text-right leading-relaxed">
+                هل أنت متأكد من رغبتك في إرسال رابط استبيان قياس الرضا إلى المستفيد التالي؟
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {confirmSurveyContact && (
+              <div className="bg-muted/50 p-4 rounded-xl border border-border/70 space-y-2.5 text-right my-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-muted-foreground">الاسم:</span>
+                  <span className="font-bold text-foreground">{confirmSurveyContact.name}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-muted-foreground">صفة طالب الخدمة:</span>
+                  <span className="font-bold text-foreground">
+                    {confirmSurveyContact.requesterTypeLabel || "طالب خدمة"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-muted-foreground">البريد الإلكتروني:</span>
+                  <span dir="ltr" className="font-mono font-medium text-teal-700 dark:text-teal-400">
+                    {confirmSurveyContact.email}
+                  </span>
+                </div>
+                {confirmSurveyContact.phone && (
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <span className="text-muted-foreground">رقم الجوال:</span>
+                    <span dir="ltr" className="font-mono text-muted-foreground">
+                      {confirmSurveyContact.phone}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <AlertDialogFooter className="gap-2 sm:gap-0 pt-2 flex items-center justify-between" dir="rtl">
+              <AlertDialogCancel
+                disabled={sendGeneralSurveyMutation.isPending}
+                className="text-xs sm:text-sm h-9 px-4 rounded-xl"
+              >
+                إلغاء
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={sendGeneralSurveyMutation.isPending}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleConfirmSendSurvey();
+                }}
+                className="text-xs sm:text-sm h-9 px-5 font-bold rounded-xl bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+              >
+                {sendGeneralSurveyMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                <span>تأكيد الإرسال</span>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
 
