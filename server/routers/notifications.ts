@@ -62,8 +62,8 @@ function getTransporter() {
         pass,
       },
       tls: {
-        ciphers: "SSLv3",
         rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
       },
       ...defaultTimeouts,
     });
@@ -122,8 +122,12 @@ export async function sendEmailNotification(
       `,
     };
 
-    const info = await getTransporter().sendMail(mailOptions);
-    console.log(`Email sent successfully to ${to}: ${info.messageId}`);
+    const sendMailPromise = getTransporter().sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("SMTP timeout (6s)")), 6000)
+    );
+    const info: any = await Promise.race([sendMailPromise, timeoutPromise]);
+    console.log(`Email sent successfully to ${to}: ${info?.messageId || "ok"}`);
     return true;
   } catch (error) {
     console.error("Error sending email notification:", error);

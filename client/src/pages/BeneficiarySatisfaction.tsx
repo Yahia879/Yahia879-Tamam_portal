@@ -154,11 +154,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
       toast.success(res.message || "تم إرسال الاستبيان بنجاح");
       setSendingSurveyKey(null);
       setIsCustomSurveyOpen(false);
+      setConfirmSurveyContact(null);
       refetchContacts();
     },
     onError: (err: any) => {
       toast.error(err.message || "فشل إرسال الاستبيان");
       setSendingSurveyKey(null);
+      setConfirmSurveyContact(null);
     },
   });
 
@@ -201,20 +203,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const handleConfirmSendSurvey = () => {
     if (!confirmSurveyContact || !confirmSurveyContact.email) return;
     setSendingSurveyKey(confirmSurveyContact.id);
-    sendGeneralSurveyMutation.mutate(
-      {
-        recipientEmail: confirmSurveyContact.email,
-        recipientName: confirmSurveyContact.name,
-        recipientPhone: confirmSurveyContact.phone || undefined,
-        category: confirmSurveyContact.category,
-        userId: confirmSurveyContact.userId || undefined,
-      },
-      {
-        onSettled: () => {
-          setConfirmSurveyContact(null);
-        },
-      }
-    );
+    sendGeneralSurveyMutation.mutate({
+      recipientEmail: confirmSurveyContact.email,
+      recipientName: confirmSurveyContact.name,
+      recipientPhone: confirmSurveyContact.phone || undefined,
+      category: confirmSurveyContact.category,
+      userId: confirmSurveyContact.userId || undefined,
+    });
   };
 
   // استرجاع كافة التقييمات المسجلة والبرامج وتخصيص الاستمارة ديناميكياً مع ربط البحث والفلترة من الباك إند

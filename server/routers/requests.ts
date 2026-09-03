@@ -35,6 +35,7 @@ import {
   publicSubmissions,
   receiptVouchers,
   donations,
+  notificationTemplates,
 } from "../../drizzle/schema";
 import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -4473,16 +4474,34 @@ export const requestsRouter = router({
         "https://tamamgate.manarah.org.sa";
       const evalUrl = `${appBaseUrl.replace(/\/+$/, '')}/requests/${request.id}/evaluation`;
       const emailTitle = `تذكير: تقييم رضا المستفيد - الطلب رقم ${request.requestNumber}`;
-      const emailMessage = `السلام عليكم ورحمة الله وبركاته ${beneficiary.name ? `الأستاذ/ة ${beneficiary.name}` : ''}،\n\nنود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nرأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا، نأمل منكم التكرم بتخصيص دقيقة واحدة لتقييم الخدمة المقدمة من خلال الضغط على الزر أدناه:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
 
-      // إرسال الإيميل
-      await sendEmailNotification(
+      // استرجاع القالب المخصص من قسم الطلبات والمساجد في حال وجوده
+      const [customReminderTemplate] = await db
+        .select()
+        .from(notificationTemplates)
+        .where(eq(notificationTemplates.triggerId, "beneficiary_survey_reminder"))
+        .limit(1);
+
+      let emailMessage = "";
+      if (customReminderTemplate?.templateMessage) {
+        emailMessage = customReminderTemplate.templateMessage
+          .replace(/\{اسم_المستفيد\}/g, beneficiary.name || "العميل")
+          .replace(/\{رقم_الطلب\}/g, request.requestNumber)
+          .replace(/\{اسم_المسجد\}/g, request.mosqueName || "المسجد");
+      } else {
+        emailMessage = `السلام عليكم ورحمة الله وبركاته ${beneficiary.name ? `الأستاذ/ة ${beneficiary.name}` : ''}،\n\nنود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nرأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا، نأمل منكم التكرم بتخصيص دقيقة واحدة لتقييم الخدمة المقدمة من خلال الضغط على الزر أدناه:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
+      }
+
+      // إرسال الإيميل دون تعطيل استجابة الخادم
+      sendEmailNotification(
         beneficiary.email,
         emailTitle,
         emailMessage,
         evalUrl,
         "⭐️ تقييم الخدمة الآن ⭐️"
-      );
+      ).catch((err) => {
+        console.error("Error sending survey reminder email asynchronously:", err);
+      });
 
       // إرسال إشعار داخل النظام للمستفيد
       await createNotification({
@@ -4777,28 +4796,48 @@ export const requestsRouter = router({
       const evalUrl = `${cleanBaseUrl}/evaluation?type=${input.category}&name=${encodeURIComponent(input.recipientName)}&email=${encodeURIComponent(input.recipientEmail)}&phone=${encodeURIComponent(input.recipientPhone || "")}`;
 
       let emailTitle = "استبيان قياس رضا المستفيدين - جمعية عمارة المساجد (منارة)";
-      let emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة).\n\nرأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
-
       if (input.category === "donor") {
         emailTitle = "استبيان رضا الشركاء والداعمين - جمعية عمارة المساجد (منارة)";
-        emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنشكركم جزيلاً على عطائكم المبارك ودعمكم لبيوت الله من خلال جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تقديم أعلى معايير الشفافية والتميز لشركائنا والداعمين الكرام، يسعدنا قياس رضاكم واقتراحاتكم الكريمة من خلال الرابط أدناه:\n\nجزاكم الله خيراً وبارك في عطائكم.`;
       } else if (input.category === "inquiry") {
         emailTitle = "استبيان رضا المستفيدين عن خدمات الاستفسار والتواصل - جمعية عمارة المساجد (منارة)";
-        emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nيسرنا التواصل معكم بعد استفساركم وتواصلكم الكريم مع جمعية عمارة المساجد (منارة).\n\nنأمل منكم التكرم بتقييم سرعة وجودة التجاوب والخدمة المقدمة لكم من خلال الرابط أدناه:\n\nشاكرين لكم وقتكم واهتمامكم.`;
+      }
+
+      // استرجاع القالب المخصص من قسم الطلبات والمساجد في حال وجوده
+      const [customTemplate] = await db
+        .select()
+        .from(notificationTemplates)
+        .where(eq(notificationTemplates.triggerId, "beneficiary_survey_invite"))
+        .limit(1);
+
+      let emailMessage = "";
+      if (customTemplate?.templateMessage) {
+        emailMessage = customTemplate.templateMessage
+          .replace(/\{اسم_المستلم\}/g, input.recipientName)
+          .replace(/\{صفة_المستفيد\}/g, input.category === "donor" ? "متبرع / داعم" : input.category === "inquiry" ? "صاحب استفسار" : "مستفيد معتمد");
+      } else {
+        emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة).\n\nرأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
+
+        if (input.category === "donor") {
+          emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nنشكركم جزيلاً على عطائكم المبارك ودعمكم لبيوت الله من خلال جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تقديم أعلى معايير الشفافية والتميز لشركائنا والداعمين الكرام، يسعدنا قياس رضاكم واقتراحاتكم الكريمة من خلال الرابط أدناه:\n\nجزاكم الله خيراً وبارك في عطائكم.`;
+        } else if (input.category === "inquiry") {
+          emailMessage = `السلام عليكم ورحمة الله وبركاته ${input.recipientName}،\n\nيسرنا التواصل معكم بعد استفساركم وتواصلكم الكريم مع جمعية عمارة المساجد (منارة).\n\nنأمل منكم التكرم بتقييم سرعة وجودة التجاوب والخدمة المقدمة لكم من خلال الرابط أدناه:\n\nشاكرين لكم وقتكم واهتمامكم.`;
+        }
       }
 
       if (input.customMessage?.trim()) {
         emailMessage += `\n\nملاحظة خاصة: ${input.customMessage.trim()}`;
       }
 
-      // إرسال الإيميل
-      await sendEmailNotification(
+      // إرسال الإيميل دون تعطيل أو تجميد استجابة الخادم
+      sendEmailNotification(
         input.recipientEmail,
         emailTitle,
         emailMessage,
         evalUrl,
         "⭐️ تعبئة استبيان الرضا الآن ⭐️"
-      );
+      ).catch((err) => {
+        console.error("Error sending survey invite email asynchronously:", err);
+      });
 
       // إرسال إشعار داخل النظام إذا كان للمستلم حساب
       if (input.userId) {
