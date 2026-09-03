@@ -40,7 +40,7 @@ import { PROGRAM_LABELS } from "@shared/constants";
 import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
-import BoqTab from "@/components/BoqTab";
+import BoqFormDialog from "@/components/BoqFormDialog";
 import {
   Receipt,
   Search,
@@ -63,6 +63,8 @@ import {
   Link2,
   ExternalLink,
   RotateCcw,
+  Edit,
+  Trash2,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -250,10 +252,33 @@ export default function Quotations() {
   }, [allQuotations, singleRequestData]);
 
   // جلب جدول الكميات للطلب المحدد
-  const { data: boqData, isLoading: boqLoading } = trpc.projects.getBOQ.useQuery(
+  const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
     { requestId: parseInt(selectedRequestId) || 0 },
     { enabled: !!selectedRequestId }
   );
+
+  const [showBoqDialog, setShowBoqDialog] = useState(false);
+  const [editingBoqItem, setEditingBoqItem] = useState<any>(null);
+
+  const deleteBoqItemMutation = trpc.projects.deleteBOQItem.useMutation({
+    onSuccess: () => {
+      toast.success("تم حذف البند بنجاح");
+      refetchBOQ();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "حدث خطأ أثناء حذف البند");
+    },
+  });
+
+  const handleDeleteBoqItem = (id: number) => {
+    if (hasAcceptedQuotation) {
+      toast.error("لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر");
+      return;
+    }
+    if (confirm("هل أنت متأكد من حذف هذا البند من جدول الكميات؟")) {
+      deleteBoqItemMutation.mutate({ id });
+    }
+  };
 
   // تهيئة بنود التسعير عند فتح نافذة الإضافة
   useEffect(() => {
@@ -1414,34 +1439,162 @@ export default function Quotations() {
           </CardContent>
         </Card>
 
-        {/* عرض جدول الكميات للطلب المحدد مع إمكانية التعديل والحذف قبل اعتماد أي عرض سعر */}
+        {/* عرض جدول الكميات للطلب المحدد */}
         {selectedRequestId && (
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
               <div>
-                <h2 className="text-lg font-bold flex items-center gap-2">
-                  <ClipboardList className="h-5 w-5 text-teal-600" />
+                <CardTitle className="flex items-center gap-2">
+                  <ClipboardList className="h-5 w-5" />
                   جدول الكميات للطلب
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {hasAcceptedQuotation 
-                    ? "تم قفل تعديل وحذف جدول الكميات نظراً لاعتماد عرض سعر لهذا الطلب" 
-                    : "يمكنك إضافة وتعديل وحذف بنود جدول الكميات مباشرة من هنا طالما لم يتم اعتماد عرض سعر"}
-                </p>
+                </CardTitle>
+                <CardDescription>
+                  البنود المطلوب تسعيرها من الموردين
+                </CardDescription>
               </div>
-              {hasAcceptedQuotation && (
-                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5 w-fit">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  عرض السعر معتمد (الجدول مقفل)
-                </Badge>
+              <div className="flex items-center gap-2">
+                {hasAcceptedQuotation ? (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    عرض السعر معتمد (الجدول مقفل)
+                  </Badge>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => {
+                      setEditingBoqItem(null);
+                      setShowBoqDialog(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    إضافة بند جديد
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {boqLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : boqData?.items && boqData.items.length > 0 ? (
+                <div className="space-y-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b-2 border-slate-300 dark:border-slate-700">
+                        <TableHead className="w-12 text-center font-bold">#</TableHead>
+                        <TableHead className="font-bold">البند</TableHead>
+                        <TableHead className="font-bold">الوصف</TableHead>
+                        <TableHead className="font-bold">الوحدة</TableHead>
+                        <TableHead className="text-center font-bold">الكمية</TableHead>
+                        <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
+                        <TableHead className="text-center font-bold">الإجمالي</TableHead>
+                        {!hasAcceptedQuotation && (
+                          <TableHead className="text-center font-bold w-24">الإجراءات</TableHead>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
+                      {boqData.items.map((item: any, index: number) => (
+                        <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <TableCell className="text-center">{index + 1}</TableCell>
+                          <TableCell className="font-medium align-middle max-w-[400px] min-w-[180px]">
+                            <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
+                              {item.itemName}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {item.itemDescription || "-"}
+                          </TableCell>
+                          <TableCell>{item.unit}</TableCell>
+                          <TableCell className="text-center">
+                            {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال` : "-"}
+                          </TableCell>
+                          <TableCell className="text-center font-medium">
+                            {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("ar-SA")} ريال` : "-"}
+                          </TableCell>
+                          {!hasAcceptedQuotation && (
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  title="تعديل البند"
+                                  onClick={() => {
+                                    setEditingBoqItem(item);
+                                    setShowBoqDialog(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="حذف البند"
+                                  onClick={() => handleDeleteBoqItem(item.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="flex justify-end">
+                    <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold">
+                      إجمالي جدول الكميات: {boqTotal.toLocaleString("ar-SA")} ريال
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>لا يوجد جدول كميات لهذا الطلب</p>
+                  <p className="text-sm mt-2">
+                    {hasAcceptedQuotation
+                      ? "لم يتم إعداد جدول كميات لهذا الطلب"
+                      : "يمكنك إضافة بنود جدول الكميات للطلب مباشرة من هنا قبل طلب واعتماد عروض الأسعار"}
+                  </p>
+                  {!hasAcceptedQuotation && (
+                    <Button
+                      variant="outline"
+                      className="mt-4 gap-1.5"
+                      onClick={() => {
+                        setEditingBoqItem(null);
+                        setShowBoqDialog(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة بند جديد
+                    </Button>
+                  )}
+                </div>
               )}
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <BoqTab 
-              requestId={parseInt(selectedRequestId)} 
-              isLocked={hasAcceptedQuotation} 
-            />
-          </div>
+        {/* نافذة إضافة وتعديل بند في جدول الكميات */}
+        {showBoqDialog && (
+          <BoqFormDialog
+            requestId={parseInt(selectedRequestId)}
+            open={showBoqDialog}
+            onClose={() => {
+              setShowBoqDialog(false);
+              setEditingBoqItem(null);
+              refetchBOQ();
+            }}
+            item={editingBoqItem}
+          />
         )}
 
         {/* جدول عروض الأسعار */}
