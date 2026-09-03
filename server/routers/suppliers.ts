@@ -64,6 +64,24 @@ const fullSupplierSchema = entityInfoSchema
   .merge(attachmentsSchema);
 
 export const suppliersRouter = router({
+  // إحصائيات الموردين (إجمالي، معتمد، قيد المراجعة، مرفوض)
+  getStats: protectedProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+    const [total] = await db.select({ count: sql<number>`count(*)` }).from(suppliers);
+    const [approved] = await db.select({ count: sql<number>`count(*)` }).from(suppliers).where(eq(suppliers.approvalStatus, "approved" as any));
+    const [pending] = await db.select({ count: sql<number>`count(*)` }).from(suppliers).where(eq(suppliers.approvalStatus, "pending" as any));
+    const [rejected] = await db.select({ count: sql<number>`count(*)` }).from(suppliers).where(eq(suppliers.approvalStatus, "rejected" as any));
+
+    return {
+      total: Number(total?.count || 0),
+      approved: Number(approved?.count || 0),
+      pending: Number(pending?.count || 0),
+      rejected: Number(rejected?.count || 0),
+    };
+  }),
+
   // ==================== تسجيل الموردين ====================
 
   // تسجيل مورد جديد (النموذج الكامل)

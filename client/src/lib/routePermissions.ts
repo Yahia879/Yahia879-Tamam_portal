@@ -35,7 +35,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   projects_office: [
-    "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
+    "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts",
     "suppliers", "quotations", "financial_approval", "contracts",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
@@ -43,42 +43,42 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   field_team: [
-    "requests", "appointments_calendar",
+    "dashboard", "requests", "appointments_calendar",
   ],
 
   quick_response: [
-    "requests",
+    "dashboard", "requests",
   ],
 
   financial: [
-    "suppliers", "quotations", "financial_approval",
+    "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts",
   ],
 
   financial_manager: [
-    "suppliers", "quotations", "financial_approval",
+    "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
     "contracts", "requests",
   ],
 
   project_manager: [
-    "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers"
+    "dashboard", "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers"
   ],
 
   corporate_comm: [
-    "requests", "settings_center",
+    "dashboard", "requests", "settings_center",
   ],
 
   board_chairman: [
-    "board_chairman", "board_member", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "dashboard", "board_chairman", "board_member", "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
   ],
 
   board_member: [
-    "board_member", "financial_report", "reports", "mosques", "requests", "projects",
+    "dashboard", "board_member", "financial_report", "reports", "mosques", "requests", "projects",
   ],
 
   service_requester: [], // طالب الخدمة لا يملك صلاحيات إدارية
@@ -468,15 +468,15 @@ export function getUserHomeRoute(user: any): string {
   const roleDefaultRoutes: Record<string, string> = {
     general_manager: "/dashboard",
     executive_director: "/dashboard",
-    board_chairman: "/board-executive",
-    board_member: "/board-analytics",
-    projects_office: "/mosques",
-    field_team: "/field-visits",
-    quick_response: "/requests",
-    financial: "/suppliers",
-    financial_manager: "/suppliers",
-    project_manager: "/projects",
-    corporate_comm: "/reports",
+    board_chairman: "/dashboard",
+    board_member: "/dashboard",
+    projects_office: "/dashboard",
+    field_team: "/dashboard",
+    quick_response: "/dashboard",
+    financial: "/dashboard",
+    financial_manager: "/dashboard",
+    project_manager: "/dashboard",
+    corporate_comm: "/dashboard",
   };
 
   const defaultRoute = roleDefaultRoutes[user.role];

@@ -82,7 +82,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
 
   // الرئيسية
   const mainItems: MenuItem[] = [];
-  if (["super_admin", "system_admin"].includes(role) || isExecDirector) {
+  if (role !== "service_requester") {
     mainItems.push({ icon: LayoutDashboard, label: isEn ? "Dashboard" : "الرئيسية", path: "/dashboard" });
   }
   if (role === "board_chairman" || ["super_admin", "system_admin"].includes(role)) {
