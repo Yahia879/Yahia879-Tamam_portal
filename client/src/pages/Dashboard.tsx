@@ -582,10 +582,10 @@ export default function Dashboard() {
 
               {isProjectsRole && (
                 <>
-                  <Link href="/projects/new">
+                  <Link href="/service-request">
                     <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
                       <Plus className="w-3.5 h-3.5" />
-                      <span>مشروع جديد</span>
+                      <span>طلب جديد</span>
                     </Button>
                   </Link>
                   <Link href="/project-reports">
@@ -1646,126 +1646,202 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* بطاقات تحليلات ومعلومات إضافية عن المساجد والطلبات والمشاريع */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* 1. توزيع الطلبات حسب البرنامج */}
+            {/* بطاقات تحليلات ومعلومات موسعة عن البرامج والمراحل والمساجد */}
+            <div className="space-y-6">
+              {/* 1. توزيع الطلبات حسب البرنامج (بطاقة عريضة بتصميم حديث وأرقام واضحة) */}
               <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+                <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2 text-base font-bold">
-                      <Layers className="w-4.5 h-4.5 text-primary" />
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                      <Layers className="w-5 h-5 text-primary" />
                       <span>توزيع الطلبات حسب البرنامج</span>
                     </CardTitle>
-                    <CardDescription className="text-xs">تصنيف الطلبات الهندسية والتنموية والتشغيلية</CardDescription>
+                    <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      تصنيف الطلبات الهندسية والتنموية والتشغيلية على البرامج المعتمدة
+                    </CardDescription>
                   </div>
-                  <Link href="/requests">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                      <span>عرض الكل</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 space-y-2.5">
-                  {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
-                    const color = PROGRAM_COLORS[program] || '#6B7280';
-                    const stats = data as { count: number; name?: string };
-                    return (
-                      <Link key={program} href={`/requests?program=${program}`}>
-                        <div 
-                          className="group flex items-center justify-between p-2.5 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-xs transition-all cursor-pointer min-w-0"
-                          style={{ backgroundColor: `${color}08` }}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <ProgramIcon program={program} size="sm" className="shrink-0" showBackground />
-                            <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors truncate">
-                              {stats.name || PROGRAM_LABELS[program] || program}
-                            </span>
-                          </div>
-                          <Badge variant="secondary" className="font-bold font-mono text-xs px-2 h-5">
-                            {(stats.count || 0).toLocaleString("en-US")}
-                          </Badge>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-
-              {/* 2. المشاريع والطلبات حسب المرحلة */}
-              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base font-bold">
-                      <Activity className="w-4.5 h-4.5 text-primary" />
-                      <span>المشاريع والطلبات حسب المرحلة</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">المراحل الهندسية والفنية الحالية للمشاريع</CardDescription>
+                  <div className="flex items-center gap-2.5">
+                    <Badge variant="secondary" className="hidden sm:inline-flex font-mono text-xs px-2.5 py-1 font-semibold">
+                      إجمالي {(requestStats?.total || 0).toLocaleString("en-US")} طلب
+                    </Badge>
+                    <Link href="/requests">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>عرض الكل</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
                   </div>
-                  <Link href="/requests">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                      <span>عرض الكل</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-5 space-y-3">
-                  {Object.entries(requestStats?.byStage || {}).slice(0, 6).map(([stage, count]) => {
-                    const percentage = Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100);
-                    return (
-                      <div key={stage} className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-semibold text-foreground truncate max-w-[80%]">{STAGE_LABELS[stage] || stage}</span>
-                          <Badge variant="secondary" className="font-bold font-mono text-[10px] h-5 px-1.5">
-                            {(count as number).toLocaleString("en-US")}
-                          </Badge>
-                        </div>
-                        <Progress value={percentage} className="h-1.5" />
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-
-              {/* 3. المساجد المسجلة حسب المدن */}
-              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base font-bold">
-                      <Building2 className="w-4.5 h-4.5 text-primary" />
-                      <span>المساجد حسب المدن والمناطق</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">المدن والمحافظات ذات الكثافة الأكبر في المساجد</CardDescription>
-                  </div>
-                  <Link href="/mosques">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                      <span>عرض الكل</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-5 space-y-3">
-                  {Object.entries(mosqueStats?.byCity || {})
-                    .sort((a, b) => (b[1] as number) - (a[1] as number))
-                    .slice(0, 6)
-                    .map(([city, count]) => {
-                      const percentage = Math.min(((count as number) / (mosqueStats?.total || 1)) * 100, 100);
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
+                    {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
+                      const color = PROGRAM_COLORS[program] || '#6B7280';
+                      const stats = data as { count: number; name?: string };
+                      const count = stats.count || 0;
+                      const total = requestStats?.total || 1;
+                      const percentage = ((count / total) * 100).toFixed(0);
                       return (
-                        <div key={city} className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground truncate">
-                              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span>{city}</span>
-                            </span>
-                            <Badge variant="outline" className="font-bold font-mono text-[10px] h-5 px-1.5 border-primary/30 text-primary">
-                              {(count as number).toLocaleString("en-US")} مسجد
-                            </Badge>
+                        <Link key={program} href={`/requests?program=${program}`}>
+                          <div 
+                            className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border/70 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden bg-card min-h-[140px]"
+                            style={{
+                              background: `linear-gradient(150deg, ${color}14 0%, transparent 70%)`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <ProgramIcon program={program} size="md" className="shrink-0 shadow-2xs" showBackground />
+                              <Badge variant="secondary" className="font-mono text-[11px] font-bold px-1.5 py-0 h-5 bg-background/80 border border-border/40">
+                                {percentage}%
+                              </Badge>
+                            </div>
+                            
+                            <div className="mt-3 space-y-1">
+                              <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                                {stats.name || PROGRAM_LABELS[program] || program}
+                              </p>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tracking-tight">
+                                  {count.toLocaleString("en-US")}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground font-medium">طلب</span>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
+                              <span>استعراض</span>
+                              <ArrowUpRight className="w-3 h-3 transition-transform group-hover:translate-x-[-2px] group-hover:translate-y-[-2px]" />
+                            </div>
                           </div>
-                          <Progress value={percentage} className="h-1.5" />
-                        </div>
+                        </Link>
                       );
                     })}
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* شبكة ثنائية موسعة: المراحل + المدن والمناطق */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 2. المشاريع والطلبات حسب المرحلة */}
+                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                        <Activity className="w-5 h-5 text-primary" />
+                        <span>المشاريع والطلبات حسب المرحلة</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        المراحل الهندسية والفنية الحالية للمشاريع والطلبات
+                      </CardDescription>
+                    </div>
+                    <Link href="/requests">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>عرض الكل</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 space-y-3">
+                    {Object.entries(requestStats?.byStage || {})
+                      .sort((a, b) => (b[1] as number) - (a[1] as number))
+                      .slice(0, 8)
+                      .map(([stage, count]) => {
+                        const total = requestStats?.total || 1;
+                        const percentage = Math.min(((count as number) / total) * 100, 100);
+                        return (
+                          <div key={stage} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                                <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+                                  {STAGE_LABELS[stage] || stage}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                                  {percentage.toFixed(1)}%
+                                </span>
+                                <Badge variant="secondary" className="font-bold font-mono text-xs px-2.5 h-6">
+                                  {(count as number).toLocaleString("en-US")} طلب
+                                </Badge>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2 rounded-full bg-muted" />
+                          </div>
+                        );
+                      })}
+                    {Object.keys(requestStats?.byStage || {}).length > 8 && (
+                      <Link href="/requests">
+                        <Button variant="ghost" className="w-full text-primary text-xs h-8.5 font-bold mt-1">
+                          <span>عرض كافة المراحل ({Object.keys(requestStats?.byStage || {}).length})</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* 3. المساجد حسب المدن والمناطق */}
+                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                        <Building2 className="w-5 h-5 text-primary" />
+                        <span>المساجد حسب المدن والمناطق</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        المدن والمحافظات ذات الكثافة الأكبر في المساجد المسجلة
+                      </CardDescription>
+                    </div>
+                    <Link href="/mosques">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>عرض الكل</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 space-y-3">
+                    {Object.entries(mosqueStats?.byCity || {})
+                      .sort((a, b) => (b[1] as number) - (a[1] as number))
+                      .slice(0, 8)
+                      .map(([city, count], idx) => {
+                        const total = mosqueStats?.total || 1;
+                        const percentage = Math.min(((count as number) / total) * 100, 100);
+                        return (
+                          <div key={city} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-5 h-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold font-mono shrink-0">
+                                  {idx + 1}
+                                </div>
+                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground truncate">
+                                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  <span>{city}</span>
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                                  {percentage.toFixed(1)}%
+                                </span>
+                                <Badge variant="outline" className="font-bold font-mono text-xs px-2.5 h-6 border-primary/30 text-primary bg-primary/5">
+                                  {(count as number).toLocaleString("en-US")} مسجد
+                                </Badge>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2 rounded-full bg-muted" />
+                          </div>
+                        );
+                      })}
+                    {Object.keys(mosqueStats?.byCity || {}).length > 8 && (
+                      <Link href="/mosques">
+                        <Button variant="ghost" className="w-full text-primary text-xs h-8.5 font-bold mt-1">
+                          <span>عرض كافة المدن ({Object.keys(mosqueStats?.byCity || {}).length})</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         )}
@@ -1950,8 +2026,8 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* الروابط السريعة المخصصة للدور - تظهر لجميع الأدوار ما عدا المسؤول المالي */}
-        {!isFinancialRole && (
+        {/* الروابط السريعة المخصصة للدور - تظهر لجميع الأدوار ما عدا المسؤول المالي ومكتب المشاريع */}
+        {!isFinancialRole && !isProjectsRole && (
           <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
               <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
