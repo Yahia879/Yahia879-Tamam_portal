@@ -74,20 +74,26 @@ export default function BOQ() {
   const utils = trpc.useUtils();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterProgram, setFilterProgram] = useState<string>("all");
-  const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || "");
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending_boq" | "pending_quotation" | "approved_quotation">("all");
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const queryRequestId = searchParams.get("requestId");
+  const [selectedRequestId, setSelectedRequestId] = useState<string>(params.requestId || queryRequestId || "");
   const [page, setPage] = useState(1);
   const limit = 20;
   
-  // تعيين requestId من URL عند تغيير المسار
+  // تعيين requestId من URL أو معلمات البحث عند تغيير المسار
   useEffect(() => {
-    setSelectedRequestId(params.requestId || "");
-  }, [params.requestId]);
+    const currentParam = params.requestId;
+    const currentQuery = new URLSearchParams(window.location.search).get("requestId");
+    setSelectedRequestId(currentParam || currentQuery || "");
+  }, [params.requestId, location]);
 
-  // جلب الطلبات التي لم يتم اعتماد عرض سعر لها مع الفلترة والبحث السيرفر
+  // جلب كافة جداول الكميات الخاصة بالطلبات مع الفلترة والبحث السيرفر
   const { data: requestsData, isLoading: isLoadingRequests } = trpc.requests.search.useQuery({
     search: searchQuery || undefined,
     programType: filterProgram !== "all" ? filterProgram as any : undefined,
     boqPreparationsView: true,
+    boqStatusFilter: filterStatus !== "all" ? filterStatus : undefined,
     page,
     limit,
   });
@@ -136,23 +142,19 @@ export default function BOQ() {
       <div className="space-y-6">
         {/* العنوان */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (selectedRequestId) {
-                navigate("/boq-preparations");
-              } else {
-                window.history.back();
-              }
-            }}
-            type="button"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
+          {selectedRequestId && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/boq-preparations")}
+              type="button"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+          )}
           <div>
-            <h1 className="text-2xl font-bold">إعداد جداول الكميات (BOQ)</h1>
-            <p className="text-muted-foreground">إدارة بنود جداول الكميات للطلبات التي تحتاج إلى تسعير وإسناد</p>
+            <h1 className="text-2xl font-bold">إعداد وجداول الكميات (BOQ)</h1>
+            <p className="text-muted-foreground">استعراض وإدارة بنود جداول الكميات (BOQ) لكافة الطلبات والمشاريع</p>
           </div>
         </div>
 
@@ -174,7 +176,22 @@ export default function BOQ() {
                       إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")} ريال
                     </p>
                   </div>
-                  {requestDetails?.currentStage === "boq_preparation" ? (
+                  {requestDetails?.hasAcceptedQuotation ? (
+                    <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
+                      </Badge>
+                      <Button
+                        size="lg"
+                        onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                        className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                      >
+                        <Receipt className="h-5 w-5" />
+                        عرض عروض الأسعار
+                      </Button>
+                    </div>
+                  ) : requestDetails?.currentStage === "boq_preparation" ? (
                     <Button
                       size="lg"
                       onClick={() => {
@@ -213,8 +230,8 @@ export default function BOQ() {
             {/* الفلاتر والبحث */}
             <Card className="border-0 shadow-sm bg-white dark:bg-gray-900">
               <CardContent className="p-4">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
-                  <div className="lg:col-span-3 relative">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                  <div className="lg:col-span-2 relative">
                     <label className="text-xs font-medium text-muted-foreground mb-1.5 block flex items-center gap-1">
                       <Search className="w-3 h-3" />
                       البحث
@@ -249,6 +266,23 @@ export default function BOQ() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="lg:col-span-1">
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">حالة الجدول والاعتماد</label>
+                    <Select value={filterStatus} onValueChange={(v: any) => {
+                      setFilterStatus(v);
+                      setPage(1);
+                    }}>
+                      <SelectTrigger className="w-full h-10 text-xs md:text-sm">
+                        <SelectValue placeholder="الحالة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كافة جداول الكميات</SelectItem>
+                        <SelectItem value="pending_boq">بانتظار إعداد الجدول</SelectItem>
+                        <SelectItem value="pending_quotation">بانتظار اعتماد عرض السعر</SelectItem>
+                        <SelectItem value="approved_quotation">تم اعتماد عرض السعر ✓</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -280,7 +314,7 @@ export default function BOQ() {
                         <div
                           key={request.id}
                           className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer"
-                          onClick={() => navigate(`/boq/${request.id}`)}
+                          onClick={() => navigate(`/boq-preparations/${request.id}`)}
                         >
                           {/* أيقونة البرنامج لسطح المكتب */}
                           <div className="hidden md:flex w-8 justify-center">
@@ -313,11 +347,27 @@ export default function BOQ() {
                             <span className="text-sm text-foreground truncate">{request.mosqueName || "—"}</span>
                           </div>
 
-                          {/* المرحلة */}
-                          <div className="hidden md:block min-w-0">
-                            <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
+                          {/* المرحلة وحالة الجدول */}
+                          <div className="hidden md:flex flex-col gap-1 min-w-0">
+                            <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto w-fit">
                               {getStageLabel(request.currentStage, request.requestTrack)}
                             </Badge>
+                            {Boolean(request.hasAcceptedQuotation) ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
+                                <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                عرض السعر معتمد (الجدول مقفل)
+                              </span>
+                            ) : Boolean(request.hasBOQ) ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800 w-fit">
+                                <FileText className="w-3 h-3 text-teal-600" />
+                                تم إعداد الجدول ({request.boqItemsCount || 0} بند)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 w-fit">
+                                <Clock className="w-3 h-3 text-amber-600" />
+                                بحاجة لوضع جدول الكميات
+                              </span>
+                            )}
                           </div>
 
                           {/* الحالة */}
@@ -335,9 +385,27 @@ export default function BOQ() {
                               <span className="truncate">{request.mosqueName || "—"}</span>
                             </div>
                             <div className="flex items-center justify-between gap-2">
-                              <Badge variant="outline" className="text-[10px] py-0.5">
-                                {getStageLabel(request.currentStage, request.requestTrack)}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant="outline" className="text-[10px] py-0.5 w-fit">
+                                  {getStageLabel(request.currentStage, request.requestTrack)}
+                                </Badge>
+                                {Boolean(request.hasAcceptedQuotation) ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 w-fit">
+                                    <CheckCircle className="w-2.5 h-2.5 text-emerald-600" />
+                                    عرض السعر معتمد (الجدول مقفل)
+                                  </span>
+                                ) : Boolean(request.hasBOQ) ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/40 px-1.5 py-0.5 rounded border border-teal-200 dark:border-teal-800 w-fit">
+                                    <FileText className="w-2.5 h-2.5 text-teal-600" />
+                                    تم إعداد الجدول ({request.boqItemsCount || 0} بند)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800 w-fit">
+                                    <Clock className="w-2.5 h-2.5 text-amber-600" />
+                                    بحاجة لوضع جدول الكميات
+                                  </span>
+                                )}
+                              </div>
                               <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
                                 {status.icon}
                                 {STATUS_LABELS[request.status as keyof typeof STATUS_LABELS] || request.status}
@@ -430,7 +498,7 @@ export default function BOQ() {
                   </div>
                   <p className="text-foreground font-medium mb-1">لا توجد طلبات</p>
                   <p className="text-muted-foreground text-sm">
-                    لا توجد حالياً طلبات بانتظار إعداد جدول الكميات أو اعتماد عرض السعر مطابقة لمعايير التصفية.
+                    لا توجد طلبات مطابقة لمعايير البحث والتصفية.
                   </p>
                 </div>
               )}

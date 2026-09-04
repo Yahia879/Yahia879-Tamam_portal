@@ -898,6 +898,20 @@ export const projectsRouter = router({
         });
       }
 
+      if (targetReqId) {
+        const [req] = await db
+          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, targetReqId))
+          .limit(1);
+        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن استيراد بنود إلى جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+          });
+        }
+      }
+
       if (input.items.length === 0) return { success: true, count: 0 };
 
       // تحضير القيم للإدخال
@@ -993,6 +1007,20 @@ export const projectsRouter = router({
         });
       }
 
+      if (targetReqId) {
+        const [req] = await db
+          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, targetReqId))
+          .limit(1);
+        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن إضافة بند إلى جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+          });
+        }
+      }
+
       const totalPrice = input.unitPrice ? input.quantity * input.unitPrice : null;
 
       const [item] = await db.insert(quantitySchedules).values({
@@ -1042,12 +1070,17 @@ export const projectsRouter = router({
       }
 
       // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
+      const reqId = currentItem.requestId || (currentItem.projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, currentItem.projectId)).limit(1))[0]?.requestId : null);
+      const projId = currentItem.projectId || (currentItem.requestId ? (await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, currentItem.requestId)).limit(1))[0]?.id : null);
+
       const [acceptedQuotation] = await db
         .select({ id: quotations.id })
         .from(quotations)
         .where(
           and(
             or(
+              reqId ? eq(quotations.requestId, reqId) : undefined,
+              projId ? eq(quotations.projectId, projId) : undefined,
               currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
               currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
             ),
@@ -1061,6 +1094,20 @@ export const projectsRouter = router({
           code: "BAD_REQUEST",
           message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر",
         });
+      }
+
+      if (reqId) {
+        const [req] = await db
+          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, reqId))
+          .limit(1);
+        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن تعديل جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+          });
+        }
       }
 
       const quantity = updateData.quantity ?? parseFloat(currentItem.quantity);
@@ -1102,12 +1149,17 @@ export const projectsRouter = router({
       }
 
       // التحقق من عدم اعتماد أي عرض سعر لهذا الطلب أو المشروع
+      const reqId = currentItem.requestId || (currentItem.projectId ? (await db.select({ requestId: projects.requestId }).from(projects).where(eq(projects.id, currentItem.projectId)).limit(1))[0]?.requestId : null);
+      const projId = currentItem.projectId || (currentItem.requestId ? (await db.select({ id: projects.id }).from(projects).where(eq(projects.requestId, currentItem.requestId)).limit(1))[0]?.id : null);
+
       const [acceptedQuotation] = await db
         .select({ id: quotations.id })
         .from(quotations)
         .where(
           and(
             or(
+              reqId ? eq(quotations.requestId, reqId) : undefined,
+              projId ? eq(quotations.projectId, projId) : undefined,
               currentItem.requestId ? eq(quotations.requestId, currentItem.requestId) : undefined,
               currentItem.projectId ? eq(quotations.projectId, currentItem.projectId) : undefined
             ),
@@ -1121,6 +1173,20 @@ export const projectsRouter = router({
           code: "BAD_REQUEST",
           message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر",
         });
+      }
+
+      if (reqId) {
+        const [req] = await db
+          .select({ currentStage: mosqueRequests.currentStage, selectedQuotationId: mosqueRequests.selectedQuotationId })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, reqId))
+          .limit(1);
+        if (req && (req.selectedQuotationId || ["contracting", "execution", "handover", "closed"].includes(req.currentStage))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن حذف بند من جدول الكميات بعد اعتماد عرض السعر والانتقال للمراحل التالية",
+          });
+        }
       }
 
       await db.delete(quantitySchedules).where(eq(quantitySchedules.id, input.id));
@@ -1647,7 +1713,12 @@ export const projectsRouter = router({
         })
         .from(quotations)
         .leftJoin(suppliers, eq(quotations.supplierId, suppliers.id))
-        .where(eq(quotations.requestId, input.requestId))
+        .where(
+          or(
+            eq(quotations.requestId, input.requestId),
+            sql`quotations.projectId IN (SELECT id FROM projects WHERE requestId = ${input.requestId})`
+          )
+        )
         .orderBy(desc(quotations.createdAt));
 
       return { quotations: quotationsList };

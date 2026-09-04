@@ -241,6 +241,7 @@ const searchRequestsSchema = z.object({
   programType: z.string().optional(),
   currentStage: z.enum(requestStages).optional(),
   boqPreparationsView: z.boolean().optional(),
+  boqStatusFilter: z.enum(["all", "pending_boq", "pending_quotation", "approved_quotation"]).optional(),
   status: z.enum(requestStatuses).optional(),
   priority: z.enum(["urgent", "medium", "normal"]).optional(),
   mosqueId: z.number().optional(),
@@ -622,7 +623,7 @@ export const requestsRouter = router({
       const isMultiMosque = Boolean(project?.isMultiMosque || (typeof request.programData === 'object' && (request.programData as any)?.isMultiMosque));
       const multiProjectName = project?.name || (typeof request.programData === 'object' && (request.programData as any)?.projectName) || null;
 
-      // التحقق من وجود عرض سعر معتمد
+      // التحقق من وجود عرض سعر معتمد أو اعتماد مالي أو الانتقال لمراحل التعاقد والتنفيذ
       const [acceptedQuotation] = await db
         .select({ id: quotations.id })
         .from(quotations)
@@ -636,7 +637,11 @@ export const requestsRouter = router({
           )
         )
         .limit(1);
-      const hasAcceptedQuotation = !!acceptedQuotation;
+      const hasAcceptedQuotation = Boolean(
+        acceptedQuotation ||
+        request.selectedQuotationId ||
+        ["contracting", "execution", "handover", "closed"].includes(request.currentStage)
+      );
 
       return {
         ...request,
@@ -730,23 +735,56 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.programType, input.programType));
       }
       if (input.boqPreparationsView) {
-        // إظهار جداول الكميات التي لم يتم اعتماد عرض سعر لها:
-        // تشمل مرحلة إعداد جدول الكميات (boq_preparation) ومرحلة التقييم المالي وعروض الأسعار (financial_eval_and_approval)
-        // طالما لم يتم اعتماد أي عرض سعر
+        // استبعاد تام لطلبات الاستجابة السريعة (الطلبات السريعة)
         conditions.push(
-          inArray(mosqueRequests.currentStage, ["boq_preparation", "financial_eval_and_approval"])
+          sql`(${mosqueRequests.requestTrack} IS NULL OR ${mosqueRequests.requestTrack} != 'quick_response')`,
+          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'quick_response')`,
+          ne(mosqueRequests.status, "rejected"),
+          sql`(${mosqueRequests.technicalEvalDecision} IS NULL OR ${mosqueRequests.technicalEvalDecision} != 'apologize')`
         );
+
+        // إظهار الطلبات التي بحاجة لوضع جدول الكميات (مرحلة إعداد جدول الكميات) أو التي أُعدت لها جداول كميات (سجلات في quantity_schedules)
         conditions.push(
-          ne(mosqueRequests.status, "rejected")
+          or(
+            eq(mosqueRequests.currentStage, "boq_preparation"),
+            sql`EXISTS (
+              SELECT 1 FROM quantity_schedules 
+              LEFT JOIN projects ON quantity_schedules.projectId = projects.id
+              WHERE quantity_schedules.requestId = ${mosqueRequests.id} 
+                 OR projects.requestId = ${mosqueRequests.id}
+            )`
+          )!
         );
-        conditions.push(
-          sql`NOT EXISTS (
-            SELECT 1 FROM quotations 
-            LEFT JOIN projects ON quotations.projectId = projects.id
-            WHERE (quotations.requestId = ${mosqueRequests.id} OR projects.requestId = ${mosqueRequests.id})
-              AND quotations.status IN ('accepted', 'approved')
-          )`
-        );
+
+        // التصفية بحسب حالة اعتماد عرض السعر وجدول الكميات إن تم تحديدها
+        if (input.boqStatusFilter === "pending_boq") {
+          conditions.push(eq(mosqueRequests.currentStage, "boq_preparation"));
+        } else if (input.boqStatusFilter === "pending_quotation") {
+          conditions.push(
+            ne(mosqueRequests.currentStage, "boq_preparation"),
+            sql`NOT EXISTS (
+              SELECT 1 FROM quotations 
+              LEFT JOIN projects ON quotations.projectId = projects.id
+              WHERE (quotations.requestId = ${mosqueRequests.id} OR projects.requestId = ${mosqueRequests.id})
+                AND quotations.status IN ('accepted', 'approved')
+            )`,
+            sql`${mosqueRequests.selectedQuotationId} IS NULL`,
+            notInArray(mosqueRequests.currentStage, ["contracting", "execution", "handover", "closed"] as const)
+          );
+        } else if (input.boqStatusFilter === "approved_quotation") {
+          conditions.push(
+            or(
+              sql`EXISTS (
+                SELECT 1 FROM quotations 
+                LEFT JOIN projects ON quotations.projectId = projects.id
+                WHERE (quotations.requestId = ${mosqueRequests.id} OR projects.requestId = ${mosqueRequests.id})
+                  AND quotations.status IN ('accepted', 'approved')
+              )`,
+              sql`${mosqueRequests.selectedQuotationId} IS NOT NULL`,
+              inArray(mosqueRequests.currentStage, ["contracting", "execution", "handover", "closed"] as const)
+            )!
+          );
+        }
       } else if (input.currentStage) {
         // إذا كان المستخدم من الفريق الميداني وطلب مرحلة الزيارة الميدانية، لا نفلتر بها لكي لا تختفي طلباته بعد رفع التقرير
         if (isFieldTeam && !hasViewDetailsPermission && input.currentStage === "field_visit") {
@@ -836,7 +874,17 @@ export const requestsRouter = router({
           left join projects on quotations.projectId = projects.id
           where (quotations.requestId = mosque_requests.id or projects.requestId = mosque_requests.id)
             and quotations.status in ('accepted', 'approved')
+        ) or mosque_requests.selectedQuotationId is not null or mosque_requests.currentStage in ('contracting', 'execution', 'handover', 'closed') then 1 else 0 end`,
+        hasBOQ: sql<number>`case when exists(
+          select 1 from quantity_schedules 
+          left join projects on quantity_schedules.projectId = projects.id
+          where quantity_schedules.requestId = mosque_requests.id or projects.requestId = mosque_requests.id
         ) then 1 else 0 end`,
+        boqItemsCount: sql<number>`(
+          select count(*) from quantity_schedules 
+          left join projects on quantity_schedules.projectId = projects.id
+          where quantity_schedules.requestId = mosque_requests.id or projects.requestId = mosque_requests.id
+        )`,
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
@@ -940,6 +988,8 @@ export const requestsRouter = router({
             projectName: r.projectName,
             evaluationNotes: r.evaluationNotes,
             hasAcceptedQuotation: Boolean(r.hasAcceptedQuotation),
+            hasBOQ: Boolean(r.hasBOQ),
+            boqItemsCount: Number(r.boqItemsCount || 0),
           };
         }),
         total,

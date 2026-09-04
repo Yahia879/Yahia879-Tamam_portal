@@ -25,6 +25,7 @@ import {
   Building2,
   Layers,
   Sparkles,
+  Lock,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BoqFormDialog from "./BoqFormDialog";
@@ -110,7 +111,9 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
     // التحقق مما إذا كان هناك عرض سعر معتمد
     const hasAcceptedQuotation = Boolean(
       (request as any)?.hasAcceptedQuotation ||
-      quotationsData?.quotations?.some((q: any) => q.status === "accepted" || q.status === "approved")
+      Boolean((request as any)?.selectedQuotationId) ||
+      quotationsData?.quotations?.some((q: any) => q.status === "accepted" || q.status === "approved") ||
+      (request?.currentStage && ["contracting", "execution", "handover", "closed"].includes(request.currentStage))
     );
 
     // يتوقف التعديل والحذف عند اعتماد عرض سعر، أو عند تجاوز مرحلة التقييم المالي واعتماد العرض
@@ -487,6 +490,30 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
 
     return (
       <div className="space-y-6 text-right" dir="rtl">
+        {/* تنبيه قفل جدول الكميات بعد اعتماد عرض السعر */}
+        {isLocked && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/90 dark:bg-amber-950/20 dark:border-amber-900/50 p-4 text-amber-900 dark:text-amber-200 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+                <Lock className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="font-bold text-sm sm:text-base block text-amber-900 dark:text-amber-100">
+                  جدول الكميات مقفل ومعتمد
+                </span>
+                <p className="text-xs text-amber-800/90 dark:text-amber-300/80 mt-0.5">
+                  {hasAcceptedQuotation
+                    ? "تم اعتماد عرض السعر لهذا الطلب، تم إيقاف إمكانية إضافة أو تعديل أو حذف بنود جدول الكميات لضمان مطابقة عروض الأسعار والعقود المعتمدة."
+                    : "لا يمكن تعديل أو حذف بنود جدول الكميات في هذه المرحلة من سير عمل الطلب."}
+                </p>
+              </div>
+            </div>
+            <Badge variant="outline" className="border-amber-300 text-amber-800 dark:text-amber-300 dark:border-amber-700 bg-amber-100/60 dark:bg-amber-900/40 text-xs px-3 py-1 font-bold shrink-0 self-start sm:self-center">
+              {hasAcceptedQuotation ? "عرض السعر معتمد ✓" : "مقفل"}
+            </Badge>
+          </div>
+        )}
+
         {/* شريط الإجراءات والتحكم */}
         {!hideAddButton && !isLocked && canAdd && (
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-muted/40 p-4 shadow-xs">
