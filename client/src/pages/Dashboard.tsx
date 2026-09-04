@@ -2001,26 +2001,6 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* شريط البحث في المواعيد */}
-                  <div className="relative w-full sm:w-48 md:w-56">
-                    <Search className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="بحث في المواعيد أو المساجد..."
-                      value={fieldSearch}
-                      onChange={(e) => setFieldSearch(e.target.value)}
-                      className="h-8.5 text-xs pr-8 pl-8 rounded-lg bg-background"
-                    />
-                    {fieldSearch && (
-                      <button
-                        onClick={() => setFieldSearch("")}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-
                   {/* التبديل بين عرض التقويم وعرض القائمة */}
                   <div className="flex items-center bg-muted/70 p-0.5 rounded-lg border border-border/60">
                     <Button
@@ -2092,14 +2072,6 @@ export default function Dashboard() {
                       اليوم
                     </Button>
                   )}
-
-                  <Link href="/field-visits/calendar">
-                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">التقويم الكامل</span>
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Button>
-                  </Link>
                 </div>
               </CardHeader>
 
