@@ -582,22 +582,34 @@ export default function Dashboard() {
       link: "/field-visits/calendar",
     },
     {
-      title: isEn ? "Total Completed Requests" : "إجمالي الطلبات المنجزة",
-      value: (fieldUserStats?.completedCount ?? 0).toLocaleString("en-US"),
-      subtext: isEn ? "Approved and completed requests" : "طلبات وتقارير تم اعتماد إنجازها",
+      title: isEn ? "Total Completed Requests" : (
+        isQuickResponse ? "إجمالي طلبات الاستجابة المكتملة" : "إجمالي الطلبات المنجزة"
+      ),
+      value: isQuickResponse
+        ? (fieldUserStats?.quickResponseWithReportCount ?? 0).toLocaleString("en-US")
+        : (fieldUserStats?.completedCount ?? 0).toLocaleString("en-US"),
+      subtext: isEn ? "Approved and completed requests" : (
+        isQuickResponse ? "طلبات استجابة سريعة تم رفع تقرير لها" : "طلبات وتقارير تم اعتماد إنجازها"
+      ),
       icon: CheckCircle2,
       gradient: "from-emerald-600 to-teal-600",
       bgLight: "bg-emerald-50",
-      link: isQuickResponse ? "/requests?status=completed" : "/my-requests?status=completed",
+      link: "/requests?status=completed",
     },
     {
-      title: isEn ? "Pending Reports" : "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية",
-      value: (fieldUserStats?.pendingReportCount ?? 0).toLocaleString("en-US"),
-      subtext: isEn ? "Requests awaiting report submission" : "طلبات بمرحلة المعاينة الميدانية",
+      title: isEn ? "Pending Reports" : (
+        isQuickResponse ? "طلبات الاستجابة السريعة النشطة" : "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية"
+      ),
+      value: isQuickResponse
+        ? (fieldUserStats?.quickResponseActiveCount ?? 0).toLocaleString("en-US")
+        : (fieldUserStats?.pendingReportCount ?? 0).toLocaleString("en-US"),
+      subtext: isEn ? "Requests awaiting report submission" : (
+        isQuickResponse ? "طلبات قيد التنفيذ تتطلب متابعة" : "طلبات بمرحلة المعاينة الميدانية"
+      ),
       icon: ClipboardCheck,
       gradient: "from-amber-500 to-orange-600",
       bgLight: "bg-amber-50",
-      link: isQuickResponse ? "/requests?stage=field_visit" : "/my-requests?stage=field_visit",
+      link: isQuickResponse ? "/requests?stage=quick_response" : "/my-requests?stage=field_visit",
     },
   ];
 

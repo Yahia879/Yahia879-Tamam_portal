@@ -1850,7 +1850,7 @@ export const requestsRouter = router({
   // إحصائيات لوحة التحكم الخاصة بعضو الفريق الميداني (مخصصة لحسابه الشخصي)
   getFieldTeamDashboardStats: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb();
-    if (!db) return { assignedCount: 0, todayCount: 0, completedCount: 0, pendingReportCount: 0 };
+    if (!db) return { assignedCount: 0, todayCount: 0, completedCount: 0, pendingReportCount: 0, quickResponseActiveCount: 0, quickResponseWithReportCount: 0 };
 
     const userId = ctx.user.id;
     const todayStr = new Date().toISOString().split("T")[0];
@@ -1914,7 +1914,7 @@ export const requestsRouter = router({
 
     const todayCount = (todayVisitsRow?.count || 0) + (todayReqsRow?.count || 0) + (todayCustomRow?.count || 0);
 
-    // 3. إجمالي الطلبات المنجزة المسندة للمستخدم
+    // 3. إجمالي الطلبات المنجزة المسندة للمستخدم (للفريق الميداني: status=completed)
     const [completedRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(mosqueRequests)
@@ -1929,7 +1929,23 @@ export const requestsRouter = router({
         )
       );
 
-    // 4. إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية المسندة للمستخدم
+    // 3b. طلبات الاستجابة السريعة المسندة للمستخدم والتي رُفع لها تقرير استجابة سريعة
+    const [quickResponseWithReportRow] = await db
+      .select({ count: sql<number>`count(DISTINCT ${mosqueRequests.id})` })
+      .from(mosqueRequests)
+      .innerJoin(
+        quickResponseReports,
+        eq(quickResponseReports.requestId, mosqueRequests.id)
+      )
+      .where(
+        or(
+          eq(mosqueRequests.assignedTo, userId),
+          eq(mosqueRequests.currentResponsible, userId),
+          eq(mosqueRequests.fieldVisitAssignedTo, userId)
+        )
+      );
+
+    // 4. إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية المسندة للمستخدم (للفريق الميداني)
     const [pendingReportRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(mosqueRequests)
@@ -1949,11 +1965,33 @@ export const requestsRouter = router({
         )
       );
 
+    // 5. طلبات الاستجابة السريعة المسندة للمستخدم التي لم يُرفع لها تقرير بعد
+    const [quickResponseActiveRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        and(
+          or(
+            eq(mosqueRequests.assignedTo, userId),
+            eq(mosqueRequests.currentResponsible, userId),
+            eq(mosqueRequests.fieldVisitAssignedTo, userId)
+          ),
+          eq(mosqueRequests.requestTrack, "quick_response"),
+          ne(mosqueRequests.status, "rejected"),
+          sql`NOT EXISTS (
+            SELECT 1 FROM quick_response_reports
+            WHERE quick_response_reports.requestId = ${mosqueRequests.id}
+          )`
+        )
+      );
+
     return {
       assignedCount: Number(assignedRow?.count || 0),
       todayCount: Number(todayCount || 0),
       completedCount: Number(completedRow?.count || 0),
       pendingReportCount: Number(pendingReportRow?.count || 0),
+      quickResponseActiveCount: Number(quickResponseActiveRow?.count || 0),
+      quickResponseWithReportCount: Number(quickResponseWithReportRow?.count || 0),
     };
   }),
 
