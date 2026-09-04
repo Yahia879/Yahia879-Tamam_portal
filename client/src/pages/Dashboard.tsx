@@ -58,6 +58,7 @@ import {
   Zap,
   Phone,
   CalendarDays,
+  Languages,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState, useMemo } from "react";
@@ -75,7 +76,7 @@ import {
   isToday as isDateToday, 
   parseISO 
 } from "date-fns";
-import { ar } from "date-fns/locale";
+import { ar, enUS } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
@@ -156,6 +157,36 @@ export default function Dashboard() {
     customRoleNameEn.includes("comm");
 
   const isBoardRole = ["board_chairman", "board_member"].includes(user?.role || "");
+
+  // حالة اللغة الخاصة بدور الاستجابة السريعة (quick_response)
+  const isQuickResponse = 
+    user?.role === "quick_response" ||
+    customRoleNameAr.includes("استجابة") ||
+    customRoleNameEn.includes("quick_response");
+
+  const [quickResponseLang, setQuickResponseLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  const isEn = isQuickResponse && quickResponseLang === "en";
+
+  const handleToggleQuickResponseLang = () => {
+    const nextLang = quickResponseLang === "ar" ? "en" : "ar";
+    setQuickResponseLang(nextLang);
+    localStorage.setItem("quick-response-lang", nextLang);
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem("quick-response-lang") as "ar" | "en";
+      if (stored && (stored === "ar" || stored === "en")) {
+        setQuickResponseLang(stored);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   // توجيه طالب الخدمة فقط إلى بوابته الخاصة
   useEffect(() => {
@@ -334,15 +365,15 @@ export default function Dashboard() {
     return fieldEvents.filter((evt: any) => evt.date === selectedCalDate);
   }, [fieldEvents, selectedCalDate]);
 
-  // التاريخ المحدد بصيغة عربية مقروءة
+  // التاريخ المحدد بصيغة مقروءة (عربي أو إنجليزي)
   const selectedDateFormatted = useMemo(() => {
     try {
       const parsed = parseISO(selectedCalDate);
-      return format(parsed, "EEEE، d MMMM yyyy", { locale: ar });
+      return format(parsed, isEn ? "EEEE, d MMMM yyyy" : "EEEE، d MMMM yyyy", { locale: isEn ? enUS : ar });
     } catch {
       return selectedCalDate;
     }
-  }, [selectedCalDate]);
+  }, [selectedCalDate, isEn]);
 
   // المواعيد القادمة من اليوم فصاعداً
   const upcomingMonthEvents = useMemo(() => {
@@ -352,6 +383,25 @@ export default function Dashboard() {
       .sort((a: any, b: any) => (a.date > b.date ? 1 : -1))
       .slice(0, 5);
   }, [fieldEvents]);
+
+  // ترجمة اسم البرنامج إلى الإنجليزية عند الحاجة
+  const translateProgramName = (type: string) => {
+    if (isEn) {
+      const enLabels: Record<string, string> = {
+        bunyan: "Bunyan",
+        daaem: "Daaem",
+        enaya: "Enaya",
+        emdad: "Emdad",
+        ethraa: "Ethraa",
+        sedana: "Sedana",
+        taqa: "Taqa",
+        miyah: "Miyah",
+        suqya: "Suqya",
+      };
+      return enLabels[type] || type;
+    }
+    return PROGRAM_LABELS[type] || type;
+  };
 
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
@@ -367,7 +417,9 @@ export default function Dashboard() {
   });
 
   // اسم الدور المعروض في الواجهة
-  const roleLabel = customRoleNameAr || ROLE_LABELS[user?.role || ""] || user?.role;
+  const roleLabel = isEn
+    ? (customRoleNameEn || "Quick Response Team")
+    : (customRoleNameAr || ROLE_LABELS[user?.role || ""] || user?.role);
 
   // العنوان الفرعي حسب الدور
   const getRoleSubtitle = () => {
@@ -378,6 +430,9 @@ export default function Dashboard() {
       return "لوحة إدارة المشاريع: متابعة المشاريع، جداول الكميات، وتقارير الإنجاز الفنية";
     }
     if (isFieldRole) {
+      if (isEn) {
+        return "Quick Response & Field Dashboard: manage urgent requests, scheduled appointments, and action reports.";
+      }
       return "لوحة المتابعة الميدانية: مواعيد الزيارات، استمارات المعاينة، وطلبات الاستجابة السريعة";
     }
     if (isCorporateCommRole) {
@@ -506,43 +561,43 @@ export default function Dashboard() {
     },
   ];
 
-  // بطاقات الإحصائيات للفريق الميداني
+  // بطاقات الإحصائيات للفريق الميداني والاستجابة السريعة
   const fieldStatsCards = [
     {
-      title: "إجمالي الطلبات المسندة لك",
+      title: isEn ? "Total Assigned Requests" : "إجمالي الطلبات المسندة لك",
       value: (fieldUserStats?.assignedCount ?? 0).toLocaleString("en-US"),
-      subtext: "طلبات كلف بها حسابك للمتابعة",
+      subtext: isEn ? "Requests assigned to your account" : "طلبات كلف بها حسابك للمتابعة",
       icon: FileText,
       gradient: "from-blue-600 to-indigo-600",
       bgLight: "bg-blue-50",
-      link: "/my-requests",
+      link: isQuickResponse ? "/requests" : "/my-requests",
     },
     {
-      title: "طلبات اليوم",
+      title: isEn ? "Today's Tasks & Visits" : "طلبات اليوم",
       value: (fieldUserStats?.todayCount ?? 0).toLocaleString("en-US"),
-      subtext: "معاينات وزيارات مجدولة لليوم",
+      subtext: isEn ? "Scheduled for today" : "معاينات وزيارات مجدولة لليوم",
       icon: CalendarDays,
       gradient: "from-teal-600 to-emerald-600",
       bgLight: "bg-teal-50",
       link: "/field-visits/calendar",
     },
     {
-      title: "إجمالي الطلبات المنجزة",
+      title: isEn ? "Total Completed Requests" : "إجمالي الطلبات المنجزة",
       value: (fieldUserStats?.completedCount ?? 0).toLocaleString("en-US"),
-      subtext: "طلبات وتقارير تم اعتماد إنجازها",
+      subtext: isEn ? "Approved and completed requests" : "طلبات وتقارير تم اعتماد إنجازها",
       icon: CheckCircle2,
       gradient: "from-emerald-600 to-teal-600",
       bgLight: "bg-emerald-50",
-      link: "/my-requests?status=completed",
+      link: isQuickResponse ? "/requests?status=completed" : "/my-requests?status=completed",
     },
     {
-      title: "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية",
+      title: isEn ? "Pending Reports" : "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية",
       value: (fieldUserStats?.pendingReportCount ?? 0).toLocaleString("en-US"),
-      subtext: "طلبات بمرحلة المعاينة الميدانية",
+      subtext: isEn ? "Requests awaiting report submission" : "طلبات بمرحلة المعاينة الميدانية",
       icon: ClipboardCheck,
       gradient: "from-amber-500 to-orange-600",
       bgLight: "bg-amber-50",
-      link: "/my-requests?stage=field_visit",
+      link: isQuickResponse ? "/requests?stage=field_visit" : "/my-requests?stage=field_visit",
     },
   ];
 
@@ -651,7 +706,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 sm:space-y-8" dir="rtl">
+      <div className="space-y-6 sm:space-y-8" dir={isEn ? "ltr" : "rtl"}>
         {/* Hero Section - رسالة الترحيب المخصصة للدور */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 px-4 sm:px-6 py-5 sm:py-6 text-white shadow-lg">
           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,rgba(255,255,255,0.5))]" />
@@ -659,13 +714,13 @@ export default function Dashboard() {
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 text-white/80 text-xs">
                 <Activity className="w-3.5 h-3.5" />
-                <span>الرئيسية</span>
+                <span>{isEn ? "Home" : "الرئيسية"}</span>
                 <span className="text-white/40">•</span>
                 <span className="font-semibold text-white">{roleLabel}</span>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold truncate" title={user?.name}>
-                  مرحباً، {user?.name || "المستخدم"}
+                  {isEn ? `Welcome, ${user?.name || "User"}` : `مرحباً، ${user?.name || "المستخدم"}`}
                 </h1>
                 <span className="text-white text-xs font-semibold bg-white/20 rounded-full px-3 py-0.5 whitespace-nowrap shadow-xs border border-white/20">
                   {roleLabel}
@@ -678,6 +733,19 @@ export default function Dashboard() {
 
             {/* الأزرار والإجراءات السريعة في الهيدر */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap shrink-0">
+              {isQuickResponse && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleToggleQuickResponseLang}
+                  className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1.5 h-9 rounded-xl border border-white/20"
+                  title={isEn ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
+                >
+                  <Languages className="w-3.5 h-3.5" />
+                  <span>{isEn ? "العربية" : "English"}</span>
+                </Button>
+              )}
+
               {isFinancialRole && (
                 <>
                   <Link href="/disbursements/new">
@@ -714,18 +782,37 @@ export default function Dashboard() {
 
               {isFieldRole && (
                 <>
-                  <Link href="/field-visits/calendar">
-                    <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>تقويم المواعيد</span>
-                    </Button>
-                  </Link>
-                  <Link href="/my-requests">
-                    <Button size="sm" variant="ghost" className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1.5 h-9 rounded-xl border border-white/20">
-                      <FileText className="w-3.5 h-3.5" />
-                      <span>طلباتي</span>
-                    </Button>
-                  </Link>
+                  {isQuickResponse ? (
+                    <>
+                      <Link href="/requests/quick-create">
+                        <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
+                          <Zap className="w-3.5 h-3.5" />
+                          <span>{isEn ? "Quick Request" : "طلب سريع"}</span>
+                        </Button>
+                      </Link>
+                      <Link href="/requests">
+                        <Button size="sm" variant="ghost" className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1.5 h-9 rounded-xl border border-white/20">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>{isEn ? "Requests" : "الطلبات"}</span>
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/field-visits/calendar">
+                        <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>تقويم المواعيد</span>
+                        </Button>
+                      </Link>
+                      <Link href="/my-requests">
+                        <Button size="sm" variant="ghost" className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1.5 h-9 rounded-xl border border-white/20">
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>طلباتي</span>
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
 
@@ -1989,13 +2076,13 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
-                      <span>التقويم التشغيلي للمعاينة والزيارات الميدانية</span>
+                      <span>{isEn ? "Operational Calendar & Tasks" : "التقويم التشغيلي للمعاينة والزيارات الميدانية"}</span>
                       <Badge variant="outline" className="font-mono text-xs px-2 py-0.5 border-primary/30 text-primary bg-primary/5">
-                        {fieldEvents.length} موعد مجدول
+                        {fieldEvents.length} {isEn ? "Appointments" : "موعد مجدول"}
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                      متابعة مواعيد الكشف الميداني، معاينات المساجد المسندة، وإنجاز التقارير الفنية
+                      {isEn ? "Track scheduled inspections, rapid responses, assigned visits, and reports" : "متابعة مواعيد الكشف الميداني، معاينات المساجد المسندة، وإنجاز التقارير الفنية"}
                     </CardDescription>
                   </div>
                 </div>
@@ -2014,7 +2101,7 @@ export default function Dashboard() {
                       }`}
                     >
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>التقويم</span>
+                      <span>{isEn ? "Calendar" : "التقويم"}</span>
                     </Button>
                     <Button
                       variant={fieldViewMode === "list" ? "default" : "ghost"}
@@ -2027,7 +2114,7 @@ export default function Dashboard() {
                       }`}
                     >
                       <ClipboardList className="w-3.5 h-3.5" />
-                      <span>القائمة ({fieldEvents.length})</span>
+                      <span>{isEn ? `List (${fieldEvents.length})` : `القائمة (${fieldEvents.length})`}</span>
                     </Button>
                   </div>
 
@@ -2039,19 +2126,19 @@ export default function Dashboard() {
                         size="sm"
                         onClick={() => setCurrentCalMonth(subMonths(currentCalMonth, 1))}
                         className="h-7.5 w-7.5 p-0 text-muted-foreground hover:text-foreground"
-                        title="الشهر السابق"
+                        title={isEn ? "Previous Month" : "الشهر السابق"}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Button>
                       <span className="text-xs sm:text-sm font-bold px-2 min-w-[105px] text-center font-sans">
-                        {format(currentCalMonth, "MMMM yyyy", { locale: ar })}
+                        {format(currentCalMonth, "MMMM yyyy", { locale: isEn ? enUS : ar })}
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setCurrentCalMonth(addMonths(currentCalMonth, 1))}
                         className="h-7.5 w-7.5 p-0 text-muted-foreground hover:text-foreground"
-                        title="الشهر التالي"
+                        title={isEn ? "Next Month" : "الشهر التالي"}
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
@@ -2069,7 +2156,7 @@ export default function Dashboard() {
                       }}
                       className="h-8 text-xs font-semibold"
                     >
-                      اليوم
+                      {isEn ? "Today" : "اليوم"}
                     </Button>
                   )}
                 </div>
@@ -2083,7 +2170,7 @@ export default function Dashboard() {
                     <div className="xl:col-span-7 space-y-3">
                       {/* ترويسة أيام الأسبوع */}
                       <div className="grid grid-cols-7 gap-1.5 text-center">
-                        {["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"].map((dayName) => (
+                        {(isEn ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] : ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]).map((dayName) => (
                           <div key={dayName} className="text-xs font-bold text-muted-foreground py-1.5 bg-muted/40 rounded-lg">
                             {dayName}
                           </div>
@@ -2131,7 +2218,7 @@ export default function Dashboard() {
                                 </span>
                                 {isToday && (
                                   <span className="text-[9px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 px-1 py-0.2 rounded">
-                                    اليوم
+                                    {isEn ? "Today" : "اليوم"}
                                   </span>
                                 )}
                                 {dayEventsList.length > 0 && !isToday && (
@@ -2139,7 +2226,7 @@ export default function Dashboard() {
                                     className={`w-2 h-2 rounded-full ${
                                       hasUrgent ? "bg-rose-500 animate-pulse" : "bg-primary"
                                     }`}
-                                    title={`${dayEventsList.length} مواعيد`}
+                                    title={`${dayEventsList.length} ${isEn ? "Appointments" : "مواعيد"}`}
                                   />
                                 )}
                               </div>
@@ -2159,13 +2246,13 @@ export default function Dashboard() {
                                       title={`${evt.time || evt.startTime || ""} - ${evt.mosqueName || evt.title || ""}`}
                                     >
                                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isUrgent ? "bg-rose-500" : "bg-primary"}`} />
-                                      <span className="truncate">{evt.mosqueName || evt.title || "معاينة"}</span>
+                                      <span className="truncate">{evt.mosqueName || evt.title || (isEn ? "Inspection" : "معاينة")}</span>
                                     </div>
                                   );
                                 })}
                                 {dayEventsList.length > 2 && (
                                   <div className="text-[9px] text-muted-foreground font-mono text-center">
-                                    +{dayEventsList.length - 2} أخرى
+                                    +{dayEventsList.length - 2} {isEn ? "more" : "أخرى"}
                                   </div>
                                 )}
                               </div>
@@ -2179,19 +2266,19 @@ export default function Dashboard() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-primary" />
-                            <span>معاينة مجدولة</span>
+                            <span>{isEn ? "Scheduled Visit" : "معاينة مجدولة"}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                            <span>عاجل جداً</span>
+                            <span>{isEn ? "Urgent" : "عاجل جداً"}</span>
                           </div>
                           <div className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                            <span>تاريخ اليوم</span>
+                            <span>{isEn ? "Today's Date" : "تاريخ اليوم"}</span>
                           </div>
                         </div>
                         <span className="font-mono text-[11px]">
-                          إجمالي المواعيد: {fieldEvents.length}
+                          {isEn ? `Total Appointments: ${fieldEvents.length}` : `إجمالي المواعيد: ${fieldEvents.length}`}
                         </span>
                       </div>
                     </div>
@@ -2202,7 +2289,7 @@ export default function Dashboard() {
                         {/* ترويسة تفاصيل اليوم */}
                         <div className="flex items-center justify-between pb-3.5 border-b border-border/60">
                           <div className="space-y-0.5">
-                            <p className="text-xs text-muted-foreground font-medium">أجندة المهام لليوم المحدد</p>
+                            <p className="text-xs text-muted-foreground font-medium">{isEn ? "Daily Tasks & Agenda" : "أجندة المهام لليوم المحدد"}</p>
                             <h3 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
                               <Calendar className="w-4 h-4 text-primary shrink-0" />
                               <span>{selectedDateFormatted}</span>
@@ -2212,7 +2299,7 @@ export default function Dashboard() {
                             variant={selectedDayEvents.length > 0 ? "default" : "outline"}
                             className="font-bold font-mono text-xs px-2.5 h-6 shrink-0"
                           >
-                            {selectedDayEvents.length} {selectedDayEvents.length === 1 ? "موعد" : "مواعيد"}
+                            {selectedDayEvents.length} {isEn ? (selectedDayEvents.length === 1 ? "Appointment" : "Appointments") : (selectedDayEvents.length === 1 ? "موعد" : "مواعيد")}
                           </Badge>
                         </div>
 
@@ -2222,7 +2309,7 @@ export default function Dashboard() {
                             selectedDayEvents.map((evt: any, idx: number) => {
                               const isUrgent = evt.priority === "urgent" || evt.priority === "high";
                               const timeStr = evt.time || evt.startTime || "09:00";
-                              const programLabel = PROGRAM_LABELS[evt.programType] || evt.programType || "عام";
+                              const programLabel = translateProgramName(evt.programType);
                               const programColor = PROGRAM_COLORS[evt.programType] || "#059669";
 
                               return (
@@ -2238,7 +2325,7 @@ export default function Dashboard() {
                                           variant="outline"
                                           className="text-[10px] font-mono font-bold px-1.5 h-5 border-primary/30 text-primary bg-primary/5"
                                         >
-                                          {evt.requestNumber || `طلب #${evt.requestId}`}
+                                          {evt.requestNumber || (isEn ? `Req #${evt.requestId}` : `طلب #${evt.requestId}`)}
                                         </Badge>
                                         <Badge
                                           variant="secondary"
@@ -2249,13 +2336,13 @@ export default function Dashboard() {
                                         </Badge>
                                         {isUrgent && (
                                           <Badge variant="destructive" className="text-[10px] font-bold px-1.5 h-5 bg-rose-600">
-                                            عاجل جداً
+                                            {isEn ? "Urgent" : "عاجل جداً"}
                                           </Badge>
                                         )}
                                       </div>
 
                                       <h4 className="font-bold text-sm text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                                        <span>{evt.mosqueName || evt.title || "معاينة ميدانية"}</span>
+                                        <span>{evt.mosqueName || evt.title || (isEn ? "Field Inspection" : "معاينة ميدانية")}</span>
                                       </h4>
                                     </div>
 
@@ -2281,7 +2368,7 @@ export default function Dashboard() {
                                         <a
                                           href={`tel:${evt.contactPhone}`}
                                           className="text-primary hover:underline font-mono text-xs dir-ltr"
-                                          title="اتصال مباشر"
+                                          title={isEn ? "Direct Call" : "اتصال مباشر"}
                                         >
                                           {evt.contactPhone}
                                         </a>
@@ -2299,11 +2386,11 @@ export default function Dashboard() {
                                     <Link href={`/requests/${evt.requestId}/field-inspection`} className="flex-1">
                                       <Button size="sm" className="w-full h-8 text-xs font-bold gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground">
                                         <FileText className="w-3.5 h-3.5" />
-                                        <span>استمارة المعاينة الميدانية</span>
+                                        <span>{isEn ? "Inspection / Action Form" : "استمارة المعاينة الميدانية"}</span>
                                       </Button>
                                     </Link>
                                     <Link href={`/requests/${evt.requestId}`}>
-                                      <Button variant="outline" size="sm" className="h-8 text-xs px-2.5" title="تفاصيل الطلب">
+                                      <Button variant="outline" size="sm" className="h-8 text-xs px-2.5" title={isEn ? "View Details" : "تفاصيل الطلب"}>
                                         <Eye className="w-3.5 h-3.5" />
                                       </Button>
                                     </Link>
@@ -2317,9 +2404,9 @@ export default function Dashboard() {
                                 <CalendarDays className="w-6 h-6" />
                               </div>
                               <div className="space-y-1 max-w-xs">
-                                <p className="font-bold text-sm text-foreground">لا توجد مواعيد لهذا اليوم</p>
+                                <p className="font-bold text-sm text-foreground">{isEn ? "No appointments scheduled for this day" : "لا توجد مواعيد لهذا اليوم"}</p>
                                 <p className="text-xs text-muted-foreground">
-                                  اختر يوماً به مواعيد من التقويم أو استعرض أقرب الزيارات القادمة أدناه.
+                                  {isEn ? "Select another day with scheduled appointments or view upcoming visits below." : "اختر يوماً به مواعيد من التقويم أو استعرض أقرب الزيارات القادمة أدناه."}
                                 </p>
                               </div>
                             </div>
@@ -2330,7 +2417,7 @@ export default function Dashboard() {
                             <div className="pt-3 border-t border-border/60 space-y-2">
                               <p className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-primary" />
-                                <span>أقرب الزيارات الميدانية القادمة</span>
+                                <span>{isEn ? "Upcoming Tasks & Visits" : "أقرب الزيارات الميدانية القادمة"}</span>
                               </p>
                               <div className="space-y-2">
                                 {upcomingMonthEvents.slice(0, 3).map((evt: any, uIdx: number) => (
@@ -2357,7 +2444,7 @@ export default function Dashboard() {
                                       </p>
                                     </div>
                                     <Button variant="ghost" size="sm" className="h-7 text-xs text-primary shrink-0 gap-1 px-2">
-                                      <span>عرض</span>
+                                      <span>{isEn ? "View" : "عرض"}</span>
                                       <ArrowUpRight className="w-3 h-3" />
                                     </Button>
                                   </div>
@@ -2377,13 +2464,13 @@ export default function Dashboard() {
                     <Table>
                       <TableHeader className="bg-muted/40">
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">رقم الطلب</TableHead>
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">المسجد / المدينة</TableHead>
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">البرنامج</TableHead>
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">موعد الزيارة</TableHead>
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">الأولوية</TableHead>
-                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">بيانات التواصل</TableHead>
-                          <TableHead className="text-center text-xs font-bold py-3.5 px-4">الإجراءات</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Request #" : "رقم الطلب"}</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Mosque / City" : "المسجد / المدينة"}</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Program" : "البرنامج"}</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Scheduled Date" : "موعد الزيارة"}</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Priority" : "الأولوية"}</TableHead>
+                          <TableHead className="text-right text-xs font-bold py-3.5 px-4">{isEn ? "Contact Info" : "بيانات التواصل"}</TableHead>
+                          <TableHead className="text-center text-xs font-bold py-3.5 px-4">{isEn ? "Actions" : "الإجراءات"}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -2392,14 +2479,14 @@ export default function Dashboard() {
                             <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
                               <div className="flex flex-col items-center justify-center space-y-2">
                                 <ClipboardList className="w-8 h-8 text-muted-foreground/60" />
-                                <p className="text-sm font-semibold">لا توجد مواعيد أو زيارات مطابقة للبحث</p>
+                                <p className="text-sm font-semibold">{isEn ? "No appointments or visits found" : "لا توجد مواعيد أو زيارات مطابقة للبحث"}</p>
                               </div>
                             </TableCell>
                           </TableRow>
                         ) : (
                           fieldEvents.map((evt: any) => {
                             const isUrgent = evt.priority === "urgent" || evt.priority === "high";
-                            const programLabel = PROGRAM_LABELS[evt.programType] || evt.programType || "عام";
+                            const programLabel = translateProgramName(evt.programType);
                             const programColor = PROGRAM_COLORS[evt.programType] || "#059669";
 
                             return (
@@ -2433,7 +2520,7 @@ export default function Dashboard() {
                                 </TableCell>
                                 <TableCell className="py-3 px-4">
                                   <div className="font-mono text-xs font-bold text-foreground">
-                                    {evt.date || "غير محدد"}
+                                    {evt.date || (isEn ? "Not set" : "غير محدد")}
                                   </div>
                                   <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1">
                                     <Clock className="w-3 h-3 text-primary" />
@@ -2443,11 +2530,11 @@ export default function Dashboard() {
                                 <TableCell className="py-3 px-4">
                                   {isUrgent ? (
                                     <Badge variant="destructive" className="text-[10px] font-bold px-1.5 h-5 bg-rose-600">
-                                      عاجل جداً
+                                      {isEn ? "Urgent" : "عاجل جداً"}
                                     </Badge>
                                   ) : (
                                     <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground">
-                                      عادية
+                                      {isEn ? "Normal" : "عادية"}
                                     </Badge>
                                   )}
                                 </TableCell>
@@ -2469,11 +2556,11 @@ export default function Dashboard() {
                                     <Link href={`/requests/${evt.requestId}/field-inspection`}>
                                       <Button size="sm" className="h-7.5 text-xs font-bold gap-1 bg-primary text-primary-foreground hover:bg-primary/90">
                                         <FileText className="w-3 h-3" />
-                                        <span>استمارة المعاينة</span>
+                                        <span>{isEn ? "Inspection Form" : "استمارة المعاينة"}</span>
                                       </Button>
                                     </Link>
                                     <Link href={`/requests/${evt.requestId}`}>
-                                      <Button variant="outline" size="sm" className="h-7.5 text-xs px-2" title="تفاصيل الطلب">
+                                      <Button variant="outline" size="sm" className="h-7.5 text-xs px-2" title={isEn ? "View Details" : "تفاصيل الطلب"}>
                                         <Eye className="w-3 h-3" />
                                       </Button>
                                     </Link>

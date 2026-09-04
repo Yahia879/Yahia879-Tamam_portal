@@ -48,7 +48,8 @@ import {
   Filter,
   Info,
   Lightbulb,
-  Download
+  Download,
+  Languages
 } from "lucide-react";
 
 const getSafeAttachments = (attachments: any): string[] => {
@@ -81,7 +82,7 @@ const getSafeReplies = (replies: any): any[] => {
   return [];
 };
 
-const renderFileThumbnail = (url: string) => {
+const renderFileThumbnail = (url: string, isEn?: boolean) => {
   const extension = url.split(".").pop()?.toLowerCase() || "";
   const isImage = ["png", "jpg", "jpeg", "webp", "gif"].includes(extension);
   const isVideo = ["mp4", "mov", "avi", "mkv", "webm"].includes(extension);
@@ -94,7 +95,7 @@ const renderFileThumbnail = (url: string) => {
     return (
       <div className="w-full h-full bg-slate-950 flex items-center justify-center relative">
         <video src={url} className="w-full h-full object-cover opacity-80" muted />
-        <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded">فيديو</span>
+        <span className="absolute bottom-1 right-1 text-[9px] bg-black/60 text-white px-1 rounded">{isEn ? "Video" : "فيديو"}</span>
       </div>
     );
   }
@@ -110,6 +111,35 @@ const renderFileThumbnail = (url: string) => {
 export default function SupportTickets() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  const isQuickResponse =
+    user?.role === "quick_response" ||
+    ((user as any)?.customRoleNameAr || "").includes("استجابة") ||
+    ((user as any)?.customRoleNameEn || "").toLowerCase().includes("quick_response");
+
+  const [quickResponseLang, setQuickResponseLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  const isEn = isQuickResponse && quickResponseLang === "en";
+
+  const handleToggleQuickResponseLang = () => {
+    const nextLang = quickResponseLang === "ar" ? "en" : "ar";
+    setQuickResponseLang(nextLang);
+    localStorage.setItem("quick-response-lang", nextLang);
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem("quick-response-lang") as "ar" | "en";
+      if (stored && (stored === "ar" || stored === "en")) {
+        setQuickResponseLang(stored);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const userPermissions = (user as any)?.permissions ?? [];
   const hasCreate = userPermissions.includes("Create_Ticket") || userPermissions.includes("*");
@@ -152,7 +182,7 @@ export default function SupportTickets() {
   // Mutations
   const createTicketMutation = trpc.supportTickets.createTicket.useMutation({
     onSuccess: () => {
-      toast.success("تم تقديم تذكرة الدعم الفني بنجاح.");
+      toast.success(isEn ? "Support ticket submitted successfully." : "تم تقديم تذكرة الدعم الفني بنجاح.");
       setIsCreateOpen(false);
       setDescription("");
       setAttachments([]);
@@ -162,7 +192,7 @@ export default function SupportTickets() {
       }
     },
     onError: (err) => {
-      toast.error(err.message || "فشل إنشاء التذكرة");
+      toast.error(err.message || (isEn ? "Failed to create ticket" : "فشل إنشاء التذكرة"));
     },
   });
 
@@ -175,18 +205,18 @@ export default function SupportTickets() {
       utils.supportTickets.getMyTickets.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "فشل إرسال الرد");
+      toast.error(err.message || (isEn ? "Failed to send reply" : "فشل إرسال الرد"));
     },
   });
 
   const updateStatusMutation = trpc.supportTickets.updateStatus.useMutation({
     onSuccess: () => {
-      toast.success("تم تحديث حالة التذكرة بنجاح.");
+      toast.success(isEn ? "Ticket status updated successfully." : "تم تحديث حالة التذكرة بنجاح.");
       utils.supportTickets.getTicketById.invalidate({ id: selectedTicketId || 0 });
       utils.supportTickets.getAllTickets.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "فشل تحديث الحالة");
+      toast.error(err.message || (isEn ? "Failed to update status" : "فشل تحديث الحالة"));
     },
   });
 
@@ -219,12 +249,12 @@ export default function SupportTickets() {
     ];
     const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
     if (executableExtensions.includes(fileExtension)) {
-      toast.error("نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
+      toast.error(isEn ? "Unsupported or unsafe file type. Executables are not allowed." : "نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
       return;
     }
 
     if (file.size > 50 * 1024 * 1024) {
-      toast.error("حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
+      toast.error(isEn ? "File size is too large. Maximum allowed is 50MB" : "حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
       return;
     }
 
@@ -241,14 +271,14 @@ export default function SupportTickets() {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || "فشل رفع الملف");
+        throw new Error(errData.error || (isEn ? "Failed to upload file" : "فشل رفع الملف"));
       }
 
       const data = await response.json();
       setAttachments((prev) => [...prev, data.url]);
-      toast.success("تم رفع الملف بنجاح");
+      toast.success(isEn ? "File uploaded successfully" : "تم رفع الملف بنجاح");
     } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء رفع الملف");
+      toast.error(error.message || (isEn ? "Error uploading file" : "حدث خطأ أثناء رفع الملف"));
     } finally {
       setUploading(false);
     }
@@ -266,12 +296,12 @@ export default function SupportTickets() {
     ];
     const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
     if (executableExtensions.includes(fileExtension)) {
-      toast.error("نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
+      toast.error(isEn ? "Unsupported or unsafe file type. Executables are not allowed." : "نوع الملف غير مدعوم أو غير آمن. يُمنع رفع الملفات البرمجية والتنفيذية.");
       return;
     }
 
     if (file.size > 50 * 1024 * 1024) {
-      toast.error("حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
+      toast.error(isEn ? "File size is too large. Maximum allowed is 50MB" : "حجم الملف كبير جداً، الحد الأقصى المسموح به هو 50 ميجابايت");
       return;
     }
 
@@ -288,14 +318,14 @@ export default function SupportTickets() {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || "فشل رفع الملف");
+        throw new Error(errData.error || (isEn ? "Failed to upload file" : "فشل رفع الملف"));
       }
 
       const data = await response.json();
       setReplyAttachments((prev) => [...prev, data.url]);
-      toast.success("تم رفع الملف بنجاح");
+      toast.success(isEn ? "File uploaded successfully" : "تم رفع الملف بنجاح");
     } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء رفع الملف");
+      toast.error(error.message || (isEn ? "Error uploading file" : "حدث خطأ أثناء رفع الملف"));
     } finally {
       setReplyUploading(false);
     }
@@ -327,7 +357,7 @@ export default function SupportTickets() {
   const handleSubmitTicket = (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim() || description.length < 10) {
-      toast.error("وصف المشكلة يجب ألا يقل عن 10 أحرف");
+      toast.error(isEn ? "Problem description must be at least 10 characters" : "وصف المشكلة يجب ألا يقل عن 10 أحرف");
       return;
     }
     createTicketMutation.mutate({
@@ -344,7 +374,7 @@ export default function SupportTickets() {
     if (!replyMessage.trim() && replyAttachments.length === 0) return;
     addReplyMutation.mutate({
       ticketId: selectedTicketId,
-      message: replyMessage.trim() || "تم إرفاق ملف/مستند",
+      message: replyMessage.trim() || (isEn ? "File/document attached" : "تم إرفاق ملف/مستند"),
       attachments: replyAttachments,
       createdAt: new Date(),
     });
@@ -389,7 +419,7 @@ export default function SupportTickets() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success("تم تحميل الملف بنجاح");
+    toast.success(isEn ? "File downloaded successfully" : "تم تحميل الملف بنجاح");
   };
 
   // Status badge renderer
@@ -399,21 +429,21 @@ export default function SupportTickets() {
         return (
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
             <Clock className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} />
-            قيد الانتظار
+            {isEn ? "Pending" : "قيد الانتظار"}
           </Badge>
         );
       case "resolved":
         return (
           <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            تم الحل
+            {isEn ? "Resolved" : "تم الحل"}
           </Badge>
         );
       case "needs_clarification":
         return (
           <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-200 gap-1.5 font-bold rounded-full text-xs py-0.5 px-2.5 shrink-0">
             <AlertCircle className="w-3.5 h-3.5 animate-bounce" />
-            تحتاج توضيح
+            {isEn ? "Needs Clarification" : "تحتاج توضيح"}
           </Badge>
         );
       default:
@@ -440,25 +470,25 @@ export default function SupportTickets() {
 
   const statsCards = [
     {
-      label: "جميع التذاكر",
+      label: isEn ? "All Tickets" : "جميع التذاكر",
       value: totalTicketsCount,
       icon: <LifeBuoy className="w-4 h-4 md:w-5 md:h-5" />,
       iconBg: "bg-blue-100 dark:bg-blue-950/40 text-blue-600",
     },
     {
-      label: "قيد الانتظار",
+      label: isEn ? "Pending" : "قيد الانتظار",
       value: pendingTicketsCount,
       icon: <Clock className="w-4 h-4 md:w-5 md:h-5" />,
       iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
     },
     {
-      label: "تم الحل",
+      label: isEn ? "Resolved" : "تم الحل",
       value: resolvedTicketsCount,
       icon: <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />,
       iconBg: "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600",
     },
     {
-      label: "تحتاج توضيح",
+      label: isEn ? "Needs Clarification" : "تحتاج توضيح",
       value: needsClarificationTicketsCount,
       icon: <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />,
       iconBg: "bg-rose-100 dark:bg-rose-950/40 text-rose-600",
@@ -466,7 +496,24 @@ export default function SupportTickets() {
   ];
 
   // FAQ Items
-  const faqItems = [
+  const faqItems = isEn ? [
+    {
+      q: "How can I submit a new technical support ticket?",
+      a: "You can submit a new ticket by clicking 'Contact Support' at the top of the page, choosing the ticket type (technical issue or suggestion), filling in the details, and attaching relevant files.",
+    },
+    {
+      q: "What is the expected response time for a ticket?",
+      a: "The support team reviews and responds to tickets within 24 hours at most. You will be notified as soon as a new reply is posted.",
+    },
+    {
+      q: "What do the different ticket statuses mean?",
+      a: "Statuses reflect progress: (Pending) means under review, (Resolved) means the issue was resolved and closed, (Needs Clarification) means support needs additional information from you.",
+    },
+    {
+      q: "Can I reopen a ticket after it has been resolved?",
+      a: "Yes, if a ticket status was changed to 'Resolved' but the issue persists, simply post a new reply in the ticket and it will automatically reopen for follow-up.",
+    },
+  ] : [
     {
       q: "كيف يمكنني تقديم تذكرة دعم فني جديدة؟",
       a: "يمكنك تقديم تذكرة جديدة بالضغط على زر 'تواصل مع الدعم الفني' في أعلى الصفحة، ثم اختيار نوع الطلب (مشكلة فنية أو مقترح)، وكتابة التفاصيل وإرفاق الملفات اللازمة.",
@@ -518,7 +565,7 @@ export default function SupportTickets() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-          <p className="text-gray-500 font-bold">جاري تحميل البيانات والتحقق منها...</p>
+          <p className="text-gray-500 font-bold">{isEn ? "Loading and verifying data..." : "جاري تحميل البيانات والتحقق منها..."}</p>
         </div>
       </DashboardLayout>
     );
@@ -529,8 +576,8 @@ export default function SupportTickets() {
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
           <ShieldAlert className="w-16 h-16 text-destructive mb-4 animate-pulse" />
-          <h2 className="text-2xl font-black text-gray-800 mb-2">غير مصرح لك بالوصول</h2>
-          <p className="text-gray-600 font-semibold">ليس لديك صلاحية لعرض أو تقديم تذاكر الدعم الفني.</p>
+          <h2 className="text-2xl font-black text-gray-800 mb-2">{isEn ? "Access Denied" : "غير مصرح لك بالوصول"}</h2>
+          <p className="text-gray-600 font-semibold">{isEn ? "You do not have permission to view or create support tickets." : "ليس لديك صلاحية لعرض أو تقديم تذاكر الدعم الفني."}</p>
         </div>
       </DashboardLayout>
     );
@@ -538,7 +585,7 @@ export default function SupportTickets() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-1 md:p-4 text-right" dir="rtl">
+      <div className={`space-y-6 p-1 md:p-4 ${isEn ? "text-left" : "text-right"}`} dir={isEn ? "ltr" : "rtl"}>
         {/* Banner / Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-700 via-teal-800 to-[#09707e] text-white p-6 md:p-8 shadow-md">
           {/* Islamic pattern background overlay */}
@@ -547,224 +594,240 @@ export default function SupportTickets() {
             <div className="space-y-2">
               <h1 className="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3 !leading-normal py-1">
                 <LifeBuoy className="w-9 h-9 text-teal-200 animate-pulse" />
-                مركز الدعم الفني
+                {isEn ? "Technical Support Center" : "مركز الدعم الفني"}
               </h1>
               <p className="text-teal-50/90 max-w-xl text-sm md:text-base leading-relaxed font-medium">
                 {hasView
-                  ? "لوحة إدارة تذاكر الدعم الفني، متابعة بلاغات المستخدمين، الردود وتحديث حالات الطلبات والمقترحات الواردة."
-                  : "مرحباً بك في مركز الدعم. نحن هنا لمساعدتك! يمكنك تقديم تذكرة لمشكلة فنية تواجهها، أو اقتراح ميزة ترغب بإضافتها."}
+                  ? (isEn
+                      ? "Support tickets administration portal: follow up user issues, replies, and status updates."
+                      : "لوحة إدارة تذاكر الدعم الفني، متابعة بلاغات المستخدمين، الردود وتحديث حالات الطلبات والمقترحات الواردة.")
+                  : (isEn
+                      ? "Welcome to Technical Support. We are here to help! You can submit a ticket for any issue or suggest improvements."
+                      : "مرحباً بك في مركز الدعم. نحن هنا لمساعدتك! يمكنك تقديم تذكرة لمشكلة فنية تواجهها، أو اقتراح ميزة ترغب بإضافتها.")}
               </p>
             </div>
 
-            {/* User Create Ticket Button */}
-            {hasCreate && (
-              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
-                    <Plus className="w-5 h-5" />
-                    تواصل مع الدعم الفني
-                  </Button>
-                </DialogTrigger>
-                <DialogContent
-                  dir="rtl"
-                  showCloseButton={false}
-                  className="!fixed !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-none !p-0 !m-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden"
-                  onOpenAutoFocus={(e) => e.preventDefault()}
+            <div className="flex items-center gap-3 flex-wrap">
+              {isQuickResponse && (
+                <Button
+                  variant="outline"
+                  onClick={handleToggleQuickResponseLang}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold gap-2 text-sm shadow-sm backdrop-blur-sm"
                 >
-                  {/* Modal Header */}
-                  <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 pt-6 pb-4 md:px-10 flex items-center justify-between shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <LifeBuoy className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50 !leading-normal py-0.5">
-                          إنشاء تذكرة دعم جديدة
-                        </DialogTitle>
-                        <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-                          يرجى تعبئة النموذج أدناه وتوضيح التفاصيل بأكبر قدر ممكن.
-                        </DialogDescription>
-                      </div>
-                    </div>
-                    
-                    {/* RTL Close button on left */}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsCreateOpen(false)}
-                      className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <X className="w-5 h-5 text-slate-500" />
+                  <Languages className="w-4 h-4" />
+                  <span>{isEn ? "العربية" : "English"}</span>
+                </Button>
+              )}
+
+              {/* User Create Ticket Button */}
+              {hasCreate && (
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-white hover:bg-teal-50 text-teal-900 gap-2 font-bold px-6 py-5 text-base shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all shrink-0">
+                      <Plus className="w-5 h-5" />
+                      {isEn ? "Contact Support" : "تواصل مع الدعم الفني"}
                     </Button>
-                  </div>
-
-                  <div className="flex-1 w-full overflow-y-auto bg-slate-50/50 dark:bg-slate-900/10">
-                    <div className="w-full max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col space-y-8 text-right">
-                      <form onSubmit={handleSubmitTicket} className="space-y-6 text-right bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-                        
-                        {/* Custom Ticket Type Chooser */}
-                        <div className="space-y-3">
-                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">نوع التذكرة</label>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <button
-                              type="button"
-                              onClick={() => setTicketType("technical_issue")}
-                              className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-4 ${
-                                ticketType === "technical_issue"
-                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                                  : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
-                              }`}
-                            >
-                              <div className={`p-2.5 rounded-lg shrink-0 ${
-                                ticketType === "technical_issue" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
-                              }`}>
-                                <AlertCircle className="w-6 h-6" />
-                              </div>
-                              <div>
-                                <div className="font-bold text-base text-slate-950 dark:text-white">مشكلة فنية</div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">عطل بالبوابة، مشكلة بالدخول، خطأ في البيانات أو مشكلة فنية أخرى</div>
-                              </div>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setTicketType("suggestion")}
-                              className={`p-4 rounded-xl border-2 text-right transition-all flex items-start gap-4 ${
-                                ticketType === "suggestion"
-                                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                                  : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
-                              }`}
-                            >
-                              <div className={`p-2.5 rounded-lg shrink-0 ${
-                                ticketType === "suggestion" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
-                              }`}>
-                                <LifeBuoy className="w-6 h-6" />
-                              </div>
-                              <div>
-                                <div className="font-bold text-base text-slate-950 dark:text-white">مقترح وتحسين</div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">فكرة لتحسين تجربة الاستخدام، ميزة جديدة ترغب بإضافتها أو ملاحظات عامة</div>
-                              </div>
-                            </button>
-                          </div>
+                  </DialogTrigger>
+                  <DialogContent
+                    dir={isEn ? "ltr" : "rtl"}
+                    showCloseButton={false}
+                    className="!fixed !top-0 !left-0 !translate-x-0 !translate-y-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !border-none !p-0 !m-0 flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
+                    {/* Modal Header */}
+                    <div className="w-full sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-6 pt-6 pb-4 md:px-10 flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                          <LifeBuoy className="w-5 h-5" />
                         </div>
-
-                        {/* Description field */}
-                        <div className="space-y-2">
-                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">الوصف والتفاصيل</label>
-                          <div className="relative">
-                            <Textarea
-                              placeholder="يرجى وصف المشكلة الفنية أو المقترح بالتفصيل هنا... (الحد الأدنى 10 أحرف)"
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              onPaste={handlePaste}
-                              className="min-h-[220px] text-right text-base leading-relaxed p-4 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary shadow-xs transition-all bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
-                              required
-                            />
-                            <span className="absolute bottom-3 left-3 text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50">
-                              {description.length} حرف
-                            </span>
-                          </div>
+                        <div>
+                          <DialogTitle className="text-xl font-black text-slate-900 dark:text-slate-50 !leading-normal py-0.5">
+                            {isEn ? "Create New Support Ticket" : "إنشاء تذكرة دعم جديدة"}
+                          </DialogTitle>
+                          <DialogDescription className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            {isEn ? "Please fill out the form below with as much detail as possible." : "يرجى تعبئة النموذج أدناه وتوضيح التفاصيل بأكبر قدر ممكن."}
+                          </DialogDescription>
                         </div>
-
-                        {/* Attachments */}
-                        <div className="space-y-4">
-                          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">المرفقات والملفات الداعمة</label>
-                          
-                          {attachments.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
-                              {attachments.map((url, idx) => (
-                                <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-2xs hover:shadow-xs transition-all">
-                                  {renderFileThumbnail(url)}
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => removeAttachment(idx)}
-                                      className="bg-red-650 hover:bg-red-700 text-white rounded-full p-2 shadow-md transform scale-90 group-hover:scale-100 transition-all hover:scale-105"
-                                      title="حذف الملف"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-center w-full">
-                            <label
-                              htmlFor="support-file-input"
-                              className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
-                                uploading
-                                  ? "border-primary/50 bg-primary/5 cursor-not-allowed"
-                                  : "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 bg-white dark:bg-slate-950"
-                              }`}
-                            >
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-                                {uploading ? (
-                                  <>
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
-                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">جاري معالجة الملف ورفعه...</p>
-                                    <p className="text-xs text-slate-400 mt-1 font-semibold">الرجاء الانتظار قليلاً</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-850 flex items-center justify-center text-slate-550 mb-2">
-                                      <ImageIcon className="w-5 h-5 text-slate-500" />
-                                    </div>
-                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                      اضغط لرفع ملف أو صورة أو فيديو
-                                    </p>
-                                    <p className="text-xs text-slate-400 mt-1 font-medium">
-                                      يمكنك إرفاق صور، فيديوهات، أو ملفات PDF حتى 50 ميجابايت
-                                    </p>
-                                  </>
-                                )}
-                              </div>
-                              <input
-                                id="support-file-input"
-                                type="file"
-                                accept="image/*,.heic,.heif,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-                                className="hidden"
-                                onChange={handleFileChange}
-                                disabled={uploading}
-                              />
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Footer buttons */}
-                        <div className="flex items-center justify-start gap-3 pt-6 border-t border-slate-200 dark:border-slate-800 flex-row-reverse">
-                          <Button
-                            type="submit"
-                            disabled={createTicketMutation.isPending || uploading}
-                            className="font-bold px-8 h-11 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all rounded-xl"
-                          >
-                            {createTicketMutation.isPending ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin shrink-0 ml-2" />
-                                جاري الإرسال...
-                              </>
-                            ) : (
-                              "إرسال التذكرة"
-                            )}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsCreateOpen(false)}
-                            disabled={createTicketMutation.isPending}
-                            className="px-8 h-11 text-base rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
-                          >
-                            إلغاء
-                          </Button>
-                        </div>
-                      </form>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsCreateOpen(false)}
+                        className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <X className="w-5 h-5 text-slate-550" />
+                      </Button>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+
+                    <div className="flex-1 w-full overflow-y-auto bg-slate-50/50 dark:bg-slate-900/10">
+                      <div className={`w-full max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col space-y-8 ${isEn ? "text-left" : "text-right"}`}>
+                        <form onSubmit={handleSubmitTicket} className={`space-y-6 ${isEn ? "text-left" : "text-right"} bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm`}>
+                          
+                          {/* Custom Ticket Type Chooser */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">{isEn ? "Ticket Type" : "نوع التذكرة"}</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <button
+                                type="button"
+                                onClick={() => setTicketType("technical_issue")}
+                                className={`p-4 rounded-xl border-2 ${isEn ? "text-left" : "text-right"} transition-all flex items-start gap-4 ${
+                                  ticketType === "technical_issue"
+                                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                    : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                                }`}
+                              >
+                                <div className={`p-2.5 rounded-lg shrink-0 ${
+                                  ticketType === "technical_issue" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
+                                }`}>
+                                  <AlertCircle className="w-6 h-6" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-base text-slate-950 dark:text-white">{isEn ? "Technical Issue" : "مشكلة فنية"}</div>
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">{isEn ? "Portal malfunction, login issue, data error, or other technical difficulty" : "عطل بالبوابة، مشكلة بالدخول، خطأ في البيانات أو مشكلة فنية أخرى"}</div>
+                                </div>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setTicketType("suggestion")}
+                                className={`p-4 rounded-xl border-2 ${isEn ? "text-left" : "text-right"} transition-all flex items-start gap-4 ${
+                                  ticketType === "suggestion"
+                                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                    : "border-slate-250 dark:border-slate-800 hover:border-slate-350 dark:hover:border-slate-700 bg-white dark:bg-slate-900"
+                                }`}
+                              >
+                                <div className={`p-2.5 rounded-lg shrink-0 ${
+                                  ticketType === "suggestion" ? "bg-primary/20 text-primary" : "bg-slate-100 dark:bg-slate-850 text-slate-500"
+                                }`}>
+                                  <LifeBuoy className="w-6 h-6" />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-base text-slate-950 dark:text-white">{isEn ? "Suggestion & Improvement" : "مقترح وتحسين"}</div>
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium leading-relaxed">{isEn ? "Ideas to improve usability, new requested features, or general feedback" : "فكرة لتحسين تجربة الاستخدام، ميزة جديدة ترغب بإضافتها أو ملاحظات عامة"}</div>
+                                </div>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Description field */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">{isEn ? "Description & Details" : "الوصف والتفاصيل"}</label>
+                            <div className="relative">
+                              <Textarea
+                                placeholder={isEn ? "Please describe the technical issue or suggestion in detail... (minimum 10 characters)" : "يرجى وصف المشكلة الفنية أو المقترح بالتفصيل هنا... (الحد الأدنى 10 أحرف)"}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                onPaste={handlePaste}
+                                className={`min-h-[220px] ${isEn ? "text-left" : "text-right"} text-base leading-relaxed p-4 rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary shadow-xs transition-all bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200`}
+                                required
+                              />
+                              <span className={`absolute bottom-3 ${isEn ? "right-3" : "left-3"} text-xs text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-800/50`}>
+                                {description.length} {isEn ? "chars" : "حرف"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Attachments */}
+                          <div className="space-y-4">
+                            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 block">{isEn ? "Attachments & Supporting Files" : "المرفقات والملفات الداعمة"}</label>
+                            
+                            {attachments.length > 0 && (
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+                                {attachments.map((url, idx) => (
+                                  <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-2xs hover:shadow-xs transition-all">
+                                    {renderFileThumbnail(url, isEn)}
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeAttachment(idx)}
+                                        className="bg-red-650 hover:bg-red-700 text-white rounded-full p-2 shadow-md transform scale-90 group-hover:scale-100 transition-all hover:scale-105"
+                                        title={isEn ? "Delete file" : "حذف الملف"}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-center w-full">
+                              <label
+                                htmlFor="support-file-input"
+                                className={`flex flex-col items-center justify-center w-full h-36 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                                  uploading
+                                    ? "border-primary/50 bg-primary/5 cursor-not-allowed"
+                                    : "border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 bg-white dark:bg-slate-950"
+                                }`}
+                              >
+                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                                  {uploading ? (
+                                    <>
+                                      <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+                                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{isEn ? "Processing and uploading file..." : "جاري معالجة الملف ورفعه..."}</p>
+                                      <p className="text-xs text-slate-400 mt-1 font-semibold">{isEn ? "Please wait a moment" : "الرجاء الانتظار قليلاً"}</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-850 flex items-center justify-center text-slate-550 mb-2">
+                                        <ImageIcon className="w-5 h-5 text-slate-500" />
+                                      </div>
+                                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                        {isEn ? "Click to upload a file, image, or video" : "اضغط لرفع ملف أو صورة أو فيديو"}
+                                      </p>
+                                      <p className="text-xs text-slate-400 mt-1 font-medium">
+                                        {isEn ? "You can attach images, videos, or PDFs up to 50MB" : "يمكنك إرفاق صور، فيديوهات، أو ملفات PDF حتى 50 ميجابايت"}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                                <input
+                                  id="support-file-input"
+                                  type="file"
+                                  accept="image/*,.heic,.heif,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                  className="hidden"
+                                  onChange={handleFileChange}
+                                  disabled={uploading}
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          {/* Footer buttons */}
+                          <div className={`flex items-center justify-start gap-3 pt-6 border-t border-slate-200 dark:border-slate-800 ${isEn ? "flex-row" : "flex-row-reverse"}`}>
+                            <Button
+                              type="submit"
+                              disabled={createTicketMutation.isPending || uploading}
+                              className="font-bold px-8 h-11 text-base bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all rounded-xl"
+                            >
+                              {createTicketMutation.isPending ? (
+                                <>
+                                  <Loader2 className={`w-4 h-4 animate-spin shrink-0 ${isEn ? "mr-2" : "ml-2"}`} />
+                                  {isEn ? "Submitting..." : "جاري الإرسال..."}
+                                </>
+                              ) : (
+                                isEn ? "Submit Ticket" : "إرسال التذكرة"
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsCreateOpen(false)}
+                              disabled={createTicketMutation.isPending}
+                              className="px-8 h-11 text-base rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                            >
+                              {isEn ? "Cancel" : "إلغاء"}
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </div>
         </div>
 
@@ -795,12 +858,12 @@ export default function SupportTickets() {
         {hasCreate && !hasView && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: selectedTicketId ? '70vh' : 'auto' }}>
-              {/* My Tickets List (1/3 width - right side in RTL) */}
+              {/* My Tickets List (1/3 width) */}
               <div className="lg:col-span-1 space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                     <MessageSquare className="w-5 h-5 text-slate-500" />
-                    تذاكرك الحالية
+                    {isEn ? "My Active Tickets" : "تذاكرك الحالية"}
                     {myTickets && myTickets.length > 0 && (
                       <span className="px-2.5 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold border border-slate-200 dark:border-slate-700">
                         {myTickets.length}
@@ -818,47 +881,65 @@ export default function SupportTickets() {
                     ))}
                   </div>
                 ) : myTickets && myTickets.length > 0 ? (
-                  <div className="space-y-3 max-h-[65vh] overflow-y-auto pr-1">
+                  <div className={`space-y-3 max-h-[65vh] overflow-y-auto ${isEn ? "pl-1" : "pr-1"}`}>
                     {myTickets.map((ticket) => (
                       <div
                         key={ticket.id}
-                        className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs text-right ${
+                        className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs ${isEn ? "text-left" : "text-right"} ${
                           selectedTicketId === ticket.id
                             ? "border-primary bg-primary/5 ring-1 ring-primary/10"
                             : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                         } ${
                           ticket.status === "pending"
-                            ? "border-r-4 border-r-blue-500"
+                            ? (isEn ? "border-l-4 border-l-blue-500" : "border-r-4 border-r-blue-500")
                             : ticket.status === "resolved"
-                            ? "border-r-4 border-r-emerald-500"
-                            : "border-r-4 border-r-rose-500"
+                            ? (isEn ? "border-l-4 border-l-emerald-500" : "border-r-4 border-r-emerald-500")
+                            : (isEn ? "border-l-4 border-l-rose-500" : "border-r-4 border-r-rose-500")
                         }`}
                         onClick={() => setSelectedTicketId(ticket.id)}
                       >
-                        <div className="flex justify-between items-start gap-2 flex-row-reverse">
+                        <div className={`flex justify-between items-start gap-2 ${isEn ? "flex-row" : "flex-row-reverse"}`}>
                           {renderStatusBadge(ticket.status)}
-                          <div className="space-y-1 text-right">
+                          <div className={`space-y-1 ${isEn ? "text-left" : "text-right"}`}>
                             <div className="flex items-center gap-1.5">
                               <span className="text-[10px] text-slate-400 font-mono">#{ticket.id}</span>
                               <span className="text-[10px] text-slate-400 font-medium">
-                                • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+                                • {new Date(ticket.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                               </span>
                             </div>
-                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
-                              <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
-                              {ticket.ticketType === "technical_issue" ? (
-                                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              ) : (
-                                <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <h3 className={`font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 ${isEn ? "justify-start" : "justify-end"}`}>
+                              {isEn && (
+                                ticket.ticketType === "technical_issue" ? (
+                                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                ) : (
+                                  <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                )
+                              )}
+                              <span>
+                                {ticket.ticketType === "technical_issue"
+                                  ? (isEn ? "Technical Issue" : "مشكلة فنية")
+                                  : (isEn ? "Suggestion & Improvement" : "مقترح وتحسين")}
+                              </span>
+                              {!isEn && (
+                                ticket.ticketType === "technical_issue" ? (
+                                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                ) : (
+                                  <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                )
                               )}
                             </h3>
                           </div>
                         </div>
                         <p className="text-xs text-slate-605 dark:text-slate-400 truncate mt-2 font-medium">{ticket.description}</p>
                         {getSafeReplies(ticket.replies).length > 0 && (
-                          <div className="mt-2 text-xs text-primary flex items-center gap-1.5 font-bold justify-end">
-                            <span>يوجد {getSafeReplies(ticket.replies).length} ردود ومراسلات</span>
-                            <MessageSquare className="w-3.5 h-3.5" />
+                          <div className={`mt-2 text-xs text-primary flex items-center gap-1.5 font-bold ${isEn ? "justify-start" : "justify-end"}`}>
+                            {isEn && <MessageSquare className="w-3.5 h-3.5" />}
+                            <span>
+                              {isEn
+                                ? `${getSafeReplies(ticket.replies).length} message${getSafeReplies(ticket.replies).length > 1 ? "s" : ""} & replies`
+                                : `يوجد ${getSafeReplies(ticket.replies).length} ردود ومراسلات`}
+                            </span>
+                            {!isEn && <MessageSquare className="w-3.5 h-3.5" />}
                           </div>
                         )}
                       </div>
@@ -869,25 +950,27 @@ export default function SupportTickets() {
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4 animate-bounce">
                       <FileQuestion className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">لا توجد تذاكر دعم فني بعد</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">{isEn ? "No support tickets yet" : "لا توجد تذاكر دعم فني بعد"}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6 leading-relaxed font-medium">
-                      إذا واجهت أي مشكلة فنية أو أردت تقديم اقتراح لتحسين البوابة، يمكنك إنشاء تذكرة دعم فني جديدة في أي وقت.
+                      {isEn
+                        ? "If you encounter any technical issue or wish to suggest portal enhancements, you can create a support ticket anytime."
+                        : "إذا واجهت أي مشكلة فنية أو أردت تقديم اقتراح لتحسين البوابة، يمكنك إنشاء تذكرة دعم فني جديدة في أي وقت."}
                     </p>
                     <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2 px-6">
                       <Plus className="w-4 h-4" />
-                      إنشاء تذكرتك الأولى
+                      {isEn ? "Create First Ticket" : "إنشاء تذكرتك الأولى"}
                     </Button>
                   </div>
                 )}
               </div>
 
-              {/* Ticket Detail & Replies Panel (2/3 width - left side in RTL) */}
+              {/* Ticket Detail & Replies Panel (2/3 width) */}
               <div className="lg:col-span-2">
                 {selectedTicketId && selectedTicket ? (
                   <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs overflow-hidden" style={{ height: '70vh' }}>
                     {/* Panel Header */}
                     <div className="pt-5 pb-3.5 px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
-                      <div className="space-y-1 text-right">
+                      <div className={`space-y-1 ${isEn ? "text-left" : "text-right"}`}>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-mono bg-slate-200 dark:bg-slate-850 px-2 py-0.5 rounded text-slate-500">#{selectedTicket.id}</span>
                           <h3 className="text-base font-bold text-slate-900 dark:text-white !leading-normal py-0.5 flex items-center gap-1.5">
@@ -896,12 +979,18 @@ export default function SupportTickets() {
                             ) : (
                               <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
                             )}
-                            <span>{selectedTicket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                            <span>
+                              {selectedTicket.ticketType === "technical_issue"
+                                ? (isEn ? "Technical Issue" : "مشكلة فنية")
+                                : (isEn ? "Suggestion & Improvement" : "مقترح وتحسين")}
+                            </span>
                           </h3>
                           {renderStatusBadge(selectedTicket.status)}
                         </div>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                          تاريخ التقديم: {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
+                          {isEn
+                            ? `Submitted: ${new Date(selectedTicket.createdAt).toLocaleString("en-US")}`
+                            : `تاريخ التقديم: ${new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}`}
                         </p>
                       </div>
                       <Button
@@ -919,10 +1008,10 @@ export default function SupportTickets() {
                     <div className="flex-1 overflow-y-auto p-5 bg-slate-50/10 dark:bg-slate-900/10">
                       <div className="space-y-5">
                         {/* Description Card */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 text-right space-y-3 shadow-2xs">
+                        <div className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-xl p-4 ${isEn ? "text-left" : "text-right"} space-y-3 shadow-2xs`}>
                           <div className="font-bold text-slate-800 dark:text-slate-200 text-xs pb-1.5 border-b border-slate-100 dark:border-slate-850 flex items-center gap-1.5">
                             <User className="w-3.5 h-3.5 text-primary" />
-                            <span>تفاصيل بلاغك:</span>
+                            <span>{isEn ? "Your Report Details:" : "تفاصيل بلاغك:"}</span>
                           </div>
                           <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium break-words [word-break:break-word]">
                             {selectedTicket.description}
@@ -933,7 +1022,9 @@ export default function SupportTickets() {
                             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-850">
                               <span className="text-xs font-bold text-slate-450 dark:text-slate-500 block mb-2 flex items-center gap-1.5">
                                 <Paperclip className="w-3.5 h-3.5" />
-                                المرفقات ({getSafeAttachments(selectedTicket.attachments).length})
+                                {isEn
+                                  ? `Attachments (${getSafeAttachments(selectedTicket.attachments).length})`
+                                  : `المرفقات (${getSafeAttachments(selectedTicket.attachments).length})`}
                               </span>
                               <div className="grid grid-cols-4 gap-2">
                                 {getSafeAttachments(selectedTicket.attachments).map((url, idx) => (
@@ -943,7 +1034,7 @@ export default function SupportTickets() {
                                     onClick={() => handleViewAttachment(url)}
                                     className="block border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-2xs w-full text-right p-0 focus:outline-none"
                                   >
-                                    {renderFileThumbnail(url)}
+                                    {renderFileThumbnail(url, isEn)}
                                   </button>
                                 ))}
                               </div>
@@ -954,7 +1045,7 @@ export default function SupportTickets() {
                         <div className="relative flex items-center justify-center my-4">
                           <Separator className="w-full" />
                           <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[9px] font-bold text-slate-400 tracking-wider">
-                            الردود والمراسلات
+                            {isEn ? "Replies & Correspondence" : "الردود والمراسلات"}
                           </span>
                         </div>
 
@@ -967,7 +1058,11 @@ export default function SupportTickets() {
                                 return (
                                   <div
                                     key={reply.id}
-                                    className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
+                                    className={`flex gap-3 max-w-[85%] ${
+                                      isMe
+                                        ? (isEn ? "ml-auto flex-row-reverse" : "mr-auto flex-row-reverse")
+                                        : (isEn ? "mr-auto" : "ml-auto")
+                                    }`}
                                   >
                                     <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 flex items-center justify-center shrink-0">
                                       <User className="w-4 h-4 text-slate-500" />
@@ -976,8 +1071,8 @@ export default function SupportTickets() {
                                       <div
                                         className={`rounded-2xl p-3.5 text-sm leading-relaxed shadow-2xs ${
                                           isMe
-                                            ? "bg-teal-600 text-white rounded-tr-none"
-                                            : "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                            ? (isEn ? "bg-teal-600 text-white rounded-tl-none" : "bg-teal-600 text-white rounded-tr-none")
+                                            : (isEn ? "bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tr-none" : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none")
                                         }`}
                                       >
                                         <p className="whitespace-pre-wrap font-medium break-words [word-break:break-word]">{reply.message}</p>
@@ -990,14 +1085,14 @@ export default function SupportTickets() {
                                                 onClick={() => handleViewAttachment(url)}
                                                 className="block border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-3xs w-full text-right p-0 focus:outline-none"
                                               >
-                                                {renderFileThumbnail(url)}
+                                                {renderFileThumbnail(url, isEn)}
                                               </button>
                                             ))}
                                           </div>
                                         )}
                                       </div>
-                                      <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
-                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
+                                      <span className={`text-[9px] font-bold block ${isMe ? (isEn ? "text-right" : "text-left") : (isEn ? "text-left" : "text-right")} text-slate-400`}>
+                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString(isEn ? "en-US" : "ar-SA", { hour: "numeric", minute: "2-digit" })}
                                       </span>
                                     </div>
                                   </div>
@@ -1006,7 +1101,9 @@ export default function SupportTickets() {
                             </div>
                           ) : (
                             <div className="text-center text-xs text-slate-400 dark:text-slate-500 py-8">
-                              لا توجد ردود على هذه التذكرة بعد. سيقوم فريق الدعم بالرد عليك قريباً.
+                              {isEn
+                                ? "No replies on this ticket yet. The support team will respond to you shortly."
+                                : "لا توجد ردود على هذه التذكرة بعد. سيقوم فريق الدعم بالرد عليك قريباً."}
                             </div>
                           )}
                         </div>
@@ -1019,7 +1116,7 @@ export default function SupportTickets() {
                         <div className="flex flex-wrap gap-2 p-3 bg-slate-100/50 dark:bg-slate-950/50 border-b border-slate-150 dark:border-slate-850">
                           {replyAttachments.map((url, idx) => (
                             <div key={idx} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
-                              {renderFileThumbnail(url)}
+                              {renderFileThumbnail(url, isEn)}
                               <button
                                 type="button"
                                 onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== idx))}
@@ -1059,15 +1156,15 @@ export default function SupportTickets() {
                         <Input
                           value={replyMessage}
                           onChange={(e) => setReplyMessage(e.target.value)}
-                          placeholder="اكتب استفساراً أو رداً إضافياً لفريق الدعم..."
-                          className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
+                          placeholder={isEn ? "Type a reply or inquiry for the support team..." : "اكتب استفساراً أو رداً إضافياً لفريق الدعم..."}
+                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm`}
                           required={replyAttachments.length === 0}
                         />
                         <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm" disabled={addReplyMutation.isPending || replyUploading}>
                           {addReplyMutation.isPending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Send className="w-4 h-4 transform rotate-180" />
+                            <Send className={`w-4 h-4 transform ${isEn ? "" : "rotate-180"}`} />
                           )}
                         </Button>
                       </form>
@@ -1079,9 +1176,13 @@ export default function SupportTickets() {
                     <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mb-4">
                       <MessageSquare className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">اختر تذكرة لعرض التفاصيل</h3>
+                    <h3 className="text-lg font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      {isEn ? "Select a ticket to view details" : "اختر تذكرة لعرض التفاصيل"}
+                    </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed font-medium">
-                      اضغط على أي تذكرة من القائمة لعرض تفاصيلها والردود والمراسلات المتعلقة بها.
+                      {isEn
+                        ? "Click on any ticket from the list to view its details, conversation history, and responses."
+                        : "اضغط على أي تذكرة من القائمة لعرض تفاصيلها والردود والمراسلات المتعلقة بها."}
                     </p>
                   </div>
                 )}
@@ -1092,7 +1193,7 @@ export default function SupportTickets() {
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <FileQuestion className="w-5 h-5 text-slate-550" />
-                الأسئلة الشائعة
+                {isEn ? "Frequently Asked Questions" : "الأسئلة الشائعة"}
               </h2>
               <Card className="border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs bg-white dark:bg-slate-900 rounded-2xl">
                 <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-850">
@@ -1100,21 +1201,21 @@ export default function SupportTickets() {
                     <Input
                       value={faqSearch}
                       onChange={(e) => setFaqSearch(e.target.value)}
-                      placeholder="ابحث في الأسئلة الشائعة..."
-                      className="pr-10 pl-4 h-9 text-right rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs"
+                      placeholder={isEn ? "Search frequently asked questions..." : "ابحث في الأسئلة الشائعة..."}
+                      className={`h-9 ${isEn ? "text-left pl-10 pr-4" : "text-right pr-10 pl-4"} rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs`}
                     />
-                    <Search className="w-4 h-4 text-slate-400 absolute top-2.5 right-3" />
+                    <Search className={`w-4 h-4 text-slate-400 absolute top-2.5 ${isEn ? "left-3" : "right-3"}`} />
                   </div>
                 </div>
-                <CardContent className="p-4 pt-1 text-right">
+                <CardContent className={`p-4 pt-1 ${isEn ? "text-left" : "text-right"}`}>
                   {filteredFaqs.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full">
                       {filteredFaqs.map((item, idx) => (
                         <AccordionItem key={idx} value={`item-${idx}`} className="border-b border-slate-100 dark:border-slate-850 last:border-0 py-1">
-                          <AccordionTrigger className="text-right hover:no-underline font-bold text-slate-700 dark:text-slate-350 text-sm py-3.5 leading-relaxed hover:text-primary transition-colors">
+                          <AccordionTrigger className={`${isEn ? "text-left" : "text-right"} hover:no-underline font-bold text-slate-700 dark:text-slate-350 text-sm py-3.5 leading-relaxed hover:text-primary transition-colors`}>
                             {item.q}
                           </AccordionTrigger>
-                          <AccordionContent className="text-slate-650 dark:text-slate-400 text-xs leading-relaxed pt-1 pb-3.5 font-medium text-right">
+                          <AccordionContent className={`text-slate-650 dark:text-slate-400 text-xs leading-relaxed pt-1 pb-3.5 font-medium ${isEn ? "text-left" : "text-right"}`}>
                             {item.a}
                           </AccordionContent>
                         </AccordionItem>
@@ -1122,7 +1223,7 @@ export default function SupportTickets() {
                     </Accordion>
                   ) : (
                     <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-xs font-semibold">
-                      لا توجد نتائج بحث مطابقة.
+                      {isEn ? "No matching search results found." : "لا توجد نتائج بحث مطابقة."}
                     </div>
                   )}
                 </CardContent>
@@ -1138,16 +1239,16 @@ export default function SupportTickets() {
           <div className="space-y-6">
             {/* Advanced Admin Filters (Like /pending-reports) */}
             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm rounded-2xl">
-              <CardContent className="p-4 text-right">
+              <CardContent className={`p-4 ${isEn ? "text-left" : "text-right"}`}>
                 <div className="flex flex-col md:flex-row gap-4">
                   {/* Search Input */}
                   <div className="flex-1 relative">
-                    <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Search className={`absolute ${isEn ? "left-3.5" : "right-3.5"} top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400`} />
                     <Input
                       value={adminSearchQuery}
                       onChange={(e) => setAdminSearchQuery(e.target.value)}
-                      placeholder="ابحث برقم التذكرة، اسم المرسل، أو محتوى التذكرة..."
-                      className="pr-11 pl-4 h-11 text-right rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm font-medium"
+                      placeholder={isEn ? "Search by ticket #, sender name, or content..." : "ابحث برقم التذكرة، اسم المرسل، أو محتوى التذكرة..."}
+                      className={`${isEn ? "pl-11 pr-4 text-left" : "pr-11 pl-4 text-right"} h-11 rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm font-medium`}
                     />
                   </div>
                   
@@ -1155,26 +1256,26 @@ export default function SupportTickets() {
                   <div className="flex flex-col sm:flex-row gap-4">
                     {/* Status Dropdown */}
                     <Select value={adminStatusFilter} onValueChange={(val) => setAdminStatusFilter(val)}>
-                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
-                        <SelectValue placeholder="حالة التذكرة" />
+                      <SelectTrigger className={`w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 ${isEn ? "text-left justify-between" : "text-right justify-between flex-row-reverse"} text-sm font-semibold`}>
+                        <SelectValue placeholder={isEn ? "Ticket Status" : "حالة التذكرة"} />
                       </SelectTrigger>
                       <SelectContent className="text-sm font-semibold">
-                        <SelectItem value="all">جميع التذاكر ({allTickets?.length || 0})</SelectItem>
-                        <SelectItem value="pending">قيد الانتظار ({allTickets?.filter(t => t.status === "pending").length || 0})</SelectItem>
-                        <SelectItem value="resolved">تم الحل ({allTickets?.filter(t => t.status === "resolved").length || 0})</SelectItem>
-                        <SelectItem value="needs_clarification">تحتاج توضيح ({allTickets?.filter(t => t.status === "needs_clarification").length || 0})</SelectItem>
+                        <SelectItem value="all">{isEn ? `All Tickets (${allTickets?.length || 0})` : `جميع التذاكر (${allTickets?.length || 0})`}</SelectItem>
+                        <SelectItem value="pending">{isEn ? `Pending (${allTickets?.filter(t => t.status === "pending").length || 0})` : `قيد الانتظار (${allTickets?.filter(t => t.status === "pending").length || 0})`}</SelectItem>
+                        <SelectItem value="resolved">{isEn ? `Resolved (${allTickets?.filter(t => t.status === "resolved").length || 0})` : `تم الحل (${allTickets?.filter(t => t.status === "resolved").length || 0})`}</SelectItem>
+                        <SelectItem value="needs_clarification">{isEn ? `Needs Clarification (${allTickets?.filter(t => t.status === "needs_clarification").length || 0})` : `تحتاج توضيح (${allTickets?.filter(t => t.status === "needs_clarification").length || 0})`}</SelectItem>
                       </SelectContent>
                     </Select>
 
                     {/* Type Dropdown */}
                     <Select value={adminTypeFilter} onValueChange={(val) => setAdminTypeFilter(val)}>
-                      <SelectTrigger className="w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-right justify-between flex-row-reverse text-sm font-semibold">
-                        <SelectValue placeholder="نوع التذكرة" />
+                      <SelectTrigger className={`w-full sm:w-56 h-11 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 ${isEn ? "text-left justify-between" : "text-right justify-between flex-row-reverse"} text-sm font-semibold`}>
+                        <SelectValue placeholder={isEn ? "Ticket Type" : "نوع التذكرة"} />
                       </SelectTrigger>
                       <SelectContent className="text-sm font-semibold">
-                        <SelectItem value="all">جميع الأنواع ({allTickets?.length || 0})</SelectItem>
-                        <SelectItem value="technical_issue">مشاكل فنية ({allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})</SelectItem>
-                        <SelectItem value="suggestion">مقترحات ({allTickets?.filter(t => t.ticketType === "suggestion").length || 0})</SelectItem>
+                        <SelectItem value="all">{isEn ? `All Types (${allTickets?.length || 0})` : `جميع الأنواع (${allTickets?.length || 0})`}</SelectItem>
+                        <SelectItem value="technical_issue">{isEn ? `Technical Issues (${allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})` : `مشاكل فنية (${allTickets?.filter(t => t.ticketType === "technical_issue").length || 0})`}</SelectItem>
+                        <SelectItem value="suggestion">{isEn ? `Suggestions (${allTickets?.filter(t => t.ticketType === "suggestion").length || 0})` : `مقترحات (${allTickets?.filter(t => t.ticketType === "suggestion").length || 0})`}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1187,10 +1288,8 @@ export default function SupportTickets() {
               <div className="lg:col-span-1 space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <MessageSquare className="w-5 h-5 text-slate-550" />
-                قائمة التذاكر الواردة
+                {isEn ? "Incoming Tickets List" : "قائمة التذاكر الواردة"}
               </h2>
-
-
 
               {/* Tickets List */}
               {loadingAllTickets ? (
@@ -1202,41 +1301,50 @@ export default function SupportTickets() {
                   ))}
                 </div>
               ) : filteredTickets && filteredTickets.length > 0 ? (
-                <div className="space-y-2.5 max-h-[70vh] overflow-y-auto pr-1">
+                <div className={`space-y-2.5 max-h-[70vh] overflow-y-auto ${isEn ? "pl-1" : "pr-1"}`}>
                   {filteredTickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs text-right ${
+                      className={`cursor-pointer transition-all border p-4 rounded-xl relative shadow-2xs hover:shadow-xs ${isEn ? "text-left" : "text-right"} ${
                         selectedTicketId === ticket.id
                           ? "border-primary bg-primary/5 ring-1 ring-primary/10"
                           : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700"
                       } ${
                         ticket.status === "pending"
-                          ? "border-r-4 border-r-blue-500"
+                          ? (isEn ? "border-l-4 border-l-blue-500" : "border-r-4 border-r-blue-500")
                           : ticket.status === "resolved"
-                          ? "border-r-4 border-r-emerald-500"
-                          : "border-r-4 border-r-rose-500"
+                          ? (isEn ? "border-l-4 border-l-emerald-500" : "border-r-4 border-r-emerald-500")
+                          : (isEn ? "border-l-4 border-l-rose-500" : "border-r-4 border-r-rose-500")
                       }`}
                       onClick={() => setSelectedTicketId(ticket.id)}
                     >
-                      <div className="flex justify-between items-start gap-2 flex-row-reverse">
+                      <div className={`flex justify-between items-start gap-2 ${isEn ? "flex-row" : "flex-row-reverse"}`}>
                         {renderStatusBadge(ticket.status)}
-                        <div className="space-y-1 text-right">
+                        <div className={`space-y-1 ${isEn ? "text-left" : "text-right"}`}>
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] text-slate-400 font-mono">#{ticket.id}</span>
                             <span className="text-[10px] text-slate-400 font-medium">
-                              • {new Date(ticket.createdAt).toLocaleDateString("ar-SA")}
+                              • {new Date(ticket.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
                             </span>
                           </div>
-                          <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 justify-end">
-                            <span>{ticket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
-                            {ticket.ticketType === "technical_issue" ? (
-                              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                            ) : (
-                              <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <h3 className={`font-bold text-slate-800 dark:text-slate-200 text-sm !leading-normal py-0.5 flex items-center gap-1.5 ${isEn ? "justify-start" : "justify-end"}`}>
+                            {isEn && (
+                              ticket.ticketType === "technical_issue" ? (
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              ) : (
+                                <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              )
+                            )}
+                            <span>{ticket.ticketType === "technical_issue" ? (isEn ? "Technical Issue" : "مشكلة فنية") : (isEn ? "Suggestion & Improvement" : "مقترح وتحسين")}</span>
+                            {!isEn && (
+                              ticket.ticketType === "technical_issue" ? (
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              ) : (
+                                <Lightbulb className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              )
                             )}
                           </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || "مستفيد"}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">{ticket.userName || (isEn ? "Beneficiary" : "مستفيد")}</p>
                         </div>
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-2 font-medium">{ticket.description}</p>
@@ -1247,8 +1355,8 @@ export default function SupportTickets() {
                 <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                   <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                     <CheckCircle2 className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3" />
-                    <p className="font-bold text-slate-700 dark:text-slate-300">لا توجد تذاكر دعم فني واردة</p>
-                    <p className="text-sm text-slate-400 mt-1 font-medium">كل شيء على ما يرام! لا توجد طلبات مطابقة.</p>
+                    <p className="font-bold text-slate-700 dark:text-slate-300">{isEn ? "No incoming support tickets" : "لا توجد تذاكر دعم فني واردة"}</p>
+                    <p className="text-sm text-slate-400 mt-1 font-medium">{isEn ? "All caught up! No matching tickets." : "كل شيء على ما يرام! لا توجد طلبات مطابقة."}</p>
                   </CardContent>
                 </Card>
               )}
@@ -1258,7 +1366,7 @@ export default function SupportTickets() {
             <div className="lg:col-span-2 space-y-4">
               <h2 className="text-xl font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 !leading-normal py-1">
                 <MessageSquare className="w-5 h-5 text-slate-550" />
-                معاينة التذكرة والرد عليها
+                {isEn ? "Ticket Preview & Reply" : "معاينة التذكرة والرد عليها"}
               </h2>
 
               {selectedTicketId ? (
@@ -1277,30 +1385,30 @@ export default function SupportTickets() {
                             ) : (
                               <Lightbulb className="w-4 h-4 text-emerald-500 shrink-0" />
                             )}
-                            <span>{selectedTicket.ticketType === "technical_issue" ? "مشكلة فنية" : "مقترح وتحسين"}</span>
+                            <span>{selectedTicket.ticketType === "technical_issue" ? (isEn ? "Technical Issue" : "مشكلة فنية") : (isEn ? "Suggestion & Improvement" : "مقترح وتحسين")}</span>
                           </span>
                           {renderStatusBadge(selectedTicket.status)}
                         </div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 font-bold text-right">
-                          المرسل: {selectedTicket.userName} ({selectedTicket.userEmail}) •{" "}
-                          {new Date(selectedTicket.createdAt).toLocaleString("ar-SA")}
+                        <div className={`text-xs text-slate-500 dark:text-slate-400 font-bold ${isEn ? "text-left" : "text-right"}`}>
+                          {isEn ? "Sender: " : "المرسل: "}{selectedTicket.userName} ({selectedTicket.userEmail}) •{" "}
+                          {new Date(selectedTicket.createdAt).toLocaleString(isEn ? "en-US" : "ar-SA")}
                         </div>
                       </div>
 
                       {/* Status select for Admin */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-bold shrink-0">تحديث الحالة:</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-bold shrink-0">{isEn ? "Update Status:" : "تحديث الحالة:"}</span>
                         <Select
                           value={selectedTicket.status}
                           onValueChange={handleStatusChange}
                         >
-                          <SelectTrigger className="w-[140px] text-right justify-between flex-row-reverse h-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold">
+                          <SelectTrigger className={`w-[140px] ${isEn ? "text-left justify-between" : "text-right justify-between flex-row-reverse"} h-9 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-bold`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="text-xs font-semibold">
-                            <SelectItem value="pending">قيد الانتظار</SelectItem>
-                            <SelectItem value="resolved">تم الحل</SelectItem>
-                            <SelectItem value="needs_clarification">تحتاج توضيح</SelectItem>
+                            <SelectItem value="pending">{isEn ? "Pending" : "قيد الانتظار"}</SelectItem>
+                            <SelectItem value="resolved">{isEn ? "Resolved" : "تم الحل"}</SelectItem>
+                            <SelectItem value="needs_clarification">{isEn ? "Needs Clarification" : "تحتاج توضيح"}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1310,12 +1418,12 @@ export default function SupportTickets() {
                     <div className="flex-1 overflow-y-auto p-5 bg-slate-50/20 dark:bg-slate-900/10">
                       <div className="space-y-6">
                         {/* Ticket Description */}
-                        <div className="bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4 text-right">
+                        <div className={`bg-white dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-5 shadow-xs space-y-4 ${isEn ? "text-left" : "text-right"}`}>
                           <div className="font-bold text-slate-850 dark:text-slate-200 text-sm border-b border-slate-100 dark:border-slate-850 pb-2 flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                               <User className="w-4 h-4" />
                             </div>
-                            <span>شرح المشكلة / المقترح الوارد:</span>
+                            <span>{isEn ? "Reported Issue / Suggestion Details:" : "شرح المشكلة / المقترح الوارد:"}</span>
                           </div>
                           <p className="text-slate-700 dark:text-slate-350 text-sm leading-relaxed whitespace-pre-wrap font-medium break-words [word-break:break-word]">
                             {selectedTicket.description}
@@ -1326,7 +1434,7 @@ export default function SupportTickets() {
                             <div className="pt-4 border-t border-slate-100 dark:border-slate-850">
                               <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2.5 flex items-center gap-1.5">
                                 <Paperclip className="w-3.5 h-3.5" />
-                                الملفات المرفقة ({getSafeAttachments(selectedTicket.attachments).length})
+                                {isEn ? `Attached Files (${getSafeAttachments(selectedTicket.attachments).length})` : `الملفات المرفقة (${getSafeAttachments(selectedTicket.attachments).length})`}
                               </span>
                               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                 {getSafeAttachments(selectedTicket.attachments).map((url, index) => (
@@ -1336,7 +1444,7 @@ export default function SupportTickets() {
                                     onClick={() => handleViewAttachment(url)}
                                     className="block border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:opacity-90 transition-opacity bg-white dark:bg-slate-955 aspect-square shadow-2xs hover:shadow-xs w-full text-right p-0 focus:outline-none"
                                   >
-                                    {renderFileThumbnail(url)}
+                                    {renderFileThumbnail(url, isEn)}
                                   </button>
                                 ))}
                               </div>
@@ -1347,7 +1455,7 @@ export default function SupportTickets() {
                         <div className="relative flex items-center justify-center my-6">
                           <Separator className="w-full" />
                           <span className="absolute bg-slate-50 dark:bg-slate-900 px-3 text-[10px] font-bold text-slate-400 tracking-wider">
-                            المراسلات والردود
+                            {isEn ? "Messages & Replies" : "المراسلات والردود"}
                           </span>
                         </div>
 
@@ -1360,7 +1468,11 @@ export default function SupportTickets() {
                                 return (
                                   <div
                                     key={reply.id}
-                                    className={`flex gap-3 max-w-[85%] ${isMe ? "mr-auto flex-row-reverse" : "ml-auto"}`}
+                                    className={`flex gap-3 max-w-[85%] ${
+                                      isMe
+                                        ? (isEn ? "ml-auto flex-row-reverse" : "mr-auto flex-row-reverse")
+                                        : (isEn ? "mr-auto" : "ml-auto")
+                                    }`}
                                   >
                                     <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-350 dark:border-slate-705 flex items-center justify-center shrink-0">
                                       <User className="w-4 h-4 text-slate-600 dark:text-slate-405" />
@@ -1369,8 +1481,8 @@ export default function SupportTickets() {
                                       <div
                                         className={`rounded-2xl p-4 text-sm leading-relaxed shadow-2xs ${
                                           isMe
-                                            ? "bg-teal-600 text-white rounded-tr-none"
-                                            : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none"
+                                            ? (isEn ? "bg-teal-600 text-white rounded-tl-none" : "bg-teal-600 text-white rounded-tr-none")
+                                            : (isEn ? "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tr-none" : "bg-white dark:bg-slate-955 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800/60 rounded-tl-none")
                                         }`}
                                       >
                                         <p className="whitespace-pre-wrap font-medium break-words [word-break:break-word]">{reply.message}</p>
@@ -1383,14 +1495,14 @@ export default function SupportTickets() {
                                                 onClick={() => handleViewAttachment(url)}
                                                 className="block border border-slate-200/50 dark:border-slate-800/50 rounded-lg overflow-hidden hover:opacity-90 bg-white dark:bg-slate-900 aspect-square shadow-3xs w-full text-right p-0 focus:outline-none"
                                               >
-                                                {renderFileThumbnail(url)}
+                                                {renderFileThumbnail(url, isEn)}
                                               </button>
                                             ))}
                                           </div>
                                         )}
                                       </div>
-                                      <span className={`text-[9px] font-bold block ${isMe ? "text-left" : "text-right"} text-slate-400`}>
-                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString("ar-SA", { hour: "numeric", minute: "2-digit" })}
+                                      <span className={`text-[9px] font-bold block ${isMe ? (isEn ? "text-right" : "text-left") : (isEn ? "text-left" : "text-right")} text-slate-400`}>
+                                        {reply.senderName} • {new Date(reply.createdAt).toLocaleTimeString(isEn ? "en-US" : "ar-SA", { hour: "numeric", minute: "2-digit" })}
                                       </span>
                                     </div>
                                   </div>
@@ -1399,7 +1511,7 @@ export default function SupportTickets() {
                             </div>
                           ) : (
                             <div className="text-center text-xs text-slate-400 dark:text-slate-550 py-10">
-                              لا توجد ردود على هذه التذكرة بعد. يمكنك كتابة أول رد في الحقل أدناه.
+                              {isEn ? "No replies on this ticket yet. You can write the first reply in the field below." : "لا توجد ردود على هذه التذكرة بعد. يمكنك كتابة أول رد في الحقل أدناه."}
                             </div>
                           )}
                         </div>
@@ -1412,7 +1524,7 @@ export default function SupportTickets() {
                         <div className="flex flex-wrap gap-2 p-3 bg-slate-100/50 dark:bg-slate-950/50 border-b border-slate-150 dark:border-slate-850">
                           {replyAttachments.map((url, idx) => (
                             <div key={idx} className="relative group w-14 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
-                              {renderFileThumbnail(url)}
+                              {renderFileThumbnail(url, isEn)}
                               <button
                                 type="button"
                                 onClick={() => setReplyAttachments(prev => prev.filter((_, i) => i !== idx))}
@@ -1452,15 +1564,15 @@ export default function SupportTickets() {
                         <Input
                           value={replyMessage}
                           onChange={(e) => setReplyMessage(e.target.value)}
-                          placeholder="اكتب ردك هنا وسيجري إرساله للمستفيد..."
-                          className="flex-grow bg-white dark:bg-slate-900 text-right h-11 rounded-xl border-slate-200 dark:border-slate-800 pr-4 text-sm"
+                          placeholder={isEn ? "Write your reply here to send to the user..." : "اكتب ردك هنا وسيجري إرساله للمستفيد..."}
+                          className={`flex-grow bg-white dark:bg-slate-900 ${isEn ? "text-left pl-4" : "text-right pr-4"} h-11 rounded-xl border-slate-200 dark:border-slate-800 text-sm`}
                           required={replyAttachments.length === 0}
                         />
                         <Button type="submit" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md" disabled={addReplyMutation.isPending || replyUploading}>
                           {addReplyMutation.isPending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Send className="w-4 h-4 transform rotate-180" />
+                            <Send className={`w-4 h-4 transform ${isEn ? "" : "rotate-180"}`} />
                           )}
                         </Button>
                       </form>
@@ -1470,9 +1582,9 @@ export default function SupportTickets() {
               ) : (
                 <Card className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl min-h-[450px] flex flex-col items-center justify-center text-center p-6 shadow-inner">
                   <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-3" />
-                  <p className="font-bold text-slate-700 dark:text-slate-300">لم يتم تحديد تذكرة</p>
+                  <p className="font-bold text-slate-700 dark:text-slate-300">{isEn ? "No Ticket Selected" : "لم يتم تحديد تذكرة"}</p>
                   <p className="text-sm text-slate-400 mt-1 max-w-sm font-medium">
-                    الرجاء اختيار إحدى التذاكر من القائمة الجانبية لمعاينة تفاصيلها، وقراءة المراسلات، وإرسال الردود.
+                    {isEn ? "Please select a ticket from the sidebar to preview its details and send replies." : "الرجاء اختيار إحدى التذاكر من القائمة الجانبية لمعاينة تفاصيلها، وقراءة المراسلات، وإرسال الردود."}
                   </p>
                 </Card>
               )}
@@ -1500,7 +1612,7 @@ export default function SupportTickets() {
               <button 
                 onClick={() => setPreviewDoc(null)}
                 className="absolute top-4 right-4 bg-slate-800/80 hover:bg-red-600/80 text-white rounded-full p-2.5 transition-all z-10 shadow-lg cursor-pointer"
-                title="إغلاق"
+                title={isEn ? "Close" : "إغلاق"}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1509,10 +1621,10 @@ export default function SupportTickets() {
               <button 
                 onClick={handleDownloadPreview}
                 className="absolute top-4 left-4 bg-slate-800/80 hover:bg-primary/80 text-white rounded-full p-2.5 transition-all flex items-center gap-1.5 px-4 z-10 shadow-lg cursor-pointer"
-                title="تحميل"
+                title={isEn ? "Download" : "تحميل"}
               >
                 <Download className="w-4 h-4" />
-                <span className="text-xs font-bold hidden sm:inline">تحميل</span>
+                <span className="text-xs font-bold hidden sm:inline">{isEn ? "Download" : "تحميل"}</span>
               </button>
 
               {/* Document/Image container */}
@@ -1538,14 +1650,14 @@ export default function SupportTickets() {
                     </div>
                     <h3 className="text-base font-bold text-slate-100 mb-2">{previewDoc.title}</h3>
                     <p className="text-xs text-slate-400 mb-6 max-w-xs leading-relaxed">
-                      هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه.
+                      {isEn ? "This file cannot be previewed directly in browser. Please download it to view its content." : "هذا الملف لا يمكن معاينته مباشرة في المتصفح. يرجى تحميله لفتحه واستعراض محتواه."}
                     </p>
                     <Button 
                       onClick={handleDownloadPreview}
                       className="w-full flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
-                      تحميل المستند
+                      {isEn ? "Download Document" : "تحميل المستند"}
                     </Button>
                   </div>
                 )}
@@ -1555,7 +1667,7 @@ export default function SupportTickets() {
               <div className="mt-2 text-center px-4 py-2.5 w-full border-t border-slate-800/80 bg-slate-950/20 flex justify-between items-center text-slate-300">
                 <p className="text-xs font-medium flex items-center gap-1.5">
                   <Info className="h-4 w-4 text-slate-400" />
-                  معاينة المرفق - {previewDoc.title}
+                  {isEn ? `Attachment Preview - ${previewDoc.title}` : `معاينة المرفق - ${previewDoc.title}`}
                 </p>
                 <p className="text-xs font-bold truncate max-w-[200px]" dir="ltr">{previewDoc.title}</p>
               </div>
