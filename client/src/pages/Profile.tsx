@@ -17,6 +17,7 @@ import {
   Shield,
   Calendar,
   ArrowRight,
+  ArrowLeft,
   Lock,
   Eye,
   EyeOff,
@@ -44,6 +45,37 @@ import {
 export default function Profile() {
   const { user } = useAuth();
   const utils = trpc.useUtils();
+
+  // حالة اللغة الخاصة بدور الاستجابة السريعة (quick_response)
+  const customRoleNameAr = (user as any)?.customRole?.nameAr || "";
+  const customRoleNameEn = (user as any)?.customRole?.nameEn || "";
+  const isQuickResponse = 
+    user?.role === "quick_response" ||
+    user?.name === "فريق الاستجابة السريعة" ||
+    customRoleNameAr.includes("استجابة") ||
+    customRoleNameEn.includes("quick_response") ||
+    customRoleNameEn.toLowerCase().includes("quick");
+
+  const [quickResponseLang, setQuickResponseLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem("quick-response-lang") as "ar" | "en";
+      if (stored && (stored === "ar" || stored === "en")) {
+        setQuickResponseLang(stored);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("quick-response-lang-change", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("quick-response-lang-change", handleStorageChange);
+    };
+  }, []);
+
+  const isEn = isQuickResponse && quickResponseLang === "en";
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -75,7 +107,7 @@ export default function Profile() {
 
   const changePasswordMutation = trpc.auth.changePassword.useMutation({
     onSuccess: () => {
-      toast.success("تم تغيير كلمة المرور بنجاح");
+      toast.success(isEn ? "Password changed successfully" : "تم تغيير كلمة المرور بنجاح");
       setIsChangePasswordOpen(false);
       setCurrentPassword("");
       setNewPassword("");
@@ -85,43 +117,43 @@ export default function Profile() {
       setShowConfirmPassword(false);
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء تغيير كلمة المرور");
+      toast.error(err.message || (isEn ? "Error changing password" : "حدث خطأ أثناء تغيير كلمة المرور"));
     }
   });
 
   const uploadSignatureMutation = trpc.auth.uploadSignature.useMutation({
     onSuccess: (data) => {
-      toast.success("تم رفع التوقيع الرقمي بنجاح");
+      toast.success(isEn ? "Digital signature uploaded successfully" : "تم رفع التوقيع الرقمي بنجاح");
       setSignatureUrl(data.url);
       utils.auth.me.invalidate();
       utils.organization.getSignatories.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء رفع التوقيع الرقمي");
+      toast.error(err.message || (isEn ? "Error uploading signature" : "حدث خطأ أثناء رفع التوقيع الرقمي"));
     }
   });
 
   const removeSignatureMutation = trpc.auth.removeSignature.useMutation({
     onSuccess: () => {
-      toast.success("تم حذف التوقيع الرقمي بنجاح");
+      toast.success(isEn ? "Digital signature removed successfully" : "تم حذف التوقيع الرقمي بنجاح");
       setSignatureUrl(null);
       utils.auth.me.invalidate();
       utils.organization.getSignatories.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حذف التوقيع الرقمي");
+      toast.error(err.message || (isEn ? "Error removing signature" : "حدث خطأ أثناء حذف التوقيع الرقمي"));
     }
   });
 
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
-      toast.success("تم حفظ التغييرات بنجاح");
+      toast.success(isEn ? "Changes saved successfully" : "تم حفظ التغييرات بنجاح");
       utils.auth.me.invalidate();
       utils.organization.getSignatories.invalidate();
       utils.organization.getSettings.invalidate();
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ التغييرات");
+      toast.error(err.message || (isEn ? "Error saving changes" : "حدث خطأ أثناء حفظ التغييرات"));
     }
   });
 
@@ -130,7 +162,7 @@ export default function Profile() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("حجم صورة التوقيع يجب أن يكون أقل من 5MB");
+      toast.error(isEn ? "Signature image size must be less than 5MB" : "حجم صورة التوقيع يجب أن يكون أقل من 5MB");
       return;
     }
 
@@ -143,7 +175,7 @@ export default function Profile() {
     const isHeic = ["heic", "heif"].includes(ext);
 
     if (!allowedTypes.includes(file.type) && !isHeic) {
-      toast.error("يرجى اختيار صورة صالحة (PNG, JPG, WEBP, SVG, HEIC, HEIF)");
+      toast.error(isEn ? "Please select a valid image (PNG, JPG, WEBP, SVG, HEIC, HEIF)" : "يرجى اختيار صورة صالحة (PNG, JPG, WEBP, SVG, HEIC, HEIF)");
       return;
     }
 
@@ -175,11 +207,11 @@ export default function Profile() {
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      toast.error("كلمة المرور الجديدة وتأكيدها غير متطابقين");
+      toast.error(isEn ? "New password and confirmation do not match" : "كلمة المرور الجديدة وتأكيدها غير متطابقين");
       return;
     }
     if (newPassword.length < 8) {
-      toast.error("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
+      toast.error(isEn ? "New password must be at least 8 characters" : "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
       return;
     }
     changePasswordMutation.mutate({
@@ -244,18 +276,22 @@ export default function Profile() {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto pb-10">
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto pb-10" dir={isEn ? "ltr" : "rtl"}>
         {/* Top Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link href={user?.role === "service_requester" ? "/requester" : "/dashboard"}>
               <Button variant="ghost" size="icon" type="button" className="rounded-xl hover:bg-muted/80 shrink-0 cursor-pointer">
-                <ArrowRight className="w-5 h-5 text-foreground" />
+                {isEn ? <ArrowLeft className="w-5 h-5 text-foreground" /> : <ArrowRight className="w-5 h-5 text-foreground" />}
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-foreground">الملف الشخصي</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">إدارة معلوماتك الشخصية وإعدادات الحساب</p>
+              <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                {isEn ? "User Profile" : "الملف الشخصي"}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {isEn ? "Manage your personal information and account settings" : "إدارة معلوماتك الشخصية وإعدادات الحساب"}
+              </p>
             </div>
           </div>
         </div>
@@ -268,19 +304,19 @@ export default function Profile() {
           {/* User Info Header */}
           <CardHeader className="p-4 sm:p-6 pt-0 pb-4 border-b border-border/40 relative">
             <div className="flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-10 sm:-mt-12">
-              <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 text-center sm:text-right">
+              <div className={`flex flex-col sm:flex-row items-center sm:items-end gap-4 text-center ${isEn ? "sm:text-left" : "sm:text-right"}`}>
                 <Avatar className="h-18 w-18 sm:h-22 sm:w-22 border-4 border-background ring-4 ring-primary/15 shadow-sm rounded-2xl shrink-0 bg-primary/10">
                   <AvatarFallback className="text-2xl sm:text-3xl font-black bg-primary/10 text-primary rounded-2xl">
-                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                    {isEn && (user?.name === "فريق الاستجابة السريعة" || isQuickResponse) ? "QR" : (user?.name?.charAt(0).toUpperCase() || "U")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
                   <CardTitle className="text-lg sm:text-xl font-black text-foreground" title={user?.name}>
-                    {user?.name}
+                    {isEn && (user?.name === "فريق الاستجابة السريعة" || isQuickResponse) ? "Quick Response" : user?.name}
                   </CardTitle>
-                  <CardDescription className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-muted-foreground">
+                  <CardDescription className={`flex items-center justify-center ${isEn ? "sm:justify-start" : "sm:justify-start"} gap-1.5 text-xs text-muted-foreground`}>
                     <Shield className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="font-semibold">{ROLE_LABELS[user?.role || ""] || user?.role}</span>
+                    <span className="font-semibold">{isEn ? "Quick Response" : (ROLE_LABELS[user?.role || ""] || user?.role)}</span>
                   </CardDescription>
                 </div>
               </div>
@@ -288,7 +324,7 @@ export default function Profile() {
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs font-bold gap-1 px-2.5 py-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  حساب نشط
+                  {isEn ? "Active Account" : "حساب نشط"}
                 </Badge>
               </div>
             </div>
@@ -298,19 +334,19 @@ export default function Profile() {
             {/* 4 Main Information Fields */}
             <div>
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                البيانات الأساسية
+                {isEn ? "Basic Information" : "البيانات الأساسية"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
                     <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                    الاسم الكامل
+                    {isEn ? "Full Name" : "الاسم الكامل"}
                   </Label>
                   <Input 
                     value={name} 
                     onChange={(e) => setName(e.target.value)} 
                     maxLength={60} 
-                    placeholder="أدخل اسمك الكامل"
+                    placeholder={isEn ? "Enter your full name" : "أدخل اسمك الكامل"}
                     className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background focus:ring-primary/20" 
                   />
                 </div>
@@ -318,7 +354,7 @@ export default function Profile() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
                     <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                    البريد الإلكتروني
+                    {isEn ? "Email Address" : "البريد الإلكتروني"}
                   </Label>
                   <Input 
                     type="email" 
@@ -331,24 +367,24 @@ export default function Profile() {
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
                     <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                    رقم الجوال
+                    {isEn ? "Mobile Number" : "رقم الجوال"}
                   </Label>
                   <Input 
                     value={phone} 
                     onChange={(e) => setPhone(e.target.value)} 
                     placeholder="05xxxxxxxx" 
                     dir="ltr"
-                    className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background text-right focus:ring-primary/20" 
+                    className={`h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background focus:ring-primary/20 ${isEn ? "text-left" : "text-right"}`} 
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
                     <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
-                    تاريخ التسجيل
+                    {isEn ? "Registration Date" : "تاريخ التسجيل"}
                   </Label>
                   <Input 
-                    value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-SA") : "-"} 
+                    value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA") : "-"} 
                     disabled 
                     className="bg-muted/60 h-10 rounded-xl text-xs sm:text-sm border-border/40 text-muted-foreground opacity-90 cursor-not-allowed"
                   />
@@ -362,33 +398,33 @@ export default function Profile() {
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                     <PenTool className="w-4 h-4 text-primary" />
-                    الخاص بالتواقيع
+                    {isEn ? "Digital Signatures" : "الخاص بالتواقيع"}
                   </h3>
                   <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] sm:text-xs font-bold">
-                    معتمد للتوقيع الرسمي
+                    {isEn ? "Approved for Official Signing" : "معتمد للتوقيع الرسمي"}
                   </Badge>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      الاسم الذي يظهر في المستند
+                      {isEn ? "Name appearing on document" : "الاسم الذي يظهر في المستند"}
                     </Label>
                     <Input 
                       value={signatureName} 
                       onChange={(e) => setSignatureName(e.target.value)} 
-                      placeholder="مثال: محمد بن علي العتيبي" 
+                      placeholder={isEn ? "e.g. Quick Response Officer" : "مثال: محمد بن علي العتيبي"} 
                       className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background" 
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      اسم الادارة الذي يظهر في المستند
+                      {isEn ? "Department appearing on document" : "اسم الادارة الذي يظهر في المستند"}
                     </Label>
                     <Input 
                       value={signatureDepartment} 
                       onChange={(e) => setSignatureDepartment(e.target.value)} 
-                      placeholder="مثال: مكتب إدارة المشاريع PMO" 
+                      placeholder={isEn ? "e.g. Quick Response Team" : "مثال: مكتب إدارة المشاريع PMO"} 
                       className="h-10 rounded-xl border-border/70 text-xs sm:text-sm bg-background" 
                     />
                   </div>
@@ -398,26 +434,26 @@ export default function Profile() {
                 <div className="space-y-2 pt-1">
                   <Label className="text-xs sm:text-sm font-semibold text-foreground flex items-center gap-2">
                     <Upload className="w-4 h-4 text-primary" />
-                    التوقيع الرقمي (صورة التوقيع)
+                    {isEn ? "Digital Signature (Signature Image)" : "التوقيع الرقمي (صورة التوقيع)"}
                   </Label>
                   
                   {signatureUrl ? (
                     <div className="p-4 sm:p-5 border border-border/80 rounded-2xl bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-right">
+                      <div className={`flex flex-col sm:flex-row items-center gap-4 text-center ${isEn ? "sm:text-left" : "sm:text-right"}`}>
                         <div className="bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-border/80 shadow-xs max-w-[180px] h-[85px] flex items-center justify-center overflow-hidden">
                           <img 
                             src={signatureUrl} 
-                            alt="التوقيع الرقمي" 
+                            alt={isEn ? "Digital Signature" : "التوقيع الرقمي"} 
                             className="max-h-[68px] w-auto object-contain" 
                           />
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center sm:justify-start gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            تم رفع التوقيع الرقمي وحفظه
+                            {isEn ? "Digital signature uploaded and saved" : "تم رفع التوقيع الرقمي وحفظه"}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            سيتم استخدام صورة هذا التوقيع في التوقيع الإلكتروني على المستندات.
+                            {isEn ? "This signature image will be used for electronic signing on documents." : "سيتم استخدام صورة هذا التوقيع في التوقيع الإلكتروني على المستندات."}
                           </p>
                         </div>
                       </div>
@@ -445,7 +481,7 @@ export default function Profile() {
                               ) : (
                                 <Upload className="w-3.5 h-3.5 text-primary" />
                               )}
-                              تغيير التوقيع
+                              {isEn ? "Change Signature" : "تغيير التوقيع"}
                             </span>
                           </Button>
                         </label>
@@ -455,7 +491,7 @@ export default function Profile() {
                           size="sm" 
                           type="button"
                           onClick={() => {
-                            if (confirm("هل أنت متأكد من حذف صورة التوقيع الرقمي؟")) {
+                            if (confirm(isEn ? "Are you sure you want to delete the digital signature image?" : "هل أنت متأكد من حذف صورة التوقيع الرقمي؟")) {
                               removeSignatureMutation.mutate();
                             }
                           }}
@@ -467,7 +503,7 @@ export default function Profile() {
                           ) : (
                             <Trash2 className="w-3.5 h-3.5" />
                           )}
-                          حذف
+                          {isEn ? "Delete" : "حذف"}
                         </Button>
                       </div>
                     </div>
@@ -482,10 +518,14 @@ export default function Profile() {
                       </div>
                       <div className="max-w-md mx-auto">
                         <p className="text-xs sm:text-sm font-bold text-foreground">
-                          {uploadingSignature ? "جاري رفع التوقيع الرقمي..." : "قم برفع صورة التوقيع الرقمي الخاصة بك"}
+                          {uploadingSignature 
+                            ? (isEn ? "Uploading digital signature..." : "جاري رفع التوقيع الرقمي...") 
+                            : (isEn ? "Upload your digital signature image" : "قم برفع صورة التوقيع الرقمي الخاصة بك")}
                         </p>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          يُفضل صورة بصيغة PNG شفافة بحجم أقل من 5MB لتظهر بوضوح عند الاعتماد في المستندات.
+                          {isEn 
+                            ? "A transparent PNG image under 5MB is recommended for clear display on official documents." 
+                            : "يُفضل صورة بصيغة PNG شفافة بحجم أقل من 5MB لتظهر بوضوح عند الاعتماد في المستندات."}
                         </p>
                       </div>
                       <div>
@@ -509,12 +549,12 @@ export default function Profile() {
                               {uploadingSignature ? (
                                 <>
                                   <Loader2 className="w-4 h-4 animate-spin" />
-                                  جاري الرفع...
+                                  {isEn ? "Uploading..." : "جاري الرفع..."}
                                 </>
                               ) : (
                                 <>
                                   <Upload className="w-4 h-4" />
-                                  اختيار صورة التوقيع
+                                  {isEn ? "Choose Signature Image" : "اختيار صورة التوقيع"}
                                 </>
                               )}
                             </span>
@@ -540,7 +580,7 @@ export default function Profile() {
                       }} 
                     />
                     <Label htmlFor="showSignatureInDocuments" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer">
-                      اظهار التوقيع الرسمي في المستندات الموكلة لك
+                      {isEn ? "Show official signature on assigned documents" : "اظهار التوقيع الرسمي في المستندات الموكلة لك"}
                     </Label>
                   </div>
                 </div>
@@ -557,12 +597,12 @@ export default function Profile() {
                 {updateProfileMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري الحفظ...</span>
+                    <span>{isEn ? "Saving..." : "جاري الحفظ..."}</span>
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    <span>حفظ التغييرات</span>
+                    <span>{isEn ? "Save Changes" : "حفظ التغييرات"}</span>
                   </>
                 )}
               </Button>
@@ -577,7 +617,7 @@ export default function Profile() {
                 className="h-10 px-4 rounded-xl text-xs sm:text-sm font-bold border-border/70 hover:bg-muted/80 gap-1.5 cursor-pointer"
               >
                 <Lock className="w-3.5 h-3.5 text-primary" />
-                تغيير كلمة المرور
+                {isEn ? "Change Password" : "تغيير كلمة المرور"}
               </Button>
             </div>
           </CardContent>
@@ -586,39 +626,41 @@ export default function Profile() {
 
       {/* Dialog تغيير كلمة المرور */}
       <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
-        <DialogContent className="sm:max-w-[620px] w-[95vw] p-6 sm:p-8 rounded-2xl" dir="rtl">
-          <DialogHeader className="text-right sm:text-right flex flex-col gap-1 pb-3 border-b border-border/60">
-            <div className="flex items-center gap-3 text-right">
+        <DialogContent className="sm:max-w-[620px] w-[95vw] p-6 sm:p-8 rounded-2xl" dir={isEn ? "ltr" : "rtl"}>
+          <DialogHeader className={isEn ? "text-left flex flex-col gap-1 pb-3 border-b border-border/60" : "text-right sm:text-right flex flex-col gap-1 pb-3 border-b border-border/60"}>
+            <div className={`flex items-center gap-3 ${isEn ? "text-left" : "text-right"}`}>
               <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
                 <Lock className="w-5 h-5" />
               </div>
-              <div className="text-right">
-                <DialogTitle className="text-base sm:text-lg font-bold text-foreground text-right">
-                  تغيير كلمة المرور
+              <div className={isEn ? "text-left" : "text-right"}>
+                <DialogTitle className={`text-base sm:text-lg font-bold text-foreground ${isEn ? "text-left" : "text-right"}`}>
+                  {isEn ? "Change Password" : "تغيير كلمة المرور"}
                 </DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5 text-right">
-                  يرجى إدخال كلمة المرور الحالية لتأكيد هويتك، ثم تعيين كلمة مرور جديدة قوية.
+                <DialogDescription className={`text-xs sm:text-sm text-muted-foreground mt-0.5 ${isEn ? "text-left" : "text-right"}`}>
+                  {isEn ? "Please enter your current password to verify your identity, then set a strong new password." : "يرجى إدخال كلمة المرور الحالية لتأكيد هويتك، ثم تعيين كلمة مرور جديدة قوية."}
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
-          <form onSubmit={handleChangePassword} className="space-y-4 py-2 text-right">
+          <form onSubmit={handleChangePassword} className={`space-y-4 py-2 ${isEn ? "text-left" : "text-right"}`}>
             <div className="space-y-1.5">
-              <Label className="text-xs sm:text-sm font-semibold text-foreground">كلمة المرور الحالية *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                {isEn ? "Current Password *" : "كلمة المرور الحالية *"}
+              </Label>
               <div className="relative">
                 <Input
                   type={showCurrentPassword ? "text" : "password"}
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="أدخل كلمة المرور السابقة"
-                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
+                  placeholder={isEn ? "Enter your current password" : "أدخل كلمة المرور السابقة"}
+                  className={`rounded-xl h-11 border-border/70 text-xs sm:text-sm ${isEn ? "pr-10 pl-3.5" : "pl-10 pr-3.5"} bg-background focus:ring-primary/20`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className={`absolute inset-y-0 ${isEn ? "right-0 pr-3.5" : "left-0 pl-3.5"} flex items-center text-muted-foreground hover:text-foreground cursor-pointer`}
                 >
                   {showCurrentPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
@@ -626,20 +668,22 @@ export default function Profile() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs sm:text-sm font-semibold text-foreground">كلمة المرور الجديدة *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                {isEn ? "New Password *" : "كلمة المرور الجديدة *"}
+              </Label>
               <div className="relative">
                 <Input
                   type={showNewPassword ? "text" : "password"}
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="أدخل كلمة المرور الجديدة (8 أحرف على الأقل)"
-                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
+                  placeholder={isEn ? "Enter new password (at least 8 characters)" : "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)"}
+                  className={`rounded-xl h-11 border-border/70 text-xs sm:text-sm ${isEn ? "pr-10 pl-3.5" : "pl-10 pr-3.5"} bg-background focus:ring-primary/20`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className={`absolute inset-y-0 ${isEn ? "right-0 pr-3.5" : "left-0 pl-3.5"} flex items-center text-muted-foreground hover:text-foreground cursor-pointer`}
                 >
                   {showNewPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
@@ -647,27 +691,29 @@ export default function Profile() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs sm:text-sm font-semibold text-foreground">تأكيد كلمة المرور الجديدة *</Label>
+              <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                {isEn ? "Confirm New Password *" : "تأكيد كلمة المرور الجديدة *"}
+              </Label>
               <div className="relative">
                 <Input
                   type={showConfirmPassword ? "text" : "password"}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="أعد إدخال كلمة المرور الجديدة لتأكيدها"
-                  className="rounded-xl h-11 border-border/70 text-xs sm:text-sm pl-10 pr-3.5 bg-background focus:ring-primary/20"
+                  placeholder={isEn ? "Re-enter new password to confirm" : "أعد إدخال كلمة المرور الجديدة لتأكيدها"}
+                  className={`rounded-xl h-11 border-border/70 text-xs sm:text-sm ${isEn ? "pr-10 pl-3.5" : "pl-10 pr-3.5"} bg-background focus:ring-primary/20`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className={`absolute inset-y-0 ${isEn ? "right-0 pr-3.5" : "left-0 pl-3.5"} flex items-center text-muted-foreground hover:text-foreground cursor-pointer`}
                 >
                   {showConfirmPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
               </div>
             </div>
 
-            <DialogFooter className="flex flex-row-reverse gap-2 pt-4 border-t border-border/60">
+            <DialogFooter className={`flex ${isEn ? "flex-row justify-end" : "flex-row-reverse"} gap-2 pt-4 border-t border-border/60`}>
               <Button
                 type="submit"
                 disabled={changePasswordMutation.isPending}
@@ -676,10 +722,10 @@ export default function Profile() {
                 {changePasswordMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>جاري التغيير...</span>
+                    <span>{isEn ? "Updating..." : "جاري التغيير..."}</span>
                   </>
                 ) : (
-                  "تحديث كلمة المرور"
+                  isEn ? "Update Password" : "تحديث كلمة المرور"
                 )}
               </Button>
               <Button
@@ -688,7 +734,7 @@ export default function Profile() {
                 onClick={() => setIsChangePasswordOpen(false)}
                 className="h-11 text-xs sm:text-sm px-5 rounded-xl border-border/70 cursor-pointer"
               >
-                إلغاء
+                {isEn ? "Cancel" : "إلغاء"}
               </Button>
             </DialogFooter>
           </form>
