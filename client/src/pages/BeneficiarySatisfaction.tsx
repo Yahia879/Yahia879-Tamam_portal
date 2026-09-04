@@ -616,7 +616,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       {logsData?.stats.totalDispatched || 0}
                     </span>
                     <span className="text-[11px] text-muted-foreground block">
-                      تم إرسالها للعملاء عند إغلاق الطلبات
+                      استبيانات وتذكيرات مرسلة للعملاء والمستفيدين
                     </span>
                   </div>
                   <div className="w-11 h-11 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/20">
@@ -808,7 +808,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         <span>سجل استبيانات رضا المستفيدين المرسلة</span>
                       </CardTitle>
                       <CardDescription className="text-xs text-right mt-1">
-                        عرض <span className="font-mono font-bold">{logsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{logsData?.total || 0}</span> استبيان تم إرساله تلقائياً لطالبي الخدمة عند إغلاق طلباتهم
+                        عرض <span className="font-mono font-bold">{logsData?.items.length || 0}</span> من أصل <span className="font-mono font-bold">{logsData?.total || 0}</span> استبيان تم إرساله للمستفيدين وطالبي الخدمة
                       </CardDescription>
                     </div>
                   </CardHeader>
@@ -1246,10 +1246,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                             <span>{contact.requesterTypeLabel || "مستفيد معتمد"}</span>
                                           </Badge>
                                         )}
-
-                                        <span className="text-xs text-muted-foreground font-medium">
-                                          {contact.subText}
-                                        </span>
                                       </div>
                                     </div>
                                   </td>

@@ -4464,181 +4464,262 @@ export const requestsRouter = router({
       const page = input?.page || 1;
       const limit = input?.limit || 15;
       const offset = (page - 1) * limit;
-
-      // الطلبات التي تم إغلاقها أو اكتمالها وترسل لها استبيانات حصراً لطالبي الخدمة (service_requester)
-      const baseConditions = [
-        or(
-          eq(mosqueRequests.currentStage, "closed"),
-          eq(mosqueRequests.status, "completed")
-        ),
-        eq(users.role, "service_requester"),
-      ];
-
-      // جلب جميع الطلبات المؤهلة لطالبي الخدمة
-      const allRows = await db
-        .select({
-          requestId: mosqueRequests.id,
-          requestNumber: mosqueRequests.requestNumber,
-          programType: mosqueRequests.programType,
-          descriptiveName: mosqueRequests.descriptiveName,
-          stage: mosqueRequests.currentStage,
-          status: mosqueRequests.status,
-          isEvaluated: mosqueRequests.isEvaluated,
-          satisfactionRating: mosqueRequests.satisfactionRating,
-          evaluatedAt: mosqueRequests.evaluatedAt,
-          closedAt: mosqueRequests.updatedAt,
-          userId: mosqueRequests.userId,
-          requesterName: users.name,
-          requesterEmail: users.email,
-          requesterPhone: users.phone,
-          requesterRole: users.role,
-          mosqueId: mosqueRequests.mosqueId,
-          mosqueName: mosques.name,
-          mosqueCity: mosques.city,
-          evalId: sql<number | null>`(
-            SELECT id FROM request_evaluations 
-            WHERE request_evaluations.requestId = mosque_requests.id 
-              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
-            ORDER BY id DESC LIMIT 1
-          )`,
-          evalRating: sql<number | null>`(
-            SELECT rating FROM request_evaluations 
-            WHERE request_evaluations.requestId = mosque_requests.id 
-              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
-            ORDER BY id DESC LIMIT 1
-          )`,
-          evalNotes: sql<string | null>`(
-            SELECT notes FROM request_evaluations 
-            WHERE request_evaluations.requestId = mosque_requests.id 
-              AND request_evaluations.evaluationType = 'beneficiary_satisfaction' 
-            ORDER BY id DESC LIMIT 1
-          )`,
-          actualClosedDate: sql<Date | null>`(
-            SELECT createdAt FROM request_history 
-            WHERE request_history.requestId = mosque_requests.id 
-              AND request_history.toStage = 'closed' 
-            ORDER BY id DESC LIMIT 1
-          )`,
-        })
-        .from(mosqueRequests)
-        .innerJoin(users, eq(mosqueRequests.userId, users.id))
-        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
-        .where(and(...baseConditions))
-        .orderBy(desc(mosqueRequests.updatedAt));
-
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
 
-      // معالجة السجلات وتشكيل البيانات
-      let mapped = allRows.map((row) => {
-        const isCompletedEval = Boolean(row.isEvaluated || (row.evalRating !== null && row.evalRating !== undefined));
-        const effectiveRating = row.satisfactionRating || row.evalRating || null;
-        const dispatchedAt = row.actualClosedDate || row.closedAt;
-        const evaluationUrl = `${appBaseUrl}/requests/${row.requestId}/evaluation`;
-
-        return {
-          id: `req-${row.requestId}`,
-          requestId: row.requestId,
-          requestNumber: row.requestNumber,
-          programType: row.programType,
-          descriptiveName: row.descriptiveName,
-          stage: row.stage,
-          status: row.status,
-          mosqueName: row.mosqueName,
-          mosqueCity: row.mosqueCity,
-          beneficiary: {
-            id: row.userId,
-            name: row.requesterName || "غير محدد",
-            email: row.requesterEmail || null,
-            phone: row.requesterPhone || null,
-            role: row.requesterRole,
-            categoryLabel: "طالب خدمة (طلب مكتمل)",
-          },
-          survey: {
-            isDispatched: true,
-            dispatchedAt,
-            dispatchType: "request_closed" as const,
-            dispatchTypeLabel: "إرسال تلقائي عند انتهاء الطلب",
-            isEvaluated: isCompletedEval,
-            evaluatedAt: row.evaluatedAt || (isCompletedEval ? dispatchedAt : null),
-            rating: effectiveRating,
-            evaluationUrl,
-          },
-        };
-      });
-
-      // جلب سجلات إرسال الاستبيانات والتذكيرات الإضافية من جدول التدقيق (audit_logs)
-      let parsedAuditRows: any[] = [];
+      // 1. جلب سجلات إرسال الاستبيانات والتذكيرات المسجلة في جدول التدقيق (audit_logs)
+      let auditLogRows: any[] = [];
       try {
-        const auditLogRows = await db
+        auditLogRows = await db
           .select()
           .from(auditLogs)
           .where(
             inArray(auditLogs.action, [
+              "survey_dispatched_on_closed",
               "survey_reminder_sent",
               "survey_invite_sent",
             ])
           )
           .orderBy(desc(auditLogs.createdAt));
-
-        parsedAuditRows = auditLogRows.map((row) => {
-          let details: any = row.newValues;
-          while (typeof details === "string") {
-            try {
-              details = JSON.parse(details);
-            } catch {
-              break;
-            }
-          }
-          if (!details || typeof details !== "object") details = {};
-
-          const isReminder = row.action === "survey_reminder_sent";
-          const reqId = details.requestId || (isReminder ? row.entityId : null);
-          const reqNumber = details.requestNumber || (reqId ? `REQ-${reqId}` : null);
-          const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl}/requests/${reqId}/evaluation` : null);
-
-          // التحقق مما إذا كان الطلب المرتبط قد تم تقييمه
-          const matchedRequest = reqId ? allRows.find((r) => r.requestId === reqId) : null;
-          const isCompletedEval = matchedRequest ? Boolean(matchedRequest.isEvaluated || matchedRequest.evalRating) : false;
-          const effectiveRating = matchedRequest ? (matchedRequest.satisfactionRating || matchedRequest.evalRating || null) : null;
-
-          return {
-            id: `audit-${row.id}`,
-            requestId: reqId,
-            requestNumber: reqNumber,
-            programType: details.programType || (matchedRequest ? matchedRequest.programType : "general_satisfaction"),
-            descriptiveName: isReminder ? `رسالة تذكيرية للاستبيان` : "استبيان رضا مباشر (بدون طلب مرتبط)",
-            stage: matchedRequest ? matchedRequest.stage : null,
-            status: matchedRequest ? matchedRequest.status : null,
-            mosqueName: details.mosqueName || (matchedRequest ? matchedRequest.mosqueName : null),
-            mosqueCity: matchedRequest ? matchedRequest.mosqueCity : null,
-            beneficiary: {
-              id: isReminder ? (matchedRequest ? matchedRequest.userId : null) : (row.entityId || null),
-              name: details.recipientName || (matchedRequest ? matchedRequest.requesterName : "غير محدد"),
-              email: details.recipientEmail || (matchedRequest ? matchedRequest.requesterEmail : null),
-              phone: details.recipientPhone || (matchedRequest ? matchedRequest.requesterPhone : null),
-              role: details.recipientRole || "service_requester",
-              categoryLabel: isReminder 
-                ? "طالب خدمة (رسالة تذكيرية)" 
-                : (details.categoryLabel || "طالب خدمة / جهة مسجلة"),
-            },
-            survey: {
-              isDispatched: true,
-              dispatchedAt: row.createdAt,
-              dispatchType: isReminder ? ("reminder" as const) : ("general_invite" as const),
-              dispatchTypeLabel: isReminder ? "رسالة تذكيرية للاستبيان" : "استبيان مباشر لطالب خدمة (بدون طلب)",
-              isEvaluated: isCompletedEval,
-              evaluatedAt: isCompletedEval ? (matchedRequest?.evaluatedAt || row.createdAt) : null,
-              rating: effectiveRating,
-              evaluationUrl: evalUrl,
-            },
-          };
-        });
       } catch (err) {
         console.error("Error reading survey audit logs:", err);
       }
 
+      // 2. جلب جميع تقييمات رضا المستفيدين المكتملة في جدول request_evaluations
+      let allEvaluations: any[] = [];
+      try {
+        allEvaluations = await db
+          .select()
+          .from(requestEvaluations)
+          .where(
+            and(
+              eq(requestEvaluations.evaluationType, "beneficiary_satisfaction"),
+              or(
+                isNotNull(requestEvaluations.rating),
+                isNotNull(requestEvaluations.notes)
+              )
+            )
+          )
+          .orderBy(desc(requestEvaluations.createdAt));
+      } catch (err) {
+        console.error("Error reading beneficiary evaluations:", err);
+      }
+
+      // معالجة ملاحظات التقييمات لاستخراج بيانات المستفيد للتقييمات المباشرة
+      const parsedEvals = allEvaluations.map((e) => {
+        let parsedNotes: any = {};
+        if (e.notes) {
+          try {
+            parsedNotes = typeof e.notes === "string" ? JSON.parse(e.notes) : e.notes;
+          } catch {}
+        }
+        return { ...e, parsedNotes };
+      });
+
+      // 3. تجميع معرفات الطلبات المرتبطة بسجلات الإرسال أو التقييمات
+      const requestIds = new Set<number>();
+      for (const row of auditLogRows) {
+        let details: any = row.newValues;
+        while (typeof details === "string") {
+          try {
+            details = JSON.parse(details);
+          } catch {
+            break;
+          }
+        }
+        if (details && typeof details === "object") {
+          const rId = details.requestId || (row.entityType === "request" ? row.entityId : null);
+          if (rId) requestIds.add(Number(rId));
+        }
+      }
+      for (const ev of parsedEvals) {
+        if (ev.requestId) requestIds.add(Number(ev.requestId));
+      }
+
+      // 4. استرجاع بيانات الطلبات والمساجد والمستخدمين للطلبات المحددة فقط
+      const requestsMap = new Map<number, any>();
+      if (requestIds.size > 0) {
+        const ids = Array.from(requestIds);
+        const reqRows = await db
+          .select({
+            id: mosqueRequests.id,
+            requestNumber: mosqueRequests.requestNumber,
+            programType: mosqueRequests.programType,
+            descriptiveName: mosqueRequests.descriptiveName,
+            stage: mosqueRequests.currentStage,
+            status: mosqueRequests.status,
+            isEvaluated: mosqueRequests.isEvaluated,
+            satisfactionRating: mosqueRequests.satisfactionRating,
+            evaluatedAt: mosqueRequests.evaluatedAt,
+            userId: mosqueRequests.userId,
+            requesterName: users.name,
+            requesterEmail: users.email,
+            requesterPhone: users.phone,
+            requesterRole: users.role,
+            mosqueName: mosques.name,
+            mosqueCity: mosques.city,
+          })
+          .from(mosqueRequests)
+          .leftJoin(users, eq(mosqueRequests.userId, users.id))
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+          .where(inArray(mosqueRequests.id, ids));
+
+        for (const r of reqRows) {
+          requestsMap.set(Number(r.id), r);
+        }
+      }
+
+      const usedEvalIds = new Set<number>();
+      const requestIdsFromAudit = new Set<number>();
+
+      // 5. تشكيل عناصر سجل الإرسال من سجلات التدقيق الفعلية
+      const parsedAuditItems = auditLogRows.map((row) => {
+        let details: any = row.newValues;
+        while (typeof details === "string") {
+          try {
+            details = JSON.parse(details);
+          } catch {
+            break;
+          }
+        }
+        if (!details || typeof details !== "object") details = {};
+
+        const isReminder = row.action === "survey_reminder_sent";
+        const isInvite = row.action === "survey_invite_sent";
+        const isClosed = row.action === "survey_dispatched_on_closed";
+
+        const reqId = details.requestId || (row.entityType === "request" ? Number(row.entityId) : null);
+        if (reqId) requestIdsFromAudit.add(reqId);
+
+        const matchedRequest = reqId ? requestsMap.get(reqId) : null;
+
+        // التحقق من حالة التقييم
+        let isCompletedEval = false;
+        let effectiveRating: number | null = null;
+        let evaluatedAt: Date | string | null = null;
+
+        if (matchedRequest) {
+          const matchedEval = parsedEvals.find((e) => !usedEvalIds.has(e.id) && Number(e.requestId) === reqId);
+          if (matchedEval) {
+            usedEvalIds.add(matchedEval.id);
+            isCompletedEval = true;
+            effectiveRating = matchedEval.rating || matchedRequest.satisfactionRating || null;
+            evaluatedAt = matchedEval.createdAt || matchedRequest.evaluatedAt || null;
+          } else if (matchedRequest.isEvaluated) {
+            isCompletedEval = true;
+            effectiveRating = matchedRequest.satisfactionRating || null;
+            evaluatedAt = matchedRequest.evaluatedAt || null;
+          }
+        } else {
+          // استبيان مباشر بدون طلب: مطابقة عبر رقم المستخدم أو البريد أو الجوال
+          const matchedEval = parsedEvals.find((e) => {
+            if (usedEvalIds.has(e.id)) return false;
+            if (e.requestId) return false;
+            if (row.entityId && Number(e.userId) === Number(row.entityId)) return true;
+            if (details.recipientEmail && e.parsedNotes?.beneficiaryEmail === details.recipientEmail) return true;
+            if (details.recipientPhone && e.parsedNotes?.beneficiaryPhone === details.recipientPhone) return true;
+            return false;
+          });
+          if (matchedEval) {
+            usedEvalIds.add(matchedEval.id);
+            isCompletedEval = true;
+            effectiveRating = matchedEval.rating;
+            evaluatedAt = matchedEval.createdAt;
+          }
+        }
+
+        const dispatchType = isReminder
+          ? ("reminder" as const)
+          : isInvite
+          ? ("general_invite" as const)
+          : ("request_closed" as const);
+
+        const dispatchTypeLabel = isReminder
+          ? "رسالة تذكيرية للاستبيان"
+          : isInvite
+          ? (details.dispatchTypeLabel || "استبيان مباشر لطالب خدمة (بدون طلب)")
+          : "إرسال تلقائي عند انتهاء الطلب";
+
+        const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl}/requests/${reqId}/evaluation` : null);
+
+        return {
+          id: `audit-${row.id}`,
+          requestId: reqId,
+          requestNumber: details.requestNumber || (matchedRequest ? matchedRequest.requestNumber : null),
+          programType: details.programType || (matchedRequest ? matchedRequest.programType : "general_satisfaction"),
+          descriptiveName: isReminder
+            ? "رسالة تذكيرية للاستبيان"
+            : isInvite
+            ? "استبيان رضا مباشر (بدون طلب مرتبط)"
+            : (matchedRequest?.descriptiveName || "طلب مغلق"),
+          stage: matchedRequest ? matchedRequest.stage : null,
+          status: matchedRequest ? matchedRequest.status : null,
+          mosqueName: details.mosqueName || (matchedRequest ? matchedRequest.mosqueName : null),
+          mosqueCity: matchedRequest ? matchedRequest.mosqueCity : null,
+          beneficiary: {
+            id: isReminder ? (matchedRequest ? matchedRequest.userId : null) : (row.entityId || null),
+            name: details.recipientName || (matchedRequest ? matchedRequest.requesterName : "غير محدد"),
+            email: details.recipientEmail || (matchedRequest ? matchedRequest.requesterEmail : null),
+            phone: details.recipientPhone || (matchedRequest ? matchedRequest.requesterPhone : null),
+            role: details.recipientRole || (matchedRequest ? matchedRequest.requesterRole : "service_requester"),
+            categoryLabel: isReminder
+              ? "طالب خدمة (رسالة تذكيرية)"
+              : (details.categoryLabel || (matchedRequest ? "طالب خدمة (طلب مكتمل)" : "طالب خدمة / جهة مسجلة")),
+          },
+          survey: {
+            isDispatched: true,
+            dispatchedAt: row.createdAt,
+            dispatchType,
+            dispatchTypeLabel,
+            isEvaluated: isCompletedEval,
+            evaluatedAt,
+            rating: effectiveRating,
+            evaluationUrl: evalUrl,
+          },
+        };
+      });
+
+      // 6. إضافة أي طلبات تم تقييمها فعلياً ولم يتوفر لها سجل في auditLogs لضمان عدم ضياع التقييم
+      const evaluatedRequestsWithoutAudit = parsedEvals.filter(
+        (e) => e.requestId && !requestIdsFromAudit.has(Number(e.requestId))
+      );
+      const extraEvaluatedItems: any[] = [];
+      for (const ev of evaluatedRequestsWithoutAudit) {
+        const req = requestsMap.get(Number(ev.requestId));
+        if (req) {
+          extraEvaluatedItems.push({
+            id: `req-${req.id}`,
+            requestId: req.id,
+            requestNumber: req.requestNumber,
+            programType: req.programType,
+            descriptiveName: req.descriptiveName,
+            stage: req.stage,
+            status: req.status,
+            mosqueName: req.mosqueName,
+            mosqueCity: req.mosqueCity,
+            beneficiary: {
+              id: req.userId,
+              name: req.requesterName || "غير محدد",
+              email: req.requesterEmail || null,
+              phone: req.requesterPhone || null,
+              role: req.requesterRole || "service_requester",
+              categoryLabel: "طالب خدمة (طلب مكتمل)",
+            },
+            survey: {
+              isDispatched: true,
+              dispatchedAt: ev.createdAt || req.evaluatedAt,
+              dispatchType: "request_closed" as const,
+              dispatchTypeLabel: "إرسال تلقائي عند انتهاء الطلب",
+              isEvaluated: true,
+              evaluatedAt: ev.createdAt || req.evaluatedAt,
+              rating: ev.rating || req.satisfactionRating || null,
+              evaluationUrl: `${appBaseUrl}/requests/${req.id}/evaluation`,
+            },
+          });
+        }
+      }
+
       // دمج جميع سجلات الإرسال وفرزها زمنياً من الأحدث إلى الأقدم
-      let combined = [...mapped, ...parsedAuditRows];
+      let combined = [...parsedAuditItems, ...extraEvaluatedItems];
       combined.sort((a, b) => {
         const timeA = a.survey.dispatchedAt ? new Date(a.survey.dispatchedAt).getTime() : 0;
         const timeB = b.survey.dispatchedAt ? new Date(b.survey.dispatchedAt).getTime() : 0;
