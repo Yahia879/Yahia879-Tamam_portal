@@ -608,16 +608,7 @@ export default function SupportTickets() {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              {isQuickResponse && (
-                <Button
-                  variant="outline"
-                  onClick={handleToggleQuickResponseLang}
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/20 font-bold gap-2 text-sm shadow-sm backdrop-blur-sm"
-                >
-                  <Languages className="w-4 h-4" />
-                  <span>{isEn ? "العربية" : "English"}</span>
-                </Button>
-              )}
+
 
               {/* User Create Ticket Button */}
               {hasCreate && (

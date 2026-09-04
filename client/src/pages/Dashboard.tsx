@@ -733,18 +733,7 @@ export default function Dashboard() {
 
             {/* الأزرار والإجراءات السريعة في الهيدر */}
             <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap shrink-0">
-              {isQuickResponse && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleToggleQuickResponseLang}
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold gap-1.5 h-9 rounded-xl border border-white/20"
-                  title={isEn ? "Switch to Arabic" : "التبديل إلى الإنجليزية"}
-                >
-                  <Languages className="w-3.5 h-3.5" />
-                  <span>{isEn ? "العربية" : "English"}</span>
-                </Button>
-              )}
+
 
               {isFinancialRole && (
                 <>
@@ -854,10 +843,10 @@ export default function Dashboard() {
                 <Button 
                   variant="ghost" 
                   className="group flex items-center gap-2 bg-[#fafaf9] hover:bg-[#f4f4f3] text-teal-950 rounded-xl px-4 h-9 border border-neutral-200/30 text-xs font-semibold shadow-xs"
-                  title="طلب الدعم الفني"
+                  title={isEn ? "Technical Support" : "طلب الدعم الفني"}
                 >
                   <LifeBuoy className="w-3.5 h-3.5 text-teal-700" />
-                  <span>الدعم الفني</span>
+                  <span>{isEn ? "Technical Support" : "الدعم الفني"}</span>
                 </Button>
               </Link>
             </div>

@@ -564,8 +564,32 @@ function DashboardLayoutContent({
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
-  const lang = (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
-  const isEn = user?.role === "quick_response" && lang === "en";
+  const [lang, setLang] = useState<"ar" | "en">(() => {
+    return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      const stored = localStorage.getItem("quick-response-lang") as "ar" | "en";
+      if (stored && (stored === "ar" || stored === "en")) {
+        setLang(stored);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("quick-response-lang-change", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("quick-response-lang-change", handleStorage);
+    };
+  }, []);
+
+  const isQuickResponseUser = 
+    user?.role === "quick_response" || 
+    user?.name === "فريق الاستجابة السريعة" ||
+    (user as any)?.customRole?.nameAr === "فريق الاستجابة السريعة" ||
+    (user as any)?.customRole?.nameEn === "Quick Response";
+
+  const isEn = isQuickResponseUser && lang === "en";
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
@@ -588,9 +612,15 @@ function DashboardLayoutContent({
   const menuItems = menuGroups.flatMap(g => g.items);
   const activeMenuItem = menuItems.find(item => item.path === location);
   // عنوان الدور المعروض في تذييل القائمة
-  const roleDisplayLabel = hasCustomRole
-    ? (user as any).customRole.nameAr
-    : (isEn && user?.role === "quick_response" ? "quick response" : (ROLE_LABELS[user?.role || ""] || user?.role));
+  const roleDisplayLabel = (isEn && isQuickResponseUser)
+    ? "Quick Response"
+    : (hasCustomRole
+        ? (user as any).customRole.nameAr
+        : (ROLE_LABELS[user?.role || ""] || user?.role));
+
+  const userDisplayName = (isEn && isQuickResponseUser)
+    ? "Quick Response"
+    : (user?.name || "-");
   const isMobile = useIsMobile();
   const { theme, toggleTheme, switchable } = useTheme();
   // جلب الشعار من قاعدة البيانات
@@ -774,7 +804,7 @@ function DashboardLayoutContent({
                   <div className="relative shrink-0">
                     <Avatar className="h-9 w-9 border border-sidebar-border">
                       <AvatarFallback className="text-xs font-medium bg-sidebar-primary/20 text-sidebar-primary">
-                        {user?.name?.charAt(0).toUpperCase()}
+                        {isEn && isQuickResponseUser ? "QR" : (user?.name?.charAt(0).toUpperCase())}
                       </AvatarFallback>
                     </Avatar>
                     {unreadCount && unreadCount > 0 ? (
@@ -783,7 +813,7 @@ function DashboardLayoutContent({
                   </div>
                   <div className="flex-1 min-w-0 transition-all duration-300 ease-in-out group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none overflow-hidden whitespace-nowrap">
                     <p className="text-sm font-medium truncate leading-none text-sidebar-foreground">
-                      {user?.name || "-"}
+                      {userDisplayName}
                     </p>
                     <p className="text-xs text-sidebar-foreground/50 truncate mt-1">
                       {roleDisplayLabel}
@@ -794,7 +824,7 @@ function DashboardLayoutContent({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-sm font-medium">{userDisplayName}</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
@@ -823,19 +853,22 @@ function DashboardLayoutContent({
                     )}
                   </DropdownMenuItem>
                 )}
-                {user?.role === "quick_response" && (
+                {isQuickResponseUser && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => {
                         const nextLang = lang === "ar" ? "en" : "ar";
                         localStorage.setItem("quick-response-lang", nextLang);
+                        setLang(nextLang);
+                        window.dispatchEvent(new Event("storage"));
+                        window.dispatchEvent(new Event("quick-response-lang-change"));
                         window.location.reload();
                       }} 
                       className="cursor-pointer"
                     >
                       <Languages className="ml-2 h-4 w-4" />
-                      <span>{lang === "ar" ? "انكليزي" : "Arabic"}</span>
+                      <span>{lang === "ar" ? "English" : "العربية"}</span>
                     </DropdownMenuItem>
                   </>
                 )}
