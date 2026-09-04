@@ -52,6 +52,7 @@ import {
   Search,
   Loader2,
   X,
+  MapPin,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -148,9 +149,9 @@ export default function Dashboard() {
   const { data: requestStats } = trpc.requests.getStats.useQuery();
   const { data: mosqueStats } = trpc.mosques.getStats.useQuery();
 
-  // جلب الإحصائيات المالية (للمسؤول المالي والإدارة العليا ومجلس الإدارة)
+  // جلب الإحصائيات المالية (للمسؤول المالي ومكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: disbursementStats } = trpc.disbursements.getStats.useQuery(undefined, {
-    enabled: isFinancialRole || isExecutiveAdmin || isBoardRole,
+    enabled: isFinancialRole || isProjectsRole || isExecutiveAdmin || isBoardRole,
   });
   const { data: supplierStats } = trpc.suppliers.getStats.useQuery(undefined, {
     enabled: isFinancialRole || isExecutiveAdmin || isProjectsRole,
@@ -191,6 +192,51 @@ export default function Dashboard() {
 
   const filteredRecentRequests = recentRequestsData?.requests || [];
   const filteredRecentOrders = recentOrdersData?.orders || [];
+
+  // حالة البحث الشامل لمكتب إدارة المشاريع (المشاريع، الطلبات، المساجد)
+  const [projectsSearch, setProjectsSearch] = useState("");
+  const [debouncedProjectsSearch, setDebouncedProjectsSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedProjectsSearch(projectsSearch.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [projectsSearch]);
+
+  const { data: recentProjectsData, isLoading: isLoadingProjects } = trpc.projects.getAll.useQuery(
+    { 
+      limit: debouncedProjectsSearch ? 50 : 5,
+      search: debouncedProjectsSearch || undefined,
+    }, 
+    {
+      enabled: isProjectsRole,
+    }
+  );
+
+  const { data: recentRequestsDataProjects, isLoading: isLoadingRequestsProjects } = trpc.requests.search.useQuery(
+    { 
+      limit: debouncedProjectsSearch ? 50 : 5,
+      search: debouncedProjectsSearch || undefined,
+    }, 
+    {
+      enabled: isProjectsRole,
+    }
+  );
+
+  const { data: recentMosquesDataProjects, isLoading: isLoadingMosquesProjects } = trpc.mosques.search.useQuery(
+    { 
+      limit: debouncedProjectsSearch ? 50 : 5,
+      search: debouncedProjectsSearch || undefined,
+    }, 
+    {
+      enabled: isProjectsRole,
+    }
+  );
+
+  const filteredRecentProjects = Array.isArray(recentProjectsData) ? recentProjectsData : (recentProjectsData as any)?.projects || [];
+  const filteredRecentRequestsProjects = recentRequestsDataProjects?.requests || [];
+  const filteredRecentMosquesProjects = recentMosquesDataProjects?.mosques || [];
 
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
@@ -736,6 +782,125 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
+        ) : isProjectsRole ? (
+          /* ========================================================================= */
+          /* كروت مكتب إدارة المشاريع (8 Cards في صفين منظمين ومضغوطين) */
+          /* ========================================================================= */
+          <div className="space-y-3 sm:space-y-3.5">
+            {/* الصف الأول: 4 كروت أساسية للمشاريع والمساجد */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              {[
+                {
+                  title: "إجمالي المشاريع",
+                  value: ((projectStats as any)?.total || 0).toLocaleString("en-US"),
+                  subtext: `قيد التنفيذ: ${((projectStats as any)?.inProgress || 0).toLocaleString("en-US")} | مكتمل: ${((projectStats as any)?.completed || 0).toLocaleString("en-US")}`,
+                  icon: FolderKanban,
+                  gradient: "from-blue-600 to-indigo-600",
+                  link: "/projects",
+                },
+                {
+                  title: "المشاريع قيد التنفيذ",
+                  value: ((projectStats as any)?.inProgress || 0).toLocaleString("en-US"),
+                  subtext: "مشاريع إنشائية وميدانية تحت الإشراف",
+                  icon: Activity,
+                  gradient: "from-amber-500 to-orange-600",
+                  link: "/projects?status=in_progress",
+                },
+                {
+                  title: "المشاريع المكتملة",
+                  value: ((projectStats as any)?.completed || 0).toLocaleString("en-US"),
+                  subtext: "مشاريع تم إنجازها وتسليمها بالكامل",
+                  icon: CheckCircle2,
+                  gradient: "from-emerald-600 to-teal-600",
+                  link: "/projects?status=completed",
+                },
+                {
+                  title: "المساجد المسجلة",
+                  value: ((mosqueStats as any)?.total || 0).toLocaleString("en-US"),
+                  subtext: "مساجد معتمدة في النظام الجغرافي",
+                  icon: Building2,
+                  gradient: "from-teal-600 to-cyan-600",
+                  link: "/mosques",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
+                          {stat.subtext && (
+                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
+                          )}
+                        </div>
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            {/* الصف الثاني: 4 كروت للطلبات، جداول الكميات، العقود، والميزانيات */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              {[
+                {
+                  title: "إجمالي طلبات المساجد",
+                  value: ((requestStats as any)?.total || 0).toLocaleString("en-US"),
+                  subtext: `قيد المعالجة: ${((requestStats as any)?.byStatus?.in_progress || 0).toLocaleString("en-US")} طلب`,
+                  icon: FileText,
+                  gradient: "from-purple-600 to-indigo-600",
+                  link: "/requests",
+                },
+                {
+                  title: "طلبات إعداد جداول الكميات (BOQ)",
+                  value: ((requestStats as any)?.byStage?.technical_study || 0).toLocaleString("en-US"),
+                  subtext: "بانتظار دراسة وحصر جداول الكميات",
+                  icon: FileSpreadsheet,
+                  gradient: "from-amber-600 to-yellow-600",
+                  link: "/quotations",
+                },
+                {
+                  title: "العقود المعتمدة",
+                  value: ((disbursementStats as any)?.approvedContractsCount || 0).toLocaleString("en-US"),
+                  subtext: `بقيمة: ${formatCurrencyEn((disbursementStats as any)?.approvedContractsAmount || 0)}`,
+                  icon: Receipt,
+                  gradient: "from-blue-600 to-cyan-600",
+                  link: "/contracts",
+                },
+                {
+                  title: "إجمالي الميزانيات التقديرية",
+                  value: formatCurrencyEn((projectStats as any)?.totalBudget || 0),
+                  subtext: `المصروف الفعلي: ${formatCurrencyEn((projectStats as any)?.totalActualCost || 0)}`,
+                  icon: Wallet,
+                  gradient: "from-emerald-600 to-green-600",
+                  link: "/projects",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
+                          {stat.subtext && (
+                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
+                          )}
+                        </div>
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {currentStatsCards.map((stat: any, index) => {
@@ -1076,9 +1241,539 @@ export default function Dashboard() {
         )}
 
         {/* ========================================================================= */}
-        {/* قسم المشاريع أو الفريق الميداني أو الاتصال المؤسسي أو الإدارة العليا */}
+        {/* قسم مكتب إدارة المشاريع المخصص (PMO) */}
         {/* ========================================================================= */}
-        {!isFinancialRole && (
+        {isProjectsRole && (
+          <div className="space-y-6">
+            {/* بطاقة السجلات التشغيلية للمشاريع مع البحث الشامل والتبويبات */}
+            <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
+                <div>
+                  <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2.5">
+                    <FolderKanban className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                    <span>أحدث السجلات التشغيلية للمشاريع والمساجد</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm font-medium mt-1 text-muted-foreground">
+                    {debouncedProjectsSearch 
+                      ? `نتائج البحث عن "${debouncedProjectsSearch}" في المشاريع والطلبات والمساجد المسجلة`
+                      : "آخر المشاريع الإنشائية، طلبات المساجد، والمساجد المسجلة مع إمكانية البحث الفوري في كافة السجلات"}
+                  </CardDescription>
+                </div>
+
+                {/* حقل بحث شامل وفوري للمشاريع والطلبات والمساجد */}
+                <div className="relative w-full sm:w-80 md:w-[420px] shrink-0">
+                  <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <Input
+                    placeholder="بحث شامل برقم المشروع أو الطلب، اسم المسجد، أو المدينة..."
+                    value={projectsSearch}
+                    onChange={(e) => setProjectsSearch(e.target.value)}
+                    className="h-11 sm:h-12 pr-11 pl-11 text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
+                  />
+                  {projectsSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProjectsSearch("")}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+                      title="مسح البحث"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {(isLoadingProjects || isLoadingRequestsProjects || isLoadingMosquesProjects) && debouncedProjectsSearch && (
+                    <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                <Tabs defaultValue="projects" dir="rtl" className="w-full">
+                  <div className="px-4 pt-3 border-b border-border/60 bg-muted/20">
+                    <TabsList className="bg-muted/60 p-1">
+                      <TabsTrigger value="projects" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <FolderKanban className="w-4 h-4" />
+                        <span>المشاريع الإنشائية ({filteredRecentProjects.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="requests" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <FileText className="w-4 h-4" />
+                        <span>طلبات المساجد ({filteredRecentRequestsProjects.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="mosques" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <Building2 className="w-4 h-4" />
+                        <span>المساجد المسجلة ({filteredRecentMosquesProjects.length})</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  {/* تبويب 1: المشاريع الإنشائية */}
+                  <TabsContent value="projects" className="m-0">
+                    {filteredRecentProjects.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedProjectsSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد مشاريع مطابقة لـ "{debouncedProjectsSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث برقم مشروع آخر أو اسم مسجد مختلف</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد مشاريع مسجلة حالياً</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
+                            <TableRow>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم المشروع</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">اسم المشروع / المسجد</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الميزانية التقديرية</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">نسبة الإنجاز</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">مدير المشروع</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/60">
+                            {filteredRecentProjects.map((project: any) => {
+                              const statusColorMap: Record<string, { label: string; className: string }> = {
+                                in_progress: { label: "قيد التنفيذ", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800" },
+                                completed: { label: "مكتمل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" },
+                                planning: { label: "تخطيط", className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800" },
+                                on_hold: { label: "معلق", className: "bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800" },
+                                cancelled: { label: "ملغي", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800" },
+                              };
+                              const statusInfo = statusColorMap[project.status] || { label: project.status || "قيد المتابعة", className: "bg-slate-100 text-slate-700 border-slate-300" };
+                              const progressVal = Number(project.completionPercentage || 0);
+
+                              return (
+                                <TableRow key={project.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                  {/* 1. رقم المشروع */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Link href="/projects" className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                      <span>{project.projectNumber || `PRJ-${project.id}`}</span>
+                                    </Link>
+                                  </TableCell>
+
+                                  {/* 2. اسم المشروع */}
+                                  <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate" title={project.name}>
+                                      {project.name}
+                                    </span>
+                                  </TableCell>
+
+                                  {/* 3. الميزانية التقديرية */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5 font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                                    {formatCurrencyEn(project.budget || 0)}
+                                  </TableCell>
+
+                                  {/* 4. نسبة الإنجاز */}
+                                  <TableCell className="min-w-[140px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between text-xs font-bold font-mono text-slate-700 dark:text-slate-300">
+                                        <span>{progressVal}%</span>
+                                      </div>
+                                      <Progress value={progressVal} className="h-1.5 bg-slate-100 dark:bg-slate-800" />
+                                    </div>
+                                  </TableCell>
+
+                                  {/* 5. مدير المشروع */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                      {project.managerName || "مكتب المشاريع"}
+                                    </span>
+                                  </TableCell>
+
+                                  {/* 6. الحالة */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Badge variant="outline" className={`text-xs font-extrabold py-1 px-3 rounded-lg ${statusInfo.className}`}>
+                                      {statusInfo.label}
+                                    </Badge>
+                                  </TableCell>
+
+                                  {/* 7. إجراء */}
+                                  <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Link href="/projects">
+                                      <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل المشروع">
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span>عرض</span>
+                                      </Button>
+                                    </Link>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedProjectsSearch
+                          ? `تم العثور على ${filteredRecentProjects.length} مشروع مطابق للبحث`
+                          : `عرض آخر ${filteredRecentProjects.length} مشاريع مسجلة`}
+                      </span>
+                      <Link href="/projects">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
+                          <span>عرض جميع المشاريع</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TabsContent>
+
+                  {/* تبويب 2: طلبات المساجد */}
+                  <TabsContent value="requests" className="m-0">
+                    {filteredRecentRequestsProjects.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedProjectsSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد طلبات مساجد مطابقة لـ "{debouncedProjectsSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث برقم طلب آخر أو اسم مسجد مختلف</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد طلبات مساجد مسجلة</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
+                            <TableRow>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم الطلب</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المسجد / البيان</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">البرنامج</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المرحلة الحالية</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">التاريخ</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/60">
+                            {filteredRecentRequestsProjects.map((req: any) => (
+                              <TableRow key={req.id} className="hover:bg-purple-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                {/* 1. رقم الطلب */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href={`/requests/${req.id}`} className="inline-flex items-center gap-1.5 bg-purple-50 dark:bg-purple-950/60 hover:bg-purple-100 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-lg border border-purple-200 dark:border-purple-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                    <span>{req.requestNumber}</span>
+                                  </Link>
+                                </TableCell>
+
+                                {/* 2. المسجد / البيان */}
+                                <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate" title={req.mosqueName || req.customMosqueName || req.descriptiveName || "-"}>
+                                    {req.mosqueName || req.customMosqueName || req.descriptiveName || "-"}
+                                  </span>
+                                  {req.city && (
+                                    <span className="text-[11px] font-medium text-muted-foreground block truncate">
+                                      {req.city}
+                                    </span>
+                                  )}
+                                </TableCell>
+
+                                {/* 3. البرنامج */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Badge variant="outline" className="text-xs font-bold py-0.5 px-2">
+                                    {PROGRAM_LABELS[req.programType] || req.programType || "-"}
+                                  </Badge>
+                                </TableCell>
+
+                                {/* 4. المرحلة الحالية */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                    {STAGE_LABELS[req.currentStage] || req.currentStage || "-"}
+                                  </span>
+                                </TableCell>
+
+                                {/* 5. الحالة */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs font-extrabold py-1 px-3 rounded-lg ${
+                                      req.status === 'completed' || req.status === 'approved'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
+                                        : req.status === 'rejected'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                                        : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                                    }`}
+                                  >
+                                    {STATUS_LABELS[req.status] || req.status || 'قيد المتابعة'}
+                                  </Badge>
+                                </TableCell>
+
+                                {/* 6. التاريخ */}
+                                <TableCell className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  {formatDateArabic(req.createdAt)}
+                                </TableCell>
+
+                                {/* 7. إجراء */}
+                                <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href={`/requests/${req.id}`}>
+                                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل الطلب">
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>عرض</span>
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedProjectsSearch
+                          ? `تم العثور على ${filteredRecentRequestsProjects.length} طلب مطابق للبحث`
+                          : `عرض آخر ${filteredRecentRequestsProjects.length} طلبات مسجلة`}
+                      </span>
+                      <Link href="/requests">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
+                          <span>عرض جميع الطلبات</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TabsContent>
+
+                  {/* تبويب 3: المساجد المسجلة */}
+                  <TabsContent value="mosques" className="m-0">
+                    {filteredRecentMosquesProjects.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedProjectsSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد مساجد مطابقة لـ "{debouncedProjectsSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث باسم مسجد أو مدينة أخرى</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد مساجد مسجلة حالياً</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
+                            <TableRow>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">اسم المسجد</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المدينة / الحي</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">نوع المسجد</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">السعة الاستيعابية</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">حالة الاعتماد</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">تاريخ التسجيل</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/60">
+                            {filteredRecentMosquesProjects.map((mosque: any) => (
+                              <TableRow key={mosque.id} className="hover:bg-teal-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                {/* 1. اسم المسجد */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href={`/mosques/${mosque.id}`} className="inline-flex items-center gap-1.5 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 px-2.5 py-1 rounded-lg border border-teal-200 dark:border-teal-800 transition-colors text-xs sm:text-sm font-extrabold shadow-2xs">
+                                    <Building2 className="w-3.5 h-3.5" />
+                                    <span>{mosque.name}</span>
+                                  </Link>
+                                </TableCell>
+
+                                {/* 2. المدينة / الحي */}
+                                <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 truncate">
+                                    {mosque.city} {mosque.district ? `- ${mosque.district}` : mosque.governorate ? `- ${mosque.governorate}` : ''}
+                                  </span>
+                                </TableCell>
+
+                                {/* 3. نوع المسجد */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                    {mosque.mosqueType === "jami" ? "جامع" : "مسجد"}
+                                  </span>
+                                </TableCell>
+
+                                {/* 4. السعة الاستيعابية */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5 font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                                  {(mosque.capacity || 0).toLocaleString("en-US")} مصلٍ
+                                </TableCell>
+
+                                {/* 5. حالة الاعتماد */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs font-extrabold py-1 px-3 rounded-lg ${
+                                      mosque.approvalStatus === 'approved'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                                        : mosque.approvalStatus === 'rejected'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                                        : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
+                                    }`}
+                                  >
+                                    {mosque.approvalStatus === 'approved' ? 'معتمد' : mosque.approvalStatus === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
+                                  </Badge>
+                                </TableCell>
+
+                                {/* 6. تاريخ التسجيل */}
+                                <TableCell className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  {formatDateArabic(mosque.createdAt)}
+                                </TableCell>
+
+                                {/* 7. إجراء */}
+                                <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href={`/mosques/${mosque.id}`}>
+                                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل المسجد">
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>عرض</span>
+                                    </Button>
+                                  </Link>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedProjectsSearch
+                          ? `تم العثور على ${filteredRecentMosquesProjects.length} مسجد مطابق للبحث`
+                          : `عرض آخر ${filteredRecentMosquesProjects.length} مساجد مسجلة`}
+                      </span>
+                      <Link href="/mosques">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
+                          <span>عرض دليل المساجد</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* بطاقات تحليلات ومعلومات إضافية عن المساجد والطلبات والمشاريع */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* 1. توزيع الطلبات حسب البرنامج */}
+              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold">
+                      <Layers className="w-4.5 h-4.5 text-primary" />
+                      <span>توزيع الطلبات حسب البرنامج</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">تصنيف الطلبات الهندسية والتنموية والتشغيلية</CardDescription>
+                  </div>
+                  <Link href="/requests">
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                      <span>عرض الكل</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 space-y-2.5">
+                  {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
+                    const color = PROGRAM_COLORS[program] || '#6B7280';
+                    const stats = data as { count: number; name?: string };
+                    return (
+                      <Link key={program} href={`/requests?program=${program}`}>
+                        <div 
+                          className="group flex items-center justify-between p-2.5 rounded-xl border border-border/60 hover:border-primary/40 hover:shadow-xs transition-all cursor-pointer min-w-0"
+                          style={{ backgroundColor: `${color}08` }}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <ProgramIcon program={program} size="sm" className="shrink-0" showBackground />
+                            <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors truncate">
+                              {stats.name || PROGRAM_LABELS[program] || program}
+                            </span>
+                          </div>
+                          <Badge variant="secondary" className="font-bold font-mono text-xs px-2 h-5">
+                            {(stats.count || 0).toLocaleString("en-US")}
+                          </Badge>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {/* 2. المشاريع والطلبات حسب المرحلة */}
+              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold">
+                      <Activity className="w-4.5 h-4.5 text-primary" />
+                      <span>المشاريع والطلبات حسب المرحلة</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">المراحل الهندسية والفنية الحالية للمشاريع</CardDescription>
+                  </div>
+                  <Link href="/requests">
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                      <span>عرض الكل</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 space-y-3">
+                  {Object.entries(requestStats?.byStage || {}).slice(0, 6).map(([stage, count]) => {
+                    const percentage = Math.min(((count as number) / (requestStats?.total || 1)) * 100, 100);
+                    return (
+                      <div key={stage} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-foreground truncate max-w-[80%]">{STAGE_LABELS[stage] || stage}</span>
+                          <Badge variant="secondary" className="font-bold font-mono text-[10px] h-5 px-1.5">
+                            {(count as number).toLocaleString("en-US")}
+                          </Badge>
+                        </div>
+                        <Progress value={percentage} className="h-1.5" />
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {/* 3. المساجد المسجلة حسب المدن */}
+              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base font-bold">
+                      <Building2 className="w-4.5 h-4.5 text-primary" />
+                      <span>المساجد حسب المدن والمناطق</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs">المدن والمحافظات ذات الكثافة الأكبر في المساجد</CardDescription>
+                  </div>
+                  <Link href="/mosques">
+                    <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                      <span>عرض الكل</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-5 space-y-3">
+                  {Object.entries(mosqueStats?.byCity || {})
+                    .sort((a, b) => (b[1] as number) - (a[1] as number))
+                    .slice(0, 6)
+                    .map(([city, count]) => {
+                      const percentage = Math.min(((count as number) / (mosqueStats?.total || 1)) * 100, 100);
+                      return (
+                        <div key={city} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground truncate">
+                              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span>{city}</span>
+                            </span>
+                            <Badge variant="outline" className="font-bold font-mono text-[10px] h-5 px-1.5 border-primary/30 text-primary">
+                              {(count as number).toLocaleString("en-US")} مسجد
+                            </Badge>
+                          </div>
+                          <Progress value={percentage} className="h-1.5" />
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* قسم الفريق الميداني أو الاتصال المؤسسي أو الإدارة العامة الأخرى */}
+        {/* ========================================================================= */}
+        {!isFinancialRole && !isProjectsRole && (
           <div className="space-y-6">
             {/* توزيع الطلبات حسب البرنامج */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">

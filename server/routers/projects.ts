@@ -109,6 +109,7 @@ export const projectsRouter = router({
   // الحصول على جميع المشاريع (للتوافق مع الكود القديم)
   getAll: protectedProcedure
     .input(z.object({
+      search: z.string().optional(),
       status: z.enum(["planning", "in_progress", "on_hold", "completed", "cancelled"]).optional(),
       limit: z.number().min(1).max(1000).default(100),
       offset: z.number().min(0).default(0),
@@ -141,6 +142,17 @@ export const projectsRouter = router({
       const filters = [];
       if (input?.status) {
         filters.push(eq(projects.status, input.status));
+      }
+
+      if (input?.search && input.search.trim()) {
+        const searchPattern = `%${input.search.trim().toLowerCase()}%`;
+        filters.push(
+          or(
+            like(sql`LOWER(${projects.projectNumber})`, searchPattern),
+            like(sql`LOWER(${projects.name})`, searchPattern),
+            like(sql`LOWER(COALESCE(${projects.description}, ''))`, searchPattern)
+          )
+        );
       }
 
       if (ctx.user?.role === "project_manager") {
