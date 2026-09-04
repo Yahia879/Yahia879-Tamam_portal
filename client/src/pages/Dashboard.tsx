@@ -260,7 +260,7 @@ export default function Dashboard() {
       return "لوحة مؤشرات الإدارة المالية: متابعة طلبات الصرف، أوامر الصرف، الموردين، والاعتمادات المالية";
     }
     if (isProjectsRole) {
-      return "لوحة إدارة المشاريع: متابعة المشاريع الإنشائية، جداول الكميات، وتقارير الإنجاز الفنية";
+      return "لوحة إدارة المشاريع: متابعة المشاريع، جداول الكميات، وتقارير الإنجاز الفنية";
     }
     if (isFieldRole) {
       return "لوحة المتابعة الميدانية: مواعيد الزيارات، استمارات المعاينة، وطلبات الاستجابة السريعة";
@@ -1256,7 +1256,7 @@ export default function Dashboard() {
                   <CardDescription className="text-xs sm:text-sm font-medium mt-1 text-muted-foreground">
                     {debouncedProjectsSearch 
                       ? `نتائج البحث عن "${debouncedProjectsSearch}" في المشاريع والطلبات والمساجد المسجلة`
-                      : "آخر المشاريع الإنشائية، طلبات المساجد، والمساجد المسجلة مع إمكانية البحث الفوري في كافة السجلات"}
+                      : "آخر المشاريع، طلبات المساجد، والمساجد المسجلة مع إمكانية البحث الفوري في كافة السجلات"}
                   </CardDescription>
                 </div>
 
@@ -1293,7 +1293,7 @@ export default function Dashboard() {
                     <TabsList className="bg-muted/60 p-1">
                       <TabsTrigger value="projects" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
                         <FolderKanban className="w-4 h-4" />
-                        <span>المشاريع الإنشائية ({filteredRecentProjects.length})</span>
+                        <span>المشاريع ({filteredRecentProjects.length})</span>
                       </TabsTrigger>
                       <TabsTrigger value="requests" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
                         <FileText className="w-4 h-4" />
@@ -1306,7 +1306,7 @@ export default function Dashboard() {
                     </TabsList>
                   </div>
 
-                  {/* تبويب 1: المشاريع الإنشائية */}
+                  {/* تبويب 1: المشاريع */}
                   <TabsContent value="projects" className="m-0">
                     {filteredRecentProjects.length === 0 ? (
                       <div className="p-12 text-center text-muted-foreground">
@@ -1329,20 +1329,11 @@ export default function Dashboard() {
                               <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الميزانية التقديرية</TableHead>
                               <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">نسبة الإنجاز</TableHead>
                               <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">مدير المشروع</TableHead>
-                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
                               <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody className="divide-y divide-border/60">
                             {filteredRecentProjects.map((project: any) => {
-                              const statusColorMap: Record<string, { label: string; className: string }> = {
-                                in_progress: { label: "قيد التنفيذ", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800" },
-                                completed: { label: "مكتمل", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" },
-                                planning: { label: "تخطيط", className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800" },
-                                on_hold: { label: "معلق", className: "bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800" },
-                                cancelled: { label: "ملغي", className: "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800" },
-                              };
-                              const statusInfo = statusColorMap[project.status] || { label: project.status || "قيد المتابعة", className: "bg-slate-100 text-slate-700 border-slate-300" };
                               const progressVal = Number(project.completionPercentage || 0);
 
                               return (
@@ -1383,14 +1374,7 @@ export default function Dashboard() {
                                     </span>
                                   </TableCell>
 
-                                  {/* 6. الحالة */}
-                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
-                                    <Badge variant="outline" className={`text-xs font-extrabold py-1 px-3 rounded-lg ${statusInfo.className}`}>
-                                      {statusInfo.label}
-                                    </Badge>
-                                  </TableCell>
-
-                                  {/* 7. إجراء */}
+                                  {/* 6. إجراء */}
                                   <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
                                     <Link href="/projects">
                                       <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل المشروع">
