@@ -460,7 +460,7 @@ function RequesterLayout({ children }: { children: React.ReactNode }) {
     refetchInterval: 10000,
   });
 
-  const mainLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
+  const mainLogoSrc = orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || '/logo.svg';
   const orgName = orgSettings?.organizationName || 'بوابة تمام';
   const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
 
@@ -643,8 +643,8 @@ function DashboardLayoutContent({
   });
   // الشعار الأبيض (أيقونة) للقائمة الجانبية والهيدر
   const sidebarLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
-  // الشعار الأبيض (للهيدر في الموبايل)
-  const mainLogoSrc = orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || '/logo-white.svg';
+  // الشعار الرئيسي من صفحة الهوية (للهيدر في الموبايل)
+  const mainLogoSrc = orgSettings?.logoUrl || orgSettings?.secondaryLogoUrl || '/logo.svg';
   // اسم الجمعية
   const orgName = orgSettings?.organizationName || 'بوابة تمام';
   const orgNameShort = orgSettings?.organizationNameShort || 'للعناية بالمساجد';
