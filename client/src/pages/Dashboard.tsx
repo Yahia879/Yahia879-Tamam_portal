@@ -874,7 +874,6 @@ export default function Dashboard() {
                 {
                   title: "إجمالي الميزانيات التقديرية",
                   value: formatCurrencyEn((projectStats as any)?.totalBudget || 0),
-                  subtext: `المصروف الفعلي: ${formatCurrencyEn((projectStats as any)?.totalActualCost || 0)}`,
                   icon: Wallet,
                   gradient: "from-emerald-600 to-green-600",
                   link: "/projects",
