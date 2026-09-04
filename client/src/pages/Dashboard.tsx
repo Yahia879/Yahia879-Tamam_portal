@@ -53,9 +53,13 @@ import {
   Loader2,
   X,
   MapPin,
+  Zap,
+  Phone,
+  CalendarDays,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
@@ -237,6 +241,58 @@ export default function Dashboard() {
   const filteredRecentProjects = Array.isArray(recentProjectsData) ? recentProjectsData : (recentProjectsData as any)?.projects || [];
   const filteredRecentRequestsProjects = recentRequestsDataProjects?.requests || [];
   const filteredRecentMosquesProjects = recentMosquesDataProjects?.mosques || [];
+
+  // حالة البحث الشامل والبيانات المخصصة للفريق الميداني
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [debouncedFieldSearch, setDebouncedFieldSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedFieldSearch(fieldSearch.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [fieldSearch]);
+
+  const currentMonthStart = useMemo(() => startOfMonth(new Date()), []);
+  const currentMonthEnd = useMemo(() => endOfMonth(new Date()), []);
+  const startDateMonthStr = useMemo(() => format(currentMonthStart, "yyyy-MM-dd"), [currentMonthStart]);
+  const endDateMonthStr = useMemo(() => format(currentMonthEnd, "yyyy-MM-dd"), [currentMonthEnd]);
+  const todayDateStr = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
+
+  // إحصائيات تقويم الميداني
+  const { data: calendarStats } = trpc.calendar.getCalendarSummaryStats.useQuery(
+    {
+      startDate: startDateMonthStr,
+      endDate: endDateMonthStr,
+    },
+    { enabled: isFieldRole }
+  );
+
+  // الزيارات والمواعيد الميدانية الموحدة
+  const { data: rawFieldEvents = [], isLoading: isLoadingFieldEvents } = trpc.calendar.getUnifiedEvents.useQuery(
+    {
+      eventType: "all",
+      search: debouncedFieldSearch || undefined,
+    },
+    { enabled: isFieldRole }
+  );
+  const fieldEvents: any[] = Array.isArray(rawFieldEvents) ? rawFieldEvents : [];
+
+  // طلبات مرحلة المعاينة الميدانية
+  const { data: pendingFieldRequestsData, isLoading: isLoadingPendingField } = trpc.requests.search.useQuery(
+    {
+      currentStage: "field_visit",
+      search: debouncedFieldSearch || undefined,
+      limit: 50,
+    },
+    { enabled: isFieldRole }
+  );
+  const pendingFieldRequests = pendingFieldRequestsData?.requests || [];
+
+  // مواعيد اليوم والمهام العاجلة
+  const todayFieldEvents = useMemo(() => {
+    return fieldEvents.filter((evt: any) => evt.date === todayDateStr || evt.priority === "urgent");
+  }, [fieldEvents, todayDateStr]);
 
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
@@ -877,6 +933,125 @@ export default function Dashboard() {
                   icon: Wallet,
                   gradient: "from-emerald-600 to-green-600",
                   link: "/projects",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
+                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
+                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
+                          </p>
+                        </div>
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : isFieldRole ? (
+          /* ========================================================================= */
+          /* كروت الفريق الميداني (8 Cards في صفين منظمين ومتطابقين) */
+          /* ========================================================================= */
+          <div className="space-y-3 sm:space-y-3.5">
+            {/* الصف الأول: 4 كروت أساسية للمواعيد والمعاينات */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              {[
+                {
+                  title: "مواعيد ومعاينات اليوم",
+                  value: ((calendarStats as any)?.todayCount || todayFieldEvents.length || 0).toLocaleString("en-US"),
+                  subtext: "معاينات ميدانية مجدولة لليوم",
+                  icon: CalendarDays,
+                  gradient: "from-teal-600 to-emerald-600",
+                  link: "/field-visits/calendar",
+                },
+                {
+                  title: "الزيارات الميدانية المجدولة",
+                  value: ((calendarStats as any)?.fieldVisits || fieldEvents.filter((e: any) => e.type === "field_visit").length || 0).toLocaleString("en-US"),
+                  subtext: "زيارات كشف فني مسندة ومجدولة",
+                  icon: MapPin,
+                  gradient: "from-blue-600 to-cyan-600",
+                  link: "/field-visits",
+                },
+                {
+                  title: "طلبات بمرحلة المعاينة",
+                  value: ((requestStats as any)?.byStage?.field_visit || 0).toLocaleString("en-US"),
+                  subtext: "طلبات بانتظار استكمال الكشف الفني",
+                  icon: ClipboardList,
+                  gradient: "from-indigo-600 to-purple-600",
+                  link: "/requests?stage=field_visit",
+                },
+                {
+                  title: "الاستجابة السريعة الميدانية",
+                  value: ((calendarStats as any)?.quickResponse || (requestStats as any)?.byStage?.quick_response || 0).toLocaleString("en-US"),
+                  subtext: "حالات صيانة عاجلة وبلاغات طارئة",
+                  icon: Zap,
+                  gradient: "from-amber-500 to-orange-600",
+                  link: "/requests?stage=quick_response",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
+                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
+                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
+                          </p>
+                        </div>
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            {/* الصف الثاني: 4 كروت للتقارير، المساجد، والمهام */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              {[
+                {
+                  title: "المعاينات المنجزة",
+                  value: ((calendarStats as any)?.finalReports || (requestStats as any)?.byStatus?.completed || 0).toLocaleString("en-US"),
+                  subtext: "زيارات وتقارير تم اعتمادها",
+                  icon: CheckCircle2,
+                  gradient: "from-emerald-600 to-teal-600",
+                  link: "/field-visits",
+                },
+                {
+                  title: "المساجد المسجلة",
+                  value: ((mosqueStats as any)?.total || 0).toLocaleString("en-US"),
+                  subtext: "مساجد معتمدة في النظام الجغرافي",
+                  icon: Building2,
+                  gradient: "from-cyan-600 to-blue-600",
+                  link: "/mosques",
+                },
+                {
+                  title: "المهام الميدانية المخصصة",
+                  value: ((calendarStats as any)?.customEvents || 0).toLocaleString("en-US"),
+                  subtext: "اجتماعات ومسوح ميدانية خاصة",
+                  icon: Sparkles,
+                  gradient: "from-violet-600 to-purple-600",
+                  link: "/field-visits/calendar",
+                },
+                {
+                  title: "إجمالي المواعيد والمهام",
+                  value: ((calendarStats as any)?.total || fieldEvents.length || 0).toLocaleString("en-US"),
+                  subtext: "إجمالي حركة العمل الميداني المسجلة",
+                  icon: Activity,
+                  gradient: "from-slate-700 to-slate-900",
+                  link: "/field-visits/calendar",
                 },
               ].map((stat, idx) => (
                 <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
@@ -1830,9 +2005,644 @@ export default function Dashboard() {
         )}
 
         {/* ========================================================================= */}
+        {/* قسم الفريق الميداني المخصص (Field Team Hub) */}
+        {/* ========================================================================= */}
+        {isFieldRole && (
+          <div className="space-y-6">
+            {/* بطاقة السجلات التشغيلية للمعاينة مع البحث الشامل والتبويبات */}
+            <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
+              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
+                <div>
+                  <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2.5">
+                    <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                    <span>الجدول التشغيلي للمعاينة والزيارات الميدانية</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm font-medium mt-1 text-muted-foreground">
+                    {debouncedFieldSearch 
+                      ? `نتائج البحث عن "${debouncedFieldSearch}" في جدول المعاينات والطلبات الميدانية`
+                      : "متابعة مواعيد الكشف الميداني، طلبات المعاينة المسندة، والمهام العاجلة مع إمكانية البحث الفوري"}
+                  </CardDescription>
+                </div>
+
+                {/* حقل بحث شامل وفوري للميداني */}
+                <div className="relative w-full sm:w-80 md:w-[420px] shrink-0">
+                  <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <Input
+                    placeholder="بحث برقم الطلب، اسم المسجد، المدينة، أو المسؤول..."
+                    value={fieldSearch}
+                    onChange={(e) => setFieldSearch(e.target.value)}
+                    className="h-11 sm:h-12 pr-11 pl-11 text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
+                  />
+                  {fieldSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setFieldSearch("")}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+                      title="مسح البحث"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {(isLoadingFieldEvents || isLoadingPendingField) && debouncedFieldSearch && (
+                    <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+
+              <CardContent className="p-0">
+                <Tabs defaultValue="visits" dir="rtl" className="w-full">
+                  <div className="px-4 pt-3 border-b border-border/60 bg-muted/20">
+                    <TabsList className="bg-muted/60 p-1">
+                      <TabsTrigger value="visits" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <CalendarDays className="w-4 h-4" />
+                        <span>جدول المعاينات والزيارات ({fieldEvents.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="pending" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <ClipboardList className="w-4 h-4" />
+                        <span>طلبات بمرحلة المعاينة ({pendingFieldRequests.length})</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="today" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <Clock className="w-4 h-4" />
+                        <span>مواعيد اليوم والمهام العاجلة ({todayFieldEvents.length})</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  {/* تبويب 1: جدول المعاينات والزيارات الميدانية */}
+                  <TabsContent value="visits" className="m-0">
+                    {fieldEvents.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedFieldSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد زيارات مطابقة لـ "{debouncedFieldSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث برقم طلب آخر أو اسم مسجد مختلف</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد زيارات ميدانية مسجلة حالياً</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
+                            <TableRow>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم الطلب</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">اسم المسجد / المدينة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المسار والنوع</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">موعد الزيارة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المسؤول الميداني</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/60">
+                            {fieldEvents.map((evt: any) => {
+                              const statusMap: Record<string, { label: string; className: string }> = {
+                                scheduled: { label: "مجدول", className: "bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800" },
+                                executed: { label: "تم التنفيذ", className: "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800" },
+                                reported: { label: "تم رفع التقرير", className: "bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" },
+                                completed: { label: "مكتمل", className: "bg-teal-50 text-teal-700 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800" },
+                              };
+                              const statusInfo = statusMap[evt.status] || { label: evt.status || "مجدول", className: "bg-slate-100 text-slate-700 border-slate-300" };
+
+                              return (
+                                <TableRow key={evt.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                  {/* 1. رقم الطلب */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Link href={evt.requestId ? `/requests/${evt.requestId}` : "/field-visits"} className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                      <span>{evt.requestNumber || `REQ-${evt.requestId || evt.rawId}`}</span>
+                                    </Link>
+                                  </TableCell>
+
+                                  {/* 2. اسم المسجد والمدينة */}
+                                  <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate">
+                                      {evt.mosqueName || evt.title}
+                                    </span>
+                                    {evt.mosqueCity && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
+                                        <MapPin className="w-3 h-3 text-primary shrink-0" />
+                                        <span>{evt.mosqueCity}</span>
+                                      </span>
+                                    )}
+                                  </TableCell>
+
+                                  {/* 3. المسار والنوع */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Badge variant="secondary" className="font-semibold text-xs py-0.5 px-2">
+                                      {evt.typeLabel || "زيارة ميدانية"}
+                                    </Badge>
+                                  </TableCell>
+
+                                  {/* 4. موعد الزيارة */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <div className="font-mono text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                                      {formatDateArabic(evt.date)}
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
+                                      <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                      <span>{evt.startTime || "09:00"}</span>
+                                    </div>
+                                  </TableCell>
+
+                                  {/* 5. المسؤول الميداني */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                      {evt.assignedToName || "الفريق الميداني"}
+                                    </span>
+                                  </TableCell>
+
+                                  {/* 6. الحالة */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Badge variant="outline" className={`text-xs font-extrabold py-1 px-3 rounded-lg ${statusInfo.className}`}>
+                                      {statusInfo.label}
+                                    </Badge>
+                                  </TableCell>
+
+                                  {/* 7. إجراء */}
+                                  <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <div className="inline-flex items-center gap-1.5">
+                                      {evt.requestId && (
+                                        <Link href={`/requests/${evt.requestId}/field-inspection`}>
+                                          <Button size="sm" className="h-8 px-2.5 text-xs font-bold bg-primary/15 hover:bg-primary/25 text-primary border border-primary/30 rounded-lg gap-1 shadow-2xs">
+                                            <ClipboardList className="w-3.5 h-3.5" />
+                                            <span>استمارة المعاينة</span>
+                                          </Button>
+                                        </Link>
+                                      )}
+                                      <Link href={evt.requestId ? `/requests/${evt.requestId}` : "/field-visits/calendar"}>
+                                        <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs font-bold text-muted-foreground hover:text-foreground rounded-lg gap-1">
+                                          <Eye className="w-3.5 h-3.5" />
+                                          <span>عرض</span>
+                                        </Button>
+                                      </Link>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedFieldSearch
+                          ? `تم العثور على ${fieldEvents.length} موعد مطابق للبحث`
+                          : `عرض ${fieldEvents.length} من المواعيد والزيارات الميدانية`}
+                      </span>
+                      <Link href="/field-visits/calendar">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
+                          <span>فتح تقويم المواعيد بالكامل</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TabsContent>
+
+                  {/* تبويب 2: طلبات المساجد بمرحلة المعاينة */}
+                  <TabsContent value="pending" className="m-0">
+                    {pendingFieldRequests.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedFieldSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد طلبات مطابقة لـ "{debouncedFieldSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث بكلمات أخرى</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد طلبات بمرحلة المعاينة حالياً</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
+                            <TableRow>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم الطلب</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">اسم المسجد / المدينة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">البرنامج</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الأولوية</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">تاريخ التقديم</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراءات المعاينة</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-border/60">
+                            {pendingFieldRequests.map((reqItem: any) => {
+                              const req = reqItem.request || reqItem;
+                              const priorityMap: Record<string, { label: string; className: string }> = {
+                                urgent: { label: "عاجل جداً", className: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300" },
+                                medium: { label: "متوسطة", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300" },
+                                normal: { label: "عادية", className: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/40 dark:text-slate-300" },
+                              };
+                              const priorityInfo = priorityMap[req.priority] || { label: "عادية", className: "bg-slate-50 text-slate-700 border-slate-200" };
+
+                              return (
+                                <TableRow key={req.id} className="hover:bg-blue-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                  {/* 1. رقم الطلب */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Link href={`/requests/${req.id}`} className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                      <span>{req.requestNumber || `REQ-${req.id}`}</span>
+                                    </Link>
+                                  </TableCell>
+
+                                  {/* 2. اسم المسجد والمدينة */}
+                                  <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate">
+                                      {reqItem.mosqueName || req.descriptiveName || "مسجد"}
+                                    </span>
+                                    {reqItem.mosqueCity && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground mt-0.5">
+                                        <MapPin className="w-3 h-3 text-primary shrink-0" />
+                                        <span>{reqItem.mosqueCity}</span>
+                                      </span>
+                                    )}
+                                  </TableCell>
+
+                                  {/* 3. البرنامج */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <ProgramIcon program={req.programType} size="sm" className="shrink-0" showBackground />
+                                      <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                                        {reqItem.programName || PROGRAM_LABELS[req.programType] || req.programType || "-"}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+
+                                  {/* 4. الأولوية */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <Badge variant="outline" className={`text-xs font-extrabold py-0.5 px-2 rounded-md ${priorityInfo.className}`}>
+                                      {priorityInfo.label}
+                                    </Badge>
+                                  </TableCell>
+
+                                  {/* 5. تاريخ التقديم */}
+                                  <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5 font-mono font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                                    {formatDateArabic(req.createdAt)}
+                                  </TableCell>
+
+                                  {/* 6. إجراءات */}
+                                  <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                    <div className="inline-flex items-center gap-1.5">
+                                      <Link href={`/field-visits/schedule/${req.id}`}>
+                                        <Button size="sm" className="h-8 px-2.5 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-lg gap-1 shadow-xs">
+                                          <Calendar className="w-3.5 h-3.5" />
+                                          <span>جدولة موعد</span>
+                                        </Button>
+                                      </Link>
+                                      <Link href={`/requests/${req.id}/field-inspection`}>
+                                        <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs font-bold text-primary hover:bg-primary/10 border-primary/30 rounded-lg gap-1">
+                                          <ClipboardList className="w-3.5 h-3.5" />
+                                          <span>استمارة المعاينة</span>
+                                        </Button>
+                                      </Link>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedFieldSearch
+                          ? `تم العثور على ${pendingFieldRequests.length} طلب مطابق للبحث`
+                          : `عرض ${pendingFieldRequests.length} من طلبات المساجد بمرحلة المعاينة`}
+                      </span>
+                      <Link href="/requests?stage=field_visit">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
+                          <span>عرض كافة طلبات المعاينة</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </TabsContent>
+
+                  {/* تبويب 3: مواعيد اليوم والمهام العاجلة */}
+                  <TabsContent value="today" className="m-0 p-4 sm:p-5">
+                    {todayFieldEvents.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground bg-muted/20 rounded-2xl border border-dashed border-border/80">
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 opacity-80" />
+                        <p className="text-sm sm:text-base font-bold text-foreground">لا توجد مواعيد ميدانية مجدولة لهذا اليوم</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          يمكنك مراجعة جدول المعاينات القادمة أو جدولة مواعيد للطلبات المسندة
+                        </p>
+                        <div className="mt-4 flex items-center justify-center gap-2">
+                          <Link href="/field-visits/calendar">
+                            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5 font-bold">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>استعراض تقويم المواعيد</span>
+                            </Button>
+                          </Link>
+                          <Link href="/requests?stage=field_visit">
+                            <Button size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>جدولة طلبات جديدة</span>
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {todayFieldEvents.map((evt: any) => (
+                          <div 
+                            key={evt.id}
+                            className="p-4 rounded-2xl border border-border/80 bg-card hover:shadow-md hover:border-primary/40 transition-all flex flex-col justify-between gap-3 relative overflow-hidden"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>{evt.startTime || "موعد اليوم"}</span>
+                                </span>
+                                {evt.priority === "urgent" ? (
+                                  <Badge variant="destructive" className="text-[10px] font-bold">عاجل جداً</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-[10px] font-bold">اليوم</Badge>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
+                                  <Building2 className="w-4 h-4 text-primary shrink-0" />
+                                  <span className="truncate">{evt.mosqueName || evt.title}</span>
+                                </h4>
+                                {evt.mosqueCity && (
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
+                                    <span>{evt.mosqueCity}</span>
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* معلومات التنسيق والاتصال */}
+                              {(evt.contactName || evt.contactPhone) && (
+                                <div className="p-2.5 rounded-xl bg-muted/40 border border-border/60 text-xs space-y-1">
+                                  <span className="text-[11px] text-muted-foreground block font-semibold">مسؤول التنسيق بالمسجد:</span>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-bold text-foreground truncate">{evt.contactName || "مسؤول المسجد"}</span>
+                                    {evt.contactPhone && (
+                                      <a href={`tel:${evt.contactPhone}`} className="inline-flex items-center gap-1 text-primary hover:underline font-mono font-bold shrink-0">
+                                        <Phone className="w-3 h-3" />
+                                        <span>{evt.contactPhone}</span>
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-border/40 flex items-center gap-2">
+                              {evt.requestId ? (
+                                <Link href={`/requests/${evt.requestId}/field-inspection`} className="flex-1">
+                                  <Button size="sm" className="w-full h-8 text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs">
+                                    <ClipboardList className="w-3.5 h-3.5" />
+                                    <span>بدء المعاينة الآن</span>
+                                  </Button>
+                                </Link>
+                              ) : null}
+                              <Link href={evt.requestId ? `/requests/${evt.requestId}` : "/field-visits/calendar"}>
+                                <Button size="sm" variant="outline" className="h-8 text-xs font-bold rounded-xl px-2.5">
+                                  <Eye className="w-3.5 h-3.5" />
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* بطاقات تحليلات ومعلومات موسعة للفريق الميداني */}
+            <div className="space-y-6">
+              {/* 1. توزيع طلبات المعاينة حسب البرنامج */}
+              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                      <Layers className="w-5 h-5 text-primary" />
+                      <span>توزيع طلبات المعاينة حسب البرنامج</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                      تصنيف طلبات المعاينة والكشف الفني على البرامج التشغيلية والتنموية
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <Badge variant="secondary" className="hidden sm:inline-flex font-mono text-xs px-2.5 py-1 font-semibold">
+                      إجمالي {(requestStats?.total || 0).toLocaleString("en-US")} طلب
+                    </Badge>
+                    <Link href="/requests">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>عرض الكل</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
+                    {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
+                      const color = PROGRAM_COLORS[program] || '#6B7280';
+                      const stats = data as { count: number; name?: string };
+                      const count = stats.count || 0;
+                      const total = requestStats?.total || 1;
+                      const percentage = ((count / total) * 100).toFixed(0);
+                      return (
+                        <Link key={program} href={`/requests?program=${program}`}>
+                          <div 
+                            className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border/70 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden bg-card min-h-[140px]"
+                            style={{
+                              background: `linear-gradient(150deg, ${color}14 0%, transparent 70%)`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <ProgramIcon program={program} size="md" className="shrink-0 shadow-2xs" showBackground />
+                              <Badge variant="secondary" className="font-mono text-[11px] font-bold px-1.5 py-0 h-5 bg-background/80 border border-border/40">
+                                {percentage}%
+                              </Badge>
+                            </div>
+                            
+                            <div className="mt-3 space-y-1">
+                              <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
+                                {stats.name || PROGRAM_LABELS[program] || program}
+                              </p>
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tracking-tight">
+                                  {count.toLocaleString("en-US")}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground font-medium">طلب</span>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
+                              <span>استعراض</span>
+                              <ArrowUpRight className="w-3 h-3 transition-transform group-hover:translate-x-[-2px] group-hover:translate-y-[-2px]" />
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* شبكة ثنائية: المدن والمناطق + المسارات والمهام التشغيلية */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* المساجد حسب المدن والمناطق */}
+                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                        <Building2 className="w-5 h-5 text-primary" />
+                        <span>المساجد حسب المدن والمناطق</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        المدن والمحافظات ذات الكثافة الأكبر في المساجد الميدانية
+                      </CardDescription>
+                    </div>
+                    <Link href="/mosques">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>عرض الكل</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 space-y-3">
+                    {Object.entries(mosqueStats?.byCity || {})
+                      .sort((a, b) => (b[1] as number) - (a[1] as number))
+                      .slice(0, 8)
+                      .map(([city, count], idx) => {
+                        const total = mosqueStats?.total || 1;
+                        const percentage = Math.min(((count as number) / total) * 100, 100);
+                        return (
+                          <div key={city} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-5 h-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold font-mono shrink-0">
+                                  {idx + 1}
+                                </div>
+                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground truncate">
+                                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                                  <span>{city}</span>
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                                  {percentage.toFixed(1)}%
+                                </span>
+                                <Badge variant="outline" className="font-bold font-mono text-xs px-2.5 h-6 border-primary/30 text-primary bg-primary/5">
+                                  {(count as number).toLocaleString("en-US")} مسجد
+                                </Badge>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2 rounded-full bg-muted" />
+                          </div>
+                        );
+                      })}
+                    {Object.keys(mosqueStats?.byCity || {}).length > 8 && (
+                      <Link href="/mosques">
+                        <Button variant="ghost" className="w-full text-primary text-xs h-8.5 font-bold mt-1">
+                          <span>عرض كافة المدن ({Object.keys(mosqueStats?.byCity || {}).length})</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* توزيع المهام الميدانية حسب المسار التشغيلي */}
+                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
+                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
+                        <Activity className="w-5 h-5 text-primary" />
+                        <span>توزيع المهام حسب المسار التشغيلي</span>
+                      </CardTitle>
+                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                        تصنيف المهام بين زيارات معاينة واستجابة سريعة وتقارير ختامية
+                      </CardDescription>
+                    </div>
+                    <Link href="/field-visits/calendar">
+                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
+                        <span>تقويم المواعيد</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-4 sm:p-5 space-y-3">
+                    {[
+                      {
+                        key: "field_visits",
+                        label: "الزيارات الميدانية الهندسية",
+                        count: Number((calendarStats as any)?.fieldVisits || (requestStats as any)?.byStage?.field_visit || 0),
+                        color: "bg-teal-500",
+                        icon: MapPin,
+                      },
+                      {
+                        key: "quick_response",
+                        label: "طلبات الاستجابة السريعة",
+                        count: Number((calendarStats as any)?.quickResponse || (requestStats as any)?.byStage?.quick_response || 0),
+                        color: "bg-amber-500",
+                        icon: Zap,
+                      },
+                      {
+                        key: "final_reports",
+                        label: "التقارير الختامية للمعاينة",
+                        count: Number((calendarStats as any)?.finalReports || 0),
+                        color: "bg-emerald-500",
+                        icon: CheckCircle2,
+                      },
+                      {
+                        key: "custom_events",
+                        label: "المسوح والمهام الميدانية المخصصة",
+                        count: Number((calendarStats as any)?.customEvents || 0),
+                        color: "bg-indigo-500",
+                        icon: Sparkles,
+                      },
+                    ].map((track) => {
+                      const totalCalendar = Number((calendarStats as any)?.total || 1);
+                      const percentage = Math.min((track.count / (totalCalendar > 0 ? totalCalendar : 1)) * 100, 100);
+                      const TrackIcon = track.icon;
+                      return (
+                        <div key={track.key} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`w-2 h-2 rounded-full ${track.color} shrink-0`} />
+                              <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground truncate">
+                                <TrackIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span>{track.label}</span>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                                {percentage.toFixed(0)}%
+                              </span>
+                              <Badge variant="secondary" className="font-bold font-mono text-xs px-2.5 h-6">
+                                {track.count.toLocaleString("en-US")} مهمة
+                              </Badge>
+                            </div>
+                          </div>
+                          <Progress value={percentage} className="h-2 rounded-full bg-muted" />
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
         {/* قسم الفريق الميداني أو الاتصال المؤسسي أو الإدارة العامة الأخرى */}
         {/* ========================================================================= */}
-        {!isFinancialRole && !isProjectsRole && (
+        {!isFinancialRole && !isProjectsRole && !isFieldRole && (
           <div className="space-y-6">
             {/* توزيع الطلبات حسب البرنامج */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
