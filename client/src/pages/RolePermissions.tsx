@@ -479,20 +479,6 @@ export default function RolePermissions() {
           ]
         }
       ]
-    },
-    {
-      title: "مركز الإحصائيات والتحليلات",
-      modules: [
-        {
-          id: "analytics_hub",
-          nameAr: "مركز الإحصائيات والتحليلات",
-          icon: BarChart3,
-          permissions: [
-            { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
-            { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
-          ]
-        }
-      ]
     }
   ];
 
@@ -519,15 +505,6 @@ export default function RolePermissions() {
         { id: "branding.edit", nameAr: "تعديل عناصر الهوية" },
         { id: "branding.delete", nameAr: "حذف عنصر هوية" },
         { id: "branding.assets", nameAr: "إدارة أصول الهوية البصرية" },
-      ]
-    },
-    {
-      id: "analytics_hub",
-      nameAr: "مركز الإحصائيات والتحليلات",
-      icon: BarChart3,
-      permissions: [
-        { id: "analytics_hub.beneficiary", nameAr: "عرض رضا المستفيدين" },
-        { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
       ]
     }
   ];
@@ -660,23 +637,6 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
-          ]
-        }
-      ]
-    },
-    {
-      title: "مركز الإحصائيات والتحليلات",
-      modules: [
-        {
-          id: "analytics_hub",
-          nameAr: "مركز الإحصائيات والتحليلات",
-          icon: BarChart3,
-          permissions: [
-            { id: "analytics_hub.custom", nameAr: "عرض وتخصيص اللوحة المخصصة" },
-            { id: "analytics_hub.kpi", nameAr: "عرض مؤشرات الأداء العامة (KPI)" },
-            { id: "analytics_hub.technical", nameAr: "عرض التقارير الإحصائية والفنية" },
-            { id: "analytics_hub.progress", nameAr: "عرض تقارير ونسب الإنجاز" },
-            { id: "analytics_hub.operations", nameAr: "عرض تقارير العمليات والمعاينات" },
           ]
         }
       ]
@@ -887,27 +847,6 @@ export default function RolePermissions() {
       ]
     },
     {
-      title: "مركز الإحصائيات والتحليلات",
-      modules: [
-        {
-          id: "analytics_hub",
-          nameAr: "مركز الإحصائيات والتحليلات",
-          icon: BarChart3,
-          perms: [
-            "custom",
-            "kpi",
-            "technical",
-            "financial_report",
-            "financial_dash",
-            "board",
-            "beneficiary",
-            "operations",
-            "progress"
-          ]
-        }
-      ]
-    },
-    {
       title: "إدارة المستخدمين",
       modules: [
         { id: "staff_users", nameAr: "المستخدمين", icon: Users, perms: ["view", "add", "edit", "suspend", "delete"] },
@@ -964,27 +903,6 @@ export default function RolePermissions() {
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
-      ]
-    },
-    {
-      title: "مركز الإحصائيات والتحليلات",
-      modules: [
-        {
-          id: "analytics_hub",
-          nameAr: "مركز الإحصائيات والتحليلات",
-          icon: BarChart3,
-          perms: [
-            "custom",
-            "kpi",
-            "technical",
-            "financial_report",
-            "financial_dash",
-            "board",
-            "beneficiary",
-            "operations",
-            "progress"
-          ]
-        }
       ]
     },
     {

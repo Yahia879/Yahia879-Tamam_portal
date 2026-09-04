@@ -817,27 +817,6 @@ export default function UserPermissions() {
       ]
     },
     {
-      title: "مركز الإحصائيات والتحليلات",
-      modules: [
-        {
-          id: "analytics_hub",
-          nameAr: "مركز الإحصائيات والتحليلات",
-          icon: BarChart3,
-          perms: [
-            "custom",
-            "kpi",
-            "technical",
-            "financial_report",
-            "financial_dash",
-            "board",
-            "beneficiary",
-            "operations",
-            "progress"
-          ]
-        }
-      ]
-    },
-    {
       title: "الدعم الفني",
       modules: [
         { id: "technical_support", nameAr: "الدعم الفني", icon: LifeBuoy, perms: ["view", "create"] }
