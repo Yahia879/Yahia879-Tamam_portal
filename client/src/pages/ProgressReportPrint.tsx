@@ -523,8 +523,8 @@ export default function ProgressReportPrint() {
             ? currentUser?.id === report?.exceptionApprovedBy
             : hasExceptionApprove;
 
-          const canControlCreatorSig = (isProjectManager || currentUser?.role === "super_admin" || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
-          const canControlExecSig = (isExecutiveDirectorRole || currentUser?.role === "super_admin") && !!executiveDirectorSignatureUrl && isReportStage2Approved;
+          const canControlCreatorSig = (isProjectManager || (report?.isException && isExceptionApprover)) && !!resolvedSignatureUrl && isReportStage1Approved;
+          const canControlExecSig = isExecutiveDirectorRole && !!executiveDirectorSignatureUrl && isReportStage2Approved;
 
           return (
             <>
