@@ -31,7 +31,7 @@ import {
   Receipt,
 } from "lucide-react";
 import BoqTab from "@/components/BoqTab";
-import { PROGRAM_LABELS, STATUS_LABELS, getStageLabel } from "@shared/constants";
+import { PROGRAM_LABELS, STATUS_LABELS, getStageLabel, getStageOrder } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 
 const statusConfig: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
@@ -108,6 +108,12 @@ export default function BOQ() {
     { enabled: !!selectedRequestId }
   );
 
+  const isContractingOrLater = Boolean(
+    requestDetails?.currentStage &&
+    (getStageOrder(requestDetails.currentStage) >= getStageOrder("contracting") ||
+      ["contracting", "execution", "handover", "closed"].includes(requestDetails.currentStage))
+  );
+
   // جلب بنود جدول الكميات
   const { data: boqResult, isLoading: isLoadingBOQ, refetch } = trpc.projects.getBOQ.useQuery(
     { requestId: parseInt(selectedRequestId) || 0 },
@@ -182,14 +188,16 @@ export default function BOQ() {
                         <CheckCircle className="w-4 h-4 text-emerald-600" />
                         تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
                       </Badge>
-                      <Button
-                        size="lg"
-                        onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
-                        className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
-                      >
-                        <Receipt className="h-5 w-5" />
-                        عرض عروض الأسعار
-                      </Button>
+                      {!isContractingOrLater && (
+                        <Button
+                          size="lg"
+                          onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
+                          className="w-full sm:w-auto gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          <Receipt className="h-5 w-5" />
+                          عرض عروض الأسعار
+                        </Button>
+                      )}
                     </div>
                   ) : requestDetails?.currentStage === "boq_preparation" ? (
                     <Button
@@ -211,7 +219,7 @@ export default function BOQ() {
                       )}
                       اعتماد وإنهاء جدول الكميات
                     </Button>
-                  ) : (
+                  ) : !isContractingOrLater ? (
                     <Button
                       size="lg"
                       onClick={() => navigate(`/quotations?requestId=${selectedRequestId}`)}
@@ -220,6 +228,11 @@ export default function BOQ() {
                       <Receipt className="h-5 w-5" />
                       إدارة عروض الأسعار
                     </Button>
+                  ) : (
+                    <Badge className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs px-3 py-1.5 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      تم اعتماد عرض السعر (الجدول مقفل ومعتمد)
+                    </Badge>
                   )}
                 </CardContent>
               </Card>
