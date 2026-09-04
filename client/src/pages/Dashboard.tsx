@@ -48,6 +48,7 @@ import {
   Wallet,
   Sparkles,
   ClipboardList,
+  ClipboardCheck,
   XCircle,
   Search,
   Loader2,
@@ -294,6 +295,16 @@ export default function Dashboard() {
     return fieldEvents.filter((evt: any) => evt.date === todayDateStr || evt.priority === "urgent");
   }, [fieldEvents, todayDateStr]);
 
+  // إجمالي الطلبات المسندة للمستخدم (خاص بالفريق الميداني)
+  const { data: myAssignedRequestsData } = trpc.requests.search.useQuery(
+    {
+      assignedTo: user?.id,
+      limit: 1,
+    },
+    { enabled: isFieldRole && !!user?.id }
+  );
+  const myAssignedRequestsCount = myAssignedRequestsData?.total ?? 0;
+
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
     enabled: isProjectsRole || isExecutiveAdmin || isBoardRole,
@@ -450,40 +461,40 @@ export default function Dashboard() {
   // بطاقات الإحصائيات للفريق الميداني
   const fieldStatsCards = [
     {
-      title: "طلبات المعاينة الميدانية",
-      value: (requestStats?.byStage?.field_visit || 0).toLocaleString("en-US"),
-      subtext: "زيارات ميدانية مجدولة وقيد المعاينة",
-      icon: Calendar,
-      gradient: "from-orange-500 to-amber-600",
-      bgLight: "bg-orange-50",
-      link: "/field-visits",
-    },
-    {
-      title: "طلبات الاستجابة السريعة",
-      value: (requestStats?.byStage?.quick_response || 0).toLocaleString("en-US"),
-      subtext: "طلبات عاجلة تتطلب تدخلاً فورياً",
-      icon: AlertTriangle,
-      gradient: "from-red-500 to-rose-600",
-      bgLight: "bg-red-50",
-      link: "/requests?stage=quick_response",
-    },
-    {
-      title: "طلبات قيد المتابعة",
-      value: (requestStats?.byStatus?.in_progress || 0).toLocaleString("en-US"),
-      subtext: "طلبات جارية بمختلف المراحل",
-      icon: Clock,
-      gradient: "from-blue-600 to-indigo-700",
+      title: "إجمالي الطلبات المسندة لك",
+      value: myAssignedRequestsCount.toLocaleString("en-US"),
+      subtext: "طلبات كلف بها حسابك للمتابعة",
+      icon: FileText,
+      gradient: "from-blue-600 to-indigo-600",
       bgLight: "bg-blue-50",
       link: "/my-requests",
     },
     {
-      title: "طلبات مكتملة",
-      value: (requestStats?.byStatus?.completed || 0).toLocaleString("en-US"),
-      subtext: "طلبات تم إنجازها بنجاح",
+      title: "طلبات اليوم",
+      value: ((calendarStats as any)?.todayCount || todayFieldEvents.length || 0).toLocaleString("en-US"),
+      subtext: "معاينات وزيارات مجدولة لليوم",
+      icon: CalendarDays,
+      gradient: "from-teal-600 to-emerald-600",
+      bgLight: "bg-teal-50",
+      link: "/field-visits/calendar",
+    },
+    {
+      title: "إجمالي الطلبات المنجزة",
+      value: ((requestStats as any)?.byStatus?.completed || (calendarStats as any)?.finalReports || 0).toLocaleString("en-US"),
+      subtext: "طلبات وتقارير تم اعتماد إنجازها",
       icon: CheckCircle2,
-      gradient: "from-emerald-600 to-green-700",
+      gradient: "from-emerald-600 to-teal-600",
       bgLight: "bg-emerald-50",
       link: "/requests?status=completed",
+    },
+    {
+      title: "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية",
+      value: ((requestStats as any)?.byStage?.field_visit || pendingFieldRequests.length || 0).toLocaleString("en-US"),
+      subtext: "طلبات بمرحلة المعاينة الميدانية",
+      icon: ClipboardCheck,
+      gradient: "from-amber-500 to-orange-600",
+      bgLight: "bg-amber-50",
+      link: "/requests?stage=field_visit",
     },
   ];
 
@@ -958,122 +969,33 @@ export default function Dashboard() {
           </div>
         ) : isFieldRole ? (
           /* ========================================================================= */
-          /* كروت الفريق الميداني (8 Cards في صفين منظمين ومتطابقين) */
+          /* كروت الفريق الميداني (4 كروت معتمدة في صف واحد متناسق) */
           /* ========================================================================= */
-          <div className="space-y-3 sm:space-y-3.5">
-            {/* الصف الأول: 4 كروت أساسية للمواعيد والمعاينات */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-              {[
-                {
-                  title: "مواعيد ومعاينات اليوم",
-                  value: ((calendarStats as any)?.todayCount || todayFieldEvents.length || 0).toLocaleString("en-US"),
-                  subtext: "معاينات ميدانية مجدولة لليوم",
-                  icon: CalendarDays,
-                  gradient: "from-teal-600 to-emerald-600",
-                  link: "/field-visits/calendar",
-                },
-                {
-                  title: "الزيارات الميدانية المجدولة",
-                  value: ((calendarStats as any)?.fieldVisits || fieldEvents.filter((e: any) => e.type === "field_visit").length || 0).toLocaleString("en-US"),
-                  subtext: "زيارات كشف فني مسندة ومجدولة",
-                  icon: MapPin,
-                  gradient: "from-blue-600 to-cyan-600",
-                  link: "/field-visits",
-                },
-                {
-                  title: "طلبات بمرحلة المعاينة",
-                  value: ((requestStats as any)?.byStage?.field_visit || 0).toLocaleString("en-US"),
-                  subtext: "طلبات بانتظار استكمال الكشف الفني",
-                  icon: ClipboardList,
-                  gradient: "from-indigo-600 to-purple-600",
-                  link: "/requests?stage=field_visit",
-                },
-                {
-                  title: "الاستجابة السريعة الميدانية",
-                  value: ((calendarStats as any)?.quickResponse || (requestStats as any)?.byStage?.quick_response || 0).toLocaleString("en-US"),
-                  subtext: "حالات صيانة عاجلة وبلاغات طارئة",
-                  icon: Zap,
-                  gradient: "from-amber-500 to-orange-600",
-                  link: "/requests?stage=quick_response",
-                },
-              ].map((stat, idx) => (
-                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
-                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
-                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
-                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
-                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
-                          </p>
-                        </div>
-                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
-                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
-                        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+            {fieldStatsCards.map((stat, idx) => (
+              <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
+                <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                  <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight" title={stat.title}>
+                          {stat.title}
+                        </p>
+                        <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">
+                          {stat.value}
+                        </p>
+                        <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                          {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-
-            {/* الصف الثاني: 4 كروت للتقارير، المساجد، والمهام */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-              {[
-                {
-                  title: "المعاينات المنجزة",
-                  value: ((calendarStats as any)?.finalReports || (requestStats as any)?.byStatus?.completed || 0).toLocaleString("en-US"),
-                  subtext: "زيارات وتقارير تم اعتمادها",
-                  icon: CheckCircle2,
-                  gradient: "from-emerald-600 to-teal-600",
-                  link: "/field-visits",
-                },
-                {
-                  title: "المساجد المسجلة",
-                  value: ((mosqueStats as any)?.total || 0).toLocaleString("en-US"),
-                  subtext: "مساجد معتمدة في النظام الجغرافي",
-                  icon: Building2,
-                  gradient: "from-cyan-600 to-blue-600",
-                  link: "/mosques",
-                },
-                {
-                  title: "المهام الميدانية المخصصة",
-                  value: ((calendarStats as any)?.customEvents || 0).toLocaleString("en-US"),
-                  subtext: "اجتماعات ومسوح ميدانية خاصة",
-                  icon: Sparkles,
-                  gradient: "from-violet-600 to-purple-600",
-                  link: "/field-visits/calendar",
-                },
-                {
-                  title: "إجمالي المواعيد والمهام",
-                  value: ((calendarStats as any)?.total || fieldEvents.length || 0).toLocaleString("en-US"),
-                  subtext: "إجمالي حركة العمل الميداني المسجلة",
-                  icon: Activity,
-                  gradient: "from-slate-700 to-slate-900",
-                  link: "/field-visits/calendar",
-                },
-              ].map((stat, idx) => (
-                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
-                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
-                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="space-y-1 min-w-0 flex-1">
-                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
-                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
-                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
-                          </p>
-                        </div>
-                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
-                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
-                        </div>
+                      <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                        <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
                       </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2418,224 +2340,6 @@ export default function Dashboard() {
                 </Tabs>
               </CardContent>
             </Card>
-
-            {/* بطاقات تحليلات ومعلومات موسعة للفريق الميداني */}
-            <div className="space-y-6">
-              {/* 1. توزيع طلبات المعاينة حسب البرنامج */}
-              <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
-                      <Layers className="w-5 h-5 text-primary" />
-                      <span>توزيع طلبات المعاينة حسب البرنامج</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                      تصنيف طلبات المعاينة والكشف الفني على البرامج التشغيلية والتنموية
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <Badge variant="secondary" className="hidden sm:inline-flex font-mono text-xs px-2.5 py-1 font-semibold">
-                      إجمالي {(requestStats?.total || 0).toLocaleString("en-US")} طلب
-                    </Badge>
-                    <Link href="/requests">
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
-                        <span>عرض الكل</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
-                    {Object.entries(requestStats?.byProgram || {}).map(([program, data]) => {
-                      const color = PROGRAM_COLORS[program] || '#6B7280';
-                      const stats = data as { count: number; name?: string };
-                      const count = stats.count || 0;
-                      const total = requestStats?.total || 1;
-                      const percentage = ((count / total) * 100).toFixed(0);
-                      return (
-                        <Link key={program} href={`/requests?program=${program}`}>
-                          <div 
-                            className="group relative flex flex-col justify-between p-4 rounded-2xl border border-border/70 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer overflow-hidden bg-card min-h-[140px]"
-                            style={{
-                              background: `linear-gradient(150deg, ${color}14 0%, transparent 70%)`,
-                            }}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <ProgramIcon program={program} size="md" className="shrink-0 shadow-2xs" showBackground />
-                              <Badge variant="secondary" className="font-mono text-[11px] font-bold px-1.5 py-0 h-5 bg-background/80 border border-border/40">
-                                {percentage}%
-                              </Badge>
-                            </div>
-                            
-                            <div className="mt-3 space-y-1">
-                              <p className="font-bold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                                {stats.name || PROGRAM_LABELS[program] || program}
-                              </p>
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-xl sm:text-2xl font-bold font-mono text-foreground tracking-tight">
-                                  {count.toLocaleString("en-US")}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground font-medium">طلب</span>
-                              </div>
-                            </div>
-
-                            <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
-                              <span>استعراض</span>
-                              <ArrowUpRight className="w-3 h-3 transition-transform group-hover:translate-x-[-2px] group-hover:translate-y-[-2px]" />
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* شبكة ثنائية: المدن والمناطق + المسارات والمهام التشغيلية */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* المساجد حسب المدن والمناطق */}
-                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
-                        <Building2 className="w-5 h-5 text-primary" />
-                        <span>المساجد حسب المدن والمناطق</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                        المدن والمحافظات ذات الكثافة الأكبر في المساجد الميدانية
-                      </CardDescription>
-                    </div>
-                    <Link href="/mosques">
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
-                        <span>عرض الكل</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-5 space-y-3">
-                    {Object.entries(mosqueStats?.byCity || {})
-                      .sort((a, b) => (b[1] as number) - (a[1] as number))
-                      .slice(0, 8)
-                      .map(([city, count], idx) => {
-                        const total = mosqueStats?.total || 1;
-                        const percentage = Math.min(((count as number) / total) * 100, 100);
-                        return (
-                          <div key={city} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-5 h-5 rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold font-mono shrink-0">
-                                  {idx + 1}
-                                </div>
-                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground truncate">
-                                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-                                  <span>{city}</span>
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-[11px] font-mono text-muted-foreground font-semibold">
-                                  {percentage.toFixed(1)}%
-                                </span>
-                                <Badge variant="outline" className="font-bold font-mono text-xs px-2.5 h-6 border-primary/30 text-primary bg-primary/5">
-                                  {(count as number).toLocaleString("en-US")} مسجد
-                                </Badge>
-                              </div>
-                            </div>
-                            <Progress value={percentage} className="h-2 rounded-full bg-muted" />
-                          </div>
-                        );
-                      })}
-                    {Object.keys(mosqueStats?.byCity || {}).length > 8 && (
-                      <Link href="/mosques">
-                        <Button variant="ghost" className="w-full text-primary text-xs h-8.5 font-bold mt-1">
-                          <span>عرض كافة المدن ({Object.keys(mosqueStats?.byCity || {}).length})</span>
-                          <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                        </Button>
-                      </Link>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* توزيع المهام الميدانية حسب المسار التشغيلي */}
-                <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
-                  <CardHeader className="p-4 sm:p-5 pb-3 sm:pb-4 border-b border-border/60 flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold">
-                        <Activity className="w-5 h-5 text-primary" />
-                        <span>توزيع المهام حسب المسار التشغيلي</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-                        تصنيف المهام بين زيارات معاينة واستجابة سريعة وتقارير ختامية
-                      </CardDescription>
-                    </div>
-                    <Link href="/field-visits/calendar">
-                      <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5 font-bold">
-                        <span>تقويم المواعيد</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
-                  </CardHeader>
-                  <CardContent className="p-4 sm:p-5 space-y-3">
-                    {[
-                      {
-                        key: "field_visits",
-                        label: "الزيارات الميدانية الهندسية",
-                        count: Number((calendarStats as any)?.fieldVisits || (requestStats as any)?.byStage?.field_visit || 0),
-                        color: "bg-teal-500",
-                        icon: MapPin,
-                      },
-                      {
-                        key: "quick_response",
-                        label: "طلبات الاستجابة السريعة",
-                        count: Number((calendarStats as any)?.quickResponse || (requestStats as any)?.byStage?.quick_response || 0),
-                        color: "bg-amber-500",
-                        icon: Zap,
-                      },
-                      {
-                        key: "final_reports",
-                        label: "التقارير الختامية للمعاينة",
-                        count: Number((calendarStats as any)?.finalReports || 0),
-                        color: "bg-emerald-500",
-                        icon: CheckCircle2,
-                      },
-                      {
-                        key: "custom_events",
-                        label: "المسوح والمهام الميدانية المخصصة",
-                        count: Number((calendarStats as any)?.customEvents || 0),
-                        color: "bg-indigo-500",
-                        icon: Sparkles,
-                      },
-                    ].map((track) => {
-                      const totalCalendar = Number((calendarStats as any)?.total || 1);
-                      const percentage = Math.min((track.count / (totalCalendar > 0 ? totalCalendar : 1)) * 100, 100);
-                      const TrackIcon = track.icon;
-                      return (
-                        <div key={track.key} className="space-y-1.5 p-2.5 rounded-xl hover:bg-muted/40 transition-colors">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className={`w-2 h-2 rounded-full ${track.color} shrink-0`} />
-                              <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-foreground truncate">
-                                <TrackIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                <span>{track.label}</span>
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[11px] font-mono text-muted-foreground font-semibold">
-                                {percentage.toFixed(0)}%
-                              </span>
-                              <Badge variant="secondary" className="font-bold font-mono text-xs px-2.5 h-6">
-                                {track.count.toLocaleString("en-US")} مهمة
-                              </Badge>
-                            </div>
-                          </div>
-                          <Progress value={percentage} className="h-2 rounded-full bg-muted" />
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
           </div>
         )}
 
@@ -2819,8 +2523,8 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* الروابط السريعة المخصصة للدور - تظهر لجميع الأدوار ما عدا المسؤول المالي ومكتب المشاريع */}
-        {!isFinancialRole && !isProjectsRole && (
+        {/* الروابط السريعة المخصصة للدور - تظهر لجميع الأدوار ما عدا المسؤول المالي ومكتب المشاريع والفريق الميداني */}
+        {!isFinancialRole && !isProjectsRole && !isFieldRole && (
           <Card className="border border-border/80 shadow-xs rounded-2xl bg-card">
             <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border/60">
               <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
