@@ -621,9 +621,9 @@ export default function Dashboard() {
           /* ========================================================================= */
           /* كروت الإدارة المالية السبعة (7 Cards مطابقة تماماً لشكل بطاقات النظام في الصورة المرفقة) */
           /* ========================================================================= */
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-3.5">
             {/* الصف الأول: 4 كروت أساسية (طلبات الصرف، أوامر الصرف، الموردين، إجمالي المصروف) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
               {[
                 {
                   title: "إجمالي طلبات الصرف",
@@ -659,18 +659,18 @@ export default function Dashboard() {
                 },
               ].map((stat, idx) => (
                 <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
-                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-2xl bg-card">
-                    <CardContent className="p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-2 min-w-0 flex-1">
-                          <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-2xl sm:text-[26px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-none">{stat.value}</p>
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-tight">{stat.value}</p>
                           {stat.subtext && (
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
+                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
                           )}
                         </div>
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm shrink-0 ring-4 ring-slate-50/80 dark:ring-slate-800/80`}>
-                          <stat.icon className="w-6 h-6 text-white drop-shadow-xs" />
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
                         </div>
                       </div>
                     </CardContent>
@@ -680,7 +680,7 @@ export default function Dashboard() {
             </div>
 
             {/* الصف الثاني: 4 كروت (العقود المعتمدة، قيم العقود المعتمدة، سندات الصرف المعتمدة، طلبات عروض الأسعار) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
               {[
                 {
                   title: "العقود المعتمدة",
@@ -716,18 +716,18 @@ export default function Dashboard() {
                 },
               ].map((stat, idx) => (
                 <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
-                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-2xl bg-card">
-                    <CardContent className="p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-2 min-w-0 flex-1">
-                          <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-2xl sm:text-[26px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-none">{stat.value}</p>
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-xl sm:text-[22px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-tight">{stat.value}</p>
                           {stat.subtext && (
-                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
+                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
                           )}
                         </div>
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm shrink-0 ring-4 ring-slate-50/80 dark:ring-slate-800/80`}>
-                          <stat.icon className="w-6 h-6 text-white drop-shadow-xs" />
+                        <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
                         </div>
                       </div>
                     </CardContent>
