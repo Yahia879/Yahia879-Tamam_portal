@@ -123,24 +123,7 @@ const formatSubmissionDate = (dateStr: string | Date | null | undefined) => {
   }
 };
 
-const getDelayDaysText = (createdAt: string | Date | null | undefined): string => {
-  if (!createdAt) return "";
-  const date = new Date(createdAt);
-  if (isNaN(date.getTime())) return "";
-  
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const createdMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  
-  const diffInMs = todayMidnight.getTime() - createdMidnight.getTime();
-  const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInDays <= 0) return "اليوم";
-  if (diffInDays === 1) return "متأخر يوم واحد";
-  if (diffInDays === 2) return "متأخر يومين";
-  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
-  return `متأخر ${diffInDays} يوماً`;
-};
+import { calculateBeneficiarySLA } from "@/lib/slaHelper";
 
 const submissionTypeLabels: Record<string, { label: string; shortLabel: string; icon: string; badge: string }> = {
   donor_land: { 
@@ -215,6 +198,10 @@ export default function RequesterApprovals() {
   const pendingExceptionsCount = exceptionRequests.filter(e => e.exception.status === "pending").length;
 
   const utils = trpc.useUtils();
+
+  // جلب إعدادات مهلة المستفيدين
+  const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
+  const allowedDays = slaSettingsData?.beneficiarySLA?.durationDays ?? 3;
 
   // جلب حسابات المستخدمين
   const { data: usersResponse, isLoading, refetch } = trpc.users.getAll.useQuery({
@@ -659,16 +646,15 @@ export default function RequesterApprovals() {
                                   <div className="flex flex-col items-start gap-1">
                                     <span className="text-sm font-bold text-foreground leading-tight">{user.name ?? "—"}</span>
                                     {isPending && user.createdAt && (() => {
-                                      const delayText = getDelayDaysText(user.createdAt);
-                                      const isToday = delayText === "اليوم";
+                                      const slaInfo = calculateBeneficiarySLA(user.createdAt, allowedDays);
                                       return (
                                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold shadow-2xs ${
-                                          isToday
-                                            ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80"
-                                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                          slaInfo.isDelayed
+                                            ? "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                            : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-800/80"
                                         }`}>
-                                          <Clock className={`w-3 h-3 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
-                                          {delayText}
+                                          <Clock className={`w-3 h-3 shrink-0 ${slaInfo.isDelayed ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}`} />
+                                          {slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : "ضمن المهلة"}
                                         </span>
                                       );
                                     })()}
@@ -760,16 +746,15 @@ export default function RequesterApprovals() {
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {isPending && user.createdAt && (() => {
-                                const delayText = getDelayDaysText(user.createdAt);
-                                const isToday = delayText === "اليوم";
+                                const slaInfo = calculateBeneficiarySLA(user.createdAt, allowedDays);
                                 return (
                                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-2xs ${
-                                    isToday
-                                      ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80"
-                                      : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                    slaInfo.isDelayed
+                                      ? "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                                      : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-800/80"
                                   }`}>
-                                    <Clock className={`w-2.5 h-2.5 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
-                                    {delayText}
+                                    <Clock className={`w-2.5 h-2.5 shrink-0 ${slaInfo.isDelayed ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}`} />
+                                    {slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : "ضمن المهلة"}
                                   </span>
                                 );
                               })()}

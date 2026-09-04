@@ -130,8 +130,8 @@ const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 });
 
 export const escalationRouter = router({
-  // جلب إعدادات مدد المراحل ومهلة المستفيدين
-  getSettings: escalationProcedure.query(async () => {
+  // جلب إعدادات مدد المراحل ومهلة المستفيدين (متاح لجميع الموظفين المصرح لهم لحساب الـ SLA بدقة)
+  getSettings: protectedProcedure.query(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 

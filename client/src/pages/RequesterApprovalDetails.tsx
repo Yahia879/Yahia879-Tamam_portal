@@ -49,6 +49,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   blocked: { label: "محظور", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400", icon: XCircle },
 };
 
+import { calculateBeneficiarySLA } from "@/lib/slaHelper";
+
 const formatDateEnglish = (dateStr: string | Date | null | undefined) => {
   if (!dateStr) return "—";
   try {
@@ -61,25 +63,6 @@ const formatDateEnglish = (dateStr: string | Date | null | undefined) => {
   } catch {
     return "—";
   }
-};
-
-const getDelayDaysText = (createdAt: string | Date | null | undefined): string => {
-  if (!createdAt) return "";
-  const date = new Date(createdAt);
-  if (isNaN(date.getTime())) return "";
-  
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const createdMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  
-  const diffInMs = todayMidnight.getTime() - createdMidnight.getTime();
-  const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInDays <= 0) return "اليوم";
-  if (diffInDays === 1) return "متأخر يوم واحد";
-  if (diffInDays === 2) return "متأخر يومين";
-  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
-  return `متأخر ${diffInDays} يوماً`;
 };
 
 interface RequesterApprovalDetailsProps {
@@ -118,6 +101,9 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
     { id: userId },
     { enabled: !isNaN(userId) }
   );
+
+  const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
+  const allowedDays = slaSettingsData?.beneficiarySLA?.durationDays ?? 3;
 
   // Fetch categories for cities list
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
@@ -273,16 +259,15 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
 
           <div className="flex items-center gap-2">
             {(user.status ?? "pending") === "pending" && user.createdAt && (() => {
-              const delayText = getDelayDaysText(user.createdAt);
-              const isToday = delayText === "اليوم";
+              const slaInfo = calculateBeneficiarySLA(user.createdAt, allowedDays);
               return (
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-2xs ${
-                  isToday
-                    ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/80"
-                    : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                  slaInfo.isDelayed
+                    ? "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200/90 dark:border-rose-800/80"
+                    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200/90 dark:border-emerald-800/80"
                 }`}>
-                  <Clock className={`w-3.5 h-3.5 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
-                  {delayText}
+                  <Clock className={`w-3.5 h-3.5 shrink-0 ${slaInfo.isDelayed ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}`} />
+                  {slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : `ضمن المهلة (${slaInfo.elapsedText})`}
                 </span>
               );
             })()}
@@ -563,16 +548,15 @@ export default function RequesterApprovalDetails({ params }: RequesterApprovalDe
                       <span>{formatDateEnglish(user.createdAt)}</span>
                     </div>
                     {(user.status ?? "pending") === "pending" && user.createdAt && (() => {
-                      const delayText = getDelayDaysText(user.createdAt);
-                      const isToday = delayText === "اليوم";
+                      const slaInfo = calculateBeneficiarySLA(user.createdAt, allowedDays);
                       return (
                         <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg border ${
-                          isToday
-                            ? "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-200 dark:border-amber-800"
-                            : "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                          slaInfo.isDelayed
+                            ? "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800"
+                            : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                         }`}>
-                          <Clock className={`w-3.5 h-3.5 shrink-0 ${isToday ? "text-amber-600 dark:text-amber-400" : "text-rose-500"}`} />
-                          {delayText}
+                          <Clock className={`w-3.5 h-3.5 shrink-0 ${slaInfo.isDelayed ? "text-rose-500" : "text-emerald-600 dark:text-emerald-400"}`} />
+                          {slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : "ضمن المهلة"}
                         </span>
                       );
                     })()}

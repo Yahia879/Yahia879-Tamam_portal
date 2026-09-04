@@ -95,25 +95,9 @@ import { ar, enUS } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
+import { calculateBeneficiarySLA } from "@/lib/slaHelper";
 
-function getArabicTimeAgo(createdAt: string | Date | null | undefined): string {
-  if (!createdAt) return "تاريخ غير متاح";
-  const date = new Date(createdAt);
-  if (isNaN(date.getTime())) return "تاريخ غير متاح";
 
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const createdMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-  const diffInMs = todayMidnight.getTime() - createdMidnight.getTime();
-  const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInDays <= 0) return "مسجل اليوم";
-  if (diffInDays === 1) return "متأخر يوم واحد";
-  if (diffInDays === 2) return "متأخر يومين";
-  if (diffInDays >= 3 && diffInDays <= 10) return `متأخر ${diffInDays} أيام`;
-  return `متأخر ${diffInDays} يوماً`;
-}
 
 function formatCurrencyEn(amount: number | string | null | undefined): string {
   const num = Number(amount || 0);
@@ -217,6 +201,10 @@ export default function Dashboard() {
       navigate("/requester", { replace: true });
     }
   }, [user, navigate]);
+
+  // جلب إعدادات مهلة المستفيدين (SLA)
+  const { data: slaSettingsData } = trpc.escalation.getSettings.useQuery();
+  const allowedDays = slaSettingsData?.beneficiarySLA?.durationDays ?? 3;
 
   // جلب الإحصائيات العامة
   const { data: requestStats } = trpc.requests.getStats.useQuery();
@@ -1047,14 +1035,19 @@ export default function Dashboard() {
                       <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-base sm:text-lg shrink-0">
                         {pendingUser.name?.charAt(0) || 'م'}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{pendingUser.name}</p>
-                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{pendingUser.email}</p>
-                        <p className="text-[10px] sm:text-[11px] text-red-600 dark:text-red-400 font-semibold mt-1 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 shrink-0 text-red-500" />
-                          <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
-                        </p>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{pendingUser.name}</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{pendingUser.email}</p>
+                          {(() => {
+                            const slaInfo = calculateBeneficiarySLA(pendingUser.createdAt, allowedDays);
+                            return (
+                              <p className={`text-[10px] sm:text-[11px] font-semibold mt-1 flex items-center gap-1 ${slaInfo.isDelayed ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                <Clock className={`w-3.5 h-3.5 shrink-0 ${slaInfo.isDelayed ? "text-red-500" : "text-emerald-500"}`} />
+                                <span>{slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : `ضمن المهلة (${slaInfo.elapsedText})`}</span>
+                              </p>
+                            );
+                          })()}
+                        </div>
                       <Link href={`/requester-approvals/${pendingUser.id}`} className="shrink-0">
                         <Button size="sm" variant="outline" className="h-7 sm:h-8 text-[10px] sm:text-xs px-2 sm:px-3">
                           مراجعة
@@ -3141,14 +3134,19 @@ export default function Dashboard() {
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold text-sm shrink-0">
                         {pendingUser.name?.charAt(0) || 'م'}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-xs text-foreground truncate">{pendingUser.name}</p>
-                        <p className="text-[10px] text-muted-foreground truncate font-mono">{pendingUser.email}</p>
-                        <p className="text-[10px] text-red-600 dark:text-red-400 font-semibold mt-0.5 flex items-center gap-1">
-                          <Clock className="w-3 h-3 shrink-0 text-red-500" />
-                          <span>{getArabicTimeAgo(pendingUser.createdAt)}</span>
-                        </p>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-xs text-foreground truncate">{pendingUser.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate font-mono">{pendingUser.email}</p>
+                          {(() => {
+                            const slaInfo = calculateBeneficiarySLA(pendingUser.createdAt, allowedDays);
+                            return (
+                              <p className={`text-[10px] font-semibold mt-0.5 flex items-center gap-1 ${slaInfo.isDelayed ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                                <Clock className={`w-3 h-3 shrink-0 ${slaInfo.isDelayed ? "text-red-500" : "text-emerald-500"}`} />
+                                <span>{slaInfo.isDelayed ? `متأخر ${slaInfo.delayText}` : `ضمن المهلة (${slaInfo.elapsedText})`}</span>
+                              </p>
+                            );
+                          })()}
+                        </div>
                       <Link href={`/requester-approvals/${pendingUser.id}`} className="shrink-0">
                         <Button size="sm" variant="outline" className="h-7 text-[10px] px-2">
                           مراجعة
