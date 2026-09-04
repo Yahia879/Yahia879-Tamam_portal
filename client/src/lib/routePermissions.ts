@@ -71,7 +71,7 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   board_chairman: [
-    "dashboard", "board_chairman", "board_member", "mosques", "mosques_map", "requests", "appointments_calendar",
+    "dashboard", "board_chairman", "mosques", "mosques_map", "requests", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
     "contracts", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
@@ -107,7 +107,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── لوحة التحكم للمجلس ──
   "/board-dashboard": ["board_chairman", "board_member", "board_chairman_view"],
   "/board-executive": ["board_chairman", "board_chairman_view"],
-  "/board-analytics": ["board_member", "board_chairman", "board_chairman_view"],
+  "/board-analytics": "board_member",
 
   // ── لوحة التحكم ──
   "/dashboard": ["dashboard", "dashboard.view", "mosques", "requests", "projects", "suppliers", "staff_management", "settings_center"],
