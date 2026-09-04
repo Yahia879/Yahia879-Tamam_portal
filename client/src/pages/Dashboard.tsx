@@ -664,7 +664,7 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-xl sm:text-[22px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-tight">{stat.value}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
                           {stat.subtext && (
                             <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
                           )}
@@ -721,7 +721,7 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
-                          <p className="text-xl sm:text-[22px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-tight">{stat.value}</p>
+                          <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
                           {stat.subtext && (
                             <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
                           )}
