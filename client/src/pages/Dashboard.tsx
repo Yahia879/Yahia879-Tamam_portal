@@ -295,15 +295,10 @@ export default function Dashboard() {
     return fieldEvents.filter((evt: any) => evt.date === todayDateStr || evt.priority === "urgent");
   }, [fieldEvents, todayDateStr]);
 
-  // إجمالي الطلبات المسندة للمستخدم (خاص بالفريق الميداني)
-  const { data: myAssignedRequestsData } = trpc.requests.search.useQuery(
-    {
-      assignedTo: user?.id,
-      limit: 1,
-    },
-    { enabled: isFieldRole && !!user?.id }
-  );
-  const myAssignedRequestsCount = myAssignedRequestsData?.total ?? 0;
+  // إحصائيات لوحة التحكم الخاصة بعضو الفريق الميداني (مخصصة لحسابه الشخصي)
+  const { data: fieldUserStats } = trpc.requests.getFieldTeamDashboardStats.useQuery(undefined, {
+    enabled: isFieldRole,
+  });
 
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
@@ -462,7 +457,7 @@ export default function Dashboard() {
   const fieldStatsCards = [
     {
       title: "إجمالي الطلبات المسندة لك",
-      value: myAssignedRequestsCount.toLocaleString("en-US"),
+      value: (fieldUserStats?.assignedCount ?? 0).toLocaleString("en-US"),
       subtext: "طلبات كلف بها حسابك للمتابعة",
       icon: FileText,
       gradient: "from-blue-600 to-indigo-600",
@@ -471,7 +466,7 @@ export default function Dashboard() {
     },
     {
       title: "طلبات اليوم",
-      value: ((calendarStats as any)?.todayCount || todayFieldEvents.length || 0).toLocaleString("en-US"),
+      value: (fieldUserStats?.todayCount ?? 0).toLocaleString("en-US"),
       subtext: "معاينات وزيارات مجدولة لليوم",
       icon: CalendarDays,
       gradient: "from-teal-600 to-emerald-600",
@@ -480,21 +475,21 @@ export default function Dashboard() {
     },
     {
       title: "إجمالي الطلبات المنجزة",
-      value: ((requestStats as any)?.byStatus?.completed || (calendarStats as any)?.finalReports || 0).toLocaleString("en-US"),
+      value: (fieldUserStats?.completedCount ?? 0).toLocaleString("en-US"),
       subtext: "طلبات وتقارير تم اعتماد إنجازها",
       icon: CheckCircle2,
       gradient: "from-emerald-600 to-teal-600",
       bgLight: "bg-emerald-50",
-      link: "/requests?status=completed",
+      link: "/my-requests?status=completed",
     },
     {
       title: "إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية",
-      value: ((requestStats as any)?.byStage?.field_visit || pendingFieldRequests.length || 0).toLocaleString("en-US"),
+      value: (fieldUserStats?.pendingReportCount ?? 0).toLocaleString("en-US"),
       subtext: "طلبات بمرحلة المعاينة الميدانية",
       icon: ClipboardCheck,
       gradient: "from-amber-500 to-orange-600",
       bgLight: "bg-amber-50",
-      link: "/requests?stage=field_visit",
+      link: "/my-requests?stage=field_visit",
     },
   ];
 

@@ -27,6 +27,7 @@ import {
   requestNumberSequence,
   projectMosques,
   fieldVisits,
+  customCalendarEvents,
   programs,
   contractPayments,
   payments,
@@ -755,7 +756,14 @@ export const requestsRouter = router({
         conditions.push(eq(mosqueRequests.mosqueId, input.mosqueId));
       }
       if (input.assignedTo) {
-        conditions.push(eq(mosqueRequests.assignedTo, input.assignedTo));
+        conditions.push(
+          or(
+            eq(mosqueRequests.assignedTo, input.assignedTo),
+            eq(mosqueRequests.fieldVisitAssignedTo, input.assignedTo),
+            eq(mosqueRequests.finalReportAssignedTo, input.assignedTo),
+            eq(mosqueRequests.currentResponsible, input.assignedTo)
+          )
+        );
       }
       if (input.fromDate) {
         conditions.push(gte(mosqueRequests.createdAt, new Date(input.fromDate)));
@@ -1838,6 +1846,116 @@ export const requestsRouter = router({
 
       return { success: true, message: "تم إضافة المرفق بنجاح" };
     }),
+
+  // إحصائيات لوحة التحكم الخاصة بعضو الفريق الميداني (مخصصة لحسابه الشخصي)
+  getFieldTeamDashboardStats: protectedProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) return { assignedCount: 0, todayCount: 0, completedCount: 0, pendingReportCount: 0 };
+
+    const userId = ctx.user.id;
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // 1. إجمالي الطلبات المسندة للمستخدم
+    const [assignedRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        or(
+          eq(mosqueRequests.assignedTo, userId),
+          eq(mosqueRequests.fieldVisitAssignedTo, userId),
+          eq(mosqueRequests.finalReportAssignedTo, userId),
+          eq(mosqueRequests.currentResponsible, userId)
+        )
+      );
+
+    // 2. طلبات ومواعيد اليوم المسندة للمستخدم
+    const [todayVisitsRow] = await db
+      .select({ count: sql<number>`count(DISTINCT ${fieldVisits.requestId})` })
+      .from(fieldVisits)
+      .where(
+        and(
+          eq(fieldVisits.assignedTo, userId),
+          sql`DATE(${fieldVisits.scheduledDate}) = DATE(${todayStr})`,
+          sql`COALESCE(${fieldVisits.status}, 'scheduled') != 'cancelled'`
+        )
+      );
+
+    const [todayReqsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        and(
+          or(
+            eq(mosqueRequests.fieldVisitAssignedTo, userId),
+            eq(mosqueRequests.assignedTo, userId)
+          ),
+          or(
+            sql`DATE(${mosqueRequests.fieldVisitScheduledDate}) = DATE(${todayStr})`,
+            sql`DATE(${mosqueRequests.quickResponseScheduledDate}) = DATE(${todayStr})`
+          ),
+          sql`${mosqueRequests.id} NOT IN (
+            SELECT requestId FROM field_visits 
+            WHERE scheduledDate IS NOT NULL 
+              AND DATE(scheduledDate) = DATE(${todayStr}) 
+              AND COALESCE(status, 'scheduled') != 'cancelled'
+          )`
+        )
+      );
+
+    const [todayCustomRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(customCalendarEvents)
+      .where(
+        and(
+          eq(customCalendarEvents.assignedTo, userId),
+          sql`DATE(${customCalendarEvents.eventDate}) = DATE(${todayStr})`
+        )
+      );
+
+    const todayCount = (todayVisitsRow?.count || 0) + (todayReqsRow?.count || 0) + (todayCustomRow?.count || 0);
+
+    // 3. إجمالي الطلبات المنجزة المسندة للمستخدم
+    const [completedRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        and(
+          or(
+            eq(mosqueRequests.assignedTo, userId),
+            eq(mosqueRequests.fieldVisitAssignedTo, userId),
+            eq(mosqueRequests.finalReportAssignedTo, userId)
+          ),
+          eq(mosqueRequests.status, "completed")
+        )
+      );
+
+    // 4. إجمالي الطلبات بحاجة لرفع تقرير زيارة ميدانية المسندة للمستخدم
+    const [pendingReportRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        and(
+          or(
+            eq(mosqueRequests.fieldVisitAssignedTo, userId),
+            eq(mosqueRequests.assignedTo, userId)
+          ),
+          eq(mosqueRequests.currentStage, "field_visit"),
+          ne(mosqueRequests.status, "rejected"),
+          ne(mosqueRequests.status, "completed"),
+          sql`NOT EXISTS (
+            SELECT 1 FROM field_visit_reports 
+            WHERE field_visit_reports.requestId = ${mosqueRequests.id}
+          )`
+        )
+      );
+
+    return {
+      assignedCount: Number(assignedRow?.count || 0),
+      todayCount: Number(todayCount || 0),
+      completedCount: Number(completedRow?.count || 0),
+      pendingReportCount: Number(pendingReportRow?.count || 0),
+    };
+  }),
 
   // إحصائيات الطلبات
   getStats: protectedProcedure.query(async ({ ctx }) => {
