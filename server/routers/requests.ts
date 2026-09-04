@@ -53,27 +53,59 @@ import {
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
 
-export function getSurveyBaseUrl(req?: any): string {
-  // إذا توفر كائن الطلب في الجلسة، نستخرج الرابط الذي يعمل عليه المتصفح حالياً
-  if (req) {
-    const origin = req.headers?.origin;
-    if (origin && typeof origin === "string" && origin.trim()) {
-      return origin.replace(/\/+$/, "");
-    }
-    const host = req.headers?.["x-forwarded-host"] || req.headers?.host;
-    if (host && typeof host === "string" && host.trim()) {
-      const proto = req.headers?.["x-forwarded-proto"] || (host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https");
-      return `${proto}://${host}`.replace(/\/+$/, "");
-    }
-  }
-
-  // في التطوير والتشغيل المحلي، نستخدم localhost:3000
-  const envUrl = process.env.APP_URL || process.env.BASE_URL;
-  if (envUrl && (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"))) {
+export function getSurveyBaseUrl(_req?: any): string {
+  // الرابط الرسمي للمنصة لإرسال استبيانات رضا المستفيدين للمواطنين والمستفيدين
+  const envUrl = process.env.SURVEY_BASE_URL || process.env.APP_URL || process.env.BASE_URL;
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return envUrl.replace(/\/+$/, "");
   }
 
-  return "http://localhost:3000";
+  return "https://tamamgate.manarah.org.sa";
+}
+
+export function computeEvaluationAverage(notes: any, fallbackRating?: number | null): number {
+  let parsedNotes: any = {};
+  try {
+    if (typeof notes === "string") parsedNotes = JSON.parse(notes);
+    else if (notes && typeof notes === "object") parsedNotes = notes;
+  } catch {
+    parsedNotes = {};
+  }
+
+  const answers = parsedNotes.answers || parsedNotes || {};
+  const starRatings: number[] = [];
+
+  // 1. فحص المحاور الأساسية
+  if (typeof answers.servicesRating === "number" && answers.servicesRating > 0) starRatings.push(answers.servicesRating);
+  else if (typeof parsedNotes.servicesRating === "number" && parsedNotes.servicesRating > 0) starRatings.push(parsedNotes.servicesRating);
+
+  if (typeof answers.speedRating === "number" && answers.speedRating > 0) starRatings.push(answers.speedRating);
+  else if (typeof parsedNotes.speedRating === "number" && parsedNotes.speedRating > 0) starRatings.push(parsedNotes.speedRating);
+
+  if (typeof answers.communicationRating === "number" && answers.communicationRating > 0) starRatings.push(answers.communicationRating);
+  else if (typeof parsedNotes.communicationRating === "number" && parsedNotes.communicationRating > 0) starRatings.push(parsedNotes.communicationRating);
+
+  if (typeof answers.overallSatisfaction === "number" && answers.overallSatisfaction > 0) starRatings.push(answers.overallSatisfaction);
+  else if (typeof parsedNotes.overallSatisfaction === "number" && parsedNotes.overallSatisfaction > 0) starRatings.push(parsedNotes.overallSatisfaction);
+
+  // 2. فحص أي حقول تقييم إضافية في answers
+  const standardKeys = ["servicesRating", "speedRating", "communicationRating", "overallSatisfaction", "beneficiaryName", "beneficiaryPhone", "beneficiaryEmail", "serviceName", "comments", "notes", "answers"];
+  Object.entries(answers).forEach(([k, v]) => {
+    if (!standardKeys.includes(k) && typeof v === "number" && v >= 1 && v <= 5) {
+      starRatings.push(v);
+    }
+  });
+
+  // 3. في حال لم يوجد أي حقل، نستخدم fallbackRating إن وجد
+  if (starRatings.length === 0 && typeof fallbackRating === "number" && fallbackRating > 0) {
+    starRatings.push(fallbackRating);
+  }
+
+  const computedAverage = starRatings.length > 0
+    ? Math.round((starRatings.reduce((acc, curr) => acc + curr, 0) / starRatings.length) * 10) / 10
+    : (fallbackRating || 5);
+
+  return computedAverage;
 }
 
 export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
@@ -4306,39 +4338,7 @@ export const requestsRouter = router({
         }
 
         const answers = parsedNotes.answers || parsedNotes || {};
-
-        // استخراج كافة التقييمات الرقمية بالنجوم لحساب المتوسط الحقيقي
-        const starRatings: number[] = [];
-
-        // 1. فحص المحاور الأساسية
-        if (typeof answers.servicesRating === "number" && answers.servicesRating > 0) starRatings.push(answers.servicesRating);
-        else if (typeof parsedNotes.servicesRating === "number" && parsedNotes.servicesRating > 0) starRatings.push(parsedNotes.servicesRating);
-
-        if (typeof answers.speedRating === "number" && answers.speedRating > 0) starRatings.push(answers.speedRating);
-        else if (typeof parsedNotes.speedRating === "number" && parsedNotes.speedRating > 0) starRatings.push(parsedNotes.speedRating);
-
-        if (typeof answers.communicationRating === "number" && answers.communicationRating > 0) starRatings.push(answers.communicationRating);
-        else if (typeof parsedNotes.communicationRating === "number" && parsedNotes.communicationRating > 0) starRatings.push(parsedNotes.communicationRating);
-
-        if (typeof answers.overallSatisfaction === "number" && answers.overallSatisfaction > 0) starRatings.push(answers.overallSatisfaction);
-        else if (typeof parsedNotes.overallSatisfaction === "number" && parsedNotes.overallSatisfaction > 0) starRatings.push(parsedNotes.overallSatisfaction);
-
-        // 2. فحص أي حقول تقييم إضافية في answers
-        const standardKeys = ["servicesRating", "speedRating", "communicationRating", "overallSatisfaction", "beneficiaryName", "beneficiaryPhone", "beneficiaryEmail", "serviceName", "comments", "notes", "answers"];
-        Object.entries(answers).forEach(([k, v]) => {
-          if (!standardKeys.includes(k) && typeof v === "number" && v >= 1 && v <= 5) {
-            starRatings.push(v);
-          }
-        });
-
-        // 3. في حال لم يوجد أي حقل، نستخدم e.rating إن وجد
-        if (starRatings.length === 0 && typeof e.rating === "number" && e.rating > 0) {
-          starRatings.push(e.rating);
-        }
-
-        const computedAverage = starRatings.length > 0
-          ? Math.round((starRatings.reduce((acc, curr) => acc + curr, 0) / starRatings.length) * 10) / 10
-          : (e.rating || 5);
+        const computedAverage = computeEvaluationAverage(e.notes, e.rating);
 
         const rawService = parsedNotes.serviceName || (e.mosqueId ? mosqueMap.get(e.mosqueId) : null) || e.descriptiveName || "طلب خدمة";
         const programLabels: Record<string, string> = {
@@ -4602,7 +4602,7 @@ export const requestsRouter = router({
           if (matchedEval) {
             usedEvalIds.add(matchedEval.id);
             isCompletedEval = true;
-            effectiveRating = matchedEval.rating || matchedRequest.satisfactionRating || null;
+            effectiveRating = computeEvaluationAverage(matchedEval.notes, matchedEval.rating || matchedRequest.satisfactionRating);
             evaluatedAt = matchedEval.createdAt || matchedRequest.evaluatedAt || null;
           } else if (matchedRequest.isEvaluated) {
             isCompletedEval = true;
@@ -4622,7 +4622,7 @@ export const requestsRouter = router({
           if (matchedEval) {
             usedEvalIds.add(matchedEval.id);
             isCompletedEval = true;
-            effectiveRating = matchedEval.rating;
+            effectiveRating = computeEvaluationAverage(matchedEval.notes, matchedEval.rating);
             evaluatedAt = matchedEval.createdAt;
           }
         }
@@ -4639,7 +4639,10 @@ export const requestsRouter = router({
           ? (details.dispatchTypeLabel || "استبيان مباشر لطالب خدمة (بدون طلب)")
           : "إرسال تلقائي عند انتهاء الطلب";
 
-        const evalUrl = details.evalUrl || (reqId ? `${appBaseUrl}/requests/${reqId}/evaluation` : null);
+        let evalUrl = details.evalUrl || (reqId ? `${appBaseUrl}/requests/${reqId}/evaluation` : null);
+        if (evalUrl && typeof evalUrl === "string") {
+          evalUrl = evalUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, appBaseUrl);
+        }
 
         return {
           id: `audit-${row.id}`,
@@ -4711,7 +4714,7 @@ export const requestsRouter = router({
               dispatchTypeLabel: "إرسال تلقائي عند انتهاء الطلب",
               isEvaluated: true,
               evaluatedAt: ev.createdAt || req.evaluatedAt,
-              rating: ev.rating || req.satisfactionRating || null,
+              rating: computeEvaluationAverage(ev.notes, ev.rating || req.satisfactionRating),
               evaluationUrl: `${appBaseUrl}/requests/${req.id}/evaluation`,
             },
           });
@@ -5003,6 +5006,7 @@ export const requestsRouter = router({
         .select({
           userId: requestEvaluations.userId,
           rating: requestEvaluations.rating,
+          notes: requestEvaluations.notes,
           createdAt: requestEvaluations.createdAt,
         })
         .from(requestEvaluations)
@@ -5011,7 +5015,10 @@ export const requestsRouter = router({
       const evalByUserId = new Map<number, { rating: number | null; date: Date }>();
 
       for (const ev of existingEvals) {
-        if (ev.userId) evalByUserId.set(ev.userId, { rating: ev.rating, date: ev.createdAt });
+        if (ev.userId) {
+          const avg = computeEvaluationAverage(ev.notes, ev.rating);
+          evalByUserId.set(ev.userId, { rating: avg, date: ev.createdAt });
+        }
       }
 
       // تجميع القائمة الموحدة الخاصة بصفحة اعتمادات طالبي الخدمة
