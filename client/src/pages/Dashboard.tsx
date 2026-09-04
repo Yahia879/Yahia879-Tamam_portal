@@ -823,16 +823,16 @@ export default function Dashboard() {
                   link: "/mosques",
                 },
               ].map((stat, idx) => (
-                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
-                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
-                    <CardContent className="p-3.5 sm:p-4">
+                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
+                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
                           <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
-                          {stat.subtext && (
-                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
-                          )}
+                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
+                          </p>
                         </div>
                         <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
                           <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
@@ -879,16 +879,16 @@ export default function Dashboard() {
                   link: "/projects",
                 },
               ].map((stat, idx) => (
-                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
-                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
-                    <CardContent className="p-3.5 sm:p-4">
+                <Link key={idx} href={stat.link} className="block h-full transition-all duration-200 hover:-translate-y-1">
+                  <Card className="h-full relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-xl bg-card">
+                    <CardContent className="p-3.5 sm:p-4 h-full flex flex-col justify-between">
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="space-y-1 min-w-0 flex-1">
                           <p className="text-xs sm:text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
                           <p className="text-xl sm:text-[22px] font-semibold font-mono text-slate-800 dark:text-slate-100 tracking-tight leading-tight">{stat.value}</p>
-                          {stat.subtext && (
-                            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
-                          )}
+                          <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">
+                            {stat.subtext || <span className="invisible select-none">&nbsp;</span>}
+                          </p>
                         </div>
                         <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0 ring-3 ring-slate-100 dark:ring-slate-800/80`}>
                           <stat.icon className="w-5 h-5 text-white drop-shadow-xs" />
