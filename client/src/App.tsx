@@ -247,7 +247,7 @@ function Router() {
       <Route path="/dashboard">{() => <AdminRoute component={Dashboard} />}</Route>
       <Route path="/board-dashboard">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/board-executive">{() => <AdminRoute component={BoardDashboard} />}</Route>
-      <Route path="/board-analytics">{() => <Redirect to="/analytics-hub?tab=board" />}</Route>
+      <Route path="/board-analytics">{() => <AdminRoute component={BoardDashboard} />}</Route>
       <Route path="/requester">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/requester/dashboard">{() => <RequesterRoute component={RequesterDashboard} />}</Route>
       <Route path="/my-requests">
@@ -327,8 +327,8 @@ function Router() {
       <Route path="/settings">{() => <AdminRoute component={Settings} />}</Route>
       <Route path="/profile" component={Profile} />
       <Route path="/notifications" component={Notifications} />
-      <Route path="/reports">{() => <Redirect to="/analytics-hub?tab=technical" />}</Route>
-      <Route path="/pending-reports">{() => <Redirect to="/analytics-hub?tab=operations" />}</Route>
+      <Route path="/reports">{() => <AdminRoute component={Reports} />}</Route>
+      <Route path="/pending-reports">{() => <AdminRoute component={PendingReports} />}</Route>
       <Route path="/analytics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       <Route path="/statistics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       
@@ -389,7 +389,7 @@ function Router() {
       <Route path="/receipt-vouchers/:id">{() => <AdminRoute component={ReceiptVoucherPrint} />}</Route>
       
       {/* تقارير الإنجاز - إدارية */}
-      <Route path="/progress-reports">{() => <Redirect to="/analytics-hub?tab=progress" />}</Route>
+      <Route path="/progress-reports">{() => <AdminRoute component={ProgressReports} />}</Route>
       <Route path="/progress-reports/:id/print">{() => <AdminRoute component={ProgressReportPrint} />}</Route>
       
       {/* الاستلامات - إدارية */}
@@ -399,8 +399,8 @@ function Router() {
       <Route path="/kpi-dashboard">{() => <Redirect to="/analytics-hub?tab=kpi" />}</Route>
       
       {/* التقرير المالي - إدارية */}
-      <Route path="/financial-report">{() => <Redirect to="/analytics-hub?tab=financial-report" />}</Route>
-      <Route path="/financial-reports">{() => <Redirect to="/analytics-hub?tab=financial-report" />}</Route>
+      <Route path="/financial-report">{() => <AdminRoute component={FinancialReport} />}</Route>
+      <Route path="/financial-reports">{() => <AdminRoute component={FinancialReport} />}</Route>
       
       {/* إعدادات المراحل - إدارية */}
       <Route path="/stage-settings">{() => <AdminRoute component={StageSettings} />}</Route>

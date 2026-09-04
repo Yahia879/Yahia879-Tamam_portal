@@ -1208,6 +1208,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("forms_customization");
   }
 
+  if (
+    allPermissions.has("pending_reports.view") ||
+    allPermissions.has("pending_reports.intervene")
+  ) {
+    allPermissions.add("pending_reports");
+  }
+
+  if (allPermissions.has("board_chairman") || allPermissions.has("board_member")) {
+    allPermissions.add("board_leadership");
+  }
+
   return Array.from(allPermissions);
 }
 
@@ -1506,6 +1517,9 @@ export const permissionsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+      await ensureRequestsPermissionsExist(db);
+      await ensureAllCustomPermissionsExist(db);
+
 
 
       // إنشاء الدور مع تخزين الصلاحيات المخصصة في حقل الوصف كـ JSON
@@ -1593,6 +1607,7 @@ export const permissionsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
       await ensureRequestsPermissionsExist(db);
+      await ensureAllCustomPermissionsExist(db);
 
       const [existingRole] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
       if (!existingRole) {
