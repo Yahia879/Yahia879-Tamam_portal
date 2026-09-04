@@ -93,4 +93,22 @@ describe("Financial Dashboard", () => {
       expect(summary.pendingAmount).toBe(0);
     });
   });
+
+  describe("getStats", () => {
+    it("should return comprehensive financial stats including contracts, vouchers, and quotations", async () => {
+      const stats = await adminCaller.disbursements.getStats();
+
+      expect(stats).toBeDefined();
+      expect(typeof stats.approvedContractsCount).toBe("number");
+      expect(typeof stats.approvedContractsAmount).toBe("number");
+      expect(typeof stats.approvedOrdersCount).toBe("number");
+      expect(typeof stats.approvedOrdersAmount).toBe("number");
+      expect(typeof stats.cancelledOrdersCount).toBe("number");
+      expect(typeof stats.cancelledOrdersAmount).toBe("number");
+      expect(typeof stats.approvedReceiptVouchersCount).toBe("number");
+      expect(typeof stats.approvedReceiptVouchersAmount).toBe("number");
+      expect(typeof stats.rejectedRequests).toBe("number");
+      expect(typeof stats.rejectedOrders).toBe("number");
+    });
+  });
 });

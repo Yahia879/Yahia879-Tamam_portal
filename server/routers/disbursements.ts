@@ -20,6 +20,7 @@ import {
   userRoleAssignments,
   roles,
   projectFinancialDetails,
+  receiptVouchers,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -223,6 +224,7 @@ export const disbursementsRouter = router({
         conditions.push(
           or(
             like(sql`LOWER(${disbursementRequests.requestNumber})`, searchPattern),
+            like(sql`LOWER(${disbursementRequests.title})`, searchPattern),
             like(sql`LOWER(${disbursementRequests.description})`, searchPattern),
             like(sql`LOWER(${projects.name})`, searchPattern)
           )
@@ -3362,14 +3364,84 @@ export const disbursementsRouter = router({
       .from(disbursementOrders)
       .where(eq(disbursementOrders.status, "executed"));
 
+    // طلبات الصرف المرفوضة
+    const [rejectedRequestsRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(amount), 0)`
+      })
+      .from(disbursementRequests)
+      .where(eq(disbursementRequests.status, "rejected"));
+
+    // أوامر الصرف المرفوضة / الملغية
+    const [rejectedOrdersRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(amount), 0)`
+      })
+      .from(disbursementOrders)
+      .where(eq(disbursementOrders.status, "rejected"));
+
+    // العقود المعتمدة (يشمل approved و active و completed)
+    const [approvedContractsRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(CAST(contractAmount AS DECIMAL(15,2))), 0)`
+      })
+      .from(contractsEnhanced)
+      .where(inArray(contractsEnhanced.status, ["approved", "active", "completed"]));
+
+    // أوامر / سندات الصرف المعتمدة (يشمل approved و executed)
+    const [approvedOrdersRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(amount), 0)`
+      })
+      .from(disbursementOrders)
+      .where(inArray(disbursementOrders.status, ["approved", "executed"]));
+
+    // طلبات بمرحلة عروض الأسعار (التقييم المالي واعتماد العرض)
+    const [quotationsRequestsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mosqueRequests)
+      .where(
+        inArray(mosqueRequests.currentStage, [
+          "financial_eval_and_approval",
+          "financial_eval" as any,
+        ])
+      );
+
+    // سندات القبض المعتمدة
+    const [approvedReceiptVouchersRow] = await db
+      .select({ 
+        count: sql<number>`count(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(amount), 0)`
+      })
+      .from(receiptVouchers)
+      .where(eq(receiptVouchers.status, "approved" as any));
+
     return {
       pendingRequests: pendingRequests?.count || 0,
       approvedRequests: approvedRequests?.count || 0,
+      rejectedRequests: Number(rejectedRequestsRow?.count || 0),
+      rejectedRequestsAmount: Number(rejectedRequestsRow?.totalAmount || 0),
       pendingOrders: pendingOrders?.count || 0,
+      rejectedOrders: Number(rejectedOrdersRow?.count || 0),
+      rejectedOrdersAmount: Number(rejectedOrdersRow?.totalAmount || 0),
       totalPaid: Number(executedOrdersRow?.totalAmount || 0),
       totalRequests: totalRequestsRow?.count || 0,
       totalOrders: totalOrdersRow?.count || 0,
       executedOrders: executedOrdersRow?.count || 0,
+      // المؤشرات المضافة للوحة الإدارة المالية
+      approvedContractsCount: Number(approvedContractsRow?.count || 0),
+      approvedContractsAmount: Number(approvedContractsRow?.totalAmount || 0),
+      approvedOrdersCount: Number(approvedOrdersRow?.count || 0),
+      approvedOrdersAmount: Number(approvedOrdersRow?.totalAmount || 0),
+      approvedReceiptVouchersCount: Number(approvedReceiptVouchersRow?.count || 0),
+      approvedReceiptVouchersAmount: Number(approvedReceiptVouchersRow?.totalAmount || 0),
+      cancelledOrdersCount: Number(rejectedOrdersRow?.count || 0),
+      cancelledOrdersAmount: Number(rejectedOrdersRow?.totalAmount || 0),
+      quotationsRequestsCount: Number(quotationsRequestsRow?.count || 0),
     };
   }),
 

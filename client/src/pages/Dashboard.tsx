@@ -48,9 +48,14 @@ import {
   Wallet,
   Sparkles,
   ClipboardList,
+  XCircle,
+  Search,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { ROLE_LABELS, PROGRAM_LABELS, STAGE_LABELS, STATUS_LABELS, PROGRAM_COLORS } from "@shared/constants";
 
@@ -78,11 +83,19 @@ function formatCurrencyEn(amount: number | string | null | undefined): string {
   return `${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س`;
 }
 
-function formatDateEn(dateStr: any): string {
+const ARABIC_MONTHS = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+];
+
+function formatDateArabic(dateStr: any): string {
   if (!dateStr) return "-";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const day = d.getDate();
+  const monthName = ARABIC_MONTHS[d.getMonth()] || "";
+  const year = d.getFullYear();
+  return `${day} ${monthName} ${year}`;
 }
 
 export default function Dashboard() {
@@ -145,12 +158,39 @@ export default function Dashboard() {
   const { data: financialSummary } = trpc.disbursements.getFinancialSummary.useQuery(undefined, {
     enabled: isFinancialRole || isExecutiveAdmin,
   });
-  const { data: recentRequestsData } = trpc.disbursements.listRequests.useQuery({ limit: 5 }, {
-    enabled: isFinancialRole,
-  });
-  const { data: recentOrdersData } = trpc.disbursements.listOrders.useQuery({ limit: 5 }, {
-    enabled: isFinancialRole,
-  });
+  // حالة البحث الشامل في السجلات المالية (كافة طلبات وأوامر الصرف)
+  const [recordsSearch, setRecordsSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(recordsSearch.trim());
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [recordsSearch]);
+
+  const { data: recentRequestsData, isLoading: isLoadingRequests } = trpc.disbursements.listRequests.useQuery(
+    { 
+      limit: debouncedSearch ? 50 : 5,
+      search: debouncedSearch || undefined,
+    }, 
+    {
+      enabled: isFinancialRole,
+    }
+  );
+
+  const { data: recentOrdersData, isLoading: isLoadingOrders } = trpc.disbursements.listOrders.useQuery(
+    { 
+      limit: debouncedSearch ? 50 : 5,
+      search: debouncedSearch || undefined,
+    }, 
+    {
+      enabled: isFinancialRole,
+    }
+  );
+
+  const filteredRecentRequests = recentRequestsData?.requests || [];
+  const filteredRecentOrders = recentOrdersData?.orders || [];
 
   // جلب إحصائيات المشاريع (لمكتب المشاريع والإدارة العليا ومجلس الإدارة)
   const { data: projectStats } = trpc.projects.getStats.useQuery(undefined, {
@@ -226,7 +266,7 @@ export default function Dashboard() {
     {
       title: "إجمالي طلبات الصرف",
       value: (disbursementStats?.totalRequests || 0).toLocaleString("en-US"),
-      subtext: `معتمد: ${(disbursementStats?.approvedRequests || 0).toLocaleString("en-US")} | بانتظار الاعتماد: ${(disbursementStats?.pendingRequests || 0).toLocaleString("en-US")}`,
+      subtext: `معتمد: ${(disbursementStats?.approvedRequests || 0).toLocaleString("en-US")} | مرفوض: ${(disbursementStats?.rejectedRequests || 0).toLocaleString("en-US")}`,
       icon: Receipt,
       gradient: "from-blue-600 to-indigo-700",
       bgLight: "bg-blue-50 dark:bg-blue-950/40",
@@ -236,7 +276,7 @@ export default function Dashboard() {
     {
       title: "إجمالي أوامر الصرف",
       value: (disbursementStats?.totalOrders || 0).toLocaleString("en-US"),
-      subtext: `منفذ: ${(disbursementStats?.executedOrders || 0).toLocaleString("en-US")} | قيد الإجراء: ${(disbursementStats?.pendingOrders || 0).toLocaleString("en-US")}`,
+      subtext: `منفذ: ${(disbursementStats?.executedOrders || 0).toLocaleString("en-US")} | مرفوض: ${(disbursementStats?.rejectedOrders || 0).toLocaleString("en-US")}`,
       icon: FileCheck2,
       gradient: "from-emerald-600 to-teal-700",
       bgLight: "bg-emerald-50 dark:bg-emerald-950/40",
@@ -246,7 +286,7 @@ export default function Dashboard() {
     {
       title: "إجمالي الموردين",
       value: (supplierStats?.total || 0).toLocaleString("en-US"),
-      subtext: `معتمد: ${(supplierStats?.approved || 0).toLocaleString("en-US")} | قيد المراجعة: ${(supplierStats?.pending || 0).toLocaleString("en-US")}`,
+      subtext: `معتمد: ${(supplierStats?.approved || 0).toLocaleString("en-US")} | مرفوض: ${(supplierStats?.rejected || 0).toLocaleString("en-US")}`,
       icon: Store,
       gradient: "from-purple-600 to-violet-700",
       bgLight: "bg-purple-50 dark:bg-purple-950/40",
@@ -576,149 +616,328 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات الأربع المخصصة */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {currentStatsCards.map((stat: any, index) => {
-            const Content = (
-              <Card className="relative overflow-hidden border border-border/80 shadow-xs hover:shadow-md transition-all rounded-2xl bg-card">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1.5 min-w-0 flex-1">
-                      <p className="text-xs font-medium text-muted-foreground truncate">{stat.title}</p>
-                      <p className="text-xl sm:text-2xl font-bold font-mono text-foreground leading-none">{stat.value}</p>
-                      {stat.subtext && (
-                        <p className="text-[11px] text-muted-foreground truncate">{stat.subtext}</p>
-                      )}
-                      {stat.badgeText && (
-                        <div className="pt-1">
-                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
-                            {stat.badgeText}
-                          </span>
-                        </div>
-                      )}
-                      {typeof stat.change === 'number' && (
-                        <div className="flex items-center gap-1 flex-wrap pt-1">
-                          {stat.change >= 0 ? (
-                            <TrendingUp className="w-3.5 h-3.5 text-green-500" />
-                          ) : (
-                            <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+        {/* بطاقات الإحصائيات المخصصة */}
+        {isFinancialRole ? (
+          /* ========================================================================= */
+          /* كروت الإدارة المالية السبعة (7 Cards مطابقة تماماً لشكل بطاقات النظام في الصورة المرفقة) */
+          /* ========================================================================= */
+          <div className="space-y-4">
+            {/* الصف الأول: 4 كروت أساسية (طلبات الصرف، أوامر الصرف، الموردين، إجمالي المصروف) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  title: "إجمالي طلبات الصرف",
+                  value: ((disbursementStats as any)?.totalRequests || 0).toLocaleString("en-US"),
+                  subtext: `معتمد: ${((disbursementStats as any)?.approvedRequests || 0).toLocaleString("en-US")}`,
+                  icon: Receipt,
+                  gradient: "from-blue-600 to-indigo-600",
+                  link: "/disbursements",
+                },
+                {
+                  title: "إجمالي أوامر الصرف",
+                  value: ((disbursementStats as any)?.totalOrders || 0).toLocaleString("en-US"),
+                  subtext: `منفذ ومسدد: ${((disbursementStats as any)?.executedOrders || 0).toLocaleString("en-US")}`,
+                  icon: FileCheck2,
+                  gradient: "from-emerald-600 to-teal-600",
+                  link: "/disbursement-orders",
+                },
+                {
+                  title: "إجمالي الموردين",
+                  value: ((supplierStats as any)?.total || 0).toLocaleString("en-US"),
+                  subtext: `معتمد: ${((supplierStats as any)?.approved || 0).toLocaleString("en-US")}`,
+                  icon: Store,
+                  gradient: "from-purple-600 to-indigo-600",
+                  link: "/suppliers",
+                },
+                {
+                  title: "إجمالي المصروف",
+                  value: formatCurrencyEn(disbursementStats?.totalPaid || 0),
+                  subtext: `من واقع ${((disbursementStats as any)?.executedOrders || 0).toLocaleString("en-US")} أمر صرف منفذ`,
+                  icon: Wallet,
+                  gradient: "from-amber-500 to-orange-600",
+                  link: "/disbursement-orders?status=executed",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-2xl bg-card">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2 min-w-0 flex-1">
+                          <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-2xl sm:text-[26px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-none">{stat.value}</p>
+                          {stat.subtext && (
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
                           )}
-                          <span className={`text-xs font-bold font-mono ${stat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {stat.change >= 0 ? '+' : ''}{stat.change}%
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">هذا الشهر</span>
                         </div>
-                      )}
-                    </div>
-                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0`}>
-                      <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm shrink-0 ring-4 ring-slate-50/80 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-6 h-6 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
 
-            return stat.link ? (
-              <Link key={index} href={stat.link} className="block transition-transform hover:-translate-y-0.5">
-                {Content}
-              </Link>
-            ) : (
-              <div key={index}>{Content}</div>
-            );
-          })}
-        </div>
+            {/* الصف الثاني: 4 كروت (العقود المعتمدة، قيم العقود المعتمدة، سندات الصرف المعتمدة، طلبات عروض الأسعار) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  title: "العقود المعتمدة",
+                  value: ((disbursementStats as any)?.approvedContractsCount || 0).toLocaleString("en-US"),
+                  subtext: "عقود موثقة وسارية بالنظام",
+                  icon: FileSpreadsheet,
+                  gradient: "from-blue-600 to-cyan-600",
+                  link: "/contracts",
+                },
+                {
+                  title: "إجمالي قيم العقود المعتمدة",
+                  value: formatCurrencyEn((disbursementStats as any)?.approvedContractsAmount || 0),
+                  subtext: `من واقع ${((disbursementStats as any)?.approvedContractsCount || 0).toLocaleString("en-US")} عقد معتمد`,
+                  icon: Banknote,
+                  gradient: "from-emerald-600 to-teal-600",
+                  link: "/contracts",
+                },
+                {
+                  title: "إجمالي سندات القبض المعتمدة",
+                  value: formatCurrencyEn((disbursementStats as any)?.approvedReceiptVouchersAmount || 0),
+                  subtext: `العدد: ${((disbursementStats as any)?.approvedReceiptVouchersCount || 0).toLocaleString("en-US")} سند قبض معتمد`,
+                  icon: Receipt,
+                  gradient: "from-teal-600 to-emerald-600",
+                  link: "/receipt-vouchers",
+                },
+                {
+                  title: "طلبات بمرحلة عروض الأسعار",
+                  value: ((disbursementStats as any)?.quotationsRequestsCount || (requestStats as any)?.byStage?.financial_eval_and_approval || 0).toLocaleString("en-US"),
+                  subtext: "بانتظار التقييم المالي والترسية",
+                  icon: ClipboardList,
+                  gradient: "from-violet-600 to-purple-600",
+                  link: "/quotations",
+                },
+              ].map((stat, idx) => (
+                <Link key={idx} href={stat.link} className="block transition-all duration-200 hover:-translate-y-1">
+                  <Card className="relative overflow-hidden border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-slate-700 transition-all rounded-2xl bg-card">
+                    <CardContent className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2 min-w-0 flex-1">
+                          <p className="text-[13px] font-bold text-slate-700 dark:text-slate-200 truncate tracking-tight">{stat.title}</p>
+                          <p className="text-2xl sm:text-[26px] font-extrabold font-mono text-slate-900 dark:text-white tracking-tight leading-none">{stat.value}</p>
+                          {stat.subtext && (
+                            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate">{stat.subtext}</p>
+                          )}
+                        </div>
+                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm shrink-0 ring-4 ring-slate-50/80 dark:ring-slate-800/80`}>
+                          <stat.icon className="w-6 h-6 text-white drop-shadow-xs" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {currentStatsCards.map((stat: any, index) => {
+              const Content = (
+                <Card className="relative overflow-hidden border border-border/80 shadow-xs hover:shadow-md transition-all rounded-2xl bg-card">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <p className="text-xs font-medium text-muted-foreground truncate">{stat.title}</p>
+                        <p className="text-xl sm:text-2xl font-bold font-mono text-foreground leading-none">{stat.value}</p>
+                        {stat.subtext && (
+                          <p className="text-[11px] text-muted-foreground truncate">{stat.subtext}</p>
+                        )}
+                        {stat.badgeText && (
+                          <div className="pt-1">
+                            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border/60">
+                              {stat.badgeText}
+                            </span>
+                          </div>
+                        )}
+                        {typeof stat.change === 'number' && (
+                          <div className="flex items-center gap-1 flex-wrap pt-1">
+                            {stat.change >= 0 ? (
+                              <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                            ) : (
+                              <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                            )}
+                            <span className={`text-xs font-bold font-mono ${stat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {stat.change >= 0 ? '+' : ''}{stat.change}%
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">هذا الشهر</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-xs shrink-0`}>
+                        <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+
+              return stat.link ? (
+                <Link key={index} href={stat.link} className="block transition-transform hover:-translate-y-0.5">
+                  {Content}
+                </Link>
+              ) : (
+                <div key={index}>{Content}</div>
+              );
+            })}
+          </div>
+        )}
 
         {/* ========================================================================= */}
-        {/* قسم المسؤول المالي المخصص (طلبات الصرف، أوامر الصرف، الموردين، التدفق المالي) */}
+        {/* قسم المسؤول المالي المخصص (الجداول وسجلات التدفق المالي) */}
         {/* ========================================================================= */}
         {isFinancialRole && (
           <div className="space-y-6">
-            {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) */}
 
-            {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) */}
+            {/* أحدث طلبات الصرف وأوامر الصرف (تبويبات) مع تحسين التجربة والبحث الشامل */}
             <Card className="border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden">
-              <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between flex-wrap gap-2">
+              <CardHeader className="p-4 sm:p-5 sm:py-6 border-b border-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10">
                 <div>
-                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Receipt className="w-4.5 h-4.5 text-primary" />
+                  <CardTitle className="text-lg sm:text-xl font-extrabold text-foreground flex items-center gap-2.5">
+                    <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     <span>أحدث السجلات المالية</span>
                   </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    آخر طلبات وأوامر الصرف المسجلة في النظام
+                  <CardDescription className="text-xs sm:text-sm font-medium mt-1 text-muted-foreground">
+                    {debouncedSearch 
+                      ? `نتائج البحث عن "${debouncedSearch}" في كافة طلبات وأوامر الصرف المسجلة في النظام`
+                      : "آخر طلبات وأوامر الصرف المسجلة مع إمكانية البحث الفوري في كافة السجلات"}
                   </CardDescription>
                 </div>
+
+                {/* حقل بحث شامل وأكبر وأوضح لجميع طلبات وأوامر الصرف */}
+                <div className="relative w-full sm:w-80 md:w-[420px] shrink-0">
+                  <Search className="w-5 h-5 absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <Input
+                    placeholder="بحث شامل برقم الطلب أو الأمر، البيان، أو المستفيد..."
+                    value={recordsSearch}
+                    onChange={(e) => setRecordsSearch(e.target.value)}
+                    className="h-11 sm:h-12 pr-11 pl-11 text-sm font-medium text-foreground bg-background border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 rounded-xl shadow-xs transition-all placeholder:text-muted-foreground/75"
+                  />
+                  {recordsSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setRecordsSearch("")}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+                      title="مسح البحث"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {(isLoadingRequests || isLoadingOrders) && debouncedSearch && (
+                    <div className="absolute left-9 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
               </CardHeader>
+
               <CardContent className="p-0">
                 <Tabs defaultValue="disbursements" dir="rtl" className="w-full">
                   <div className="px-4 pt-3 border-b border-border/60 bg-muted/20">
                     <TabsList className="bg-muted/60 p-1">
-                      <TabsTrigger value="disbursements" className="text-xs gap-1.5 font-bold">
-                        <Receipt className="w-3.5 h-3.5" />
-                        <span>أحدث طلبات الصرف ({recentRequestsData?.requests?.length || 0})</span>
+                      <TabsTrigger value="disbursements" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <Receipt className="w-4 h-4" />
+                        <span>طلبات الصرف ({filteredRecentRequests.length})</span>
                       </TabsTrigger>
-                      <TabsTrigger value="orders" className="text-xs gap-1.5 font-bold">
-                        <FileCheck2 className="w-3.5 h-3.5" />
-                        <span>أحدث أوامر الصرف ({recentOrdersData?.orders?.length || 0})</span>
+                      <TabsTrigger value="orders" className="text-xs sm:text-sm gap-2 font-bold py-1.5 px-3">
+                        <FileCheck2 className="w-4 h-4" />
+                        <span>أوامر الصرف ({filteredRecentOrders.length})</span>
                       </TabsTrigger>
                     </TabsList>
                   </div>
 
-                  {/* تبويب طلبات الصرف */}
+                  {/* تبويب طلبات الصرف - محافظ تماماً على الخانات السبع مع تحسين تجربة القراءة والتفاعل */}
                   <TabsContent value="disbursements" className="m-0">
-                    {!recentRequestsData?.requests || recentRequestsData.requests.length === 0 ? (
-                      <div className="p-10 text-center text-muted-foreground text-xs">
-                        لا توجد طلبات صرف حديثة
+                    {filteredRecentRequests.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد طلبات صرف مطابقة لـ "{debouncedSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث برقم طلب آخر أو اسم بيان أو مشروع مختلف</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد طلبات صرف مسجلة</p>
+                        )}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <Table className="text-xs text-right">
-                          <TableHeader className="bg-muted/40">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
                             <TableRow>
-                              <TableHead className="text-right">رقم الطلب</TableHead>
-                              <TableHead className="text-right">البيان / العنوان</TableHead>
-                              <TableHead className="text-right">المبلغ</TableHead>
-                              <TableHead className="text-right">طالب الصرف</TableHead>
-                              <TableHead className="text-right">الحالة</TableHead>
-                              <TableHead className="text-right">التاريخ</TableHead>
-                              <TableHead className="text-center">إجراء</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم الطلب</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">البيان / العنوان</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المبلغ</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">طالب الصرف</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">التاريخ</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody className="divide-y divide-border/60">
-                            {recentRequestsData.requests.map((req: any) => (
-                              <TableRow key={req.id} className="hover:bg-muted/30">
-                                <TableCell className="font-mono font-bold text-primary">
-                                  {req.requestNumber}
+                            {filteredRecentRequests.map((req: any) => (
+                              <TableRow key={req.id} className="hover:bg-blue-50/50 dark:hover:bg-slate-800/60 transition-colors">
+                                {/* 1. رقم الطلب */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href="/disbursements" className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                    <span>{req.requestNumber}</span>
+                                  </Link>
                                 </TableCell>
-                                <TableCell className="max-w-[240px] truncate font-medium">
-                                  {req.title}
+                                
+                                {/* 2. البيان / العنوان */}
+                                <TableCell className="max-w-[320px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate" title={req.title}>
+                                    {req.title}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+
+                                {/* 3. المبلغ */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5 font-mono font-extrabold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
                                   {formatCurrencyEn(req.amount)}
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  {req.requestedByName || "مكتب المشاريع"}
+
+                                {/* 4. طالب الصرف */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+                                    <Users className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                                    <span>{req.requestedByName || "مكتب المشاريع"}</span>
+                                  </span>
                                 </TableCell>
-                                <TableCell>
+
+                                {/* 5. الحالة */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
                                   <Badge 
                                     variant="outline" 
-                                    className={`text-[10px] font-bold py-0.5 px-2 ${
+                                    className={`text-xs font-extrabold py-1 px-3 rounded-lg ${
                                       req.status === 'approved' 
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' 
                                         : req.status === 'paid' 
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                        ? 'bg-teal-50 text-teal-700 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800' 
+                                        : req.status === 'rejected'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                                        : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
                                     }`}
                                   >
-                                    {req.status === 'approved' ? 'معتمد' : req.status === 'paid' ? 'مصروف' : 'قيد المراجعة'}
+                                    {req.status === 'approved' ? 'معتمد' : req.status === 'paid' ? 'مصروف' : req.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="font-mono text-muted-foreground">
-                                  {formatDateEn(req.requestedAt)}
+
+                                {/* 6. التاريخ */}
+                                <TableCell className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  {formatDateArabic(req.requestedAt)}
                                 </TableCell>
-                                <TableCell className="text-center">
+
+                                {/* 7. إجراء */}
+                                <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
                                   <Link href="/disbursements">
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                      <Eye className="w-3.5 h-3.5 text-primary" />
+                                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل الطلب">
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>عرض</span>
                                     </Button>
                                   </Link>
                                 </TableCell>
@@ -728,9 +947,14 @@ export default function Dashboard() {
                         </Table>
                       </div>
                     )}
-                    <div className="p-3 border-t border-border/60 text-left bg-muted/10">
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedSearch
+                          ? `تم العثور على ${filteredRecentRequests.length} طلب صرف مطابق للبحث`
+                          : `عرض آخر ${filteredRecentRequests.length} طلبات مسجلة`}
+                      </span>
                       <Link href="/disbursements">
-                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-bold hover:bg-background">
                           <span>عرض جميع طلبات الصرف</span>
                           <ArrowUpRight className="w-3.5 h-3.5" />
                         </Button>
@@ -738,60 +962,90 @@ export default function Dashboard() {
                     </div>
                   </TabsContent>
 
-                  {/* تبويب أوامر الصرف */}
+                  {/* تبويب أوامر الصرف - نفس الخانات مع تحسين التجربة والتفاعل */}
                   <TabsContent value="orders" className="m-0">
-                    {!recentOrdersData?.orders || recentOrdersData.orders.length === 0 ? (
-                      <div className="p-10 text-center text-muted-foreground text-xs">
-                        لا توجد أوامر صرف حديثة
+                    {filteredRecentOrders.length === 0 ? (
+                      <div className="p-12 text-center text-muted-foreground">
+                        {debouncedSearch ? (
+                          <div className="space-y-1.5">
+                            <p className="text-sm sm:text-base font-bold text-foreground">لا توجد أوامر صرف مطابقة لـ "{debouncedSearch}"</p>
+                            <p className="text-xs text-muted-foreground">جرب البحث برقم أمر آخر أو اسم مستفيد مختلف</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs sm:text-sm font-medium">لا توجد أوامر صرف مسجلة</p>
+                        )}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
-                        <Table className="text-xs text-right">
-                          <TableHeader className="bg-muted/40">
+                        <Table className="text-right">
+                          <TableHeader className="bg-slate-100/90 dark:bg-slate-850 border-b border-border/80">
                             <TableRow>
-                              <TableHead className="text-right">رقم الأمر</TableHead>
-                              <TableHead className="text-right">المستفيد / الجهة</TableHead>
-                              <TableHead className="text-right">المبلغ</TableHead>
-                              <TableHead className="text-right">طريقة الصرف</TableHead>
-                              <TableHead className="text-right">الحالة</TableHead>
-                              <TableHead className="text-right">التاريخ</TableHead>
-                              <TableHead className="text-center">إجراء</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">رقم الأمر</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المستفيد / الجهة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">المبلغ</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">طريقة الصرف</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">الحالة</TableHead>
+                              <TableHead className="text-right font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">التاريخ</TableHead>
+                              <TableHead className="text-center font-extrabold text-xs sm:text-sm text-slate-900 dark:text-slate-100 py-3.5 px-3 sm:px-4">إجراء</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody className="divide-y divide-border/60">
-                            {recentOrdersData.orders.map((order: any) => (
-                              <TableRow key={order.id} className="hover:bg-muted/30">
-                                <TableCell className="font-mono font-bold text-primary">
-                                  {order.orderNumber}
+                            {filteredRecentOrders.map((order: any) => (
+                              <TableRow key={order.id} className="hover:bg-emerald-50/40 dark:hover:bg-slate-800/60 transition-colors">
+                                {/* 1. رقم الأمر */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <Link href="/disbursement-orders" className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 transition-colors text-xs sm:text-sm font-extrabold font-mono shadow-2xs">
+                                    <span>{order.orderNumber}</span>
+                                  </Link>
                                 </TableCell>
-                                <TableCell className="max-w-[200px] truncate font-medium">
-                                  {order.beneficiaryName || "-"}
+
+                                {/* 2. المستفيد / الجهة */}
+                                <TableCell className="max-w-[280px] px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="block font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 leading-snug truncate" title={order.beneficiaryName || "-"}>
+                                    {order.beneficiaryName || "-"}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+
+                                {/* 3. المبلغ */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5 font-mono font-extrabold text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
                                   {formatCurrencyEn(order.amount)}
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  {order.paymentMethod === 'sadad' ? 'فاتورة سداد' : 'تحويل بنكي'}
+
+                                {/* 4. طريقة الصرف */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">
+                                    <CreditCard className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                                    <span>{order.paymentMethod === 'sadad' ? 'فاتورة سداد' : 'تحويل بنكي'}</span>
+                                  </span>
                                 </TableCell>
-                                <TableCell>
+
+                                {/* 5. الحالة */}
+                                <TableCell className="whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
                                   <Badge 
                                     variant="outline" 
-                                    className={`text-[10px] font-bold py-0.5 px-2 ${
+                                    className={`text-xs font-extrabold py-1 px-3 rounded-lg ${
                                       order.status === 'executed' || order.status === 'paid'
-                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
+                                        : order.status === 'rejected'
+                                        ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
+                                        : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800'
                                     }`}
                                   >
-                                    {order.status === 'executed' || order.status === 'paid' ? 'منفذ ومسدد' : 'قيد الإجراء'}
+                                    {order.status === 'executed' || order.status === 'paid' ? 'منفذ ومسدد' : order.status === 'rejected' ? 'مرفوض' : 'قيد الإجراء'}
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="font-mono text-muted-foreground">
-                                  {formatDateEn(order.createdAt)}
+
+                                {/* 6. التاريخ */}
+                                <TableCell className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
+                                  {formatDateArabic(order.createdAt)}
                                 </TableCell>
-                                <TableCell className="text-center">
+
+                                {/* 7. إجراء */}
+                                <TableCell className="text-center whitespace-nowrap px-3 sm:px-4 py-3 sm:py-3.5">
                                   <Link href="/disbursement-orders">
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                      <Eye className="w-3.5 h-3.5 text-primary" />
+                                    <Button size="sm" variant="outline" className="h-8 px-3 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10 border border-primary/30 rounded-lg gap-1.5 transition-all" title="معاينة تفاصيل أمر الصرف">
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>عرض</span>
                                     </Button>
                                   </Link>
                                 </TableCell>
@@ -801,9 +1055,14 @@ export default function Dashboard() {
                         </Table>
                       </div>
                     )}
-                    <div className="p-3 border-t border-border/60 text-left bg-muted/10">
+                    <div className="p-3 border-t border-border/60 text-left bg-muted/10 flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {debouncedSearch
+                          ? `تم العثور على ${filteredRecentOrders.length} أمر صرف مطابق للبحث`
+                          : `عرض آخر ${filteredRecentOrders.length} أوامر مسجلة`}
+                      </span>
                       <Link href="/disbursement-orders">
-                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1 font-semibold hover:bg-background">
                           <span>عرض جميع أوامر الصرف</span>
                           <ArrowUpRight className="w-3.5 h-3.5" />
                         </Button>
