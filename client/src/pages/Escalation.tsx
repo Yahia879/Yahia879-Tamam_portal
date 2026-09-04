@@ -318,7 +318,7 @@ export default function EscalationPage() {
           </div>
 
           <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
-            <Link href="/forms-customization/escalation">
+            <Link href="/forms-customization/escalation?from=/escalation">
               <Button
                 className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
               >

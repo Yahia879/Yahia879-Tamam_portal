@@ -4567,7 +4567,7 @@ export const requestsRouter = router({
       });
 
       // جلب سجلات إرسال الاستبيانات والتذكيرات الإضافية من جدول التدقيق (audit_logs)
-      let parsedAuditRows: typeof mapped = [];
+      let parsedAuditRows: any[] = [];
       try {
         const auditLogRows = await db
           .select()
@@ -4762,7 +4762,7 @@ export const requestsRouter = router({
         emailMessage = customReminderTemplate.templateMessage
           .replace(/\{اسم_المستفيد\}/g, beneficiary.name || "العميل")
           .replace(/\{رقم_الطلب\}/g, request.requestNumber)
-          .replace(/\{اسم_المسجد\}/g, request.mosqueName || "المسجد");
+          .replace(/\{اسم_المسجد\}/g, (request as any).mosqueName || "المسجد");
       } else {
         emailMessage = `السلام عليكم ورحمة الله وبركاته ${beneficiary.name ? `الأستاذ/ة ${beneficiary.name}` : ''}،\n\nنود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nرأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا، نأمل منكم التكرم بتخصيص دقيقة واحدة لتقييم الخدمة المقدمة من خلال الضغط على الزر أدناه:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.`;
       }
@@ -5140,7 +5140,7 @@ export const requestsRouter = router({
           userId: input.userId,
           title: emailTitle,
           message: "ندعوكم للمشاركة في استبيان قياس رضا المستفيدين لتطوير جودة الخدمات.",
-          type: "general",
+          type: "info",
           relatedType: "evaluation",
           relatedId: input.userId,
         });
