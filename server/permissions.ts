@@ -180,7 +180,7 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
 
   "contracts.view": ["contracts.view"],
   "contracts.create": ["contracts.create"],
-  "contracts.edit_approved": ["contracts.edit_approved", "contracts.view"],
+  "contracts.edit_approved": ["contracts.edit_approved", "contracts.edit", "contracts.view"],
   "contracts.approve": ["contracts.approve", "contracts.view"],
   "contracts.template_add": ["contracts.create"],
   "contracts.template_edit": ["contracts.edit"],

@@ -713,9 +713,9 @@ export const contractsRouter = router({
       }
       
       if (contract.status !== "draft") {
-        const userPerms = (ctx.user as any)?.permissions || [];
         const isSuper = (ctx.user as any)?.role === "super_admin" || (ctx.user as any)?.role === "system_admin";
-        const canEditApproved = userPerms.includes("contracts.edit_approved") || isSuper;
+        const hasApprovedPerm = await checkPermission(ctx.user.id, "contracts.edit_approved");
+        const canEditApproved = isSuper || hasApprovedPerm;
 
         if (!canEditApproved) {
           throw new Error("ليس لديك صلاحية تعديل العقود المعتمدة");
@@ -725,7 +725,11 @@ export const contractsRouter = router({
       // تحديث المبلغ بالنص إذا تم تغيير المبلغ
       const updates: Record<string, unknown> = { ...updateData };
       if (input.status) {
-        updates.status = input.status;
+        if (contract.status === "approved" && input.status === "pending_approval") {
+          updates.status = "approved";
+        } else {
+          updates.status = input.status;
+        }
       }
       if (updateData.contractAmount) {
         updates.contractAmount = String(updateData.contractAmount);

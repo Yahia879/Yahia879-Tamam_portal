@@ -969,11 +969,11 @@ export default function ContractForm() {
         supportingEntity: JSON.stringify(supportSources),
         supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
         supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
-        status: "pending_approval",
+        status: existingContract?.contract?.status === "approved" ? "approved" : "pending_approval",
         currentStep: 8,
       }, {
         onSuccess: () => {
-          toast.success("تم اعتماد العقد بنجاح");
+          toast.success(existingContract?.contract?.status === "approved" ? "تم تعديل العقد بنجاح" : "تم اعتماد العقد بنجاح");
           navigate(`/contracts/${editContractId}/preview`);
         }
       });
@@ -1091,7 +1091,7 @@ export default function ContractForm() {
       supportType: Math.abs(supportSources.reduce((sum, src) => sum + src.amount, 0) - totalProjectCost) < 0.01 ? "full" : "partial",
       supportedAmount: supportSources.reduce((sum, src) => sum + src.amount, 0),
       currentStep: currentStep,
-      status: "draft",
+      status: existingContract?.contract?.status === "approved" ? "approved" : "draft",
     };
 
     const targetId = editContractId || createdDraftId;
@@ -1111,7 +1111,7 @@ export default function ContractForm() {
     if (targetId) {
       updateMutation.mutate({ id: targetId, ...payload }, {
         onSuccess: () => {
-          toast.success("تم حفظ المسودة بنجاح");
+          toast.success(existingContract?.contract?.status === "approved" ? "تم حفظ التعديلات بنجاح" : "تم حفظ المسودة بنجاح");
           setIsSavingDraft(false);
           updateSavedSnapshot();
         },
@@ -2305,12 +2305,12 @@ export default function ContractForm() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                        جاري الإنشاء...
+                        {isEditMode ? "جاري الحفظ..." : "جاري الإنشاء..."}
                       </>
                     ) : (
                       <>
                         <Check className="h-4 w-4 ml-2" />
-                        إنشاء واعتماد العقد
+                        {isEditMode && existingContract?.contract?.status === "approved" ? "حفظ تعديل العقد" : isEditMode ? "حفظ واعتماد العقد" : "إنشاء واعتماد العقد"}
                       </>
                     )}
                   </Button>
