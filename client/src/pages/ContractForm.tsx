@@ -1030,7 +1030,7 @@ export default function ContractForm() {
       currentStep: 8,
     }, {
       onSuccess: (data) => {
-        toast.success("تم إنشاء واعتماد العقد بنجاح");
+        toast.success("تم إنشاء العقد بنجاح");
         navigate(`/contracts/${data.id}/preview`);
       }
     });
@@ -2305,12 +2305,12 @@ export default function ContractForm() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                        {isEditMode ? "جاري الحفظ..." : "جاري الإنشاء..."}
+                        جاري إنشاء العقد...
                       </>
                     ) : (
                       <>
                         <Check className="h-4 w-4 ml-2" />
-                        {isEditMode && existingContract?.contract?.status === "approved" ? "حفظ تعديل العقد" : isEditMode ? "حفظ واعتماد العقد" : "إنشاء واعتماد العقد"}
+                        إنشاء العقد
                       </>
                     )}
                   </Button>

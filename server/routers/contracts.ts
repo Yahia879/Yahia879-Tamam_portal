@@ -342,28 +342,53 @@ export const contractsRouter = router({
         .orderBy(contractPayments.phaseOrder);
 
       if (paymentsList.length === 0 && !input.lightweight) {
-        const altPayments = await db
-          .select()
-          .from(payments)
-          .where(
-            contract.projectId 
-              ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
-              : eq(payments.contractId, input.id)
-          );
-        if (altPayments.length > 0) {
-          paymentsList = altPayments.map((p: any, idx: number) => ({
-            id: p.id,
-            contractId: input.id,
-            phaseOrder: idx + 1,
-            name: p.description || `الدفعة ${idx + 1}`,
-            percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
-            amount: String(p.amount || 0),
-            dueDate: p.createdAt ? p.createdAt : null,
-            status: p.status || "pending",
-            type: p.paymentType || "progress",
-            description: p.description || "",
-            condition: p.description || "",
-          }));
+        if (contract.paymentScheduleJson) {
+          try {
+            const parsed = typeof contract.paymentScheduleJson === "string" 
+              ? JSON.parse(contract.paymentScheduleJson) 
+              : contract.paymentScheduleJson;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              paymentsList = parsed.map((p: any, idx: number) => ({
+                id: p.id || idx + 1,
+                contractId: input.id,
+                phaseOrder: idx,
+                phaseName: p.name || p.phaseName || `الدفعة ${idx + 1}`,
+                amount: String(p.amount || 0),
+                dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+                status: p.status || "pending",
+                notes: p.description || p.notes || null,
+                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : (p.percentage !== undefined ? Number(p.percentage) : null),
+              }));
+            }
+          } catch (e) {
+            console.error("Error parsing paymentScheduleJson in getById fallback:", e);
+          }
+        }
+
+        if (paymentsList.length === 0) {
+          const altPayments = await db
+            .select()
+            .from(payments)
+            .where(
+              contract.projectId 
+                ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
+                : eq(payments.contractId, input.id)
+            );
+          if (altPayments.length > 0) {
+            paymentsList = altPayments.map((p: any, idx: number) => ({
+              id: p.id,
+              contractId: input.id,
+              phaseOrder: idx + 1,
+              name: p.description || `الدفعة ${idx + 1}`,
+              percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
+              amount: String(p.amount || 0),
+              dueDate: p.createdAt ? p.createdAt : null,
+              status: p.status || "pending",
+              type: p.paymentType || "progress",
+              description: p.description || "",
+              condition: p.description || "",
+            }));
+          }
         }
       }
       
@@ -820,25 +845,53 @@ export const contractsRouter = router({
       // تحديث الدفعات إذا تم توفير جدول جديد
       if (paymentSchedule) {
         try {
-          const schedule = JSON.parse(paymentSchedule);
+          const schedule = typeof paymentSchedule === 'string' ? JSON.parse(paymentSchedule) : paymentSchedule;
           if (Array.isArray(schedule)) {
-            // حذف الدفعات القديمة
-            await db.delete(contractPayments).where(eq(contractPayments.contractId, id));
-            
-            // إضافة الدفعات الجديدة
-            if (schedule.length > 0) {
-              await db.insert(contractPayments).values(
-                schedule.map((p: any, index: number) => ({
-                  contractId: id,
-                  phaseName: p.name || `الدفعة ${index + 1}`,
-                  amount: String(p.amount || 0),
-                  phaseOrder: index,
-                  dueDate: p.dueDate ? (p.dueDate.includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+            // جلب الدفعات الحالية للعقد
+            const existingPayments = await db
+              .select()
+              .from(contractPayments)
+              .where(eq(contractPayments.contractId, id))
+              .orderBy(contractPayments.phaseOrder);
+
+            // تحديث الدفعات القائمة أو إضافة دفعات جديدة
+            for (let i = 0; i < schedule.length; i++) {
+              const p = schedule[i];
+              const pData = {
+                contractId: id,
+                phaseName: p.name || p.phaseName || `الدفعة ${i + 1}`,
+                amount: String(p.amount || 0),
+                phaseOrder: i,
+                dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+                notes: p.description || p.notes || null,
+                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : (p.percentage !== undefined ? Number(p.percentage) : null),
+              };
+
+              if (i < existingPayments.length) {
+                // تحديث الدفعة القائمة بدون حذفها لتجنب كسر القيود الأجنبية والحفاظ على حالة الصرف
+                await db
+                  .update(contractPayments)
+                  .set(pData)
+                  .where(eq(contractPayments.id, existingPayments[i].id));
+              } else {
+                // إضافة دفعة جديدة
+                await db.insert(contractPayments).values({
+                  ...pData,
                   status: "pending" as const,
-                  notes: p.description || null,
-                  completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : null,
-                }))
-              );
+                });
+              }
+            }
+
+            // حذف أي دفعات زائدة لم تعد موجودة في الجدول الجديد إن لم تكن مرتبطة بطلبات صرف
+            if (existingPayments.length > schedule.length) {
+              const excessPayments = existingPayments.slice(schedule.length);
+              for (const excess of excessPayments) {
+                try {
+                  await db.delete(contractPayments).where(eq(contractPayments.id, excess.id));
+                } catch (delErr) {
+                  console.warn(`Cannot delete excess payment ${excess.id} due to references, keeping it:`, delErr);
+                }
+              }
             }
           }
         } catch (e) {
@@ -1134,25 +1187,46 @@ export const contractsRouter = router({
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
       
-      // حذف الدفعات القديمة
-      await db
-        .delete(contractPayments)
-        .where(eq(contractPayments.contractId, input.contractId));
-      
-      // إضافة الدفعات الجديدة
-      if (input.payments.length > 0) {
-        await db.insert(contractPayments).values(
-          input.payments.map((p) => ({
-            contractId: input.contractId,
-            phaseName: p.phaseName,
-            amount: String(p.amount),
-            phaseOrder: p.phaseOrder,
-            dueDate: p.dueDate ? (p.dueDate.includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+      const existingPayments = await db
+        .select()
+        .from(contractPayments)
+        .where(eq(contractPayments.contractId, input.contractId))
+        .orderBy(contractPayments.phaseOrder);
+
+      for (let i = 0; i < input.payments.length; i++) {
+        const p = input.payments[i];
+        const pData = {
+          contractId: input.contractId,
+          phaseName: p.phaseName,
+          amount: String(p.amount),
+          phaseOrder: p.phaseOrder ?? i,
+          dueDate: p.dueDate ? (p.dueDate.includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+          notes: p.notes || null,
+          completionPercentage: p.completionPercentage !== undefined ? p.completionPercentage : null,
+        };
+
+        if (i < existingPayments.length) {
+          await db
+            .update(contractPayments)
+            .set(pData)
+            .where(eq(contractPayments.id, existingPayments[i].id));
+        } else {
+          await db.insert(contractPayments).values({
+            ...pData,
             status: "pending" as const,
-            notes: p.notes || null,
-            completionPercentage: p.completionPercentage !== undefined ? p.completionPercentage : null,
-          }))
-        );
+          });
+        }
+      }
+
+      if (existingPayments.length > input.payments.length) {
+        const excessPayments = existingPayments.slice(input.payments.length);
+        for (const excess of excessPayments) {
+          try {
+            await db.delete(contractPayments).where(eq(contractPayments.id, excess.id));
+          } catch (delErr) {
+            console.warn(`Cannot delete excess payment ${excess.id}:`, delErr);
+          }
+        }
       }
       
       return { success: true };
