@@ -101,6 +101,40 @@ function toHijriDate(date: Date): string {
   return `${formatted} هـ`;
 }
 
+// تنسيق التاريخ الهجري للعقد مع استخدام التاريخ المخزن إن وُجد أو حسابه كاحتياطي
+function formatContractHijriDate(hijriStr?: string | null, fallbackDate?: Date): string {
+  if (!hijriStr || !hijriStr.trim()) {
+    return fallbackDate ? toHijriDate(fallbackDate) : "";
+  }
+  // Normalize Arabic-Indic digits to Western digits first for parsing
+  const normalized = hijriStr.replace(/[٠-٩]/g, d => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  const clean = normalized.replace(/[^0-9/]/g, "").trim();
+  const parts = clean.split("/").filter(Boolean);
+  if (parts.length === 3) {
+    let year = parts[0];
+    let month = parts[1];
+    let day = parts[2];
+    if (year.length === 4) {
+      // YYYY/MM/DD
+    } else if (day.length === 4) {
+      // DD/MM/YYYY
+      const temp = year;
+      year = day;
+      day = temp;
+    }
+    const dayNum = parseInt(day, 10);
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+    if (!isNaN(dayNum) && !isNaN(monthNum) && !isNaN(yearNum)) {
+      const toArabicDigits = (num: number | string) =>
+        String(num).replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[parseInt(d, 10)]);
+      return `${toArabicDigits(dayNum)}/${toArabicDigits(monthNum)}/${toArabicDigits(yearNum)} هـ`;
+    }
+  }
+  const trimmed = hijriStr.trim();
+  return trimmed.includes("هـ") ? trimmed : `${trimmed} هـ`;
+}
+
 // الحصول على اسم اليوم بالعربية
 function getArabicDayName(date: Date): string {
   const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -597,7 +631,9 @@ export default function ContractPreview() {
     (contract as any)?.signatory?.signatureUrl ||
     null;
 
-  const contractDate = contract.contractDate ? new Date(contract.contractDate) : new Date();
+  const contractDate = contract.contractDate 
+    ? new Date(contract.contractDate) 
+    : (contract.startDate ? new Date(contract.startDate) : new Date());
 
   let parsedCustomClauses: { title: string, description: string }[] = [];
   if (contract.customClausesJson) {
@@ -642,6 +678,8 @@ export default function ContractPreview() {
       "{{secondPartyName}}": contract.secondPartyName || "",
       "{{contractNumber}}": contract.contractNumber || "",
       "{{contractDate}}": contractDate.toLocaleDateString('ar-SA'),
+      "{{contractDateHijri}}": formatContractHijriDate(contract.contractDateHijri, contractDate),
+      "{{contract_date_hijri}}": formatContractHijriDate(contract.contractDateHijri, contractDate),
       "{{contractAmount}}": parseFloat(contract.contractAmount).toLocaleString('ar-SA'),
       "{{contractAmountText}}": contract.contractAmountText || "",
       "{{duration}}": contract.duration?.toString() || "",
@@ -804,7 +842,7 @@ export default function ContractPreview() {
 
                 {/* مقدمة العقد */}
                 <p className="text-center mb-6 text-gray-700 text-sm sm:text-base break-inside-avoid">
-                  إنه في يوم {getArabicDayName(contractDate)} بتاريخ {toHijriDate(contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
+                  إنه في يوم {getArabicDayName(contractDate)} بتاريخ {formatContractHijriDate(contract.contractDateHijri, contractDate)} الموافق {contractDate.toLocaleDateString('ar-SA')} فقد تم الاتفاق بين كل من:
                 </p>
 
                 {/* الطرف الأول */}
@@ -954,7 +992,7 @@ export default function ContractPreview() {
                       <div>
                         <span className="text-gray-600 font-medium">تاريخ بداية العقد:</span>{" "}
                         <span className="font-semibold text-gray-900">
-                          {contract.startDate ? `${new Date(contract.startDate).toLocaleDateString('ar-SA')} م (${toHijriDate(new Date(contract.startDate))})` : "----"}
+                          {contract.startDate ? `${new Date(contract.startDate).toLocaleDateString('ar-SA')} م (${formatContractHijriDate(contract.contractDateHijri, new Date(contract.startDate))})` : "----"}
                         </span>
                       </div>
                       <div>
