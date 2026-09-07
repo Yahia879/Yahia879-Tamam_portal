@@ -568,7 +568,7 @@ export default function DisbursementOrders() {
                                           ) : (
                                             <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
                                           )}
-                                          <span>{order.executiveNotesReply ? "ملاحظات (تم الرد)" : "ملاحظات"}</span>
+                                          <span>{order.executiveNotesReply ? "ملاحظات (تم الرد على الملاحظة)" : "ملاحظات"}</span>
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg border border-slate-700 max-w-xs text-right z-50">
@@ -576,7 +576,7 @@ export default function DisbursementOrders() {
                                         <p className="leading-snug">{order.executiveNotes}</p>
                                         {order.executiveNotesReply && (
                                           <div className="mt-1 pt-1 border-t border-slate-700 text-emerald-300 text-[10px]">
-                                            <span className="font-bold">الإفادة والرد: </span>
+                                            <span className="font-bold">الإفادة والرد (تم الرد على الملاحظة): </span>
                                             <span>{order.executiveNotesReply}</span>
                                           </div>
                                         )}
@@ -910,7 +910,7 @@ export default function DisbursementOrders() {
                                   <span className="font-bold block text-[10px]">ملاحظات صاحب الصلاحية:</span>
                                   {order.executiveNotesReply && (
                                     <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded">
-                                      تم الرد
+                                      تم الرد على الملاحظة
                                     </span>
                                   )}
                                 </div>
@@ -1542,7 +1542,7 @@ export default function DisbursementOrders() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>إفادة ورد المسؤول:</span>
+                      <span>إفادة ورد المسؤول (تم الرد على الملاحظة):</span>
                     </span>
                     <span className="text-[11px] text-muted-foreground font-medium">
                       {selectedOrder.executiveNotesRepliedByName ? `بواسطة: ${selectedOrder.executiveNotesRepliedByName}` : ""}
@@ -1555,11 +1555,11 @@ export default function DisbursementOrders() {
                 </div>
               )}
 
-              {/* قسم إضافة أو تعديل الرد للمسؤولين */}
-              {selectedOrder?.status !== "executed" && selectedOrder?.status !== "rejected" && (
+              {/* قسم إضافة الرد للمسؤولين (يظهر فقط إذا لم يتم الرد مسبقاً) */}
+              {!selectedOrder?.executiveNotesReply && selectedOrder?.status !== "executed" && selectedOrder?.status !== "rejected" && (
                 <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                   <Label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
-                    {selectedOrder?.executiveNotesReply ? "تعديل الرد أو إضافة إفادة:" : "كتابة رد أو إفادة لصاحب الصلاحية:"}
+                    كتابة رد أو إفادة لصاحب الصلاحية:
                   </Label>
                   <Textarea
                     value={replyText}
@@ -1568,30 +1568,34 @@ export default function DisbursementOrders() {
                     rows={3}
                     className="text-xs sm:text-sm text-right leading-relaxed rounded-xl"
                   />
-                  <div className="flex justify-end pt-1">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        if (selectedOrder && replyText.trim()) {
-                          replyToOrderNotesMutation.mutate({
-                            orderId: selectedOrder.id,
-                            reply: replyText.trim(),
-                          });
-                        }
-                      }}
-                      disabled={!replyText.trim() || replyToOrderNotesMutation.isPending}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg gap-1.5 shadow-xs"
-                    >
-                      {replyToOrderNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                      <span>{selectedOrder?.executiveNotesReply ? "حفظ وتحديث الرد" : "إرسال الرد"}</span>
-                    </Button>
-                  </div>
                 </div>
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNotesDialog(false)} className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5">
+            {/* أزرار الإجراء والإغلاق بمحاذاة متناسقة جنباً إلى جنب في الأسفل */}
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
+              {!selectedOrder?.executiveNotesReply && selectedOrder?.status !== "executed" && selectedOrder?.status !== "rejected" && (
+                <Button
+                  onClick={() => {
+                    if (selectedOrder && replyText.trim()) {
+                      replyToOrderNotesMutation.mutate({
+                        orderId: selectedOrder.id,
+                        reply: replyText.trim(),
+                      });
+                    }
+                  }}
+                  disabled={!replyText.trim() || replyToOrderNotesMutation.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl gap-2 shadow-xs cursor-pointer"
+                >
+                  {replyToOrderNotesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <span>إرسال الرد</span>
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => setShowNotesDialog(false)}
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
+              >
                 إغلاق
               </Button>
             </DialogFooter>
