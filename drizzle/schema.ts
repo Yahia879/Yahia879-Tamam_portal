@@ -1179,6 +1179,9 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
 
   // ملاحظات وتوجيهات رئيس المجلس / صاحب الصلاحية (مستقلة عن ملاحظات الاعتماد والرفض)
   executiveNotes: text("executiveNotes"),
+  executiveNotesReply: text("executiveNotesReply"),
+  executiveNotesRepliedBy: int("executiveNotesRepliedBy").references(() => users.id, { onDelete: "set null" }),
+  executiveNotesRepliedAt: datetime("executiveNotesRepliedAt"),
 
   // الاستثناء والتوقيع
   isException: boolean("isException").default(false).notNull(),
