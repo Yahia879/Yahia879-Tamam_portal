@@ -132,6 +132,9 @@ export default function BoardDashboard({
     subtitle?: string;
     orderNumber: string;
     reason: string;
+    reply?: string | null;
+    repliedByName?: string | null;
+    repliedAt?: string | null;
   }>({ open: false, orderNumber: "", reason: "" });
 
   const [confirmApproveOrder, setConfirmApproveOrder] = useState<{
@@ -150,9 +153,10 @@ export default function BoardDashboard({
 
   const isChairmanRole = currentUser?.role === "board_chairman";
   const hasChairmanActionPerm = userPermissions.includes("board_chairman") || userPermissions.includes("board_leadership.board_chairman");
+  const isAdminRole = ["super_admin", "system_admin"].includes(currentUser?.role || "");
 
-  // الصلاحيات التنفيذية والمعاينة الشاملة تظهر حصراً لمن لديه صلاحية رئيس مجلس الإدارة التنفيذية
-  const canPerformActions = isChairmanRole || hasChairmanActionPerm;
+  // الصلاحيات التنفيذية والمعاينة الشاملة تظهر لمن لديه صلاحية رئيس مجلس الإدارة أو المشرف العام
+  const canPerformActions = isChairmanRole || hasChairmanActionPerm || isAdminRole;
 
   const { data, isLoading, isError, error, refetch, isRefetching } = trpc.board.getExecutiveStats.useQuery({
     page: currentPage,
@@ -330,6 +334,39 @@ export default function BoardDashboard({
             )}
           </div>
         </div>
+
+        {/* ==================== ⏳ حالة التحميل الأولية ==================== */}
+        {isLoading && !data && (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4 rounded-2xl border border-dashed border-border/80 bg-card/50">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-muted-foreground animate-pulse">
+              جاري تحميل بيانات لوحة الاعتماد المالي...
+            </p>
+          </div>
+        )}
+
+        {/* ==================== ⚠️ حالة الخطأ مع إمكانية إعادة المحاولة ==================== */}
+        {isError && !data && (
+          <Card className="rounded-2xl border-rose-500/30 bg-rose-50/40 dark:bg-rose-950/20 p-8 text-center space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-xs">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-bold text-rose-800 dark:text-rose-300">حدث خطأ أثناء تحميل البيانات</h3>
+              <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                {error?.message || "تعذر الاتصال بالخادم لتحميل إحصائيات وأوامر الصرف. يرجى إعادة المحاولة."}
+              </p>
+            </div>
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="rounded-xl font-bold text-xs px-6 py-2.5 border-rose-300 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-950/50 shadow-xs cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5 ml-2" />
+              <span>إعادة المحاولة</span>
+            </Button>
+          </Card>
+        )}
 
         {/* ==================== 👑 1. صفحة رئيس مجلس الإدارة (جدول أوامر الصرف المعتمدة المطابق لـ /disbursement-orders) ==================== */}
         {isChairmanView && data?.chairmanData && (() => {
@@ -598,16 +635,30 @@ export default function BoardDashboard({
                                                       subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                                       orderNumber: order.orderNumber,
                                                       reason: order.executiveNotes || "",
+                                                      reply: (order as any).executiveNotesReply || null,
+                                                      repliedByName: (order as any).executiveNotesRepliedByName || null,
+                                                      repliedAt: (order as any).executiveNotesRepliedAt || null,
                                                     });
                                                   }}
-                                                  className="inline-flex items-center justify-center p-1 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors shrink-0 cursor-pointer shadow-2xs"
-                                                  title="يوجد ملاحظات مدونة"
+                                                  className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer shadow-2xs transition-colors ${
+                                                    (order as any).executiveNotesReply
+                                                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                                                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
+                                                  }`}
+                                                  title={(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد عليها" : "يوجد ملاحظات مدونة"}
                                                 >
-                                                  <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                                  {(order as any).executiveNotesReply ? (
+                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                                  ) : (
+                                                    <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                                  )}
+                                                  {(order as any).executiveNotesReply && (
+                                                    <span>تم الرد</span>
+                                                  )}
                                                 </button>
                                               </TooltipTrigger>
                                               <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl border border-slate-700 z-50">
-                                                <span>يوجد ملاحظات مدونة (انقر للعرض)</span>
+                                                <span>{(order as any).executiveNotesReply ? "يوجد ملاحظات وإفادة مسجلة (انقر للعرض)" : "يوجد ملاحظات مدونة (انقر للعرض)"}</span>
                                               </TooltipContent>
                                             </UiTooltip>
                                           </TooltipProvider>
@@ -715,11 +766,14 @@ export default function BoardDashboard({
                                               subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
                                               orderNumber: order.orderNumber,
                                               reason: order.executiveNotes || "",
+                                              reply: (order as any).executiveNotesReply || null,
+                                              repliedByName: (order as any).executiveNotesRepliedByName || null,
+                                              repliedAt: (order as any).executiveNotesRepliedAt || null,
                                             })}
                                             className="rounded-lg cursor-pointer flex items-center gap-2.5 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 focus:bg-amber-50 dark:focus:bg-amber-950/30 transition-colors"
                                           >
                                             <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                                            <span>عرض الملاحظات</span>
+                                            <span>{(order as any).executiveNotesReply ? "عرض الملاحظات والرد" : "عرض الملاحظات"}</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -1746,6 +1800,24 @@ export default function BoardDashboard({
                   {viewJustificationModal.reason || "لا توجد ملاحظات مدونة"}
                 </div>
               </div>
+
+              {viewJustificationModal.reply && (
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>إفادة ورد المسؤول:</span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      {viewJustificationModal.repliedByName ? `بواسطة: ${viewJustificationModal.repliedByName}` : ""}
+                      {viewJustificationModal.repliedAt ? ` • ${new Date(viewJustificationModal.repliedAt).toLocaleDateString("ar-SA")}` : ""}
+                    </span>
+                  </div>
+                  <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 rounded-xl text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed whitespace-pre-wrap font-medium">
+                    {viewJustificationModal.reply}
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
