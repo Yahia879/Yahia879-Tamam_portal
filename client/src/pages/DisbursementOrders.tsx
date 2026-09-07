@@ -67,6 +67,8 @@ import {
   Info,
   BadgeCheck,
   MessageSquare,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -186,6 +188,7 @@ export default function DisbursementOrders() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [transactionReference, setTransactionReference] = useState("");
   const [exceptionNotes, setExceptionNotes] = useState("");
+  const [replyText, setReplyText] = useState("");
 
   // مؤقت لتأخير البحث (Debounce) لضمان أفضل أداء للاستعلامات
   useEffect(() => {
@@ -243,6 +246,30 @@ export default function DisbursementOrders() {
       toast.error(error.message || "حدث خطأ أثناء تنفيذ أمر الصرف");
     },
   });
+
+  const replyToOrderNotesMutation = trpc.disbursements.replyToOrderNotes.useMutation({
+    onSuccess: () => {
+      toast.success("تم حفظ الرد على الملاحظات بنجاح");
+      refetchOrders();
+      if (selectedOrder) {
+        setSelectedOrder((prev: any) => ({
+          ...prev,
+          executiveNotesReply: replyText.trim(),
+          executiveNotesRepliedByName: user?.name || "المسؤول",
+          executiveNotesRepliedAt: new Date().toISOString(),
+        }));
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "حدث خطأ أثناء حفظ الرد على الملاحظات");
+    },
+  });
+
+  const handleOpenNotesDialog = (order: any) => {
+    setSelectedOrder(order);
+    setReplyText(order.executiveNotesReply || "");
+    setShowNotesDialog(true);
+  };
 
   // التحقق من الصلاحيات (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ short-circuit)
   const permOrdersApprove = usePermission("disbursement_orders.approve");
@@ -529,19 +556,30 @@ export default function DisbursementOrders() {
                                     <Tooltip delayDuration={100}>
                                       <TooltipTrigger asChild>
                                         <span
-                                          onClick={() => {
-                                            setSelectedOrder(order);
-                                            setShowNotesDialog(true);
-                                          }}
-                                          className="inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-bold shrink-0 cursor-pointer hover:bg-amber-500/25 transition-colors"
+                                          onClick={() => handleOpenNotesDialog(order)}
+                                          className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer transition-colors ${
+                                            order.executiveNotesReply 
+                                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25" 
+                                              : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25"
+                                          }`}
                                         >
-                                          <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                          <span>ملاحظات</span>
+                                          {order.executiveNotesReply ? (
+                                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                          ) : (
+                                            <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                          )}
+                                          <span>{order.executiveNotesReply ? "ملاحظات (تم الرد)" : "ملاحظات"}</span>
                                         </span>
                                       </TooltipTrigger>
                                       <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg border border-slate-700 max-w-xs text-right z-50">
                                         <p className="font-bold text-amber-300 mb-0.5">ملاحظات صاحب الصلاحية:</p>
                                         <p className="leading-snug">{order.executiveNotes}</p>
+                                        {order.executiveNotesReply && (
+                                          <div className="mt-1 pt-1 border-t border-slate-700 text-emerald-300 text-[10px]">
+                                            <span className="font-bold">الإفادة والرد: </span>
+                                            <span>{order.executiveNotesReply}</span>
+                                          </div>
+                                        )}
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -687,14 +725,11 @@ export default function DisbursementOrders() {
 
                                         {order.executiveNotes && (
                                           <DropdownMenuItem
-                                            onClick={() => {
-                                              setSelectedOrder(order);
-                                              setShowNotesDialog(true);
-                                            }}
+                                            onClick={() => handleOpenNotesDialog(order)}
                                             className="flex items-center gap-2 cursor-pointer text-amber-800 dark:text-amber-300 hover:text-amber-900 focus:bg-amber-50 dark:focus:bg-amber-950/30 font-semibold"
                                           >
                                             <MessageSquare className="h-4 w-4 text-amber-600" />
-                                            <span>عرض ملاحظات صاحب الصلاحية</span>
+                                            <span>{order.executiveNotesReply ? "عرض الملاحظات والرد" : "ملاحظات صاحب الصلاحية والرد"}</span>
                                           </DropdownMenuItem>
                                         )}
 
@@ -858,15 +893,27 @@ export default function DisbursementOrders() {
 
                           {order.executiveNotes && (
                             <div 
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowNotesDialog(true);
-                              }}
-                              className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2 cursor-pointer"
+                              onClick={() => handleOpenNotesDialog(order)}
+                              className={`p-2.5 rounded-lg border text-xs flex items-start gap-2 cursor-pointer transition-colors ${
+                                order.executiveNotesReply 
+                                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300" 
+                                  : "bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300"
+                              }`}
                             >
-                              <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                              <div className="min-w-0 text-right">
-                                <span className="font-bold block text-[10px]">ملاحظات صاحب الصلاحية:</span>
+                              {order.executiveNotesReply ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                              ) : (
+                                <MessageSquare className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                              )}
+                              <div className="min-w-0 text-right space-y-0.5">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-bold block text-[10px]">ملاحظات صاحب الصلاحية:</span>
+                                  {order.executiveNotesReply && (
+                                    <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded">
+                                      تم الرد
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs line-clamp-2 leading-relaxed text-foreground">{order.executiveNotes}</p>
                               </div>
                             </div>
@@ -1454,9 +1501,9 @@ export default function DisbursementOrders() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة عرض الملاحظات المدونة */}
+        {/* نافذة عرض الملاحظات والرد عليها */}
         <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
-          <DialogContent dir="rtl" className="sm:max-w-[580px] rounded-3xl p-6 sm:p-7 text-right">
+          <DialogContent dir="rtl" className="sm:max-w-[580px] rounded-3xl p-6 sm:p-7 text-right max-h-[90vh] overflow-y-auto">
             <DialogHeader className="text-right sm:text-right border-b pb-4">
               <DialogTitle className="text-amber-800 dark:text-amber-400 flex items-center gap-2 text-lg sm:text-xl font-bold text-right sm:text-right">
                 <MessageSquare className="w-5 h-5 text-amber-600 shrink-0" />
@@ -1479,12 +1526,68 @@ export default function DisbursementOrders() {
                 </div>
               </div>
 
+              {/* نص ملاحظات صاحب الصلاحية */}
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">نص ملاحظات وتوجيهات صاحب الصلاحية:</Label>
+                <Label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
+                  نص ملاحظات وتوجيهات صاحب الصلاحية:
+                </Label>
                 <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-2xl text-xs sm:text-sm text-amber-950 dark:text-amber-200 leading-relaxed whitespace-pre-wrap font-medium">
                   {selectedOrder?.executiveNotes || "لا توجد ملاحظات مدونة"}
                 </div>
               </div>
+
+              {/* عرض الرد السابق إن وجد */}
+              {selectedOrder?.executiveNotesReply && (
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>إفادة ورد المسؤول:</span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-medium">
+                      {selectedOrder.executiveNotesRepliedByName ? `بواسطة: ${selectedOrder.executiveNotesRepliedByName}` : ""}
+                      {selectedOrder.executiveNotesRepliedAt ? ` • ${new Date(selectedOrder.executiveNotesRepliedAt).toLocaleDateString("ar-SA")}` : ""}
+                    </span>
+                  </div>
+                  <div className="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-900/40 rounded-xl text-xs sm:text-sm text-emerald-950 dark:text-emerald-200 leading-relaxed whitespace-pre-wrap font-medium">
+                    {selectedOrder.executiveNotesReply}
+                  </div>
+                </div>
+              )}
+
+              {/* قسم إضافة أو تعديل الرد للمسؤولين */}
+              {selectedOrder?.status !== "executed" && selectedOrder?.status !== "rejected" && (
+                <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                  <Label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 block text-right">
+                    {selectedOrder?.executiveNotesReply ? "تعديل الرد أو إضافة إفادة:" : "كتابة رد أو إفادة لصاحب الصلاحية:"}
+                  </Label>
+                  <Textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="أدخل الرد أو الإفادة الخاصة بالملاحظات هنا..."
+                    rows={3}
+                    className="text-xs sm:text-sm text-right leading-relaxed rounded-xl"
+                  />
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (selectedOrder && replyText.trim()) {
+                          replyToOrderNotesMutation.mutate({
+                            orderId: selectedOrder.id,
+                            reply: replyText.trim(),
+                          });
+                        }
+                      }}
+                      disabled={!replyText.trim() || replyToOrderNotesMutation.isPending}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg gap-1.5 shadow-xs"
+                    >
+                      {replyToOrderNotesMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      <span>{selectedOrder?.executiveNotesReply ? "حفظ وتحديث الرد" : "إرسال الرد"}</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter>
