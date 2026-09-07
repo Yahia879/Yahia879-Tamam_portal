@@ -35,8 +35,8 @@ import {
   donationOpportunities,
   publicSubmissions,
   receiptVouchers,
-  donations,
   notificationTemplates,
+  evaluationTokens,
 } from "../../drizzle/schema";
 import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -130,7 +130,17 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
     if (!beneficiary || beneficiary.role !== "service_requester") return;
 
     const appBaseUrl = getSurveyBaseUrl();
-    const evalUrl = `${appBaseUrl}/requests/${request.id}/evaluation`;
+    const token = randomBytes(24).toString("hex");
+
+    await db.insert(evaluationTokens).values({
+      token,
+      requestId: request.id,
+      type: "request_closed",
+      used: false,
+      createdAt: new Date(),
+    });
+
+    const evalUrl = `${appBaseUrl}/evaluation?token=${token}`;
     const emailTitle = `📋 تقييم رضا المستفيد - تم إغلاق الطلب رقم ${request.requestNumber}`;
     const emailMessage = `السلام عليكم ورحمة الله وبركاته،\n\nنفيدكم بأنه تم إغلاق طلبكم رقم ${request.requestNumber} بنجاح لدى جمعية عمارة المساجد (منارة).\n\nحرصاً منا على تحسين وتطوير خدماتنا، نأمل منكم تكرمكم بتقييم مستوى رضاكم عن الخدمة المقدمة من خلال الضغط على زر التقييم أدناه:\n\nشكراً لتعاونكم معنا.`;
 
@@ -172,6 +182,8 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
         mosqueName: null,
         recipientName: beneficiary.name || "",
         recipientEmail: beneficiary.email || "",
+        evalUrl,
+        token,
         dispatchedAt: new Date().toISOString(),
       }),
     });
@@ -4174,6 +4186,20 @@ export const requestsRouter = router({
         })
         .where(eq(mosqueRequests.id, input.requestId));
 
+      // تعليم أي رموز وروابط تقييم سابقة معلقة لهذا الطلب كمستخدمة
+      await db
+        .update(evaluationTokens)
+        .set({
+          used: true,
+          usedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(evaluationTokens.requestId, input.requestId),
+            eq(evaluationTokens.used, false)
+          )
+        );
+
       return {
         success: true,
         message: "شكراً لك! تم استلام تقييمك بنجاح ونقدر مشاركتك.",
@@ -4260,6 +4286,7 @@ export const requestsRouter = router({
   submitPublicBeneficiaryEvaluation: publicProcedure
     .input(
       z.object({
+        token: z.string().optional().nullable(),
         requestId: z.number().optional().nullable(),
         beneficiaryName: z.string().optional(),
         beneficiaryPhone: z.string().optional(),
@@ -4284,14 +4311,58 @@ export const requestsRouter = router({
         });
       }
 
-      if (input.requestId) {
+      let effectiveRequestId = input.requestId || null;
+      let tokenRecord: any = null;
+
+      // التحقق من الرمز الفريد المخصص للاستخدام لمرة واحدة إن وجد
+      if (input.token) {
+        const [foundToken] = await db
+          .select()
+          .from(evaluationTokens)
+          .where(eq(evaluationTokens.token, input.token))
+          .limit(1);
+
+        if (!foundToken) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "عفواً، رمز الاستبيان غير صحيح أو تم إلغاؤه.",
+          });
+        }
+
+        if (foundToken.used) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "عفواً، تم استخدام هذا الرابط مسبقاً لتقديم التقييم ولم يعد صالحاً للاستخدام مرة أخرى.",
+          });
+        }
+
+        if (foundToken.expiresAt && new Date(foundToken.expiresAt) < new Date()) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "عفواً، انتهت صلاحية رابط هذا الاستبيان.",
+          });
+        }
+
+        tokenRecord = foundToken;
+        if (foundToken.requestId) {
+          effectiveRequestId = foundToken.requestId;
+        }
+      }
+
+      if (effectiveRequestId) {
         const [request] = await db
           .select()
           .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, input.requestId))
+          .where(eq(mosqueRequests.id, effectiveRequestId))
           .limit(1);
 
         if (request && request.isEvaluated) {
+          if (tokenRecord) {
+            await db
+              .update(evaluationTokens)
+              .set({ used: true, usedAt: new Date() })
+              .where(eq(evaluationTokens.id, tokenRecord.id));
+          }
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: "تم تسجيل تقييم لهذا الطلب سابقاً، شكراً لمشاركتك!",
@@ -4327,11 +4398,11 @@ export const requestsRouter = router({
         overallSatisfaction: input.overallSatisfaction || input.answers?.overallSatisfaction || null,
         comments: input.comments || input.notes || input.answers?.comments || null,
         answers: input.answers || null,
-        submittedVia: "public_link",
+        submittedVia: input.token ? "one_time_token" : "public_link",
       };
 
       await db.insert(requestEvaluations).values({
-        requestId: input.requestId || null,
+        requestId: effectiveRequestId || null,
         userId: (ctx.user as any)?.id || null,
         rating: finalRating,
         evaluationType: "beneficiary_satisfaction",
@@ -4339,7 +4410,18 @@ export const requestsRouter = router({
         createdAt: new Date(),
       });
 
-      if (input.requestId) {
+      // إذا تم الإرسال عبر رمز فريد، نوسمه كمستخدم فوراً
+      if (tokenRecord) {
+        await db
+          .update(evaluationTokens)
+          .set({
+            used: true,
+            usedAt: new Date(),
+          })
+          .where(eq(evaluationTokens.id, tokenRecord.id));
+      }
+
+      if (effectiveRequestId) {
         await db
           .update(mosqueRequests)
           .set({
@@ -4347,7 +4429,21 @@ export const requestsRouter = router({
             satisfactionRating: finalRating,
             evaluatedAt: new Date(),
           })
-          .where(eq(mosqueRequests.id, input.requestId));
+          .where(eq(mosqueRequests.id, effectiveRequestId));
+
+        // أيضاً وسم أي رموز أخرى لنفس الطلب كمستخدمة
+        await db
+          .update(evaluationTokens)
+          .set({
+            used: true,
+            usedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(evaluationTokens.requestId, effectiveRequestId),
+              eq(evaluationTokens.used, false)
+            )
+          );
       }
 
       return {
@@ -4921,7 +5017,17 @@ export const requestsRouter = router({
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
-      const evalUrl = `${appBaseUrl}/requests/${request.id}/evaluation`;
+      const token = randomBytes(24).toString("hex");
+
+      await db.insert(evaluationTokens).values({
+        token,
+        requestId: request.id,
+        type: "request_reminder",
+        used: false,
+        createdAt: new Date(),
+      });
+
+      const evalUrl = `${appBaseUrl}/evaluation?token=${token}`;
       const emailTitle = `تذكير: تقييم رضا المستفيد - الطلب رقم ${request.requestNumber}`;
 
       // استرجاع القالب المخصص من قسم الطلبات والمساجد في حال وجوده
@@ -5266,7 +5372,22 @@ export const requestsRouter = router({
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
-      const evalUrl = `${appBaseUrl}/evaluation?type=${input.category}&name=${encodeURIComponent(input.recipientName)}&email=${encodeURIComponent(input.recipientEmail)}&phone=${encodeURIComponent(input.recipientPhone || "")}`;
+      const token = randomBytes(24).toString("hex");
+
+      await db.insert(evaluationTokens).values({
+        token,
+        type: "direct_invite",
+        metadata: JSON.stringify({
+          category: input.category,
+          recipientName: input.recipientName,
+          recipientEmail: input.recipientEmail,
+          recipientPhone: input.recipientPhone,
+        }),
+        used: false,
+        createdAt: new Date(),
+      });
+
+      const evalUrl = `${appBaseUrl}/evaluation?token=${token}`;
 
       let emailTitle = "استبيان قياس رضا المستفيدين - جمعية عمارة المساجد (منارة)";
       if (input.category === "donor") {

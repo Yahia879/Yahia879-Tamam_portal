@@ -18,6 +18,9 @@ import {
   Loader2,
   Send,
   Check,
+  AlertTriangle,
+  Home,
+  Clock,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -33,8 +36,16 @@ export default function PublicEvaluation() {
   const prefilledService = searchParams.get("service") || searchParams.get("program") || "";
   const prefilledMosque = searchParams.get("mosque") || "";
 
+  const token = searchParams.get("token") || "";
+
   const { data: formConfig, isLoading: isConfigLoading } = trpc.forms.getEvaluationFormConfig.useQuery();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
+  // التحقق من صلاحية الرمز الفريد إن وجد
+  const { data: tokenValidation, isLoading: isTokenValidating } = trpc.forms.validateEvaluationToken.useQuery(
+    { token },
+    { enabled: !!token, retry: false }
+  );
 
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [hoverRating, setHoverRating] = useState<Record<string, number>>({});
@@ -47,7 +58,7 @@ export default function PublicEvaluation() {
   const queryEmail = searchParams.get("email") || "";
   const queryType = searchParams.get("type") || "";
 
-  // تهيئة القيم التلقائية
+  // تهيئة القيم التلقائية العامة
   useEffect(() => {
     let defaultService = prefilledService || (prefilledMosque ? `مسجد ${prefilledMosque}` : "");
     if (!defaultService) {
@@ -64,6 +75,28 @@ export default function PublicEvaluation() {
       serviceName: prev.serviceName || defaultService,
     }));
   }, [user, prefilledService, prefilledMosque, queryName, queryPhone, queryEmail, queryType]);
+
+  // تهيئة القيم عند التحقق من الرمز الفريد بنجاح
+  useEffect(() => {
+    if (tokenValidation?.valid) {
+      const reqInfo = tokenValidation.requestInfo;
+      const meta = tokenValidation.metadata;
+
+      let resolvedService = "";
+      if (reqInfo?.mosqueName) resolvedService = `مسجد ${reqInfo.mosqueName}`;
+      else if (reqInfo?.descriptiveName) resolvedService = reqInfo.descriptiveName;
+      else if (reqInfo?.programType) resolvedService = reqInfo.programType;
+      else if (meta?.serviceName) resolvedService = meta.serviceName;
+
+      setFormValues((prev) => ({
+        ...prev,
+        beneficiaryName: prev.beneficiaryName || reqInfo?.requesterName || meta?.recipientName || user?.name || queryName || "",
+        beneficiaryPhone: prev.beneficiaryPhone || reqInfo?.requesterPhone || meta?.recipientPhone || user?.phone || (user as any)?.mobileNumber || queryPhone || "",
+        beneficiaryEmail: prev.beneficiaryEmail || reqInfo?.requesterEmail || meta?.recipientEmail || user?.email || queryEmail || "",
+        serviceName: prev.serviceName || resolvedService || "",
+      }));
+    }
+  }, [tokenValidation, user, queryName, queryPhone, queryEmail]);
 
   const activeFields = useMemo(() => {
     if (!formConfig?.fields) return [];
@@ -110,7 +143,8 @@ export default function PublicEvaluation() {
     }
 
     submitMutation.mutate({
-      requestId: requestId && !isNaN(requestId) ? requestId : null,
+      token: token || undefined,
+      requestId: (tokenValidation?.requestId) || (requestId && !isNaN(requestId) ? requestId : null),
       beneficiaryName: formValues.beneficiaryName ? String(formValues.beneficiaryName).trim() : undefined,
       beneficiaryPhone: formValues.beneficiaryPhone ? String(formValues.beneficiaryPhone).trim() : undefined,
       serviceName: formValues.serviceName ? String(formValues.serviceName).trim() : (prefilledMosque || undefined),
@@ -124,12 +158,63 @@ export default function PublicEvaluation() {
     });
   };
 
-  if (isConfigLoading) {
+  // حالة جلب الإعدادات أو التحقق من الرمز الفريد
+  if (isConfigLoading || (token && isTokenValidating)) {
     return (
       <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm font-bold text-muted-foreground">جاري تحميل الاستبيان...</p>
+          <p className="text-sm font-bold text-muted-foreground">جاري تحميل وتأكيد صلاحية الاستبيان...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // حالة كون الرابط مستخدماً مسبقاً أو غير صالح
+  if (token && tokenValidation && !tokenValidation.valid) {
+    const isAlreadyUsed = tokenValidation.reason === "already_used";
+    const isExpired = tokenValidation.reason === "expired";
+
+    return (
+      <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 text-slate-900 dark:text-foreground py-12 px-3 sm:px-6 flex flex-col justify-center items-center">
+        <div className="max-w-md w-full mx-auto space-y-6">
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans text-center p-8 space-y-5 animate-in zoom-in-95 duration-300">
+            <div
+              className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto ${
+                isAlreadyUsed
+                  ? "bg-emerald-500/10 text-emerald-600 ring-8 ring-emerald-500/5"
+                  : "bg-amber-500/10 text-amber-600 ring-8 ring-amber-500/5"
+              }`}
+            >
+              {isAlreadyUsed ? (
+                <CheckCircle2 className="w-10 h-10" />
+              ) : (
+                <AlertTriangle className="w-10 h-10" />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-foreground">
+                {isAlreadyUsed
+                  ? "تم استخدام هذا الرابط مسبقاً"
+                  : isExpired
+                  ? "انتهت صلاحية الرابط"
+                  : "رابط استبيان غير صالح"}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                {tokenValidation.message}
+              </p>
+            </div>
+
+            <div className="pt-3">
+              <Link href="/">
+                <Button variant="outline" size="sm" className="gap-2 font-bold text-xs rounded-xl h-10 px-5">
+                  <Home className="w-4 h-4" />
+                  <span>العودة للصفحة الرئيسية</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -171,17 +256,19 @@ export default function PublicEvaluation() {
               </div>
 
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setFormValues({});
-                    setIsSubmitted(false);
-                  }}
-                  className="w-full sm:w-auto text-xs font-bold rounded-xl h-10 px-5"
-                >
-                  تعبئة استبيان آخر
-                </Button>
+                {!token && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setFormValues({});
+                      setIsSubmitted(false);
+                    }}
+                    className="w-full sm:w-auto text-xs font-bold rounded-xl h-10 px-5"
+                  >
+                    تعبئة استبيان آخر
+                  </Button>
+                )}
                 <Link href="/">
                   <Button
                     type="button"

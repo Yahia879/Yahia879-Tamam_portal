@@ -355,6 +355,23 @@ export const requestEvaluations = mysqlTable("request_evaluations", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// جدول روابط ورموز استبيانات رضا المستفيدين المخصصة للاستخدام لمرة واحدة
+export const evaluationTokens = mysqlTable("evaluation_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  requestId: int("requestId").references(() => mosqueRequests.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 50 }).default("public_one_time"), // 'public_one_time' | 'request_closed' | 'direct_invite'
+  metadata: text("metadata"),
+  used: boolean("used").default(false).notNull(),
+  usedAt: datetime("usedAt"),
+  expiresAt: datetime("expiresAt"),
+  createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EvaluationToken = typeof evaluationTokens.$inferSelect;
+export type InsertEvaluationToken = typeof evaluationTokens.$inferInsert;
+
 // ==================== جداول التقارير ====================
 
 // تقارير الزيارات الميدانية (نموذج المعاينة الميدانية)

@@ -2,8 +2,9 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { brandSettings, programs } from "../../drizzle/schema";
+import { brandSettings, programs, evaluationTokens, mosqueRequests, mosques, users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
+import { randomBytes } from "crypto";
 
 export const formFieldOptionSchema = z.object({
   label: z.string(),
@@ -903,5 +904,141 @@ export const formsRouter = router({
       },
     };
   }),
+
+  // توليد رابط استبيان فريد ومخصص للاستخدام لمرة واحدة
+  generateOneTimeEvaluationLink: protectedProcedure
+    .input(
+      z.object({
+        requestId: z.number().optional().nullable(),
+        metadata: z.record(z.string(), z.any()).optional(),
+        expiresInDays: z.number().default(30),
+      }).optional()
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const token = randomBytes(24).toString("hex");
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + (input?.expiresInDays || 30));
+
+      await db.insert(evaluationTokens).values({
+        token,
+        requestId: input?.requestId || null,
+        type: input?.requestId ? "request_closed" : "public_one_time",
+        metadata: input?.metadata ? JSON.stringify(input.metadata) : null,
+        used: false,
+        expiresAt,
+        createdBy: ctx.user.id,
+        createdAt: new Date(),
+      });
+
+      return {
+        success: true,
+        token,
+        relativeUrl: `/evaluation?token=${token}`,
+        expiresAt,
+        message: "تم إنشاء رابط استبيان فريد مخصص للاستخدام لمرة واحدة بنجاح",
+      };
+    }),
+
+  // التحقق من صلاحية رابط الاستبيان ورمزه الفريد
+  validateEvaluationToken: publicProcedure
+    .input(
+      z.object({
+        token: z.string().min(1),
+      })
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [tokenRow] = await db
+        .select()
+        .from(evaluationTokens)
+        .where(eq(evaluationTokens.token, input.token))
+        .limit(1);
+
+      if (!tokenRow) {
+        return {
+          valid: false,
+          reason: "not_found" as const,
+          message: "عفواً، رابط الاستبيان غير صالح أو تم إلغاؤه.",
+        };
+      }
+
+      if (tokenRow.used) {
+        return {
+          valid: false,
+          reason: "already_used" as const,
+          usedAt: tokenRow.usedAt,
+          message: "تم استخدام هذا الرابط مسبقاً لتقديم التقييم، شكراً لمشاركتكم القيمة!",
+        };
+      }
+
+      if (tokenRow.expiresAt && new Date(tokenRow.expiresAt) < new Date()) {
+        return {
+          valid: false,
+          reason: "expired" as const,
+          message: "عفواً، انتهت صلاحية رابط هذا الاستبيان.",
+        };
+      }
+
+      let requestInfo = null;
+      if (tokenRow.requestId) {
+        const [req] = await db
+          .select({
+            id: mosqueRequests.id,
+            requestNumber: mosqueRequests.requestNumber,
+            programType: mosqueRequests.programType,
+            descriptiveName: mosqueRequests.descriptiveName,
+            status: mosqueRequests.status,
+            isEvaluated: mosqueRequests.isEvaluated,
+            userId: mosqueRequests.userId,
+            requesterName: users.name,
+            requesterEmail: users.email,
+            requesterPhone: users.phone,
+            mosqueName: mosques.name,
+            mosqueCity: mosques.city,
+          })
+          .from(mosqueRequests)
+          .leftJoin(users, eq(mosqueRequests.userId, users.id))
+          .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+          .where(eq(mosqueRequests.id, tokenRow.requestId))
+          .limit(1);
+
+        if (req) {
+          if (req.isEvaluated) {
+            await db
+              .update(evaluationTokens)
+              .set({ used: true, usedAt: new Date() })
+              .where(eq(evaluationTokens.id, tokenRow.id));
+
+            return {
+              valid: false,
+              reason: "already_used" as const,
+              message: "تم تسجيل تقييم هذا الطلب مسبقاً، شكراً لمشاركتكم!",
+            };
+          }
+          requestInfo = req;
+        }
+      }
+
+      let parsedMeta: any = null;
+      if (tokenRow.metadata) {
+        try {
+          parsedMeta = JSON.parse(tokenRow.metadata);
+        } catch {}
+      }
+
+      return {
+        valid: true,
+        token: tokenRow.token,
+        type: tokenRow.type,
+        requestId: tokenRow.requestId,
+        requestInfo,
+        metadata: parsedMeta,
+      };
+    }),
 });
 

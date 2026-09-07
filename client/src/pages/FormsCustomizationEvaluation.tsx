@@ -242,20 +242,34 @@ export default function FormsCustomizationEvaluation() {
   // حالة نسخ الرابط مباشرة
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const baseUrl = "https://tamamgate.manarah.org.sa";
-  const publicSurveyUrl = `${baseUrl}/evaluation`;
+  const generateLinkMutation = trpc.forms.generateOneTimeEvaluationLink.useMutation();
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicSurveyUrl);
-    setCopiedLink(true);
-    toast.success("تم نسخ رابط الاستبيان لديك");
-    setTimeout(() => setCopiedLink(false), 2500);
+  const handleGenerateAndCopyLink = async () => {
+    try {
+      const res = await generateLinkMutation.mutateAsync({});
+      const fullUrl = `${window.location.origin}${res.relativeUrl}`;
+      await navigator.clipboard.writeText(fullUrl);
+      setCopiedLink(true);
+      toast.success("تم توليد ونسخ رابط استبيان فريد مخصص للاستخدام لمرة واحدة بنجاح!", {
+        description: fullUrl,
+        duration: 5000,
+      });
+      setTimeout(() => setCopiedLink(false), 3000);
+    } catch (err: any) {
+      toast.error(err?.message || "حدث خطأ أثناء استخراج الرابط");
+    }
   };
 
-  const handleShareWhatsApp = () => {
-    const orgTitle = orgSettings?.organizationName || "جمعية عمارة المساجد";
-    const text = `السلام عليكم ورحمة الله وبركاته،\n\nنرحب بكم في استبيان قياس رضا المستفيدين لـ (${orgTitle}).\n\nيهمنا جداً رأيكم وملاحظاتكم لتطوير خدماتنا:\n${publicSurveyUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  const handleShareWhatsApp = async () => {
+    try {
+      const res = await generateLinkMutation.mutateAsync({});
+      const fullUrl = `${window.location.origin}${res.relativeUrl}`;
+      const orgTitle = orgSettings?.organizationName || "جمعية عمارة المساجد";
+      const text = `السلام عليكم ورحمة الله وبركاته،\n\nنرحب بكم في استبيان قياس رضا المستفيدين لـ (${orgTitle}).\n\nيهمنا جداً رأيكم وملاحظاتكم لتطوير خدماتنا (رابط مخصص للاستخدام لمرة واحدة):\n${fullUrl}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "حدث خطأ أثناء استخراج الرابط لمشاركته");
+    }
   };
 
   useEffect(() => {
@@ -632,20 +646,23 @@ export default function FormsCustomizationEvaluation() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleCopyLink}
+              onClick={handleGenerateAndCopyLink}
+              disabled={generateLinkMutation.isPending}
               className={`text-xs font-bold gap-1.5 h-10 px-3.5 rounded-xl transition-all cursor-pointer shadow-2xs ${
                 copiedLink
                   ? "border-emerald-600 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-200"
                   : "border-emerald-600/30 bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 hover:border-emerald-600/50"
               }`}
-              title="نسخ رابط الاستبيان المباشر"
+              title="توليد ونسخ رابط استبيان فريد مخصص للاستخدام لمرة واحدة"
             >
-              {copiedLink ? (
+              {generateLinkMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600 dark:text-emerald-400" />
+              ) : copiedLink ? (
                 <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
               ) : (
                 <Share2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               )}
-              <span>{copiedLink ? "تم نسخ رابط الاستبيان لديك" : "مشاركة واستخراج الرابط"}</span>
+              <span>{copiedLink ? "تم نسخ الرابط الفريد" : "مشاركة واستخراج الرابط"}</span>
             </Button>
 
             <Button
