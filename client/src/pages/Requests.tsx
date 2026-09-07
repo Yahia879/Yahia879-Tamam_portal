@@ -23,7 +23,8 @@ import {
   Languages,
   Briefcase,
   Tag,
-  StickyNote
+  StickyNote,
+  User
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -409,176 +410,213 @@ export default function Requests({
             </div>
           ) : requests.length > 0 ? (
             <div>
-              {/* Table Header (Desktop Only) */}
-              <div className="hidden md:grid grid-cols-[auto_1.3fr_1.2fr_1.2fr_1.1fr_1.6fr_1fr_auto] gap-4 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                <div className="w-8"></div>
-                <div>{isEn ? "Request" : "الطلب"}</div>
-                <div>{isEn ? "Caption" : "التسمية التوضيحية"}</div>
-                <div>{isEn ? "Mosque" : "المسجد"}</div>
-                <div>{isEn ? "Stage" : "المرحلة"}</div>
-                <div>{isEn ? "Project" : "المشروع"}</div>
-                <div>{isEn ? "Status" : "الحالة"}</div>
-                <div className="w-20 text-center">{isEn ? "View" : "عرض"}</div>
-              </div>
+              {/* Table Container with Horizontal Scroll support on desktop */}
+              <div className="overflow-x-auto">
+                <div className="min-w-0 md:min-w-[1100px]">
+                  {/* Table Header (Desktop Only) */}
+                  <div className="hidden md:grid grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3.5 px-4 py-3 bg-muted/40 border-b text-[11px] font-bold text-muted-foreground uppercase tracking-wider items-center">
+                    <div className="w-9"></div>
+                    <div className="truncate">{isEn ? "Request" : "الطلب"}</div>
+                    <div className="truncate">{isEn ? "Caption" : "التسمية التوضيحية"}</div>
+                    <div className="truncate">{isEn ? "Mosque" : "المسجد"}</div>
+                    <div className="truncate">{isEn ? "Stage" : "المرحلة"}</div>
+                    <div className="truncate">{isEn ? "Officer" : "اسم المسؤول"}</div>
+                    <div className="truncate">{isEn ? "Project" : "المشروع"}</div>
+                    <div className="truncate">{isEn ? "Status" : "الحالة"}</div>
+                    <div className="w-11 text-center">{isEn ? "View" : "عرض"}</div>
+                  </div>
 
-              {/* Rows / Cards */}
-              <div className="divide-y divide-border">
-                {requests.map((request: any) => {
-                  const status = statusConfig[request.status] || statusConfig.pending;
-                  return (
-                    <div
-                      key={request.id}
-                      className={`grid grid-cols-1 md:grid-cols-[auto_1.3fr_1.2fr_1.2fr_1.1fr_1.6fr_1fr_auto] gap-3 md:gap-4 px-4 py-4 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
-                      onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
-                    >
-                      {/* Desktop: Program Icon */}
-                      <div className="hidden md:flex w-8 justify-center">
-                        {request.isMultiMosque || request.programData?.isMultiMosque ? (
-                          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
-                            <MultiMosquesIcon className="w-4.5 h-4.5" />
-                          </div>
-                        ) : (
-                          <ProgramIcon program={request.programType} size="md" />
-                        )}
-                      </div>
-
-                      {/* Request Info (Mobile & Desktop) */}
-                      <div className="flex items-start justify-between md:block gap-3">
-                        <div className="flex items-center gap-3 md:block min-w-0">
-                           <div className="md:hidden shrink-0">
+                  {/* Rows / Cards */}
+                  <div className="divide-y divide-border">
+                    {requests.map((request: any) => {
+                      const status = statusConfig[request.status] || statusConfig.pending;
+                      return (
+                        <div
+                          key={request.id}
+                          className={`grid grid-cols-1 md:grid-cols-[36px_minmax(180px,1.4fr)_minmax(120px,0.9fr)_minmax(130px,1fr)_minmax(115px,0.85fr)_minmax(130px,1fr)_minmax(140px,1.1fr)_minmax(110px,0.8fr)_44px] gap-3 md:gap-3.5 px-4 py-3.5 hover:bg-muted/30 transition-colors items-center ${canViewDetails ? "cursor-pointer" : "cursor-default"}`}
+                          onClick={() => canViewDetails && navigate(`/requests/${request.id}`)}
+                        >
+                          {/* Desktop: Program Icon */}
+                          <div className="hidden md:flex w-9 justify-center shrink-0">
                             {request.isMultiMosque || request.programData?.isMultiMosque ? (
-                              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
                                 <MultiMosquesIcon className="w-4.5 h-4.5" />
                               </div>
                             ) : (
                               <ProgramIcon program={request.programType} size="md" />
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-bold text-foreground text-sm md:text-sm">
-                                {request.isMultiMosque || request.programData?.isMultiMosque
-                                  ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
-                                  : request.programType === "bunyan" 
-                                    ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
-                                    : (isEn 
-                                        ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
-                                        : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
-                              </p>
-                              {Boolean(request.reviewNotes) && (
-                                <span 
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
-                                  title="يوجد ملاحظات مسجلة على هذا الطلب"
-                                >
-                                  <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                  <span>{isEn ? "Notes" : "ملاحظات"}</span>
-                                </span>
-                              )}
+
+                          {/* Request Info (Mobile & Desktop) */}
+                          <div className="flex items-start justify-between md:block gap-3 min-w-0">
+                            <div className="flex items-center gap-3 md:block min-w-0">
+                              <div className="md:hidden shrink-0">
+                                {request.isMultiMosque || request.programData?.isMultiMosque ? (
+                                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
+                                    <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                  </div>
+                                ) : (
+                                  <ProgramIcon program={request.programType} size="md" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-bold text-foreground text-sm truncate max-w-full" title={
+                                    request.isMultiMosque || request.programData?.isMultiMosque
+                                      ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                                      : request.programType === "bunyan" 
+                                        ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                                        : (isEn 
+                                            ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                                            : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))
+                                  }>
+                                    {request.isMultiMosque || request.programData?.isMultiMosque
+                                      ? (request.projectName || request.descriptiveName || "مشروع لعدة مساجد")
+                                      : request.programType === "bunyan" 
+                                        ? (isEn ? `Request ${request.requesterName || ""}` : `طلب ${request.requesterName || ""}`)
+                                        : (isEn 
+                                            ? (request.mosqueName?.trim().toLowerCase().startsWith("mosque") ? `Request ${request.mosqueName}` : `Mosque Request ${request.mosqueName || ""}`)
+                                            : (request.mosqueName?.trim().startsWith("مسجد") ? `طلب ${request.mosqueName}` : `طلب مسجد ${request.mosqueName || ""}`))}
+                                  </p>
+                                  {Boolean(request.reviewNotes) && (
+                                    <span 
+                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0" 
+                                      title="يوجد ملاحظات مسجلة على هذا الطلب"
+                                    >
+                                      <StickyNote className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                      <span>{isEn ? "Notes" : "ملاحظات"}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate break-words line-clamp-1">
+                                  {request.isMultiMosque || request.programData?.isMultiMosque
+                                    ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
+                                    : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
+                                </p>
+                              </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate md:truncate break-words line-clamp-1">
-                              {request.isMultiMosque || request.programData?.isMultiMosque
-                                ? `مشروع مباشر لعدة مساجد (${request.requestNumber})`
-                                : `${request.programName && !isEn ? request.programName : translateProgram(request.programType)} (${request.requestNumber})`}
-                            </p>
+                            <div className={`${isEn ? "text-right md:text-left" : "text-left md:text-right"} shrink-0 md:hidden`}>
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className={`${isEn ? "text-right md:text-left" : "text-left md:text-right"} shrink-0`}>
-                           <p className="text-[10px] md:text-xs text-muted-foreground">
-                            {new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}
-                          </p>
-                        </div>
-                      </div>
 
-                      {/* Descriptive Name / التسمية التوضيحية */}
-                      <div className="hidden md:flex items-center gap-1.5 min-w-0">
-                        {request.descriptiveName && (!request.isMultiMosque || request.descriptiveName !== request.projectName) ? (
-                          <span className="text-xs font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md border border-purple-200/60 dark:border-purple-800/60 truncate max-w-[170px]" title={request.descriptiveName}>
-                            <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 inline-block ml-1" />
-                            {request.descriptiveName}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
+                          {/* Descriptive Name / التسمية التوضيحية */}
+                          <div className="hidden md:flex items-center min-w-0">
+                            {request.descriptiveName && (!request.isMultiMosque || request.descriptiveName !== request.projectName) ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md border border-purple-200/60 dark:border-purple-800/60 max-w-full min-w-0" title={request.descriptiveName}>
+                                <Tag className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0 ml-0.5" />
+                                <span className="truncate">{request.descriptiveName}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
 
-                      {/* Mosque (Desktop & Tablet) */}
-                      <div className="hidden md:flex items-center gap-2 min-w-0">
-                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="text-sm text-foreground truncate" title={request.multiMosqueNames || request.mosqueName || "—"}>
-                          {request.multiMosqueNames || request.mosqueName || "—"}
-                        </span>
-                      </div>
-
-                      {/* Stage (Desktop) */}
-                      <div className="hidden md:block min-w-0">
-                        <Badge variant="outline" className="text-[10px] md:text-xs font-medium py-0 h-auto">
-                          {translateStage(request.currentStage, request.requestTrack)}
-                        </Badge>
-                        {request.currentResponsibleDepartment && (
-                          <p className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">
-                            {translateDepartment(request.currentResponsibleDepartment)}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Project (Desktop) */}
-                      <div className="hidden md:flex items-center gap-1.5 min-w-0">
-                        {request.projectId ? (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10">
-                            <Briefcase className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[220px]">{request.projectName}</span>
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-
-                      {/* Status (Desktop) */}
-                      <div className="hidden md:block shrink-0">
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
-                          {status.icon}
-                          {translateStatus(request.status)}
-                        </span>
-                      </div>
-
-                      {/* Mobile Card Row: Location + Stage + Status */}
-                      <div className="md:hidden flex flex-col gap-3">
-                        <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
-                          <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span className="truncate">{request.mosqueName || "—"}</span>
-                        </div>
-                        {request.projectId && (
-                          <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md">
-                            <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
-                            <span className="font-semibold text-primary truncate">
-                              {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
+                          {/* Mosque (Desktop & Tablet) */}
+                          <div className="hidden md:flex items-center gap-1.5 min-w-0">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs font-medium text-foreground truncate" title={request.multiMosqueNames || request.mosqueName || "—"}>
+                              {request.multiMosqueNames || request.mosqueName || "—"}
                             </span>
                           </div>
-                        )}
-                        <div className="flex items-center justify-between gap-2">
-                           <Badge variant="outline" className="text-[10px] py-0.5">
-                            {translateStage(request.currentStage, request.requestTrack)}
-                          </Badge>
-                          <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
-                            {status.icon}
-                            {translateStatus(request.status)}
-                          </span>
-                        </div>
-                      </div>
 
-                      {/* Desktop Action */}
-                      <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
-                        {canViewDetails && (
-                          <Link href={`/requests/${request.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
-                              <ChevronLeft className={`w-4 h-4 ${isEn ? "rotate-180" : ""}`} />
-                            </Button>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                          {/* Stage (Desktop) */}
+                          <div className="hidden md:block min-w-0">
+                            <Badge variant="outline" className="text-[10px] md:text-[11px] font-medium py-0.5 px-2 h-auto max-w-full truncate inline-block" title={translateStage(request.currentStage, request.requestTrack)}>
+                              <span className="truncate">{translateStage(request.currentStage, request.requestTrack)}</span>
+                            </Badge>
+                            {request.currentResponsibleDepartment && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={translateDepartment(request.currentResponsibleDepartment)}>
+                                {translateDepartment(request.currentResponsibleDepartment)}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Officer / Admin Name (Desktop) */}
+                          <div className="hidden md:flex items-center min-w-0">
+                            {request.adminName ? (
+                              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200/80 dark:border-slate-700/80 max-w-full min-w-0" title={request.adminName}>
+                                <User className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                <span className="truncate">{request.adminName}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground font-medium">—</span>
+                            )}
+                          </div>
+
+                          {/* Project (Desktop) */}
+                          <div className="hidden md:flex items-center min-w-0">
+                            {request.projectId ? (
+                              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 max-w-full min-w-0" title={request.projectName}>
+                                <Briefcase className="w-3.5 h-3.5 shrink-0 text-primary" />
+                                <span className="truncate">{request.projectName}</span>
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
+
+                          {/* Status (Desktop) */}
+                          <div className="hidden md:flex items-center min-w-0">
+                            <span className={`inline-flex items-center gap-1.5 text-[10px] md:text-xs font-medium px-2.5 py-0.5 rounded-full border ${status.bg} ${status.color} shrink-0`}>
+                              {status.icon}
+                              <span>{translateStatus(request.status)}</span>
+                            </span>
+                          </div>
+
+                          {/* Mobile Card Row: Location + Officer + Project + Stage + Status */}
+                          <div className="md:hidden flex flex-col gap-2.5">
+                            <div className="flex items-center gap-1.5 text-xs text-foreground bg-muted/50 p-2 rounded-md">
+                              <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{request.multiMosqueNames || request.mosqueName || "—"}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs bg-muted/30 px-2.5 py-1.5 rounded-md">
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span>{isEn ? "Officer:" : "اسم المسؤول:"}</span>
+                              </span>
+                              <span className="font-semibold text-foreground truncate max-w-[180px]">
+                                {request.adminName || "—"}
+                              </span>
+                            </div>
+
+                            {request.projectId && (
+                              <div className="flex items-center gap-1.5 text-xs text-foreground bg-primary/5 border border-primary/10 p-2 rounded-md">
+                                <Briefcase className="w-3.5 h-3.5 text-primary shrink-0" />
+                                <span className="font-semibold text-primary truncate">
+                                  {isEn ? "Linked Project:" : "المشروع المرتبط:"} {request.projectName}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between gap-2">
+                              <Badge variant="outline" className="text-[10px] py-0.5">
+                                {translateStage(request.currentStage, request.requestTrack)}
+                              </Badge>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${status.bg} ${status.color}`}>
+                                {status.icon}
+                                {translateStatus(request.status)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Desktop Action */}
+                          <div className="hidden md:flex justify-center w-11 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {canViewDetails && (
+                              <Link href={`/requests/${request.id}`}>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                                  <ChevronLeft className={`w-4 h-4 ${isEn ? "rotate-180" : ""}`} />
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Footer with Pagination */}
