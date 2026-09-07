@@ -134,7 +134,6 @@ export default function Settings() {
       );
     }
     if (perm === "settings_escalation.view") {
-      if (isAdmin) return true;
       return (
         userPermissions.includes("settings_escalation.view") ||
         userPermissions.includes("settings_escalation")

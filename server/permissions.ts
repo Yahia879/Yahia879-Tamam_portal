@@ -1090,6 +1090,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (revokedPermissions.has("settings_escalation.view") || revokedPermissions.has("settings_escalation")) {
     allPermissions.delete("settings_escalation");
     allPermissions.delete("settings_escalation.view");
+    allPermissions.delete("escalation");
+    allPermissions.delete("escalation.view");
   } else if (allPermissions.has("settings_escalation.view") || allPermissions.has("settings_escalation")) {
     allPermissions.add("settings_escalation");
     allPermissions.add("settings_escalation.view");
