@@ -552,37 +552,21 @@ export default function DisbursementOrders() {
                                 )}
                                 <span>{order.orderNumber}</span>
                                 {order.executiveNotes && (
-                                  <TooltipProvider>
-                                    <Tooltip delayDuration={100}>
-                                      <TooltipTrigger asChild>
-                                        <span
-                                          onClick={() => handleOpenNotesDialog(order)}
-                                          className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer transition-colors ${
-                                            order.executiveNotesReply 
-                                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25" 
-                                              : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25"
-                                          }`}
-                                        >
-                                          {order.executiveNotesReply ? (
-                                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                                          ) : (
-                                            <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                                          )}
-                                          <span>{order.executiveNotesReply ? "ملاحظات (تم الرد على الملاحظة)" : "ملاحظات"}</span>
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-lg border border-slate-700 max-w-xs text-right z-50">
-                                        <p className="font-bold text-amber-300 mb-0.5">ملاحظات صاحب الصلاحية:</p>
-                                        <p className="leading-snug">{order.executiveNotes}</p>
-                                        {order.executiveNotesReply && (
-                                          <div className="mt-1 pt-1 border-t border-slate-700 text-emerald-300 text-[10px]">
-                                            <span className="font-bold">الإفادة والرد (تم الرد على الملاحظة): </span>
-                                            <span>{order.executiveNotesReply}</span>
-                                          </div>
-                                        )}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                                  <span
+                                    onClick={() => handleOpenNotesDialog(order)}
+                                    className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer transition-colors ${
+                                      order.executiveNotesReply 
+                                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25" 
+                                        : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/25"
+                                    }`}
+                                  >
+                                    {order.executiveNotesReply ? (
+                                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                    ) : (
+                                      <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                                    )}
+                                    <span>{order.executiveNotesReply ? "تم الرد على الملاحظة" : "ملاحظات"}</span>
+                                  </span>
                                 )}
                                 {order.isException && (
                                   <TooltipProvider>
