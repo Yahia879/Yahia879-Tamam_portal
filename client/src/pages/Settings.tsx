@@ -92,7 +92,7 @@ const settingCards: SettingCard[] = [
     color: "text-rose-600",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",
     group: "العمليات",
-    permission: "requests.view",
+    permission: "settings_escalation.view",
   },
   // مجموعة: المستخدمون
   {
@@ -131,6 +131,13 @@ export default function Settings() {
         userPermissions.includes("forms_customization.evaluation") ||
         userPermissions.includes("forms_customization.services") ||
         userPermissions.includes("forms_customization.registration")
+      );
+    }
+    if (perm === "settings_escalation.view") {
+      if (isAdmin) return true;
+      return (
+        userPermissions.includes("settings_escalation.view") ||
+        userPermissions.includes("settings_escalation")
       );
     }
     if (isAdmin) return true;

@@ -45,7 +45,8 @@ import {
   PenLine,
   SlidersHorizontal,
   HeartHandshake,
-  BarChart3
+  BarChart3,
+  ShieldAlert
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -126,6 +127,7 @@ const superAdminGroups = [
       { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
       { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
       { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
+      { id: "settings_escalation", nameAr: "التصعيد الإداري ومهل SLA", icon: ShieldAlert, perms: ["view"] },
       { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
     ]
   },
@@ -342,6 +344,9 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       services: "تخصيص نماذج طلبات الخدمات",
       registration: "تخصيص نماذج التسجيل والتبرع",
       analytics: "لوحة الإحصائيات المخصصة"
+    },
+    settings_escalation: {
+      view: "عرض التصعيد الإداري ومهل SLA",
     },
     mosque_map: {
       view: "عرض الخريطة التفاعلية"

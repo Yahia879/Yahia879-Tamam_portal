@@ -50,7 +50,8 @@ import {
   LifeBuoy,
   PenLine,
   SlidersHorizontal,
-  HeartHandshake
+  HeartHandshake,
+  ShieldAlert
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -746,6 +747,9 @@ export default function UserPermissions() {
         registration: "تخصيص نماذج التسجيل والتبرع",
         analytics: "لوحة الإحصائيات المخصصة"
       },
+      settings_escalation: {
+        view: "عرض التصعيد الإداري ومهل SLA",
+      },
       mosque_map: {
         view: "عرض الخريطة الجغرافية للمساجد"
       },
@@ -848,6 +852,7 @@ export default function UserPermissions() {
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
+        { id: "settings_escalation", nameAr: "التصعيد الإداري ومهل SLA", icon: ShieldAlert, perms: ["view"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },

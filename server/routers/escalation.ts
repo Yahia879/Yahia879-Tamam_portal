@@ -119,7 +119,7 @@ function getSeverityLevel(delayDays: number): "warning" | "medium" | "critical" 
 
 const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const { checkPermission } = await import("../permissions");
-  const hasPerm = await checkPermission(ctx.user.id, "escalation.view");
+  const hasPerm = (await checkPermission(ctx.user.id, "escalation.view")) || (await checkPermission(ctx.user.id, "settings_escalation.view"));
   if (!hasPerm) {
     throw new TRPCError({
       code: "FORBIDDEN",
