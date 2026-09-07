@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Search, FileText, X, Percent, AlertCircle } from "lucide-react";
+import { Check, ChevronsUpDown, Search, FileText, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
