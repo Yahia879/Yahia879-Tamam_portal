@@ -78,7 +78,7 @@ export function ProgressReportSearchSelect({
     return reports.find((r) => r.id.toString() === value.toString()) || null;
   }, [reports, value]);
 
-  // تصفية تقارير الإنجاز بالبحث الذكي (رقم التقرير، العنوان، أو نسبة الإنجاز)
+  // تصفية تقارير الإنجاز بالبحث الذكي (فقط برقم التقرير أو العنوان/الاسم)
   const filteredReports = useMemo(() => {
     if (!searchQuery.trim()) return reports;
 
@@ -88,13 +88,9 @@ export function ProgressReportSearchSelect({
     return reports.filter((report) => {
       const rNumber = report.reportNumber || "";
       const rTitle = report.title || "";
-      const rActual = report.actualProgress != null ? `${report.actualProgress}% ${report.actualProgress}` : "";
-      const rPlanned = report.plannedProgress != null ? `${report.plannedProgress}% ${report.plannedProgress}` : "";
 
-      // نص البحث الموحد لتقرير الإنجاز
-      const combinedText = normalizeArabic(
-        `${rNumber} ${rTitle} ${rActual} ${rPlanned}`
-      );
+      // نص البحث الموحد لتقرير الإنجاز (فقط رقم التقرير واسم/عنوان التقرير)
+      const combinedText = normalizeArabic(`${rNumber} ${rTitle}`);
 
       // التأكد من وجود كل كلمة من كلمات البحث
       return queryWords.every((word) => combinedText.includes(word));
@@ -186,7 +182,7 @@ export function ProgressReportSearchSelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث برقم التقرير أو العنوان أو نسبة الإنجاز..."
+                placeholder="بحث برقم التقرير أو الاسم..."
                 className="w-full h-10 pr-9 pl-8 text-xs sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
               />
               {searchQuery && (
