@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Search, FileText, X, AlertCircle } from "lucide-react";
+import { Check, ChevronsUpDown, Search, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +8,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import { normalizeArabic } from "@/components/ProjectSearchSelect";
 
 export interface ProgressReportItem {
@@ -41,6 +40,17 @@ export interface ProgressReportSearchSelectProps {
   getReportDisabledReason?: (report: ProgressReportItem) => string | null;
 }
 
+export function getReportLabel(report: ProgressReportItem): string {
+  let progressPart = "";
+  if (report.actualProgress !== undefined && report.actualProgress !== null) {
+    progressPart = ` (${report.actualProgress}%)`;
+  } else if (report.plannedProgress !== undefined && report.plannedProgress !== null) {
+    progressPart = ` (مطلوب: ${report.plannedProgress}%)`;
+  }
+  const prefix = report.reportNumber ? `${report.reportNumber} - ` : "";
+  return `${prefix}${report.title || ""}${progressPart}`;
+}
+
 export function ProgressReportSearchSelect({
   reports = [],
   value,
@@ -68,7 +78,7 @@ export function ProgressReportSearchSelect({
     return reports.find((r) => r.id.toString() === value.toString()) || null;
   }, [reports, value]);
 
-  // تصفية تقارير الإنجاز بالبحث الذكي
+  // تصفية تقارير الإنجاز بالبحث الذكي (رقم التقرير، العنوان، أو نسبة الإنجاز)
   const filteredReports = useMemo(() => {
     if (!searchQuery.trim()) return reports;
 
@@ -78,13 +88,12 @@ export function ProgressReportSearchSelect({
     return reports.filter((report) => {
       const rNumber = report.reportNumber || "";
       const rTitle = report.title || "";
-      const rActual = report.actualProgress != null ? `${report.actualProgress}%` : "";
-      const rPlanned = report.plannedProgress != null ? `${report.plannedProgress}%` : "";
-      const rWork = report.workSummary || report.actualWorkDone || "";
+      const rActual = report.actualProgress != null ? `${report.actualProgress}% ${report.actualProgress}` : "";
+      const rPlanned = report.plannedProgress != null ? `${report.plannedProgress}% ${report.plannedProgress}` : "";
 
       // نص البحث الموحد لتقرير الإنجاز
       const combinedText = normalizeArabic(
-        `${rNumber} ${rTitle} ${rActual} ${rPlanned} ${rWork}`
+        `${rNumber} ${rTitle} ${rActual} ${rPlanned}`
       );
 
       // التأكد من وجود كل كلمة من كلمات البحث
@@ -131,29 +140,17 @@ export function ProgressReportSearchSelect({
           >
             <div className="flex items-center gap-2 overflow-hidden flex-1 text-right min-w-0">
               {isNoneSelected ? (
-                <div className="flex items-center gap-2 text-foreground font-semibold text-xs sm:text-sm">
-                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="truncate">{noneLabel}</span>
-                </div>
+                <span className="font-semibold text-foreground text-xs sm:text-sm truncate">
+                  {noneLabel}
+                </span>
               ) : selectedReport ? (
-                <div className="flex items-center gap-2 truncate max-w-full">
-                  {selectedReport.reportNumber && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[11px] font-mono font-bold px-2 py-0.5 rounded-md shrink-0"
-                    >
-                      {selectedReport.reportNumber}
-                    </Badge>
-                  )}
-                  <span className="font-semibold text-foreground text-xs sm:text-sm truncate">
-                    {selectedReport.title}
-                  </span>
-                </div>
+                <span className="font-semibold text-foreground text-xs sm:text-sm truncate">
+                  {getReportLabel(selectedReport)}
+                </span>
               ) : (
-                <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
-                  <FileText className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-                  <span className="truncate">{placeholder}</span>
-                </div>
+                <span className="text-muted-foreground text-xs sm:text-sm truncate">
+                  {placeholder}
+                </span>
               )}
             </div>
 
@@ -189,7 +186,7 @@ export function ProgressReportSearchSelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث برقم التقرير أو العنوان..."
+                placeholder="بحث برقم التقرير أو العنوان أو نسبة الإنجاز..."
                 className="w-full h-10 pr-9 pl-8 text-xs sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
               />
               {searchQuery && (
@@ -219,16 +216,13 @@ export function ProgressReportSearchSelect({
               <div
                 onClick={() => handleSelect("0")}
                 className={cn(
-                  "flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all text-right border",
+                  "flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all text-right border text-xs sm:text-sm",
                   isNoneSelected
                     ? "bg-primary/10 border-primary/30 text-primary font-semibold"
                     : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs sm:text-sm font-semibold">{noneLabel}</span>
-                </div>
+                <span className="font-semibold truncate">{noneLabel}</span>
                 {isNoneSelected && (
                   <div className="p-1 bg-primary text-primary-foreground rounded-full shrink-0 mr-2">
                     <Check className="h-3.5 w-3.5" />
@@ -267,6 +261,8 @@ export function ProgressReportSearchSelect({
                   ? "تم إنشاء طلب صرف له سابقاً"
                   : null;
 
+                const labelText = getReportLabel(report);
+
                 return (
                   <div
                     key={report.id}
@@ -276,42 +272,27 @@ export function ProgressReportSearchSelect({
                       }
                     }}
                     className={cn(
-                      "flex items-center justify-between p-2.5 rounded-lg transition-all text-right border",
+                      "flex items-center justify-between p-2.5 rounded-lg transition-all text-right border text-xs sm:text-sm",
                       isItemDisabled
-                        ? "opacity-60 bg-muted/30 border-dashed border-border/60 cursor-not-allowed"
+                        ? "opacity-60 bg-muted/30 border-dashed border-border/60 cursor-not-allowed text-muted-foreground"
                         : isSelected
                         ? "bg-primary/10 border-primary/30 text-primary font-semibold cursor-pointer"
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground cursor-pointer"
                     )}
                   >
-                    <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1 pl-2">
-                      {report.reportNumber && (
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "text-[10px] font-mono px-1.5 py-0 rounded shrink-0",
-                            isSelected
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-muted text-muted-foreground border-border"
-                          )}
-                        >
-                          {report.reportNumber}
-                        </Badge>
-                      )}
-                      <span className="text-xs sm:text-sm font-bold leading-snug truncate">
-                        {report.title}
+                    <div className="flex-1 truncate min-w-0 pl-2">
+                      <span className={cn("truncate", isSelected && "font-bold")}>
+                        {labelText}
                       </span>
-
                       {disabledReason && (
-                        <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium mr-auto">
-                          <AlertCircle className="h-3 w-3 shrink-0" />
-                          <span>({disabledReason})</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium mr-1.5">
+                          ({disabledReason})
                         </span>
                       )}
                     </div>
 
                     {isSelected && (
-                      <div className="p-1 bg-primary text-primary-foreground rounded-full shrink-0 mr-2 mt-0.5">
+                      <div className="p-1 bg-primary text-primary-foreground rounded-full shrink-0 mr-2">
                         <Check className="h-3.5 w-3.5" />
                       </div>
                     )}
