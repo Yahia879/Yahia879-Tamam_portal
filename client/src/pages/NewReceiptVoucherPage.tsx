@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
@@ -542,24 +543,15 @@ export default function NewReceiptVoucherPage() {
                       <FolderKanban className="w-4 h-4 text-primary" />
                       المشروع المرتبط بالسند *
                     </Label>
-                    <Select
+                    <ProjectSearchSelect
+                      projects={projectsList}
                       value={selectedProjectId}
                       onValueChange={(val) => {
                         setSelectedProjectId(val);
                         setAmount("");
                       }}
-                    >
-                      <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
-                        <SelectValue placeholder="اختر المشروع المعتمد لجلب بياناته..." />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl" className="max-h-72">
-                        {projectsList.map((p) => (
-                          <SelectItem key={p.id} value={p.id.toString()} className="text-right">
-                            <span className="font-bold">{p.projectNumber || `#${p.id}`}</span> - {p.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="ابحث واختر المشروع المعتمد لجلب بياناته..."
+                    />
                     <p className="text-[11px] text-muted-foreground">اختر المشروع لجلب الموقف المالي والجهات الداعمة المسجلة تلقائياً</p>
                   </div>
 
