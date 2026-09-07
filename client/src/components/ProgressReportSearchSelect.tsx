@@ -148,14 +148,6 @@ export function ProgressReportSearchSelect({
                   <span className="font-semibold text-foreground text-xs sm:text-sm truncate">
                     {selectedReport.title}
                   </span>
-                  {selectedReport.actualProgress != null && (
-                    <Badge
-                      variant="outline"
-                      className="bg-primary/5 text-primary border-primary/20 text-[10px] font-bold px-1.5 py-0 shrink-0 hidden sm:inline-flex"
-                    >
-                      {selectedReport.actualProgress}%
-                    </Badge>
-                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
@@ -197,7 +189,7 @@ export function ProgressReportSearchSelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث برقم التقرير، العنوان، أو نسبة الإنجاز..."
+                placeholder="بحث برقم التقرير أو العنوان..."
                 className="w-full h-10 pr-9 pl-8 text-xs sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
               />
               {searchQuery && (
@@ -262,7 +254,7 @@ export function ProgressReportSearchSelect({
                   لم يتم العثور على أي تقرير إنجاز مطابق
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  جرب البحث برقم مختلف أو جزء من عنوان التقرير
+                  جرب البحث برقم أو عنوان مختلف
                 </p>
               </div>
             ) : (
@@ -284,7 +276,7 @@ export function ProgressReportSearchSelect({
                       }
                     }}
                     className={cn(
-                      "flex items-start justify-between p-2.5 rounded-lg transition-all text-right border",
+                      "flex items-center justify-between p-2.5 rounded-lg transition-all text-right border",
                       isItemDisabled
                         ? "opacity-60 bg-muted/30 border-dashed border-border/60 cursor-not-allowed"
                         : isSelected
@@ -292,47 +284,30 @@ export function ProgressReportSearchSelect({
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground cursor-pointer"
                     )}
                   >
-                    <div className="space-y-1.5 min-w-0 flex-1 pl-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {report.reportNumber && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] font-mono px-1.5 py-0 rounded",
-                              isSelected
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-muted text-muted-foreground border-border"
-                            )}
-                          >
-                            {report.reportNumber}
-                          </Badge>
-                        )}
-                        <span className="text-xs sm:text-sm font-bold leading-snug">
-                          {report.title}
+                    <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1 pl-2">
+                      {report.reportNumber && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] font-mono px-1.5 py-0 rounded shrink-0",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-muted text-muted-foreground border-border"
+                          )}
+                        >
+                          {report.reportNumber}
+                        </Badge>
+                      )}
+                      <span className="text-xs sm:text-sm font-bold leading-snug truncate">
+                        {report.title}
+                      </span>
+
+                      {disabledReason && (
+                        <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium mr-auto">
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          <span>({disabledReason})</span>
                         </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap pt-0.5">
-                        {report.actualProgress != null && (
-                          <span className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
-                            <Percent className="h-3 w-3" />
-                            <span>نسبة الإنجاز: {report.actualProgress}%</span>
-                          </span>
-                        )}
-
-                        {report.plannedProgress != null && (
-                          <span className="text-muted-foreground">
-                            (المستهدف: {report.plannedProgress}%)
-                          </span>
-                        )}
-
-                        {disabledReason && (
-                          <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
-                            <AlertCircle className="h-3 w-3" />
-                            <span>({disabledReason})</span>
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
 
                     {isSelected && (
