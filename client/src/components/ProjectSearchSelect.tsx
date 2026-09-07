@@ -173,11 +173,6 @@ export function ProjectSearchSelect({
                   <span className="font-semibold text-foreground text-xs sm:text-sm truncate">
                     {selectedProject.name}
                   </span>
-                  {(selectedProject.mosqueName || selectedProject.city) && (
-                    <span className="text-[11px] text-muted-foreground truncate hidden md:inline">
-                      ({[selectedProject.mosqueName, selectedProject.city].filter(Boolean).join(" - ")})
-                    </span>
-                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-muted-foreground text-xs sm:text-sm">
@@ -219,7 +214,7 @@ export function ProjectSearchSelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث برقم المشروع، الاسم، المسجد، أو المدينة..."
+                placeholder="بحث برقم المشروع أو الاسم..."
                 className="w-full h-10 pr-9 pl-8 text-xs sm:text-sm bg-background border border-input focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg outline-none transition-all placeholder:text-muted-foreground/70"
               />
               {searchQuery && (
@@ -251,7 +246,7 @@ export function ProjectSearchSelect({
                   لم يتم العثور على أي مشروع مطابق
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  جرب البحث برقم مختلف أو جزء من اسم المسجد أو المدينة
+                  جرب البحث برقم أو اسم مختلف
                 </p>
               </div>
             ) : (
@@ -262,49 +257,29 @@ export function ProjectSearchSelect({
                     key={project.id}
                     onClick={() => handleSelect(project.id)}
                     className={cn(
-                      "flex items-start justify-between p-2.5 rounded-lg cursor-pointer transition-all text-right border",
+                      "flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all text-right border",
                       isSelected
                         ? "bg-primary/10 border-primary/30 text-primary font-semibold"
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground"
                     )}
                   >
-                    <div className="space-y-1 min-w-0 flex-1 pl-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {project.projectNumber && (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] font-mono px-1.5 py-0 rounded",
-                              isSelected
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-muted text-muted-foreground border-border"
-                            )}
-                          >
-                            {project.projectNumber}
-                          </Badge>
-                        )}
-                        <span className="text-xs sm:text-sm font-bold leading-snug">
-                          {project.name}
-                        </span>
-                      </div>
-
-                      {/* بيانات المسجد والمدينة والحي إن وجدت */}
-                      {(project.mosqueName || project.city || project.district || project.description) && (
-                        <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground flex-wrap pt-0.5">
-                          {project.mosqueName && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="h-3 w-3 text-primary/70 shrink-0" />
-                              <span className="truncate max-w-[150px]">{project.mosqueName}</span>
-                            </span>
+                    <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1 pl-2">
+                      {project.projectNumber && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] font-mono px-1.5 py-0 rounded shrink-0",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-muted text-muted-foreground border-border"
                           )}
-                          {project.city && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-amber-500/80 shrink-0" />
-                              <span>{[project.city, project.district].filter(Boolean).join(" - ")}</span>
-                            </span>
-                          )}
-                        </div>
+                        >
+                          {project.projectNumber}
+                        </Badge>
                       )}
+                      <span className="text-xs sm:text-sm font-bold leading-snug truncate">
+                        {project.name}
+                      </span>
                     </div>
 
                     {isSelected && (
