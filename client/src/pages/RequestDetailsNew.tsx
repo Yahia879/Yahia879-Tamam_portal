@@ -1267,40 +1267,6 @@ export default function RequestDetailsNew() {
                       </span>
                     )}
 
-                    {/* المسؤول عن الطلب أو زر تعيين مسؤول */}
-                    {request.adminName ? (
-                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-md bg-blue-50/90 text-blue-800 border border-blue-200/80 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/80 shadow-2xs">
-                        <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>{isEn ? `Officer: ${request.adminName}` : `المسؤول: ${request.adminName}`}</span>
-                        {canAssignAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedAssigneeId(request.assignedTo ? String(request.assignedTo) : "");
-                              setAssignModalOpen(true);
-                            }}
-                            className="hover:text-blue-950 dark:hover:text-blue-100 transition-colors mr-0.5 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer"
-                            title={isEn ? "Change assigned officer" : "تغيير المسؤول"}
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    ) : canAssignAdmin ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedAssigneeId("");
-                          setAssignModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
-                        title={isEn ? "Assign an officer to this request" : "إسناد الطلب لموظف مسؤول"}
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>{isEn ? "Assign Officer" : "تعيين مسؤول"}</span>
-                      </button>
-                    ) : null}
-
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
                         <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 h-6 text-[11px] px-2.5 rounded-md font-medium">
@@ -1326,8 +1292,8 @@ export default function RequestDetailsNew() {
                             : (request.mosque?.name?.trim().startsWith("مسجد") ? `طلب ${request.mosque?.name}` : `طلب مسجد ${request.mosque?.name || ""}`))}
                   </h1>
 
-                  {/* Descriptive Name Subtitle Line */}
-                  <div className="pt-0.5">
+                  {/* Descriptive Name & Assigned Officer Subtitle Line */}
+                  <div className="flex items-center gap-2 flex-wrap pt-0.5">
                     {request.descriptiveName ? (
                       <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-lg bg-purple-50/90 text-purple-700 border border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800/80 shadow-2xs">
                         <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
@@ -1359,6 +1325,40 @@ export default function RequestDetailsNew() {
                         <Tag className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
                         <span>إضافة تسمية توضيحية للطلب</span>
                         <Pencil className="w-3 h-3 text-purple-500 opacity-80" />
+                      </button>
+                    ) : null}
+
+                    {/* المسؤول عن الطلب أو زر تعيين مسؤول */}
+                    {request.adminName ? (
+                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-lg bg-blue-50/90 text-blue-800 border border-blue-200/80 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/80 shadow-2xs">
+                        <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>{isEn ? `Officer: ${request.adminName}` : `المسؤول: ${request.adminName}`}</span>
+                        {canAssignAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAssigneeId(request.assignedTo ? String(request.assignedTo) : "");
+                              setAssignModalOpen(true);
+                            }}
+                            className="hover:text-blue-950 dark:hover:text-blue-100 transition-colors mr-0.5 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer"
+                            title={isEn ? "Change assigned officer" : "تغيير المسؤول"}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ) : canAssignAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAssigneeId("");
+                          setAssignModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
+                        title={isEn ? "Assign an officer to this request" : "إسناد الطلب لموظف مسؤول"}
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>{isEn ? "Assign Officer" : "تعيين مسؤول"}</span>
                       </button>
                     ) : null}
                   </div>
@@ -1974,39 +1974,7 @@ export default function RequestDetailsNew() {
                     <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}</p>
                   </div>
 
-                  {/* المسؤول عن الطلب */}
-                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Officer in Charge" : "المسؤول عن الطلب"}</p>
-                        {canAssignAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedAssigneeId(request.assignedTo ? String(request.assignedTo) : "");
-                              setAssignModalOpen(true);
-                            }}
-                            className="text-primary hover:underline text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-                          >
-                            <Pencil className="w-3 h-3" />
-                            <span>{request.adminName ? (isEn ? "Change" : "تغيير") : (isEn ? "Assign" : "تعيين")}</span>
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 mt-1">
-                        {request.adminName || (
-                          <span className="text-muted-foreground font-normal text-xs">
-                            {isEn ? "No officer assigned yet" : "لم يتم تعيين مسؤول بعد"}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    {request.assignedToUser?.email && (
-                      <p className="text-[11px] text-muted-foreground truncate mt-1" dir="ltr">
-                        {request.assignedToUser.email}
-                      </p>
-                    )}
-                  </div>
+
                   {request.requestTrack === 'quick_response' && (
                     <>
                       {request.assignedToUser && (
