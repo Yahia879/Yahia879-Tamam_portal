@@ -545,7 +545,7 @@ export default function ContractPrint() {
                             return (
                               <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
-                                <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.description || `الدفعة ${idx + 1}`}</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">{pAmount.toLocaleString('ar-SA')} ريال</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{p.completionPercentage || percentage}%</td>
                                 <td className="py-2.5 px-3 text-gray-600">
