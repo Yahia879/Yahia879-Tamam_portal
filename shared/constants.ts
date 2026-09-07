@@ -1235,6 +1235,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   request_created: "تم تقديم الطلب",
   stage_updated: "تم تحديث مرحلة الطلب",
   status_updated: "تم تحديث حالة الطلب",
+  assigned_to_user: "تم تعيين المسؤول عن الطلب",
+  assign_to: "تم تعيين المسؤول عن الطلب",
   select_winning_quotation: "تم اختيار عرض السعر الفائز",
   financial_approval: "تمت الموافقة المالية",
   field_visit_assigned: "تم تعيين فريق الزيارة الميدانية",
