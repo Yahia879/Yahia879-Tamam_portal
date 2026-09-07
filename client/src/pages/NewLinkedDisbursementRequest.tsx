@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
+import { ProgressReportSearchSelect } from "@/components/ProgressReportSearchSelect";
 import {
   Table,
   TableBody,
