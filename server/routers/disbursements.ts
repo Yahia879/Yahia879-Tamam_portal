@@ -1620,6 +1620,9 @@ export const disbursementsRouter = router({
           creatorSignatureUrl: disbursementOrders.creatorSignatureUrl,
           approvalNotes: disbursementOrders.approvalNotes,
           executiveNotes: disbursementOrders.executiveNotes,
+          executiveNotesReply: disbursementOrders.executiveNotesReply,
+          executiveNotesRepliedBy: disbursementOrders.executiveNotesRepliedBy,
+          executiveNotesRepliedAt: disbursementOrders.executiveNotesRepliedAt,
           exceptionApprovedBy: disbursementOrders.exceptionApprovedBy,
           rejectionReason: disbursementOrders.rejectionReason,
           rejectedAt: disbursementOrders.rejectedAt,
@@ -1698,6 +1701,15 @@ export const disbursementsRouter = router({
             approverName = approver?.name;
           }
 
+          let repliedByName = null;
+          if ((order as any).executiveNotesRepliedBy) {
+            const [replier] = await db
+              .select({ name: users.name })
+              .from(users)
+              .where(eq(users.id, (order as any).executiveNotesRepliedBy));
+            repliedByName = replier?.name;
+          }
+
           return {
             ...order,
             contractAmount,
@@ -1705,6 +1717,7 @@ export const disbursementsRouter = router({
             remainingAmount,
             createdByName: creator?.name,
             approvedByName: approverName,
+            executiveNotesRepliedByName: repliedByName,
           };
         })
       );
@@ -2008,6 +2021,20 @@ export const disbursementsRouter = router({
       const resolvedBeneficiaryBank = order.beneficiaryBank || contract?.secondPartyBankName || null;
       const resolvedBeneficiaryIban = order.beneficiaryIban || contract?.secondPartyIban || null;
 
+      let repliedByUser: any = null;
+      if (order.executiveNotesRepliedBy) {
+        const [replier] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            role: users.role,
+          })
+          .from(users)
+          .where(eq(users.id, order.executiveNotesRepliedBy));
+        repliedByUser = replier || null;
+      }
+
       return {
         ...order,
         beneficiaryName: resolvedBeneficiaryName,
@@ -2021,6 +2048,8 @@ export const disbursementsRouter = router({
         approvedByUser: executiveDirectorUser || null,
         financialUser: financialUser || null,
         executiveDirectorUser: executiveDirectorUser || null,
+        repliedByUser,
+        executiveNotesRepliedByName: repliedByUser?.name || null,
         // بيانات مُنفذ الاستثناء الحية
         liveExceptionApproverName: liveExceptionApproverData
           ? (liveExceptionApproverData.signatureName || liveExceptionApproverData.name || null)
@@ -2610,6 +2639,48 @@ export const disbursementsRouter = router({
         .where(eq(disbursementOrders.id, input.orderId));
 
       return { success: true, message: "تم حفظ وتحديث الملاحظات بنجاح" };
+    }),
+
+  // الرد على ملاحظات وتوجيهات رئيس المجلس لأمر الصرف
+  replyToOrderNotes: protectedProcedure
+    .input(
+      z.object({
+        orderId: z.number(),
+        reply: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [order] = await db
+        .select()
+        .from(disbursementOrders)
+        .where(eq(disbursementOrders.id, input.orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
+      }
+
+      // لا يمكن الرد على الملاحظات إذا كان الأمر قد نُفّذ أو رُفض مسبقاً
+      if (order.status === "executed" || order.status === "rejected") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن الرد على الملاحظات بعد تنفيذ أو رفض أمر الصرف" });
+      }
+
+      const replyText = input.reply.trim();
+
+      await db
+        .update(disbursementOrders)
+        .set({
+          executiveNotesReply: replyText || null,
+          executiveNotesRepliedBy: replyText ? ctx.user.id : null,
+          executiveNotesRepliedAt: replyText ? new Date() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(disbursementOrders.id, input.orderId));
+
+      return { success: true, message: "تم حفظ الرد على الملاحظات بنجاح" };
     }),
 
   // تنفيذ أمر صرف (الدفع الفعلي)
