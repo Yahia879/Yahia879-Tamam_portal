@@ -12,6 +12,7 @@ import {
   contractsEnhanced,
   partners,
   supportTickets,
+  users,
 } from "../../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../_core/trpc";
@@ -163,6 +164,10 @@ export const boardRouter = router({
           rejectionReason: disbursementOrders.rejectionReason,
           approvalNotes: disbursementOrders.approvalNotes,
           executiveNotes: disbursementOrders.executiveNotes,
+          executiveNotesReply: disbursementOrders.executiveNotesReply,
+          executiveNotesRepliedBy: disbursementOrders.executiveNotesRepliedBy,
+          executiveNotesRepliedAt: disbursementOrders.executiveNotesRepliedAt,
+          repliedUserName: users.name,
           disbursementRequestId: disbursementOrders.disbursementRequestId,
           isDirect: disbursementRequests.isDirect,
           isCustom: sql<boolean>`CASE WHEN ${disbursementOrders.disbursementRequestId} IS NULL OR ${disbursementOrders.disbursementRequestId} = 0 OR ${disbursementRequests.isDirect} = TRUE THEN TRUE ELSE FALSE END`,
@@ -174,6 +179,7 @@ export const boardRouter = router({
         })
         .from(disbursementOrders)
         .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
+        .leftJoin(users, eq(disbursementOrders.executiveNotesRepliedBy, users.id))
         .where(finalWhere)
         .orderBy(desc(disbursementOrders.createdAt))
         .limit(pageSize)
@@ -195,6 +201,10 @@ export const boardRouter = router({
           rejectionReason: o.rejectionReason || null,
           approvalNotes: o.approvalNotes || null,
           executiveNotes: o.executiveNotes || null,
+          executiveNotesReply: o.executiveNotesReply || null,
+          executiveNotesRepliedBy: o.executiveNotesRepliedBy || null,
+          executiveNotesRepliedAt: o.executiveNotesRepliedAt ? new Date(o.executiveNotesRepliedAt).toISOString() : null,
+          executiveNotesRepliedByName: o.repliedUserName || null,
           isCustom: isCustomOrder,
           title: isCustomOrder ? (o.requestTitle || "أمر صرف مخصص") : (o.requestTitle || `طلب صرف رقم ${o.requestNumber}`),
           requestId: isCustomOrder ? null : (o.requestId || null),
