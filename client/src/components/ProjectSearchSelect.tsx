@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Search, Building2, MapPin, X, Loader2, FolderKanban } from "lucide-react";
+import { Check, ChevronsUpDown, Search, Building2, X, Loader2, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
