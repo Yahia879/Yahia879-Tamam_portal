@@ -645,7 +645,7 @@ export default function BoardDashboard({
                                                       ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
                                                       : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
                                                   }`}
-                                                  title={(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد عليها" : "يوجد ملاحظات مدونة"}
+                                                  title={(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد على الملاحظة" : "يوجد ملاحظات مدونة"}
                                                 >
                                                   {(order as any).executiveNotesReply ? (
                                                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -653,12 +653,12 @@ export default function BoardDashboard({
                                                     <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                                                   )}
                                                   {(order as any).executiveNotesReply && (
-                                                    <span>تم الرد</span>
+                                                    <span>تم الرد على الملاحظة</span>
                                                   )}
                                                 </button>
                                               </TooltipTrigger>
                                               <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl border border-slate-700 z-50">
-                                                <span>{(order as any).executiveNotesReply ? "يوجد ملاحظات وإفادة مسجلة (انقر للعرض)" : "يوجد ملاحظات مدونة (انقر للعرض)"}</span>
+                                                <span>{(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد على الملاحظة (انقر للعرض)" : "يوجد ملاحظات مدونة (انقر للعرض)"}</span>
                                               </TooltipContent>
                                             </UiTooltip>
                                           </TooltipProvider>
