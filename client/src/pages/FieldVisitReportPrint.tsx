@@ -262,41 +262,41 @@ export default function FieldVisitReportPrint() {
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-md border border-slate-200">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">اسم المسجد:</span>
-                    <span className="font-bold text-slate-800">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
+                    <span className="text-slate-500 block text-[10px]">اسم المسجد:</span>
+                    <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">المدينة / الحي:</span>
-                    <span className="font-semibold text-slate-700">
+                    <span className="text-slate-500 block text-[10px]">المدينة / الحي:</span>
+                    <span className="font-semibold text-gray-800">
                       {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">نوع البرنامج:</span>
-                    <span className="font-bold text-indigo-700">
+                    <span className="text-slate-500 block text-[10px]">نوع البرنامج:</span>
+                    <span className="font-bold text-gray-900">
                       {request.programName || (PROGRAM_LABELS as any)[request.programType] || request.programType}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">مقدم الطلب:</span>
-                    <span className="font-semibold text-slate-700">{request.requester?.name || (request as any).requesterName || "—"}</span>
+                    <span className="text-slate-500 block text-[10px]">مقدم الطلب:</span>
+                    <span className="font-semibold text-gray-800">{request.requester?.name || (request as any).requesterName || "—"}</span>
                   </div>
 
                   {request.descriptiveName && (
                     <div className="col-span-2">
-                      <span className="text-slate-400 block text-[10px]">التسمية التوضيحية:</span>
-                      <span className="font-bold text-purple-800">{request.descriptiveName}</span>
+                      <span className="text-slate-500 block text-[10px]">التسمية التوضيحية:</span>
+                      <span className="font-bold text-gray-900">{request.descriptiveName}</span>
                     </div>
                   )}
                   {request.mosque?.imamName && (
                     <div>
-                      <span className="text-slate-400 block text-[10px]">إمام المسجد:</span>
-                      <span className="font-semibold text-slate-700">{request.mosque.imamName} ({request.mosque.imamPhone || "—"})</span>
+                      <span className="text-slate-500 block text-[10px]">إمام المسجد:</span>
+                      <span className="font-semibold text-gray-800">{request.mosque.imamName} ({request.mosque.imamPhone || "—"})</span>
                     </div>
                   )}
                   <div>
-                    <span className="text-slate-400 block text-[10px]">تاريخ الزيارة الميدانية:</span>
-                    <span className="font-bold text-slate-800">
+                    <span className="text-slate-500 block text-[10px]">تاريخ الزيارة الميدانية:</span>
+                    <span className="font-bold text-gray-900">
                       {fieldReport?.visitDate ? new Date(fieldReport.visitDate).toLocaleDateString('ar-SA') : formatGregorianDate(visitDate)}
                     </span>
                   </div>
@@ -315,36 +315,36 @@ export default function FieldVisitReportPrint() {
                   {/* مصلى الرجال */}
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="font-bold text-slate-800 text-xs">أبعاد مصلى الرجال:</span>
-                      <span className="text-xs font-extrabold text-[#1a5f4a] bg-[#1a5f4a]/10 px-2 py-0.5 rounded">
+                      <span className="font-bold text-gray-800 text-xs">أبعاد مصلى الرجال:</span>
+                      <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                         المساحة: {menArea > 0 ? `${menArea.toLocaleString('ar-SA')} م²` : "غير محدد"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 text-[11px] text-slate-600">
-                      <div>الطول: <strong className="text-slate-800">{menLength ? `${menLength}م` : "—"}</strong></div>
-                      <div>العرض: <strong className="text-slate-800">{menWidth ? `${menWidth}م` : "—"}</strong></div>
-                      <div>الارتفاع: <strong className="text-slate-800">{fieldReport?.menPrayerHeight ? `${fieldReport.menPrayerHeight}م` : "—"}</strong></div>
+                    <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
+                      <div>الطول: <strong className="text-gray-900">{menLength ? `${menLength}م` : "—"}</strong></div>
+                      <div>العرض: <strong className="text-gray-900">{menWidth ? `${menWidth}م` : "—"}</strong></div>
+                      <div>الارتفاع: <strong className="text-gray-900">{fieldReport?.menPrayerHeight ? `${fieldReport.menPrayerHeight}م` : "—"}</strong></div>
                     </div>
                   </div>
 
                   {/* مصلى النساء */}
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="font-bold text-slate-800 text-xs">مصلى النساء:</span>
-                      <span className="text-xs font-extrabold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                      <span className="font-bold text-gray-800 text-xs">مصلى النساء:</span>
+                      <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                         {fieldReport?.womenPrayerExists 
                           ? (womenArea > 0 ? `المساحة: ${womenArea.toLocaleString('ar-SA')} م²` : "موجود") 
                           : "غير متوفر"}
                       </span>
                     </div>
                     {fieldReport?.womenPrayerExists ? (
-                      <div className="grid grid-cols-3 gap-1 text-[11px] text-slate-600">
-                        <div>الطول: <strong className="text-slate-800">{womenLength ? `${womenLength}م` : "—"}</strong></div>
-                        <div>العرض: <strong className="text-slate-800">{womenWidth ? `${womenWidth}م` : "—"}</strong></div>
-                        <div>الارتفاع: <strong className="text-slate-800">{fieldReport?.womenPrayerHeight ? `${fieldReport.womenPrayerHeight}م` : "—"}</strong></div>
+                      <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
+                        <div>الطول: <strong className="text-gray-900">{womenLength ? `${womenLength}م` : "—"}</strong></div>
+                        <div>العرض: <strong className="text-gray-900">{womenWidth ? `${womenWidth}م` : "—"}</strong></div>
+                        <div>الارتفاع: <strong className="text-gray-900">{fieldReport?.womenPrayerHeight ? `${fieldReport.womenPrayerHeight}م` : "—"}</strong></div>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-slate-500">لا يوجد مصلى مخصص للنساء في هذا المسجد.</p>
+                      <p className="text-[11px] text-gray-500">لا يوجد مصلى مخصص للنساء في هذا المسجد.</p>
                     )}
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function FieldVisitReportPrint() {
                 >
                   <span>3. التقييم الهندسي والتوصيف العام:</span>
                   {fieldReport?.conditionRating && (
-                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-white/90 text-slate-800 border border-amber-900/20">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-white text-gray-900 border border-gray-300">
                       الحالة: {conditionLabels[fieldReport.conditionRating] || fieldReport.conditionRating}
                     </span>
                   )}
@@ -366,8 +366,8 @@ export default function FieldVisitReportPrint() {
 
                 {fieldReport?.generalDescription && (
                   <div className="p-2.5 rounded-md border border-slate-200 bg-slate-50/40 text-xs">
-                    <span className="font-bold text-slate-700 block mb-1">التوصيف العام للحالة الميدانية:</span>
-                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    <span className="font-bold text-gray-800 block mb-1">التوصيف العام للحالة الميدانية:</span>
+                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
                       {fieldReport.generalDescription}
                     </p>
                   </div>
@@ -375,8 +375,8 @@ export default function FieldVisitReportPrint() {
 
                 {fieldReport?.requiredNeeds && (
                   <div className="p-2.5 rounded-md border border-slate-200 bg-slate-50/40 text-xs">
-                    <span className="font-bold text-slate-700 block mb-1">الاحتياجات والأعمال المطلوبة:</span>
-                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    <span className="font-bold text-gray-800 block mb-1">الاحتياجات والأعمال المطلوبة:</span>
+                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
                       {fieldReport.requiredNeeds}
                     </p>
                   </div>
@@ -384,15 +384,15 @@ export default function FieldVisitReportPrint() {
 
                 {/* تقييم صحة بيانات المستفيد */}
                 {fieldReport?.beneficiaryInfoAccuracyRating && (
-                  <div className="p-2.5 rounded-md border border-amber-200 bg-amber-50/40 text-xs flex flex-col gap-1">
+                  <div className="p-2.5 rounded-md border border-gray-200 bg-gray-50/60 text-xs flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-amber-900">تقييم صحة ومطابقة بيانات المستفيد:</span>
-                      <span className="font-bold text-amber-800">
+                      <span className="font-bold text-gray-800">تقييم صحة ومطابقة بيانات المستفيد:</span>
+                      <span className="font-bold text-gray-900">
                         {ratingLabels[fieldReport.beneficiaryInfoAccuracyRating] || `${fieldReport.beneficiaryInfoAccuracyRating} من 5`}
                       </span>
                     </div>
                     {fieldReport.beneficiaryInfoAccuracyNotes && (
-                      <p className="text-[11px] text-amber-950 italic mt-0.5">
+                      <p className="text-[11px] text-gray-700 italic mt-0.5">
                         ملاحظات الفاحص: "{fieldReport.beneficiaryInfoAccuracyNotes}"
                       </p>
                     )}
@@ -419,7 +419,7 @@ export default function FieldVisitReportPrint() {
                             className="w-full h-full object-cover" 
                           />
                         </div>
-                        <p className="text-[9px] text-slate-500 text-center truncate mt-1">
+                        <p className="text-[9px] text-gray-600 text-center truncate mt-1">
                           {photo.fileName || `صورة توثيقية ${idx + 1}`}
                         </p>
                       </div>
@@ -430,54 +430,16 @@ export default function FieldVisitReportPrint() {
 
               {/* أعضاء الفريق الميداني */}
               {teamMembers.length > 0 && (
-                <div className="section-block text-xs border border-slate-200 p-2 rounded bg-slate-50/50">
-                  <span className="font-bold text-slate-700 ml-2">أعضاء الفريق الميداني:</span>
-                  <span className="text-slate-600">{teamMembers.join(" • ")}</span>
+                <div className="section-block text-xs border border-slate-200 p-2.5 rounded-md bg-slate-50/50">
+                  <span className="font-bold text-gray-800 ml-2">أعضاء الفريق الميداني:</span>
+                  <span className="text-gray-700">{teamMembers.join(" • ")}</span>
                 </div>
               )}
 
-              {/* التوقيعات والاعتمادات الرسمية */}
-              <div className="section-block pt-3 border-t-2 border-[#1a5f4a]/30">
-                <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                  {/* الخانة 1: الفريق الميداني المعاين */}
-                  <div className="border border-slate-200 rounded-md p-2 bg-slate-50/40 space-y-1">
-                    <p className="font-bold text-slate-700 text-[11px]">مُعِد التقرير / الفريق الميداني</p>
-                    <p className="font-bold text-[#1a5f4a] text-xs pt-1">
-                      {fieldReport?.teamMember1 || request.fieldVisitAssignedToUser?.name || "الفريق الميداني"}
-                    </p>
-                    <div className="h-10 flex items-center justify-center text-slate-400 italic text-[10px]">
-                      [تم التوقيع إلكترونياً]
-                    </div>
-                  </div>
-
-                  {/* الخانة 2: مكتب إدارة المشاريع */}
-                  <div className="border border-slate-200 rounded-md p-2 bg-slate-50/40 space-y-1">
-                    <p className="font-bold text-slate-700 text-[11px]">التدقيق والمراجعة الفنية</p>
-                    <p className="font-bold text-slate-800 text-xs pt-1">
-                      {request.assignedToUser?.name || "مكتب المشاريع"}
-                    </p>
-                    <div className="h-10 flex items-center justify-center text-slate-400 italic text-[10px]">
-                      [تمت المراجعة والاعتماد]
-                    </div>
-                  </div>
-
-                  {/* الخانة 3: الاعتماد النهائي */}
-                  <div className="border border-slate-200 rounded-md p-2 bg-slate-50/40 space-y-1">
-                    <p className="font-bold text-slate-700 text-[11px]">الاعتماد الرسمي</p>
-                    <p className="font-bold text-slate-800 text-xs pt-1">
-                      {orgSettings?.authorizedSignatory || orgSettings?.executiveDirectorName || "المدير التنفيذي"}
-                    </p>
-                    <div className="h-10 flex items-center justify-center">
-                      <div className="w-12 h-12 rounded-full border border-dashed border-[#1a5f4a]/40 flex items-center justify-center text-[9px] text-[#1a5f4a] font-bold">
-                        ختم الجمعية
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="text-center text-[10px] text-slate-400 pt-2">
-                  تم إصدار هذا التقرير رسمياً من بوابة تمام الإلكترونية لجمعية رعاية المساجد • كود التحقق: {request.requestNumber || requestId}
-                </div>
+              {/* التذييل الرسمي المعتمد */}
+              <div className="pt-3 border-t border-slate-200 text-center text-[10px] text-gray-500">
+                تم إصدار هذا التقرير رسمياً من بوابة تمام الإلكترونية لجمعية رعاية المساجد • كود التحقق: {request.requestNumber || requestId}
+              </div>
               </div>
 
             </div>
