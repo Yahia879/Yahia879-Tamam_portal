@@ -334,12 +334,36 @@ export const contractsRouter = router({
         signatory.signatureUrl = firstPartySignatureUrl;
       }
 
-      // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments)
+      // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments أو paymentScheduleJson)
       let paymentsList: any[] = input.lightweight ? [] : await db
         .select()
         .from(contractPayments)
         .where(eq(contractPayments.contractId, input.id))
         .orderBy(contractPayments.phaseOrder);
+
+      // إذا كان paymentScheduleJson يحتوي على دفعات كاملة تفوق ما تم جلبه من contractPayments
+      if (!input.lightweight && contract.paymentScheduleJson) {
+        try {
+          const parsed = typeof contract.paymentScheduleJson === "string" 
+            ? JSON.parse(contract.paymentScheduleJson) 
+            : contract.paymentScheduleJson;
+          if (Array.isArray(parsed) && parsed.length > paymentsList.length) {
+            paymentsList = parsed.map((p: any, idx: number) => ({
+              id: p.id || idx + 1,
+              contractId: input.id,
+              phaseOrder: p.phaseOrder ?? idx,
+              phaseName: p.name || p.phaseName || `الدفعة ${idx + 1}`,
+              amount: String(p.amount || 0),
+              dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
+              status: p.status || "pending",
+              notes: p.description || p.notes || null,
+              completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : (p.percentage !== undefined && p.percentage !== null ? Number(p.percentage) : null),
+            }));
+          }
+        } catch (e) {
+          console.error("Error parsing paymentScheduleJson in getById fallback:", e);
+        }
+      }
 
       if (paymentsList.length === 0 && !input.lightweight) {
         if (contract.paymentScheduleJson) {
@@ -351,13 +375,13 @@ export const contractsRouter = router({
               paymentsList = parsed.map((p: any, idx: number) => ({
                 id: p.id || idx + 1,
                 contractId: input.id,
-                phaseOrder: idx,
+                phaseOrder: p.phaseOrder ?? idx,
                 phaseName: p.name || p.phaseName || `الدفعة ${idx + 1}`,
                 amount: String(p.amount || 0),
                 dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
                 status: p.status || "pending",
                 notes: p.description || p.notes || null,
-                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : (p.percentage !== undefined ? Number(p.percentage) : null),
+                completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : (p.percentage !== undefined && p.percentage !== null ? Number(p.percentage) : null),
               }));
             }
           } catch (e) {
@@ -380,6 +404,7 @@ export const contractsRouter = router({
               contractId: input.id,
               phaseOrder: idx + 1,
               name: p.description || `الدفعة ${idx + 1}`,
+              phaseName: p.description || `الدفعة ${idx + 1}`,
               percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
               amount: String(p.amount || 0),
               dueDate: p.createdAt ? p.createdAt : null,
