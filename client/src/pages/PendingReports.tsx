@@ -26,6 +26,7 @@ import {
   Star,
   Camera,
   Download,
+  Printer,
   X
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -431,7 +432,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                           setReportDialogOpen(true);
                                         }}
                                       >
-                                        <FileText className="w-4 h-4 ml-2" />
+                                        <Eye className="w-4 h-4 ml-2" />
                                         عرض التقرير
                                       </DropdownMenuItem>
                                     )
@@ -509,7 +510,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                       setReportDialogOpen(true);
                                     }}
                                   >
-                                    <FileText className="w-4 h-4 ml-2" />
+                                    <Eye className="w-4 h-4 ml-2" />
                                     عرض التقرير
                                   </DropdownMenuItem>
                                 )
@@ -688,12 +689,34 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
             <p>فشل تحميل تفاصيل التقرير أو غير مصرح بعرضه.</p>
           </div>
         )
-      ) : selectedReportTypeForView === "field_visit" ? (
-        <div className="space-y-6 text-right" dir="rtl">
-          {(!singleRequestData.fieldReports || singleRequestData.fieldReports.length === 0) ? (
-            <p className="text-center text-muted-foreground py-6">لا توجد تقارير معاينة ميدانية مسجلة لهذا الطلب.</p>
-          ) : (
-            singleRequestData.fieldReports.map((report: any) => {
+      ) : (
+        <div className="space-y-4" dir="rtl">
+          {selectedRequestIdForView && (
+            <div className="flex justify-end items-center pb-2">
+              <Link 
+                href={
+                  selectedReportTypeForView === "field_visit"
+                    ? `/requests/${selectedRequestIdForView}/field-visit-report/print`
+                    : selectedReportTypeForView === "quick_request"
+                    ? `/requests/${selectedRequestIdForView}/quick-request-report/print`
+                    : `/requests/${selectedRequestIdForView}/quick-response-report/print`
+                }
+                target="_blank"
+              >
+                <Button size="sm" className="gap-2 font-bold shadow-sm bg-[#1a5f4a] hover:bg-[#144939] text-white">
+                  <Printer className="w-4 h-4" />
+                  <span>طباعة التقرير</span>
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {selectedReportTypeForView === "field_visit" ? (
+            <div className="space-y-6 text-right">
+              {(!singleRequestData.fieldReports || singleRequestData.fieldReports.length === 0) ? (
+                <p className="text-center text-muted-foreground py-6">لا توجد تقارير معاينة ميدانية مسجلة لهذا الطلب.</p>
+              ) : (
+                singleRequestData.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
                 excellent: "ممتاز",
                 good: "جيد",
@@ -1106,6 +1129,8 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
           )}
         </div>
       ) : null}
+        </div>
+      )}
     </ColoredDialog>
 
     {/* Lightbox Modal */}
