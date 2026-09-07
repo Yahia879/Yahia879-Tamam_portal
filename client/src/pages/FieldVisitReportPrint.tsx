@@ -440,7 +440,6 @@ export default function FieldVisitReportPrint() {
               <div className="pt-3 border-t border-slate-200 text-center text-[10px] text-gray-500">
                 تم إصدار هذا التقرير رسمياً من بوابة تمام الإلكترونية لجمعية رعاية المساجد • كود التحقق: {request.requestNumber || requestId}
               </div>
-              </div>
 
             </div>
           </div>
