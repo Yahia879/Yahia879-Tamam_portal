@@ -250,10 +250,7 @@ export default function FormsCustomizationEvaluation() {
       const fullUrl = `${window.location.origin}${res.relativeUrl}`;
       await navigator.clipboard.writeText(fullUrl);
       setCopiedLink(true);
-      toast.success("تم توليد ونسخ رابط استبيان فريد مخصص للاستخدام لمرة واحدة بنجاح!", {
-        description: fullUrl,
-        duration: 5000,
-      });
+      toast.success("تم توليد ونسخ رابط استبيان فريد");
       setTimeout(() => setCopiedLink(false), 3000);
     } catch (err: any) {
       toast.error(err?.message || "حدث خطأ أثناء استخراج الرابط");
