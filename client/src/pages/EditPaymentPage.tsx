@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import {
   Table,
   TableBody,
@@ -456,22 +457,13 @@ export default function EditPaymentPage() {
                 
                 <div className="space-y-2 text-right">
                   <Label className="text-right font-semibold">المشروع</Label>
-                  <Select
-                    value={formData.projectId.toString()}
-                    onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value), contractId: 0 })}
+                  <ProjectSearchSelect
+                    projects={projects}
+                    value={formData.projectId > 0 ? formData.projectId.toString() : ""}
+                    onValueChange={(value) => setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0 })}
                     disabled={true}
-                  >
-                    <SelectTrigger className="text-right bg-muted/30 border-border/40 rounded-xl h-10 w-full" dir="rtl">
-                      <SelectValue placeholder="اختر المشروع" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
-                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
-                          {project.name} - {project.projectNumber}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="اختر المشروع"
+                  />
                 </div>
                 
                 {formData.projectId > 0 && projectContracts && projectContracts.contracts && projectContracts.contracts.length > 0 && (
