@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
+import { ProgressReportSearchSelect } from "@/components/ProgressReportSearchSelect";
 import {
   ArrowRight,
   FileText,
@@ -504,28 +505,14 @@ export default function EditLinkedDisbursementRequest() {
                   <div className="space-y-4 text-right animate-slide-up">
                     <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">تقرير الإنجاز المرتبط *</Label>
-                      <Select
+                      <ProgressReportSearchSelect
+                        reports={approvedReports || []}
                         value={selectedReportId?.toString() || ""}
-                        onValueChange={(value) => setSelectedReportId(parseInt(value))}
-                      >
-                        <SelectTrigger className="w-full text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
-                          <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {approvedReports?.length === 0 ? (
-                            <div className="p-2 text-center text-xs text-muted-foreground">لا توجد تقارير إنجاز معتمدة لهذا المشروع</div>
-                          ) : (
-                            approvedReports?.map((report: any) => {
-                              const linked = isReportLinked(report);
-                              return (
-                                <SelectItem key={report.id} value={report.id.toString()} className="text-right" disabled={linked}>
-                                  {report.reportNumber} - {report.title} ({report.actualProgress}%) {linked ? " (تم إنشاء طلب صرف له سابقاً)" : ""}
-                                </SelectItem>
-                              );
-                            })
-                          )}
-                        </SelectContent>
-                      </Select>
+                        onValueChange={(value) => setSelectedReportId(value ? parseInt(value) : null)}
+                        placeholder="ابحث واختر تقرير إنجاز الدفعة لمراجعته..."
+                        isReportDisabled={(report) => isReportLinked(report)}
+                        getReportDisabledReason={(report) => isReportLinked(report) ? "تم إنشاء طلب صرف له سابقاً" : null}
+                      />
                     </div>
 
                     {selectedReport && (
