@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import {
   Dialog,
   DialogContent,
@@ -973,7 +974,8 @@ export default function ReceiptVouchers() {
                 {/* اختيار المشروع */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-800">المشروع المطلوب *</Label>
-                  <Select
+                  <ProjectSearchSelect
+                    projects={projectsList}
                     value={modalProjectId}
                     onValueChange={(val) => {
                       setModalProjectId(val);
@@ -985,21 +987,9 @@ export default function ReceiptVouchers() {
                       }
                     }}
                     disabled={!!editingVoucherId}
-                  >
-                    <SelectTrigger className="h-10 text-xs bg-white border-slate-200">
-                      <SelectValue placeholder="اختر المشروع..." />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl" className="max-h-60">
-                      {projectsList.map((p: any) => (
-                        <SelectItem key={p.id} value={p.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] text-muted-foreground">{p.projectNumber}</span>
-                            <span className="font-medium">{p.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="ابحث واختر المشروع..."
+                    triggerClassName="h-10 text-xs bg-white border-slate-200"
+                  />
                 </div>
 
                 {/* اختيار اللقب والجهة الداعمة / المسدد */}
