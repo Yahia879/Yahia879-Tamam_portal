@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
+import { ProgressReportSearchSelect } from "@/components/ProgressReportSearchSelect";
 import {
   Table,
   TableBody,
@@ -459,22 +460,14 @@ export default function NewDisbursementRequest() {
                 {formData.projectId > 0 && approvedReports && approvedReports.length > 0 && (
                   <div className="space-y-2 text-right animate-slide-up">
                     <Label className="text-right font-semibold">تقرير الإنجاز المرتبط</Label>
-                    <Select
+                    <ProgressReportSearchSelect
+                      reports={approvedReports}
                       value={selectedReportId?.toString() || "0"}
-                      onValueChange={(value) => setSelectedReportId(value === "0" ? null : parseInt(value))}
-                    >
-                      <SelectTrigger className="text-right w-full border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
-                        <SelectValue placeholder="اختر تقرير إنجاز الدفعة لمراجعته" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="0" className="text-right font-semibold">بدون تقرير إنجاز مرتبط</SelectItem>
-                        {approvedReports.map((report: any) => (
-                          <SelectItem key={report.id} value={report.id.toString()} className="text-right">
-                            {report.reportNumber} - {report.title} (مطلوب: {report.plannedProgress}%)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onValueChange={(value) => setSelectedReportId(value === "0" || !value ? null : parseInt(value))}
+                      allowNone={true}
+                      noneLabel="بدون تقرير إنجاز مرتبط"
+                      placeholder="اختر تقرير إنجاز الدفعة لمراجعته..."
+                    />
                   </div>
                 )}
 
