@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import { FileUpload, UploadedFile } from "@/components/FileUpload";
 import { ReportHeaderTabs } from "@/components/project-reports/ReportHeaderTabs";
 import { ReportPrintPreviewModal } from "@/components/project-reports/ReportPrintPreviewModal";
@@ -211,18 +212,12 @@ export default function VisitReportPage({ showLayout = true }: { showLayout?: bo
                     <span>اسم المشروع</span>
                     <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع المزار" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectOptions.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
-                          <span className="font-semibold">{p.name}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ProjectSearchSelect
+                    projects={projectOptions}
+                    value={selectedProjectId}
+                    onValueChange={setSelectedProjectId}
+                    placeholder="ابحث واختر المشروع المزار..."
+                  />
                 </div>
 
                 <div className="space-y-1.5">
