@@ -2663,24 +2663,35 @@ export const disbursementsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "أمر الصرف غير موجود" });
       }
 
+      // لا يمكن تعديل الرد أو إضافة رد آخر إذا تم الرد مسبقاً
+      if (order.executiveNotesReply && order.executiveNotesReply.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "تم الرد على الملاحظات مسبقاً ولا يمكن تعديل الرد أو إضافة أكثر من رد",
+        });
+      }
+
       // لا يمكن الرد على الملاحظات إذا كان الأمر قد نُفّذ أو رُفض مسبقاً
       if (order.status === "executed" || order.status === "rejected") {
         throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن الرد على الملاحظات بعد تنفيذ أو رفض أمر الصرف" });
       }
 
       const replyText = input.reply.trim();
+      if (!replyText) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "نص الرد لا يمكن أن يكون فارغاً" });
+      }
 
       await db
         .update(disbursementOrders)
         .set({
-          executiveNotesReply: replyText || null,
-          executiveNotesRepliedBy: replyText ? ctx.user.id : null,
-          executiveNotesRepliedAt: replyText ? new Date() : null,
+          executiveNotesReply: replyText,
+          executiveNotesRepliedBy: ctx.user.id,
+          executiveNotesRepliedAt: new Date(),
           updatedAt: new Date(),
         })
         .where(eq(disbursementOrders.id, input.orderId));
 
-      return { success: true, message: "تم حفظ الرد على الملاحظات بنجاح" };
+      return { success: true, message: "تم إرسال الرد على الملاحظات بنجاح" };
     }),
 
   // تنفيذ أمر صرف (الدفع الفعلي)
