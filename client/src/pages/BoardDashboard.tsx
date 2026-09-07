@@ -622,46 +622,34 @@ export default function BoardDashboard({
                                       <div className="font-bold text-xs text-foreground max-w-[280px] truncate flex items-center gap-1.5">
                                         <span>{order.title}</span>
                                         {order.executiveNotes && (
-                                          <TooltipProvider>
-                                            <UiTooltip delayDuration={100}>
-                                              <TooltipTrigger asChild>
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setViewJustificationModal({
-                                                      open: true,
-                                                      title: "ملاحظات وتوجيهات أمر الصرف",
-                                                      subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
-                                                      orderNumber: order.orderNumber,
-                                                      reason: order.executiveNotes || "",
-                                                      reply: (order as any).executiveNotesReply || null,
-                                                      repliedByName: (order as any).executiveNotesRepliedByName || null,
-                                                      repliedAt: (order as any).executiveNotesRepliedAt || null,
-                                                    });
-                                                  }}
-                                                  className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer shadow-2xs transition-colors ${
-                                                    (order as any).executiveNotesReply
-                                                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
-                                                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
-                                                  }`}
-                                                  title={(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد على الملاحظة" : "يوجد ملاحظات مدونة"}
-                                                >
-                                                  {(order as any).executiveNotesReply ? (
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                                                  ) : (
-                                                    <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                                                  )}
-                                                  {(order as any).executiveNotesReply && (
-                                                    <span>تم الرد على الملاحظة</span>
-                                                  )}
-                                                </button>
-                                              </TooltipTrigger>
-                                              <TooltipContent side="top" className="bg-slate-900 text-white text-[11px] font-medium px-2.5 py-1.5 rounded-md shadow-xl border border-slate-700 z-50">
-                                                <span>{(order as any).executiveNotesReply ? "يوجد ملاحظات وتم الرد على الملاحظة (انقر للعرض)" : "يوجد ملاحظات مدونة (انقر للعرض)"}</span>
-                                              </TooltipContent>
-                                            </UiTooltip>
-                                          </TooltipProvider>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setViewJustificationModal({
+                                                open: true,
+                                                title: "ملاحظات وتوجيهات أمر الصرف",
+                                                subtitle: `الملاحظات والتوجيهات المدونة على أمر الصرف رقم (${order.orderNumber})`,
+                                                orderNumber: order.orderNumber,
+                                                reason: order.executiveNotes || "",
+                                                reply: (order as any).executiveNotesReply || null,
+                                                repliedByName: (order as any).executiveNotesRepliedByName || null,
+                                                repliedAt: (order as any).executiveNotesRepliedAt || null,
+                                              });
+                                            }}
+                                            className={`inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 cursor-pointer shadow-2xs transition-colors ${
+                                              (order as any).executiveNotesReply
+                                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                                                : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 hover:bg-amber-500/30"
+                                            }`}
+                                          >
+                                            {(order as any).executiveNotesReply ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                            ) : (
+                                              <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                                            )}
+                                            <span>{(order as any).executiveNotesReply ? "تم الرد على الملاحظة" : "ملاحظات"}</span>
+                                          </button>
                                         )}
                                       </div>
                                       <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
