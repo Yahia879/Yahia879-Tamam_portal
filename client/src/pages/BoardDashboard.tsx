@@ -1806,7 +1806,7 @@ export default function BoardDashboard({
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>إفادة ورد المسؤول:</span>
+                      <span>إفادة ورد المسؤول (تم الرد على الملاحظة):</span>
                     </span>
                     <span className="text-[11px] text-muted-foreground font-medium">
                       {viewJustificationModal.repliedByName ? `بواسطة: ${viewJustificationModal.repliedByName}` : ""}
@@ -1820,8 +1820,8 @@ export default function BoardDashboard({
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5">
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
+              <Button variant="outline" onClick={() => setViewJustificationModal({ open: false, orderNumber: "", reason: "" })} className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer">
                 إغلاق
               </Button>
             </DialogFooter>
@@ -1857,7 +1857,7 @@ export default function BoardDashboard({
               </div>
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-3 flex-row-reverse justify-start">
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
               <Button
                 onClick={() => {
                   updateNotesMutation.mutate({
@@ -1866,7 +1866,7 @@ export default function BoardDashboard({
                   });
                 }}
                 disabled={updateNotesMutation.isPending}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm cursor-pointer"
               >
                 {updateNotesMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
                 <span>إرسال الملاحظات</span>
@@ -1874,7 +1874,7 @@ export default function BoardDashboard({
               <Button
                 variant="outline"
                 onClick={() => setNotesModal({ open: false, orderId: 0, orderNumber: "", notes: "" })}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
                 إلغاء
               </Button>
@@ -1914,7 +1914,7 @@ export default function BoardDashboard({
               )}
             </div>
 
-            <DialogFooter className="gap-3 sm:gap-3 flex-row-reverse justify-start pt-2">
+            <DialogFooter className="flex flex-row justify-start items-center gap-3 pt-3 border-t border-border/60">
               <Button
                 onClick={() => {
                   if (confirmApproveOrder) {
@@ -1924,7 +1924,7 @@ export default function BoardDashboard({
                   }
                 }}
                 disabled={approvingId !== null}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
               >
                 {approvingId !== null ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
                 <span>تأكيد الاعتماد</span>
@@ -1932,7 +1932,7 @@ export default function BoardDashboard({
               <Button
                 variant="outline"
                 onClick={() => setConfirmApproveOrder(null)}
-                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5"
+                className="rounded-xl font-bold text-xs sm:text-sm px-6 py-2.5 cursor-pointer"
               >
                 إلغاء
               </Button>
