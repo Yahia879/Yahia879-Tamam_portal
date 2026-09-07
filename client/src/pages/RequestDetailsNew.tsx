@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -24,7 +24,7 @@ import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
 import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
+import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, ROLE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import BoqTab from "@/components/BoqTab";
@@ -319,6 +319,10 @@ export default function RequestDetailsNew() {
   const [donationTitle, setDonationTitle] = useState("");
   const [donationTargetAmount, setDonationTargetAmount] = useState("");
   const [donationDescription, setDonationDescription] = useState("");
+
+  // States for Assign Admin modal
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
 
 
 
@@ -841,6 +845,32 @@ export default function RequestDetailsNew() {
   const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
   const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
   const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canAssignAdmin = Boolean(
+    user && (
+      isAdmin ||
+      ['projects_office', 'project_manager', 'executive_director', 'general_manager'].includes(user.role) ||
+      userPermissions.includes("requests.edit") ||
+      userPermissions.includes("requests.view_details")
+    ) && user.role !== 'service_requester'
+  );
+  const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery(undefined, {
+    enabled: !!canAssignAdmin,
+  });
+
+  const assignToMutation = trpc.requests.assignTo.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم تعيين المسؤول عن الطلب بنجاح");
+      setAssignModalOpen(false);
+      setSelectedAssigneeId("");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.search.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "فشل تعيين المسؤول");
+    },
+  });
+
   const hasViewDetailsPermission = user?.role === 'super_admin' || user?.role === 'system_admin' || userPermissions.includes("requests.view_details");
   const isDirectQuickRequest = request?.requestTrack === 'quick_response' && request?.currentStage === 'closed';
   const showQuickRequestLayout = !!isDirectQuickRequest;
@@ -1236,6 +1266,40 @@ export default function RequestDetailsNew() {
                         {translateProgram(request.programType)}
                       </span>
                     )}
+
+                    {/* المسؤول عن الطلب أو زر تعيين مسؤول */}
+                    {request.adminName ? (
+                      <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-md bg-blue-50/90 text-blue-800 border border-blue-200/80 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/80 shadow-2xs">
+                        <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>{isEn ? `Officer: ${request.adminName}` : `المسؤول: ${request.adminName}`}</span>
+                        {canAssignAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAssigneeId(request.assignedTo ? String(request.assignedTo) : "");
+                              setAssignModalOpen(true);
+                            }}
+                            className="hover:text-blue-950 dark:hover:text-blue-100 transition-colors mr-0.5 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer"
+                            title={isEn ? "Change assigned officer" : "تغيير المسؤول"}
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ) : canAssignAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedAssigneeId("");
+                          setAssignModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all cursor-pointer"
+                        title={isEn ? "Assign an officer to this request" : "إسناد الطلب لموظف مسؤول"}
+                      >
+                        <UserPlus className="w-3.5 h-3.5" />
+                        <span>{isEn ? "Assign Officer" : "تعيين مسؤول"}</span>
+                      </button>
+                    ) : null}
 
                     {linkedProject && (
                       <Link href={`/projects/${linkedProject.id}`}>
@@ -1908,6 +1972,40 @@ export default function RequestDetailsNew() {
                   <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs">
                     <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Submission Date" : "تاريخ التقديم"}</p>
                     <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200">{new Date(request.createdAt).toLocaleDateString(isEn ? "en-US" : "ar-SA")}</p>
+                  </div>
+
+                  {/* المسؤول عن الطلب */}
+                  <div className="space-y-1 bg-white dark:bg-slate-800/50 p-3 rounded-lg border shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">{isEn ? "Officer in Charge" : "المسؤول عن الطلب"}</p>
+                        {canAssignAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedAssigneeId(request.assignedTo ? String(request.assignedTo) : "");
+                              setAssignModalOpen(true);
+                            }}
+                            className="text-primary hover:underline text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            <span>{request.adminName ? (isEn ? "Change" : "تغيير") : (isEn ? "Assign" : "تعيين")}</span>
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {request.adminName || (
+                          <span className="text-muted-foreground font-normal text-xs">
+                            {isEn ? "No officer assigned yet" : "لم يتم تعيين مسؤول بعد"}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    {request.assignedToUser?.email && (
+                      <p className="text-[11px] text-muted-foreground truncate mt-1" dir="ltr">
+                        {request.assignedToUser.email}
+                      </p>
+                    )}
                   </div>
                   {request.requestTrack === 'quick_response' && (
                     <>
@@ -3435,6 +3533,109 @@ export default function RequestDetailsNew() {
             >
               <Tag className="w-4 h-4 ml-2" />
               {updateDescriptiveNameMutation.isPending ? "جاري الحفظ..." : "حفظ التسمية التوضيحية"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Admin Dialog */}
+      <Dialog open={assignModalOpen} onOpenChange={setAssignModalOpen}>
+        <DialogContent className="sm:max-w-[500px] p-6 bg-background rounded-2xl border shadow-xl" dir={isEn ? "ltr" : "rtl"}>
+          <DialogHeader className="text-right pb-3 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-foreground">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 flex items-center justify-center shrink-0">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <span>{request.adminName ? (isEn ? "Change Assigned Officer" : "تغيير المسؤول عن الطلب") : (isEn ? "Assign Officer" : "تعيين مسؤول عن الطلب")}</span>
+                <p className="text-xs font-normal text-muted-foreground mt-0.5">
+                  {isEn ? `Request Number: ${request.requestNumber}` : `الطلب رقم: ${request.requestNumber}`}
+                </p>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-3 text-right">
+            {/* Current status */}
+            <div className="bg-muted/40 p-3 rounded-xl border text-xs space-y-1">
+              <span className="text-muted-foreground block font-medium">{isEn ? "Current Officer:" : "المسؤول الحالي:"}</span>
+              <p className="font-bold text-foreground text-sm flex items-center gap-1.5">
+                {request.adminName ? (
+                  <>
+                    <UserCheck className="w-4 h-4 text-emerald-600" />
+                    <span>{request.adminName}</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground font-normal">
+                    {isEn ? "No officer assigned yet (submitted by beneficiary)" : "لم يتم تعيين مسؤول بعد (وارد من مستفيد)"}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            {/* Select Staff */}
+            <div className="space-y-2">
+              <label className="block text-xs sm:text-sm font-bold text-foreground">
+                {isEn ? "Select Officer / Staff" : "اختر الموظف / المسؤول"} <span className="text-destructive">*</span>
+              </label>
+
+              <Select value={selectedAssigneeId} onValueChange={setSelectedAssigneeId}>
+                <SelectTrigger className="w-full h-11 text-sm bg-background border-border rounded-xl">
+                  <SelectValue placeholder={isEn ? "Select an officer..." : "اختر المسؤول من قائمة الموظفين..."} />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {staffUsers && staffUsers.length > 0 ? (
+                    staffUsers.map((staff: any) => (
+                      <SelectItem key={staff.id} value={String(staff.id)}>
+                        <div className="flex items-center justify-between gap-3 w-full py-0.5">
+                          <span className="font-semibold text-foreground">{staff.name}</span>
+                          <span className="text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                            {ROLE_LABELS[staff.role] || staff.role}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-3 text-center text-xs text-muted-foreground">
+                      {isEn ? "No staff members found" : "لا يوجد موظفون مسجلون"}
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {isEn 
+                  ? "The selected officer will be assigned to this request and notified immediately."
+                  : "سيتم إسناد الطلب للموظف المختار وإرسال إشعار فوري له، وتحديث جدول الطلبات وسجل التغييرات."}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2.5 pt-4 border-t border-border/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAssignModalOpen(false)}
+              className="w-full sm:w-auto h-11 font-medium rounded-xl"
+            >
+              {isEn ? "Cancel" : "إلغاء"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (!selectedAssigneeId) {
+                  toast.error(isEn ? "Please select an officer first" : "يرجى اختيار موظف مسؤول أولاً");
+                  return;
+                }
+                assignToMutation.mutate({
+                  requestId,
+                  userId: parseInt(selectedAssigneeId),
+                });
+              }}
+              disabled={assignToMutation.isPending || !selectedAssigneeId}
+              className="w-full sm:w-auto h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl px-6 shadow-sm"
+            >
+              <UserCheck className="w-4 h-4 ml-2" />
+              {assignToMutation.isPending ? (isEn ? "Saving..." : "جاري الحفظ...") : (isEn ? "Save Assignment" : "حفظ التعيين")}
             </Button>
           </DialogFooter>
         </DialogContent>
