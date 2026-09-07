@@ -150,7 +150,9 @@ export const projectsRouter = router({
           or(
             like(sql`LOWER(${projects.projectNumber})`, searchPattern),
             like(sql`LOWER(${projects.name})`, searchPattern),
-            like(sql`LOWER(COALESCE(${projects.description}, ''))`, searchPattern)
+            like(sql`LOWER(COALESCE(${projects.description}, ''))`, searchPattern),
+            like(sql`LOWER(COALESCE(${mosques.name}, ''))`, searchPattern),
+            like(sql`LOWER(COALESCE(${mosques.city}, ''))`, searchPattern)
           )
         );
       }
@@ -180,10 +182,14 @@ export const projectsRouter = router({
           requestStage: mosqueRequests.currentStage,
           technicalEvalDecision: mosqueRequests.technicalEvalDecision,
           programType: mosqueRequests.programType,
+          mosqueName: mosques.name,
+          city: mosques.city,
+          district: mosques.district,
         })
         .from(projects)
         .leftJoin(users, eq(projects.managerId, users.id))
         .leftJoin(mosqueRequests, eq(projects.requestId, mosqueRequests.id))
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .where(filters.length > 0 ? and(...filters) : undefined)
         .orderBy(desc(projects.createdAt))
         .limit(input?.limit || 50)
