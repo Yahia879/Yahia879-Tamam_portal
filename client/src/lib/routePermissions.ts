@@ -224,7 +224,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/forms-customization/registration": ["forms_customization.registration", "settings_center"],
   "/forms-customization/analytics": ["forms_customization.analytics", "forms_customization.evaluation", "forms_customization.services", "forms_customization.registration", "settings_center"],
   "/forms-customization/option-2": "forms_customization.services",
-  "/forms-customization/escalation": ["escalation", "forms_customization.services", "forms_customization.registration", "settings_center"],
+  "/forms-customization/escalation": ["escalation", "escalation.view", "settings_escalation", "settings_escalation.view", "forms_customization.services", "forms_customization.registration", "settings_center"],
   "/partners": "settings_center",
   "/support": ["Create_Ticket", "View_Tickets"],
 };

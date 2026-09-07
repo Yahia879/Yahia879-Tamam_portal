@@ -44,7 +44,6 @@ import {
   User,
   ExternalLink,
   Bell,
-  SlidersHorizontal,
   RotateCcw,
   Eye,
   Layers,
@@ -315,17 +314,6 @@ export default function EscalationPage() {
             <p className="text-xs md:text-sm text-muted-foreground mt-1 break-words">
               عرض ومتابعة الطلبات المتأخرة حسب المراحل وطلبات المستفيدين المعلقة
             </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
-            <Link href="/forms-customization/escalation?from=/escalation">
-              <Button
-                className="gradient-primary text-white gap-2 h-10 px-4 shadow-xs font-semibold"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>تخصيص مدة التصعيد</span>
-              </Button>
-            </Link>
           </div>
         </div>
 

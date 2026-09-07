@@ -88,7 +88,7 @@ const settingCards: SettingCard[] = [
     icon: ShieldAlert,
     title: "التصعيد الإداري ومهل SLA",
     description: "متابعة الطلبات والمستفيدين المتأخرين وضبط مدد المراحل الزمنية",
-    path: "/escalation",
+    path: "/forms-customization/escalation?from=/escalation",
     color: "text-rose-600",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",
     group: "العمليات",
