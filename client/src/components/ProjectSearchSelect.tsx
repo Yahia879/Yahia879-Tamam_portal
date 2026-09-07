@@ -92,7 +92,7 @@ export function ProjectSearchSelect({
     return projectsList.find((p) => p.id.toString() === value.toString()) || null;
   }, [projectsList, value]);
 
-  // تصفية المشاريع بالبحث الذكي
+  // تصفية المشاريع بالبحث الذكي (فقط برقم المشروع أو اسم المشروع)
   const filteredProjects = useMemo(() => {
     if (!searchQuery.trim()) return projectsList;
 
@@ -102,15 +102,9 @@ export function ProjectSearchSelect({
     return projectsList.filter((project) => {
       const pNumber = project.projectNumber || "";
       const pName = project.name || "";
-      const pMosque = project.mosqueName || "";
-      const pCity = project.city || "";
-      const pDistrict = project.district || "";
-      const pDesc = project.description || "";
 
-      // نص البحث الموحد للمشروع
-      const combinedText = normalizeArabic(
-        `${pNumber} ${pName} ${pMosque} ${pCity} ${pDistrict} ${pDesc}`
-      );
+      // نص البحث الموحد للمشروع (فقط رقم المشروع واسم المشروع)
+      const combinedText = normalizeArabic(`${pNumber} ${pName}`);
 
       // التأكد من وجود كل كلمة من كلمات البحث
       return queryWords.every((word) => combinedText.includes(word));
