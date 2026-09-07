@@ -71,6 +71,20 @@ export default function RequestDetailsNew() {
   const requestId = parseInt(id!);
   const canAddReviewNote = usePermission("requests.add_review_note") || user?.role === "super_admin" || user?.role === "system_admin";
 
+  const userRole = user?.role ?? "";
+  const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
+  const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
+  const userPermissions: string[] = (user as any)?.permissions ?? [];
+  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
+  const canAssignAdmin = Boolean(
+    user && (
+      isAdmin ||
+      ['projects_office', 'project_manager', 'executive_director', 'general_manager'].includes(user.role) ||
+      userPermissions.includes("requests.edit") ||
+      userPermissions.includes("requests.view_details")
+    ) && user.role !== 'service_requester'
+  );
+
   const [lang] = useState<"ar" | "en">(() => {
     return (localStorage.getItem("quick-response-lang") as "ar" | "en") || "ar";
   });
@@ -411,6 +425,23 @@ export default function RequestDetailsNew() {
     }
   }, [selectedDecision, request]);
   const utils = trpc.useUtils();
+
+  const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery(undefined, {
+    enabled: !!canAssignAdmin,
+  });
+
+  const assignToMutation = trpc.requests.assignTo.useMutation({
+    onSuccess: (data) => {
+      toast.success(data.message || "تم تعيين المسؤول عن الطلب بنجاح");
+      setAssignModalOpen(false);
+      setSelectedAssigneeId("");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.requests.search.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "فشل تعيين المسؤول");
+    },
+  });
 
   // Fetch unread comments count
   const { data: unreadData } = trpc.requests.getUnreadCommentsCount.useQuery({ requestId });
@@ -840,37 +871,6 @@ export default function RequestDetailsNew() {
 
   // تحديد ما إذا كان المستخدم مستفيداً
   const isRequester = user?.role === 'service_requester';
-
-  const userRole = user?.role ?? "";
-  const isBaseRole = Boolean(userRole && Object.prototype.hasOwnProperty.call(BASE_ROLE_PERMISSIONS, userRole));
-  const hasCustomRole = !!(user as any)?.customRole || (!!userRole && !isBaseRole);
-  const userPermissions: string[] = (user as any)?.permissions ?? [];
-  const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
-  const canAssignAdmin = Boolean(
-    user && (
-      isAdmin ||
-      ['projects_office', 'project_manager', 'executive_director', 'general_manager'].includes(user.role) ||
-      userPermissions.includes("requests.edit") ||
-      userPermissions.includes("requests.view_details")
-    ) && user.role !== 'service_requester'
-  );
-  const { data: staffUsers = [] } = trpc.users.getStaffUsers.useQuery(undefined, {
-    enabled: !!canAssignAdmin,
-  });
-
-  const assignToMutation = trpc.requests.assignTo.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.message || "تم تعيين المسؤول عن الطلب بنجاح");
-      setAssignModalOpen(false);
-      setSelectedAssigneeId("");
-      utils.requests.getById.invalidate({ id: requestId });
-      utils.requests.search.invalidate();
-    },
-    onError: (err) => {
-      toast.error(err.message || "فشل تعيين المسؤول");
-    },
-  });
-
   const hasViewDetailsPermission = user?.role === 'super_admin' || user?.role === 'system_admin' || userPermissions.includes("requests.view_details");
   const isDirectQuickRequest = request?.requestTrack === 'quick_response' && request?.currentStage === 'closed';
   const showQuickRequestLayout = !!isDirectQuickRequest;
