@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import {
   Dialog,
   DialogContent,
@@ -1072,11 +1073,12 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
               <CardContent className="pt-6 space-y-6">
                 <div className="space-y-2">
                   <Label className="font-semibold text-foreground">المشروع <span className="text-red-500">*</span></Label>
-                  <Select
-                    value={newReport.projectId.toString()}
+                  <ProjectSearchSelect
+                    projects={projectsData}
+                    value={newReport.projectId > 0 ? newReport.projectId.toString() : ""}
                     disabled={!!editingReportId}
                     onValueChange={(v) => {
-                      const nextProjectId = parseInt(v);
+                      const nextProjectId = parseInt(v) || 0;
                       setSelectedPaymentId(null);
                       setNewReport(prev => ({
                         ...prev,
@@ -1092,18 +1094,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         actualWorkDone: "",
                       }));
                     }}
-                  >
-                    <SelectTrigger className="h-11 text-right" disabled={!!editingReportId}>
-                      <SelectValue placeholder="اختر المشروع المراد رفع تقرير له" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectsData?.map((project: any) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="ابحث واختر المشروع المراد رفع تقرير له..."
+                  />
                 </div>
 
                 {/* Payments Section */}
