@@ -276,7 +276,7 @@ export default function ContractPreview() {
   // جلب بيانات العقد
   const { data, isLoading, error, refetch } = trpc.contracts.getById.useQuery(
     { id: contractId! },
-    { enabled: !!contractId }
+    { enabled: !!contractId, refetchOnMount: "always", staleTime: 0 }
   );
 
   // دالة لتوليد اسم ملف PDF نظيف ومنسق يمنع تداخل النصوص العربية مع الإنجليزية

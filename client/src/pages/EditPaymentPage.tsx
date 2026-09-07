@@ -201,6 +201,7 @@ export default function EditPaymentPage() {
     onSuccess: () => {
       toast.success("تم تحديث الدفعة بنجاح");
       utils.projects.invalidate();
+      utils.contracts.invalidate();
       if (formData.projectId) {
         navigate(`/projects/${formData.projectId}`);
       } else {

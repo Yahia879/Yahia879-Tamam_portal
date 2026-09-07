@@ -1594,6 +1594,40 @@ export const projectsRouter = router({
             }
           }
         }
+
+        // مزامنة التعديل على paymentScheduleJson للعقد المرتبط إن وجد
+        try {
+          const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
+          const targetContractId = p?.contractId;
+          if (targetContractId) {
+            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, targetContractId));
+            if (contract && contract.paymentScheduleJson) {
+              let schedule = typeof contract.paymentScheduleJson === "string" 
+                ? JSON.parse(contract.paymentScheduleJson) 
+                : contract.paymentScheduleJson;
+              if (Array.isArray(schedule)) {
+                const targetIdx = schedule.findIndex((s: any) => 
+                  s.id === `manual-${actualId}` || s.paymentId === actualId || s.name === p.description
+                );
+                if (targetIdx !== -1) {
+                  schedule[targetIdx].amount = input.amount;
+                  if (input.title) {
+                    schedule[targetIdx].name = input.title;
+                    schedule[targetIdx].phaseName = input.title;
+                  }
+                  if (input.description) schedule[targetIdx].description = input.description;
+                  if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
+                  if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
+                  await db.update(contractsEnhanced).set({
+                    paymentScheduleJson: JSON.stringify(schedule)
+                  }).where(eq(contractsEnhanced.id, targetContractId));
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error syncing paymentScheduleJson for manual payment:", e);
+        }
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
         const updateValues: any = { amount: input.amount.toString() };
@@ -1611,6 +1645,39 @@ export const projectsRouter = router({
 
         if (dateVal !== undefined) {
           await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.contractPaymentId, actualId));
+        }
+
+        // مزامنة التعديل فوراً مع العقد في paymentScheduleJson
+        try {
+          const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
+          if (cp && cp.contractId) {
+            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
+            if (contract && contract.paymentScheduleJson) {
+              let schedule = typeof contract.paymentScheduleJson === "string" 
+                ? JSON.parse(contract.paymentScheduleJson) 
+                : contract.paymentScheduleJson;
+              if (Array.isArray(schedule)) {
+                const targetIdx = schedule.findIndex((s: any, idx: number) => 
+                  s.id === `cp-${actualId}` || s.id === actualId || s.phaseOrder === cp.phaseOrder || idx === cp.phaseOrder
+                );
+                if (targetIdx !== -1) {
+                  schedule[targetIdx].amount = input.amount;
+                  if (input.title) {
+                    schedule[targetIdx].name = input.title;
+                    schedule[targetIdx].phaseName = input.title;
+                  }
+                  if (input.description) schedule[targetIdx].description = input.description;
+                  if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
+                  if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
+                  await db.update(contractsEnhanced).set({
+                    paymentScheduleJson: JSON.stringify(schedule)
+                  }).where(eq(contractsEnhanced.id, cp.contractId));
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error syncing paymentScheduleJson for cp payment:", e);
         }
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });

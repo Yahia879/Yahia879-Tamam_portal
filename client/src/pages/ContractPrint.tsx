@@ -182,7 +182,7 @@ export default function ContractPrint() {
 
   const { data, isLoading, error } = trpc.contracts.getById.useQuery(
     { id: parseInt(params.id || "0") },
-    { enabled: !!params.id }
+    { enabled: !!params.id, refetchOnMount: "always", staleTime: 0 }
   );
 
   const handlePrint = () => {

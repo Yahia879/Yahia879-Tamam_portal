@@ -26,7 +26,6 @@ import {
   Star,
   Camera,
   Download,
-  Printer,
   X
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -691,25 +690,6 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
         )
       ) : (
         <div className="space-y-4" dir="rtl">
-          {selectedRequestIdForView && (
-            <div className="flex justify-end items-center pb-2">
-              <Link 
-                href={
-                  selectedReportTypeForView === "field_visit"
-                    ? `/requests/${selectedRequestIdForView}/field-visit-report/print`
-                    : selectedReportTypeForView === "quick_request"
-                    ? `/requests/${selectedRequestIdForView}/quick-request-report/print`
-                    : `/requests/${selectedRequestIdForView}/quick-response-report/print`
-                }
-                target="_blank"
-              >
-                <Button size="sm" className="gap-2 font-bold shadow-sm bg-[#1a5f4a] hover:bg-[#144939] text-white">
-                  <Printer className="w-4 h-4" />
-                  <span>طباعة التقرير</span>
-                </Button>
-              </Link>
-            </div>
-          )}
 
           {selectedReportTypeForView === "field_visit" ? (
             <div className="space-y-6 text-right">

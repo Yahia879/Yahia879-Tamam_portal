@@ -334,20 +334,53 @@ export const contractsRouter = router({
         signatory.signatureUrl = firstPartySignatureUrl;
       }
 
-      // جلب الدفعات (من جدول contractPayments أو احتياطياً من جدول payments أو paymentScheduleJson)
+      // جلب الدفعات:
+      // 1. الدفعات المجدولة في العقد من contractPayments
       let paymentsList: any[] = input.lightweight ? [] : await db
         .select()
         .from(contractPayments)
         .where(eq(contractPayments.contractId, input.id))
         .orderBy(contractPayments.phaseOrder);
 
-      // إذا كان paymentScheduleJson يحتوي على دفعات كاملة تفوق ما تم جلبه من contractPayments
-      if (!input.lightweight && contract.paymentScheduleJson) {
+      // 2. الدفعات المضافة / اليدوية المرتبطة بنفس العقد أو المشروع
+      if (!input.lightweight) {
+        const manualPayments = await db
+          .select()
+          .from(payments)
+          .where(
+            contract.projectId 
+              ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
+              : eq(payments.contractId, input.id)
+          )
+          .orderBy(payments.createdAt);
+
+        if (manualPayments.length > 0) {
+          const manualFormatted = manualPayments.map((p: any, idx: number) => ({
+            id: p.id,
+            contractId: input.id,
+            phaseOrder: paymentsList.length + idx + 1,
+            name: p.description || `الدفعة ${paymentsList.length + idx + 1}`,
+            phaseName: p.description || `الدفعة ${paymentsList.length + idx + 1}`,
+            percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
+            amount: String(p.amount || 0),
+            dueDate: p.paidAt || p.createdAt || null,
+            status: p.status || "pending",
+            type: p.paymentType || "progress",
+            description: p.description || "",
+            notes: p.description || null,
+            completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : null,
+          }));
+          paymentsList = [...paymentsList, ...manualFormatted];
+        }
+      }
+
+      // 3. خيار احتياطي فقط في حال عدم وجود أي دفعات مسجلة نهائياً في الجداول
+      if (paymentsList.length === 0 && !input.lightweight && contract.paymentScheduleJson) {
         try {
           const parsed = typeof contract.paymentScheduleJson === "string" 
             ? JSON.parse(contract.paymentScheduleJson) 
             : contract.paymentScheduleJson;
-          if (Array.isArray(parsed) && parsed.length > paymentsList.length) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             paymentsList = parsed.map((p: any, idx: number) => ({
               id: p.id || idx + 1,
               contractId: input.id,
@@ -362,58 +395,6 @@ export const contractsRouter = router({
           }
         } catch (e) {
           console.error("Error parsing paymentScheduleJson in getById fallback:", e);
-        }
-      }
-
-      if (paymentsList.length === 0 && !input.lightweight) {
-        if (contract.paymentScheduleJson) {
-          try {
-            const parsed = typeof contract.paymentScheduleJson === "string" 
-              ? JSON.parse(contract.paymentScheduleJson) 
-              : contract.paymentScheduleJson;
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              paymentsList = parsed.map((p: any, idx: number) => ({
-                id: p.id || idx + 1,
-                contractId: input.id,
-                phaseOrder: p.phaseOrder ?? idx,
-                phaseName: p.name || p.phaseName || `الدفعة ${idx + 1}`,
-                amount: String(p.amount || 0),
-                dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
-                status: p.status || "pending",
-                notes: p.description || p.notes || null,
-                completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : (p.percentage !== undefined && p.percentage !== null ? Number(p.percentage) : null),
-              }));
-            }
-          } catch (e) {
-            console.error("Error parsing paymentScheduleJson in getById fallback:", e);
-          }
-        }
-
-        if (paymentsList.length === 0) {
-          const altPayments = await db
-            .select()
-            .from(payments)
-            .where(
-              contract.projectId 
-                ? or(eq(payments.contractId, input.id), eq(payments.projectId, contract.projectId))
-                : eq(payments.contractId, input.id)
-            );
-          if (altPayments.length > 0) {
-            paymentsList = altPayments.map((p: any, idx: number) => ({
-              id: p.id,
-              contractId: input.id,
-              phaseOrder: idx + 1,
-              name: p.description || `الدفعة ${idx + 1}`,
-              phaseName: p.description || `الدفعة ${idx + 1}`,
-              percentage: p.completionPercentage ? String(p.completionPercentage) : "0",
-              amount: String(p.amount || 0),
-              dueDate: p.createdAt ? p.createdAt : null,
-              status: p.status || "pending",
-              type: p.paymentType || "progress",
-              description: p.description || "",
-              condition: p.description || "",
-            }));
-          }
         }
       }
       
