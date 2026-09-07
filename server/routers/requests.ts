@@ -520,7 +520,7 @@ export const requestsRouter = router({
         fieldVisitAssignedToUser = assignedUserResult[0] || null;
       }
 
-      // الحصول على بيانات المسؤول المعين حالياً للطلب (موظف الاستجابة السريعة)
+      // الحصول على بيانات المسؤول المعين حالياً للطلب
       let assignedToUser = null;
       if (request.assignedTo) {
         const assignedUserResult = await db.select({
@@ -528,6 +528,7 @@ export const requestsRouter = router({
           name: users.name,
           email: users.email,
           phone: users.phone,
+          role: users.role,
         }).from(users).where(eq(users.id, request.assignedTo)).limit(1);
         assignedToUser = assignedUserResult[0] || null;
       }
@@ -643,10 +644,18 @@ export const requestsRouter = router({
         ["contracting", "execution", "handover", "closed"].includes(request.currentStage)
       );
 
+      let adminName: string | null = null;
+      if (assignedToUser) {
+        adminName = assignedToUser.name;
+      } else if (requester[0] && requester[0].role !== "service_requester") {
+        adminName = requester[0].name;
+      }
+
       return {
         ...request,
         mosque: isMultiMosque ? null : mosque,
         requester: requester[0] || null,
+        adminName,
         attachments,
         comments,
         history,
@@ -851,11 +860,15 @@ export const requestsRouter = router({
 
       const offset = (input.page - 1) * input.limit;
 
+      const assignedUsers = alias(users, "assignedUsers");
+
       let query = db.select({
         request: mosqueRequests,
         mosqueName: mosques.name,
         mosqueCity: mosques.city,
         requesterName: users.name,
+        requesterRole: users.role,
+        assignedUserName: assignedUsers.name,
         programName: programs.name,
         hasQuickReport: sql<number>`case when exists(select 1 from quick_response_reports where quick_response_reports.requestId = mosque_requests.id) then 1 else 0 end`,
         projectId: projects.id,
@@ -888,6 +901,7 @@ export const requestsRouter = router({
       }).from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .leftJoin(users, eq(mosqueRequests.userId, users.id))
+        .leftJoin(assignedUsers, eq(mosqueRequests.assignedTo, assignedUsers.id))
         .leftJoin(programs, eq(mosqueRequests.programType, programs.id))
         .leftJoin(projects, eq(mosqueRequests.id, projects.requestId));
 
@@ -974,6 +988,13 @@ export const requestsRouter = router({
               }
             }
           }
+          let adminName: string | null = null;
+          if (r.assignedUserName) {
+            adminName = r.assignedUserName;
+          } else if (r.requesterRole && r.requesterRole !== "service_requester") {
+            adminName = r.requesterName;
+          }
+
           return {
             ...r.request,
             status: effectiveStatus,
@@ -982,6 +1003,9 @@ export const requestsRouter = router({
             multiMosqueNames: r.multiMosqueNames,
             isMultiMosque,
             requesterName: r.requesterName,
+            requesterRole: r.requesterRole,
+            assignedUserName: r.assignedUserName,
+            adminName,
             programName: r.programName,
             projectId: r.projectId,
             projectNumber: r.projectNumber,
@@ -1720,17 +1744,33 @@ export const requestsRouter = router({
       userId: z.number(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const allowedRoles = ["super_admin", "system_admin", "projects_office"];
-      if (!allowedRoles.includes(ctx.user.role)) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasEditPerm = userPerms.includes("requests.edit") || userPerms.includes("requests.view_details");
+      const allowedRoles = ["super_admin", "system_admin", "projects_office", "project_manager", "executive_director", "general_manager"];
+      if (!allowedRoles.includes(ctx.user.role) && !hasEditPerm) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لإسناد الطلبات" });
       }
 
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [assignedUser] = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.id, input.userId)).limit(1);
+      if (!assignedUser) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الموظف المحدد غير موجود" });
+      }
+
       await db.update(mosqueRequests).set({
         assignedTo: input.userId,
       }).where(eq(mosqueRequests.id, input.requestId));
+
+      // تسجيل الحدث في السجل الزمني
+      await db.insert(requestHistory).values({
+        requestId: input.requestId,
+        userId: ctx.user.id,
+        action: "assigned_to_user" as any,
+        notes: `تم تعيين المسؤول عن الطلب: ${assignedUser.name}`,
+      });
 
       // إرسال إشعار للموظف المسند إليه
       const request = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
@@ -1745,7 +1785,7 @@ export const requestsRouter = router({
         });
       }
 
-      return { success: true, message: "تم إسناد الطلب بنجاح" };
+      return { success: true, message: `تم تعيين ${assignedUser.name} مسؤولاً عن الطلب بنجاح` };
     }),
 
   // إسناد التقرير الختامي لموظف الاتصال المؤسسي
