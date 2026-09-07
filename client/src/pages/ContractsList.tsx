@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { normalizeArabic } from "@/components/ProjectSearchSelect";
 import {
   FileText,
   Search,
@@ -163,6 +164,7 @@ export default function ContractsList() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [showProjectSelectionDialog, setShowProjectSelectionDialog] = useState(false);
+  const [projectDialogSearch, setProjectDialogSearch] = useState("");
 
   // حالات إدارة القوالب والبنود المأخوذة من صفحة إدارة القوالب لتكون مطابقة 100%
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
@@ -435,6 +437,15 @@ export default function ContractsList() {
   const eligibleProjects = (projectsData || []).filter(
     (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
   );
+
+  const filteredEligibleProjects = eligibleProjects.filter((project: any) => {
+    if (!projectDialogSearch.trim()) return true;
+    const queryWords = normalizeArabic(projectDialogSearch).split(/\s+/).filter(Boolean);
+    const combinedText = normalizeArabic(
+      `${project.projectNumber || ""} ${project.name || ""} ${project.mosqueName || ""} ${project.city || ""}`
+    );
+    return queryWords.every((w) => combinedText.includes(w));
+  });
 
   // فلترة العقود حسب البحث
   const filteredContracts = contracts.filter((contract: any) => {
@@ -1150,6 +1161,18 @@ export default function ContractsList() {
           </DialogHeader>
 
           <div className="space-y-4 py-4" dir="rtl">
+            {eligibleProjects.length > 0 && (
+              <div className="relative">
+                <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="بحث برقم المشروع، الاسم، المسجد، أو المدينة..."
+                  value={projectDialogSearch}
+                  onChange={(e) => setProjectDialogSearch(e.target.value)}
+                  className="pr-9 text-right"
+                />
+              </div>
+            )}
+
             {projectsLoading || allContractsLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1163,13 +1186,19 @@ export default function ContractsList() {
                   كافة المشاريع الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد مشاريع في النظام.
                 </p>
               </div>
+            ) : filteredEligibleProjects.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <Search className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm font-semibold text-gray-700">لم يتم العثور على أي مشروع مطابق للبحث</p>
+              </div>
             ) : (
               <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {eligibleProjects.map((project: any) => (
+                {filteredEligibleProjects.map((project: any) => (
                   <div
                     key={project.id}
                     onClick={() => {
                       setShowProjectSelectionDialog(false);
+                      setProjectDialogSearch("");
                       navigate(`/contracts/new?projectId=${project.id}`);
                     }}
                     className="flex items-center justify-between p-4 bg-white hover:bg-primary/5 border border-gray-100 hover:border-primary/20 rounded-xl cursor-pointer transition-all shadow-sm group"
