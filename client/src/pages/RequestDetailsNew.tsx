@@ -2549,7 +2549,15 @@ export default function RequestDetailsNew() {
           color="purple"
           icon={<Zap className="w-6 h-6" />}
         >
-          <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex justify-end items-center pb-1">
+              <Link href={`/requests/${requestId}/quick-response-report/print`} target="_blank">
+                <Button size="sm" className="gap-2 font-bold shadow-sm bg-purple-800 hover:bg-purple-900 text-white">
+                  <Printer className="w-4 h-4" />
+                  <span>{isEn ? "Print Report" : "طباعة التقرير"}</span>
+                </Button>
+              </Link>
+            </div>
             {request.quickReports.map((report: any) => {
               const evaluationLabels: Record<string, string> = {
                 excellent: isEn ? "Excellent" : "ممتاز",
@@ -2723,6 +2731,14 @@ export default function RequestDetailsNew() {
           icon={<FileText className="w-6 h-6" />}
         >
           <div className="space-y-6 px-1">
+            <div className="flex justify-end items-center pb-1">
+              <Link href={`/requests/${requestId}/field-visit-report/print`} target="_blank">
+                <Button size="sm" className="gap-2 font-bold shadow-sm bg-indigo-800 hover:bg-indigo-900 text-white">
+                  <Printer className="w-4 h-4" />
+                  <span>{isEn ? "Print Report" : "طباعة التقرير"}</span>
+                </Button>
+              </Link>
+            </div>
             {request.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
                 excellent: "ممتاز",
