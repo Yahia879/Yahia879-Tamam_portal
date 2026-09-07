@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import {
   ArrowRight,
   FileText,
@@ -488,24 +489,15 @@ export default function EditLinkedDisbursementRequest() {
               <CardContent className="space-y-6 pt-6 text-right">
                 <div className="space-y-2 text-right">
                   <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المشروع *</Label>
-                  <Select
-                    value={formData.projectId.toString()}
+                  <ProjectSearchSelect
+                    projects={projects}
+                    value={formData.projectId > 0 ? formData.projectId.toString() : ""}
                     onValueChange={(value) => {
-                      setFormData({ ...formData, projectId: parseInt(value), contractId: 0 });
+                      setFormData({ ...formData, projectId: parseInt(value) || 0, contractId: 0 });
                       setSelectedReportId(null);
                     }}
-                  >
-                    <SelectTrigger className="w-full text-right border-border focus:ring-primary rounded-xl h-11 bg-background" dir="rtl">
-                      <SelectValue placeholder="اختر المشروع لتحديد تقرير الإنجاز" />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {projects?.map((project: { id: number; name: string; projectNumber: string }) => (
-                        <SelectItem key={project.id} value={project.id.toString()} className="text-right">
-                          {project.name} - {project.projectNumber}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="ابحث واختر المشروع لتحديد تقرير الإنجاز..."
+                  />
                 </div>
 
                 {formData.projectId > 0 && (
