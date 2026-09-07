@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProjectSearchSelect } from "@/components/ProjectSearchSelect";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { FileUpload, UploadedFile } from "@/components/FileUpload";
@@ -644,21 +645,12 @@ export default function QuarterlyReportPage({ showLayout = true }: { showLayout?
                     <span>اسم المشروع</span>
                     <span className="text-red-500 font-bold mr-1">*</span>
                   </Label>
-                  <Select value={selectedProjectId} onValueChange={handleProjectSelect}>
-                    <SelectTrigger className="h-10 border-border/80 bg-background font-medium">
-                      <SelectValue placeholder="اختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectOptions.map((p) => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs py-2">
-                          <div className="flex items-center justify-between gap-4 w-full">
-                            <span className="font-semibold">{p.name}</span>
-                            <span className="text-muted-foreground text-[11px]">({p.department})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ProjectSearchSelect
+                    projects={projectOptions}
+                    value={selectedProjectId}
+                    onValueChange={handleProjectSelect}
+                    placeholder="ابحث واختر المشروع من القائمة ليتم تعبئة البيانات تلقائياً..."
+                  />
                 </div>
 
                 {/* 2. طريقة إعداد وتعبئة التقرير الربعي ثانياً (أسفل اختيار المشروع) */}
