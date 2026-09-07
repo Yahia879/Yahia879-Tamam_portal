@@ -114,6 +114,9 @@ import ReceiptVouchers from "./pages/ReceiptVouchers";
 import NewReceiptVoucherPage from "./pages/NewReceiptVoucherPage";
 import ProgressReports from "./pages/ProgressReports";
 import ProgressReportPrint from "./pages/ProgressReportPrint";
+import FieldVisitReportPrint from "./pages/FieldVisitReportPrint";
+import QuickResponseReportPrint from "./pages/QuickResponseReportPrint";
+import QuickRequestReportPrint from "./pages/QuickRequestReportPrint";
 import DisbursementOrders from "./pages/DisbursementOrders";
 import DisbursementOrderDetails from "./pages/DisbursementOrderDetails";
 import EditPaymentPage from "./pages/EditPaymentPage";
@@ -283,6 +286,13 @@ function Router() {
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
+      {/* طباعة تقارير الطلبات الرسمية A4 */}
+      <Route path="/requests/:id/field-visit-report/print" component={FieldVisitReportPrint} />
+      <Route path="/requests/:id/quick-response-report/print" component={QuickResponseReportPrint} />
+      <Route path="/requests/:id/quick-request-report/print" component={QuickRequestReportPrint} />
+      <Route path="/field-visit-reports/:id/print" component={FieldVisitReportPrint} />
+      <Route path="/quick-response-reports/:id/print" component={QuickResponseReportPrint} />
+      <Route path="/quick-request-reports/:id/print" component={QuickRequestReportPrint} />
       <Route path="/field-visits">{() => <AdminRoute component={() => <Requests initialStage="field_visit" />} />}</Route>
       <Route path="/field-visits/calendar">{() => <AdminRoute component={FieldVisitsCalendar} />}</Route>
       <Route path="/field-visits/schedule/:requestId">{() => <AdminRoute component={FieldVisitSchedule} />}</Route>
