@@ -6,6 +6,31 @@ import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let pool: mysql.Pool | null = null;
+let _migrationChecked = false;
+
+async function ensureSchemaUpdated(p: mysql.Pool) {
+  if (_migrationChecked) return;
+  _migrationChecked = true;
+  try {
+    const promisePool = p.promise();
+    const [cols] = await promisePool.query("SHOW COLUMNS FROM disbursement_orders") as any[];
+    const colNames = Array.isArray(cols) ? cols.map((c: any) => c.Field) : [];
+    if (!colNames.includes("executiveNotes")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotes TEXT");
+    }
+    if (!colNames.includes("executiveNotesReply")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotesReply TEXT");
+    }
+    if (!colNames.includes("executiveNotesRepliedBy")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotesRepliedBy INT");
+    }
+    if (!colNames.includes("executiveNotesRepliedAt")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotesRepliedAt DATETIME");
+    }
+  } catch (err) {
+    console.warn("[Database] ensureSchemaUpdated warning:", err);
+  }
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -19,6 +44,7 @@ export async function getDb() {
         connection.query("SET time_zone = '+00:00'");
       });
       _db = drizzle(pool);
+      ensureSchemaUpdated(pool).catch(() => {});
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
