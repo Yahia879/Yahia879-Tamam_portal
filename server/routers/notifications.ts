@@ -633,10 +633,10 @@ export async function createNotification(data: {
     let isSmsEnabled = false;
 
     if (user.role === "service_requester") {
-      // إعدادات القنوات الافتراضية للمستفيد (مفعلة افتراضياً عدا الرسائل النصية)
-      isInAppEnabled = true;
-      isEmailEnabled = true;
-      isWhatsappEnabled = true;
+      // إعدادات القنوات الافتراضية للمستفيد (معطلة بشكل تلقائي، وتفعل فقط إذا قام المسؤول بتفعيلها)
+      isInAppEnabled = false;
+      isEmailEnabled = false;
+      isWhatsappEnabled = false;
       isSmsEnabled = false;
     } else {
       const isFinancial = 
@@ -1499,17 +1499,18 @@ export const notificationsRouter = router({
 
       const channels = ["in_app", "email", "whatsapp", "sms"] as const;
       for (const channel of channels) {
+        const isChannelEnabled = input.enabled ? (channel !== "sms") : false;
         await db
           .insert(notificationTriggerSettings)
           .values({
             triggerId: input.triggerId,
             roleId: "service_requester",
             channel,
-            enabled: input.enabled,
+            enabled: isChannelEnabled,
           })
           .onDuplicateKeyUpdate({
             set: {
-              enabled: input.enabled,
+              enabled: isChannelEnabled,
             },
           });
       }
