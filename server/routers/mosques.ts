@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { getDb } from "../db";
 import { mosques, mosqueImages, auditLogs, mosqueRequests, InsertMosque, users } from "../../drizzle/schema";
 import { eq, and, like, desc, sql, or } from "drizzle-orm";
-import { notifyNewMosque, notifyMosqueApproval } from "./notifications";
+import { notifyNewMosque, notifyMosqueApproval, createNotification } from "./notifications";
 import { checkPermission } from "../permissions";
 
 // مخطط إنشاء مسجد جديد
@@ -409,6 +409,11 @@ export const mosquesRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
+      const [mosque] = await db.select().from(mosques).where(eq(mosques.id, input.id)).limit(1);
+      if (!mosque) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "المسجد غير موجود" });
+      }
+
       await db.update(mosques).set({
         approvalStatus: "rejected",
         notes: input.reason || null,
@@ -421,6 +426,19 @@ export const mosquesRouter = router({
         entityId: input.id,
         newValues: { reason: input.reason },
       });
+
+      // إرسال إشعار لمقدم طلب تسجيل المسجد
+      if (mosque.registeredBy) {
+        await createNotification({
+          userId: mosque.registeredBy,
+          type: "mosque",
+          title: "رفض طلب تسجيل المسجد",
+          message: `تم رفض طلب تسجيل المسجد الخاص بك: ${mosque.name}${input.reason ? ` بسبب: ${input.reason}` : ""}`,
+          relatedType: "mosque",
+          relatedId: input.id,
+          triggerId: "beneficiary_mosque_rejected",
+        });
+      }
 
       return { success: true, message: "تم رفض المسجد" };
     }),
