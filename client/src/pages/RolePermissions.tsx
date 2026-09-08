@@ -869,7 +869,7 @@ export default function RolePermissions() {
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "edit"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration"] },
-        { id: "settings_escalation", nameAr: "التصعيد الإداري ومهل SLA", icon: ShieldAlert, perms: ["view"] },
+        { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
       ]
     }
   ];
@@ -950,7 +950,7 @@ export default function RolePermissions() {
         { id: "settings_categories", nameAr: "إدارة التصنيفات", icon: Tag, perms: ["view", "add", "edit", "delete"] },
         { id: "services", nameAr: "البرامج والخدمات", icon: LayoutGrid, perms: ["view", "add", "edit", "delete"] },
         { id: "forms_customization", nameAr: "تخصيص النماذج", icon: SlidersHorizontal, perms: ["evaluation", "services", "registration", "analytics"] },
-        { id: "settings_escalation", nameAr: "التصعيد الإداري ومهل SLA", icon: ShieldAlert, perms: ["view"] },
+        { id: "settings_escalation", nameAr: "تعيين وقت التأخير ومدد المراحل", icon: ShieldAlert, perms: ["view"] },
         { id: "staff_notifications", nameAr: "تخصيص الإشعارات", icon: Bell, perms: ["edit"] },
       ]
     },
@@ -985,7 +985,7 @@ export default function RolePermissions() {
         analytics: "لوحة الإحصائيات المخصصة",
       },
       settings_escalation: {
-        view: "عرض التصعيد الإداري ومهل SLA",
+        view: "تعيين وقت التأخير ومدد المراحل",
       },
       analytics_hub: {
         custom: "اللوحة المخصصة",

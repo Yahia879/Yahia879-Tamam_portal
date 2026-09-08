@@ -748,7 +748,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "forms_customization.evaluation", moduleId: "settings", action: "evaluation", nameAr: "تخصيص استمارة التقييم", nameEn: "Customize Evaluation Form" },
       { id: "forms_customization.services", moduleId: "settings", action: "services", nameAr: "تخصيص نماذج طلبات الخدمات", nameEn: "Customize Service Request Forms" },
       { id: "forms_customization.registration", moduleId: "settings", action: "registration", nameAr: "تخصيص نماذج التسجيل والتبرع", nameEn: "Customize Registration & Donation Forms" },
-      { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "التصعيد الإداري ومهل SLA", nameEn: "Administrative Escalation & SLA" },
+      { id: "settings_escalation.view", moduleId: "settings", action: "view", nameAr: "تعيين وقت التأخير ومدد المراحل", nameEn: "Set Delay Times & Stage Durations" },
       { id: "requests.upload_final_report", moduleId: "requests", action: "upload_final_report", nameAr: "رفع التقرير الختامي", nameEn: "Upload Final Report" },
       { id: "boq.add", moduleId: "boq", action: "add", nameAr: "إضافة بند جديد", nameEn: "Add BOQ Item" },
       { id: "boq.edit", moduleId: "boq", action: "edit", nameAr: "تعديل البنود", nameEn: "Edit BOQ Items" },

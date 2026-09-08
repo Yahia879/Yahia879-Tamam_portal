@@ -18,6 +18,7 @@ import {
   Bell,
   SlidersHorizontal,
   ShieldAlert,
+  Clock,
 } from "lucide-react";
 
 interface SettingCard {
@@ -85,9 +86,9 @@ const settingCards: SettingCard[] = [
     permission: "forms_customization",
   },
   {
-    icon: ShieldAlert,
-    title: "التصعيد الإداري ومهل SLA",
-    description: "متابعة الطلبات والمستفيدين المتأخرين وضبط مدد المراحل الزمنية",
+    icon: Clock,
+    title: "تعيين وقت التأخير ومدد المراحل",
+    description: "تحديد وضبط المدد الزمنية لمراحل الطلبات ومهلة قبول المستفيدين لحساب وقت التأخير",
     path: "/forms-customization/escalation?from=/escalation",
     color: "text-rose-600",
     bgColor: "bg-rose-50 dark:bg-rose-950/30",

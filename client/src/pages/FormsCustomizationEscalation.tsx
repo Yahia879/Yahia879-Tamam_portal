@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
-  ArrowRight,
-  ChevronLeft,
   Clock,
   Users,
   Layers,
@@ -22,23 +20,6 @@ import {
 
 export default function FormsCustomizationEscalation() {
   const [, setLocation] = useLocation();
-
-  // الحصول على رابط الصفحة السابقة إن وجد في معاملات الرابط
-  const searchParams = new URLSearchParams(window.location.search);
-  const fromParam = searchParams.get("from") || searchParams.get("returnUrl") || searchParams.get("backUrl");
-
-  const handleBack = () => {
-    if (fromParam) {
-      setLocation(decodeURIComponent(fromParam));
-      return;
-    }
-
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      setLocation("/forms-customization");
-    }
-  };
 
   // جلب إعدادات التصعيد الحالية من الخادم
   const { data: slaData, isLoading, refetch } = trpc.escalation.getSettings.useQuery();
@@ -117,33 +98,9 @@ export default function FormsCustomizationEscalation() {
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl mx-auto pb-24 text-right" dir="rtl">
 
-        {/* 1. شريط المسار والرجوع (Breadcrumbs) */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium select-none">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="hover:text-foreground transition-colors cursor-pointer bg-transparent border-0 p-0 text-xs text-muted-foreground font-medium"
-          >
-            {fromParam === "/escalation" ? "متابعة التأخيرات" : "تخصيص النماذج"}
-          </button>
-          <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/50" />
-          <span className="text-foreground font-bold">تخصيص مدة التصعيد</span>
-        </div>
-
-        {/* 2. رأس الصفحة الرئيسي البسيط والأنيق */}
+        {/* رأس الصفحة الرئيسي */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border bg-card shadow-xs">
           <div className="flex items-center gap-3.5 min-w-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              onClick={handleBack}
-              className="shrink-0 rounded-xl hover:bg-muted"
-              title="الرجوع للصفحة السابقة"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </Button>
-
             <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-500 text-white shadow-xs">
               <Clock className="w-5 h-5" />
             </div>
