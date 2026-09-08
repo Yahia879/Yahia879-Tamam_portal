@@ -219,6 +219,36 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   disbursement_order_approved_request_only: "تم الاعتماد المالي لأمر الصرف رقم \"{رقم_أمر_الصرف}\" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال",
   disbursement_order_approved_general: "تم تحويل أمر الصرف رقم \"{رقم_أمر_الصرف}\" بقيمة {القيمة} ريال إلى الاعتماد المالي",
   disbursement_order_rejected: "تم رفض أمر الصرف رقم \"{رقم_أمر_الصرف}\" للمشروع \"{اسم_المشروع}\" بقيمة {القيمة} ريال بسبب: {السبب}",
+  // مشغلات إشعارات المستفيد (service_requester)
+  beneficiary_account_approved: "مرحباً {اسم_المستفيد}، تم اعتماد وتفعيل حسابك بنجاح في بوابة تمام. يمكنك الآن تسجيل الدخول والاستفادة من الخدمات.",
+  beneficiary_account_suspended: "مرحباً {اسم_المستفيد}، نود إفادتك بأنه تم تعليق/رفض حسابك في بوابة تمام بسبب: {السبب}. يرجى مراجعة البوابة وتعديل المطلوب.",
+  beneficiary_registration_notes: "مرحباً {اسم_المستفيد}، تمت إضافة ملاحظات جديدة على طلب التسجيل الخاص بك: {الملاحظات}. يرجى تسجيل الدخول وتحديث البيانات المطلوبة.",
+  beneficiary_mosque_created: "تم إضافة مسجد جديد {اسم_المسجد} وهو بانتظار الموافقة والاعتماد",
+  beneficiary_mosque_approved: "تم قبول طلب تسجيل المسجد الخاص بك: {اسم_المسجد}",
+  beneficiary_mosque_rejected: "تم رفض طلب تسجيل المسجد الخاص بك: {اسم_المسجد} بسبب: {السبب}",
+  beneficiary_request_created: "تم استلام طلبك رقم {رقم_الطلب} بنجاح وهو بانتظار المعالجة",
+  beneficiary_request_status_changed: "تم تحديث حالة طلبك رقم {رقم_الطلب} إلى: {الحالة_الجديدة}",
+  beneficiary_stage_initial_review: "تم استلام طلبك رقم {رقم_الطلب} وهو قيد المراجعة الأولية. سنتواصل معك قريباً.",
+  beneficiary_stage_field_visit: "تمت الموافقة على طلبك رقم {رقم_الطلب} وسيتم جدولة زيارة ميدانية لمسجدك قريباً.",
+  beneficiary_field_visit_scheduled: "تم جدولة زيارة ميدانية لطلبك رقم {رقم_الطلب} بتاريخ {تاريخ_الزيارة}",
+  beneficiary_field_visit_completed: "تم إتمام الزيارة الميدانية لطلبك رقم {رقم_الطلب} وجارٍ الآن التقييم الفني.",
+  beneficiary_quick_response_completed: "تم تنفيذ وإتمام أعمال الاستجابة السريعة لطلبك رقم {رقم_الطلب}.",
+  beneficiary_stage_financial_eval: "اكتمل جدول الكميات لطلبك رقم {رقم_الطلب} وجارٍ تقييم عروض الأسعار واعتمادها.",
+  beneficiary_financial_approved: "تم اعتماد طلبك رقم {رقم_الطلب} مالياً بمبلغ {القيمة} ريال وتم الانتقال لمرحلة التعاقد",
+  beneficiary_stage_contracting: "تم اعتماد عرض السعر لطلبك رقم {رقم_الطلب} وجارٍ الآن إعداد العقد مع المقاول.",
+  beneficiary_stage_execution: "تم توقيع العقد لطلبك رقم {رقم_الطلب} وبدأت أعمال التنفيذ في مسجدك. يمكنك متابعة التقدم من بوابتك.",
+  beneficiary_stage_handover: "اكتملت أعمال التنفيذ في مسجدك للطلب رقم {رقم_الطلب} وجارٍ الاستلام الرسمي.",
+  beneficiary_stage_closed: "يسعدنا إعلامك باكتمال مشروع طلبك رقم {رقم_الطلب} وإغلاقه رسمياً. شكراً لثقتك بمنارة.",
+  beneficiary_comment_added: "أضاف {اسم_المسؤول} تعليقاً جديداً على طلبك رقم {رقم_الطلب}",
+  beneficiary_exception_submitted: "تم استلام طلب الاستثناء الخاص بك وهو قيد المراجعة حالياً من قبل الإدارة.",
+  beneficiary_exception_approved: "تم قبول طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب جديد.",
+  beneficiary_exception_rejected: "عذراً، تم رفض طلب الاستثناء الخاص بك.",
+  beneficiary_ticket_created: "تم استلام تذكرة الدعم الفني الخاصة بك رقم #{رقم_التذكرة} بنجاح وجارٍ متابعتها من قبل الفريق المختص.",
+  beneficiary_ticket_status_changed: "تم تغيير حالة تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
+  beneficiary_ticket_reply_added: "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة}",
+  beneficiary_survey_evaluation: "تم إغلاق طلبك رقم {رقم_الطلب} بنجاح. يسعدنا مشاركتك تقييم مستوى الخدمة المقدمة عبر الرابط المباشر.",
+  beneficiary_survey_reminder: "السلام عليكم ورحمة الله وبركاته {اسم_المستفيد}، نود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم {رقم_الطلب} بنجاح لدى جمعية عمارة المساجد (منارة). رأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا لمسجد {اسم_المسجد}، نأمل منكم التكرم بالضغط على الرابط لتقييم الخدمة:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
+  beneficiary_survey_invite: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، نود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة). رأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
 };
 
 const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
@@ -389,6 +419,7 @@ export async function createNotification(data: {
   message: string;
   relatedType?: string;
   relatedId?: number;
+  triggerId?: string;
 }) {
   const db = await getDb();
   if (!db) return null;
@@ -441,76 +472,141 @@ export async function createNotification(data: {
       .where(eq(rolesTable.id, user.role))
       .limit(1);
 
-    // الكشف عن الـ triggerId بناءً على بيانات الإشعار أولاً
-    let triggerId: string | null = null;
-    if (data.title === "تقديم رد على الرفض" || data.title === "تقديم رد على الملاحظات" || data.message.includes("بتقديم رد على")) {
-      triggerId = "notes_response_submitted";
-    } else if (data.title === "طلب استثناء جديد" || data.message.includes("بتقديم طلب استثناء")) {
-      triggerId = "exception_request_submitted";
-    } else if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
-      triggerId = "request_created_admin";
-    } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
-      triggerId = "request_created_beneficiary";
-    } else if (data.message.includes("المراجعة الأولية")) {
-      triggerId = "stage_initial_review";
-    } else if (data.message.includes("الزيارة الميدانية")) {
-      triggerId = "stage_field_visit";
-    } else if (data.title === "تم رفع تقرير المعاينة الميدانية" || data.message.includes("تقرير زيارة ميدانية")) {
-      triggerId = "field_visit_report_submitted";
-    } else if (data.title === "تم رفع تقرير الاستجابة السريعة" || data.message.includes("تقرير الاستجابة السريعة")) {
-      triggerId = "quick_report_submitted";
-    } else if (data.title === "مشروع جديد للتقييم المالي" || data.message.includes("إلى مشروع ويحتاج للتقييم المالي")) {
-      triggerId = "converted_to_project";
-    } else if (data.message.includes("التقييم المالي واعتماد العرض")) {
-      triggerId = "stage_financial_eval";
-    } else if (data.message.includes("التعاقد")) {
-      triggerId = "stage_contracting";
-    } else if (data.message.includes("التنفيذ")) {
-      triggerId = "stage_execution";
-    } else if (data.message.includes("الإغلاق") || data.message.includes("closed") || data.message.includes("إغلاق")) {
-      triggerId = "stage_closed";
-    } else if (data.message.includes("بانتظار الموافقة") || data.message.includes("بانتظار الاعتماد") || data.title === "تسجيل مسجد من قبل مسؤول") {
-      triggerId = "mosque_created";
-    } else if (data.title === "تم اعتماد المسجد" || data.message.includes("تم قبول طلب تسجيل المسجد")) {
-      triggerId = "mosque_approved";
-    } else if (data.title === "مورد جديد قيد المراجعة" || data.message.includes("تم تسجيل مورد جديد في البوابة")) {
-      triggerId = "supplier_created";
-    } else if (data.title === "اعتماد مورد" || data.message.includes("باعتماد المورد")) {
-      triggerId = "supplier_approved";
-    } else if (data.title === "رفض مورد" || data.message.includes("برفض المورد")) {
-      triggerId = "supplier_rejected";
-    } else if (data.title === "إضافة عرض سعر جديد" || data.message.includes("تم إضافة عرض سعر جديد")) {
-      triggerId = "quotation_created";
-    } else if (data.title === "اعتماد عرض سعر" || data.message.includes("تم اعتماد عرض السعر")) {
-      triggerId = "quotation_approved";
-    } else if (data.title === "إنشاء عقد جديد" || data.title === "عقد جديد" || data.message.includes("تم إنشاء عقد جديد")) {
-      triggerId = "contract_created";
-    } else if (data.title === "اعتماد عقد" || data.message.includes("تم اعتماد العقد")) {
-      triggerId = "contract_approved";
-    } else if (data.title === "إنشاء تقرير إنجاز" || data.message.includes("تم إنشاء تقرير إنجاز جديد")) {
-      triggerId = "progress_report_created";
-    } else if (data.title === "اعتماد تقرير إنجاز" || data.message.includes("تم اعتماد تقرير الإنجاز")) {
-      triggerId = "progress_report_approved";
-    } else if (data.title === "إنشاء طلب صرف" || data.message.includes("تم إنشاء طلب صرف جديد")) {
-      triggerId = "disbursement_request_created";
-    } else if (data.title === "تحويل إلى أمر صرف" || data.message.includes("تم تحويل طلب الصرف")) {
-      triggerId = "disbursement_converted_to_order";
-    } else if (data.title === "الاعتماد المالي" || data.title === "اعتماد أمر صرف" || data.message.includes("الاعتماد المالي لأمر الصرف") || data.message.includes("تم اعتماد أمر الصرف") || data.message.includes("للاعتماد المالي")) {
-      if (data.message.includes("طلب رقم") && data.message.includes("للمشروع")) {
-        triggerId = "disbursement_order_approved";
-      } else if (data.message.includes("طلب رقم")) {
-        triggerId = "disbursement_order_approved_request_only";
-      } else {
-        triggerId = "disbursement_order_approved_general";
+    // الكشف عن الـ triggerId بناءً على المدخل المباشر أو الفحص التلقائي للبيانات
+    let triggerId: string | null = data.triggerId || null;
+
+    if (!triggerId && user.role === "service_requester") {
+      if (data.title.includes("اعتماد حسابك") || data.message.includes("تم اعتماد وتفعيل حسابك")) {
+        triggerId = "beneficiary_account_approved";
+      } else if (data.title.includes("تعليق/رفض حسابك") || data.title.includes("إيقاف/رفض حسابك") || data.message.includes("تم تعليق/رفض حسابك") || data.message.includes("تم رفض أو تعليق حسابك")) {
+        triggerId = "beneficiary_account_suspended";
+      } else if (data.title.includes("ملاحظات جديدة على طلب التسجيل") || data.message.includes("ملاحظات جديدة على طلب التسجيل")) {
+        triggerId = "beneficiary_registration_notes";
+      } else if (data.title === "رفض طلب تسجيل المسجد" || data.message.includes("تم رفض طلب تسجيل المسجد")) {
+        triggerId = "beneficiary_mosque_rejected";
+      } else if (data.title === "تم اعتماد المسجد" || data.message.includes("تم قبول طلب تسجيل المسجد الخاص بك")) {
+        triggerId = "beneficiary_mosque_approved";
+      } else if (data.title === "مسجد جديد" && (data.message.includes("بانتظار الموافقة") || data.message.includes("بانتظار الاعتماد"))) {
+        triggerId = "beneficiary_mosque_created";
+      } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
+        triggerId = "beneficiary_request_created";
+      } else if (data.title === "تحديث حالة الطلب") {
+        triggerId = "beneficiary_request_status_changed";
+      } else if (data.title === "✅ تم استلام طلبك" || data.message.includes("المراجعة الأولية")) {
+        triggerId = "beneficiary_stage_initial_review";
+      } else if (data.title === "📋 جدولة زيارة ميدانية" || data.message.includes("زيارة ميدانية لمسجدك قريباً")) {
+        triggerId = "beneficiary_stage_field_visit";
+      } else if (data.title === "تم جدولة زيارة ميدانية" || data.message.includes("جدولة زيارة ميدانية لطلبك")) {
+        triggerId = "beneficiary_field_visit_scheduled";
+      } else if (data.title === "إتمام الزيارة الميدانية" || data.message.includes("تم إتمام الزيارة الميدانية لطلبك")) {
+        triggerId = "beneficiary_field_visit_completed";
+      } else if (data.title === "إتمام الاستجابة السريعة" || data.message.includes("تم تنفيذ وإتمام أعمال الاستجابة السريعة")) {
+        triggerId = "beneficiary_quick_response_completed";
+      } else if (data.title === "💰 تقييم العروض المالية" || data.message.includes("تقييم عروض الأسعار واعتمادها")) {
+        triggerId = "beneficiary_stage_financial_eval";
+      } else if (data.title === "تم اعتماد طلبك مالياً" || data.message.includes("مالياً بمبلغ")) {
+        triggerId = "beneficiary_financial_approved";
+      } else if (data.title === "📝 مرحلة التعاقد" || data.message.includes("إعداد العقد مع المقاول")) {
+        triggerId = "beneficiary_stage_contracting";
+      } else if (data.title === "🏗️ بدء التنفيذ" || data.message.includes("بدأت أعمال التنفيذ في مسجدك")) {
+        triggerId = "beneficiary_stage_execution";
+      } else if (data.title === "🎉 اكتمال التنفيذ" || (data.message.includes("اكتمال التنفيذ") && data.message.includes("الاستلام الرسمي"))) {
+        triggerId = "beneficiary_stage_handover";
+      } else if (data.title === "✨ تم إغلاق الطلب بنجاح" || data.message.includes("إغلاقه رسمياً")) {
+        triggerId = "beneficiary_stage_closed";
+      } else if (data.title === "تعليق جديد على طلبك" || data.title === "تعليق جديد" || data.message.includes("تعليقاً على طلبك")) {
+        triggerId = "beneficiary_comment_added";
+      } else if (data.title === "تم تقديم طلب الاستثناء") {
+        triggerId = "beneficiary_exception_submitted";
+      } else if (data.title === "تم قبول طلب الاستثناء") {
+        triggerId = "beneficiary_exception_approved";
+      } else if (data.title === "تم رفض طلب الاستثناء") {
+        triggerId = "beneficiary_exception_rejected";
+      } else if (data.title === "تم استلام تذكرة الدعم الفني" || data.message.includes("تم استلام تذكرة الدعم الفني الخاصة بك")) {
+        triggerId = "beneficiary_ticket_created";
+      } else if (data.title === "تحديث حالة التذكرة") {
+        triggerId = "beneficiary_ticket_status_changed";
+      } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم الخاصة بك")) {
+        triggerId = "beneficiary_ticket_reply_added";
+      } else if (data.title.includes("تذكير: تقييم رضا المستفيد") || data.message.includes("الرسالة التذكيرية")) {
+        triggerId = "beneficiary_survey_reminder";
+      } else if (data.title.includes("تقييم رضا المستفيد") || data.relatedType === "request_evaluation") {
+        triggerId = "beneficiary_survey_evaluation";
+      } else if (data.title.includes("استبيان") || data.relatedType === "evaluation") {
+        triggerId = "beneficiary_survey_invite";
       }
-    } else if (data.title === "رفض أمر صرف" || data.message.includes("تم رفض أمر الصرف")) {
-      triggerId = "disbursement_order_rejected";
-    } else if (data.title === "تذكرة دعم فني جديدة" || data.message.includes("بتقديم تذكرة دعم فني جديدة")) {
-      triggerId = "support_ticket_created";
-    } else if (data.title === "تحديث حالة التذكرة" || data.message.includes("تغيير حالة تذكرة الدعم")) {
-      triggerId = "support_ticket_status_changed";
-    } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم")) {
-      triggerId = "support_ticket_reply_added";
+    }
+
+    if (!triggerId) {
+      if (data.title === "تقديم رد على الرفض" || data.title === "تقديم رد على الملاحظات" || data.message.includes("بتقديم رد على")) {
+        triggerId = "notes_response_submitted";
+      } else if (data.title === "طلب استثناء جديد" || data.message.includes("بتقديم طلب استثناء")) {
+        triggerId = "exception_request_submitted";
+      } else if (data.title === "طلب جديد مضاف من مسؤول" || (data.title === "طلب جديد" && data.message.includes("بإنشاء طلب"))) {
+        triggerId = "request_created_admin";
+      } else if (data.title === "طلب جديد" && data.message.includes("بانتظار المعالجة")) {
+        triggerId = "request_created_beneficiary";
+      } else if (data.message.includes("المراجعة الأولية")) {
+        triggerId = "stage_initial_review";
+      } else if (data.message.includes("الزيارة الميدانية")) {
+        triggerId = "stage_field_visit";
+      } else if (data.title === "تم رفع تقرير المعاينة الميدانية" || data.message.includes("تقرير زيارة ميدانية")) {
+        triggerId = "field_visit_report_submitted";
+      } else if (data.title === "تم رفع تقرير الاستجابة السريعة" || data.message.includes("تقرير الاستجابة السريعة")) {
+        triggerId = "quick_report_submitted";
+      } else if (data.title === "مشروع جديد للتقييم المالي" || data.message.includes("إلى مشروع ويحتاج للتقييم المالي")) {
+        triggerId = "converted_to_project";
+      } else if (data.message.includes("التقييم المالي واعتماد العرض")) {
+        triggerId = "stage_financial_eval";
+      } else if (data.message.includes("التعاقد")) {
+        triggerId = "stage_contracting";
+      } else if (data.message.includes("التنفيذ")) {
+        triggerId = "stage_execution";
+      } else if (data.message.includes("الإغلاق") || data.message.includes("closed") || data.message.includes("إغلاق")) {
+        triggerId = "stage_closed";
+      } else if (data.message.includes("بانتظار الموافقة") || data.message.includes("بانتظار الاعتماد") || data.title === "تسجيل مسجد من قبل مسؤول") {
+        triggerId = "mosque_created";
+      } else if (data.title === "تم اعتماد المسجد" || data.message.includes("تم قبول طلب تسجيل المسجد")) {
+        triggerId = "mosque_approved";
+      } else if (data.title === "مورد جديد قيد المراجعة" || data.message.includes("تم تسجيل مورد جديد في البوابة")) {
+        triggerId = "supplier_created";
+      } else if (data.title === "اعتماد مورد" || data.message.includes("باعتماد المورد")) {
+        triggerId = "supplier_approved";
+      } else if (data.title === "رفض مورد" || data.message.includes("برفض المورد")) {
+        triggerId = "supplier_rejected";
+      } else if (data.title === "إضافة عرض سعر جديد" || data.message.includes("تم إضافة عرض سعر جديد")) {
+        triggerId = "quotation_created";
+      } else if (data.title === "اعتماد عرض سعر" || data.message.includes("تم اعتماد عرض السعر")) {
+        triggerId = "quotation_approved";
+      } else if (data.title === "إنشاء عقد جديد" || data.title === "عقد جديد" || data.message.includes("تم إنشاء عقد جديد")) {
+        triggerId = "contract_created";
+      } else if (data.title === "اعتماد عقد" || data.message.includes("تم اعتماد العقد")) {
+        triggerId = "contract_approved";
+      } else if (data.title === "إنشاء تقرير إنجاز" || data.message.includes("تم إنشاء تقرير إنجاز جديد")) {
+        triggerId = "progress_report_created";
+      } else if (data.title === "اعتماد تقرير إنجاز" || data.message.includes("تم اعتماد تقرير الإنجاز")) {
+        triggerId = "progress_report_approved";
+      } else if (data.title === "إنشاء طلب صرف" || data.message.includes("تم إنشاء طلب صرف جديد")) {
+        triggerId = "disbursement_request_created";
+      } else if (data.title === "تحويل إلى أمر صرف" || data.message.includes("تم تحويل طلب الصرف")) {
+        triggerId = "disbursement_converted_to_order";
+      } else if (data.title === "الاعتماد المالي" || data.title === "اعتماد أمر صرف" || data.message.includes("الاعتماد المالي لأمر الصرف") || data.message.includes("تم اعتماد أمر الصرف") || data.message.includes("للاعتماد المالي")) {
+        if (data.message.includes("طلب رقم") && data.message.includes("للمشروع")) {
+          triggerId = "disbursement_order_approved";
+        } else if (data.message.includes("طلب رقم")) {
+          triggerId = "disbursement_order_approved_request_only";
+        } else {
+          triggerId = "disbursement_order_approved_general";
+        }
+      } else if (data.title === "رفض أمر صرف" || data.message.includes("تم رفض أمر الصرف")) {
+        triggerId = "disbursement_order_rejected";
+      } else if (data.title === "تذكرة دعم فني جديدة" || data.message.includes("بتقديم تذكرة دعم فني جديدة")) {
+        triggerId = "support_ticket_created";
+      } else if (data.title === "تحديث حالة التذكرة" || data.message.includes("تغيير حالة تذكرة الدعم")) {
+        triggerId = "support_ticket_status_changed";
+      } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم")) {
+        triggerId = "support_ticket_reply_added";
+      }
     }
 
     const financialTriggerIds = [
@@ -536,39 +632,47 @@ export async function createNotification(data: {
     let isWhatsappEnabled = false;
     let isSmsEnabled = false;
 
-    const isFinancial = 
-      (triggerId && financialTriggerIds.includes(triggerId)) ||
-      data.relatedType?.startsWith("disbursement") || 
-      data.relatedType === "contract" || 
-      (data.type as string) === "financial";
-
-    const isRequest = 
-      data.relatedType === "request" || 
-      data.relatedType === "support_ticket" || 
-      data.type === "request" || 
-      data.type === "request_update" ||
-      data.type === "mosque" ||
-      triggerId === "exception_request_submitted" ||
-      (triggerId !== null && triggerId.startsWith("support_ticket_"));
-
-    if (isFinancial) {
-      isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
-      isEmailEnabled = !!user.receiveFinancialEmail || !!(roleSetting && roleSetting.receiveFinancialEmail);
-      isWhatsappEnabled = !!user.receiveFinancialWhatsapp || !!(roleSetting && roleSetting.receiveFinancialWhatsapp);
-      isSmsEnabled = !!user.receiveFinancialSms || !!(roleSetting && roleSetting.receiveFinancialSms);
-    } else if (isRequest) {
-      isInAppEnabled = !!user.receiveRequestNotifications || !!(roleSetting && roleSetting.receiveRequestNotifications);
-      isEmailEnabled = !!user.receiveRequestEmail || !!(roleSetting && roleSetting.receiveRequestEmail);
-      isWhatsappEnabled = !!user.receiveRequestWhatsapp || !!(roleSetting && roleSetting.receiveRequestWhatsapp);
-      isSmsEnabled = !!user.receiveRequestSms || !!(roleSetting && roleSetting.receiveRequestSms);
+    if (user.role === "service_requester") {
+      // إعدادات القنوات الافتراضية للمستفيد (مفعلة افتراضياً عدا الرسائل النصية)
+      isInAppEnabled = true;
+      isEmailEnabled = true;
+      isWhatsappEnabled = true;
+      isSmsEnabled = false;
     } else {
-      isInAppEnabled = !!user.receiveBeneficiaryNotifications || !!(roleSetting && roleSetting.receiveBeneficiaryNotifications);
-      isEmailEnabled = !!user.receiveBeneficiaryEmail || !!(roleSetting && roleSetting.receiveBeneficiaryEmail);
-      isWhatsappEnabled = !!user.receiveBeneficiaryWhatsapp || !!(roleSetting && roleSetting.receiveBeneficiaryWhatsapp);
-      isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
+      const isFinancial = 
+        (triggerId && financialTriggerIds.includes(triggerId)) ||
+        data.relatedType?.startsWith("disbursement") || 
+        data.relatedType === "contract" || 
+        (data.type as string) === "financial";
+
+      const isRequest = 
+        data.relatedType === "request" || 
+        data.relatedType === "support_ticket" || 
+        data.type === "request" || 
+        data.type === "request_update" ||
+        data.type === "mosque" ||
+        triggerId === "exception_request_submitted" ||
+        (triggerId !== null && triggerId.startsWith("support_ticket_"));
+
+      if (isFinancial) {
+        isInAppEnabled = !!user.receiveFinancialAndContractNotifications || !!(roleSetting && roleSetting.receiveFinancialAndContractNotifications);
+        isEmailEnabled = !!user.receiveFinancialEmail || !!(roleSetting && roleSetting.receiveFinancialEmail);
+        isWhatsappEnabled = !!user.receiveFinancialWhatsapp || !!(roleSetting && roleSetting.receiveFinancialWhatsapp);
+        isSmsEnabled = !!user.receiveFinancialSms || !!(roleSetting && roleSetting.receiveFinancialSms);
+      } else if (isRequest) {
+        isInAppEnabled = !!user.receiveRequestNotifications || !!(roleSetting && roleSetting.receiveRequestNotifications);
+        isEmailEnabled = !!user.receiveRequestEmail || !!(roleSetting && roleSetting.receiveRequestEmail);
+        isWhatsappEnabled = !!user.receiveRequestWhatsapp || !!(roleSetting && roleSetting.receiveRequestWhatsapp);
+        isSmsEnabled = !!user.receiveRequestSms || !!(roleSetting && roleSetting.receiveRequestSms);
+      } else {
+        isInAppEnabled = !!user.receiveBeneficiaryNotifications || !!(roleSetting && roleSetting.receiveBeneficiaryNotifications);
+        isEmailEnabled = !!user.receiveBeneficiaryEmail || !!(roleSetting && roleSetting.receiveBeneficiaryEmail);
+        isWhatsappEnabled = !!user.receiveBeneficiaryWhatsapp || !!(roleSetting && roleSetting.receiveBeneficiaryWhatsapp);
+        isSmsEnabled = !!user.receiveBeneficiarySms || !!(roleSetting && roleSetting.receiveBeneficiarySms);
+      }
     }
 
-    // تطبيق قيم تخصيص مشغلات الإشعارات التفصيلية إذا تم العثور عليها
+    // تطبيق قيم تخصيص مشغلات الإشعارات التفصيلية إذا تم العثور عليها (لكل من المستفيد وموظفي النظام)
     if (triggerId) {
       const triggerOverrides = await db
         .select()
@@ -612,8 +716,8 @@ export async function createNotification(data: {
 
     let result = null;
 
-    // 3. Only insert into database notifications table if in-app notifications are enabled
-    if (isInAppEnabled || user.role === "service_requester") {
+    // 3. إدراج الإشعار في جدول إشعارات الموقع الداخلي فقط إذا كان مفعلاً
+    if (isInAppEnabled) {
       result = await db.insert(notifications).values({
         userId: data.userId,
         type: data.type as any,
@@ -625,25 +729,19 @@ export async function createNotification(data: {
       });
     }
 
-    // 4. Send external notifications (Email, WhatsApp, and SMS via 4jawaly)
-    if (user.role === "service_requester" && user.phone) {
+    // 4. إرسال الإشعارات الخارجية (واتساب، بريد إلكتروني، ورسائل نصية قصيرة SMS)
+    if (isWhatsappEnabled && user.phone) {
       sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
         console.error("Async WhatsApp error:", err);
       });
     }
 
-    if ((isEmailEnabled || user.role === "service_requester") && user.email) {
+    if (isEmailEnabled && user.email) {
       if (!data.title.includes("طلب الاستثناء")) {
         sendEmailNotification(user.email, data.title, customizedMessage).catch((err) => {
           console.error("Async Email error:", err);
         });
       }
-    }
-
-    if (isWhatsappEnabled && user.phone && user.role !== "service_requester") {
-      sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
-        console.error("Async WhatsApp error:", err);
-      });
     }
 
     if (isSmsEnabled && user.phone) {
@@ -1381,6 +1479,40 @@ export const notificationsRouter = router({
             enabled: input.enabled,
           },
         });
+
+      return { success: true };
+    }),
+
+  // تفعيل أو تعطيل إشعار المستفيد بالكامل بجميع قنواته بنقرة واحدة
+  toggleBeneficiaryTrigger: protectedProcedure
+    .input(
+      z.object({
+        triggerId: z.string(),
+        enabled: z.boolean(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+      }
+
+      const channels = ["in_app", "email", "whatsapp", "sms"] as const;
+      for (const channel of channels) {
+        await db
+          .insert(notificationTriggerSettings)
+          .values({
+            triggerId: input.triggerId,
+            roleId: "service_requester",
+            channel,
+            enabled: input.enabled,
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              enabled: input.enabled,
+            },
+          });
+      }
 
       return { success: true };
     }),
