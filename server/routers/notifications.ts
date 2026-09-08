@@ -10,6 +10,7 @@ import { eq, desc, and, sql, inArray, ne, or, like, isNull } from "drizzle-orm";
 import { notifyOwner } from "../_core/notification";
 import { TRPCError } from "@trpc/server";
 import { calculateUserPermissions } from "../permissions";
+import { sendSms } from "../services/sms";
 
 // أنواع الإشعارات (مطابقة للـ schema)
 export const NOTIFICATION_TYPES = {
@@ -624,7 +625,7 @@ export async function createNotification(data: {
       });
     }
 
-    // 4. Send external notifications (Email and WhatsApp)
+    // 4. Send external notifications (Email, WhatsApp, and SMS via 4jawaly)
     if (user.role === "service_requester" && user.phone) {
       sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
         console.error("Async WhatsApp error:", err);
@@ -642,6 +643,13 @@ export async function createNotification(data: {
     if (isWhatsappEnabled && user.phone && user.role !== "service_requester") {
       sendWhatsApp(user.phone, data.title, customizedMessage).catch((err) => {
         console.error("Async WhatsApp error:", err);
+      });
+    }
+
+    if (isSmsEnabled && user.phone) {
+      const smsMessage = `${data.title}\n\n${customizedMessage}`;
+      sendSms(user.phone, smsMessage).catch((err) => {
+        console.error("Async 4jawaly SMS error:", err);
       });
     }
 
