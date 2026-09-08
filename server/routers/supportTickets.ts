@@ -108,6 +108,17 @@ export const supportTicketsRouter = router({
           insertedId,
           ctx.user.id
         );
+
+        // إشعار تأكيد استلام التذكرة لمقدم التذكرة (المستفيد)
+        await createNotification({
+          userId: ctx.user.id,
+          triggerId: "beneficiary_ticket_created",
+          type: "info",
+          title: "تم استلام تذكرة الدعم الفني",
+          message: `تم استلام تذكرة الدعم الفني الخاصة بك رقم #${insertedId} بنجاح وجارٍ متابعتها من قبل الفريق المختص.`,
+          relatedType: "support_ticket",
+          relatedId: insertedId,
+        });
       } catch (err) {
         console.error(
           "Failed to send support ticket creation notification:",
@@ -321,6 +332,7 @@ export const supportTicketsRouter = router({
         } else if (hasViewTickets) {
           await createNotification({
             userId: ticket.userId,
+            triggerId: "beneficiary_ticket_reply_added",
             type: "info",
             title,
             message: `قام المسؤول ${senderName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
@@ -346,6 +358,7 @@ export const supportTicketsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
       let modifierName = "مسؤول الدعم";
+      let autoReplyMessage = "";
 
       const ticketResult = await db
         .select({
@@ -383,7 +396,6 @@ export const supportTicketsRouter = router({
           .limit(1);
         modifierName = modifier[0]?.name || "مسؤول الدعم";
 
-        let autoReplyMessage = "";
         if (isResolvedTransition) {
           if (ticket.ticketType === "technical_issue") {
             autoReplyMessage = `تم حل المشكلة المُبلغ عنها بنجاح، في حال وجود اي ملاحظات إضافية، يسعدنا استقبالها في اي وقت \n\n${modifierName} - فريق الدعم الفني`;
@@ -445,6 +457,7 @@ export const supportTicketsRouter = router({
         // Notify the owner directly about status change
         await createNotification({
           userId: ticket.userId,
+          triggerId: "beneficiary_ticket_status_changed",
           type: "info",
           title,
           message,
@@ -456,9 +469,10 @@ export const supportTicketsRouter = router({
         if (isResolvedTransition || isNeedsClarificationTransition) {
           await createNotification({
             userId: ticket.userId,
+            triggerId: "beneficiary_ticket_reply_added",
             type: "info",
             title: "رد جديد على التذكرة",
-            message: `قام المسؤول ${modifierName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
+            message: autoReplyMessage,
             relatedType: "support_ticket",
             relatedId: ticket.id,
           });
