@@ -737,43 +737,6 @@ export default function NotificationCustomization() {
       ]
     },
 
-    // === الدعم الفني ===
-    {
-      id: "beneficiary_ticket_created",
-      category: "support",
-      categoryNameAr: "الدعم الفني",
-      nameAr: "تأكيد استلام تذكرة دعم فني",
-      description: "إشعار تأكيد للمستفيد فور فتحه تذكرة دعم فني جديدة برقمها المرجعي",
-      defaultTemplate: "تم استلام تذكرة الدعم الفني الخاصة بك رقم #{رقم_التذكرة} بنجاح وجارٍ متابعتها من قبل الفريق المختص.",
-      variables: [
-        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" }
-      ]
-    },
-    {
-      id: "beneficiary_ticket_status_changed",
-      category: "support",
-      categoryNameAr: "الدعم الفني",
-      nameAr: "تحديث حالة تذكرة الدعم الفني",
-      description: "إشعار المستفيد بأي تغير في حالة تذكرته (تم الحل، تحتاج توضيح، قيد المعالجة)",
-      defaultTemplate: "تم تغيير حالة تذكرة الدعم رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
-      variables: [
-        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" },
-        { placeholder: "{الحالة_الجديدة}", nameAr: "الحالة الجديدة" }
-      ]
-    },
-    {
-      id: "beneficiary_ticket_reply_added",
-      category: "support",
-      categoryNameAr: "الدعم الفني",
-      nameAr: "ورود رد جديد على تذكرة الدعم الفني",
-      description: "إشعار المستفيد عند قيام فريق الدعم بالرد على استفساره أو تذكرته",
-      defaultTemplate: "قام مسؤول الدعم الفني {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة}",
-      variables: [
-        { placeholder: "{اسم_المرسل}", nameAr: "اسم المرسل" },
-        { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" }
-      ]
-    },
-
     // === الاستبيانات والتقييم ===
     {
       id: "beneficiary_survey_evaluation",
@@ -2109,10 +2072,6 @@ export default function NotificationCustomization() {
                 {
                   title: "قسم طلبات الاستثناء",
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
-                },
-                {
-                  title: "قسم تذاكر الدعم الفني",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "support")
                 },
                 {
                   title: "قسم استبيانات الرضا والتقييم",
