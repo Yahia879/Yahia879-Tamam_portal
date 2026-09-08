@@ -78,8 +78,8 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "forms_customization.analytics": ["settings.view", "settings.edit"],
   settings_center: ["settings.view", "settings.edit"],
   programs_services: ["settings.view", "settings.edit"],
-  settings_escalation: ["settings_escalation.view", "escalation.view"],
-  "settings_escalation.view": ["settings_escalation.view", "escalation.view"],
+  settings_escalation: ["settings_escalation.view"],
+  "settings_escalation.view": ["settings_escalation.view"],
   corporate_comm: ["requests.view", "reports.view", "settings.view", "requests.upload_final_report"],
   "requests.upload_final_report": ["requests.view", "requests.upload_final_report"],
   "requests.create_quick_request": ["requests.create_quick_request"],
@@ -1090,13 +1090,9 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
   if (revokedPermissions.has("settings_escalation.view") || revokedPermissions.has("settings_escalation")) {
     allPermissions.delete("settings_escalation");
     allPermissions.delete("settings_escalation.view");
-    allPermissions.delete("escalation");
-    allPermissions.delete("escalation.view");
   } else if (allPermissions.has("settings_escalation.view") || allPermissions.has("settings_escalation")) {
     allPermissions.add("settings_escalation");
     allPermissions.add("settings_escalation.view");
-    allPermissions.add("escalation");
-    allPermissions.add("escalation.view");
   }
 
   if (revokedPermissions.has("beneficiary_evaluations.view") || revokedPermissions.has("beneficiary_evaluations") || revokedPermissions.has("beneficiary_satisfaction")) {

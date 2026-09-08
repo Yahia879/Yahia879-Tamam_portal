@@ -119,11 +119,23 @@ function getSeverityLevel(delayDays: number): "warning" | "medium" | "critical" 
 
 const escalationProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const { checkPermission } = await import("../permissions");
-  const hasPerm = (await checkPermission(ctx.user.id, "escalation.view")) || (await checkPermission(ctx.user.id, "settings_escalation.view"));
+  const hasPerm = await checkPermission(ctx.user.id, "escalation.view");
   if (!hasPerm) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "ليس لديك صلاحية عرض قسم التصعيد الإداري",
+    });
+  }
+  return next({ ctx });
+});
+
+const delaySettingsProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  const { checkPermission } = await import("../permissions");
+  const hasPerm = (await checkPermission(ctx.user.id, "settings_escalation.view")) || (await checkPermission(ctx.user.id, "escalation.view"));
+  if (!hasPerm) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "ليس لديك صلاحية تعيين وقت التأخير ومدد المراحل",
     });
   }
   return next({ ctx });
@@ -168,7 +180,7 @@ export const escalationRouter = router({
   }),
 
   // تحديث إعدادات مدد المراحل ومهلة المستفيدين
-  updateSettings: escalationProcedure
+  updateSettings: delaySettingsProcedure
     .input(z.object({
       stages: z.array(z.object({
         stageCode: z.string(),
@@ -242,7 +254,7 @@ export const escalationRouter = router({
     }),
 
   // استعادة الإعدادات الافتراضية
-  resetSettings: escalationProcedure.mutation(async () => {
+  resetSettings: delaySettingsProcedure.mutation(async () => {
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
 
