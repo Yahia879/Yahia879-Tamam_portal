@@ -66,12 +66,20 @@ export default function NewDisbursementRequest() {
   const params = useParams<{ projectId?: string; contractId?: string }>();
   
   // بيانات النموذج
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    projectId: number;
+    contractId: number;
+    title: string;
+    description: string;
+    completionPercentage: number | "";
+    dateMiladi: string;
+    contractPaymentId: number;
+  }>({
     projectId: params.projectId ? parseInt(params.projectId) : 0,
     contractId: params.contractId ? parseInt(params.contractId) : 0,
     title: "",
     description: "",
-    completionPercentage: 0,
+    completionPercentage: "",
     dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     contractPaymentId: 0,
   });
@@ -130,7 +138,7 @@ export default function NewDisbursementRequest() {
         ...prev,
         title: `طلب دفعة لـ ${selectedReport.title}`,
         description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: selectedReport.plannedProgress || 0,
+        completionPercentage: (selectedReport.plannedProgress !== null && selectedReport.plannedProgress !== undefined) ? selectedReport.plannedProgress : "",
         contractPaymentId: paymentId,
       }));
 
@@ -282,8 +290,8 @@ export default function NewDisbursementRequest() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage <= 0) {
-      toast.error("يرجى إدخال نسبة الإنجاز");
+    if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
+      toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
     if (totalAmount <= 0) {
@@ -319,7 +327,7 @@ export default function NewDisbursementRequest() {
       amount: totalAmount,
       paymentType: "progress",
       description: formData.title,
-      completionPercentage: formData.completionPercentage,
+      completionPercentage: Number(formData.completionPercentage),
       dateMiladi: formData.dateMiladi,
     });
   };
@@ -495,49 +503,7 @@ export default function NewDisbursementRequest() {
                   </div>
                 )}
 
-                {formData.projectId > 0 && projectDetails?.payments && projectDetails.payments.filter((p: any) => p.source === "contract").length > 0 && (
-                  <div className="space-y-2 text-right animate-slide-up">
-                    <Label className="text-right font-semibold text-xs text-slate-700 dark:text-slate-300">الدفعة المستحقة من العقد</Label>
-                    <Select
-                      value={formData.contractPaymentId?.toString() || "0"}
-                      onValueChange={(value) => {
-                        const paymentId = parseInt(value);
-                        const paymentInfo = projectDetails.payments.find((p: any) => {
-                          const pIdNumeric = parseInt(p.id.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
-                          return p.source === "contract" && pIdNumeric === paymentId;
-                        });
-                        setFormData({
-                          ...formData,
-                          contractPaymentId: paymentId,
-                          completionPercentage: paymentInfo?.completionPercentage || 0,
-                          title: paymentInfo?.description ? `طلب صرف الدفعة: ${paymentInfo.description}` : formData.title,
-                        });
-                        if (paymentInfo) {
-                          setSuppliers(prev => prev.map(s => ({
-                            ...s,
-                            amount: parseFloat(paymentInfo.amount || "0"),
-                            work: paymentInfo.workDescription || paymentInfo.description || "",
-                          })));
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="text-right w-full border-border focus:ring-primary rounded-xl h-10 bg-background" dir="rtl">
-                        <SelectValue placeholder="اختر دفعة العقد لملء نسبة الإنجاز والبيانات تلقائياً" />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        <SelectItem value="0" className="text-right font-semibold">بدون تحديد دفعة عقد</SelectItem>
-                        {projectDetails.payments.filter((p: any) => p.source === "contract").map((payment: any) => {
-                          const paymentIdNumeric = parseInt(payment.id.replace(/^(cp-|disb-|manual-)/i, "")) || 0;
-                          return (
-                            <SelectItem key={payment.id} value={paymentIdNumeric.toString()} className="text-right">
-                              {payment.description || payment.paymentNumber} (نسبة الإنجاز المطلوبة: {payment.completionPercentage}%)
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+
                 
 
 
@@ -571,9 +537,20 @@ export default function NewDisbursementRequest() {
                     min="0"
                     max="100"
                     required
+                    placeholder="مثال: 0"
                     value={formData.completionPercentage}
-                    onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
-                    className="text-right"
+                    onChange={(e) => {
+                      if (e.target.value === "") {
+                        setFormData({ ...formData, completionPercentage: "" });
+                      } else {
+                        const val = parseInt(e.target.value);
+                        setFormData({
+                          ...formData,
+                          completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
+                        });
+                      }
+                    }}
+                    className="text-right font-bold"
                   />
                 </div>
               </CardContent>

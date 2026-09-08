@@ -52,12 +52,20 @@ export default function EditLinkedDisbursementRequest() {
   const [step, setStep] = useState(2);
 
   // بيانات النموذج
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    projectId: number;
+    contractId: number;
+    title: string;
+    description: string;
+    completionPercentage: number | "";
+    dateMiladi: string;
+    contractPaymentId: number;
+  }>({
     projectId: 0,
     contractId: 0,
     title: "",
     description: "",
-    completionPercentage: 0,
+    completionPercentage: "",
     dateMiladi: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     contractPaymentId: 0,
   });
@@ -155,7 +163,7 @@ export default function EditLinkedDisbursementRequest() {
         contractId: request.contractId || 0,
         title: request.title || "",
         description: request.description || "",
-        completionPercentage: request.completionPercentage || 0,
+        completionPercentage: (request.completionPercentage !== null && request.completionPercentage !== undefined) ? request.completionPercentage : "",
         dateMiladi: request.dateMiladi ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(request.dateMiladi)) : new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
         contractPaymentId: request.contractPaymentId || (request as any).paymentId || 0,
       });
@@ -243,7 +251,7 @@ export default function EditLinkedDisbursementRequest() {
         ...prev,
         title: `تعديل طلب صرف لـ ${selectedReport.title}`,
         description: `تقرير إنجاز ${selectedReport.reportNumber} - الأعمال المنفذة فعلياً:\n${actual}`,
-        completionPercentage: selectedReport.plannedProgress || 0,
+        completionPercentage: (selectedReport.plannedProgress !== null && selectedReport.plannedProgress !== undefined) ? selectedReport.plannedProgress : "",
         contractPaymentId: targetPaymentId,
       }));
     }
@@ -334,8 +342,8 @@ export default function EditLinkedDisbursementRequest() {
       toast.error("يرجى إدخال وصف الأعمال");
       return;
     }
-    if (formData.completionPercentage <= 0) {
-      toast.error("يرجى إدخال نسبة الإنجاز");
+    if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
+      toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
     if (totalAmount <= 0) {
@@ -371,7 +379,7 @@ export default function EditLinkedDisbursementRequest() {
       adminFees: request?.adminFees ? parseFloat(request.adminFees.toString()) : (customSupplierInfo?.adminFees ? parseFloat(customSupplierInfo.adminFees) : undefined),
       paymentType: "progress",
       dateMiladi: formData.dateMiladi,
-      completionPercentage: formData.completionPercentage,
+      completionPercentage: Number(formData.completionPercentage),
       contractPaymentId: isCustom ? undefined : (isManual ? undefined : (formData.contractPaymentId || undefined)),
       paymentId: isCustom ? undefined : (isManual ? formData.contractPaymentId : undefined),
       attachments: isCustom ? customSupplierMetadata : undefined,
@@ -612,11 +620,22 @@ export default function EditLinkedDisbursementRequest() {
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
                       <Input
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
                         required
+                        placeholder="مثال: 0"
                         value={formData.completionPercentage}
-                        onChange={(e) => setFormData({ ...formData, completionPercentage: parseInt(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          if (e.target.value === "") {
+                            setFormData({ ...formData, completionPercentage: "" });
+                          } else {
+                            const val = parseInt(e.target.value);
+                            setFormData({
+                              ...formData,
+                              completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
+                            });
+                          }
+                        }}
                         className="text-right border-border focus:ring-primary rounded-xl h-10 font-black text-primary bg-background"
                       />
                     </div>

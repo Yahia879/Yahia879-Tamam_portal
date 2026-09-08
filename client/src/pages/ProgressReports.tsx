@@ -699,7 +699,6 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     const isIncomplete = payment.source !== "manual" && (
       payment.completionPercentage === null || 
       payment.completionPercentage === undefined || 
-      payment.completionPercentage === 0 ||
       !payment.workDescription || 
       payment.workDescription.trim() === ""
     );

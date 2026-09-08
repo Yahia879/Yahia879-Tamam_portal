@@ -596,7 +596,7 @@ export const projectsRouter = router({
           paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
           source: "contract",
           workDescription: cp.notes,
-          completionPercentage: cp.completionPercentage || 0,
+          completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
           contractId: cp.contractId,
         });
       });
@@ -633,7 +633,7 @@ export const projectsRouter = router({
           paidAt: paidAtDate ? toLocalDateString(paidAtDate) : null,
           source: "manual",
           workDescription: p.description,
-          completionPercentage: p.completionPercentage || 0,
+          completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
         });
       });
 
@@ -1353,7 +1353,7 @@ export const projectsRouter = router({
       amount: z.number().positive(),
       paymentType: z.enum(["advance", "progress", "final", "retention"]),
       description: z.string().optional(),
-      completionPercentage: z.number().optional(),
+      completionPercentage: z.number().min(0).max(100).optional().nullable(),
       dateMiladi: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
@@ -1481,7 +1481,7 @@ export const projectsRouter = router({
           description: disb.description || "",
           amount: parseFloat(disb.amount as string || "0"),
           dateMiladi: toLocalDateString(disb.dateMiladi),
-          completionPercentage: disb.completionPercentage || 0,
+          completionPercentage: (disb.completionPercentage !== null && disb.completionPercentage !== undefined) ? disb.completionPercentage : null,
         };
       } else if (input.id.startsWith("manual-")) {
          const actualId = parseInt(input.id.replace("manual-", ""));
@@ -1499,7 +1499,7 @@ export const projectsRouter = router({
            description: payment.description || "",
            amount: parseFloat(payment.amount as string || "0"),
            dateMiladi: disb?.dateMiladi ? toLocalDateString(disb.dateMiladi) : toLocalDateString(payment.createdAt),
-           completionPercentage: payment.completionPercentage || 0,
+           completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : null,
          };
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
@@ -1524,7 +1524,7 @@ export const projectsRouter = router({
           description: cp.notes || "",
           amount: parseFloat(cp.amount as string || "0"),
           dateMiladi: toLocalDateString(cp.dueDate || cp.createdAt),
-          completionPercentage: cp.completionPercentage || 0,
+          completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
         };
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
@@ -1538,7 +1538,7 @@ export const projectsRouter = router({
       title: z.string().optional(),
       description: z.string().optional(),
       dateMiladi: z.string().optional(),
-      completionPercentage: z.number().optional(),
+      completionPercentage: z.number().min(0).max(100).optional().nullable(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1588,7 +1588,7 @@ export const projectsRouter = router({
                 amount: input.amount.toString(),
                 paymentType: p.paymentType || "progress",
                 dateMiladi: dateVal,
-                completionPercentage: input.completionPercentage || p.completionPercentage,
+                completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : p.completionPercentage,
                 status: "pending",
               });
             }
@@ -2211,7 +2211,7 @@ export const projectsRouter = router({
           paidAt: paidAtDate,
           source: "contract",
           workDescription: cp.notes,
-          completionPercentage: cp.completionPercentage || 0,
+          completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
         });
       });
 
@@ -2247,7 +2247,7 @@ export const projectsRouter = router({
           paidAt: paidAtDate,
           source: "manual",
           workDescription: p.description,
-          completionPercentage: p.completionPercentage || 0,
+          completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
         });
       });
 

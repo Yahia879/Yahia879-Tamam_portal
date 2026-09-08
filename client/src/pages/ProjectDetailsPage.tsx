@@ -1550,7 +1550,6 @@ export default function ProjectDetailsPage() {
                         {project.payments.some(payment => payment.source !== "manual" && (
                           payment.completionPercentage === null || 
                           payment.completionPercentage === undefined || 
-                          payment.completionPercentage === 0 ||
                           !payment.workDescription || 
                           payment.workDescription.trim() === ""
                         )) && (
@@ -1584,14 +1583,13 @@ export default function ProjectDetailsPage() {
                                       {payment.source !== "manual" && (
                                         payment.completionPercentage === null || 
                                         payment.completionPercentage === undefined || 
-                                        payment.completionPercentage === 0 ||
                                         !payment.workDescription || 
                                         payment.workDescription.trim() === ""
                                       ) && (
                                         <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs font-medium text-amber-600 dark:text-amber-400">
                                           <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
                                           <span>بيانات غير مكتملة:</span>
-                                          {(payment.completionPercentage === null || payment.completionPercentage === undefined || payment.completionPercentage === 0) && (
+                                          {(payment.completionPercentage === null || payment.completionPercentage === undefined) && (
                                             <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
                                               نسبة الإنجاز ناقصة
                                             </span>

@@ -390,7 +390,7 @@ export const contractsRouter = router({
               dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
               status: p.status || "pending",
               notes: p.description || p.notes || null,
-              completionPercentage: p.completionPercentage !== undefined && p.completionPercentage !== null ? Number(p.completionPercentage) : (p.percentage !== undefined && p.percentage !== null ? Number(p.percentage) : null),
+              completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null) ? Number(p.completionPercentage) : null,
             }));
           }
         } catch (e) {
@@ -870,7 +870,7 @@ export const contractsRouter = router({
                 phaseOrder: i,
                 dueDate: p.dueDate ? (String(p.dueDate).includes('T') ? new Date(p.dueDate) : new Date(`${p.dueDate}T12:00:00`)) : null,
                 notes: p.description || p.notes || null,
-                completionPercentage: p.completionPercentage !== undefined ? Number(p.completionPercentage) : (p.percentage !== undefined ? Number(p.percentage) : null),
+                completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null) ? Number(p.completionPercentage) : null,
               };
 
               if (i < existingPayments.length) {

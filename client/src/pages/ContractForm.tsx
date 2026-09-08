@@ -553,7 +553,12 @@ export default function ContractForm() {
             ? JSON.parse(c.paymentScheduleJson)
             : c.paymentScheduleJson;
           if (Array.isArray(schedule) && schedule.length > 0) {
-            parsedSchedule = schedule;
+            parsedSchedule = schedule.map((p: any) => ({
+              ...p,
+              completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+                ? Number(p.completionPercentage)
+                : undefined,
+            }));
           }
         } catch (e) {
           console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
@@ -562,12 +567,15 @@ export default function ContractForm() {
       if (parsedSchedule.length === 0 && existingContract.payments && existingContract.payments.length > 0) {
         parsedSchedule = existingContract.payments.map((p: any, idx: number) => ({
           id: p.id ? String(p.id) : `payment_${idx + 1}`,
-          name: p.name || `الدفعة ${idx + 1}`,
+          name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
           type: p.type || "progress",
           percentage: p.percentage ? parseFloat(p.percentage) : 0,
           amount: p.amount ? parseFloat(p.amount) : 0,
           dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
-          description: p.description || p.condition || "",
+          description: p.description || p.notes || p.condition || "",
+          completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+            ? Number(p.completionPercentage)
+            : undefined,
         }));
       }
       setPaymentSchedule(parsedSchedule);
@@ -1877,7 +1885,7 @@ export default function ContractForm() {
                                   max="100"
                                   required
                                   value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
-                                  placeholder="مثال: 20"
+                                  placeholder="مثال: 0"
                                   className="w-full rounded-xl text-right font-bold"
                                   onChange={(e) => {
                                     if (e.target.value === "") {

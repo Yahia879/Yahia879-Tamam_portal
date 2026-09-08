@@ -1163,8 +1163,8 @@ export default function NewLinkedDisbursementRequest() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage <= 0) {
-      toast.error("يرجى إدخال نسبة الإنجاز");
+    if (formData.completionPercentage === undefined || formData.completionPercentage === null || isNaN(formData.completionPercentage) || formData.completionPercentage < 0 || formData.completionPercentage > 100) {
+      toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
     if (totalAmount <= 0) {
@@ -2316,7 +2316,7 @@ export default function NewLinkedDisbursementRequest() {
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
                       <Input
                         type="number"
-                        min="1"
+                        min="0"
                         max="100"
                         required
                         value={formData.completionPercentage}

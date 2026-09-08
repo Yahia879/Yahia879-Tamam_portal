@@ -547,7 +547,9 @@ export default function ContractPrint() {
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">{pAmount.toLocaleString('ar-SA')} ريال</td>
-                                <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{p.completionPercentage || percentage}%</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">
+                                  {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
+                                </td>
                                 <td className="py-2.5 px-3 text-gray-600">
                                   {p.dueDate ? new Date(p.dueDate).toLocaleDateString('ar-SA') : "عند الانتهاء من المرحلة"}
                                 </td>

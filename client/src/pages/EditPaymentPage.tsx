@@ -124,7 +124,7 @@ export default function EditPaymentPage() {
         contractId: payment.contractId || 0,
         title: payment.title || "",
         description: payment.description || "",
-        completionPercentage: payment.completionPercentage === 0 ? "" : (payment.completionPercentage || ""),
+        completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : "",
         dateMiladi: payment.dateMiladi || "",
       });
     }
@@ -290,8 +290,8 @@ export default function EditPaymentPage() {
       toast.error("يرجى إدخال وصف الأعمال التي سوف تنفذ");
       return;
     }
-    if (formData.completionPercentage === "" || formData.completionPercentage <= 0) {
-      toast.error("يرجى إدخال نسبة الإنجاز");
+    if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
+      toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
       return;
     }
     if (totalAmount <= 0) {
@@ -517,12 +517,23 @@ export default function EditPaymentPage() {
                   <Label className="text-right font-semibold">نسبة الإنجاز (%) *</Label>
                   <Input
                     type="number"
-                    min="1"
+                    min="0"
                     max="100"
                     required
+                    placeholder="مثال: 0"
                     value={formData.completionPercentage}
-                    onChange={(e) => setFormData({ ...formData, completionPercentage: e.target.value === "" ? "" : parseInt(e.target.value) || 0 })}
-                    className="text-right rounded-xl h-10 border-border/60"
+                    onChange={(e) => {
+                      if (e.target.value === "") {
+                        setFormData({ ...formData, completionPercentage: "" });
+                      } else {
+                        const val = parseInt(e.target.value);
+                        setFormData({
+                          ...formData,
+                          completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
+                        });
+                      }
+                    }}
+                    className="text-right rounded-xl h-10 border-border/60 font-bold"
                   />
                 </div>
               </CardContent>
