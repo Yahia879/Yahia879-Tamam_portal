@@ -142,8 +142,13 @@ export default function PublicEvaluation() {
       }
     }
 
+    if (!token) {
+      toast.error("عفواً، لا يمكن إرسال التقييم بدون رمز استبيان فريد");
+      return;
+    }
+
     submitMutation.mutate({
-      token: token || undefined,
+      token,
       requestId: (tokenValidation?.requestId) || (requestId && !isNaN(requestId) ? requestId : null),
       beneficiaryName: formValues.beneficiaryName ? String(formValues.beneficiaryName).trim() : undefined,
       beneficiaryPhone: formValues.beneficiaryPhone ? String(formValues.beneficiaryPhone).trim() : undefined,
@@ -158,8 +163,41 @@ export default function PublicEvaluation() {
     });
   };
 
+  // إذا لم يتم تمرير رمز فريد للاستبيان نهائياً
+  if (!token) {
+    return (
+      <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 text-slate-900 dark:text-foreground py-12 px-3 sm:px-6 flex flex-col justify-center items-center font-sans">
+        <div className="max-w-md w-full mx-auto space-y-6">
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden text-center p-8 space-y-5 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto bg-amber-500/10 text-amber-600 ring-8 ring-amber-500/5">
+              <AlertTriangle className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-foreground">
+                رابط الاستبيان غير متاح
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                عفواً، لا يمكن الوصول إلى استبيان قياس رضا المستفيدين عبر الرابط العام المباشر. يتطلب الوصول استخدام الرابط المخصص والفريد المرسل لكم.
+              </p>
+            </div>
+
+            <div className="pt-3">
+              <Link href="/">
+                <Button variant="outline" size="sm" className="gap-2 font-bold text-xs rounded-xl h-10 px-5">
+                  <Home className="w-4 h-4" />
+                  <span>العودة للصفحة الرئيسية</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // حالة جلب الإعدادات أو التحقق من الرمز الفريد
-  if (isConfigLoading || (token && isTokenValidating)) {
+  if (isConfigLoading || isTokenValidating) {
     return (
       <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
@@ -171,14 +209,14 @@ export default function PublicEvaluation() {
   }
 
   // حالة كون الرابط مستخدماً مسبقاً أو غير صالح
-  if (token && tokenValidation && !tokenValidation.valid) {
+  if (tokenValidation && !tokenValidation.valid) {
     const isAlreadyUsed = tokenValidation.reason === "already_used";
     const isExpired = tokenValidation.reason === "expired";
 
     return (
-      <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 text-slate-900 dark:text-foreground py-12 px-3 sm:px-6 flex flex-col justify-center items-center">
+      <div className="min-h-screen bg-slate-100/70 dark:bg-zinc-950 text-slate-900 dark:text-foreground py-12 px-3 sm:px-6 flex flex-col justify-center items-center font-sans">
         <div className="max-w-md w-full mx-auto space-y-6">
-          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden font-sans text-center p-8 space-y-5 animate-in zoom-in-95 duration-300">
+          <div className="rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl bg-white dark:bg-card text-slate-900 dark:text-foreground overflow-hidden text-center p-8 space-y-5 animate-in zoom-in-95 duration-300">
             <div
               className={`w-20 h-20 rounded-2xl flex items-center justify-center mx-auto ${
                 isAlreadyUsed

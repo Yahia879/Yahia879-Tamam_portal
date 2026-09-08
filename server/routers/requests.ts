@@ -4282,11 +4282,11 @@ export const requestsRouter = router({
       };
     }),
 
-  // إرسال استبيان تقييم رضا المستفيد العام والمباشر (متاح للجميع عبر الرابط المباشر)
+  // إرسال استبيان تقييم رضا المستفيد (حصراً عبر الروابط والرموز الفريدة المخصصة لمرة واحدة)
   submitPublicBeneficiaryEvaluation: publicProcedure
     .input(
       z.object({
-        token: z.string().optional().nullable(),
+        token: z.string().min(1, "رمز الاستبيان المخصص لمرة واحدة مطلوب"),
         requestId: z.number().optional().nullable(),
         beneficiaryName: z.string().optional(),
         beneficiaryPhone: z.string().optional(),
@@ -4311,42 +4311,47 @@ export const requestsRouter = router({
         });
       }
 
+      if (!input.token || !input.token.trim()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عفواً، لا يمكن إرسال التقييم بدون رابط أو رمز استبيان فريد ومخصص للاستخدام لمرة واحدة.",
+        });
+      }
+
       let effectiveRequestId = input.requestId || null;
       let tokenRecord: any = null;
 
-      // التحقق من الرمز الفريد المخصص للاستخدام لمرة واحدة إن وجد
-      if (input.token) {
-        const [foundToken] = await db
-          .select()
-          .from(evaluationTokens)
-          .where(eq(evaluationTokens.token, input.token))
-          .limit(1);
+      // التحقق من الرمز الفريد المخصص للاستخدام لمرة واحدة
+      const [foundToken] = await db
+        .select()
+        .from(evaluationTokens)
+        .where(eq(evaluationTokens.token, input.token.trim()))
+        .limit(1);
 
-        if (!foundToken) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "عفواً، رمز الاستبيان غير صحيح أو تم إلغاؤه.",
-          });
-        }
+      if (!foundToken) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عفواً، رمز الاستبيان غير صحيح أو تم إلغاؤه.",
+        });
+      }
 
-        if (foundToken.used) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "عفواً، تم استخدام هذا الرابط مسبقاً لتقديم التقييم ولم يعد صالحاً للاستخدام مرة أخرى.",
-          });
-        }
+      if (foundToken.used) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عفواً، تم استخدام هذا الرابط مسبقاً لتقديم التقييم ولم يعد صالحاً للاستخدام مرة أخرى.",
+        });
+      }
 
-        if (foundToken.expiresAt && new Date(foundToken.expiresAt) < new Date()) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "عفواً، انتهت صلاحية رابط هذا الاستبيان.",
-          });
-        }
+      if (foundToken.expiresAt && new Date(foundToken.expiresAt) < new Date()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "عفواً، انتهت صلاحية رابط هذا الاستبيان.",
+        });
+      }
 
-        tokenRecord = foundToken;
-        if (foundToken.requestId) {
-          effectiveRequestId = foundToken.requestId;
-        }
+      tokenRecord = foundToken;
+      if (foundToken.requestId) {
+        effectiveRequestId = foundToken.requestId;
       }
 
       if (effectiveRequestId) {
