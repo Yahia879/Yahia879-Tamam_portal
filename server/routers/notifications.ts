@@ -243,9 +243,6 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   beneficiary_exception_submitted: "تم استلام طلب الاستثناء الخاص بك وهو قيد المراجعة حالياً من قبل الإدارة.",
   beneficiary_exception_approved: "تم قبول طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب جديد.",
   beneficiary_exception_rejected: "عذراً، تم رفض طلب الاستثناء الخاص بك.",
-  beneficiary_ticket_created: "تم استلام تذكرة الدعم الفني الخاصة بك رقم #{رقم_التذكرة} بنجاح وجارٍ متابعتها من قبل الفريق المختص.",
-  beneficiary_ticket_status_changed: "تم تغيير حالة تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة} إلى: {الحالة_الجديدة}",
-  beneficiary_ticket_reply_added: "قام المسؤول {اسم_المرسل} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #{رقم_التذكرة}",
   beneficiary_survey_evaluation: "تم إغلاق طلبك رقم {رقم_الطلب} بنجاح. يسعدنا مشاركتك تقييم مستوى الخدمة المقدمة عبر الرابط المباشر.",
   beneficiary_survey_reminder: "السلام عليكم ورحمة الله وبركاته {اسم_المستفيد}، نود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم {رقم_الطلب} بنجاح لدى جمعية عمارة المساجد (منارة). رأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا لمسجد {اسم_المسجد}، نأمل منكم التكرم بالضغط على الرابط لتقييم الخدمة:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
   beneficiary_survey_invite: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، نود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة). رأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
@@ -522,12 +519,6 @@ export async function createNotification(data: {
         triggerId = "beneficiary_exception_approved";
       } else if (data.title === "تم رفض طلب الاستثناء") {
         triggerId = "beneficiary_exception_rejected";
-      } else if (data.title === "تم استلام تذكرة الدعم الفني" || data.message.includes("تم استلام تذكرة الدعم الفني الخاصة بك")) {
-        triggerId = "beneficiary_ticket_created";
-      } else if (data.title === "تحديث حالة التذكرة") {
-        triggerId = "beneficiary_ticket_status_changed";
-      } else if (data.title === "رد جديد على التذكرة" || data.message.includes("بإضافة رد جديد على تذكرة الدعم الخاصة بك")) {
-        triggerId = "beneficiary_ticket_reply_added";
       } else if (data.title.includes("تذكير: تقييم رضا المستفيد") || data.message.includes("الرسالة التذكيرية")) {
         triggerId = "beneficiary_survey_reminder";
       } else if (data.title.includes("تقييم رضا المستفيد") || data.relatedType === "request_evaluation") {
