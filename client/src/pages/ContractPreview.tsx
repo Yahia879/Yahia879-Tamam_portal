@@ -1017,7 +1017,7 @@ export default function ContractPreview() {
                                 <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
                                 <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم الدفعة / المرحلة</th>
                                 <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">قيمة الدفعة</th>
-                                <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">النسبة</th>
+                                <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المتحققة</th>
                                 <th className="py-2.5 px-3 font-bold text-gray-700">تاريخ الاستحقاق المتوقع</th>
                               </tr>
                             </thead>
