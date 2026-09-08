@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1352,27 +1352,6 @@ export default function NotificationCustomization() {
     });
   };
 
-  // حالات وتصفية تبويب إشعارات المستفيد
-  const [beneficiarySearchQuery, setBeneficiarySearchQuery] = useState("");
-  const [beneficiarySelectedCategory, setBeneficiarySelectedCategory] = useState<string>("all");
-
-  const toggleBeneficiaryTriggerMutation = trpc.notifications.toggleBeneficiaryTrigger.useMutation({
-    onSuccess: () => {
-      refetchTriggerSettings();
-      toast.success("تم تحديث حالة تفعيل الإشعار بنجاح");
-    },
-    onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
-    }
-  });
-
-  const handleToggleBeneficiaryActive = (triggerId: string, enabled: boolean) => {
-    toggleBeneficiaryTriggerMutation.mutate({
-      triggerId,
-      enabled
-    });
-  };
-
   const handleToggleBeneficiaryChannel = (
     triggerId: string,
     channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
@@ -1395,18 +1374,8 @@ export default function NotificationCustomization() {
     if (override !== undefined) {
       return !!override.enabled;
     }
-    // الافتراضي للمستفيد:
-    // الموقع والبريد والواتساب مفعلة، والرسائل النصية معطلة
-    if (channel === 'sms') return false;
-    return true;
-  };
-
-  const isBeneficiaryTriggerActive = (triggerId: string) => {
-    const inApp = getBeneficiaryChannelState(triggerId, 'in_app');
-    const email = getBeneficiaryChannelState(triggerId, 'email');
-    const whatsapp = getBeneficiaryChannelState(triggerId, 'whatsapp');
-    const sms = getBeneficiaryChannelState(triggerId, 'sms');
-    return inApp || email || whatsapp || sms;
+    // معطل بشكل تلقائي
+    return false;
   };
 
   const getTemplateMessage = (triggerId: string) => {
@@ -2120,237 +2089,120 @@ export default function NotificationCustomization() {
           {/* تبويب: إشعارات المستفيد (طالب الخدمة) */}
           <TabsContent value="beneficiary" className="space-y-6 focus-visible:outline-none">
             {(() => {
-              const filteredBeneficiaryTriggers = BENEFICIARY_NOTIFICATION_TRIGGERS.filter(trig => {
-                const matchesCategory = beneficiarySelectedCategory === "all" || trig.category === beneficiarySelectedCategory;
-                const matchesSearch = !beneficiarySearchQuery.trim() || 
-                  trig.nameAr.toLowerCase().includes(beneficiarySearchQuery.toLowerCase()) ||
-                  trig.description.toLowerCase().includes(beneficiarySearchQuery.toLowerCase()) ||
-                  trig.defaultTemplate.toLowerCase().includes(beneficiarySearchQuery.toLowerCase());
-                return matchesCategory && matchesSearch;
-              });
-
-              const activeBeneficiaryCount = BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => isBeneficiaryTriggerActive(t.id)).length;
-
-              const categoryBadgeColors: Record<string, string> = {
-                account: "bg-sky-500/10 text-sky-600 border-sky-500/20 dark:text-sky-400",
-                mosque: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
-                request: "bg-teal-500/10 text-teal-600 border-teal-500/20 dark:text-teal-400",
-                comments: "bg-violet-500/10 text-violet-600 border-violet-500/20 dark:text-violet-400",
-                exceptions: "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400",
-                support: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",
-                surveys: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",
-              };
+              const BENEFICIARY_SECTIONS = [
+                {
+                  title: "قسم الحساب والتسجيل",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "account")
+                },
+                {
+                  title: "قسم المساجد",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mosque")
+                },
+                {
+                  title: "قسم الطلبات والمراحل",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
+                },
+                {
+                  title: "قسم التعليقات والملاحظات",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "comments")
+                },
+                {
+                  title: "قسم طلبات الاستثناء",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
+                },
+                {
+                  title: "قسم تذاكر الدعم الفني",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "support")
+                },
+                {
+                  title: "قسم استبيانات الرضا والتقييم",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
+                }
+              ];
 
               return (
                 <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
-                  <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
-                            إشعارات المستفيد (طالب الخدمة)
-                          </CardTitle>
-                          <Badge variant="outline" className="bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20 text-xs font-semibold px-2 py-0.5">
-                            {activeBeneficiaryCount} من {BENEFICIARY_NOTIFICATION_TRIGGERS.length} مفعل
-                          </Badge>
-                        </div>
-                        <CardDescription className="text-[11px] sm:text-xs md:text-sm leading-relaxed">
-                          إدارة وتخصيص كافة الإشعارات والرسائل التلقائية المرسلة للمستفيد (أئمة ومؤذنو المساجد والداعمون) عبر مراحل الطلبات، المساجد، الحسابات، والتذاكر. يمكنك تفعيل أو تعطيل أي إشعار بنقرة واحدة وتخصيص صياغة الرسالة وقنوات الإرسال.
-                        </CardDescription>
-                      </div>
-
-                      {/* شريط البحث السريع */}
-                      <div className="relative w-full md:w-72 shrink-0">
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          placeholder="بحث في إشعارات المستفيد..."
-                          value={beneficiarySearchQuery}
-                          onChange={(e) => setBeneficiarySearchQuery(e.target.value)}
-                          className="w-full pr-9 pl-8 py-2 rounded-xl border border-border bg-background text-xs sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                        />
-                        {beneficiarySearchQuery && (
-                          <button
-                            onClick={() => setBeneficiarySearchQuery("")}
-                            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* تصنيفات التصفية الأفقية */}
-                    <div className="flex items-center gap-1.5 flex-wrap pt-3 border-t border-border/40">
-                      <span className="text-[11px] font-semibold text-muted-foreground ml-2 flex items-center gap-1">
-                        <Filter className="w-3.5 h-3.5" />
-                        التصنيف:
-                      </span>
-                      {[
-                        { id: "all", label: "الكل", count: BENEFICIARY_NOTIFICATION_TRIGGERS.length },
-                        { id: "account", label: "الحساب والتسجيل", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "account").length },
-                        { id: "mosque", label: "المساجد", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mosque").length },
-                        { id: "request", label: "الطلبات والمراحل", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request").length },
-                        { id: "comments", label: "التعليقات", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "comments").length },
-                        { id: "exceptions", label: "طلبات الاستثناء", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions").length },
-                        { id: "support", label: "الدعم الفني", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "support").length },
-                        { id: "surveys", label: "الاستبيانات والتقييم", count: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys").length },
-                      ].map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setBeneficiarySelectedCategory(tab.id)}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
-                            beneficiarySelectedCategory === tab.id
-                              ? "bg-teal-600 text-white shadow-xs"
-                              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
-                          }`}
-                        >
-                          <span>{tab.label}</span>
-                          <span className={`text-[10px] px-1 py-0.2 rounded-full font-mono ${
-                            beneficiarySelectedCategory === tab.id
-                              ? "bg-white/20 text-white"
-                              : "bg-background/80 text-muted-foreground"
-                          }`}>
-                            {tab.count}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
+                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
+                      تخصيص إشعارات المستفيد (طالب الخدمة)
+                    </CardTitle>
+                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
+                      حدد إشعارات المستفيد وقنوات الإرسال المحددة لكل حدث، مع إمكانية تعديل صياغة الرسائل.
+                    </CardDescription>
                   </CardHeader>
-
                   <CardContent className="p-0">
                     <div className="w-full overflow-x-auto scrollbar-thin">
-                      <Table className="min-w-[720px]">
+                      <Table className="min-w-[600px]">
                         <TableHeader>
                           <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground w-28">
-                              حالة التفعيل
-                            </TableHead>
                             <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
-                              حدث الإشعار / الصياغة
+                              الحدث / المشغل
                             </TableHead>
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground w-28">
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
                               تعديل الصياغة
                             </TableHead>
-                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6 w-44">
-                              قنوات الإرسال
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
+                              قنوات الإرسال المحددة للحدث
                             </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody className="divide-y divide-border/40">
-                          {filteredBeneficiaryTriggers.length > 0 ? (
-                            filteredBeneficiaryTriggers.map((trig) => {
-                              const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
-                              const emailState = getBeneficiaryChannelState(trig.id, 'email');
-                              const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
-                              const smsState = getBeneficiaryChannelState(trig.id, 'sms');
-                              const isActive = inAppState || emailState || whatsappState || smsState;
-
-                              return (
-                                <TableRow 
-                                  key={trig.id} 
-                                  className={`transition-colors ${
-                                    isActive ? "hover:bg-muted/20" : "bg-muted/10 opacity-75 hover:opacity-100"
-                                  }`}
+                          {BENEFICIARY_SECTIONS.map((section, sIdx) => (
+                            <React.Fragment key={section.title}>
+                              <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                                <TableCell 
+                                  colSpan={3} 
+                                  className={`py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 ${sIdx > 0 ? "border-t" : ""}`}
                                 >
-                                  {/* مفتاح التفعيل/التعطيل الرئيسي (يا مفعلة يا لاء) */}
-                                  <TableCell className="text-center py-3.5 sm:py-4">
-                                    <div className="flex flex-col items-center justify-center gap-1">
-                                      <Switch
-                                        checked={isActive}
-                                        disabled={toggleBeneficiaryTriggerMutation.isPending}
-                                        onCheckedChange={(checked) => handleToggleBeneficiaryActive(trig.id, checked)}
-                                        className="data-[state=checked]:bg-teal-600"
+                                  {section.title}
+                                </TableCell>
+                              </TableRow>
+                              {section.triggers.map((trig) => {
+                                const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
+                                const emailState = getBeneficiaryChannelState(trig.id, 'email');
+                                const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
+                                const smsState = getBeneficiaryChannelState(trig.id, 'sms');
+
+                                return (
+                                  <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                                    <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                                      <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                      {renderTruncatedPreview(trig.id)}
+                                    </TableCell>
+                                    <TableCell className="text-center py-3 sm:py-4">
+                                      <TooltipProvider delayDuration={200}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="icon"
+                                              className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                              onClick={() => handleOpenEditTemplateModal(trig)}
+                                              type="button"
+                                            >
+                                              <Pencil className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </TableCell>
+                                    <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                      <ChannelToggles
+                                        inApp={inAppState}
+                                        whatsapp={whatsappState}
+                                        sms={smsState}
+                                        email={emailState}
+                                        onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
                                       />
-                                      <span className={`text-[10px] font-bold ${
-                                        isActive 
-                                          ? "text-teal-600 dark:text-teal-400" 
-                                          : "text-muted-foreground"
-                                      }`}>
-                                        {isActive ? "مفعلة" : "معطلة"}
-                                      </span>
-                                    </div>
-                                  </TableCell>
-
-                                  {/* اسم الحدث والتفاصيل والمعاينة */}
-                                  <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-semibold text-xs sm:text-sm text-foreground">
-                                        {trig.nameAr}
-                                      </span>
-                                      <Badge 
-                                        variant="outline" 
-                                        className={`text-[10px] py-0 px-2 rounded-full border font-medium ${
-                                          categoryBadgeColors[trig.category] || "bg-slate-500/10 text-slate-600 border-slate-500/20"
-                                        }`}
-                                      >
-                                        {trig.categoryNameAr}
-                                      </Badge>
-                                    </div>
-                                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                                      {trig.description}
-                                    </div>
-                                    {renderTruncatedPreview(trig.id)}
-                                  </TableCell>
-
-                                  {/* زر تعديل الصياغة */}
-                                  <TableCell className="text-center py-3 sm:py-4">
-                                    <TooltipProvider delayDuration={200}>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            size="icon"
-                                            className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
-                                            onClick={() => handleOpenEditTemplateModal(trig)}
-                                            type="button"
-                                          >
-                                            <Pencil className="w-3.5 h-3.5" />
-                                          </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="top">
-                                          <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة والمتغيرات</span>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </TableCell>
-
-                                  {/* قنوات الإرسال المحددة */}
-                                  <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
-                                    <ChannelToggles
-                                      inApp={inAppState}
-                                      whatsapp={whatsappState}
-                                      sms={smsState}
-                                      email={emailState}
-                                      onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
-                                    />
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
-                                <div className="flex flex-col items-center justify-center gap-2">
-                                  <Bell className="w-8 h-8 text-muted-foreground/40 stroke-1" />
-                                  <span className="text-xs sm:text-sm font-medium">لم يتم العثور على أي إشعارات مطابقة لمعايير البحث.</span>
-                                  {(beneficiarySearchQuery || beneficiarySelectedCategory !== "all") && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setBeneficiarySearchQuery("");
-                                        setBeneficiarySelectedCategory("all");
-                                      }}
-                                      className="text-teal-600 dark:text-teal-400 text-xs mt-1"
-                                    >
-                                      إعادة ضبط الفلاتر
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </React.Fragment>
+                          ))}
                         </TableBody>
                       </Table>
                     </div>
