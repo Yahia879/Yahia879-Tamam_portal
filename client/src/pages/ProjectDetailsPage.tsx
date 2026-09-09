@@ -680,7 +680,7 @@ export default function ProjectDetailsPage() {
                 </CardContent>
               </Card>
 
-              {/* نسبة الإنجاز */}
+              {/* نسبة تقدم عمليات المشروع */}
               <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
                 <CardContent className="p-3 sm:p-4 text-right">
                   <div className="flex items-center gap-2.5 sm:gap-3">
@@ -689,7 +689,7 @@ export default function ProjectDetailsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">نسبة الإنجاز</p>
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">نسبة تقدم عمليات المشروع</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
