@@ -758,7 +758,11 @@ export default function DisbursementRequestPrint() {
                   <tbody>
                     <tr>
                       <td className="p-1.5 sm:p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-2 sm:pr-4">{resolvedSupplierName}</td>
-                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-700 inline-flex items-center gap-1">{amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-700">
+                        <span className="inline-flex items-center gap-1">
+                          {amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

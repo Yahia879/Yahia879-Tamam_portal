@@ -623,8 +623,10 @@ export default function DisbursementOrderPrint() {
                       <td className="p-1.5 sm:p-2.5 bg-slate-55 font-bold w-14 sm:w-20 border-l border-slate-300 text-slate-600 text-center">
                         رقماً
                       </td>
-                      <td className="p-1.5 sm:p-2.5 text-slate-800 font-black font-mono text-right inline-flex items-center gap-1">
-                        {amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      <td className="p-1.5 sm:p-2.5 text-slate-800 font-black font-mono text-right">
+                        <span className="inline-flex items-center gap-1">
+                          {amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
                       </td>
                     </tr>
                     

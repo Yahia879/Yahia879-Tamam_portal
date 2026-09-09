@@ -534,7 +534,7 @@ export default function ContractPrint() {
                             <th className="py-2.5 px-3 font-bold text-gray-700 w-12 border-l border-gray-200">م</th>
                             <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">اسم الدفعة / المرحلة</th>
                             <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">قيمة الدفعة</th>
-                            <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">النسبة</th>
+                            <th className="py-2.5 px-3 font-bold text-gray-700 border-l border-gray-200">نسبة الإنجاز المتحققة</th>
                             <th className="py-2.5 px-3 font-bold text-gray-700">تاريخ الاستحقاق المتوقع</th>
                           </tr>
                         </thead>
@@ -547,8 +547,10 @@ export default function ContractPrint() {
                               <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</td>
-                                <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a] inline-flex items-center gap-1">
-                                  {pAmount.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" />
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                  <span className="inline-flex items-center gap-1">
+                                    {pAmount.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" />
+                                  </span>
                                 </td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">
                                   {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
