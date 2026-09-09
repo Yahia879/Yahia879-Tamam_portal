@@ -245,61 +245,29 @@ export default function ModernSupplierRegistration() {
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
-            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 mb-2 px-3 py-0.5 text-xs font-semibold rounded-full">
-              تم استلام طلبكم بنجاح
+            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 mb-3 px-3.5 py-1 text-xs font-semibold rounded-full">
+              طلب قيد المراجعة
             </Badge>
 
             <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-3">
-              شكراً لاهتمامكم بالانضمام!
+              تم استلام طلب التسجيل بنجاح
             </h2>
             
-            <div className="p-4 sm:p-5 bg-emerald-50/70 border border-emerald-200/70 rounded-2xl mb-6 text-right space-y-2">
+            <div className="p-4 sm:p-5 bg-emerald-50/70 border border-emerald-200/70 rounded-2xl mb-6 text-center space-y-1.5">
               <p className="text-emerald-950 font-semibold text-sm sm:text-base leading-relaxed">
-                يسعدنا انضمامكم إلى قائمة الموردين والمقاولين المعتمدين لدى {orgName}.
+                تم استلام بيانات منشأتكم ومرفقاتكم بنجاح.
               </p>
-              <p className="text-emerald-900/80 text-xs sm:text-sm leading-relaxed">
-                تم استلام بيانات منشأتكم ومرفقاتكم بنجاح، وسيقوم فريق المشتريات والعقود بمراجعة الطلب والمستندات والتواصل معكم فور الاعتماد.
+              <p className="text-emerald-900/90 text-xs sm:text-sm leading-relaxed">
+                طلبكم حالياً قيد المراجعة والتدقيق من قِبل إدارة {orgName}.
               </p>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="pt-2">
               <Link href="/">
                 <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 rounded-xl shadow-md cursor-pointer">
                   العودة إلى الصفحة الرئيسية
                 </Button>
               </Link>
-              <Button 
-                variant="ghost" 
-                className="w-full text-xs text-muted-foreground hover:text-foreground cursor-pointer gap-1.5"
-                onClick={() => {
-                  setIsSuccess(false);
-                  setEntityName("");
-                  setCommercialRegister("");
-                  setCommercialActivity("");
-                  setYearsOfExperience(0);
-                  setWorkFields([]);
-                  setOtherWorkField("");
-                  setAddress("");
-                  setGoogleMapsUrl("");
-                  setEmail("");
-                  setPhone("");
-                  setPhoneSecondary("");
-                  setContactPerson("");
-                  setContactPersonTitle("");
-                  setBankAccountName("");
-                  setBankName("");
-                  setIban("");
-                  setTaxNumber("");
-                  setCommercialRegisterDoc("");
-                  setVatCertificateDoc("");
-                  setNationalAddressDoc("");
-                  setBankCertificateDoc("");
-                  setOtherAttachments([]);
-                }}
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                تقديم طلب تسجيل منشأة أخرى
-              </Button>
             </div>
           </CardContent>
         </Card>
