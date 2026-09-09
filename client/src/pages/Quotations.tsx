@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { PermissionGuard } from "@/components/PermissionGuard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1513,10 +1514,18 @@ export default function Quotations() {
                             {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
                           </TableCell>
                           <TableCell className="text-center">
-                            {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("ar-SA")} ريال` : "-"}
+                            {item.unitPrice ? (
+                              <span className="inline-flex items-center gap-1">
+                                {parseFloat(item.unitPrice).toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                              </span>
+                            ) : "-"}
                           </TableCell>
                           <TableCell className="text-center font-medium">
-                            {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("ar-SA")} ريال` : "-"}
+                            {item.totalPrice ? (
+                              <span className="inline-flex items-center gap-1">
+                                {parseFloat(item.totalPrice).toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                              </span>
+                            ) : "-"}
                           </TableCell>
                           {!hasAcceptedQuotation && (
                             <TableCell className="text-center">
@@ -1550,8 +1559,9 @@ export default function Quotations() {
                     </TableBody>
                   </Table>
                   <div className="flex justify-end">
-                    <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold">
-                      إجمالي جدول الكميات: {boqTotal.toLocaleString("ar-SA")} ريال
+                    <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold inline-flex items-center gap-1">
+                      <span>إجمالي جدول الكميات: {boqTotal.toLocaleString("ar-SA")}</span>
+                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </div>
                   </div>
                 </div>
@@ -1715,9 +1725,15 @@ export default function Quotations() {
                                   </div>
                                 </TableCell>
                                 <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
-                                <TableCell>{parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} ريال</TableCell>
+                                <TableCell>
+                                  <span className="inline-flex items-center gap-1">
+                                    {parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
+                                  </span>
+                                </TableCell>
                                 <TableCell className="font-medium text-primary">
-                                  {parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} ريال
+                                  <span className="inline-flex items-center gap-1">
+                                    {parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
+                                  </span>
                                 </TableCell>
                                 <TableCell>
                                   {quotation.validUntil ? (
@@ -1963,7 +1979,9 @@ export default function Quotations() {
                           <TableHead className="min-w-[220px] max-w-[450px] font-bold text-right">البند</TableHead>
                           <TableHead className="w-24 text-center font-bold">الوحدة</TableHead>
                           <TableHead className="w-28 text-center font-bold">الكمية</TableHead>
-                          <TableHead className="w-40 text-center font-bold">سعر الوحدة (ريال)</TableHead>
+                          <TableHead className="w-40 text-center font-bold">
+                            <span className="inline-flex items-center justify-center gap-1">سعر الوحدة (<SaudiRiyal className="w-3.5 h-3.5" />)</span>
+                          </TableHead>
                           <TableHead className="w-36 text-center font-bold">الإجمالي</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -2011,7 +2029,7 @@ export default function Quotations() {
                         <Receipt className="h-6 w-6" />
                         <div>
                           <span className="text-sm opacity-90">الإجمالي الكلي</span>
-                          <p className="text-2xl font-bold">{totalAmount.toLocaleString("ar-SA")} <span className="text-base font-normal">ريال</span></p>
+                          <p className="text-2xl font-bold inline-flex items-center gap-1">{totalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" /></p>
                         </div>
                       </div>
                     </div>
@@ -2083,14 +2101,14 @@ export default function Quotations() {
                         <SelectContent>
                           <SelectItem value="none">بدون خصم</SelectItem>
                           <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
-                          <SelectItem value="fixed">مبلغ ثابت (ريال)</SelectItem>
+                          <SelectItem value="fixed">مبلغ ثابت (<SaudiRiyal className="w-3.5 h-3.5 inline" />)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     {formData.discountType && formData.discountType !== "none" && (
                       <div>
                         <Label className="text-sm font-semibold mb-2 block">
-                          {formData.discountType === "percentage" ? "نسبة الخصم (%)" : "مبلغ الخصم (ريال)"}
+                          {formData.discountType === "percentage" ? "نسبة الخصم (%)" : <span className="inline-flex items-center gap-1">مبلغ الخصم (<SaudiRiyal className="w-3.5 h-3.5" />)</span>}
                         </Label>
                         <Input
                           type="number"
@@ -2113,23 +2131,23 @@ export default function Quotations() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>المبلغ الأساسي:</span>
-                        <span className="font-medium">{totalAmount.toLocaleString("ar-SA")} ريال</span>
+                        <span className="font-medium inline-flex items-center gap-1">{totalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
                       {formData.discountType && formData.discountType !== "none" && formData.discountValue && (
                         <div className="flex justify-between text-red-600">
-                          <span>الخصم ({formData.discountType === "percentage" ? `${formData.discountValue}%` : `${parseFloat(formData.discountValue).toLocaleString("ar-SA")} ريال`}):</span>
-                          <span className="font-medium">-{(() => {
+                          <span>الخصم ({formData.discountType === "percentage" ? `${formData.discountValue}%` : <span className="inline-flex items-center gap-1">{parseFloat(formData.discountValue).toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" /></span>}):</span>
+                          <span className="font-medium inline-flex items-center gap-1">-{(() => {
                             const discount = formData.discountType === "percentage" 
                               ? (totalAmount * parseFloat(formData.discountValue || "0") / 100)
                               : parseFloat(formData.discountValue || "0");
                             return discount.toLocaleString("ar-SA");
-                          })()} ريال</span>
+                          })()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                         </div>
                       )}
                       {!formData.includesTax && (
                         <div className="flex justify-between text-green-600">
                           <span>ضريبة القيمة المضافة ({formData.taxRate}%):</span>
-                          <span className="font-medium">+{(() => {
+                          <span className="font-medium inline-flex items-center gap-1">+{(() => {
                             let baseAmount = totalAmount;
                             if (formData.discountType && formData.discountType !== "none" && formData.discountValue) {
                               const discount = formData.discountType === "percentage" 
@@ -2139,12 +2157,12 @@ export default function Quotations() {
                             }
                             const tax = baseAmount * parseFloat(formData.taxRate || "15") / 100;
                             return tax.toLocaleString("ar-SA");
-                          })()} ريال</span>
+                          })()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t border-amber-200 font-bold text-lg">
                         <span>المبلغ النهائي:</span>
-                        <span className="text-primary">{(() => {
+                        <span className="text-primary inline-flex items-center gap-1">{(() => {
                           let finalAmount = totalAmount;
                           // حساب الخصم
                           if (formData.discountType && formData.discountType !== "none" && formData.discountValue) {
@@ -2159,7 +2177,7 @@ export default function Quotations() {
                             finalAmount += tax;
                           }
                           return finalAmount.toLocaleString("ar-SA");
-                        })()} ريال</span>
+                        })()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
                     </div>
                   </div>
@@ -2267,15 +2285,15 @@ export default function Quotations() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
-                    <span className="font-bold text-primary text-left">
-                      {parseFloat(selectedQuotationForNegotiation.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                    <span className="font-bold text-primary text-left inline-flex items-center gap-1">
+                      {parseFloat(selectedQuotationForNegotiation.totalAmount || 0).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
 
                 {/* المبلغ بعد التفاوض */}
                 <div className="text-right">
-                  <Label className="block mb-2">المبلغ بعد التفاوض (ريال) *</Label>
+                  <Label className="block mb-2 flex items-center gap-1">المبلغ بعد التفاوض (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                   <Input
                     type="number"
                     value={negotiatedAmount}
@@ -2286,9 +2304,10 @@ export default function Quotations() {
                   {negotiatedAmount && parseFloat(negotiatedAmount) < parseFloat(selectedQuotationForNegotiation.totalAmount || 0) && (
                     <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800 text-sm flex items-center gap-2 justify-start">
                       <CheckCircle2 className="h-4 w-4" />
-                      <span>
-                        وفر: {(parseFloat(selectedQuotationForNegotiation.totalAmount || 0) - parseFloat(negotiatedAmount)).toLocaleString("ar-SA")} ريال
-                        ({((1 - parseFloat(negotiatedAmount) / parseFloat(selectedQuotationForNegotiation.totalAmount || 1)) * 100).toFixed(1)}%)
+                      <span className="inline-flex items-center gap-1">
+                        <span>وفر: {(parseFloat(selectedQuotationForNegotiation.totalAmount || 0) - parseFloat(negotiatedAmount)).toLocaleString("ar-SA")}</span>
+                        <SaudiRiyal className="w-3 h-3 inline" />
+                        <span>({((1 - parseFloat(negotiatedAmount) / parseFloat(selectedQuotationForNegotiation.totalAmount || 1)) * 100).toFixed(1)}%)</span>
                       </span>
                     </div>
                   )}
@@ -2348,30 +2367,30 @@ export default function Quotations() {
                     <>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground text-right">المبلغ الأصلي:</span>
-                        <span className="font-medium text-left">
-                          {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                        <span className="font-medium text-left inline-flex items-center gap-1">
+                          {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground text-right">المبلغ النهائي:</span>
-                        <span className="font-bold text-primary text-left">
-                          {parseFloat(selectedQuotationForApproval.finalAmount).toLocaleString("ar-SA")} ريال
+                        <span className="font-bold text-primary text-left inline-flex items-center gap-1">
+                          {parseFloat(selectedQuotationForApproval.finalAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     </>
                   ) : (
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground text-right">المبلغ النهائي:</span>
-                      <span className="font-bold text-primary text-left">
-                        {parseFloat(selectedQuotationForApproval.finalAmount || selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                      <span className="font-bold text-primary text-left inline-flex items-center gap-1">
+                        {parseFloat(selectedQuotationForApproval.finalAmount || selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   )}
                   {selectedQuotationForApproval.negotiatedAmount && (
                     <div className="flex justify-between items-center text-blue-700 bg-blue-50 px-2 py-1 rounded">
                       <span className="font-semibold text-right">المبلغ بعد التفاوض:</span>
-                      <span className="font-bold text-left">
-                        {parseFloat(selectedQuotationForApproval.negotiatedAmount).toLocaleString("ar-SA")} ريال
+                      <span className="font-bold text-left inline-flex items-center gap-1">
+                        {parseFloat(selectedQuotationForApproval.negotiatedAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                       </span>
                     </div>
                   )}
@@ -2379,7 +2398,7 @@ export default function Quotations() {
 
                 {/* المبلغ المعتمد */}
                 <div className="text-right">
-                  <Label className="block mb-2">المبلغ المعتمد (ريال) *</Label>
+                  <Label className="block mb-2 flex items-center gap-1">المبلغ المعتمد (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                   <Input
                     type="number"
                     value={approvedAmount}

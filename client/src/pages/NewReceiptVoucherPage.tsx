@@ -35,13 +35,12 @@ import {
   Calendar,
   CreditCard,
   UserCheck,
-  Sparkles,
   Info,
-  DollarSign,
   Briefcase,
   PenLine,
   HeartHandshake,
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { toast } from "sonner";
 
 function numberToArabicText(num: number): string {
@@ -626,27 +625,27 @@ export default function NewReceiptVoucherPage() {
                         {/* المبلغ الملتزم به للداعم */}
                         <div className="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
                           <span className="text-[11px] text-muted-foreground font-semibold block">المبلغ الملتزم به للداعم</span>
-                          <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 block mt-0.5">
+                          <span className="text-base font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-1 mt-0.5">
                             {supporterCommittedAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
-                            <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
+                            <SaudiRiyal className="w-3.5 h-3.5 inline" />
                           </span>
                         </div>
 
                         {/* المبلغ الذي سدده الداعم سابقاً */}
                         <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-lg border border-emerald-200/80 dark:border-emerald-800 shadow-2xs">
                           <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold block">سدده الداعم سابقاً</span>
-                          <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 block mt-0.5">
+                          <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
                             {previouslyPaidBySupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
-                            <span className="text-[10px] font-normal text-emerald-600 mr-1">ريال</span>
+                            <SaudiRiyal className="w-3.5 h-3.5 inline" />
                           </span>
                         </div>
 
                         {/* المتبقي غير المسدد علي الداعم */}
                         <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 rounded-lg border border-amber-200/80 dark:border-amber-800 shadow-2xs">
                           <span className="text-[11px] text-amber-800 dark:text-amber-300 font-semibold block">المتبقي غير المسدد</span>
-                          <span className={`text-base font-extrabold block mt-0.5 ${remainingUnpaidForSupporter <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
+                          <span className={`text-base font-extrabold flex items-center gap-1 mt-0.5 ${remainingUnpaidForSupporter <= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
                             {remainingUnpaidForSupporter.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
-                            <span className="text-[10px] font-normal text-muted-foreground mr-1">ريال</span>
+                            <SaudiRiyal className="w-3.5 h-3.5 inline" />
                           </span>
                         </div>
                       </div>
@@ -655,7 +654,7 @@ export default function NewReceiptVoucherPage() {
                       {remainingUnpaidForSupporter <= 0 && supporterCommittedAmount > 0 && (
                         <div className="p-3 bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-900 dark:text-emerald-200 flex items-center gap-2 text-xs font-bold mt-2">
                           <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                          <span>تم سداد كامل المبلغ الملتزم به من قبل هذا الداعم بنجاح ({supporterCommittedAmount.toLocaleString()} ريال).</span>
+                          <span className="inline-flex items-center gap-1">تم سداد كامل المبلغ الملتزم به من قبل هذا الداعم بنجاح ({supporterCommittedAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />).</span>
                         </div>
                       )}
                     </div>
@@ -666,14 +665,14 @@ export default function NewReceiptVoucherPage() {
                     {/* مبلغ الدفعة المقبوضة */}
                     <div className="space-y-2 text-right">
                       <div className="flex items-center justify-between">
-                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                         {remainingUnpaidForSupporter > 0 && (
                           <button
                             type="button"
                             onClick={() => setAmount(remainingUnpaidForSupporter.toString())}
-                            className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                            className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer inline-flex items-center gap-1"
                           >
-                            تعبئة المتبقي ({remainingUnpaidForSupporter.toLocaleString()} ريال)
+                            تعبئة المتبقي ({remainingUnpaidForSupporter.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />)
                           </button>
                         )}
                       </div>
@@ -856,7 +855,7 @@ export default function NewReceiptVoucherPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4">
                     {/* مبلغ الدفعة المقبوضة */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                       <Input
                         type="number"
                         min={0.01}
@@ -1016,7 +1015,7 @@ export default function NewReceiptVoucherPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4">
                     {/* مبلغ الدفعة المقبوضة */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                       <Input
                         type="number"
                         min={0.01}
@@ -1166,11 +1165,11 @@ export default function NewReceiptVoucherPage() {
                   {/* تفاصيل المبلغ والتفقيط */}
                   <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-xl border border-emerald-200/80 dark:border-emerald-800 space-y-1.5">
                     <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold block">مبلغ سند القبض:</span>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-center gap-2">
                       <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400">
                         {parseFloat(amount || "0").toLocaleString("ar-SA", { minimumFractionDigits: 2 })}
                       </span>
-                      <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">ريال سعودي</span>
+                      <SaudiRiyal className="w-5 h-5 inline" />
                     </div>
                     <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium pt-1 border-t border-emerald-200/50">
                       فقط: <span className="font-bold">{numberToArabicText(parseFloat(amount || "0"))}</span>

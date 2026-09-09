@@ -16,7 +16,6 @@ import {
   ChevronRight,
   ArrowRight,
   Calendar,
-  DollarSign,
   Users,
   Briefcase,
   BarChart3,
@@ -59,6 +58,8 @@ import { getStageOrder, getNextStage } from "@shared/constants";
 import BoqTab, { BoqTabHandle } from "@/components/BoqTab";
 import ProjectProgressMilestonesTab from "@/components/ProjectProgressMilestonesTab";
 import ProjectFinancialsTab from "@/components/ProjectFinancialsTab";
+import { normalizeArabic } from "@/components/ProjectSearchSelect";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -481,7 +482,7 @@ export default function ProjectDetailsPage() {
     ...(canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
-      icon: DollarSign, 
+      icon: SaudiRiyal, 
       isLocked: isFinancialsLocked 
     }] : []),
     { 
@@ -614,7 +615,7 @@ export default function ProjectDetailsPage() {
                 <CardContent className="p-4 text-right">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                      <DollarSign className="w-5 h-5 text-amber-600" />
+                      <SaudiRiyal className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -1327,7 +1328,7 @@ export default function ProjectDetailsPage() {
                       <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
                         <div className="flex-1">
                           <CardTitle className="text-base font-bold flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-primary" />
+                            <SaudiRiyal className="w-4 h-4" />
                             البيانات والتحليلات المالية
                           </CardTitle>
                           <CardDescription className="text-xs mt-0.5">

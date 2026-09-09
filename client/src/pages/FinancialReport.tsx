@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
-  DollarSign,
   FileText,
   ScrollText,
   Wallet,
@@ -553,13 +553,13 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
               <CardTitle className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">المبالغ التي صرفت</CardTitle>
               <div className="p-2 bg-emerald-100/80 dark:bg-emerald-900/40 rounded-xl text-emerald-600 dark:text-emerald-300">
-                <DollarSign className="h-5 w-5" />
+                <SaudiRiyal className="h-5 w-5" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-extrabold text-emerald-950 dark:text-emerald-100 tracking-tight flex items-baseline">
+              <div className="text-3xl font-extrabold text-emerald-950 dark:text-emerald-100 tracking-tight flex items-center gap-1.5">
                 {formatAmount(summary?.totalOrderAmount || 0)}
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mr-1.5">ريال</span>
+                <SaudiRiyal className="w-4 h-4 self-center" />
               </div>
             </CardContent>
           </Card>
@@ -670,13 +670,22 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
                                   </Badge>
                                 </td>
                                 <td className="py-4 px-6 text-left font-bold text-amber-600 dark:text-amber-400">
-                                  {associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                  <span className="inline-flex items-center gap-1">
+                                    {associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </td>
                                 <td className="py-4 px-6 text-left font-semibold text-slate-700 dark:text-slate-300">
-                                  {contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                  <span className="inline-flex items-center gap-1">
+                                    {contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </td>
                                 <td className="py-4 px-6 text-left font-bold text-blue-600 dark:text-blue-400">
-                                  {totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                                  <span className="inline-flex items-center gap-1">
+                                    {totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
                                 </td>
                               </tr>
                             );
@@ -1197,9 +1206,24 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
                     <tr key={project.projectId}>
                       <td className="border p-2">{project.projectName}</td>
                       <td className="border p-2 text-center">{project.managementPercentage || 0}%</td>
-                      <td className="border p-2 text-left">{associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
-                      <td className="border p-2 text-left">{contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
-                      <td className="border p-2 text-left">{totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال</td>
+                      <td className="border p-2 text-left">
+                        <span className="inline-flex items-center gap-1">
+                          {associationValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                      </td>
+                      <td className="border p-2 text-left">
+                        <span className="inline-flex items-center gap-1">
+                          {contractAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                      </td>
+                      <td className="border p-2 text-left">
+                        <span className="inline-flex items-center gap-1">
+                          {totalProjectValue.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
@@ -1223,7 +1247,12 @@ export default function FinancialReport({ embedded = false }: { embedded?: boole
                   <tr key={item.status}>
                     <td className="border p-2">{STATUS_MAP[item.status || "draft"]?.label}</td>
                     <td className="border p-2">{item.count}</td>
-                    <td className="border p-2">{formatAmount(Number(item.totalAmount))} ريال</td>
+                    <td className="border p-2">
+                      <span className="inline-flex items-center gap-1">
+                        {formatAmount(Number(item.totalAmount))}
+                        <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>

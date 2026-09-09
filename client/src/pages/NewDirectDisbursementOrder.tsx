@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -382,7 +383,7 @@ export default function NewDirectDisbursementOrder() {
                   </div>
 
                   <div className="space-y-2 text-right">
-                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">المبلغ الإجمالي (ريال سعودي) *</Label>
+                    <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">المبلغ الإجمالي (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                     <Input
                       type="number"
                       placeholder="0.00"
@@ -756,8 +757,8 @@ export default function NewDirectDisbursementOrder() {
                 <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
-                    <span className="text-xl sm:text-2xl font-black text-primary">
-                      {formData.amount.toLocaleString()} <span className="text-xs font-semibold">ريال سعودي</span>
+                    <span className="text-xl sm:text-2xl font-black text-primary inline-flex items-center gap-1">
+                      {formData.amount.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
                     </span>
                   </div>
                   <div className="text-xs text-left">

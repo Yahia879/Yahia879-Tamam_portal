@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Printer, Loader2, AlertCircle } from "lucide-react";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 function numberToArabicText(num: number): string {
   return baseNumberToArabicText(num, { prefix: "", suffix: " فقط لا غير", currency: "ريال" });
@@ -396,8 +397,8 @@ export default function ReceiptVoucherPrint() {
                 مبلغ وقدره
               </span>
               <div className="grow border-b-2 border-dotted border-slate-400 pb-1 text-slate-900 font-bold text-sm sm:text-base">
-                <span className="text-emerald-800 font-black text-base sm:text-lg ml-2 font-sans">
-                  {amountVal.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                <span className="text-emerald-800 font-black text-base sm:text-lg ml-2 font-sans inline-flex items-center gap-1">
+                  {amountVal.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-4 h-4 inline align-middle mx-0.5" />
                 </span>
                 <span className="text-slate-400 font-semibold px-2">|</span>
                 <span className="text-slate-900 font-extrabold">{tafqeetStr}</span>

@@ -4,6 +4,7 @@ import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { ROLE_LABELS } from '@shared/constants';
 import BeneficiaryLayout from '@/components/BeneficiaryLayout';
+import { SaudiRiyal } from '@/components/SaudiRiyal';
 import { 
   getAllFieldsForProgram,
   getVisibleFieldsForProgram,
@@ -1578,7 +1579,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   return null;
                 }
                 const val = formData[field.name];
-                let displayVal = val ? String(val) : '—';
+                let displayVal: React.ReactNode = val ? String(val) : '—';
                 if (val === 'yes') displayVal = 'نعم';
                 if (val === 'no') displayVal = 'لا';
                 if (field.name === 'landOwnership') {
@@ -1587,7 +1588,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 if (field.name === 'mosqueArea' && val) displayVal = `${val} م²`;
                 if (field.name === 'landArea' && val) displayVal = `${val} م²`;
                 if (field.name === 'actualWorshippers' && val) displayVal = `${val} مصلي`;
-                if (field.name === 'donationAmount' && val) displayVal = `${Number(val).toLocaleString()} ريال`;
+                if (field.name === 'donationAmount' && val) displayVal = <span className="inline-flex items-center gap-1">{Number(val).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>;
                 if (field.name === 'distanceToMosque' && val) displayVal = `${val} كم`;
                 if (field.name === 'distanceToNearestMosque' && val) displayVal = `${val} كم`;
 

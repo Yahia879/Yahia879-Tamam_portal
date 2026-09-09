@@ -9,9 +9,10 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend
 } from "recharts";
 import {
-  Building2, CheckCircle, Clock, Star, DollarSign, TrendingUp,
+  Building2, CheckCircle, Clock, Star, TrendingUp,
   FileText, Users, Activity, Target, BarChart2, RefreshCw
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 // ألوان البرامج
 const PROGRAM_COLORS: Record<string, string> = {
@@ -255,7 +256,7 @@ export default function KPIDashboard({ embedded = false }: { embedded?: boolean 
             title="إجمالي الإنفاق"
             value={formatCurrency(summary.totalCost)}
             subtitle="التكاليف الفعلية"
-            icon={DollarSign}
+            icon={SaudiRiyal}
             color="bg-teal-500"
           />
           <StatCard

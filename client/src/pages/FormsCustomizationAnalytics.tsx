@@ -30,7 +30,6 @@ import {
   Battery,
   SlidersHorizontal,
   TrendingUp,
-  DollarSign,
   Briefcase,
   HeartHandshake,
   FileSpreadsheet,
@@ -39,6 +38,7 @@ import {
   LayoutGrid,
   Check,
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import CustomAnalyticsDashboard from "@/pages/CustomAnalyticsDashboard";
@@ -61,7 +61,7 @@ const TAB_SECTION_META: Record<
   },
   financial: {
     tabTitle: "التقارير واللوحة المالية",
-    icon: DollarSign,
+    icon: SaudiRiyal,
     accentColor: "text-emerald-600 dark:text-emerald-400",
     iconBg: "bg-emerald-500/10 border-emerald-200/60 dark:bg-emerald-950/40 dark:border-emerald-800/40",
   },

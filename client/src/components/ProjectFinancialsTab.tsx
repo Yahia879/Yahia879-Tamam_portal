@@ -26,9 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useLocation } from "wouter";
 import {
-  DollarSign,
   Building2,
   FileText,
   Plus,
@@ -929,7 +929,13 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <p className="text-sm text-gray-700 mt-2">
                 {isFullyCovered 
                   ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
-                  : `تنبيه: يوجد عجز مالي بمقدار (${Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال). مبلغ الدعم المقدم لا يكفي لتغطية التكلفة الكلية للمشروع.`
+                  : (
+                    <span className="inline-flex items-center flex-wrap gap-1">
+                      <span>تنبيه: يوجد عجز مالي بمقدار ({Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      <span>). مبلغ الدعم المقدم لا يكفي لتغطية التكلفة الكلية للمشروع.</span>
+                    </span>
+                  )
                 }
               </p>
             </div>
@@ -1027,8 +1033,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-lg col-span-2 flex justify-between items-center">
                     <div>
                       <span className="text-emerald-800 block text-xs font-medium">المبلغ المعتمد المتفق عليه مع المورد:</span>
-                      <span className="font-bold text-emerald-900 text-base mt-0.5 block">
-                        {supplierBaseAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                      <span className="font-bold text-emerald-900 text-base mt-0.5 inline-flex items-center gap-1">
+                        {supplierBaseAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                       </span>
                     </div>
                     <CheckCircle2 className="h-6 w-6 text-emerald-600" />
@@ -1052,7 +1058,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           <CardHeader className="bg-slate-50/50 pb-3 border-b flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-                <DollarSign className="h-5 w-5 text-primary" />
+                <SaudiRiyal className="h-5 w-5" />
                 جهة الدعم والأجور الإدارية
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
@@ -1161,7 +1167,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                         </div>
 
                         <div>
-                          <Label className="text-[11px] text-muted-foreground mb-1 block">مبلغ الدعم المقدم (ريال)</Label>
+                          <Label className="text-[11px] text-muted-foreground mb-1 flex items-center gap-1">مبلغ الدعم المقدم (<SaudiRiyal className="w-3 h-3" />)</Label>
                           <Input
                             type="number"
                             min={0}
@@ -1191,8 +1197,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   {/* إجمالي مبالغ الدعم من كل الداعمين */}
                   <div className="p-2.5 bg-blue-100/60 rounded-md border border-blue-200 flex items-center justify-between">
                     <span className="font-semibold text-blue-950 text-xs">إجمالي التمويل من كافة الداعمين:</span>
-                    <span className="font-bold text-blue-900 text-sm">
-                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    <span className="font-bold text-blue-900 text-sm inline-flex items-center gap-1">
+                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
                 </div>
@@ -1219,15 +1225,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="percentage">نسبة مئوية (%)</SelectItem>
-                        <SelectItem value="fixed">مبلغ ثابت (ريال)</SelectItem>
+                        <SelectItem value="fixed">مبلغ ثابت (<SaudiRiyal className="w-3.5 h-3.5 inline" />)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 items-center">
                     <div>
-                      <Label className="text-[11px] text-muted-foreground">
-                        {adminFeeType === "percentage" ? "نسبة الأجور (%)" : "قيمة الأجور (ريال)"}
+                      <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        {adminFeeType === "percentage" ? "نسبة الأجور (%)" : <>قيمة الأجور (<SaudiRiyal className="w-3 h-3 inline" />)</>}
                       </Label>
                       <Input
                         type="number"
@@ -1240,8 +1246,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     </div>
                     <div>
                       <Label className="text-[11px] text-muted-foreground">المبلغ المحسوب للأجور</Label>
-                      <div className="h-8 flex items-center px-3 rounded-md bg-white border font-bold text-orange-800 text-xs [direction:ltr]">
-                        {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                      <div className="h-8 flex items-center justify-between px-3 rounded-md bg-white border font-bold text-orange-800 text-xs [direction:ltr]">
+                        <span>{calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        <SaudiRiyal className="w-3.5 h-3.5 inline" />
                       </div>
                     </div>
                   </div>
@@ -1280,8 +1287,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                         return (
                           <div key={idx} className="flex items-center justify-between text-xs py-1 border-b last:border-b-0 border-gray-100">
                             <span className="text-gray-700 font-medium">{idx + 1}. {name}</span>
-                            <span className="font-bold text-blue-900">
-                              {(source.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                            <span className="font-bold text-blue-900 inline-flex items-center gap-1">
+                              {(source.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                             </span>
                           </div>
                         );
@@ -1291,8 +1298,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
                   <div className="flex items-center justify-between border-t border-gray-200 pt-2 font-bold">
                     <span className="text-muted-foreground">إجمالي الدعم المقدم:</span>
-                    <span className="font-black text-green-700 text-sm">
-                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    <span className="font-black text-green-700 text-sm inline-flex items-center gap-1">
+                      {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
                 </div>
@@ -1300,22 +1307,24 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-amber-900 font-medium">بند الأجور الإدارية (الجمعية):</span>
-                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-sans">
-                      {adminFeeType === "fixed"
-                        ? `مبلغ ثابت (${(adminFeeValue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`
-                        : `${adminFeeValue || effectiveAdminPct || 0}% نسبة مستقطعة`}
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-sans inline-flex items-center gap-1">
+                      {adminFeeType === "fixed" ? (
+                        <>مبلغ ثابت ({(adminFeeValue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />)</>
+                      ) : (
+                        `${adminFeeValue || effectiveAdminPct || 0}% نسبة مستقطعة`
+                      )}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between border-t border-amber-200 pt-2">
                     <span className="text-muted-foreground">قيمة الأجور الإدارية (حصة الجمعية):</span>
-                    <span className="font-bold text-orange-700 text-sm font-sans">
-                      {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    <span className="font-bold text-orange-700 text-sm font-sans inline-flex items-center gap-1">
+                      {calculatedAdminFeeAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-t border-amber-200/60 pt-2 text-[11px]">
                     <span className="text-muted-foreground">صافي حصة المورد بعد الاستقطاع:</span>
-                    <span className="font-bold text-slate-800 font-sans">
-                      {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    <span className="font-bold text-slate-800 font-sans inline-flex items-center gap-1">
+                      {supplierNetShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
                 </div>
@@ -1362,8 +1371,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-black text-sm text-indigo-950">
-                      يوجد فائض في المقبوضات بمقدار ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                    <h4 className="font-black text-sm text-indigo-950 inline-flex items-center gap-1">
+                      <span>يوجد فائض في المقبوضات بمقدار ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      <span>)</span>
                     </h4>
                     <Badge className="bg-indigo-700 text-white text-[10px] font-bold">فائض قابل للتحويل</Badge>
                   </div>
@@ -1386,22 +1397,22 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
           <div className={`grid gap-4 ${surplusAmount > 0 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
             <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
               <span className="text-xs text-muted-foreground block">إجمالي مبلغ الدعم المطلوب</span>
-              <span className="text-lg font-bold text-blue-900 mt-1 block font-sans">
-                {targetRequiredAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <span className="text-lg font-bold text-blue-900 mt-1 block font-sans inline-flex items-center gap-1">
+                {targetRequiredAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
 
             <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-right">
               <span className="text-xs text-muted-foreground block">إجمالي المقبوض فعلياً (سندات القبض)</span>
-              <span className="text-lg font-bold text-emerald-900 mt-1 block font-sans">
-                {totalReceivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <span className="text-lg font-bold text-emerald-900 mt-1 block font-sans inline-flex items-center gap-1">
+                {totalReceivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
 
             <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-100 text-right">
               <span className="text-xs text-muted-foreground block">المبلغ المتبقي للقبض</span>
-              <span className="text-lg font-bold text-amber-900 mt-1 block font-sans">
-                {remainingSupportToCollect.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <span className="text-lg font-bold text-amber-900 mt-1 block font-sans inline-flex items-center gap-1">
+                {remainingSupportToCollect.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
 
@@ -1411,12 +1422,20 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <span className="text-xs text-indigo-900 font-bold block">فائض المقبوضات</span>
                   <Badge className="bg-indigo-700 text-white text-[9px] font-bold px-1.5 py-0.2">فائض</Badge>
                 </div>
-                <span className="text-lg font-black text-indigo-950 mt-1 block font-sans">
-                  {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                <span className="text-lg font-black text-indigo-950 mt-1 block font-sans inline-flex items-center gap-1">
+                  {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                 </span>
                 {supportersWithSurplus.length > 0 && (
-                  <p className="text-[11px] text-indigo-800 font-semibold mt-1">
-                    الفائض ناتج من: {supportersWithSurplus.map(s => `${s.name} (${s.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`).join("، ")}
+                  <p className="text-[11px] text-indigo-800 font-semibold mt-1 flex flex-wrap items-center gap-1">
+                    <span>الفائض ناتج من:</span>
+                    {supportersWithSurplus.map((s, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-0.5">
+                        {idx > 0 && "، "}
+                        <span>{s.name} ({s.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        <SaudiRiyal className="w-3 h-3 inline" />
+                        <span>)</span>
+                      </span>
+                    ))}
                   </p>
                 )}
                 <Button
@@ -1496,28 +1515,28 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
                         <div className="bg-emerald-50/80 p-2 rounded-lg border border-emerald-100/90 text-right">
                           <span className="text-[10px] text-emerald-800 block font-semibold">المقبوض فعلياً (المدفوع)</span>
-                          <span className="text-sm font-bold text-emerald-950 block mt-0.5">
-                            {receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                          <span className="text-sm font-bold text-emerald-950 flex items-center gap-1 mt-0.5">
+                            {receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
                           </span>
                         </div>
 
                         <div className="bg-amber-50/80 p-2 rounded-lg border border-amber-100/90 text-right">
                           <span className="text-[10px] text-amber-800 block font-semibold">المبلغ المتبقي للقبض</span>
-                          <span className="text-sm font-bold text-amber-950 block mt-0.5">
-                            {remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-[10px]">ريال</span>
+                          <span className="text-sm font-bold text-amber-950 flex items-center gap-1 mt-0.5">
+                            {remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
                         <span>إجمالي الدعم المقرر:</span>
-                        <span className="font-bold text-slate-800">{targetAmt.toLocaleString("en-US")} ريال</span>
+                        <span className="font-bold text-slate-800 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                       </div>
 
                       {sSurplusAmt > 0 && (
                         <div className="p-2 bg-indigo-50/90 rounded-lg border border-indigo-200 flex items-center justify-between text-xs mt-1">
-                          <span className="text-indigo-900 font-bold text-[11px]">
-                            فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                          <span className="text-indigo-900 font-bold text-[11px] inline-flex items-center gap-1">
+                            فائض للداعم: {sSurplusAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
                           </span>
                           <Button
                             type="button"
@@ -1593,12 +1612,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       </div>
 
                       <div className="flex items-center gap-4 text-xs font-semibold">
-                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span></span>
+                        <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span></span>
                         <div className="text-emerald-700">
-                          المقبوض: <span className="font-bold text-emerald-800">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                          المقبوض: <span className="font-bold text-emerald-800 inline-flex items-center gap-1">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                         </div>
                         <div className="text-amber-700">
-                          المتبقي: <span className="font-bold text-amber-800">{remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                          المتبقي: <span className="font-bold text-amber-800 inline-flex items-center gap-1">{remainingAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                         </div>
                       </div>
                     </CardHeader>
@@ -1663,7 +1682,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                       ? "text-slate-400 line-through"
                                       : "text-emerald-700"
                                   }`}>
-                                    {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                                    <span className="inline-flex items-center gap-1">
+                                      {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                    </span>
                                     {voucher.status === "approval_revoked" && (
                                       <span className="text-[10px] text-amber-700 font-normal mr-1 block">(ملغى الاعتماد - غير محتسب)</span>
                                     )}
@@ -1845,7 +1867,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                 <TableCell className="text-xs font-semibold">{voucher.payerName || "-"}</TableCell>
                                 <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
                                 <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}</TableCell>
-                                <TableCell className="font-bold text-emerald-700 text-xs">{parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</TableCell>
+                                <TableCell className="font-bold text-emerald-700 text-xs inline-flex items-center gap-1">
+                                  {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </TableCell>
                                 <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
                                      {getCleanVoucherNotes(voucher.notes)}
                                    </TableCell>
@@ -1960,7 +1985,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
           <div className="space-y-4 py-2 text-xs text-right">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">مبلغ الدفعة المقبوضة (ريال) *</Label>
+              <Label className="text-xs font-semibold flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
               <Input
                 type="number"
                 min={0.01}
@@ -2228,8 +2253,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   </DialogDescription>
                 </div>
               </div>
-              <Badge className="bg-indigo-50 text-indigo-800 border border-indigo-300 text-xs font-black px-3 py-1 self-start sm:self-center">
-                فائض الداعم المتاح للتحويل: {activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+              <Badge className="bg-indigo-50 text-indigo-800 border border-indigo-300 text-xs font-black px-3 py-1 self-start sm:self-center inline-flex items-center gap-1">
+                <span>فائض الداعم المتاح للتحويل: {activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </Badge>
             </div>
           </DialogHeader>
@@ -2256,8 +2282,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                       </span>
                     </div>
                   </div>
-                  <Badge className="bg-indigo-700 text-white text-xs font-black px-2.5 py-0.5 self-start sm:self-center">
-                    إجمالي الفائض: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                  <Badge className="bg-indigo-700 text-white text-xs font-black px-2.5 py-0.5 self-start sm:self-center inline-flex items-center gap-1">
+                    <span>إجمالي الفائض: {surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                    <SaudiRiyal className="w-3.5 h-3.5 inline" />
                   </Badge>
                 </div>
 
@@ -2284,23 +2311,23 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                             <Building2 className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
                             <span className="font-bold text-xs text-slate-900 truncate">{sup.name}</span>
                           </div>
-                          <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shrink-0">
-                            فائض: {sup.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                          <Badge className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 shrink-0 inline-flex items-center gap-1">
+                            فائض: {sup.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3 h-3 inline" />
                           </Badge>
                         </div>
                         
                         <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-600 mt-2.5 pt-2 border-t border-slate-100">
                           <div>
                             <span className="text-slate-400 block text-[9px]">المقرر التزامه:</span>
-                            <span className="font-bold text-slate-800">{sup.committedAmount.toLocaleString("en-US")} ريال</span>
+                            <span className="font-bold text-slate-800 inline-flex items-center gap-0.5">{sup.committedAmount.toLocaleString("en-US")} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
                           </div>
                           <div>
                             <span className="text-slate-400 block text-[9px]">المسدد فعلياً:</span>
-                            <span className="font-bold text-emerald-700">{sup.receivedAmount.toLocaleString("en-US")} ريال</span>
+                            <span className="font-bold text-emerald-700 inline-flex items-center gap-0.5">{sup.receivedAmount.toLocaleString("en-US")} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
                           </div>
                           <div>
                             <span className="text-slate-400 block text-[9px]">الحصة التكليفية:</span>
-                            <span className="font-bold text-indigo-900">{sup.requiredShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال</span>
+                            <span className="font-bold text-indigo-900 inline-flex items-center gap-0.5">{sup.requiredShare.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-2.5 h-2.5 inline" /></span>
                           </div>
                         </div>
                       </div>
@@ -2420,8 +2447,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                           <SelectItem key={idx} value={sup} className="text-right">
                             <span className="font-medium">{sup}</span>
                             {hasSurplus && (
-                              <span className="text-emerald-700 font-bold mr-2 text-[10px]">
-                                (فائض متاح: {supInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                              <span className="text-emerald-700 font-bold mr-2 text-[10px] inline-flex items-center gap-0.5">
+                                <span>(فائض متاح: {supInfo.surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                                <SaudiRiyal className="w-2.5 h-2.5 inline" />
+                                <span>)</span>
                               </span>
                             )}
                           </SelectItem>
@@ -2438,14 +2467,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               {/* مبلغ الدفعة المقبوضة */}
               <div className="space-y-1.5 text-right">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-slate-800">مبلغ الدفعة المقبوضة (ريال) *</Label>
+                  <Label className="text-xs font-bold text-slate-800 flex items-center gap-1">مبلغ الدفعة المقبوضة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                   {activeSupporterMaxSurplus > 0 && (
                     <button
                       type="button"
                       onClick={() => setTransferAmount(activeSupporterMaxSurplus.toString())}
-                      className="text-[11px] font-bold text-indigo-700 hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-indigo-700 hover:underline cursor-pointer inline-flex items-center gap-0.5"
                     >
-                      تعبئة كامل فائض الداعم ({activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)
+                      <span>تعبئة كامل فائض الداعم ({activeSupporterMaxSurplus.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      <SaudiRiyal className="w-2.5 h-2.5 inline" />
+                      <span>)</span>
                     </button>
                   )}
                 </div>
@@ -2464,8 +2495,8 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 {parseFloat(transferAmount) > 0 && parseFloat(transferAmount) <= activeSupporterMaxSurplus && (
                   <div className="flex items-center justify-between text-[11px] bg-slate-50 p-2 rounded-lg border border-slate-200 mt-1 animate-in fade-in">
                     <span className="text-slate-600 font-medium">الفائض المتبقي بعد هذا التحويل:</span>
-                    <span className="font-extrabold text-indigo-900 font-sans">
-                      {Math.max(0, activeSupporterMaxSurplus - (parseFloat(transferAmount) || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال
+                    <span className="font-extrabold text-indigo-900 font-sans inline-flex items-center gap-1">
+                      {Math.max(0, activeSupporterMaxSurplus - (parseFloat(transferAmount) || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                     </span>
                   </div>
                 )}

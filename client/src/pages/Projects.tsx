@@ -12,11 +12,11 @@ import {
   MoreVertical,
   Eye,
   Calendar,
-  DollarSign,
   FileText,
   Loader2,
   Plus,
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Link, useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -194,7 +194,7 @@ export default function Projects() {
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-blue-600" />
+                  <SaudiRiyal className="w-6 h-6" />
                 </div>
               </div>
             </CardContent>
@@ -326,7 +326,10 @@ export default function Projects() {
                           <TableCell>
                             {(!project.requestId || (project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage))) ? (
                               project.budget ? (
-                                <span className="font-medium whitespace-nowrap">{parseFloat(project.budget).toLocaleString("en-US")} ريال</span>
+                                <span className="font-medium whitespace-nowrap inline-flex items-center gap-1">
+                                  {parseFloat(project.budget).toLocaleString("en-US")}
+                                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </span>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )
@@ -417,7 +420,14 @@ export default function Projects() {
                         <div>
                           <span className="text-muted-foreground text-xs block">الميزانية:</span>
                           {(!project.requestId || (project.requestCurrentStage && BUDGET_VISIBLE_STAGES.includes(project.requestCurrentStage))) ? (
-                            <span className="font-medium">{project.budget ? `${parseFloat(project.budget).toLocaleString("en-US")} ريال` : "-"}</span>
+                            <span className="font-medium inline-flex items-center gap-1">
+                              {project.budget ? (
+                                <>
+                                  {parseFloat(project.budget).toLocaleString("en-US")}
+                                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </>
+                              ) : "-"}
+                            </span>
                           ) : (
                             <span className="text-muted-foreground text-xs">لم تُحدد بعد</span>
                           )}

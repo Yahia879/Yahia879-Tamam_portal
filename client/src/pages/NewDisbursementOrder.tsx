@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -254,8 +255,8 @@ export default function NewDisbursementOrder() {
                   </div>
                   <div className="text-right">
                     <Label className="text-muted-foreground text-right">المبلغ</Label>
-                    <p className="font-bold text-lg text-primary text-right">
-                      {amount.toLocaleString()} ريال
+                    <p className="font-bold text-lg text-primary text-right inline-flex items-center gap-1">
+                      {amount.toLocaleString()} <SaudiRiyal className="w-4 h-4" />
                     </p>
                   </div>
                   <div className="md:col-span-2 text-right">
@@ -533,7 +534,7 @@ export default function NewDisbursementOrder() {
                 <div className="space-y-2 text-right">
                   <div className="flex justify-between flex-row-reverse">
                     <span className="text-muted-foreground">المبلغ</span>
-                    <span className="font-bold">{amount.toLocaleString()} ريال</span>
+                    <span className="font-bold inline-flex items-center gap-1">{amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                   </div>
                   <div className="flex justify-between flex-row-reverse">
                     <span className="text-muted-foreground">طريقة الدفع</span>

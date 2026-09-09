@@ -4,7 +4,8 @@ import { PROGRAM_LABELS } from "@shared/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, Printer, Download, Star, Building2, Calendar, DollarSign, CheckCircle, AlertTriangle, FileText, User } from "lucide-react";
+import { ArrowRight, Printer, Download, Star, Building2, Calendar, CheckCircle, AlertTriangle, FileText, User } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 // مكوّن نجوم التقييم
 function StarRating({ rating }: { rating: number }) {
@@ -187,14 +188,14 @@ export default function FinalReportView() {
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                  <DollarSign className="w-5 h-5 text-purple-600" />
+                  <SaudiRiyal className="w-5 h-5" />
                 </div>
                 <p className="text-xs text-gray-500 mb-1">قيمة المشروع</p>
                 <p className="font-semibold text-gray-800 text-sm">{formatCurrency((report as any).contractAmount)}</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                  <DollarSign className="w-5 h-5 text-amber-600" />
+                  <SaudiRiyal className="w-5 h-5" />
                 </div>
                 <p className="text-xs text-gray-500 mb-1">تكلفة التنفيذ الفعلية</p>
                 <p className="font-semibold text-gray-800 text-sm">{formatCurrency(report.totalCost)}</p>

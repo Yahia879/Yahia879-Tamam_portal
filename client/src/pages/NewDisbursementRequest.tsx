@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -386,12 +387,12 @@ export default function NewDisbursementRequest() {
                       </div>
                       <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground">قيمة العقد:</span>
-                        <span className="font-medium">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} ريال</span>
+                        <span className="font-medium inline-flex items-center gap-1">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
                       <div className="flex justify-between text-sm flex-row-reverse">
                         <span className="text-muted-foreground font-medium">الإجمالي المتبقي للدفعة:</span>
-                        <span className="font-bold text-emerald-600">
-                          {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} ريال
+                        <span className="font-bold text-emerald-600 inline-flex items-center gap-1">
+                          {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     </div>
@@ -403,8 +404,8 @@ export default function NewDisbursementRequest() {
                 <div className="space-y-2 text-right">
                   <div className="flex justify-between flex-row-reverse">
                     <span className="font-medium">إجمالي الدفعة:</span>
-                    <span className={`font-bold text-lg ${contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
-                      {totalAmount.toLocaleString()} ريال
+                    <span className={`font-bold text-lg inline-flex items-center gap-1 ${contractDetails && (totalAmount > contractAmount || totalAmount > remainingAmount) ? 'text-destructive' : 'text-primary'}`}>
+                      {totalAmount.toLocaleString()} <SaudiRiyal className="w-4 h-4" />
                     </span>
                   </div>
                 </div>

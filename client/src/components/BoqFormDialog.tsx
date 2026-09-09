@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   Dialog,
   DialogContent,
@@ -360,7 +361,7 @@ export default function BoqFormDialog({
 
           {/* سعر الوحدة */}
           <div className="grid gap-2">
-            <Label htmlFor="unitPrice">سعر الوحدة (ريال)</Label>
+            <Label htmlFor="unitPrice" className="flex items-center gap-1">سعر الوحدة (<SaudiRiyal className="w-3.5 h-3.5" />)</Label>
             <Input
               id="unitPrice"
               type="number"
@@ -378,12 +379,12 @@ export default function BoqFormDialog({
           {formData.quantity && formData.unitPrice && (
             <div className="bg-teal-50 dark:bg-teal-950/40 p-4 rounded-lg border border-teal-200 dark:border-teal-800">
               <p className="text-xs text-muted-foreground mb-1">إجمالي البند التقديري</p>
-              <p className="text-xl font-bold text-teal-600 dark:text-teal-400">
+              <p className="text-xl font-bold text-teal-600 dark:text-teal-400 inline-flex items-center gap-1">
                 {(
                   parseFloat(formData.quantity) *
                   parseFloat(formData.unitPrice)
-                ).toLocaleString("ar-SA")}{" "}
-                ريال
+                ).toLocaleString("ar-SA")}
+                <SaudiRiyal className="w-4 h-4 inline" />
               </p>
             </div>
           )}

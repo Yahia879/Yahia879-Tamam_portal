@@ -27,6 +27,7 @@ import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
 import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, ROLE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import BoqTab from "@/components/BoqTab";
 import { toast } from "sonner";
 import { getAllFieldsForProgram } from "@/lib/programFields";
@@ -3832,7 +3833,7 @@ export default function RequestDetailsNew() {
               <div className="space-y-2">
                 <Label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-indigo-500" />
-                  <span>التكلفة المتوقعة (ريال) *</span>
+                  <span className="inline-flex items-center gap-1">التكلفة المتوقعة (<SaudiRiyal className="w-3.5 h-3.5" />) *</span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -4066,7 +4067,9 @@ export default function RequestDetailsNew() {
                           <td className="p-3">{commitmentFormData.title}</td>
                           <td className="p-3 bg-slate-50 dark:bg-slate-900 font-bold w-1/4">التكلفة المتوقعة</td>
                           <td className="p-3 font-semibold text-green-700 dark:text-green-400">
-                            {commitmentFormData.expectedCost ? parseFloat(commitmentFormData.expectedCost).toLocaleString("ar-SA") : "0"} ريال
+                            <span className="inline-flex items-center gap-1">
+                              {commitmentFormData.expectedCost ? parseFloat(commitmentFormData.expectedCost).toLocaleString("ar-SA") : "0"} <SaudiRiyal className="w-3.5 h-3.5" />
+                            </span>
                           </td>
                         </tr>
                         <tr className="border-b border-slate-200 dark:border-slate-800">

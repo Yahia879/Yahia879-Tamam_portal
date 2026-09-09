@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -19,7 +20,6 @@ import {
   ArrowRight,
   FileText,
   Calendar,
-  DollarSign,
   AlertCircle,
   Loader2,
   XCircle,
@@ -355,7 +355,7 @@ export default function FinalReportForm() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contractAmount" className="font-semibold flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-purple-600" />
+                  <SaudiRiyal className="w-4 h-4" />
                   تكلفة المشروع <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -370,7 +370,7 @@ export default function FinalReportForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="totalCost" className="font-semibold flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <SaudiRiyal className="w-4 h-4" />
                   التكلفة التنفيذ الفعلية <span className="text-red-500">*</span>
                 </Label>
                 <Input

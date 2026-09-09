@@ -5,7 +5,6 @@ import {
   BarChart3, 
   PieChart, 
   TrendingUp, 
-  DollarSign, 
   Briefcase, 
   HeartHandshake, 
   FileSpreadsheet, 
@@ -15,6 +14,7 @@ import {
   ShieldAlert,
   Sparkles
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
@@ -98,7 +98,7 @@ export default function AnalyticsHub() {
       id: "financial-report",
       label: "التقرير المالي الشامل",
       shortLabel: "التقرير المالي",
-      icon: DollarSign,
+      icon: SaudiRiyal,
       description: "المصروفات، أوامر وسندات الصرف والقبض، والتحليلات المالية التراكمية",
       component: <FinancialReport embedded={true} />
     },

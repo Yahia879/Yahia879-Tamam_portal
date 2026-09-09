@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { numberToArabicText as baseNumberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2569,7 +2570,7 @@ export default function NewLinkedDisbursementRequest() {
 
                         {/* المبلغ */}
                         <div className="space-y-2 text-right">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 block">المبلغ الفعلي (ريال) *</Label>
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">المبلغ الفعلي (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                           <Input
                             type="number"
                             value={supplier.amount !== undefined && supplier.amount !== 0 ? supplier.amount : (supplier.agreedAmount || "")}
@@ -2619,22 +2620,22 @@ export default function NewLinkedDisbursementRequest() {
                 <div className="p-3 sm:p-4 rounded-xl bg-primary/[0.03] border border-primary/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <span className="text-[10px] text-primary block font-black">إجمالي الدفعة الفعلية التي سوف تصرف</span>
-                    <span className="text-xl sm:text-2xl font-black text-primary">
-                      {totalAmount.toLocaleString()} <span className="text-xs font-semibold">ريال سعودي</span>
+                    <span className="text-xl sm:text-2xl font-black text-primary inline-flex items-center gap-1">
+                      {totalAmount.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
                     </span>
                   </div>
                   
                   {formData.adminFees > 0 && (
                     <div className="text-xs text-left">
                       <span className="text-muted-foreground block text-[9px]">الأجور الإدارية</span>
-                      <span className="font-bold text-foreground">{(formData.adminFees || 0).toLocaleString()} ريال</span>
+                      <span className="font-bold text-foreground inline-flex items-center gap-1">{(formData.adminFees || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                     </div>
                   )}
 
                   {!isCustom && contractDetails && (
                     <div className="text-xs text-left">
                       <span className="text-muted-foreground block text-[9px]">قيمة العقد الإجمالي</span>
-                      <span className="font-bold text-foreground">{contractAmount.toLocaleString()} ريال</span>
+                      <span className="font-bold text-foreground inline-flex items-center gap-1">{contractAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                     </div>
                   )}
                 </div>
@@ -2805,34 +2806,40 @@ export default function NewLinkedDisbursementRequest() {
             <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200/60 dark:border-amber-900/40 space-y-2.5">
               <div className="flex justify-between items-center text-xs sm:text-sm font-semibold border-b border-amber-200/50 dark:border-amber-900/40 pb-2">
                 <span className="text-slate-700 dark:text-slate-300">المبلغ المراد صرفه:</span>
-                <span className="font-bold text-blue-800 dark:text-blue-400 text-sm sm:text-base">
-                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                <span className="font-bold text-blue-800 dark:text-blue-400 text-sm sm:text-base inline-flex items-center gap-1">
+                  {currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-xs sm:text-sm">
                 <span className="text-slate-600 dark:text-slate-400">إجمالي ما دفعه كل الداعمين (سندات القبض):</span>
-                <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
+                  {totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
                 </span>
               </div>
 
               <div className="flex justify-between items-center border-t border-amber-200/50 dark:border-amber-900/40 pt-2 font-bold text-xs sm:text-sm">
                 <span className="text-amber-950 dark:text-amber-300">مبلغ العجز المطلوب تغطيته:</span>
-                <span className="font-black text-rose-700 dark:text-rose-400 text-sm sm:text-base">
-                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال
+                <span className="font-black text-rose-700 dark:text-rose-400 text-sm sm:text-base inline-flex items-center gap-1">
+                  {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5" />
                 </span>
               </div>
             </div>
 
             {/* Amber Warning Box (مربع التنبيه الأصلي ذو الإطار البرتقالي) */}
             <div className="p-4 bg-amber-50/90 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/80 rounded-xl space-y-1.5 text-right shadow-xs">
-              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex items-center gap-1.5">
-                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-                تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال) أكبر من إجمالي ما دفعه كل الداعمين ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال)
+              <p className="font-bold text-amber-950 dark:text-amber-300 text-xs flex flex-wrap items-center gap-1">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 inline" />
+                <span>تنبيه مالي: المبلغ المراد صرفه ({currentDisbursementAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}</span>
+                <SaudiRiyal className="w-3 h-3 inline" />
+                <span>) أكبر من إجمالي ما دفعه كل الداعمين ({totalSupporterPayments.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}</span>
+                <SaudiRiyal className="w-3 h-3 inline" />
+                <span>)</span>
               </p>
-              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal pt-0.5">
-                المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعمين لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ريال). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.
+              <p className="text-[11px] text-amber-900 dark:text-amber-200/90 leading-relaxed font-normal pt-0.5 inline-flex flex-wrap items-center gap-1">
+                <span>المبلغ المراد صرفه غير متوافق مع المدفوعات المتاحة من الداعمين لهذا المشروع (عجز بمقدار {funderDeficit.toLocaleString("ar-SA", { minimumFractionDigits: 2 })}</span>
+                <SaudiRiyal className="w-3 h-3 inline" />
+                <span>). عند الإرسال، يمكنك تغطية المتبقي والصرف من الحساب العام للجمعية أو التراجع عن الطلب.</span>
               </p>
             </div>
           </div>

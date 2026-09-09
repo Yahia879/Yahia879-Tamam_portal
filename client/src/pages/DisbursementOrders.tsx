@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   Select,
   SelectContent,
@@ -437,9 +438,7 @@ export default function DisbursementOrders() {
                   <span className="text-base sm:text-lg xl:text-xl font-mono font-black text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                     {Number(totalAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground whitespace-nowrap">
-                    ريال
-                  </span>
+                  <SaudiRiyal className="w-3.5 h-3.5 inline self-center" />
                 </div>
               </div>
             </CardContent>
@@ -639,7 +638,7 @@ export default function DisbursementOrders() {
                                 </Tooltip>
                               </TooltipProvider>
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">{Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></TableCell>
                             <TableCell className="py-2.5 px-3 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
                             <TableCell className="py-2.5 px-3 text-right">
                               <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
@@ -906,8 +905,8 @@ export default function DisbursementOrders() {
                           <div className="grid grid-cols-2 gap-3 text-right">
                             <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 p-2 rounded-lg">
                               <p className="text-[9px] text-emerald-800 dark:text-emerald-400 font-semibold mb-0.5">المبلغ</p>
-                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 font-mono">
-                                {Number(order.amount).toLocaleString()} <span className="text-[10px] font-normal">ريال</span>
+                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 font-mono inline-flex items-center gap-1">
+                                {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline mr-1" />
                               </p>
                             </div>
                             <div className="bg-muted/40 p-2 rounded-lg">
@@ -1112,8 +1111,8 @@ export default function DisbursementOrders() {
                 </div>
                 <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
                   <span className="text-xs text-muted-foreground font-semibold">المبلغ الذي سوف يصرف:</span>
-                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                    {Number(selectedOrder?.amount || 0).toLocaleString()} ريال
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                    {Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                   </span>
                 </div>
                 <div className="flex justify-between items-center border-b border-emerald-100/30 pb-2">
@@ -1211,7 +1210,7 @@ export default function DisbursementOrders() {
             <div className="space-y-4">
               <div className="bg-muted p-4 rounded-lg">
                 <p><strong>المستفيد:</strong> {selectedOrder?.beneficiaryName}</p>
-                <p><strong>المبلغ:</strong> {Number(selectedOrder?.amount || 0).toLocaleString()} ريال</p>
+                <p className="flex items-center gap-1"><strong>المبلغ:</strong> {Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></p>
                 <p><strong>طريقة الدفع:</strong> {PAYMENT_METHOD_MAP[selectedOrder?.paymentMethod || "bank_transfer"]}</p>
               </div>
               <div className="space-y-2">
@@ -1261,8 +1260,8 @@ export default function DisbursementOrders() {
               {/* قسم المبلغ */}
               <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/30 p-4 rounded-xl flex flex-col items-center justify-center text-center space-y-1 shadow-sm">
                 <span className="text-xs text-muted-foreground font-semibold">المبلغ المستحق للصرف</span>
-                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">
-                  {Number(selectedOrder?.amount || 0).toLocaleString()} <span className="text-sm font-normal text-muted-foreground">ريال سعودي</span>
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1.5">
+                  {Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
                 </span>
               </div>
 
@@ -1395,7 +1394,7 @@ export default function DisbursementOrders() {
               <div className="p-3 bg-amber-50/80 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/60 rounded-xl space-y-1.5">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">المبلغ:</span>
-                  <span className="font-bold text-amber-900 dark:text-amber-200 font-mono">{Number(selectedOrder?.amount || 0).toLocaleString()} ريال</span>
+                  <span className="font-bold text-amber-900 dark:text-amber-200 font-mono inline-flex items-center gap-1">{Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-600 dark:text-slate-400 font-medium">المستفيد:</span>
@@ -1506,7 +1505,7 @@ export default function DisbursementOrders() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground font-medium">المبلغ:</span>
-                  <span className="font-bold text-foreground font-mono">{Number(selectedOrder?.amount || 0).toLocaleString()} ريال</span>
+                  <span className="font-bold text-foreground font-mono inline-flex items-center gap-1">{Number(selectedOrder?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                 </div>
               </div>
 

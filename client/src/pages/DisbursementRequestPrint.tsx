@@ -9,6 +9,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 function toHijriDate(date: Date): string {
   let formatted = "";
@@ -427,15 +428,27 @@ export default function DisbursementRequestPrint() {
     }];
   }
 
-  const resolvedSupportingEntitiesText = (supportSources.length > 0
-    ? supportSources.map(s => {
+  const resolvedSupportingEntitiesNode = supportSources.length > 0 ? (
+    <span>
+      {supportSources.map((s, idx) => {
         const name = s.entity === "other" || s.entity === "اخرى" ? (s.customEntity || "أخرى") : (s.entity || s.customEntity);
-        if (supportSources.length > 1 && s.amount > 0) {
-          return `${name} (${s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`;
-        }
-        return name;
-      }).filter(Boolean).join("، ")
-    : ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "")) || "—";
+        return (
+          <span key={idx} className="inline-flex items-center flex-wrap gap-0.5">
+            {idx > 0 && <span>، </span>}
+            <span>{name}</span>
+            {supportSources.length > 1 && s.amount > 0 && (
+              <span className="inline-flex items-center gap-0.5 mr-0.5 font-mono">
+                ({s.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                <SaudiRiyal className="w-3.5 h-3.5 inline" />)
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  ) : (
+    ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—")
+  );
 
   const totalSupportedAmount = supportSources.length > 0 
     ? supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)
@@ -666,12 +679,12 @@ export default function DisbursementRequestPrint() {
                 <div className="grid grid-cols-1 sm:grid-cols-2">
                   <div className="flex border-b sm:border-b-0 sm:border-l border-gray-200">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-28 sm:w-36 border-l border-gray-200 text-gray-750 shrink-0">اسم الجهة الداعمة:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{resolvedSupportingEntitiesText || "—"}</span>
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold flex-1">{resolvedSupportingEntitiesNode}</span>
                   </div>
                   <div className="flex">
                     <span className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold w-24 sm:w-32 border-l border-gray-200 text-gray-750 shrink-0">مبلغ الدعم:</span>
-                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold font-mono flex-1">
-                      {totalSupportedAmount ? `${totalSupportedAmount.toLocaleString()} ريال` : `${totalOpportunityValue.toLocaleString()} ريال`}
+                    <span className="p-1.5 sm:p-2.5 text-gray-800 font-bold font-mono flex-1 inline-flex items-center gap-1">
+                      {totalSupportedAmount ? <>{totalSupportedAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></> : <>{totalOpportunityValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></>}
                     </span>
                   </div>
                 </div>
@@ -745,7 +758,7 @@ export default function DisbursementRequestPrint() {
                   <tbody>
                     <tr>
                       <td className="p-1.5 sm:p-2.5 border-l border-gray-200 font-bold text-gray-800 text-right pr-2 sm:pr-4">{resolvedSupplierName}</td>
-                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-700">{amount.toLocaleString()} ريال</td>
+                      <td className="p-1.5 sm:p-2.5 font-bold font-mono text-emerald-700 inline-flex items-center gap-1">{amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></td>
                     </tr>
                   </tbody>
                 </table>

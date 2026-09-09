@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1188,8 +1189,8 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                               
                               <div className="flex items-baseline justify-between mt-1 border-t border-dashed border-border/40 pt-2">
                                 <span className="text-[11px] text-muted-foreground">قيمة الدفعة:</span>
-                                <span className="font-extrabold text-base text-foreground">
-                                  {parseFloat(payment.amount || "0").toLocaleString()} <span className="text-[10px] font-medium text-muted-foreground">ريال</span>
+                                <span className="font-extrabold text-base text-foreground inline-flex items-center gap-1">
+                                  {parseFloat(payment.amount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                 </span>
                               </div>
 
@@ -1227,9 +1228,9 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                         لا يمكن صرف تقرير إنجاز حتى تجدول كل دفعات المشروع. يرجى الذهاب إلى تفاصيل المشروع وجدولة جميع الدفعات.
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs font-semibold text-amber-900 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/40 w-fit">
-                        <span>قيمة العقد: <span className="font-bold">{totalContractAmount.toLocaleString()} ريال</span></span>
+                        <span>قيمة العقد: <span className="font-bold inline-flex items-center gap-1">{totalContractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
                         <span className="w-1 h-1 bg-amber-400 rounded-full"></span>
-                        <span>الدفعات المجدولة: <span className="font-bold">{totalScheduledPayments.toLocaleString()} ريال</span></span>
+                        <span>الدفعات المجدولة: <span className="font-bold inline-flex items-center gap-1">{totalScheduledPayments.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span></span>
                       </div>
                     </div>
                   </div>

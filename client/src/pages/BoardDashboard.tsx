@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -249,10 +250,15 @@ export default function BoardDashboard({
   const isChairmanView = !forceAnalytics && (isExecutiveRoute || (!isAnalyticsRoute && data?.isChairman));
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount) + " ريال";
+    return (
+      <span className="inline-flex items-center gap-1">
+        {new Intl.NumberFormat("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount)}
+        <SaudiRiyal className="w-3.5 h-3.5 inline" />
+      </span>
+    );
   };
 
   // حساب المبالغ الكلية والطلبات المعلقة للأوامر المعتمدة من الاستجابة المباشرة
@@ -1302,8 +1308,8 @@ export default function BoardDashboard({
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي قيمة العقود</p>
-                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400">
-                        {data.procurement.totalContractsValue.toLocaleString("en-US")} <span className="text-xs font-normal text-muted-foreground">ريال</span>
+                      <h3 className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400 inline-flex items-center gap-1">
+                        {data.procurement.totalContractsValue.toLocaleString("en-US")} <SaudiRiyal className="w-4 h-4 inline" />
                       </h3>
                       <p className="text-xs text-muted-foreground">مجموع قيم العقود المعتمدة</p>
                     </div>
@@ -1503,8 +1509,8 @@ export default function BoardDashboard({
                   <CardContent className="p-0 flex items-center justify-between text-right">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">إجمالي مصاريف الجمعية</p>
-                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400">
-                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">ريال</span>
+                      <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-blue-600 dark:text-blue-400 inline-flex items-center gap-1">
+                        {data.financials.executedDisbursementOrdersAmount.toLocaleString("en-US")} <SaudiRiyal className="w-5 h-5 inline" />
                       </h3>
                       <p className="text-xs text-muted-foreground">
                         أوامر صرف منفذة ({data.financials.executedDisbursementOrdersCount} أمر)
@@ -1523,8 +1529,9 @@ export default function BoardDashboard({
                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-purple-600 dark:text-purple-400">
                         {data.financials.approvedReceiptVouchersCount.toLocaleString("en-US")}
                       </h3>
-                      <p className="text-xs text-muted-foreground">
-                        مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("en-US")} ريال
+                      <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                        <span>مبلغ: {data.financials.approvedReceiptVouchersAmount.toLocaleString("en-US")}</span>
+                        <SaudiRiyal className="w-3 h-3 inline" />
                       </p>
                     </div>
                     <div className="p-3.5 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">

@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { normalizeArabic } from "@/components/ProjectSearchSelect";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   FileText,
   Search,
@@ -29,7 +30,6 @@ import {
   Filter,
   Building2,
   Calendar,
-  DollarSign,
   CheckCircle2,
   Clock,
   FileEdit,
@@ -574,8 +574,8 @@ export default function ContractsList() {
                                 <span className="truncate max-w-[150px]">{contract.secondPartyName || "غير محدد"}</span>
                               </span>
                               <span className="flex items-center gap-1">
-                                <DollarSign className="h-3.5 w-3.5" />
-                                {formatCurrency(contract.contractAmount)} ريال
+                                <SaudiRiyal className="h-3.5 w-3.5" />
+                                {formatCurrency(contract.contractAmount)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3.5 w-3.5" />

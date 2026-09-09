@@ -10,13 +10,14 @@ import {
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from "recharts";
 import {
-  Building2, CheckCircle, Clock, Star, DollarSign, TrendingUp,
+  Building2, CheckCircle, Clock, Star, TrendingUp,
   FileText, Users, Activity, Target, BarChart2, RefreshCw,
   SlidersHorizontal, Sparkles, HeartHandshake, ShieldCheck,
   Briefcase, Wallet, FileSpreadsheet, Layers, CheckCircle2,
   AlertCircle, ArrowUpRight, ChevronLeft, MapPin, Receipt,
   Check, Eye, ArrowRight, Banknote, HelpCircle
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 // ألوان البرامج
 const PROGRAM_COLORS: Record<string, string> = {
@@ -398,7 +399,7 @@ export default function CustomAnalyticsDashboard({
                     title="إجمالي الإنفاق"
                     value={formatCurrency(summary.totalCost)}
                     subtitle="التكاليف المعتمدة"
-                    icon={DollarSign}
+                    icon={SaudiRiyal}
                     color="bg-teal-500"
                     compact={isMobilePreview}
                   />
@@ -592,8 +593,8 @@ export default function CustomAnalyticsDashboard({
           {/* ==================== 2️⃣ التقارير واللوحة المالية ==================== */}
           {hasFinancialCards && (
             <div className="space-y-3">
-              <div className="flex items-center gap-1.5 pb-1 border-b border-border/50">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+              <div className="flex items-center gap-1.5 pb-1 border-border/50">
+                <SaudiRiyal className="w-3.5 h-3.5" />
                 <h3 className="text-xs sm:text-sm font-bold text-foreground">التقارير واللوحة المالية</h3>
               </div>
 

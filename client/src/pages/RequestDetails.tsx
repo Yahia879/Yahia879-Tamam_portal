@@ -1,4 +1,5 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import BeneficiaryLayout from "@/components/BeneficiaryLayout";
 import { BeneficiaryRequestDetails } from "@/components/BeneficiaryRequestDetails";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -954,16 +955,25 @@ export default function RequestDetails() {
                                       <td className="p-3 text-muted-foreground">{item.description || '-'}</td>
                                       <td className="p-3">{item.unit}</td>
                                       <td className="p-3">{item.quantity?.toLocaleString()}</td>
-                                      <td className="p-3">{item.unitPrice?.toLocaleString()} ريال</td>
-                                      <td className="p-3 font-medium">{item.totalPrice?.toLocaleString()} ريال</td>
+                                      <td className="p-3">
+                                        <span className="inline-flex items-center gap-1">
+                                          {item.unitPrice?.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                                        </span>
+                                      </td>
+                                      <td className="p-3 font-medium">
+                                        <span className="inline-flex items-center gap-1">
+                                          {item.totalPrice?.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                                        </span>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
                             </div>
                             <div className="mt-4 p-3 bg-primary/10 rounded-lg">
-                              <p className="text-lg font-bold text-primary">
-                                إجمالي جدول الكميات: {boqItems.items.reduce((sum: number, item: any) => sum + (parseFloat(item.totalPrice) || 0), 0).toLocaleString('ar-SA')} ريال
+                              <p className="text-lg font-bold text-primary inline-flex items-center gap-1">
+                                <span>إجمالي جدول الكميات: {boqItems.items.reduce((sum: number, item: any) => sum + (parseFloat(item.totalPrice) || 0), 0).toLocaleString('ar-SA')}</span>
+                                <SaudiRiyal className="w-4 h-4 inline" />
                               </p>
                             </div>
                           </>
@@ -1011,10 +1021,16 @@ export default function RequestDetails() {
                                   <tr key={q.id} className="border-b hover:bg-muted/30">
                                     <td className="p-3 font-mono text-xs">{q.quotationNumber}</td>
                                     <td className="p-3">{q.supplier?.companyName || '-'}</td>
-                                    <td className="p-3">{q.totalAmount?.toLocaleString()} ريال</td>
+                                    <td className="p-3">
+                                      <span className="inline-flex items-center gap-1">
+                                        {q.totalAmount?.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                                      </span>
+                                    </td>
                                     <td className="p-3">
                                       {q.approvedAmount ? (
-                                        <span className="text-green-600 font-medium">{q.approvedAmount.toLocaleString()} ريال</span>
+                                        <span className="text-green-600 font-medium inline-flex items-center gap-1">
+                                          {q.approvedAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                                        </span>
                                       ) : '-'}
                                     </td>
                                     <td className="p-3">{q.validUntil ? new Date(q.validUntil).toLocaleDateString('ar-SA') : '-'}</td>
@@ -1132,20 +1148,26 @@ export default function RequestDetails() {
                                   {hasNegotiation && (
                                     <div className="p-4 bg-white rounded-lg text-center">
                                       <p className="text-sm text-muted-foreground">السعر الأصلي</p>
-                                      <p className="text-xl font-bold line-through text-muted-foreground">{originalAmount.toLocaleString()} ريال</p>
+                                      <p className="text-xl font-bold line-through text-muted-foreground inline-flex items-center gap-1 justify-center">
+                                        {originalAmount.toLocaleString()} <SaudiRiyal className="w-4 h-4 inline" />
+                                      </p>
                                     </div>
                                   )}
                                   {/* الوفر - يظهر فقط إذا كان هناك تفاوض */}
                                   {hasNegotiation && (
                                     <div className="p-4 bg-green-100 rounded-lg text-center border border-green-300">
                                       <p className="text-sm text-green-700">الوفر المحقق ({savingsPercentage}%)</p>
-                                      <p className="text-xl font-bold text-green-700">{savingsAmount.toLocaleString()} ريال</p>
+                                      <p className="text-xl font-bold text-green-700 inline-flex items-center gap-1 justify-center">
+                                        {savingsAmount.toLocaleString()} <SaudiRiyal className="w-4 h-4 inline" />
+                                      </p>
                                     </div>
                                   )}
                                   {/* التكلفة المعتمدة */}
                                   <div className={`p-6 bg-white rounded-lg text-center border-2 border-green-500 ${!hasNegotiation ? 'min-w-[250px] mx-auto' : ''}`}>
                                     <p className="text-sm text-muted-foreground">تكلفة المورد المعتمدة</p>
-                                    <p className="text-2xl font-bold text-green-700">{supplierCost.toLocaleString()} ريال</p>
+                                    <p className="text-2xl font-bold text-green-700 inline-flex items-center gap-1 justify-center">
+                                      {supplierCost.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
+                                    </p>
                                     <p className="text-xs text-muted-foreground mt-2">نسبة الإشراف تُضاف عند إنشاء العقد</p>
                                   </div>
                                 </div>
@@ -1823,15 +1845,15 @@ export default function RequestDetails() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">المبلغ الأصلي:</span>
-                  <span className="font-bold text-primary">
-                    {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} ريال
+                  <span className="font-bold text-primary inline-flex items-center gap-1">
+                    {parseFloat(selectedQuotationForApproval.totalAmount || 0).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </div>
 
               {/* المبلغ المعتمد */}
               <div>
-                <Label>المبلغ المعتمد (ريال) *</Label>
+                <Label className="flex items-center gap-1">المبلغ المعتمد (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                 <Input
                   type="number"
                   value={approvedAmount}

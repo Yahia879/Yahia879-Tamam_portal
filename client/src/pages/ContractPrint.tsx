@@ -4,9 +4,10 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, Loader2, FileText, PenTool } from "lucide-react";
-import { usePermission } from "@/hooks/usePermission";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText } from "@shared/tafqeet";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 
 const DURATION_UNITS: Record<string, string> = {
@@ -546,7 +547,9 @@ export default function ContractPrint() {
                               <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</td>
-                                <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">{pAmount.toLocaleString('ar-SA')} ريال</td>
+                                <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a] inline-flex items-center gap-1">
+                                  {pAmount.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" />
+                                </td>
                                 <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">
                                   {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
                                 </td>
@@ -575,8 +578,8 @@ export default function ContractPrint() {
                 القيمة المالية وتفاصيل الحساب:
               </h3>
               <div className="pr-2 sm:pr-4">
-                <p className="text-xs sm:text-sm text-gray-700 mb-4">
-                  قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} ريال – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
+                <p className="text-xs sm:text-sm text-gray-700 mb-4 inline-flex items-center gap-1">
+                  قيمة العقد: ({parseFloat(contract.contractAmount).toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline align-middle mx-0.5" /> – {contract.contractAmountText || numberToArabicText(parseFloat(contract.contractAmount))})
                 </p>
                 <div className="text-xs sm:text-sm">
                   <p className="mb-2 font-medium">يتم تحويل الدفعات على حساب الطرف الثاني وفقاً للتفاصيل التالية:</p>

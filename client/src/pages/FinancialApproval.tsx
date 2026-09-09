@@ -44,9 +44,9 @@ import {
   Receipt,
   ClipboardList,
   TrendingDown,
-  DollarSign,
   Building2,
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 export default function FinancialApproval() {
   const [, navigate] = useLocation();
@@ -322,29 +322,39 @@ export default function FinancialApproval() {
                                       {quotation.supplierName || "غير محدد"}
                                     </div>
                                   </TableCell>
-                                  <TableCell>{totalAmount.toLocaleString("ar-SA")} ريال</TableCell>
                                   <TableCell>
-                                    {taxAmount > 0 ? (
-                                      <span className="text-green-600">+{parseFloat(quotation.taxAmount || "0").toLocaleString("ar-SA")} ريال</span>
-                                    ) : (
-                                      <span className="text-muted-foreground">-</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    {discountAmount > 0 ? (
-                                      <span className="text-red-600 flex items-center gap-1">
-                                        <TrendingDown className="h-3 w-3" />
-                                        -{parseFloat(quotation.discountAmount || "0").toLocaleString("ar-SA")} ريال
-                                      </span>
-                                    ) : (
-                                      <span className="text-muted-foreground">-</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell>
-                                    <span className={`font-bold ${isSelected ? "text-green-600" : ""}`}>
-                                      {finalAmt.toLocaleString("ar-SA")} ريال
-                                    </span>
-                                  </TableCell>
+                                     <span className="inline-flex items-center gap-1">
+                                       {totalAmount.toLocaleString("ar-SA")}
+                                       <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                     </span>
+                                   </TableCell>
+                                   <TableCell>
+                                     {taxAmount > 0 ? (
+                                       <span className="text-green-600 inline-flex items-center gap-1">
+                                         +{parseFloat(quotation.taxAmount || "0").toLocaleString("ar-SA")}
+                                         <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                       </span>
+                                     ) : (
+                                       <span className="text-muted-foreground">-</span>
+                                     )}
+                                   </TableCell>
+                                   <TableCell>
+                                     {discountAmount > 0 ? (
+                                       <span className="text-red-600 inline-flex items-center gap-1">
+                                         <TrendingDown className="h-3 w-3" />
+                                         -{parseFloat(quotation.discountAmount || "0").toLocaleString("ar-SA")}
+                                         <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                       </span>
+                                     ) : (
+                                       <span className="text-muted-foreground">-</span>
+                                     )}
+                                   </TableCell>
+                                   <TableCell>
+                                     <span className={`font-bold inline-flex items-center gap-1 ${isSelected ? "text-green-600" : ""}`}>
+                                       {finalAmt.toLocaleString("ar-SA")}
+                                       <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                     </span>
+                                   </TableCell>
                                   <TableCell>
                                     {quotation.validUntil 
                                       ? new Date(quotation.validUntil).toLocaleDateString("ar-SA")
@@ -394,17 +404,17 @@ export default function FinancialApproval() {
                               <Calculator className="h-4 w-4" />
                               <span>إجمالي جدول الكميات</span>
                             </div>
-                            <p className="text-2xl font-bold">{boqTotal.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-2xl font-bold inline-flex items-center gap-1.5">{boqTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" /></p>
                             <p className="text-xs text-muted-foreground mt-2">للمرجعية فقط</p>
                           </div>
 
                           {/* التكلفة المعتمدة */}
                           <div className="p-4 bg-primary/10 rounded-lg border border-primary">
                             <div className="flex items-center gap-2 text-primary mb-2">
-                              <DollarSign className="h-4 w-4" />
+                              <SaudiRiyal className="h-4 w-4" />
                               <span>التكلفة المعتمدة (عرض السعر الفائز)</span>
                             </div>
-                            <p className="text-2xl font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</p>
+                            <p className="text-2xl font-bold text-primary inline-flex items-center gap-1.5">{finalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" /></p>
                             <p className="text-xs text-muted-foreground mt-2">
                               المورد: {selectedQuotation.supplierName || "غير محدد"}
                             </p>
@@ -421,21 +431,21 @@ export default function FinancialApproval() {
                             <span>رقم العرض:</span>
                             <span className="font-medium">{selectedQuotation.quotationNumber}</span>
                             <span>المبلغ الأصلي:</span>
-                            <span className="font-medium">{parseFloat(selectedQuotation.totalAmount).toLocaleString("ar-SA")} ريال</span>
+                            <span className="font-medium inline-flex items-center gap-1">{parseFloat(selectedQuotation.totalAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                             {parseFloat(selectedQuotation.taxAmount || "0") > 0 && (
                               <>
                                 <span>الضريبة:</span>
-                                <span className="font-medium text-green-600">+{parseFloat(selectedQuotation.taxAmount || "0").toLocaleString("ar-SA")} ريال</span>
+                                <span className="font-medium text-green-600 inline-flex items-center gap-1">+{parseFloat(selectedQuotation.taxAmount || "0").toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                               </>
                             )}
                             {parseFloat(selectedQuotation.discountAmount || "0") > 0 && (
                               <>
                                 <span>الخصم:</span>
-                                <span className="font-medium text-red-600">-{parseFloat(selectedQuotation.discountAmount || "0").toLocaleString("ar-SA")} ريال</span>
+                                <span className="font-medium text-red-600 inline-flex items-center gap-1">-{parseFloat(selectedQuotation.discountAmount || "0").toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                               </>
                             )}
                             <span className="font-bold">المبلغ النهائي:</span>
-                            <span className="font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</span>
+                            <span className="font-bold text-primary inline-flex items-center gap-1">{finalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                           </div>
                         </div>
 
@@ -473,8 +483,8 @@ export default function FinancialApproval() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>تأكيد الاعتماد المالي</DialogTitle>
-              <DialogDescription>
-                سيتم اعتماد الطلب مالياً بتكلفة {finalAmount.toLocaleString("ar-SA")} ريال وتحويله لمرحلة التعاقد
+              <DialogDescription className="flex items-center gap-1">
+                سيتم اعتماد الطلب مالياً بتكلفة {finalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /> وتحويله لمرحلة التعاقد
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -485,7 +495,7 @@ export default function FinancialApproval() {
                   <span>المورد:</span>
                   <span className="font-medium">{selectedQuotation?.supplierName || "غير محدد"}</span>
                   <span className="font-bold">التكلفة المعتمدة:</span>
-                  <span className="font-bold text-primary">{finalAmount.toLocaleString("ar-SA")} ريال</span>
+                  <span className="font-bold text-primary inline-flex items-center gap-1">{finalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                 </div>
               </div>
               <div>

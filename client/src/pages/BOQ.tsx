@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -178,8 +179,9 @@ export default function BOQ() {
                     <p className="text-sm text-muted-foreground">
                       عدد البنود المضافة: {boqData.length}
                     </p>
-                    <p className="text-xl font-bold text-primary mt-1">
-                      إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")} ريال
+                    <p className="text-xl font-bold text-primary mt-1 inline-flex items-center gap-1">
+                      <span>إجمالي التكلفة التقديرية: {totalAmount.toLocaleString("ar-SA")}</span>
+                      <SaudiRiyal className="w-4 h-4 inline" />
                     </p>
                   </div>
                   {requestDetails?.hasAcceptedQuotation ? (

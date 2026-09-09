@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -331,28 +332,34 @@ export default function TemplatePreview() {
                            </tr>
                          </thead>
                          <tbody>
-                           <tr className="border-b border-gray-200">
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">1</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة الأولى (مقدمة)</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">[القيمة] ريال</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
-                             <td className="py-2.5 px-3 text-gray-600">عند توقيع العقد</td>
-                           </tr>
-                           <tr className="border-b border-gray-200">
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">2</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة الثانية (إنجاز مرحلي)</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">[القيمة] ريال</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
-                             <td className="py-2.5 px-3 text-gray-600">عند إنجاز المرحلة المحددة</td>
-                           </tr>
-                           <tr className="border-b border-gray-200">
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">3</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة النهائية (التسليم)</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">[القيمة] ريال</td>
-                             <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
-                             <td className="py-2.5 px-3 text-gray-600">عند الاستلام الابتدائي والنهائي للمشروع</td>
-                           </tr>
-                         </tbody>
+                            <tr className="border-b border-gray-200">
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">1</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة الأولى (مقدمة)</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                <span className="inline-flex items-center gap-1">[القيمة] <SaudiRiyal className="w-3.5 h-3.5" /></span>
+                              </td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
+                              <td className="py-2.5 px-3 text-gray-600">عند توقيع العقد</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">2</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة الثانية (إنجاز مرحلي)</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                <span className="inline-flex items-center gap-1">[القيمة] <SaudiRiyal className="w-3.5 h-3.5" /></span>
+                              </td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
+                              <td className="py-2.5 px-3 text-gray-600">عند إنجاز المرحلة المحددة</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">3</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">الدفعة النهائية (التسليم)</td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
+                                <span className="inline-flex items-center gap-1">[القيمة] <SaudiRiyal className="w-3.5 h-3.5" /></span>
+                              </td>
+                              <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">XX%</td>
+                              <td className="py-2.5 px-3 text-gray-600">عند الاستلام الابتدائي والنهائي للمشروع</td>
+                            </tr>
+                          </tbody>
                        </table>
                      </div>
                    </div>
@@ -368,9 +375,11 @@ export default function TemplatePreview() {
                    القيمة المالية وتفاصيل الحساب:
                  </h3>
                  <div className="pr-2 sm:pr-4 text-right">
-                   <p className="text-xs sm:text-sm text-gray-700 mb-4">
-                     قيمة العقد الإجمالية: ([قيمة العقد بالأرقام] ريال – [قيمة العقد كتابةً فقط لا غير])
-                   </p>
+                    <p className="text-xs sm:text-sm text-gray-700 mb-4 inline-flex items-center gap-1 flex-wrap">
+                      <span>قيمة العقد الإجمالية: ([قيمة العقد بالأرقام]</span>
+                      <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                      <span>– [قيمة العقد كتابةً فقط لا غير])</span>
+                    </p>
                    <div className="text-xs sm:text-sm">
                      <p className="mb-2 font-medium">يتم تحويل الدفعات المستحقة على حساب الطرف الثاني البنكي المعتمد:</p>
                      <ul className="list-none space-y-1 text-gray-700">

@@ -6,6 +6,7 @@ import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, AlertTriangle, FileText, CheckCircle2, TrendingUp, TrendingDown, Minus, Eye, PenTool, Check, Loader2, ShieldAlert } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
@@ -647,7 +648,11 @@ export default function ProgressReportPrint() {
                       <td className="py-2.5 px-3 font-semibold text-gray-900">{(report.projectName as string) || "-"}</td>
                       <td className="py-2.5 bg-gray-50/50 font-bold w-36 text-gray-600">قيمة العقد:</td>
                       <td className="py-2.5 px-3 font-semibold text-gray-900">
-                        {contractAmount > 0 ? `${contractAmount.toLocaleString()} ريال` : "—"}
+                        {contractAmount > 0 ? (
+                          <span className="inline-flex items-center gap-1">
+                            {contractAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                          </span>
+                        ) : "—"}
                       </td>
                     </tr>
                     <tr className="border-b">
@@ -707,7 +712,7 @@ export default function ProgressReportPrint() {
 
                 {actualBudgetSpent > 0 && actualBudgetSpent < agreedPaymentAmount && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs leading-relaxed">
-                    <strong>تنويه مالي:</strong> تم صرف دفعة مالية بقيمة أقل من القيمة المتفقة عليها بفرق قدره <strong>{(agreedPaymentAmount - actualBudgetSpent).toLocaleString()} ريال</strong>. تم تعديل الحسابات المالية للمشروع آلياً لإتاحة جدولة دفعات إضافية لتغطية الفارق المتبقي من قيمة العقد.
+                    <strong>تنويه مالي:</strong> تم صرف دفعة مالية بقيمة أقل من القيمة المتفقة عليها بفرق قدره <strong className="inline-flex items-center gap-1">{(agreedPaymentAmount - actualBudgetSpent).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></strong>. تم تعديل الحسابات المالية للمشروع آلياً لإتاحة جدولة دفعات إضافية لتغطية الفارق المتبقي من قيمة العقد.
                   </div>
                 )}
               </div>

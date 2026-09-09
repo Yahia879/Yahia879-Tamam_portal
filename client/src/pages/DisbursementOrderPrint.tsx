@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { usePermission } from "@/hooks/usePermission";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight, Printer, PenTool, ExternalLink, Link2, Copy, X, Check, Loader2 } from "lucide-react";
-import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { numberToArabicText } from "@shared/tafqeet";
 import { toast } from "sonner";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 
 // دالة تحويل التاريخ الميلادي إلى هجري
@@ -622,8 +623,8 @@ export default function DisbursementOrderPrint() {
                       <td className="p-1.5 sm:p-2.5 bg-slate-55 font-bold w-14 sm:w-20 border-l border-slate-300 text-slate-600 text-center">
                         رقماً
                       </td>
-                      <td className="p-1.5 sm:p-2.5 text-slate-800 font-black font-mono text-right">
-                        {amount.toLocaleString()} ريال
+                      <td className="p-1.5 sm:p-2.5 text-slate-800 font-black font-mono text-right inline-flex items-center gap-1">
+                        {amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                       </td>
                     </tr>
                     
@@ -698,16 +699,16 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
                           {isTamamLinked 
-                            ? `${actualProjectValue.toLocaleString()} ريال` 
-                            : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
+                            ? <span className="inline-flex items-center gap-1">{actualProjectValue.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                         <td className="p-1.5 sm:p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           إجمالي قيمة العقد
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${actualProjectValue.toLocaleString()} ريال` 
-                            : (isCustomType ? "—" : (project ? `${project.contractAmount.toLocaleString()} ريال` : "—"))}
+                            ? <span className="inline-flex items-center gap-1">{actualProjectValue.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                       </tr>
 
@@ -717,16 +718,16 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
                           {isTamamLinked 
-                            ? `${(amountsSpent + amount).toLocaleString()} ريال` 
-                            : (isCustomType ? `${amount.toLocaleString()} ريال` : (project ? `${project.totalPaid.toLocaleString()} ريال` : "—"))}
+                            ? <span className="inline-flex items-center gap-1">{(amountsSpent + amount).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? <span className="inline-flex items-center gap-1">{amount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : (project ? <span className="inline-flex items-center gap-1">{project.totalPaid.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                         <td className="p-1.5 sm:p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
                           المبلغ المتبقي بعد الصرف
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? `${(actualProjectValue - (amountsSpent + amount)).toLocaleString()} ريال` 
-                            : (isCustomType ? "—" : (project ? `${project.remainingAmount.toLocaleString()} ريال` : "—"))}
+                            ? <span className="inline-flex items-center gap-1">{(actualProjectValue - (amountsSpent + amount)).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.remainingAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                       </tr>
                     </tbody>

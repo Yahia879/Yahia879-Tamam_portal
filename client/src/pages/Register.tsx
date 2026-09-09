@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -546,12 +547,12 @@ export default function Register() {
   const bankAccountNumber = "347000010006081245554";
   const donationUrl = "https://manarahstore.sa";
 
-  const getDynamicUnitSuffix = (fieldId: string) => {
+  const getDynamicUnitSuffix = (fieldId: string): React.ReactNode => {
     switch (fieldId) {
       case "landArea":
         return "م²";
       case "financialAmount":
-        return "ريال";
+        return <SaudiRiyal className="w-3.5 h-3.5 inline" />;
       default:
         return null;
     }

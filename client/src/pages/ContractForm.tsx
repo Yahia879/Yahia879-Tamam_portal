@@ -14,12 +14,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import {
   FileText,
   Building2,
   User,
   Calendar,
-  DollarSign,
   Loader2,
   ArrowRight,
   ArrowLeft,
@@ -1186,7 +1186,7 @@ export default function ContractForm() {
   const steps = [
     { id: 1, title: "القالب", icon: FileText },
     { id: 2, title: "الطرف الثاني", icon: Building2 },
-    { id: 3, title: "التفاصيل", icon: DollarSign },
+    { id: 3, title: "التفاصيل", icon: SaudiRiyal },
     { id: 4, title: "الدفعات", icon: Calendar },
     { id: 5, title: "البنود", icon: Edit },
     { id: 6, title: "البنود المخصصة", icon: Plus },
@@ -1250,9 +1250,9 @@ export default function ContractForm() {
                 </div>
                 <div>
                   <span className="text-sm text-muted-foreground">المبلغ المعتمد:</span>
-                  <p className="font-semibold text-blue-900">
+                  <p className="font-semibold text-blue-900 inline-flex items-center gap-1">
                     {contractData.totalValue > 0 
-                      ? `${contractData.totalValue.toLocaleString('ar-SA')} ريال`
+                      ? <>{contractData.totalValue.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline" /></>
                       : "لم يتم التحديد"}
                   </p>
                 </div>
@@ -1649,7 +1649,7 @@ export default function ContractForm() {
                 {/* التفاصيل المالية */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label>القيمة المتفقة مع المورد (ريال) *</Label>
+                    <Label className="flex items-center gap-1">القيمة المتفقة مع المورد (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1703,7 +1703,7 @@ export default function ContractForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>قيمة الجمعية (ريال)</Label>
+                    <Label className="flex items-center gap-1">قيمة الجمعية (<SaudiRiyal className="w-3.5 h-3.5" />)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1729,7 +1729,7 @@ export default function ContractForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>القيمة الكلية (ريال)</Label>
+                    <Label className="flex items-center gap-1">القيمة الكلية (<SaudiRiyal className="w-3.5 h-3.5" />)</Label>
                     <Input
                       type="text"
                       disabled
@@ -1967,13 +1967,13 @@ export default function ContractForm() {
                                   ? "text-destructive" 
                                   : "text-amber-600"
                             }`}>
-                              {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} ريال
+                                {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-muted-foreground">من قيمة العقد:</span>
-                            <span className="font-bold text-foreground">
-                              {contractData.totalValue.toLocaleString()} ريال
+                            <span className="font-bold text-foreground inline-flex items-center gap-1">
+                              {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                             </span>
                           </div>
                         </div>
@@ -1988,7 +1988,7 @@ export default function ContractForm() {
                           {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) < contractData.totalValue && (
                             <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
                               <AlertTriangle className="h-4 w-4 shrink-0" />
-                              <span>تنبيه: متبقي للصرف { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } ريال</span>
+                              <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                             </div>
                           )}
                           {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
@@ -2228,7 +2228,7 @@ export default function ContractForm() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">القيمة المتفقة مع المورد:</span>
-                      <p className="font-medium text-green-700 font-bold font-sans">{contractData.totalValue.toLocaleString("en-US")} ريال</p>
+                      <p className="font-medium text-green-700 font-bold font-sans inline-flex items-center gap-1">{contractData.totalValue.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" /></p>
                     </div>
                     {(contractData.managementPercentage > 0 || (contractData.managementAmount && contractData.managementAmount > 0)) && (
                       <>
@@ -2238,14 +2238,14 @@ export default function ContractForm() {
                         </div>
                         <div>
                           <span className="text-muted-foreground">قيمة الجمعية (المستقطعة):</span>
-                          <p className="font-medium text-orange-600 font-sans">
-                            {(contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          <p className="font-medium text-orange-600 font-sans inline-flex items-center gap-1">
+                            {(contractData.managementAmount || ((contractData.totalValue * contractData.managementPercentage) / 100)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                           </p>
                         </div>
                         <div className="sm:col-span-2 border-t pt-2 mt-2">
                           <span className="text-muted-foreground">القيمة الكلية للعقد:</span>
-                          <p className="text-base font-bold text-blue-700 font-sans">
-                            {contractData.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ريال
+                          <p className="text-base font-bold text-blue-700 font-sans inline-flex items-center gap-1">
+                            {contractData.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                           </p>
                         </div>
                       </>
@@ -2264,7 +2264,7 @@ export default function ContractForm() {
                         {paymentSchedule.map((payment, index) => (
                           <div key={payment.id} className="flex items-center justify-between text-sm">
                             <span>{payment.name}</span>
-                            <span className="font-medium">{payment.amount.toLocaleString()} ريال</span>
+                            <span className="font-medium inline-flex items-center gap-1">{payment.amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
                           </div>
                         ))}
                       </div>

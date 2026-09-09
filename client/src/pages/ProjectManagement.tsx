@@ -16,13 +16,13 @@ import {
   ArrowRight,
   Eye,
   Calendar,
-  DollarSign,
   Users,
   Briefcase,
   BarChart3,
   FolderOpen,
   PauseCircle,
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import {
@@ -181,7 +181,7 @@ export default function ProjectManagement() {
                   <p className="text-base sm:text-lg font-bold text-foreground truncate">{formatCurrency(stats?.totalBudget?.toString() || null)}</p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                  <SaudiRiyal className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
               </div>
             </CardContent>
@@ -259,7 +259,7 @@ export default function ProjectManagement() {
                               }
                             </span>
                             <span className="flex items-center gap-1">
-                              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <SaudiRiyal className="w-3 h-3 sm:w-4 sm:h-4" />
                               {formatCurrency(project.budget)}
                             </span>
                             {project.managerName && (

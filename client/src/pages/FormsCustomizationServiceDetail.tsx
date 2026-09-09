@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { Link, useRoute } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -229,7 +230,7 @@ const getFieldIcon = (fieldId: string) => {
   }
 };
 
-const getUnitSuffix = (fieldId: string) => {
+const getUnitSuffix = (fieldId: string): React.ReactNode => {
   switch (fieldId) {
     case "mosqueArea":
     case "landArea":
@@ -241,7 +242,7 @@ const getUnitSuffix = (fieldId: string) => {
     case "distanceToMosque":
       return "كم";
     case "donationAmount":
-      return "ريال";
+      return <SaudiRiyal className="w-3.5 h-3.5 inline" />;
     default:
       return null;
   }

@@ -5,6 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { usePermission } from "@/hooks/usePermission";
 import { numberToArabicText } from "@shared/tafqeet";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -694,8 +695,8 @@ export default function DisbursementRequests() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground font-semibold">إجمالي المصروف</p>
-                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none">
-                    {Number(statsData?.totalPaid || 0).toLocaleString()} <span className="text-[10px] sm:text-xs font-normal text-muted-foreground">ريال</span>
+                  <p className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 truncate leading-none inline-flex items-center gap-1">
+                    {Number(statsData?.totalPaid || 0).toLocaleString()} <SaudiRiyal className="w-4 h-4 inline" />
                   </p>
                 </div>
               </div>
@@ -864,7 +865,11 @@ export default function DisbursementRequests() {
                                   <span className="text-muted-foreground text-xs font-medium">-</span>
                                 )}
                               </TableCell>
-                              <TableCell className="py-3.5 px-4 whitespace-nowrap text-right font-semibold text-xs">{Number(request.amount).toLocaleString()} ريال</TableCell>
+                              <TableCell className="py-3.5 px-4 whitespace-nowrap text-right font-semibold text-xs">
+                                <span className="inline-flex items-center gap-1">
+                                  {Number(request.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                                </span>
+                              </TableCell>
                               <TableCell className="py-3.5 px-4 text-right">
                                 <div className="flex flex-col gap-1 items-start justify-start">
                                   <DisbursementStatusBadge 
@@ -1262,7 +1267,9 @@ export default function DisbursementRequests() {
                           <div className="flex justify-between items-end pt-1">
                             <div>
                               <p className="text-[10px] text-muted-foreground mb-0.5">المبلغ</p>
-                              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{Number(request.amount).toLocaleString()} ريال</p>
+                              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                                {Number(request.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                              </p>
                             </div>
                             <span className="text-[10px] text-muted-foreground">
                               {request.requestedAt ? new Date(request.requestedAt).toLocaleDateString("ar-SA") : "-"}
@@ -1387,7 +1394,11 @@ export default function DisbursementRequests() {
                               )}
                             </TableCell>
                             <TableCell className="max-w-[150px] truncate">{order.beneficiaryName}</TableCell>
-                            <TableCell className="whitespace-nowrap">{Number(order.amount).toLocaleString()} ريال</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1">
+                                {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                              </span>
+                            </TableCell>
                             <TableCell className="whitespace-nowrap">
                               {PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}
                             </TableCell>
@@ -1524,7 +1535,9 @@ export default function DisbursementRequests() {
                         <div className="grid grid-cols-2 gap-4 pt-1">
                           <div>
                             <p className="text-[10px] text-muted-foreground mb-0.5">المبلغ</p>
-                            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{Number(order.amount).toLocaleString()} ريال</p>
+                            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                              {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                            </p>
                           </div>
                           <div>
                             <p className="text-[10px] text-muted-foreground mb-0.5">طريقة الدفع</p>
@@ -1601,20 +1614,20 @@ export default function DisbursementRequests() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">إجمالي قيمة العقد:</span>
-                        <p className="font-medium text-primary">
-                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} ريال
+                        <p className="font-medium text-primary inline-flex items-center gap-1">
+                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">إجمالي ما تم دفعه:</span>
-                        <p className="font-medium text-green-600">
-                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} ريال
+                        <p className="font-medium text-green-600 inline-flex items-center gap-1">
+                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">المبلغ المتبقي:</span>
-                        <p className="font-medium text-orange-600">
-                          {Number(selectedProjectData.remainingAmount || 0).toLocaleString()} ريال
+                        <p className="font-medium text-orange-600 inline-flex items-center gap-1">
+                          {Number(selectedProjectData.remainingAmount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                     </div>
@@ -1668,7 +1681,7 @@ export default function DisbursementRequests() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>الدفعة المطلوبة (ريال) *</Label>
+                    <Label className="flex items-center gap-1">الدفعة المطلوبة (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
                     <Input
                       type="number"
                       value={newRequest.amount}
@@ -1676,8 +1689,8 @@ export default function DisbursementRequests() {
                       placeholder="0"
                     />
                     {selectedProjectData && newRequest.amount && (
-                      <p className="text-xs text-muted-foreground">
-                        المتبقي بعد هذه الدفعة: {(Number(selectedProjectData.remainingAmount || 0) - Number(newRequest.amount || 0)).toLocaleString()} ريال
+                      <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                        المتبقي بعد هذه الدفعة: {(Number(selectedProjectData.remainingAmount || 0) - Number(newRequest.amount || 0)).toLocaleString()} <SaudiRiyal className="w-3 h-3" />
                       </p>
                     )}
                   </div>
@@ -1750,8 +1763,8 @@ export default function DisbursementRequests() {
                   </div>
                   <div>
                     <Label className="text-muted-foreground">المبلغ</Label>
-                    <p className="font-medium text-primary">
-                      {Number(selectedRequest.amount).toLocaleString()} ريال
+                    <p className="font-medium text-primary inline-flex items-center gap-1">
+                      {Number(selectedRequest.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                     </p>
                   </div>
                   <div>
@@ -1875,7 +1888,7 @@ export default function DisbursementRequests() {
                             )}
                             <div>
                               <span className="text-muted-foreground">المبلغ:</span>
-                              <p className="font-bold text-primary mt-0.5">{Number(metadata.agreedAmount || selectedRequest.amount).toLocaleString()} ريال</p>
+                              <p className="font-bold text-primary mt-0.5 inline-flex items-center gap-1">{Number(metadata.agreedAmount || selectedRequest.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></p>
                             </div>
                           </div>
                         </div>
@@ -1905,7 +1918,7 @@ export default function DisbursementRequests() {
                             {metadata.agreedAmount > 0 && (
                               <div>
                                 <span className="text-muted-foreground">المبلغ المتفق عليه:</span>
-                                <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5">{metadata.agreedAmount.toLocaleString()} ريال</p>
+                                <p className="font-medium text-slate-700 dark:text-slate-300 mt-0.5 inline-flex items-center gap-1">{metadata.agreedAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></p>
                               </div>
                             )}
                           </div>
@@ -1942,8 +1955,8 @@ export default function DisbursementRequests() {
             <div className="space-y-4">
               <div className="rounded-lg bg-muted p-4 space-y-1">
                 <p className="font-bold text-slate-800">{selectedRequest?.title}</p>
-                <p className="text-sm text-slate-600">
-                  المبلغ: <span className="font-bold text-[#1a5f4a]">{Number(selectedRequest?.amount || 0).toLocaleString()} ريال</span>
+                <p className="text-sm text-slate-600 inline-flex items-center gap-1">
+                  المبلغ: <span className="font-bold text-[#1a5f4a] inline-flex items-center gap-1">{Number(selectedRequest?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                 </p>
                 {selectedRequest?.projectName && (
                   <p className="text-xs text-slate-500">المشروع: {selectedRequest.projectName}</p>
@@ -2154,8 +2167,8 @@ export default function DisbursementRequests() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">المبلغ:</span>
-                      <p className="font-medium text-primary">
-                        {Number(selectedRequest?.amount || 0).toLocaleString()} ريال
+                      <p className="font-medium text-primary inline-flex items-center gap-1">
+                        {Number(selectedRequest?.amount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                       </p>
                     </div>
                   </div>
@@ -2180,24 +2193,24 @@ export default function DisbursementRequests() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">إجمالي قيمة الدعم:</span>
-                        <p className="font-medium">0 ريال</p>
+                        <p className="font-medium inline-flex items-center gap-1">0 <SaudiRiyal className="w-3.5 h-3.5" /></p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">إجمالي قيمة العقد:</span>
-                        <p className="font-medium">
-                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} ريال
+                        <p className="font-medium inline-flex items-center gap-1">
+                          {Number(selectedProjectData.contractAmount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">إجمالي ما تم دفعه:</span>
-                        <p className="font-medium text-green-600">
-                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} ريال
+                        <p className="font-medium text-green-600 inline-flex items-center gap-1">
+                          {Number(selectedProjectData.totalPaid || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">المبلغ المتبقي بعد صرف المبلغ أعلاه:</span>
-                        <p className="font-medium text-orange-600">
-                          {(Number(selectedProjectData.remainingAmount || 0) - Number(selectedRequest?.amount || 0)).toLocaleString()} ريال
+                        <p className="font-medium text-orange-600 inline-flex items-center gap-1">
+                          {(Number(selectedProjectData.remainingAmount || 0) - Number(selectedRequest?.amount || 0)).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </p>
                       </div>
                     </div>
@@ -2379,8 +2392,8 @@ export default function DisbursementRequests() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-muted-foreground text-sm">مبلغ وقدره/ (رقماً)</span>
-                      <p className="font-bold text-xl text-primary">
-                        {Number(selectedOrder.amount).toLocaleString()} ريال
+                      <p className="font-bold text-xl text-primary inline-flex items-center gap-1">
+                        {Number(selectedOrder.amount).toLocaleString()} <SaudiRiyal className="w-4 h-4" />
                       </p>
                     </div>
                     <div>
@@ -2434,24 +2447,24 @@ export default function DisbursementRequests() {
                         </tr>
                         <tr className="border-b">
                           <td className="py-2 text-muted-foreground">إجمالي قيمة الدعم</td>
-                          <td className="py-2 font-medium">0 ريال</td>
+                          <td className="py-2 font-medium"><span className="inline-flex items-center gap-1">0 <SaudiRiyal className="w-3.5 h-3.5" /></span></td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-2 text-muted-foreground">إجمالي قيمة العقد</td>
                           <td className="py-2 font-medium">
-                            {Number(selectedOrder.contractAmount || 0).toLocaleString()} ريال
+                            <span className="inline-flex items-center gap-1">{Number(selectedOrder.contractAmount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                           </td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-2 text-muted-foreground">إجمالي ما تم دفعه</td>
                           <td className="py-2 font-medium text-green-600">
-                            {Number(selectedOrder.totalPaid || 0).toLocaleString()} ريال
+                            <span className="inline-flex items-center gap-1">{Number(selectedOrder.totalPaid || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                           </td>
                         </tr>
                         <tr>
                           <td className="py-2 text-muted-foreground">المبلغ المتبقي بعد صرف المبلغ أعلاه</td>
                           <td className="py-2 font-medium text-orange-600">
-                            {Number(selectedOrder.remainingAmount || 0).toLocaleString()} ريال
+                            <span className="inline-flex items-center gap-1">{Number(selectedOrder.remainingAmount || 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                           </td>
                         </tr>
                       </tbody>

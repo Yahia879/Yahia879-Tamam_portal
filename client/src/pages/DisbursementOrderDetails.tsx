@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { trpc } from "@/lib/trpc";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { ArrowRight, Printer, CheckCircle, XCircle, Clock, Banknote, Building2, CreditCard, FileText, ExternalLink } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -162,7 +163,9 @@ export default function DisbursementOrderDetails() {
                   <AlertDialogHeader className="text-right">
                     <AlertDialogTitle className="text-right">تأكيد تنفيذ أمر الصرف</AlertDialogTitle>
                     <AlertDialogDescription className="text-right">
-                      هل أنت متأكد من تنفيذ أمر الصرف رقم {order.orderNumber} بمبلغ {Number(order.amount).toLocaleString("ar-SA")} ريال؟
+                      <span className="inline-flex items-center gap-1">
+                        هل أنت متأكد من تنفيذ أمر الصرف رقم {order.orderNumber} بمبلغ {Number(order.amount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />؟
+                      </span>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-row-reverse justify-start gap-2">
@@ -198,8 +201,8 @@ export default function DisbursementOrderDetails() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground text-right">المبلغ</p>
-                  <p className="font-semibold text-primary text-lg text-right">
-                    {Number(order.amount).toLocaleString("ar-SA")} ريال
+                  <p className="font-semibold text-primary text-lg text-right inline-flex items-center gap-1">
+                    {Number(order.amount).toLocaleString("ar-SA")} <SaudiRiyal className="w-4 h-4" />
                   </p>
                 </div>
                 <div className="text-right">
@@ -317,8 +320,8 @@ export default function DisbursementOrderDetails() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground text-right">المبلغ المطلوب</p>
-                    <p className="font-semibold text-right">
-                      {Number(order.disbursementRequest.amount).toLocaleString("ar-SA")} ريال
+                    <p className="font-semibold text-right inline-flex items-center gap-1">
+                      {Number(order.disbursementRequest.amount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                     </p>
                   </div>
                   {order.disbursementRequest.description && (
@@ -407,8 +410,8 @@ export default function DisbursementOrderDetails() {
                   {order.project.budget && (
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground text-right">ميزانية المشروع</p>
-                      <p className="font-semibold text-right">
-                        {Number(order.project.budget).toLocaleString("ar-SA")} ريال
+                      <p className="font-semibold text-right inline-flex items-center gap-1">
+                        {Number(order.project.budget).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
                       </p>
                     </div>
                   )}

@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { 
   FileText, Building2, User, Calendar, MapPin, 
-  ClipboardCheck, Table, DollarSign, FileSignature, 
+  ClipboardCheck, Table, FileSignature, 
   Cog, ClipboardList, CheckCircle, Download, Printer,
   X, AlertCircle
 } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { STAGE_LABELS, PROGRAM_LABELS, STATUS_LABELS, PROGRAM_DATA_LABELS } from "../../../shared/constants";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -250,7 +251,7 @@ export function FinalReportModal({ requestId, isOpen, onClose }: FinalReportModa
               ))}
 
               {/* 7. التقييم المالي واعتماد العرض */}
-              {renderSection("التقييم المالي", <DollarSign className="w-5 h-5" />, (
+              {renderSection("التقييم المالي", <SaudiRiyal className="w-5 h-5" />, (
                 <div className="space-y-4">
                   {report.selectedQuotation ? (
                     <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded border border-emerald-200">

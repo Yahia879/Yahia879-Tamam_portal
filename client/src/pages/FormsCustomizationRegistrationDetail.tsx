@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, Fragment } from "react";
 import { Link, useRoute } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -239,12 +240,12 @@ const getFieldIcon = (fieldId: string) => {
   }
 };
 
-const getUnitSuffix = (fieldId: string) => {
+const getUnitSuffix = (fieldId: string): React.ReactNode => {
   switch (fieldId) {
     case "landArea":
       return "م²";
     case "financialAmount":
-      return "ريال";
+      return <SaudiRiyal className="w-3.5 h-3.5 inline" />;
     case "distanceToMosque":
       return "كم";
     default:

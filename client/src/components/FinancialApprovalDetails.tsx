@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Building2, DollarSign, Calendar, User } from "lucide-react";
+import { CheckCircle2, Building2, Calendar, User } from "lucide-react";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Badge } from "@/components/ui/badge";
 
 interface FinancialApprovalDetailsProps {
@@ -55,7 +56,7 @@ export function FinancialApprovalDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-start gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="h-4 w-4 text-green-700" />
+              <SaudiRiyal className="h-4 w-4" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-muted-foreground">رقم العرض المعتمد</p>
@@ -78,33 +79,43 @@ export function FinancialApprovalDetails({
         <div className="border-t pt-4">
           <h4 className="text-sm font-medium mb-3">تفاصيل المبلغ</h4>
           <div className="space-y-2 bg-white p-4 rounded-lg">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">المبلغ الأصلي</span>
-              <span className="font-medium">{parseFloat(totalAmount).toLocaleString("ar-SA")} ريال</span>
+              <span className="font-medium inline-flex items-center gap-1">
+                {parseFloat(totalAmount).toLocaleString("ar-SA")}
+                <SaudiRiyal className="w-3.5 h-3.5 inline" />
+              </span>
             </div>
 
             {includesTax && taxAmount && parseFloat(taxAmount) > 0 && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">
                   الضريبة ({taxRate}%)
                 </span>
-                <span className="text-green-600">+{parseFloat(taxAmount).toLocaleString("ar-SA")} ريال</span>
+                <span className="text-green-600 inline-flex items-center gap-1">
+                  +{parseFloat(taxAmount).toLocaleString("ar-SA")}
+                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                </span>
               </div>
             )}
 
             {discountAmount && parseFloat(discountAmount) > 0 && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">
                   الخصم ({discountType === "percentage" ? `${discountValue}%` : "ثابت"})
                 </span>
-                <span className="text-red-600">-{parseFloat(discountAmount).toLocaleString("ar-SA")} ريال</span>
+                <span className="text-red-600 inline-flex items-center gap-1">
+                  -{parseFloat(discountAmount).toLocaleString("ar-SA")}
+                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                </span>
               </div>
             )}
 
-            <div className="flex justify-between pt-2 border-t">
+            <div className="flex justify-between items-center pt-2 border-t">
               <span className="font-medium">المبلغ النهائي المعتمد</span>
-              <span className="font-bold text-green-700 text-lg">
-                {parseFloat(finalAmount).toLocaleString("ar-SA")} ريال
+              <span className="font-bold text-green-700 text-lg inline-flex items-center gap-1">
+                {parseFloat(finalAmount).toLocaleString("ar-SA")}
+                <SaudiRiyal className="w-4 h-4 inline" />
               </span>
             </div>
           </div>

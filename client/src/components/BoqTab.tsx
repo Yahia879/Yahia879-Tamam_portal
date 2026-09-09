@@ -1,5 +1,6 @@
 import { useState, useImperativeHandle, forwardRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -645,8 +646,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                     <CardContent className="p-4 pt-0">
                       <div className="flex items-baseline justify-between mt-2 pt-2 border-t border-border/50 text-xs">
                         <span className="text-muted-foreground font-medium">إجمالي الجدول:</span>
-                        <span className="font-bold text-sm text-teal-600 dark:text-teal-400">
-                          {m.totalAmount.toLocaleString("en-US")} ريال
+                        <span className="font-bold text-sm text-teal-600 dark:text-teal-400 inline-flex items-center gap-1">
+                          {m.totalAmount.toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" />
                         </span>
                       </div>
                     </CardContent>
@@ -696,8 +697,8 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                   <p className="text-xs text-muted-foreground font-medium mb-1">
                     {isMultiMosque && selectedMosqueTab === "all" ? "الإجمالي الكلي للمشروع" : "إجمالي الجدول"}
                   </p>
-                  <p className="text-xl sm:text-2xl font-bold text-teal-600 dark:text-teal-400">
-                    {filteredTotalAmount.toLocaleString("en-US")} ريال
+                  <p className="text-xl sm:text-2xl font-bold text-teal-600 dark:text-teal-400 inline-flex items-center gap-1">
+                    {filteredTotalAmount.toLocaleString("en-US")} <SaudiRiyal className="w-4 h-4 inline" />
                   </p>
                 </div>
                 <div className="rounded-xl bg-background/80 p-3.5 border border-border/60 shadow-2xs">
@@ -798,10 +799,18 @@ const BoqTab = forwardRef<BoqTabHandle, BoqTabProps>(
                               <TableCell className="text-xs">{item.unit}</TableCell>
                               <TableCell className="text-xs font-bold">{item.quantity}</TableCell>
                               <TableCell className="text-xs">
-                                {item.unitPrice ? `${parseFloat(item.unitPrice).toLocaleString("en-US")} ر.س` : "-"}
+                                {item.unitPrice ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    {parseFloat(item.unitPrice).toLocaleString("en-US")} <SaudiRiyal className="w-3 h-3 inline" />
+                                  </span>
+                                ) : "-"}
                               </TableCell>
                               <TableCell className="font-bold text-xs sm:text-sm text-teal-600 dark:text-teal-400">
-                                {item.totalPrice ? `${parseFloat(item.totalPrice).toLocaleString("en-US")} ريال` : "-"}
+                                {item.totalPrice ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    {parseFloat(item.totalPrice).toLocaleString("en-US")} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                  </span>
+                                ) : "-"}
                               </TableCell>
                               {!isLocked && (canEdit || canDelete) && (
                                 <TableCell>

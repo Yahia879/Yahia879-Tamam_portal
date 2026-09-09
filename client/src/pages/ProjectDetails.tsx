@@ -16,12 +16,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { 
   ArrowRight, 
   FolderKanban, 
   Building2, 
   Calendar, 
-  DollarSign,
   FileText,
   Users,
   CheckCircle2,
@@ -203,11 +203,13 @@ export default function ProjectDetails() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">الميزانية</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">{budget.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">ريال سعودي</p>
+                  <p className="text-2xl font-bold text-foreground mt-1 flex items-center gap-1.5">
+                    {budget.toLocaleString()}
+                    <SaudiRiyal className="w-5 h-5 inline" />
+                  </p>
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-600" />
+                  <SaudiRiyal className="w-6 h-6" />
                 </div>
               </div>
             </CardContent>
