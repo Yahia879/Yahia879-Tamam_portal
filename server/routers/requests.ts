@@ -1884,6 +1884,30 @@ export const requestsRouter = router({
         isInternal,
       });
 
+      // إرسال إشعار لمقدم الطلب إذا كان التعليق من موظف وليس داخلياً
+      if (!isInternal) {
+        const [req] = await db
+          .select({ userId: mosqueRequests.userId, requestNumber: mosqueRequests.requestNumber })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, input.requestId))
+          .limit(1);
+
+        if (req && req.userId && req.userId !== ctx.user.id) {
+          const [requester] = await db.select({ role: users.role }).from(users).where(eq(users.id, req.userId)).limit(1);
+          if (requester && requester.role === "service_requester") {
+            await createNotification({
+              userId: req.userId,
+              type: "info",
+              title: "تعليق جديد على طلبك",
+              message: `أضاف ${ctx.user.name || "المسؤول"} تعليقاً جديداً على طلبك رقم ${req.requestNumber}`,
+              relatedType: "request",
+              relatedId: input.requestId,
+              triggerId: "beneficiary_comment_added",
+            }).catch((err) => console.error("Failed to notify beneficiary about comment:", err));
+          }
+        }
+      }
+
       return { success: true, message: "تم إضافة التعليق بنجاح" };
     }),
 
@@ -2285,14 +2309,30 @@ export const requestsRouter = router({
         notes: "تم رفع تقرير الزيارة الميدانية والتحويل للتقييم الفني",
       });
 
-      // إرسال إشعار للمسؤولين عن قسم الطلبات
+      // إرسال إشعار للمسؤولين عن قسم الطلبات وللمستفيد
       const [req] = await db
-        .select({ requestNumber: mosqueRequests.requestNumber })
+        .select({ requestNumber: mosqueRequests.requestNumber, userId: mosqueRequests.userId })
         .from(mosqueRequests)
         .where(eq(mosqueRequests.id, input.requestId))
         .limit(1);
 
       if (req) {
+        // إشعار للمستفيد
+        if (req.userId) {
+          const [ownerUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, req.userId)).limit(1);
+          if (ownerUser && ownerUser.role === "service_requester") {
+            await createNotification({
+              userId: req.userId,
+              type: "request_update",
+              title: "إتمام الزيارة الميدانية",
+              message: `تم إتمام الزيارة الميدانية لطلبك رقم ${req.requestNumber} وجارٍ الآن التقييم الفني.`,
+              relatedType: "request",
+              relatedId: input.requestId,
+              triggerId: "beneficiary_field_visit_completed",
+            }).catch((e) => console.error("Error notifying beneficiary of visit report:", e));
+          }
+        }
+
         try {
           await notifyUsersByRole(
             ["super_admin", "system_admin", "projects_office"],
@@ -2366,14 +2406,30 @@ export const requestsRouter = router({
       }
       */
 
-      // إرسال إشعار للمسؤولين عن قسم الطلبات
+      // إرسال إشعار للمسؤولين عن قسم الطلبات وللمستفيد
       const [req] = await db
-        .select({ requestNumber: mosqueRequests.requestNumber })
+        .select({ requestNumber: mosqueRequests.requestNumber, userId: mosqueRequests.userId })
         .from(mosqueRequests)
         .where(eq(mosqueRequests.id, input.requestId))
         .limit(1);
 
       if (req) {
+        // إشعار للمستفيد
+        if (req.userId) {
+          const [ownerUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, req.userId)).limit(1);
+          if (ownerUser && ownerUser.role === "service_requester") {
+            await createNotification({
+              userId: req.userId,
+              type: "request_update",
+              title: "إتمام الاستجابة السريعة",
+              message: `تم تنفيذ وإتمام أعمال الاستجابة السريعة لطلبك رقم ${req.requestNumber}.`,
+              relatedType: "request",
+              relatedId: input.requestId,
+              triggerId: "beneficiary_quick_response_completed",
+            }).catch((e) => console.error("Error notifying beneficiary of quick response report:", e));
+          }
+        }
+
         try {
           await notifyUsersByRole(
             ["super_admin", "system_admin", "projects_office"],

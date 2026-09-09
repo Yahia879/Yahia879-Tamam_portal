@@ -346,6 +346,7 @@ export const supportTicketsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
       let modifierName = "مسؤول الدعم";
+      let autoReplyMessage = "";
 
       const ticketResult = await db
         .select({
@@ -383,7 +384,6 @@ export const supportTicketsRouter = router({
           .limit(1);
         modifierName = modifier[0]?.name || "مسؤول الدعم";
 
-        let autoReplyMessage = "";
         if (isResolvedTransition) {
           if (ticket.ticketType === "technical_issue") {
             autoReplyMessage = `تم حل المشكلة المُبلغ عنها بنجاح، في حال وجود اي ملاحظات إضافية، يسعدنا استقبالها في اي وقت \n\n${modifierName} - فريق الدعم الفني`;
@@ -458,7 +458,7 @@ export const supportTicketsRouter = router({
             userId: ticket.userId,
             type: "info",
             title: "رد جديد على التذكرة",
-            message: `قام المسؤول ${modifierName} بإضافة رد جديد على تذكرة الدعم الخاصة بك رقم #${ticket.id}`,
+            message: autoReplyMessage,
             relatedType: "support_ticket",
             relatedId: ticket.id,
           });

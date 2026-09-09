@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X } from "lucide-react";
+import { Bell, Shield, Smartphone, MessageSquare, Mail, Users, Info, ArrowRight, Pencil, X, HeartHandshake, Search, CheckCircle2, XCircle, SlidersHorizontal, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
@@ -464,7 +464,324 @@ export default function NotificationCustomization() {
 
 
 
-  // المشغلات/الأحداث التفصيلية التي ترسل إشعارات مع القوالب والمتغيرات
+  // المشغلات والأحداث التلقائية الخاصة بالمستفيد (طالب الخدمة)
+  const BENEFICIARY_NOTIFICATION_TRIGGERS = [
+    // === الحساب والتسجيل ===
+    {
+      id: "beneficiary_account_approved",
+      category: "account",
+      categoryNameAr: "الحساب والتسجيل",
+      nameAr: "اعتماد وقبول حساب المستفيد",
+      description: "إشعار المستفيد عند قيام الإدارة بالموافقة على تسجيل حسابه وتفعيله في البوابة",
+      defaultTemplate: "أهلاً بك {اسم_المستفيد}، تم اعتماد حسابك بنجاح في بوابة تمام. يمكنك الآن تسجيل الدخول وتقديم الطلبات.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" }
+      ]
+    },
+    {
+      id: "beneficiary_account_suspended",
+      category: "account",
+      categoryNameAr: "الحساب والتسجيل",
+      nameAr: "تعليق أو رفض حساب المستفيد",
+      description: "إشعار المستفيد في حال تم تعليق حسابه أو رفضه من قبل الإدارة",
+      defaultTemplate: "مرحباً {اسم_المستفيد}، نود إعلامك بأنه تم تغيير حالة حسابك في بوابة تمام إلى: معلق. للتواصل والاستفسار يرجى مراسلة الدعم الفني.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" }
+      ]
+    },
+    {
+      id: "beneficiary_registration_notes",
+      category: "account",
+      categoryNameAr: "الحساب والتسجيل",
+      nameAr: "إرسال ملاحظات تدقيق على بيانات التسجيل",
+      description: "إشعار المستفيد بوجود نواقص أو ملاحظات على ملف تسجيله وطلب استكمالها",
+      defaultTemplate: "مرحباً {اسم_المستفيد}، توجد ملاحظات على بيانات تسجيل حسابك: {الملاحظات}. يرجى تحديث بياناتك في أقرب وقت.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{الملاحظات}", nameAr: "الملاحظات" }
+      ]
+    },
+
+    // === المساجد ===
+    {
+      id: "beneficiary_mosque_created",
+      category: "mosque",
+      categoryNameAr: "المساجد",
+      nameAr: "تأكيد إضافة مسجد جديد",
+      description: "إشعار تأكيد للمستفيد عند قيامه بإضافة مسجد جديد في النظام وهو قيد المراجعة",
+      defaultTemplate: "تم تسجيل المسجد {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق من قبل الإدارة.",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "beneficiary_mosque_approved",
+      category: "mosque",
+      categoryNameAr: "المساجد",
+      nameAr: "اعتماد وقبول طلب تسجيل المسجد",
+      description: "إشعار المستفيد عند قيام الإدارة بالموافقة على اعتماد مسجده المسجل",
+      defaultTemplate: "تم قبول واعتماد طلب تسجيل المسجد الخاص بك: {اسم_المسجد}. يمكنك الآن تقديم طلبات الخدمات الخاصة به.",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "beneficiary_mosque_rejected",
+      category: "mosque",
+      categoryNameAr: "المساجد",
+      nameAr: "رفض طلب تسجيل المسجد",
+      description: "إشعار المستفيد في حال رفض طلب تسجيل المسجد مع ذكر السبب",
+      defaultTemplate: "نعتذر منك، تم رفض طلب تسجيل المسجد {اسم_المسجد} بسبب: {السبب}. يمكنك مراجعة البيانات وتقديم الطلب مجدداً.",
+      variables: [
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{السبب}", nameAr: "سبب الرفض" }
+      ]
+    },
+
+    // === الطلبات والمراحل ===
+    {
+      id: "beneficiary_request_created",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "تأكيد استلام طلب خدمة جديد",
+      description: "إشعار تأكيد فوري للمستفيد عند تقديم طلب خدمة جديد لمسجده",
+      defaultTemplate: "تم استلام طلبك رقم {رقم_الطلب} لمسجد {اسم_المسجد} بنجاح، وهو الآن قيد المراجعة والتدقيق.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
+      ]
+    },
+    {
+      id: "beneficiary_request_status_changed",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "تحديث عام لحالة الطلب",
+      description: "إشعار المستفيد عند أي تغيير عام يطرأ على مسار أو حالة طلبه",
+      defaultTemplate: "تم تحديث حالة طلبك رقم {رقم_الطلب} إلى: {المرحلة_الجديدة}",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{المرحلة_الجديدة}", nameAr: "الحالة / المرحلة الجديدة" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_initial_review",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "انتقال الطلب لمرحلة المراجعة الأولية",
+      description: "إشعار المستفيد ببدء دراسة طلبه والتدقيق المكتبي في التفاصيل",
+      defaultTemplate: "تم نقل طلبك رقم {رقم_الطلب} إلى مرحلة: المراجعة الأولية وجارٍ دراسة البيانات المرفقة.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_field_visit",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "انتقال الطلب لمرحلة الزيارة الميدانية",
+      description: "إشعار المستفيد بأن طلبه تأهل لمرحلة المعاينة الميدانية",
+      defaultTemplate: "تم نقل طلبك رقم {رقم_الطلب} إلى مرحلة: الزيارة الميدانية وسيتم التنسيق معكم للمعاينة.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_field_visit_scheduled",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "جدولة موعد الزيارة الميدانية للمسجد",
+      description: "إشعار المستفيد بالموعد المحدد لمعاينة الفريق الميداني للمسجد",
+      defaultTemplate: "تم تحديد موعد الزيارة الميدانية للطلب رقم {رقم_الطلب} بتاريخ {تاريخ_الزيارة}. نرجو التواجد أو التنسيق مع الفريق.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{تاريخ_الزيارة}", nameAr: "تاريخ الزيارة" }
+      ]
+    },
+    {
+      id: "beneficiary_field_visit_completed",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "اكتمال تقرير المعاينة الميدانية",
+      description: "إشعار المستفيد بانتهاء الفريق الميداني من إعداد ورفع تقرير الزيارة",
+      defaultTemplate: "تم إكمال تقرير المعاينة الميدانية لطلبك رقم {رقم_الطلب} بنجاح وجارٍ استكمال الإجراءات الفنية.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_quick_response_completed",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "إنجاز أعمال الاستجابة السريعة",
+      description: "إشعار المستفيد بانتهاء وتوثيق أعمال الاستجابة السريعة الطارئة لمسجده",
+      defaultTemplate: "تم إنجاز أعمال تقرير الاستجابة السريعة للطلب رقم {رقم_الطلب} بنجاح.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_financial_eval",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "انتقال الطلب لمرحلة التقييم المالي واعتماد العروض",
+      description: "إشعار المستفيد ببدء تسعير وتجهيز العروض المالية للمشروع",
+      defaultTemplate: "تم نقل طلبك رقم {رقم_الطلب} إلى مرحلة: التقييم المالي واعتماد العرض لدراسة التكاليف والمواصفات.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_financial_approved",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "الموافقة والاعتماد المالي للمشروع",
+      description: "إشعار المستفيد باعتماد الميزانية وتخصيص التمويل للبدء بالتعاقد",
+      defaultTemplate: "بشرى سارة: تم اعتماد التقييم المالي لطلبك رقم {رقم_الطلب} وجارٍ التجهيز لمرحلة التعاقد والتنفيذ.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_contracting",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "انتقال الطلب لمرحلة التعاقد وتعميد المقاول",
+      description: "إشعار المستفيد ببدء إجراءات التعاقد مع الجهة المنفذة المعتمدة",
+      defaultTemplate: "تم نقل طلبك رقم {رقم_الطلب} إلى مرحلة: التعاقد وتعميد المقاول المنفذ للبدء بالأعمال.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_execution",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "بدء مرحلة التنفيذ الميداني للمشروع",
+      description: "إشعار المستفيد بانطلاق أعمال الصيانة أو الترميم في المسجد ميدانياً",
+      defaultTemplate: "تم البدء في مرحلة التنفيذ الفعلي للأعمال في مسجدك للطلب رقم {رقم_الطلب}.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_handover",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "مرحلة التسليم النهائي للمسجد",
+      description: "إشعار المستفيد بجاهزية المسجد للتسليم والاستلام بعد اكتمال التنفيذ",
+      defaultTemplate: "اكتملت أعمال التنفيذ لطلبك رقم {رقم_الطلب}، وهو الآن في مرحلة التسليم النهائي.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_stage_closed",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "إغلاق الطلب واكتمال الخدمة نهائياً",
+      description: "إشعار المستفيد باكتمال كافة مراحل العمل وإغلاق الطلب بنجاح",
+      defaultTemplate: "تم إغلاق الطلب رقم {رقم_الطلب} بنجاح بعد اكتمال كافة الأعمال الميدانية والموافقات. نسأل الله أن يتقبل من الجميع.",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+
+    // === التعليقات والملاحظات ===
+    {
+      id: "beneficiary_comment_added",
+      category: "comments",
+      categoryNameAr: "التعليقات والملاحظات",
+      nameAr: "إضافة تعليق أو توجيه جديد على الطلب",
+      description: "إشعار المستفيد عند قيام أحد مسؤولي الجمعية بكتابة تعليق أو توجيه على طلبه",
+      defaultTemplate: "قام المسؤول {اسم_المسؤول} بإضافة تعليق جديد على طلبك رقم {رقم_الطلب}: \"{الملاحظات}\"",
+      variables: [
+        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{الملاحظات}", nameAr: "نص الملاحظة" }
+      ]
+    },
+
+    // === طلبات الاستثناء ===
+    {
+      id: "beneficiary_exception_submitted",
+      category: "exceptions",
+      categoryNameAr: "طلبات الاستثناء",
+      nameAr: "تأكيد تقديم طلب استثناء",
+      description: "إشعار تأكيد للمستفيد عند رفعه طلب استثناء لتقديم طلب إضافي",
+      defaultTemplate: "تم استلام طلب الاستثناء الخاص بك بنجاح، وهو الآن بانتظار المراجعة والاعتماد من الإدارة.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" }
+      ]
+    },
+    {
+      id: "beneficiary_exception_approved",
+      category: "exceptions",
+      categoryNameAr: "طلبات الاستثناء",
+      nameAr: "قبول واعتماد طلب الاستثناء",
+      description: "إشعار المستفيد بالموافقة على طلب الاستثناء الخاص به وإمكانية المتابعة",
+      defaultTemplate: "يسرنا إبلاغك بأنه تمت الموافقة على طلب الاستثناء المقدم من قبلك. يمكنك الآن متابعة إجراءاتك.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" }
+      ]
+    },
+    {
+      id: "beneficiary_exception_rejected",
+      category: "exceptions",
+      categoryNameAr: "طلبات الاستثناء",
+      nameAr: "رفض طلب الاستثناء",
+      description: "إشعار المستفيد في حال تعذر الموافقة على طلب الاستثناء مع توضيح السبب",
+      defaultTemplate: "نعتذر منك، تم رفض طلب الاستثناء المقدم من قبلك بسبب: {السبب}. نسعد بتواصلك في حال وجود استفسارات.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{السبب}", nameAr: "سبب الرفض" }
+      ]
+    },
+
+    // === الاستبيانات والتقييم ===
+    {
+      id: "beneficiary_survey_evaluation",
+      category: "surveys",
+      categoryNameAr: "الاستبيانات والتقييم",
+      nameAr: "طلب تقييم رضا المستفيد بعد اكتمال الطلب",
+      description: "دعوة المستفيد لتقييم جودة الخدمة المنفذة لمسجده وإبداء رأيه وملاحظاته",
+      defaultTemplate: "السلام عليكم {اسم_المستفيد}، نرجو التكرم بتقييم مستوى الخدمة المقدمة لمسجد {اسم_المسجد} للطلب رقم {رقم_الطلب} عبر الرابط المرفق.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{رابط_الاستبيان}", nameAr: "رابط التقييم" }
+      ]
+    },
+    {
+      id: "beneficiary_survey_reminder",
+      category: "surveys",
+      categoryNameAr: "الاستبيانات والتقييم",
+      nameAr: "الرسالة التذكيرية لتقييم رضا المستفيد",
+      description: "رسالة تذكيرية لطيفة للمستفيد الذي لم يستكمل تقييم الرضا بعد إغلاق الطلب",
+      defaultTemplate: "تذكير: نود مشاركتكم في تقييم الخدمة لمسجد {اسم_المسجد} للطلب رقم {رقم_الطلب} لتطوير خدماتنا ومساعدتنا على التحسين المستمر.",
+      variables: [
+        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
+        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{رابط_الاستبيان}", nameAr: "رابط التقييم" }
+      ]
+    },
+    {
+      id: "beneficiary_survey_invite",
+      category: "surveys",
+      categoryNameAr: "الاستبيانات والتقييم",
+      nameAr: "دعوة للمشاركة في استبيان الرضا الدوري",
+      description: "دعوة للمستفيدين للمشاركة في الاستبيانات الدورية العامة لقياس جودة تجربة المستفيد",
+      defaultTemplate: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، ندعوكم للمشاركة في استبيان قياس رضا المستفيدين لتطوير رعايتنا لبيوت الله: {رابط_الاستبيان}",
+      variables: [
+        { placeholder: "{اسم_المستلم}", nameAr: "اسم المستلم" },
+        { placeholder: "{صفة_المستفيد}", nameAr: "صفة المستفيد" },
+        { placeholder: "{رابط_الاستبيان}", nameAr: "رابط الاستبيان" }
+      ]
+    }
+  ];
+
+  // المشغلات/الأحداث التفصيلية التي ترسل إشعارات مع القوالب والمتغيرات (للأدوار والموظفين)
   const NOTIFICATION_TRIGGERS = [
     {
       id: "notes_response_submitted",
@@ -998,10 +1315,37 @@ export default function NotificationCustomization() {
     });
   };
 
+  const handleToggleBeneficiaryChannel = (
+    triggerId: string,
+    channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
+    val: boolean
+  ) => {
+    updateTriggerSettingMutation.mutate({
+      triggerId,
+      roleId: "service_requester",
+      channel,
+      enabled: val
+    });
+  };
+
+  const getBeneficiaryChannelState = (triggerId: string, channel: 'in_app' | 'email' | 'whatsapp' | 'sms') => {
+    const override = triggerSettings?.find(
+      ts => ts.triggerId === triggerId && 
+            ts.roleId === "service_requester" && 
+            ts.channel === channel
+    );
+    if (override !== undefined) {
+      return !!override.enabled;
+    }
+    // معطل بشكل تلقائي
+    return false;
+  };
+
   const getTemplateMessage = (triggerId: string) => {
     const custom = customTemplates?.find(t => t.triggerId === triggerId);
     if (custom) return custom.templateMessage;
-    const trigger = NOTIFICATION_TRIGGERS.find(t => t.id === triggerId);
+    const trigger = NOTIFICATION_TRIGGERS.find(t => t.id === triggerId)
+      || BENEFICIARY_NOTIFICATION_TRIGGERS.find(t => t.id === triggerId);
     return trigger?.defaultTemplate || "";
   };
 
@@ -1011,9 +1355,13 @@ export default function NotificationCustomization() {
     "{اسم_الإمام}": "الشيخ خالد",
     "{اسم_المسجد}": "مسجد التقوى",
     "{اسم_المسؤول}": "عبد الله محمد",
+    "{المرحلة_الجديدة}": "الزيارة الميدانية",
+    "{الملاحظات}": "يرجى إرفاق صورة صك المسجد وتحديث بيانات الإمام",
+    "{السبب}": "عدم اكتمال بيانات الصك",
+    "{تاريخ_الزيارة}": "2026/09/15",
     "{رقم_التذكرة}": "7",
     "{الحالة_الجديدة}": "تحتاج توضيح",
-    "{اسم_المرسل}": "سعد الغامدي",
+    "{اسم_المرسل}": "فريق الدعم الفني",
     "{اسم_المورد}": "شركة المقاولات الحديثة",
     "{رقم_العرض}": "PW9R-QUO",
     "{رقم_العقد}": "CNT-2026-0068",
@@ -1021,10 +1369,10 @@ export default function NotificationCustomization() {
     "{اسم_المشروع}": "ترميم جامع النور",
     "{رقم_طلب_الصرف}": "DR-2026-0051",
     "{رقم_أمر_الصرف}": "DO-2026-0023",
-    "{السبب}": "عدم اكتمال المرفقات",
     "{القيمة}": "50,000",
     "{اسم_المستلم}": "عيسى بن محمد علي عسيري",
-    "{صفة_المستفيد}": "إمام مسجد"
+    "{صفة_المستفيد}": "إمام مسجد",
+    "{رابط_الاستبيان}": "https://manara.org/survey/123"
   };
 
   const getTemplatePreview = (triggerId: string) => {
@@ -1345,20 +1693,27 @@ export default function NotificationCustomization() {
         {/* علامات تبويب التخصيص */}
         <Tabs defaultValue="roles" className="w-full space-y-6" dir="rtl">
           <div className="flex justify-center w-full mb-8">
-            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-3 w-full max-w-xl shadow-inner backdrop-blur-md">
+            <TabsList className="bg-slate-100/80 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex gap-2.5 w-full max-w-2xl shadow-inner backdrop-blur-md">
               <TabsTrigger 
                 value="roles" 
-                className="flex-1 rounded-xl py-3.5 px-6 sm:px-10 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Shield className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأدوار</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="users" 
-                className="flex-1 rounded-xl py-3.5 px-6 sm:px-10 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
               >
                 <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
                 <span>تخصيص حسب الأشخاص</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="beneficiary" 
+                className="flex-1 rounded-xl py-3 px-3 sm:px-6 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-teal-600 dark:data-[state=active]:text-teal-400 data-[state=active]:shadow-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-300"
+              >
+                <HeartHandshake className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-teal-600 dark:text-teal-400" />
+                <span>إشعارات المستفيد</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1692,6 +2047,128 @@ export default function NotificationCustomization() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* تبويب: إشعارات المستفيد (طالب الخدمة) */}
+          <TabsContent value="beneficiary" className="space-y-6 focus-visible:outline-none">
+            {(() => {
+              const BENEFICIARY_SECTIONS = [
+                {
+                  title: "قسم الحساب والتسجيل",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "account")
+                },
+                {
+                  title: "قسم المساجد",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "mosque")
+                },
+                {
+                  title: "قسم الطلبات والمراحل",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
+                },
+                {
+                  title: "قسم التعليقات والملاحظات",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "comments")
+                },
+                {
+                  title: "قسم طلبات الاستثناء",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
+                },
+                {
+                  title: "قسم استبيانات الرضا والتقييم",
+                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
+                }
+              ];
+
+              return (
+                <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">
+                  <CardHeader className="bg-slate-50/50 dark:bg-slate-900/10 border-b border-border/50 p-4 sm:p-6">
+                    <CardTitle className="text-sm sm:text-base md:text-lg font-bold text-foreground">
+                      تخصيص إشعارات المستفيد (طالب الخدمة)
+                    </CardTitle>
+                    <CardDescription className="text-[11px] sm:text-xs md:text-sm mt-1 leading-relaxed">
+                      حدد إشعارات المستفيد وقنوات الإرسال المحددة لكل حدث، مع إمكانية تعديل صياغة الرسائل.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="w-full overflow-x-auto scrollbar-thin">
+                      <Table className="min-w-[600px]">
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent bg-slate-50/30 dark:bg-slate-950/10 border-b border-border/40">
+                            <TableHead className="text-right font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pr-4 sm:pr-6">
+                              الحدث / المشغل
+                            </TableHead>
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground">
+                              تعديل الصياغة
+                            </TableHead>
+                            <TableHead className="text-center font-bold py-3 sm:py-4 text-xs sm:text-sm text-foreground pl-4 sm:pl-6">
+                              قنوات الإرسال المحددة للحدث
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody className="divide-y divide-border/40">
+                          {BENEFICIARY_SECTIONS.map((section, sIdx) => (
+                            <React.Fragment key={section.title}>
+                              <TableRow className="bg-slate-50/50 dark:bg-slate-900/30 hover:bg-transparent">
+                                <TableCell 
+                                  colSpan={3} 
+                                  className={`py-3 pr-4 sm:pr-6 text-right font-bold text-teal-600 dark:text-teal-400 text-xs sm:text-sm border-b border-border/40 ${sIdx > 0 ? "border-t" : ""}`}
+                                >
+                                  {section.title}
+                                </TableCell>
+                              </TableRow>
+                              {section.triggers.map((trig) => {
+                                const inAppState = getBeneficiaryChannelState(trig.id, 'in_app');
+                                const emailState = getBeneficiaryChannelState(trig.id, 'email');
+                                const whatsappState = getBeneficiaryChannelState(trig.id, 'whatsapp');
+                                const smsState = getBeneficiaryChannelState(trig.id, 'sms');
+
+                                return (
+                                  <TableRow key={trig.id} className="hover:bg-muted/20 transition-colors">
+                                    <TableCell className="py-3 sm:py-4 pr-4 sm:pr-6 text-right">
+                                      <div className="font-semibold text-xs sm:text-sm text-foreground">{trig.nameAr}</div>
+                                      {renderTruncatedPreview(trig.id)}
+                                    </TableCell>
+                                    <TableCell className="text-center py-3 sm:py-4">
+                                      <TooltipProvider delayDuration={200}>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              size="icon"
+                                              className="h-7 w-7 text-teal-650 dark:text-teal-400 bg-teal-50/70 hover:bg-teal-100/90 hover:text-teal-700 dark:bg-teal-950/20 dark:hover:bg-teal-950/40 border border-teal-100/30 dark:border-teal-900/30 rounded-lg shadow-xs transition-all duration-200 active:scale-95 mx-auto"
+                                              onClick={() => handleOpenEditTemplateModal(trig)}
+                                              type="button"
+                                            >
+                                              <Pencil className="w-3.5 h-3.5" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            <span className="text-[10px] sm:text-xs font-semibold">تعديل صيغة الرسالة</span>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </TableCell>
+                                    <TableCell className="text-center py-3 sm:py-4 pl-4 sm:pl-6">
+                                      <ChannelToggles
+                                        inApp={inAppState}
+                                        whatsapp={whatsappState}
+                                        sms={smsState}
+                                        email={emailState}
+                                        onToggle={(channel, val) => handleToggleBeneficiaryChannel(trig.id, channel, val)}
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </React.Fragment>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </TabsContent>
 
         </Tabs>

@@ -413,21 +413,32 @@ export const usersRouter = router({
         .limit(1);
 
       if (updatedUser) {
-        let emailTitle = "";
-        let emailMessage = "";
+        let notifTitle = "";
+        let notifMessage = "";
+        let triggerId = "";
         
         if (input.status === "active") {
-          emailTitle = "تم اعتماد حسابك في بوابة تمام";
-          emailMessage = `مرحباً ${updatedUser.name}،\n\nنود إفادتك بأنه تم اعتماد وتفعيل حسابك بنجاح في بوابة تمام التابعة لجمعية عمارة المساجد (منارة). يمكنك الآن تسجيل الدخول والاستفادة من الخدمات.`;
+          notifTitle = "تم اعتماد حسابك في بوابة تمام";
+          notifMessage = `مرحباً ${updatedUser.name}، تم اعتماد وتفعيل حسابك بنجاح في بوابة تمام. يمكنك الآن تسجيل الدخول والاستفادة من الخدمات.`;
+          triggerId = "beneficiary_account_approved";
         } else if (input.status === "suspended") {
-          emailTitle = "تم إيقاف/رفض حسابك في بوابة تمام";
-          emailMessage = `مرحباً ${updatedUser.name}،\n\nنود إفادتك بأنه تم رفض أو تعليق حسابك في بوابة تمام.\n\nسبب الرفض/الملاحظات: ${input.notes || "لا توجد ملاحظات إضافية"}\n\nيرجى تسجيل الدخول إلى البوابة لتعديل البيانات أو إرفاق المستند المطلوب.`;
+          notifTitle = "تم تعليق/رفض حسابك في بوابة تمام";
+          notifMessage = `مرحباً ${updatedUser.name}، نود إفادتك بأنه تم تعليق/رفض حسابك في بوابة تمام بسبب: ${input.notes || "لا توجد ملاحظات إضافية"}. يرجى مراجعة البوابة وتعديل المطلوب.`;
+          triggerId = "beneficiary_account_suspended";
         }
 
-        if (emailTitle && updatedUser.email) {
-          import("./notifications").then(({ sendEmailNotification }) => {
-            sendEmailNotification(updatedUser.email, emailTitle, emailMessage).catch((e) => {
-              console.error("Failed to send email notification:", e);
+        if (notifTitle) {
+          import("./notifications").then(({ createNotification }) => {
+            createNotification({
+              userId: updatedUser.id,
+              type: "system",
+              title: notifTitle,
+              message: notifMessage,
+              relatedType: "user",
+              relatedId: updatedUser.id,
+              triggerId,
+            }).catch((e) => {
+              console.error("Failed to send user status notification:", e);
             });
           }).catch((e) => {
             console.error("Failed to load notifications module:", e);
@@ -459,19 +470,27 @@ export const usersRouter = router({
         })
         .where(eq(users.id, input.userId));
 
-      // Fetch user to send email
+      // Fetch user to send notifications
       const [updatedUser] = await db
         .select()
         .from(users)
         .where(eq(users.id, input.userId))
         .limit(1);
 
-      if (updatedUser && updatedUser.status === "pending" && updatedUser.email) {
-        const emailTitle = "ملاحظات جديدة على طلب التسجيل الخاص بك";
-        const emailMessage = `مرحباً ${updatedUser.name}،\n\nتمت إضافة ملاحظات جديدة على طلب التسجيل الخاص بك في بوابة تمام.\n\nالملاحظات: ${input.notes}\n\nيرجى تسجيل الدخول لتحديث البيانات ورفع المرفق المطلوب.`;
-        import("./notifications").then(({ sendEmailNotification }) => {
-          sendEmailNotification(updatedUser.email, emailTitle, emailMessage).catch((e) => {
-            console.error("Failed to send email notification:", e);
+      if (updatedUser && updatedUser.status === "pending") {
+        const notifTitle = "ملاحظات جديدة على طلب التسجيل الخاص بك";
+        const notifMessage = `مرحباً ${updatedUser.name}، تمت إضافة ملاحظات جديدة على طلب التسجيل الخاص بك: ${input.notes}. يرجى تسجيل الدخول وتحديث البيانات المطلوبة.`;
+        import("./notifications").then(({ createNotification }) => {
+          createNotification({
+            userId: updatedUser.id,
+            type: "system",
+            title: notifTitle,
+            message: notifMessage,
+            relatedType: "user",
+            relatedId: updatedUser.id,
+            triggerId: "beneficiary_registration_notes",
+          }).catch((e) => {
+            console.error("Failed to send admin notes notification:", e);
           });
         }).catch((e) => {
           console.error("Failed to load notifications module:", e);
