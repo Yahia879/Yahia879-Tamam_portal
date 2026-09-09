@@ -564,10 +564,7 @@ export default function EditPaymentPage() {
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <div>
-                    <Label className="text-right font-semibold">نسبة الإنجاز الميداني التراكمية لتفعيل الدفعة (%) *</Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">نسبة تقدم أعمال المشروع بالموقع المطلوبة لاعتماد هذه الدفعة (تصاعدية من مرحلة لأخرى)</p>
-                  </div>
+                  <Label className="text-right font-semibold">نسبة الإنجاز (%) *</Label>
                   {(() => {
                     const currentComp = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : null;
                     const isBelowPrev = prevPaymentCompletion !== null && currentComp !== null && currentComp <= prevPaymentCompletion;

@@ -1888,7 +1888,7 @@ export default function ContractForm() {
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs font-bold text-foreground">نسبة الدفعة من العقد (%) *</Label>
+                                <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
                                 <Input
                                   type="number"
                                   value={payment.percentage || ""}
@@ -1905,7 +1905,6 @@ export default function ContractForm() {
                                   min="0"
                                   max="100"
                                 />
-                                <p className="text-[10px] text-muted-foreground">حصتها المالية من إجمالي العقد</p>
                               </div>
                               <div className="space-y-1">
                                 <Label className="text-xs font-semibold">المبلغ</Label>
@@ -1940,8 +1939,7 @@ export default function ContractForm() {
                                 />
                               </div>
                               <div className="space-y-1 text-right">
-                                <Label className="text-xs font-bold text-foreground">نسبة الإنجاز الميداني التراكمية (%) *</Label>
-                                <p className="text-[10px] text-muted-foreground">نسبة تقدم أعمال المشروع بالموقع (تصاعدية)</p>
+                                <Label className="text-xs font-semibold text-foreground">نسبة الإنجاز (%) *</Label>
                                 {(() => {
                                   const prevPayment = index > 0 ? paymentSchedule[index - 1] : null;
                                   const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null)
