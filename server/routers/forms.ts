@@ -190,8 +190,7 @@ export function getDefaultFieldsForRegistrationForm(formId: string): ServiceFiel
         { id: "name", type: "text", label: "الاسم الكامل", placeholder: "أدخل اسمك الكريم", required: true, isActive: true, order: 1, isSystem: true },
         { id: "phone", type: "phone", label: "رقم الجوال", placeholder: "05XXXXXXXX", required: true, isActive: true, order: 2, isSystem: true },
         { id: "email", type: "email", label: "البريد الإلكتروني", placeholder: "name@example.com", required: true, isActive: true, order: 3, isSystem: true },
-        { id: "customRoleTitle", type: "text", label: "الصفة أو العلاقة بالمسجد", placeholder: "مثال: جار المسجد، أحد جماعة المسجد، ممثل جهة، صاحب استفسار...", required: true, isActive: true, order: 4, isSystem: true },
-        { id: "requestDetails", type: "textarea", label: "تفاصيل الطلب أو الاستفسار", placeholder: "اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد...", required: true, isActive: true, order: 5, isSystem: true },
+        { id: "requestDetails", type: "textarea", label: "تفاصيل الاستفسار", placeholder: "اكتب هنا تفاصيل سؤالك، استفسارك، أو اقتراحك للجمعية...", required: true, isActive: true, order: 4, isSystem: true },
       ];
   }
 }

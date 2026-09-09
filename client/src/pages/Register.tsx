@@ -342,8 +342,12 @@ export default function Register() {
 
     // دالة مساعدة للتحقق من كافة الحقول المطلوبة النشطة
     const validateRequiredFields = () => {
-      if (activeFields.length > 0) {
-        for (const f of activeFields) {
+      let fieldsToValidate = activeFields;
+      if (selectedRole === "other") {
+        fieldsToValidate = activeFields.filter((f: any) => ["name", "phone", "email", "requestDetails"].includes(f.id));
+      }
+      if (fieldsToValidate.length > 0) {
+        for (const f of fieldsToValidate) {
           if (f.required) {
             const val = getFieldValue(f.id);
             if (val === undefined || val === null || (typeof val === "string" && !val.trim()) || (f.type === "file" && !val)) {
@@ -351,6 +355,13 @@ export default function Register() {
               return false;
             }
           }
+        }
+      }
+      if (selectedRole === "other") {
+        const detailsVal = (getFieldValue("requestDetails") || formData.requestDetails || "").trim();
+        if (!detailsVal) {
+          toast.error("يرجى كتابة تفاصيل الاستفسار");
+          return false;
         }
       }
       return true;
@@ -506,8 +517,13 @@ export default function Register() {
       return;
     }
 
-    // 6. مسار أخرى (استفسار / جماعة المسجد / جهة)
+    // 6. مسار الأسئلة والاستفسارات
     if (selectedRole === "other") {
+      const emailVal = (formData.email || getFieldValue("email") || "").trim();
+      if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        toast.error("البريد الإلكتروني غير صالح");
+        return;
+      }
       if (!validateRequiredFields()) return;
 
       setIsSubmitting(true);
@@ -519,19 +535,20 @@ export default function Register() {
         }
 
         const dynamicDetails = getDynamicDetailsText(["name", "phone", "email"]);
+        const inquiryDetails = (getFieldValue("requestDetails") || formData.requestDetails || "").trim() || dynamicDetails;
 
         await submitPublicRequestMutation.mutateAsync({
           submissionType: "general_inquiry",
           category: "other",
-          name: trimmedName || (getFieldValue("name") as string) || "مقدم طلب / استفسار",
+          name: trimmedName || (getFieldValue("name") as string) || "صاحب استفسار",
           phone: (formData.phone || getFieldValue("phone") || "").trim(),
-          email: (formData.email || getFieldValue("email") || "").trim(),
-          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "").trim(),
-          details: dynamicDetails || formData.requestDetails.trim(),
+          email: emailVal,
+          customRoleTitle: (formData.customRoleTitle || getFieldValue("customRoleTitle") || "صاحب استفسار عام / اقتراح").trim(),
+          details: inquiryDetails,
           attachmentUrl,
         });
       } catch (err: any) {
-        toast.error(err.message || "حدث خطأ أثناء إرسال طلبكم");
+        toast.error(err.message || "حدث خطأ أثناء إرسال استفساركم");
       } finally {
         setIsSubmitting(false);
       }
@@ -570,14 +587,14 @@ export default function Register() {
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           {field.id === "requestDetails" && (
-            <div className="p-2.5 sm:p-3.5 bg-slate-50 border border-slate-200/90 rounded-xl text-right flex items-start gap-2 sm:gap-2.5 mb-1.5">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Info className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <div className="p-3 sm:p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-xl text-right flex items-start gap-2.5 sm:gap-3 mb-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
+                <Info className="w-3.5 h-3.5" />
               </div>
               <div className="space-y-0.5">
-                <span className="text-[11px] font-bold text-slate-800 block">توضيح إرشادي:</span>
-                <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                  يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
+                <span className="text-[11px] sm:text-xs font-bold text-amber-900 block">توضيح إرشادي مهم:</span>
+                <p className="text-[11px] sm:text-xs text-amber-900/90 leading-relaxed font-medium">
+                  إذا كان لديك أي سؤال أو استفسار أو اقتراح يتم ذكره هنا، ولا يتم إرسال طلبات المساجد من خلال هذا الفورم، وشكراً لكم.
                 </p>
               </div>
             </div>
@@ -930,7 +947,7 @@ export default function Register() {
                       ? `مسار ${selectedRole === "imam" ? "الإمام" : "المؤذن"} (تسجيل حساب رسمي)`
                       : selectedRole === "donor"
                         ? `مسار المتبرع (${donorType === "land" ? "تبرع بأرض" : donorType === "in_kind" ? "تبرع عيني" : donorType === "financial" ? "تبرع مالي" : "تبرع آخر"})`
-                        : "مسار أخرى (استفسارات وطلبات عامة)"
+                        : "مسار الأسئلة والاستفسارات العامة"
                   }
                 </span>
               </div>
@@ -1025,7 +1042,7 @@ export default function Register() {
                     </div>
                   </button>
 
-                  {/* 4. أخرى */}
+                  {/* 4. الأسئلة والاستفسارات */}
                   <button
                     type="button"
                     onClick={() => setSelectedRole("other")}
@@ -1035,9 +1052,9 @@ export default function Register() {
                       <HelpCircle className="w-5 h-5" />
                     </div>
                     <div className="space-y-0.5 sm:space-y-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-sm sm:text-base">أخرى</h3>
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-900 text-sm sm:text-base">الأسئلة والاستفسارات</h3>
                       <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
-                        جار المسجد، أحد جماعة المسجد، ممثل جهة، أو صاحب استفسار عام
+                        طرح الأسئلة والاستفسارات أو تقديم الاقتراحات العامة للجمعية (دون طلبات المساجد)
                       </p>
                     </div>
                   </button>
@@ -1736,16 +1753,16 @@ export default function Register() {
               </form>
             )}
 
-            {/* ---------- 6. مسار أخرى (استفسارات وطلبات عامة) ---------- */}
+            {/* ---------- 6. مسار الأسئلة والاستفسارات ---------- */}
             {selectedRole === "other" && (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* القسم الأول: بيانات مقدم الطلب */}
+                {/* القسم الأول: بيانات مقدم الاستفسار */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
                     <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <User className="w-4 h-4" />
                     </div>
-                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات مقدم الطلب</h3>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">بيانات مقدم الاستفسار</h3>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1757,20 +1774,30 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* القسم الثاني: تحديد الصفة والطلب */}
+                {/* القسم الثاني: تفاصيل الاستفسار */}
                 <div className="space-y-4 pt-1">
                   <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100">
                     <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20">
                       <HelpCircle className="w-4 h-4" />
                     </div>
-                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الصفة والطلب</h3>
+                    <h3 className="font-bold text-slate-900 text-sm sm:text-base">تفاصيل الاستفسار</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {(registrationFormConfig?.fields?.filter((f: any) => f.isActive !== false && !["name", "phone", "email"].includes(f.id)) || [
-                      { id: "customRoleTitle", label: "الصفة أو العلاقة بالمسجد", type: "text", required: true, placeholder: "مثال: جار المسجد، أحد جماعة المسجد، ممثل جهة، صاحب استفسار..." },
-                      { id: "requestDetails", label: "تفاصيل الطلب أو الاستفسار", type: "textarea", required: true, placeholder: "اكتب هنا تفاصيل طلبك، الاستفسار، أو الخدمة المطلوبة للمسجد..." },
-                    ]).map(renderDynamicField)}
+                  <div className="grid grid-cols-1 gap-4">
+                    {(() => {
+                      const inquiryField = registrationFormConfig?.fields?.find((f: any) => f.id === "requestDetails" && f.isActive !== false) || {
+                        id: "requestDetails",
+                        label: "تفاصيل الاستفسار",
+                        type: "textarea",
+                        required: true,
+                        placeholder: "اكتب هنا تفاصيل سؤالك، استفسارك، أو اقتراحك للجمعية...",
+                      };
+                      return renderDynamicField({
+                        ...inquiryField,
+                        label: "تفاصيل الاستفسار",
+                        placeholder: "اكتب هنا تفاصيل سؤالك، استفسارك، أو اقتراحك للجمعية...",
+                      });
+                    })()}
                   </div>
                 </div>
 
@@ -1783,12 +1810,12 @@ export default function Register() {
                   {isSubmitting || submitPublicRequestMutation.isPending ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      جاري إرسال الطلب...
+                      جارٍ إرسال الاستفسار...
                     </>
                   ) : (
                     <>
                       <Send className="w-5 h-5" />
-                      إرسال الطلب للجمعية
+                      إرسال الاستفسار للجمعية
                     </>
                   )}
                 </Button>
