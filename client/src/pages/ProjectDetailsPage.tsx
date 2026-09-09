@@ -501,16 +501,28 @@ export default function ProjectDetailsPage() {
     },
   ];
 
+  const mobileTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    if (activeTab && mobileTabRefs.current[activeTab]) {
+      mobileTabRefs.current[activeTab]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeTab]);
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 container mx-auto px-4 md:px-0 font-sans" dir="rtl">
+      <div className="space-y-4 sm:space-y-6 container mx-auto px-2.5 sm:px-4 md:px-0 font-sans" dir="rtl">
         {/* Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/60 shadow-xs text-right">
-          <div className="flex items-center gap-3.5 flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-card p-3.5 sm:p-6 rounded-2xl sm:rounded-3xl border border-border/60 shadow-xs text-right">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 flex-1 min-w-0">
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-10 w-10 rounded-xl shrink-0 hover:bg-muted/70 transition-colors"
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl shrink-0 hover:bg-muted/70 transition-colors"
               onClick={() => {
                 if (window.history.length > 1) {
                   window.history.back();
@@ -519,21 +531,21 @@ export default function ProjectDetailsPage() {
                 }
               }}
             >
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black text-foreground font-sans">{project.projectNumber}</h1>
-                <Badge variant="outline" className={`${statusColors[project.status || "planning"]} font-bold text-xs px-2.5 py-0.5 rounded-lg`}>
+              <div className="flex items-center gap-1.5 sm:gap-2.5 flex-wrap">
+                <h1 className="text-lg sm:text-2xl font-black text-foreground font-sans">{project.projectNumber}</h1>
+                <Badge variant="outline" className={`${statusColors[project.status || "planning"]} font-bold text-[11px] sm:text-xs px-2 sm:px-2.5 py-0.5 rounded-lg`}>
                   {getStatusLabel()}
                 </Badge>
                 {project.isMultiMosque && (
-                  <Badge className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                  <Badge className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-lg">
                     مشروع مباشر لعدة مساجد
                   </Badge>
                 )}
                 {project.donorName && (
-                  <Badge className="bg-amber-100/80 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 text-xs font-bold px-2.5 py-0.5 rounded-lg">
+                  <Badge className="bg-amber-100/80 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 text-[11px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-lg">
                     المانح: {project.donorName}
                   </Badge>
                 )}
@@ -543,12 +555,12 @@ export default function ProjectDetailsPage() {
                   <Input
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="h-9 py-1 px-3 text-sm text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
+                    className="h-8 sm:h-9 py-1 px-3 text-xs sm:text-sm text-foreground bg-background border border-primary focus-visible:ring-1 focus-visible:ring-primary rounded-xl"
                     autoFocus
                   />
                   <Button
                     size="sm"
-                    className="h-9 px-3.5 text-xs gradient-primary text-white font-bold rounded-xl"
+                    className="h-8 sm:h-9 px-3 sm:px-3.5 text-xs gradient-primary text-white font-bold rounded-xl"
                     onClick={() => {
                       if (!editedName.trim()) {
                         toast.error("اسم المشروع لا يمكن أن يكون فارغاً");
@@ -574,7 +586,7 @@ export default function ProjectDetailsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 px-3 text-xs rounded-xl"
+                    className="h-8 sm:h-9 px-2.5 sm:px-3 text-xs rounded-xl"
                     onClick={() => {
                       setIsEditingName(false);
                       setEditedName(project.name || "");
@@ -584,13 +596,13 @@ export default function ProjectDetailsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 mt-1.5">
-                  <p className="text-sm sm:text-base font-semibold text-muted-foreground truncate">{project.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs sm:text-base font-semibold text-muted-foreground truncate">{project.name}</p>
                   {canEditProjectName && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg p-0"
+                      className="h-6 w-6 sm:h-7 sm:w-7 text-muted-foreground hover:text-primary hover:bg-muted/60 rounded-lg p-0 shrink-0"
                       onClick={() => {
                         setEditedName(project.name || "");
                         setIsEditingName(true);
@@ -606,30 +618,30 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
 
-        {/* بطاقات الإحصائيات الرئيسية الموحدة */}
+        {/* بطاقات الإحصائيات الرئيسية الموحدة (2x2 على الموبايل و 4 أعمدة على الشاشات الكبيرة) */}
         {!financialsOnly && (
           <TooltipProvider delayDuration={300}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-sans">
               {/* الميزانية */}
-              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
-                <CardContent className="p-4 text-right">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                      <SaudiRiyal className="w-5 h-5" />
+              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+                <CardContent className="p-3 sm:p-4 text-right">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-100 dark:bg-amber-950/50 flex items-center justify-center shrink-0">
+                      <SaudiRiyal className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700 dark:text-amber-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-muted-foreground font-bold">الميزانية</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">الميزانية</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
                             <p>الميزانية هي قيمة الإجمالي الكلي لجدول الكميات وتظهر بعد مرحلة التقييم المالي واعتماد العرض</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <p className="font-bold text-foreground truncate">
+                      <p className="font-bold text-xs sm:text-base text-foreground truncate font-sans">
                         {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
                           ? (boqData && boqData.total > 0
                               ? formatCurrency(boqData.total.toString())
@@ -643,25 +655,25 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* التكلفة الفعلية */}
-              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
-                <CardContent className="p-4 text-right">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-5 h-5 text-emerald-600" />
+              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+                <CardContent className="p-3 sm:p-4 text-right">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-muted-foreground font-bold">التكلفة الفعلية</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">التكلفة الفعلية</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
                             <p>التكلفة النهائية المتفق عليها في العقد والتي تشمل نسبة الجمعية</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <p className="font-bold text-foreground truncate">
+                      <p className="font-bold text-xs sm:text-base text-foreground truncate font-sans">
                         {formatCurrency(project.actualCost)}
                       </p>
                     </div>
@@ -670,25 +682,25 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* نسبة الإنجاز */}
-              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
-                <CardContent className="p-4 text-right">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                      <BarChart3 className="w-5 h-5 text-blue-600" />
+              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+                <CardContent className="p-3 sm:p-4 text-right">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-muted-foreground font-bold">نسبة الإنجاز</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">نسبة الإنجاز</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
                             <p>نسبة الإنجاز الفعلية للمشروع</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
-                      <p className="font-bold text-foreground">
+                      <p className="font-bold text-xs sm:text-base text-foreground font-sans">
                         {project.completionPercentage || 0}%
                       </p>
                     </div>
@@ -697,18 +709,18 @@ export default function ProjectDetailsPage() {
               </Card>
 
               {/* مدير المشروع */}
-              <Card className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 border-0 shadow-sm">
-                <CardContent className="p-4 text-right">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
-                      <Users className="w-5 h-5 text-purple-600" />
+              <Card className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-border/60 shadow-xs hover:shadow-sm transition-all overflow-hidden">
+                <CardContent className="p-3 sm:p-4 text-right">
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm text-muted-foreground font-bold">مدير المشروع</p>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <p className="text-[11px] sm:text-sm text-muted-foreground font-bold truncate">مدير المشروع</p>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help" />
+                            <HelpCircle className="w-3 h-3 text-muted-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent side="top">
                             <p>مدير المشروع المسؤول عن المتابعة</p>
@@ -716,7 +728,7 @@ export default function ProjectDetailsPage() {
                         </Tooltip>
                       </div>
                       {isEditingManager ? (
-                        <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-1 mt-0.5">
                           <Select
                             value={project.managerId?.toString() || ""}
                             onValueChange={(val) => {
@@ -724,7 +736,7 @@ export default function ProjectDetailsPage() {
                               setIsEditingManager(false);
                             }}
                           >
-                            <SelectTrigger className="h-8 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
+                            <SelectTrigger className="h-7 w-full border-slate-200 text-xs font-semibold focus:ring-primary/20 bg-background rounded-lg">
                               <SelectValue placeholder="اختر..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -739,25 +751,25 @@ export default function ProjectDetailsPage() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setIsEditingManager(false)} 
-                            className="h-7 w-7 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                            className="h-6 w-6 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-3 h-3" />
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-foreground truncate">
+                        <div className="flex items-center gap-1">
+                          <p className="font-bold text-xs sm:text-base text-foreground truncate">
                             {project.managerName || "غير محدد"}
                           </p>
                           {canChangeManager && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-9 h-6 w-6 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0 shrink-0"
+                              className="h-5 w-5 text-muted-foreground hover:text-primary hover:bg-muted/55 rounded-full p-0 shrink-0"
                               onClick={() => setIsEditingManager(true)}
                               title="تغيير مدير المشروع"
                             >
-                              <Edit className="w-3.5 h-3.5" />
+                              <Edit className="w-3 h-3" />
                             </Button>
                           )}
                         </div>
@@ -769,37 +781,41 @@ export default function ProjectDetailsPage() {
             </div>
           </TooltipProvider>
         )}
-
         {/* Main Grid: Collapsible Vertical Sidebar Tabs + Content Area */}
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* Mobile Tabs Bar (Horizontal Pills on Mobile) */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start">
+          {/* Mobile Tabs Bar (Sticky Horizontal Pills on Mobile) */}
           {!financialsOnly && (
-            <div className="lg:hidden w-full overflow-x-auto pb-1 scrollbar-hide">
-              <div className="flex items-center gap-1.5 p-1.5 bg-muted/40 rounded-2xl border border-border/60 w-max min-w-full font-sans">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans ${
-                      activeTab === item.id 
-                        ? "bg-background text-foreground shadow-xs border border-border/80" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                    {item.badge && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold font-sans transition-colors ${
+            <div className="lg:hidden sticky top-14 sm:top-16 z-20 w-full bg-background/95 backdrop-blur-md py-1.5 -mx-2.5 px-2.5 sm:mx-0 sm:px-0 border-b border-border/40 shadow-xs">
+              <div className="w-full overflow-x-auto pb-0.5 scrollbar-none [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
+                <div className="flex items-center gap-1.5 p-1 bg-muted/40 rounded-xl border border-border/60 w-max min-w-full font-sans">
+                  {navItems.map((item) => (
+                    <button
+                      key={item.id}
+                      ref={(el) => {
+                        mobileTabRefs.current[item.id] = el;
+                      }}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`group flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer font-sans shrink-0 ${
                         activeTab === item.id 
-                          ? "bg-primary text-white" 
-                          : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
-                      }`}>
-                        {item.badge}
-                      </span>
-                    )}
-                    {item.isLocked && <Lock className="w-3 h-3 text-amber-500" />}
-                  </button>
-                ))}
+                          ? "bg-primary text-primary-foreground shadow-xs" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      <item.icon className={`w-3.5 h-3.5 shrink-0 ${activeTab === item.id ? "text-primary-foreground" : "text-primary"}`} />
+                      <span>{item.label}</span>
+                      {item.badge && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-bold font-sans transition-colors ${
+                          activeTab === item.id 
+                            ? "bg-primary-foreground/25 text-white" 
+                            : "bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white"
+                        }`}>
+                          {item.badge}
+                        </span>
+                      )}
+                      {item.isLocked && <Lock className={`w-3 h-3 shrink-0 ${activeTab === item.id ? "text-primary-foreground" : "text-amber-500"}`} />}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}

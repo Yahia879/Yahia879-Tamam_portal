@@ -972,7 +972,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60">
+              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60 col-span-2 sm:col-span-1">
                 <span className="text-muted-foreground block font-semibold text-emerald-950">إجمالي الدعم المقبوض</span>
                 <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isVouchersFullyCovered ? "text-green-700" : "text-amber-700"}`}>
                   {vouchersTotalReceived.toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -1356,74 +1356,74 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
       {/* 3. قسم سندات القبض (Receipt Vouchers Section) */}
       <Card className="shadow-xs border-slate-200">
-        <CardHeader className="bg-slate-50/50 pb-3 border-b flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <CardHeader className="bg-slate-50/50 pb-3 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3.5 sm:p-5">
           <div>
-            <CardTitle className="text-base font-bold flex items-center gap-2 text-primary">
-              <Receipt className="h-5 w-5 text-primary" />
+            <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2 text-primary">
+              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               سندات القبض (الدفعات المقبوضة فعلياً من الداعم)
             </CardTitle>
             <CardDescription className="text-xs mt-0.5">
               تسجيل وتوثيق جميع الدفعات المقبوضة فعلياً وتحديد تاريخ القبض لكل دفعة
             </CardDescription>
           </div>
-          <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary">
+          <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary w-full sm:w-auto h-9">
             <Plus className="h-4 w-4" />
             تسجيل سند قبض جديد
           </Button>
         </CardHeader>
 
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6 space-y-4 sm:space-y-6">
 
           {/* تنبيه الفائض المالي مع زر التحويل المباشر */}
           {surplusAmount > 0 && (
-            <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-50 via-sky-50/40 to-slate-50 border border-indigo-200/90 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-indigo-50 via-sky-50/40 to-slate-50 border border-indigo-200/90 text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-2xs">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-xs">
-                  <Sparkles className="w-5 h-5 text-indigo-200" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-black text-sm text-indigo-950 inline-flex items-center gap-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="font-black text-xs sm:text-sm text-indigo-950 inline-flex items-center gap-1">
                       <span>يوجد فائض في المقبوضات بمقدار ({surplusAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                       <SaudiRiyal className="w-3.5 h-3.5 inline" />
                       <span>)</span>
                     </h4>
-                    <Badge className="bg-indigo-700 text-white text-[10px] font-bold">فائض قابل للتحويل</Badge>
+                    <Badge className="bg-indigo-700 text-white text-[9px] sm:text-[10px] font-bold">فائض قابل للتحويل</Badge>
                   </div>
-                  <p className="text-xs text-indigo-900/80 mt-1 leading-relaxed">
-                    إجمالي سندات القبض المعتمدة يتجاوز تكلفة المشروع المقررة. يمكنك تحويل هذا الفائض إلى سند قبض مستقل (مقيد لمصرف آخر أو غير مقيد) ليظهر في صفحة سندات القبض العامة.
+                  <p className="text-[11px] sm:text-xs text-indigo-900/80 mt-1 leading-relaxed">
+                    إجمالي سندات القبض المعتمدة يتجاوز تكلفة المشروع المقررة. يمكنك تحويل هذا الفائض إلى سند قبض مستقل ليظهر في صفحة سندات القبض العامة.
                   </p>
                 </div>
               </div>
               <Button
                 onClick={() => openTransferSurplusModal()}
-                className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-9 px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5"
+                className="bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs h-8 sm:h-9 px-3 sm:px-4 rounded-xl shadow-xs shrink-0 flex items-center gap-1.5 w-full sm:w-auto justify-center"
               >
-                <ArrowRightLeft className="w-4 h-4" />
+                <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span>تحويل الفائض إلى سند قبض</span>
               </Button>
             </div>
           )}
 
           {/* Cards metrics for Collection */}
-          <div className={`grid gap-4 ${surplusAmount > 0 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
-            <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
-              <span className="text-xs text-muted-foreground block">إجمالي مبلغ الدعم المطلوب</span>
-              <span className="text-lg font-bold text-blue-900 mt-1 block font-sans inline-flex items-center gap-1">
+          <div className={`grid gap-2.5 sm:gap-4 ${surplusAmount > 0 ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"}`}>
+            <div className="p-3 sm:p-4 bg-blue-50/60 rounded-xl border border-blue-100 text-right">
+              <span className="text-[11px] sm:text-xs text-muted-foreground block">إجمالي مبلغ الدعم المطلوب</span>
+              <span className="text-base sm:text-lg font-bold text-blue-900 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
                 {targetRequiredAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
 
-            <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-right">
-              <span className="text-xs text-muted-foreground block">إجمالي المقبوض فعلياً (سندات القبض)</span>
-              <span className="text-lg font-bold text-emerald-900 mt-1 block font-sans inline-flex items-center gap-1">
+            <div className="p-3 sm:p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-right">
+              <span className="text-[11px] sm:text-xs text-muted-foreground block">إجمالي المقبوض فعلياً (سندات القبض)</span>
+              <span className="text-base sm:text-lg font-bold text-emerald-900 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
                 {totalReceivedAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
 
-            <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-100 text-right">
-              <span className="text-xs text-muted-foreground block">المبلغ المتبقي للقبض</span>
-              <span className="text-lg font-bold text-amber-900 mt-1 block font-sans inline-flex items-center gap-1">
+            <div className={`p-3 sm:p-4 bg-amber-50/60 rounded-xl border border-amber-100 text-right ${surplusAmount > 0 ? "" : "col-span-1 sm:col-span-1"}`}>
+              <span className="text-[11px] sm:text-xs text-muted-foreground block">المبلغ المتبقي للقبض</span>
+              <span className="text-base sm:text-lg font-bold text-amber-900 mt-0.5 sm:mt-1 block font-sans inline-flex items-center gap-1">
                 {remainingSupportToCollect.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" />
               </span>
             </div>
@@ -1630,7 +1630,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
 
                 return (
                   <Card key={sIdx} className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
-                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-3 px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-2.5 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="bg-blue-50 text-blue-900 border-blue-200 font-bold text-xs px-2.5 py-0.5">
                           {sName}
@@ -1640,7 +1640,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs font-semibold">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs font-semibold">
                         <span className="text-gray-600">المطلوب: <span className="font-bold text-blue-900 inline-flex items-center gap-1">{targetAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span></span>
                         <div className="text-emerald-700">
                           المقبوض: <span className="font-bold text-emerald-800 inline-flex items-center gap-1">{receivedAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
@@ -1672,16 +1672,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                           }
                         </div>
                       ) : (
-                        <div className="border rounded-md overflow-x-auto bg-white">
+                        <div className="border rounded-md overflow-x-auto bg-white [-webkit-overflow-scrolling:touch]">
                           <Table dir="rtl">
-                            <TableHeader className="bg-slate-50/80">
+                            <TableHeader className="bg-slate-50/80 whitespace-nowrap">
                               <TableRow>
-                                <TableHead className="text-right text-xs">رقم السند</TableHead>
-                                <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
-                                <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                                <TableHead className="text-right text-xs">وذلك مقابل</TableHead>
-                                <TableHead className="text-center text-xs">الحالة</TableHead>
-                                <TableHead className="text-center text-xs">إجراءات</TableHead>
+                                <TableHead className="text-right text-xs whitespace-nowrap">رقم السند</TableHead>
+                                <TableHead className="text-right text-xs whitespace-nowrap">تاريخ القبض</TableHead>
+                                <TableHead className="text-right text-xs whitespace-nowrap">المبلغ المقبوض</TableHead>
+                                <TableHead className="text-right text-xs whitespace-nowrap">وذلك مقابل</TableHead>
+                                <TableHead className="text-center text-xs whitespace-nowrap">الحالة</TableHead>
+                                <TableHead className="text-center text-xs whitespace-nowrap">إجراءات</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1696,23 +1696,19 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                                       : "hover:bg-slate-50/60"
                                   }
                                 >
-                                   <TableCell className="font-bold text-xs font-sans">
-                                     {voucher.status === "approved" ? (
-                                       <span className="text-primary">{voucher.voucherNumber}</span>
-                                     ) : (
-                                       <span className="text-primary">{voucher.voucherNumber}</span>
-                                     )}
+                                   <TableCell className="font-bold text-xs font-sans whitespace-nowrap">
+                                     <span className="text-primary">{voucher.voucherNumber}</span>
                                    </TableCell>
-                                  <TableCell className="text-xs">
-                                    {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}
-                                  </TableCell>
-                                  <TableCell className={`font-bold text-xs ${
-                                    voucher.status === "approval_revoked" || voucher.status === "rejected"
-                                      ? "text-slate-400 line-through"
-                                      : "text-emerald-700"
-                                  }`}>
-                                    <span className="inline-flex items-center gap-1">
-                                      {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                   <TableCell className="text-xs whitespace-nowrap">
+                                     {voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}
+                                   </TableCell>
+                                   <TableCell className={`font-bold text-xs whitespace-nowrap ${
+                                     voucher.status === "approval_revoked" || voucher.status === "rejected"
+                                       ? "text-slate-400 line-through"
+                                       : "text-emerald-700"
+                                   }`}>
+                                     <span className="inline-flex items-center gap-1">
+                                       {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                       <SaudiRiyal className="w-3.5 h-3.5 inline" />
                                     </span>
                                     {voucher.status === "approval_revoked" && (
