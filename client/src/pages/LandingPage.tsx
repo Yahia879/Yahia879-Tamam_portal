@@ -83,20 +83,6 @@ export default function LandingPage() {
 
             {/* أزرار الدخول */}
             <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-              <Link href="/supplier-registration">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className={`px-2 sm:px-3.5 text-[10px] xs:text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 cursor-pointer ${
-                    isScrolled 
-                      ? "border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" 
-                      : "border-white/40 text-white hover:bg-white/15 bg-white/10"
-                  }`}
-                >
-                  <Truck className="w-3.5 h-3.5 ml-1.5" />
-                  سجل معنا كمورد
-                </Button>
-              </Link>
               <Link href="/register">
                 <Button 
                   variant="ghost" 
