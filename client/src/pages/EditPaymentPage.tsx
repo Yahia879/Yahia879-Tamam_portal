@@ -40,6 +40,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 
 
@@ -120,12 +121,13 @@ export default function EditPaymentPage() {
   // تعبئة البيانات الأساسية للدفعة
   useEffect(() => {
     if (payment) {
+      const origComp = (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? Number(payment.completionPercentage) : null;
       setFormData({
         projectId: payment.projectId || 0,
         contractId: payment.contractId || 0,
         title: payment.title || "",
         description: payment.description || "",
-        completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : "",
+        completionPercentage: origComp !== null ? origComp : "",
         dateMiladi: payment.dateMiladi || "",
       });
     }
@@ -265,6 +267,44 @@ export default function EditPaymentPage() {
 
   const minAllowedDate = [contractStartDate, latestPrevPaymentDate].filter((d): d is string => !!d).sort().pop();
 
+  // حساب نسب الإنجاز السابقة واللاحقة للتحقق من الترتيب التصاعدي
+  const contractPaymentsList = contractDetails?.payments || [];
+  const currContractPaymentIndex = contractPaymentsList.findIndex((p: any) => {
+    const pParsed = parsePaymentId(p.id);
+    return (targetParsed.numId > 0 && pParsed.numId === targetParsed.numId) || String(p.id) === String(paymentId) || String(p.id) === String(targetParsed.numId);
+  });
+
+  let prevPaymentCompletion: number | null = null;
+  let nextPaymentCompletion: number | null = null;
+
+  if (contractPaymentsList.length > 0 && currContractPaymentIndex !== -1) {
+    if (currContractPaymentIndex > 0) {
+      const prev = contractPaymentsList[currContractPaymentIndex - 1];
+      if (prev?.completionPercentage !== null && prev?.completionPercentage !== undefined && !isNaN(Number(prev.completionPercentage))) {
+        prevPaymentCompletion = Number(prev.completionPercentage);
+      }
+    }
+    if (currContractPaymentIndex < contractPaymentsList.length - 1) {
+      const next = contractPaymentsList[currContractPaymentIndex + 1];
+      if (next?.completionPercentage !== null && next?.completionPercentage !== undefined && !isNaN(Number(next.completionPercentage))) {
+        nextPaymentCompletion = Number(next.completionPercentage);
+      }
+    }
+  } else if (allPayments.length > 0) {
+    if (currentPaymentIndex > 0) {
+      const prev = allPayments[currentPaymentIndex - 1];
+      if (prev?.completionPercentage !== null && prev?.completionPercentage !== undefined && !isNaN(Number(prev.completionPercentage))) {
+        prevPaymentCompletion = Number(prev.completionPercentage);
+      }
+    }
+    if (currentPaymentIndex !== -1 && currentPaymentIndex < allPayments.length - 1) {
+      const next = allPayments[currentPaymentIndex + 1];
+      if (next?.completionPercentage !== null && next?.completionPercentage !== undefined && !isNaN(Number(next.completionPercentage))) {
+        nextPaymentCompletion = Number(next.completionPercentage);
+      }
+    }
+  }
+
   // حفظ التغييرات
   const handleSubmit = () => {
     if (!formData.projectId) {
@@ -293,6 +333,15 @@ export default function EditPaymentPage() {
     }
     if (formData.completionPercentage === "" || isNaN(Number(formData.completionPercentage)) || Number(formData.completionPercentage) < 0 || Number(formData.completionPercentage) > 100) {
       toast.error("يرجى إدخال نسبة إنجاز صحيحة (من 0 إلى 100)");
+      return;
+    }
+    const currentComp = Number(formData.completionPercentage);
+    if (prevPaymentCompletion !== null && currentComp <= prevPaymentCompletion) {
+      toast.error(`نسبة إنجاز الدفعة (${currentComp}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${prevPaymentCompletion}%)`);
+      return;
+    }
+    if (nextPaymentCompletion !== null && currentComp >= nextPaymentCompletion) {
+      toast.error(`نسبة إنجاز الدفعة (${currentComp}%) يجب أن تكون أقل من نسبة إنجاز الدفعة التالية (${nextPaymentCompletion}%)`);
       return;
     }
     if (totalAmount <= 0) {
@@ -515,27 +564,87 @@ export default function EditPaymentPage() {
                 </div>
                 
                 <div className="space-y-2 text-right">
-                  <Label className="text-right font-semibold">نسبة الإنجاز (%) *</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    required
-                    placeholder="مثال: 0"
-                    value={formData.completionPercentage}
-                    onChange={(e) => {
-                      if (e.target.value === "") {
-                        setFormData({ ...formData, completionPercentage: "" });
-                      } else {
-                        const val = parseInt(e.target.value);
-                        setFormData({
-                          ...formData,
-                          completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
-                        });
-                      }
-                    }}
-                    className="text-right rounded-xl h-10 border-border/60 font-bold"
-                  />
+                  <div>
+                    <Label className="text-right font-semibold">نسبة الإنجاز الميداني التراكمية لتفعيل الدفعة (%) *</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">نسبة تقدم أعمال المشروع بالموقع المطلوبة لاعتماد هذه الدفعة (تصاعدية من مرحلة لأخرى)</p>
+                  </div>
+                  {(() => {
+                    const currentComp = formData.completionPercentage !== "" ? Number(formData.completionPercentage) : null;
+                    const isBelowPrev = prevPaymentCompletion !== null && currentComp !== null && currentComp <= prevPaymentCompletion;
+                    const isAboveNext = nextPaymentCompletion !== null && currentComp !== null && currentComp >= nextPaymentCompletion;
+                    const minAllowed = prevPaymentCompletion !== null ? prevPaymentCompletion + 1 : 0;
+                    const maxAllowed = nextPaymentCompletion !== null ? Math.max(minAllowed, nextPaymentCompletion - 1) : 100;
+
+                    return (
+                      <>
+                        <Input
+                          type="number"
+                          min={minAllowed}
+                          max={maxAllowed}
+                          required
+                          placeholder={prevPaymentCompletion === null ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
+                          value={formData.completionPercentage}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          onChange={(e) => {
+                            if (e.target.value === "") {
+                              setFormData({ ...formData, completionPercentage: "" });
+                            } else {
+                              const val = parseInt(e.target.value);
+                              setFormData({
+                                ...formData,
+                                completionPercentage: isNaN(val) ? "" : Math.min(100, Math.max(0, val))
+                              });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? null : parseInt(e.target.value);
+                            if (val !== null && !isNaN(val)) {
+                              if (prevPaymentCompletion !== null && val <= prevPaymentCompletion) {
+                                toast.error(`نسبة إنجاز الدفعة (${val}%) غير مقبولة لأنها أقل من أو تساوي الدفعة السابقة (${prevPaymentCompletion}%). تم ضبطها تلقائياً على الحد الأدنى (${minAllowed}%).`);
+                                setFormData({ ...formData, completionPercentage: minAllowed });
+                              } else if (nextPaymentCompletion !== null && val >= nextPaymentCompletion) {
+                                const maxVal = Math.max(minAllowed, nextPaymentCompletion - 1);
+                                toast.error(`نسبة إنجاز الدفعة (${val}%) غير مقبولة لأنها أكبر من أو تساوي الدفعة التالية (${nextPaymentCompletion}%). تم ضبطها على (${maxVal}%).`);
+                                setFormData({ ...formData, completionPercentage: maxVal });
+                              }
+                            }
+                          }}
+                          className={cn(
+                            "text-right rounded-xl h-10 font-bold transition-all",
+                            (isBelowPrev || isAboveNext)
+                              ? "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20" 
+                              : "border-border/60"
+                          )}
+                        />
+                        {isBelowPrev && (
+                          <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أكبر من الدفعة السابقة ({prevPaymentCompletion}%). الحد الأدنى هو {minAllowed}%.</span>
+                          </div>
+                        )}
+                        {isAboveNext && (
+                          <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أقل من الدفعة التالية ({nextPaymentCompletion}%). الحد الأقصى هو {maxAllowed}%.</span>
+                          </div>
+                        )}
+                        {!isBelowPrev && !isAboveNext && prevPaymentCompletion !== null && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            الحد الأدنى: {minAllowed}% (تصاعدياً بعد {prevPaymentCompletion}%)
+                          </p>
+                        )}
+                        {!isBelowPrev && !isAboveNext && prevPaymentCompletion === null && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            الدفعة الأولى: يمكن أن تبدأ من 0% فما فوق
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

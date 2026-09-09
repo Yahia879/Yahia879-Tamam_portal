@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +34,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  AlertCircle,
   Heart,
 } from "lucide-react";
 
@@ -580,30 +582,36 @@ export default function ContractForm() {
             ? JSON.parse(c.paymentScheduleJson)
             : c.paymentScheduleJson;
           if (Array.isArray(schedule) && schedule.length > 0) {
-            parsedSchedule = schedule.map((p: any) => ({
-              ...p,
-              completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+            parsedSchedule = schedule.map((p: any) => {
+              const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
                 ? Number(p.completionPercentage)
-                : undefined,
-            }));
+                : undefined;
+              return {
+                ...p,
+                completionPercentage: comp,
+              };
+            });
           }
         } catch (e) {
           console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
         }
       }
       if (parsedSchedule.length === 0 && existingContract.payments && existingContract.payments.length > 0) {
-        parsedSchedule = existingContract.payments.map((p: any, idx: number) => ({
-          id: p.id ? String(p.id) : `payment_${idx + 1}`,
-          name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
-          type: p.type || "progress",
-          percentage: p.percentage ? parseFloat(p.percentage) : 0,
-          amount: p.amount ? parseFloat(p.amount) : 0,
-          dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
-          description: p.description || p.notes || p.condition || "",
-          completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+        parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
+          const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
             ? Number(p.completionPercentage)
-            : undefined,
-        }));
+            : undefined;
+          return {
+            id: p.id ? String(p.id) : `payment_${idx + 1}`,
+            name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
+            type: p.type || "progress",
+            percentage: p.percentage ? parseFloat(p.percentage) : 0,
+            amount: p.amount ? parseFloat(p.amount) : 0,
+            dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
+            description: p.description || p.notes || p.condition || "",
+            completionPercentage: comp,
+          };
+        });
       }
       setPaymentSchedule(parsedSchedule);
 
@@ -798,6 +806,13 @@ export default function ContractForm() {
 
   // إضافة دفعة جديدة
   const addPayment = () => {
+    const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
+    let suggestedCompletion: number | undefined = undefined;
+    if (lastPayment && lastPayment.completionPercentage !== undefined && lastPayment.completionPercentage !== null && !isNaN(Number(lastPayment.completionPercentage))) {
+      suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + 10);
+    } else if (paymentSchedule.length === 0) {
+      suggestedCompletion = 0;
+    }
     const newPayment: PaymentScheduleItem = {
       id: `payment-${Date.now()}`,
       name: `الدفعة ${paymentSchedule.length + 1}`,
@@ -806,7 +821,7 @@ export default function ContractForm() {
       amount: 0,
       dueDate: "",
       description: "",
-      completionPercentage: undefined,
+      completionPercentage: suggestedCompletion,
     };
     setPaymentSchedule([...paymentSchedule, newPayment]);
   };
@@ -931,6 +946,15 @@ export default function ContractForm() {
             toast.error(`يرجى تحديد نسبة إنجاز صحيحة (بين 0 و 100) للدفعة ${i + 1}`);
             return false;
           }
+          if (i > 0) {
+            const prevComp = paymentSchedule[i - 1].completionPercentage;
+            if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
+              if (p.completionPercentage <= prevComp) {
+                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${prevComp}%)`);
+                return false;
+              }
+            }
+          }
         }
 
         const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
@@ -962,6 +986,7 @@ export default function ContractForm() {
   // إرسال العقد
   const handleSubmit = async () => {
     if (!validateStep(currentStep)) return;
+    if (paymentSchedule.length > 0 && !validateStep(4)) return;
     
     setIsSubmitting(true);
     
@@ -1863,7 +1888,7 @@ export default function ContractForm() {
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs font-semibold">النسبة (%)</Label>
+                                <Label className="text-xs font-bold text-foreground">نسبة الدفعة من العقد (%) *</Label>
                                 <Input
                                   type="number"
                                   value={payment.percentage || ""}
@@ -1880,6 +1905,7 @@ export default function ContractForm() {
                                   min="0"
                                   max="100"
                                 />
+                                <p className="text-[10px] text-muted-foreground">حصتها المالية من إجمالي العقد</p>
                               </div>
                               <div className="space-y-1">
                                 <Label className="text-xs font-semibold">المبلغ</Label>
@@ -1914,30 +1940,97 @@ export default function ContractForm() {
                                 />
                               </div>
                               <div className="space-y-1 text-right">
-                                <Label className="text-xs font-semibold">نسبة الإنجاز (%) *</Label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  required
-                                  value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
-                                  placeholder="مثال: 0"
-                                  className="w-full rounded-xl text-right font-bold"
-                                  onChange={(e) => {
-                                    if (e.target.value === "") {
-                                      updatePayment(payment.id, "completionPercentage", undefined);
-                                    } else {
-                                      let val = parseInt(e.target.value);
-                                      if (isNaN(val)) {
-                                        updatePayment(payment.id, "completionPercentage", undefined);
-                                      } else {
-                                        if (val > 100) val = 100;
-                                        if (val < 0) val = 0;
-                                        updatePayment(payment.id, "completionPercentage", val);
-                                      }
-                                    }
-                                  }}
-                                />
+                                <Label className="text-xs font-bold text-foreground">نسبة الإنجاز الميداني التراكمية (%) *</Label>
+                                <p className="text-[10px] text-muted-foreground">نسبة تقدم أعمال المشروع بالموقع (تصاعدية)</p>
+                                {(() => {
+                                  const prevPayment = index > 0 ? paymentSchedule[index - 1] : null;
+                                  const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null)
+                                    ? Number(prevPayment.completionPercentage)
+                                    : null;
+                                  const nextPayment = index < paymentSchedule.length - 1 ? paymentSchedule[index + 1] : null;
+                                  const nextComp = (nextPayment?.completionPercentage !== undefined && nextPayment?.completionPercentage !== null)
+                                    ? Number(nextPayment.completionPercentage)
+                                    : null;
+                                  const currentComp = (payment.completionPercentage !== undefined && payment.completionPercentage !== null)
+                                    ? Number(payment.completionPercentage)
+                                    : null;
+
+                                  const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp;
+                                  const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp;
+                                  const minAllowed = index === 0 ? 0 : (prevComp !== null ? prevComp + 1 : 0);
+                                  const maxAllowed = nextComp !== null ? Math.max(minAllowed, nextComp - 1) : 100;
+
+                                  return (
+                                    <>
+                                      <Input
+                                        type="number"
+                                        min={minAllowed}
+                                        max={maxAllowed}
+                                        required
+                                        value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
+                                        placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
+                                        className={cn(
+                                          "w-full rounded-xl text-right font-bold transition-all",
+                                          (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20"
+                                        )}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.currentTarget.blur();
+                                          }
+                                        }}
+                                        onChange={(e) => {
+                                          if (e.target.value === "") {
+                                            updatePayment(payment.id, "completionPercentage", undefined);
+                                          } else {
+                                            let val = parseInt(e.target.value);
+                                            if (isNaN(val)) {
+                                              updatePayment(payment.id, "completionPercentage", undefined);
+                                            } else {
+                                              if (val > 100) val = 100;
+                                              if (val < 0) val = 0;
+                                              updatePayment(payment.id, "completionPercentage", val);
+                                            }
+                                          }
+                                        }}
+                                        onBlur={(e) => {
+                                          const val = e.target.value === "" ? undefined : parseInt(e.target.value);
+                                          if (val !== undefined && !isNaN(val)) {
+                                            if (prevComp !== null && val <= prevComp) {
+                                              toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة لأنها أقل من أو تساوي الدفعة السابقة (${prevComp}%). تم ضبطها تلقائياً على الحد الأدنى (${minAllowed}%).`);
+                                              updatePayment(payment.id, "completionPercentage", minAllowed);
+                                            } else if (nextComp !== null && val >= nextComp) {
+                                              const maxVal = Math.max(minAllowed, nextComp - 1);
+                                              toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة لأنها أكبر من أو تساوي الدفعة التالية (${nextComp}%). تم ضبطها على (${maxVal}%).`);
+                                              updatePayment(payment.id, "completionPercentage", maxVal);
+                                            }
+                                          }
+                                        }}
+                                      />
+                                      {isBelowPrev && (
+                                        <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                                          <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أكبر من الدفعة السابقة ({prevComp}%). الحد الأدنى هو {minAllowed}%.</span>
+                                        </div>
+                                      )}
+                                      {isAboveNext && (
+                                        <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                                          <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أقل من الدفعة التالية ({nextComp}%). الحد الأقصى هو {maxAllowed}%.</span>
+                                        </div>
+                                      )}
+                                      {!isBelowPrev && !isAboveNext && index > 0 && prevComp !== null && (
+                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                          الحد الأدنى: {minAllowed}% (تصاعدياً بعد {prevComp}%)
+                                        </p>
+                                      )}
+                                      {!isBelowPrev && !isAboveNext && index === 0 && (
+                                        <p className="text-[11px] text-muted-foreground mt-1">
+                                          الدفعة الأولى: يمكن أن تبدأ من 0% فما فوق
+                                        </p>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>

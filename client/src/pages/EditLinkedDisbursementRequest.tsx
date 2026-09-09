@@ -618,7 +618,10 @@ export default function EditLinkedDisbursementRequest() {
                     </div>
                     
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الفعلية (%) *</Label>
+                      <div>
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">نسبة الإنجاز الميداني التراكمية للمشروع (%) *</Label>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">نسبة تقدم أعمال المشروع بالموقع المطلوبة لصرف هذه الدفعة</p>
+                      </div>
                       <Input
                         type="number"
                         min="0"
