@@ -203,9 +203,9 @@ const FORM_META_MAP: Record<string, { icon: any; color: string; label: string; t
   other: {
     icon: HelpCircle,
     color: "bg-sky-600",
-    label: "مسار أخرى (استفسارات وطلبات عامة)",
-    trackName: "استفسارات وطلبات عامة",
-    stepTitle: "تفاصيل الصفة والطلب العام",
+    label: "مسار الأسئلة والاستفسارات العامة",
+    trackName: "الأسئلة والاستفسارات العامة",
+    stepTitle: "تفاصيل الاستفسار",
   },
 };
 
@@ -581,14 +581,14 @@ export default function FormsCustomizationRegistrationDetail() {
             {field.required && <span className="text-destructive font-bold">*</span>}
           </Label>
           {field.id === "requestDetails" && (
-            <div className="p-2.5 bg-slate-50 dark:bg-muted/40 border border-slate-200/90 dark:border-border/80 rounded-xl text-right flex items-start gap-2 mb-1.5">
-              <div className="w-5 h-5 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <Info className="w-3 h-3" />
+            <div className="p-3 bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200/90 dark:border-amber-900/40 rounded-xl text-right flex items-start gap-2.5 mb-2">
+              <div className="w-5 h-5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200 dark:border-amber-800">
+                <Info className="w-3.5 h-3.5" />
               </div>
               <div className="space-y-0.5">
-                <span className="text-[11px] font-bold text-slate-800 dark:text-foreground block">توضيح إرشادي:</span>
-                <p className="text-[11px] text-slate-600 dark:text-muted-foreground leading-relaxed">
-                  يرجى توضيح ما ترغبون من الجمعية، وذكر تفاصيل المسجد أو الموقع إن كان الطلب مرتبطاً بمسجد محدد.
+                <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200 block">توضيح إرشادي مهم:</span>
+                <p className="text-[11px] text-amber-900/90 dark:text-amber-300/90 leading-relaxed font-medium">
+                  إذا كان لديك أي سؤال أو استفسار أو اقتراح يتم ذكره هنا، ولا يتم إرسال طلبات المساجد من خلال هذا الفورم، وشكراً لكم.
                 </p>
               </div>
             </div>
@@ -793,23 +793,7 @@ export default function FormsCustomizationRegistrationDetail() {
             </span>
           )}
         </div>
-        {field.id === "customRoleTitle" && formId === "other" && (
-          <div className="flex flex-wrap gap-1 pt-1">
-            {["جار المسجد", "أحد جماعة المسجد", "ممثل جهة أو شركة", "صاحب استفسار عام"].map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => setPreviewValues((prev) => ({ ...prev, customRoleTitle: tag }))}
-                className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer active:scale-95 ${previewValues["customRoleTitle"] === tag
-                  ? "bg-primary text-primary-foreground border-primary font-bold shadow-xs"
-                  : "bg-slate-50 dark:bg-muted/40 text-slate-700 dark:text-foreground border-slate-200 dark:border-border hover:bg-slate-100"
-                  }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        )}
+
         {field.helpText && (
           <p className="text-[10px] text-slate-500 dark:text-muted-foreground">{field.helpText}</p>
         )}
@@ -1590,7 +1574,7 @@ export default function FormsCustomizationRegistrationDetail() {
                           ? "مسار المتبرع (تبرع عيني)"
                           : formId === "donor_other"
                           ? "مسار المتبرع (تبرع آخر)"
-                          : "مسار أخرى (استفسارات وطلبات عامة)"}
+                          : "مسار الأسئلة والاستفسارات العامة"}
                       </span>
                     </div>
 
@@ -1615,7 +1599,7 @@ export default function FormsCustomizationRegistrationDetail() {
                               <User className={previewDevice === "mobile" ? "w-3 h-3" : "w-4 h-4"} />
                             </div>
                             <h3 className={`font-bold text-slate-900 dark:text-foreground ${previewDevice === "mobile" ? "text-xs font-bold" : "text-sm sm:text-base"}`}>
-                              {formId === "other" ? "بيانات مقدم الطلب" : "بيانات المتبرع والتواصل"}
+                              {formId === "other" ? "بيانات مقدم الاستفسار" : "بيانات المتبرع والتواصل"}
                             </h3>
                           </div>
 
@@ -1634,7 +1618,7 @@ export default function FormsCustomizationRegistrationDetail() {
                             </div>
                             <h3 className={`font-bold text-slate-900 dark:text-foreground ${previewDevice === "mobile" ? "text-xs font-bold" : "text-sm sm:text-base"}`}>
                               {formId === "other"
-                                ? "تفاصيل الصفة والطلب"
+                                ? "تفاصيل الاستفسار"
                                 : formId === "donor_other"
                                 ? "تفاصيل الصفة والتبرع"
                                 : "اذكر تفاصيل التبرع"}
@@ -1663,7 +1647,7 @@ export default function FormsCustomizationRegistrationDetail() {
                             ? "إرسال إشعار التحويل البنكي"
                             : formId === "donor_other"
                             ? "إرسال بيانات التبرع"
-                            : "إرسال الطلب للجمعية"}
+                            : "إرسال الاستفسار للجمعية"}
                         </span>
                       </Button>
                     </form>
