@@ -609,6 +609,61 @@ export default function NotificationCustomization() {
       ]
     },
     {
+      id: "beneficiary_technical_eval_convert_to_project",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "التقييم الفني: اعتماد الطلب وتحويله لمشروع",
+      description: "إشعار المستفيد باعتماد نتائج التقييم الفني لطلبه وتحويله إلى مشروع للبدء بإعداد جدول الكميات",
+      defaultTemplate: "تم اعتماد طلبك رقم {رقم_الطلب} وتحويله إلى مشروع",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_technical_eval_quick_response",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "التقييم الفني: تحويل الطلب للاستجابة السريعة",
+      description: "إشعار المستفيد بتوجيه طلبه إلى مسار الاستجابة السريعة للتدخل الفوري",
+      defaultTemplate: "تم تحويل طلبك رقم {رقم_الطلب} لفريق الاستجابة السريعة",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_technical_eval_convert_to_donation",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "التقييم الفني: تحويل الطلب لفرصة تبرع",
+      description: "إشعار المستفيد باعتماد طلبه وتحويله إلى فرصة تبرع لجمع المبالغ المخصصة",
+      defaultTemplate: "تم اعتماد طلبك رقم {رقم_الطلب} وتحويله إلى فرصة تبرع",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_technical_eval_suspend",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "التقييم الفني: تعليق الطلب مؤقتاً",
+      description: "إشعار المستفيد بتعليق طلبه مؤقتاً بعد المعاينة الميدانية والتقييم الفني",
+      defaultTemplate: "تم تعليق طلبك رقم {رقم_الطلب} مؤقتاً",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
+      id: "beneficiary_technical_eval_apologize",
+      category: "request",
+      categoryNameAr: "الطلبات والمراحل",
+      nameAr: "التقييم الفني: الاعتذار عن تنفيذ الطلب",
+      description: "إشعار المستفيد بالاعتذار عن تنفيذ الطلب بعد المعاينة والتقييم الفني",
+      defaultTemplate: "نعتذر عن عدم إمكانية تنفيذ طلبك رقم {رقم_الطلب}",
+      variables: [
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+      ]
+    },
+    {
       id: "beneficiary_quick_response_completed",
       category: "request",
       categoryNameAr: "الطلبات والمراحل",

@@ -2735,6 +2735,15 @@ export const requestsRouter = router({
           break;
       }
 
+      const technicalEvalTriggerMap: Record<string, string> = {
+        apologize: "beneficiary_technical_eval_apologize",
+        suspend: "beneficiary_technical_eval_suspend",
+        quick_response: "beneficiary_technical_eval_quick_response",
+        convert_to_project: "beneficiary_technical_eval_convert_to_project",
+        convert_to_donation: "beneficiary_technical_eval_convert_to_donation",
+      };
+      const triggerId = technicalEvalTriggerMap[input.decision];
+
       // إرسال إشعار لمقدم الطلب فقط إذا كان طالب خدمة
       const [ownerUser] = await db
         .select({ role: users.role })
@@ -2750,6 +2759,7 @@ export const requestsRouter = router({
           type: "request_update",
           relatedType: "request",
           relatedId: input.requestId,
+          triggerId,
         });
       }
 

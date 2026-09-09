@@ -232,6 +232,11 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   beneficiary_stage_field_visit: "تمت الموافقة على طلبك رقم {رقم_الطلب} وسيتم جدولة زيارة ميدانية لمسجدك قريباً.",
   beneficiary_field_visit_scheduled: "تم جدولة زيارة ميدانية لطلبك رقم {رقم_الطلب} بتاريخ {تاريخ_الزيارة}",
   beneficiary_field_visit_completed: "تم إتمام الزيارة الميدانية لطلبك رقم {رقم_الطلب} وجارٍ الآن التقييم الفني.",
+  beneficiary_technical_eval_convert_to_project: "تم اعتماد طلبك رقم {رقم_الطلب} وتحويله إلى مشروع",
+  beneficiary_technical_eval_quick_response: "تم تحويل طلبك رقم {رقم_الطلب} لفريق الاستجابة السريعة",
+  beneficiary_technical_eval_convert_to_donation: "تم اعتماد طلبك رقم {رقم_الطلب} وتحويله إلى فرصة تبرع",
+  beneficiary_technical_eval_suspend: "تم تعليق طلبك رقم {رقم_الطلب} مؤقتاً",
+  beneficiary_technical_eval_apologize: "نعتذر عن عدم إمكانية تنفيذ طلبك رقم {رقم_الطلب}",
   beneficiary_quick_response_completed: "تم تنفيذ وإتمام أعمال الاستجابة السريعة لطلبك رقم {رقم_الطلب}.",
   beneficiary_stage_financial_eval: "اكتمل جدول الكميات لطلبك رقم {رقم_الطلب} وجارٍ تقييم عروض الأسعار واعتمادها.",
   beneficiary_financial_approved: "تم اعتماد طلبك رقم {رقم_الطلب} مالياً بمبلغ {القيمة} ريال وتم الانتقال لمرحلة التعاقد",
@@ -497,6 +502,18 @@ export async function createNotification(data: {
         triggerId = "beneficiary_field_visit_scheduled";
       } else if (data.title === "إتمام الزيارة الميدانية" || data.message.includes("تم إتمام الزيارة الميدانية لطلبك")) {
         triggerId = "beneficiary_field_visit_completed";
+      } else if (data.title === "تحديث التقييم الفني" || data.message.includes("التقييم الفني")) {
+        if (data.message.includes("وتحويله إلى مشروع")) {
+          triggerId = "beneficiary_technical_eval_convert_to_project";
+        } else if (data.message.includes("الاستجابة السريعة")) {
+          triggerId = "beneficiary_technical_eval_quick_response";
+        } else if (data.message.includes("فرصة تبرع")) {
+          triggerId = "beneficiary_technical_eval_convert_to_donation";
+        } else if (data.message.includes("تعليق طلبك")) {
+          triggerId = "beneficiary_technical_eval_suspend";
+        } else if (data.message.includes("نعتذر عن عدم إمكانية")) {
+          triggerId = "beneficiary_technical_eval_apologize";
+        }
       } else if (data.title === "إتمام الاستجابة السريعة" || data.message.includes("تم تنفيذ وإتمام أعمال الاستجابة السريعة")) {
         triggerId = "beneficiary_quick_response_completed";
       } else if (data.title === "💰 تقييم العروض المالية" || data.message.includes("تقييم عروض الأسعار واعتمادها")) {
