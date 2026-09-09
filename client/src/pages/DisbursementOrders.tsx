@@ -511,7 +511,7 @@ export default function DisbursementOrders() {
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">العنوان</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المشروع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المستفيد</TableHead>
-                        <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
+                        <TableHead className="py-2.5 px-3 text-right min-w-[130px] font-bold text-slate-700 dark:text-slate-200">المبلغ</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">طريقة الدفع</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">الحالة</TableHead>
                         <TableHead className="py-2.5 px-3 text-right font-bold text-slate-700 dark:text-slate-200">التاريخ</TableHead>
@@ -638,7 +638,11 @@ export default function DisbursementOrders() {
                                 </Tooltip>
                               </TooltipProvider>
                             </TableCell>
-                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">{Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></TableCell>
+                            <TableCell className="py-2.5 px-3 whitespace-nowrap text-right font-semibold text-xs">
+                              <span className="inline-flex items-center gap-1">
+                                {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                              </span>
+                            </TableCell>
                             <TableCell className="py-2.5 px-3 text-right text-xs">{PAYMENT_METHOD_MAP[order.paymentMethod || "bank_transfer"]}</TableCell>
                             <TableCell className="py-2.5 px-3 text-right">
                               <Badge variant={STATUS_MAP[order.status || "draft"]?.variant} className={`whitespace-nowrap ${STATUS_MAP[order.status || "draft"]?.className}`}>
@@ -905,8 +909,8 @@ export default function DisbursementOrders() {
                           <div className="grid grid-cols-2 gap-3 text-right">
                             <div className="bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/30 p-2 rounded-lg">
                               <p className="text-[9px] text-emerald-800 dark:text-emerald-400 font-semibold mb-0.5">المبلغ</p>
-                              <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400 font-mono inline-flex items-center gap-1">
-                                {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline mr-1" />
+                              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-1">
+                                {Number(order.amount).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                               </p>
                             </div>
                             <div className="bg-muted/40 p-2 rounded-lg">
