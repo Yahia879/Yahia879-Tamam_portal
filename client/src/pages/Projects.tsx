@@ -90,7 +90,7 @@ export default function Projects() {
   const serverPermissions = useUserPermissions();
   const isAdmin = ["super_admin", "system_admin"].includes(user?.role || "");
   const canViewDetails = isAdmin || serverPermissions.includes("projects.view_details");
-  const canViewFinancials = serverPermissions.includes("projects.financials");
+  const canViewFinancials = serverPermissions.includes("projects.financials") || serverPermissions.includes("projects.edit_support_and_fees") || serverPermissions.includes("projects.add_receipt_voucher");
   const canAccessProjectPage = canViewDetails || canViewFinancials;
   const canCreateProject = 
     isAdmin || 

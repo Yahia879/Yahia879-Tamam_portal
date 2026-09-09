@@ -128,7 +128,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/admin-escalation": ["escalation", "escalation.view"],
 
   // ── المشاريع ──
-  "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials"],
+  "/projects": ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
   "/projects/new": ["projects.create_multi_mosque", "projects.create", "projects"],
   "/project-management": ["projects.view", "projects.view_details"],
 
@@ -262,7 +262,7 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/field-visits\/report\/\d+$/, permission: ["requests.view_details", "requests.manage_as_field_team"] },
 
   // المشاريع
-  { pattern: /^\/projects\/\d+$/, permission: ["projects.view_details", "projects.financials"] },
+  { pattern: /^\/projects\/\d+$/, permission: ["projects.view_details", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"] },
 
   // الموردون
   { pattern: /^\/suppliers\/\d+\/edit$/, permission: "suppliers.edit" },

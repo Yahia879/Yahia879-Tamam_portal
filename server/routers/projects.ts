@@ -2503,9 +2503,20 @@ export const projectsRouter = router({
       supportSourcesJson: z.string().optional(),
       notes: z.string().optional(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin", "financial"].includes(ctx.user.role);
+      if (
+        !isAdmin &&
+        !userPermissions.includes("projects.edit_support_and_fees") &&
+        !userPermissions.includes("projects.financials")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتعديل بيانات الداعمين والأجور الإدارية" });
+      }
 
       const [existing] = await db
         .select()
@@ -2679,6 +2690,18 @@ export const projectsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const isAdmin = ["super_admin", "system_admin", "financial"].includes(ctx.user.role);
+      if (
+        !isAdmin &&
+        !userPermissions.includes("projects.add_receipt_voucher") &&
+        !userPermissions.includes("receipt_vouchers.edit") &&
+        !userPermissions.includes("receipt_vouchers")
+      ) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتسجيل سند قبض" });
+      }
 
       const voucherNumber = await resequenceVoucherNumbers(db);
 

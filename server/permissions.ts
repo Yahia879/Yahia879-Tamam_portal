@@ -37,11 +37,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "requests.manage_as_field_team": ["requests.view", "requests.edit", "requests.manage_as_field_team"],
   "requests.manage_as_quick_response": ["requests.view", "requests.edit", "requests.manage_as_quick_response"],
   appointments_calendar: ["field_visits.view", "appointments.view"],
-  projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials"],
+  projects: ["projects.view", "projects.view_details", "projects.create_multi_mosque", "projects.assign_as_manager", "projects.financials", "projects.edit_support_and_fees", "projects.add_receipt_voucher"],
   "projects.view": ["projects.view"],
   "projects.view_details": ["projects.view", "projects.view_details"],
   "projects.create_multi_mosque": ["projects.view", "projects.create_multi_mosque"],
   "projects.financials": ["projects.view", "projects.financials"],
+  "projects.edit_support_and_fees": ["projects.view", "projects.financials", "projects.edit_support_and_fees"],
+  "projects.add_receipt_voucher": ["projects.view", "projects.financials", "projects.add_receipt_voucher"],
   service_requester_accounts: ["users.view", "users.edit"],
   escalation: ["escalation.view"],
   "escalation.view": ["escalation.view"],
@@ -313,6 +315,20 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "create_multi_mosque",
         nameAr: "إضافة مشروع لعدة مساجد",
         nameEn: "Create Multi-Mosque Project"
+      },
+      {
+        id: "projects.edit_support_and_fees",
+        moduleId: "projects",
+        action: "edit_support_and_fees",
+        nameAr: "تعديل بيانات الداعمين والأجور الإدارية",
+        nameEn: "Edit Sponsors and Admin Fees"
+      },
+      {
+        id: "projects.add_receipt_voucher",
+        moduleId: "projects",
+        action: "add_receipt_voucher",
+        nameAr: "إضافة سند صرف",
+        nameEn: "Add Receipt Voucher"
       },
       {
         id: "project_reports.view",
@@ -767,6 +783,8 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "projects.create_multi_mosque", moduleId: "projects", action: "create_multi_mosque", nameAr: "إضافة مشروع لعدة مساجد", nameEn: "Create Multi-Mosque Project" },
       { id: "projects.assign_as_manager", moduleId: "projects", action: "assign_as_manager", nameAr: "تعيين كمدير للمشاريع", nameEn: "Assign as Project Manager" },
       { id: "projects.financials", moduleId: "projects", action: "financials", nameAr: "مالية المشاريع", nameEn: "Project Financials" },
+      { id: "projects.edit_support_and_fees", moduleId: "projects", action: "edit_support_and_fees", nameAr: "تعديل بيانات الداعمين والأجور الإدارية", nameEn: "Edit Sponsors and Admin Fees" },
+      { id: "projects.add_receipt_voucher", moduleId: "projects", action: "add_receipt_voucher", nameAr: "إضافة سند صرف", nameEn: "Add Receipt Voucher" },
       { id: "disbursement_orders.create_direct", moduleId: "disbursements", action: "create_direct", nameAr: "انشاء امر صرف مخصص", nameEn: "Create Direct Disbursement Order" },
       { id: "receipt_vouchers.view", moduleId: "disbursements", action: "view", nameAr: "عرض سندات القبض", nameEn: "View Receipt Vouchers" },
       { id: "receipt_vouchers.edit", moduleId: "disbursements", action: "edit", nameAr: "تعديل سند القبض", nameEn: "Edit Receipt Voucher" },

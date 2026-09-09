@@ -162,6 +162,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
   const { user } = useAuth();
   const isFaaa8User = user?.email === "solayani@manarah.org.sa";
   const hasExceptionApprove = usePermission("receipt_vouchers.exception_approve");
+  const hasFinancials = usePermission("projects.financials");
+  const canEditSupportAndFees = hasFinancials && usePermission("projects.edit_support_and_fees");
+  const canAddReceiptVoucher = hasFinancials && usePermission("projects.add_receipt_voucher");
 
   const [activeSupporterTab, setActiveSupporterTab] = useState<string>("all");
   const [supportAmount, setSupportAmount] = useState<number>(0);
@@ -1077,36 +1080,38 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 توثيق الجهة الداعمة والمبلغ والأجور الإدارية لفريق المهندسين والجمعية
               </CardDescription>
             </div>
-            <Button
-              variant={isEditingFinancials ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                if (isEditingFinancials) {
-                  handleSaveFinancials();
-                } else {
-                  if (supportSources.length === 0) {
-                    setSupportSources([{ entity: "", customEntity: "", amount: 0 }]);
+            {canEditSupportAndFees && (
+              <Button
+                variant={isEditingFinancials ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  if (isEditingFinancials) {
+                    handleSaveFinancials();
+                  } else {
+                    if (supportSources.length === 0) {
+                      setSupportSources([{ entity: "", customEntity: "", amount: 0 }]);
+                    }
+                    setIsEditingFinancials(true);
                   }
-                  setIsEditingFinancials(true);
-                }
-              }}
-              disabled={upsertFinancialsMutation.isPending}
-              className="gap-1 text-xs"
-            >
-              {upsertFinancialsMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : isEditingFinancials ? (
-                <>
-                  <Check className="h-3.5 w-3.5" />
-                  حفظ البيانات
-                </>
-              ) : (
-                <>
-                  <Edit3 className="h-3.5 w-3.5" />
-                  تعديل البيانات
-                </>
-              )}
-            </Button>
+                }}
+                disabled={upsertFinancialsMutation.isPending}
+                className="gap-1 text-xs"
+              >
+                {upsertFinancialsMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : isEditingFinancials ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    حفظ البيانات
+                  </>
+                ) : (
+                  <>
+                    <Edit3 className="h-3.5 w-3.5" />
+                    تعديل البيانات
+                  </>
+                )}
+              </Button>
+            )}
           </CardHeader>
 
           <CardContent className="pt-4 space-y-4">
@@ -1366,10 +1371,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               تسجيل وتوثيق جميع الدفعات المقبوضة فعلياً وتحديد تاريخ القبض لكل دفعة
             </CardDescription>
           </div>
-          <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary w-full sm:w-auto h-9">
-            <Plus className="h-4 w-4" />
-            تسجيل سند قبض جديد
-          </Button>
+          {canAddReceiptVoucher && (
+            <Button onClick={openAddVoucherModal} size="sm" className="gap-1.5 font-bold text-xs bg-primary w-full sm:w-auto h-9">
+              <Plus className="h-4 w-4" />
+              تسجيل سند قبض جديد
+            </Button>
+          )}
         </CardHeader>
 
         <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6 space-y-4 sm:space-y-6">
@@ -1577,7 +1584,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
               <Receipt className="h-12 w-12 mx-auto mb-2 text-muted-foreground/40" />
               <p className="font-semibold text-gray-700 text-sm">لم يتم تسجيل أي سندات قبض بعد</p>
               <p className="text-xs text-muted-foreground mt-1">
-                انقر على "تسجيل سند قبض جديد" لإضافة الدفعات المستلمة جزئياً أو كلياً من الداعم.
+                {canAddReceiptVoucher
+                  ? 'انقر على "تسجيل سند قبض جديد" لإضافة الدفعات المستلمة جزئياً أو كلياً من الداعم.'
+                  : 'لا توجد سندات قبض مسجلة لهذا المشروع حالياً.'}
               </p>
             </div>
           ) : (

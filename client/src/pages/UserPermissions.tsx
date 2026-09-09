@@ -246,6 +246,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل صلاحيات الداعمين وسندات الصرف/القبض إذا كانت مالية المشاريع معطلة
+    if (permId === "projects.edit_support_and_fees" || permId === "projects.add_receipt_voucher") {
+      if (!isChecked("projects.financials")) {
+        toast.warning("يجب تفعيل صلاحية 'مالية المشاريع' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية لتقارير الإنجاز إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("progress_reports.") && permId !== "progress_reports.view") {
       if (!isChecked("progress_reports.view")) {
@@ -408,6 +416,12 @@ export default function UserPermissions() {
           });
         }
         if (permId === "projects.view") cascadeRevoke("projects.");
+        if (permId === "projects.financials") {
+          ["projects.edit_support_and_fees", "projects.add_receipt_voucher"].forEach(pId => {
+            const defVal = rolePermissions?.includes(pId) || false;
+            if (defVal) { updated[pId] = false; } else { delete updated[pId]; }
+          });
+        }
         if (permId === "progress_reports.view") cascadeRevoke("progress_reports.");
         if (permId === "project_reports.view") cascadeRevoke("project_reports.");
         if (permId === "requesters.view") cascadeRevoke("requesters.");
@@ -629,7 +643,9 @@ export default function UserPermissions() {
         view_details: "عرض تفاصيل المشروع وادارته",
         create_multi_mosque: "إضافة مشروع لعدة مساجد",
         assign_as_manager: "تعيين كمدير للمشاريع",
-        financials: "مالية المشاريع"
+        financials: "مالية المشاريع",
+        edit_support_and_fees: "تعديل بيانات الداعمين والأجور الإدارية",
+        add_receipt_voucher: "إضافة سند صرف",
       },
       requesters: {
         view: "عرض قسم إدارة المستفيدين",
@@ -804,7 +820,7 @@ export default function UserPermissions() {
     {
       title: "الهندسة والمشاريع",
       modules: [
-        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials"] },
+        { id: "projects", nameAr: "المشاريع", icon: LayoutGrid, perms: ["view", "view_details", "create_multi_mosque", "assign_as_manager", "financials", "edit_support_and_fees", "add_receipt_voucher"] },
         { id: "progress_reports", nameAr: "تقارير الإنجاز", icon: ClipboardCheck, perms: ["view", "add", "edit", "exception_approve"] },
         { id: "project_reports", nameAr: "تقارير المشاريع", icon: FileText, perms: ["view", "create"] },
         { id: "reports", nameAr: "التقارير الفنية", icon: FileBarChart, perms: ["view_stats", "export_data"] },
@@ -1096,6 +1112,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("services.") && perm.id !== "services.view" && !isChecked("services.view")) ||
                               (perm.id.startsWith("requests.") && perm.id !== "requests.view" && perm.id !== "requests.sign_final_report" && !isChecked("requests.view")) ||
                               (perm.id.startsWith("projects.") && perm.id !== "projects.view" && !isChecked("projects.view")) ||
+                              ((perm.id === "projects.edit_support_and_fees" || perm.id === "projects.add_receipt_voucher") && !isChecked("projects.financials")) ||
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||

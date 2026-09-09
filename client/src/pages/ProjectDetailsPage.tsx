@@ -158,7 +158,7 @@ export default function ProjectDetailsPage() {
   const canViewDetails = serverPermissions.includes("projects.view_details");
   const canEditProjectName = canViewDetails || isAdmin;
   // صلاحية مالية المشاريع → تعرض قسم المالية
-  const canViewFinancials = serverPermissions.includes("projects.financials");
+  const canViewFinancials = serverPermissions.includes("projects.financials") || serverPermissions.includes("projects.edit_support_and_fees") || serverPermissions.includes("projects.add_receipt_voucher");
   // إذا كان المستخدم يملك فقط صلاحية المالية بدون صلاحية عرض التفاصيل
   const financialsOnly = canViewFinancials && !canViewDetails;
 
