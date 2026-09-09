@@ -133,6 +133,17 @@ export default function ProjectDetailsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
   const boqTabRef = useRef<BoqTabHandle>(null);
+  const mobileTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    if (activeTab && mobileTabRefs.current[activeTab]) {
+      mobileTabRefs.current[activeTab]?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+  }, [activeTab]);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -500,18 +511,6 @@ export default function ProjectDetailsPage() {
       isLocked: isPaymentsLocked 
     },
   ];
-
-  const mobileTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  useEffect(() => {
-    if (activeTab && mobileTabRefs.current[activeTab]) {
-      mobileTabRefs.current[activeTab]?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-      });
-    }
-  }, [activeTab]);
 
   return (
     <DashboardLayout>
