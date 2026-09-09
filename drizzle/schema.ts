@@ -678,6 +678,9 @@ export const suppliers = mysqlTable("suppliers", {
   rating: int("rating"), // 1-5
   notes: text("notes"),
   
+  // ==================== طريقة التسجيل ومصدر المورد ====================
+  registrationSource: mysqlEnum("registrationSource", ["portal", "manual"]).default("portal"),
+
   // ==================== المنشئ والتواريخ ====================
   createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

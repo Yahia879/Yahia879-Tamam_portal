@@ -63,6 +63,8 @@ import {
   Download,
   Pencil,
   Play,
+  Globe,
+  UserPlus,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -321,6 +323,7 @@ export default function SuppliersManagement() {
                     <TableHead className="text-right">السجل التجاري</TableHead>
                     <TableHead className="text-right">مجالات العمل</TableHead>
                     <TableHead className="text-right">الحالة</TableHead>
+                    <TableHead className="text-right">طريقة التسجيل</TableHead>
                     <TableHead className="text-right">تاريخ التسجيل</TableHead>
                     <TableHead className="text-left">الإجراءات</TableHead>
                   </TableRow>
@@ -367,6 +370,19 @@ export default function SuppliersManagement() {
                             <StatusIcon className="h-3 w-3 ml-1" />
                             {statusConfig.label}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {supplier.registrationSource === "portal" ? (
+                            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
+                              <Globe className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              سجل بالمنصة
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 gap-1.5 inline-flex items-center text-xs font-medium px-2 py-0.5">
+                              <UserPlus className="h-3 w-3 text-slate-500 shrink-0" />
+                              إدخال يدوي
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}

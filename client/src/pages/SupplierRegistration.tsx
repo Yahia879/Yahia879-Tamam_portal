@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { FileUpload } from "@/components/FileUpload";
 import { LocationPicker } from "@/components/LocationPicker";
 import { 
@@ -22,7 +21,11 @@ import {
   Send,
   Plus,
   Trash2,
-  ArrowRight
+  ArrowRight,
+  CheckCircle2,
+  Globe,
+  Truck,
+  Info
 } from "lucide-react";
 
 // مجالات العمل المتاحة
@@ -58,7 +61,10 @@ const WORK_FIELDS: { key: WorkFieldType; label: string }[] = [
 
 export default function SupplierRegistration() {
   const [, navigate] = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // جلب إعدادات الهوية والشعار
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
   // جلب البنوك ديناميكياً من قاعدة البيانات
   const { data: allCategories = [] } = trpc.categories.getAllCategories.useQuery();
@@ -100,8 +106,9 @@ export default function SupplierRegistration() {
   // Mutation لتسجيل المورد
   const registerMutation = trpc.suppliers.register.useMutation({
     onSuccess: () => {
-      toast.success("تم التسجيل بنجاح - سيتم مراجعة طلبك من قبل الإدارة");
-      navigate("/suppliers");
+      toast.success("تم استلام طلب التسجيل بنجاح - سيتم مراجعة طلبكم من قبل إدارة الجمعية");
+      setIsSuccess(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     },
     onError: (error) => {
       // تنظيف رسالة الخطأ من بيانات Base64
@@ -221,27 +228,65 @@ export default function SupplierRegistration() {
     );
   };
 
-  // التحقق من تسجيل الدخول
-  if (authLoading) {
+  // ==================== شاشة النجاح عند إتمام التسجيل ====================
+  if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+      <div className="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-slate-50/80" dir="rtl">
+        <Card className="w-full max-w-lg border-0 shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden bg-white">
+          <div className="h-3 bg-emerald-600 w-full" />
+          <CardContent className="pt-8 pb-8 px-6 sm:px-10 text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-sm border border-emerald-200">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>تسجيل الدخول مطلوب</CardTitle>
-            <CardDescription>يرجى تسجيل الدخول أولاً للتسجيل كمورد</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" onClick={() => navigate("/")}>
-              العودة للصفحة الرئيسية
-            </Button>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">تم استلام طلبكم بنجاح!</h2>
+            
+            <div className="p-4 bg-emerald-50 border border-emerald-200/80 rounded-2xl mb-6 text-right space-y-2">
+              <p className="text-emerald-950 font-medium text-sm sm:text-base leading-relaxed">
+                شكراً لاهتمامكم بالانضمام إلى قائمة الموردين والمقاولين المعتمدين لدى جمعية عمارة المساجد (منارة).
+              </p>
+              <p className="text-emerald-900/90 text-xs sm:text-sm leading-relaxed">
+                تم استلام بيانات منشأتكم ومرفقاتكم بنجاح، وسيقوم فريق المشتريات والعقود بمراجعة الطلب والمستندات والتواصل معكم عند الاعتماد.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Link href="/">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 rounded-xl shadow-md cursor-pointer">
+                  العودة إلى الصفحة الرئيسية
+                </Button>
+              </Link>
+              <Button 
+                variant="ghost" 
+                className="w-full text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                onClick={() => {
+                  setIsSuccess(false);
+                  setEntityName("");
+                  setCommercialRegister("");
+                  setCommercialActivity("");
+                  setYearsOfExperience(0);
+                  setWorkFields([]);
+                  setAddress("");
+                  setGoogleMapsUrl("");
+                  setEmail("");
+                  setPhone("");
+                  setPhoneSecondary("");
+                  setContactPerson("");
+                  setContactPersonTitle("");
+                  setBankAccountName("");
+                  setBankName("");
+                  setIban("");
+                  setTaxNumber("");
+                  setCommercialRegisterDoc("");
+                  setVatCertificateDoc("");
+                  setNationalAddressDoc("");
+                  setBankCertificateDoc("");
+                  setOtherAttachments([]);
+                }}
+              >
+                تقديم طلب تسجيل منشأة أخرى
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -251,23 +296,39 @@ export default function SupplierRegistration() {
   return (
     <div className="min-h-screen bg-gray-50 py-4 sm:py-8" dir="rtl">
       <div className="container max-w-4xl mx-auto px-2 sm:px-4">
-        {/* العنوان */}
-        <div className="flex items-center gap-4 mb-6 sm:mb-8 px-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              window.history.back();
-            }}
-            type="button"
-            className="shrink-0"
-          >
-            <ArrowRight className="w-5 h-5 text-gray-700" />
-          </Button>
-          <div className="text-right">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">تسجيل مورد جديد</h1>
-            <p className="text-sm sm:text-base text-gray-600 mt-1">قم بتعبئة البيانات المطلوبة للتسجيل كمورد معتمد</p>
+        {/* الترويسة والشعار */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 sm:mb-8 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-3.5">
+            <Link href="/">
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                className="shrink-0 h-10 w-10 rounded-xl hover:bg-gray-100 cursor-pointer"
+              >
+                <ArrowRight className="w-5 h-5 text-gray-700" />
+              </Button>
+            </Link>
+            <img
+              src={orgSettings?.logoUrl || "/logo.svg"}
+              alt={`شعار ${orgSettings?.organizationName || "بوابة منارة"}`}
+              className="h-12 object-contain"
+            />
+            <div className="text-right">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <span>تسجيل مورد جديد</span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                  بوابة الموردين
+                </span>
+              </h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">انضمام إلى قائمة الموردين والمقاولين المعتمدين</p>
+            </div>
           </div>
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="text-xs text-gray-600 hover:text-gray-900">
+              العودة للصفحة الرئيسية ←
+            </Button>
+          </Link>
         </div>
 
         <div className="space-y-4 sm:space-y-6">
@@ -547,13 +608,26 @@ export default function SupplierRegistration() {
             <CardHeader className="bg-gradient-to-l from-orange-500 to-orange-600 text-white rounded-t-lg p-4 sm:p-6">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <FileText className="h-5 w-5" />
-                المرفقات
+                المرفقات الرسمية
               </CardTitle>
               <CardDescription className="text-orange-100 text-xs sm:text-sm">
-                المستندات الرسمية الداعمة لطلب التسجيل (سارية المفعول)
+                المستندات الرسمية الداعمة لطلب التسجيل (سارية المفعول - الحد الأقصى لكل ملف 10 ميجابايت)
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6 space-y-4">
+              {/* تنبيه إرشادي بالحد الأقصى للملفات */}
+              <div className="p-3 sm:p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl text-right flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
+                  <Info className="w-3.5 h-3.5" />
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-amber-900 block">تعليمات رفع المستندات:</span>
+                  <p className="text-xs text-amber-900/90 leading-relaxed">
+                    الحد الأقصى المسموح به لحجم كل ملف هو <strong>10 ميجابايت</strong> بصيغ (PDF أو صور JPG / PNG). يرجى التأكد من سريان مفعول المستندات ووضوح الأختام والبيانات.
+                  </p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs sm:text-sm font-medium">إرفاق السجل التجاري *</Label>
@@ -564,8 +638,9 @@ export default function SupplierRegistration() {
                       }
                     }}
                     maxFiles={1}
+                    maxSizeMB={10}
                     label="السجل التجاري"
-                    description="ارفع صورة السجل التجاري"
+                    description="ارفع صورة السجل التجاري (حتى 10MB)"
                   />
                   {commercialRegisterDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
@@ -578,8 +653,9 @@ export default function SupplierRegistration() {
                       }
                     }}
                     maxFiles={1}
+                    maxSizeMB={10}
                     label="شهادة الضريبة"
-                    description="ارفع شهادة ضريبة القيمة المضافة"
+                    description="ارفع شهادة ضريبة القيمة المضافة (حتى 10MB)"
                   />
                   {vatCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
@@ -592,8 +668,9 @@ export default function SupplierRegistration() {
                       }
                     }}
                     maxFiles={1}
+                    maxSizeMB={10}
                     label="العنوان الوطني"
-                    description="ارفع صورة العنوان الوطني"
+                    description="ارفع صورة العنوان الوطني (حتى 10MB)"
                   />
                   {nationalAddressDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>
@@ -606,8 +683,9 @@ export default function SupplierRegistration() {
                       }
                     }}
                     maxFiles={1}
+                    maxSizeMB={10}
                     label="الشهادة البنكية"
-                    description="ارفع صورة الشهادة البنكية"
+                    description="ارفع صورة الشهادة البنكية (حتى 10MB)"
                   />
                   {bankCertificateDoc && <p className="text-[10px] sm:text-xs text-green-600 font-medium">✓ تم رفع الملف</p>}
                 </div>

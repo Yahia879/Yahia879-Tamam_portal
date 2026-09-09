@@ -44,6 +44,8 @@ import {
   User,
   Info,
   Play,
+  Globe,
+  UserPlus,
 } from "lucide-react";
 
 // تسميات مجالات العمل
@@ -442,6 +444,17 @@ export default function SupplierDetails() {
                 <StatusIcon className="h-3.5 w-3.5" />
                 {statusConfig.label}
               </Badge>
+              {supplier.registrationSource === "portal" ? (
+                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1.5 rounded-full shadow-xs">
+                  <Globe className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  سجل بالمنصة
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 px-2.5 py-0.5 text-xs font-semibold flex items-center gap-1.5 rounded-full shadow-xs">
+                  <UserPlus className="h-3.5 w-3.5 text-slate-500" />
+                  إدخال يدوي
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -953,37 +966,53 @@ export default function SupplierDetails() {
               </CardContent>
             </Card>
 
-            {/* بطاقة الاعتماد والمدقق */}
-            {supplier.approvedBy && (
-              <Card className="border shadow-xs">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-xs font-bold flex items-center gap-1.5">
-                    <Shield className="h-4 w-4 text-slate-500" />
-                    توثيق وتدقيق الطلب
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-1 text-[11px] space-y-2 font-semibold text-slate-500 dark:text-slate-400">
-                  <div className="flex justify-between items-center">
-                    <span>المدقق المعتمد:</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold">{supplier.approver?.name || "مسؤول النظام"}</span>
-                  </div>
-                  {supplier.approvedAt && (
-                    <div className="flex justify-between items-center">
-                      <span>تاريخ الاعتماد:</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">
-                        {new Date(supplier.approvedAt).toLocaleDateString("ar-SA")}
-                      </span>
-                    </div>
+            {/* بطاقة توثيق ومصدر التسجيل والاعتماد */}
+            <Card className="border shadow-xs">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-xs font-bold flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-slate-500" />
+                  توثيق ومصدر التسجيل
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-1 text-[11px] space-y-2 font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between items-center">
+                  <span>طريقة التسجيل:</span>
+                  {supplier.registrationSource === "portal" ? (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[11px] gap-1 py-0.5 font-medium">
+                      <Globe className="h-3 w-3 text-emerald-600" />
+                      سجل بالمنصة
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-300 text-[11px] gap-1 py-0.5 font-medium">
+                      <UserPlus className="h-3 w-3 text-slate-500" />
+                      إدخال يدوي
+                    </Badge>
                   )}
-                  <div className="flex justify-between items-center">
-                    <span>تاريخ التسجيل:</span>
-                    <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">
-                      {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>تاريخ التسجيل:</span>
+                  <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">
+                    {new Date(supplier.createdAt).toLocaleDateString("ar-SA")}
+                  </span>
+                </div>
+                {supplier.approvedBy && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span>المدقق المعتمد:</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{supplier.approver?.name || "مسؤول النظام"}</span>
+                    </div>
+                    {supplier.approvedAt && (
+                      <div className="flex justify-between items-center">
+                        <span>تاريخ الاعتماد:</span>
+                        <span className="text-slate-800 dark:text-slate-200 font-bold" dir="ltr">
+                          {new Date(supplier.approvedAt).toLocaleDateString("ar-SA")}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
 
           </div>
 

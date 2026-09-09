@@ -85,7 +85,7 @@ export const suppliersRouter = router({
   // ==================== تسجيل الموردين ====================
 
   // تسجيل مورد جديد (النموذج الكامل)
-  register: permissionProcedure("suppliers.create")
+  register: publicProcedure
     .input(fullSupplierSchema)
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -133,7 +133,8 @@ export const suppliersRouter = router({
         bankCertificateDoc: input.bankCertificateDoc,
         otherAttachments: input.otherAttachments || [],
         approvalStatus: "pending",
-        createdBy: ctx.user.id,
+        registrationSource: "portal",
+        createdBy: ctx.user?.id ?? null,
       });
 
       const supplierId = result.insertId;
@@ -191,6 +192,7 @@ export const suppliersRouter = router({
         entityType: input.entityType,
         workFields: input.workFields || [],
         approvalStatus: "approved", // المورد المضاف من الإدارة يعتبر معتمداً تلقائياً
+        registrationSource: "manual",
         approvedBy: ctx.user.id,
         approvedAt: new Date(),
         createdBy: ctx.user.id,
@@ -263,6 +265,7 @@ export const suppliersRouter = router({
           approvedAt: suppliers.approvedAt,
           rejectionReason: suppliers.rejectionReason,
           status: suppliers.status,
+          registrationSource: suppliers.registrationSource,
           rating: suppliers.rating,
           notes: suppliers.notes,
           createdBy: suppliers.createdBy,

@@ -7,7 +7,8 @@ import {
   FileText, 
   Users, 
   ArrowLeft, 
-  Loader2, 
+  Loader2,
+  Truck,
 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import { trpc } from "@/lib/trpc";
@@ -81,12 +82,26 @@ export default function LandingPage() {
             </div>
 
             {/* أزرار الدخول */}
-            <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
+              <Link href="/supplier/register">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className={`px-2 sm:px-3.5 text-[10px] xs:text-xs sm:text-sm font-bold rounded-xl transition-all duration-300 cursor-pointer ${
+                    isScrolled 
+                      ? "border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" 
+                      : "border-white/40 text-white hover:bg-white/15 bg-white/10"
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5 ml-1.5" />
+                  سجل معنا كمورد
+                </Button>
+              </Link>
               <Link href="/register">
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className={`px-1.5 sm:px-4 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
+                  className={`px-1.5 sm:px-3 text-[10px] xs:text-xs sm:text-sm transition-all duration-300 cursor-pointer ${
                     isScrolled 
                       ? "text-muted-foreground hover:text-foreground" 
                       : "text-white/90 hover:text-white hover:bg-white/10"
@@ -166,6 +181,15 @@ export default function LandingPage() {
                   طلب خدمة جديدة
                 </Button>
               </Link>
+              <Link href="/supplier/register">
+                <Button
+                  size="lg"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer border border-emerald-300/40"
+                >
+                  <Truck className="w-4 h-4 md:w-5 md:h-5 ml-2" />
+                  سجل معنا كمورد
+                </Button>
+              </Link>
               <Link href="/login">
                 <Button
                   size="lg"
@@ -189,17 +213,19 @@ export default function LandingPage() {
       {/* ═══════════════ دعوة للعمل ═══════════════ */}
       <section className="py-12 md:py-16 bg-background">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
             {/* بطاقة المستفيد */}
-            <div className="bg-card rounded-2xl border border-border p-8 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5">
-              <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6">
-                <FileText className="w-7 h-7 text-white" />
+            <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
+              <div>
+                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6">
+                  <FileText className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3">طلب خدمة لمسجدك</h3>
+                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                  سجّل حساباً جديداً أو قدّم تبرعك واستفسارك لمسجدك من خلال البرامج المتاحة. تابع حالة طلبك بشكل مباشر.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">طلب خدمة لمسجدك</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                سجّل حساباً جديداً أو قدّم تبرعك واستفسارك لمسجدك من خلال البرامج المتاحة. تابع حالة طلبك بشكل مباشر.
-              </p>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5 mt-auto">
                 <Link href="/register">
                   <Button className="w-full gradient-primary text-white font-semibold py-5 cursor-pointer">
                     تسجيل حساب / تقديم طلب
@@ -213,20 +239,55 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* بطاقة الموظف */}
-            <div className="bg-card rounded-2xl border border-border p-8 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-6">
-                <Users className="w-7 h-7 text-white" />
+            {/* بطاقة المورد */}
+            <div className="bg-card rounded-2xl border-2 border-emerald-500/30 p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-emerald-500/[0.03] to-transparent">
+              <div>
+                <div className="w-14 h-14 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-6 shadow-sm">
+                  <Truck className="w-7 h-7" />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xl font-bold text-foreground">بوابة الموردين والمقاولين</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    جديد
+                  </span>
+                </div>
+                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                  انضم إلى شبكة الموردين والمقاولين المعتمدين لدى الجمعية للمشاركة في تقديم عروض الأسعار وتنفيذ وتوريد مشاريع المساجد.
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-foreground mb-3">بوابة الموظفين</h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                للموظفين والمسؤولين لإدارة الطلبات والمشاريع ومتابعة سير العمل عبر جميع المراحل.
-              </p>
-              <Link href="/admin/login">
-                <Button className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-5 cursor-pointer">
-                  دخول الموظفين
-                </Button>
-              </Link>
+              <div className="flex flex-col gap-2.5 mt-auto">
+                <Link href="/supplier/register">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-5 cursor-pointer shadow-md">
+                    <Truck className="w-4 h-4 ml-2" />
+                    سجل معنا كمورد
+                  </Button>
+                </Link>
+                <Link href="/supplier/dashboard">
+                  <Button variant="outline" className="w-full border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 font-medium cursor-pointer">
+                    بوابة خدمات الموردين
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* بطاقة الموظف */}
+            <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
+              <div>
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center mb-6 shadow-sm">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3">بوابة الموظفين</h3>
+                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
+                  للموظفين والمسؤولين لإدارة الطلبات والمشاريع ومتابعة سير العمل واعتماد عروض الأسعار والموردين.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2.5 mt-auto">
+                <Link href="/admin/login">
+                  <Button className="w-full bg-slate-700 hover:bg-slate-800 text-white font-semibold py-5 cursor-pointer">
+                    دخول الموظفين
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
