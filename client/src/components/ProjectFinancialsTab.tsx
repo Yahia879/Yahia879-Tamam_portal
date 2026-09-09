@@ -195,6 +195,11 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       toast.success("تم حفظ البيانات المالية والدعم بنجاح");
       setIsEditingFinancials(false);
       refetch();
+      utils.projects.getFinancialData.invalidate({ projectId });
+      utils.projects.getById.invalidate({ id: projectId });
+      utils.contracts.invalidate();
+      utils.disbursements.invalidate();
+      utils.disbursements.getFinancialReport.invalidate();
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ البيانات المالية");
@@ -392,7 +397,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       setSupportAmount(parseFloat(data.financialDetail.supportAmount || "0"));
       setAdminFeeType((data.financialDetail.adminFeeType as any) || "percentage");
       const savedFeeVal = parseFloat(data.financialDetail.adminFeeValue || "0");
-      setAdminFeeValue(savedFeeVal > 0 ? savedFeeVal : (contractAdminPct > 0 ? contractAdminPct : 0));
+      const savedFeeAmt = parseFloat(data.financialDetail.adminFeeAmount || "0");
+      if (savedFeeVal > 0) {
+        setAdminFeeValue(savedFeeVal);
+      } else if (data.financialDetail.adminFeeType === "fixed" && savedFeeAmt > 0) {
+        setAdminFeeValue(savedFeeAmt);
+      } else if (contractAdminPct > 0) {
+        setAdminFeeValue(contractAdminPct);
+      } else {
+        setAdminFeeValue(0);
+      }
       setAssociationFundingAmount(parseFloat(data.financialDetail.associationFundingAmount || "0"));
       setAssociationFundingNotes(data.financialDetail.associationFundingNotes || "");
       setFinancialNotes(data.financialDetail.notes || "");
@@ -491,17 +505,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
         ? parseFloat((approvedQuotation.approvedAmount || approvedQuotation.negotiatedAmount || approvedQuotation.finalAmount || approvedQuotation.totalAmount || "0").toString())
         : 0);
 
-  // Admin fee percentage: priority from contract, or from financialDetail / user state
-  const effectiveAdminPct = contractAdminPct > 0 
-    ? contractAdminPct 
-    : (adminFeeType === "percentage" ? (adminFeeValue || 0) : (supplierBaseAmount > 0 ? ((adminFeeValue || 0) / supplierBaseAmount) * 100 : 0));
+  // Admin fee percentage: calculated dynamically from active state
+  const effectiveAdminPct = adminFeeType === "percentage" 
+    ? (adminFeeValue || 0) 
+    : (supplierBaseAmount > 0 ? parseFloat((((adminFeeValue || 0) / supplierBaseAmount) * 100).toFixed(2)) : 0);
 
   // Calculated admin fee amount (حصة الجمعية المستقطعة من قيمة العقد)
-  const calculatedAdminFeeAmount = contractAdminPct > 0
-    ? (supplierBaseAmount * contractAdminPct) / 100
-    : (adminFeeType === "percentage"
-        ? (supplierBaseAmount * (adminFeeValue || 0)) / 100
-        : (adminFeeValue || 0));
+  const calculatedAdminFeeAmount = adminFeeType === "percentage"
+    ? (supplierBaseAmount * (adminFeeValue || 0)) / 100
+    : (adminFeeValue || 0);
 
   // صافي حصة المورد بعد استقطاع حصة الجمعية (لا تنجمع مع قيمة المورد بل تستقطع منها)
   const supplierNetShare = Math.max(0, supplierBaseAmount - calculatedAdminFeeAmount);
@@ -1191,7 +1203,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                     <Label className="text-xs font-bold text-amber-900">الأجور الإدارية (المهندسين والجمعية)</Label>
                     <Select
                       value={adminFeeType}
-                      onValueChange={(val: "percentage" | "fixed") => setAdminFeeType(val)}
+                      onValueChange={(val: "percentage" | "fixed") => {
+                        setAdminFeeType(val);
+                        if (val === "fixed" && adminFeeType === "percentage" && adminFeeValue > 0) {
+                          const equivAmt = (supplierBaseAmount * adminFeeValue) / 100;
+                          setAdminFeeValue(equivAmt);
+                        } else if (val === "percentage" && adminFeeType === "fixed" && adminFeeValue > 0 && supplierBaseAmount > 0) {
+                          const equivPct = parseFloat(((adminFeeValue / supplierBaseAmount) * 100).toFixed(2));
+                          setAdminFeeValue(equivPct);
+                        }
+                      }}
                     >
                       <SelectTrigger className="h-8 w-32 text-xs">
                         <SelectValue />
@@ -1280,7 +1301,9 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   <div className="flex items-center justify-between">
                     <span className="text-amber-900 font-medium">بند الأجور الإدارية (الجمعية):</span>
                     <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 font-sans">
-                      {effectiveAdminPct > 0 ? `${effectiveAdminPct}% نسبة مئوية مستقطعة` : (adminFeeType === "percentage" ? `${adminFeeValue}% نسبة مستقطعة` : "مبلغ ثابت")}
+                      {adminFeeType === "fixed"
+                        ? `مبلغ ثابت (${(adminFeeValue || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ريال)`
+                        : `${adminFeeValue || effectiveAdminPct || 0}% نسبة مستقطعة`}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between border-t border-amber-200 pt-2">

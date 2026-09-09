@@ -27,6 +27,7 @@ import {
   users,
   userRoleAssignments,
   roles,
+  projectFinancialDetails,
 } from "../../drizzle/schema";
 import { eq, desc, and, or, sql, asc, ne, isNull, inArray } from "drizzle-orm";
 import { notifyContractCreation, notifyContractApproval } from "./notifications";
@@ -419,6 +420,28 @@ export const contractsRouter = router({
         .where(eq(contractClauseValues.contractId, input.id))
         .orderBy(asc(contractClauseValues.orderIndex));
       
+      let financialDetail: any = null;
+      if (contract.projectId) {
+        const [fd] = await db
+          .select()
+          .from(projectFinancialDetails)
+          .where(eq(projectFinancialDetails.projectId, contract.projectId));
+        financialDetail = fd || null;
+      }
+
+      const cAmt = parseFloat(contract.contractAmount || "0");
+      const cPct = parseFloat(contract.managementPercentage || "0");
+      let computedMgmtAmt = (cAmt * cPct) / 100;
+      if (financialDetail) {
+        const feeVal = parseFloat(financialDetail.adminFeeValue || "0");
+        const feeAmt = parseFloat(financialDetail.adminFeeAmount || "0");
+        if (financialDetail.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
+          computedMgmtAmt = feeAmt > 0 ? feeAmt : feeVal;
+        } else if (financialDetail.adminFeeType === "percentage" && feeVal > 0) {
+          computedMgmtAmt = (cAmt * feeVal) / 100;
+        }
+      }
+
       return {
         contract: {
           ...contract,
@@ -428,6 +451,8 @@ export const contractsRouter = router({
           firstPartySignatureUrl,
           projectName: projectName || null,
           introTemplate: contractData.introTemplate || null,
+          managementAmount: computedMgmtAmt,
+          financialDetail,
         },
         payments: paymentsList,
         organizationSettings: orgSettings,
@@ -465,6 +490,8 @@ export const contractsRouter = router({
         // قيمة ومدة العقد
         contractAmount: z.number().min(0, "قيمة العقد يجب أن تكون أكبر من صفر"),
         managementPercentage: z.number().optional().default(0),
+        managementAmount: z.number().optional(),
+        managementFeeType: z.enum(["percentage", "fixed"]).optional(),
         duration: z.number().min(1, "مدة العقد مطلوبة"),
         durationUnit: z.enum(durationUnits).default("months"),
         
@@ -550,7 +577,15 @@ export const contractsRouter = router({
         mosqueCity: input.mosqueCity ?? null,
         contractAmount: String(input.contractAmount),
         contractAmountText,
-        managementPercentage: String(input.managementPercentage ?? "0.00"),
+        managementPercentage: (() => {
+          if (input.managementFeeType === "fixed" && input.managementAmount !== undefined) {
+            return input.contractAmount > 0 ? ((input.managementAmount / input.contractAmount) * 100).toFixed(2) : "0.00";
+          }
+          if (input.managementAmount !== undefined && (input.managementPercentage === undefined || input.managementPercentage === 0)) {
+            return input.contractAmount > 0 ? ((input.managementAmount / input.contractAmount) * 100).toFixed(2) : "0.00";
+          }
+          return (input.managementPercentage ?? 0).toFixed(2);
+        })(),
         duration: input.duration,
         durationUnit: input.durationUnit,
         contractDate: input.contractDate ? new Date(input.contractDate) : null,
@@ -683,6 +718,56 @@ export const contractsRouter = router({
         }
       }
       
+      // مزامنة الأجور الإدارية مع البيانات المالية للمشروع عند إنشاء العقد
+      if (input.projectId && (input.managementAmount !== undefined || input.managementPercentage !== undefined || input.managementFeeType !== undefined)) {
+        try {
+          const [existingFin] = await db
+            .select()
+            .from(projectFinancialDetails)
+            .where(eq(projectFinancialDetails.projectId, input.projectId));
+
+          const contractAmt = input.contractAmount;
+          let feeType: "fixed" | "percentage" = input.managementFeeType || existingFin?.adminFeeType || "percentage";
+          let feeVal = "0.00";
+          let feeAmt = "0.00";
+
+          if (feeType === "fixed") {
+            const amount = input.managementAmount !== undefined
+              ? input.managementAmount
+              : (input.managementPercentage ? (contractAmt * input.managementPercentage) / 100 : 0);
+            feeVal = amount.toFixed(2);
+            feeAmt = amount.toFixed(2);
+          } else {
+            const pct = input.managementPercentage !== undefined
+              ? input.managementPercentage
+              : (contractAmt > 0 && input.managementAmount !== undefined ? parseFloat(((input.managementAmount / contractAmt) * 100).toFixed(2)) : 0);
+            const amount = (contractAmt * pct) / 100;
+            feeVal = pct.toFixed(2);
+            feeAmt = amount.toFixed(2);
+          }
+
+          if (existingFin) {
+            await db.update(projectFinancialDetails)
+              .set({
+                adminFeeType: feeType,
+                adminFeeValue: feeVal,
+                adminFeeAmount: feeAmt,
+                updatedAt: new Date(),
+              })
+              .where(eq(projectFinancialDetails.id, existingFin.id));
+          } else {
+            await db.insert(projectFinancialDetails).values({
+              projectId: input.projectId,
+              adminFeeType: feeType,
+              adminFeeValue: feeVal,
+              adminFeeAmount: feeAmt,
+            });
+          }
+        } catch (e) {
+          console.error("خطأ في مزامنة الأجور الإدارية عند إنشاء العقد:", e);
+        }
+      }
+      
       return { success: true, id: contractId, contractNumber };
     }),
   
@@ -708,6 +793,8 @@ export const contractsRouter = router({
         mosqueCity: z.string().optional(),
         contractAmount: z.number().optional(),
         managementPercentage: z.number().optional(),
+        managementAmount: z.number().optional(),
+        managementFeeType: z.enum(["percentage", "fixed"]).optional(),
         duration: z.number().optional(),
         durationUnit: z.enum(durationUnits).optional(),
         contractDate: z.string().optional(),
@@ -731,7 +818,7 @@ export const contractsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
     if (!db) throw new Error("قاعدة البيانات غير متاحة");
-      const { id, paymentSchedule, clauseValues, ...updateData } = input;
+      const { id, paymentSchedule, clauseValues, managementAmount, managementFeeType, ...updateData } = input;
       
       // التحقق من أن العقد في حالة مسودة
       const [contract] = await db
@@ -766,8 +853,15 @@ export const contractsRouter = router({
         updates.contractAmount = String(updateData.contractAmount);
         updates.contractAmountText = numberToArabicText(updateData.contractAmount);
       }
-      if (updateData.managementPercentage !== undefined) {
+      const contractAmt = parseFloat((updates.contractAmount as string) || contract.contractAmount || "0");
+      if (managementFeeType === "fixed" && managementAmount !== undefined) {
+        const computedPct = contractAmt > 0 ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2)) : 0;
+        updates.managementPercentage = computedPct.toFixed(2);
+      } else if (updateData.managementPercentage !== undefined) {
         updates.managementPercentage = String(updateData.managementPercentage);
+      } else if (managementAmount !== undefined) {
+        const computedPct = contractAmt > 0 ? parseFloat(((managementAmount / contractAmt) * 100).toFixed(2)) : 0;
+        updates.managementPercentage = computedPct.toFixed(2);
       }
       if (updateData.contractDate) {
         updates.contractDate = new Date(updateData.contractDate);
@@ -935,6 +1029,52 @@ export const contractsRouter = router({
       // تحديث التكلفة الفعلية للمشروع إذا كان مرتبطاً بمشروع
       if (contract.projectId) {
         await syncProjectActualCost(db, contract.projectId);
+
+        // مزامنة الأجور الإدارية مع البيانات المالية للمشروع
+        if (managementAmount !== undefined || updateData.managementPercentage !== undefined || managementFeeType !== undefined) {
+          const [existingFin] = await db
+            .select()
+            .from(projectFinancialDetails)
+            .where(eq(projectFinancialDetails.projectId, contract.projectId));
+
+          const finalContractAmt = parseFloat((updates.contractAmount as string) || contract.contractAmount || "0");
+          let feeType: "fixed" | "percentage" = managementFeeType || existingFin?.adminFeeType || "percentage";
+          let feeVal = "0.00";
+          let feeAmt = "0.00";
+
+          if (feeType === "fixed") {
+            const amount = managementAmount !== undefined
+              ? managementAmount
+              : (updateData.managementPercentage !== undefined ? (finalContractAmt * updateData.managementPercentage) / 100 : parseFloat(existingFin?.adminFeeAmount || "0"));
+            feeVal = amount.toFixed(2);
+            feeAmt = amount.toFixed(2);
+          } else {
+            const pct = updateData.managementPercentage !== undefined
+              ? updateData.managementPercentage
+              : (finalContractAmt > 0 && managementAmount !== undefined ? parseFloat(((managementAmount / finalContractAmt) * 100).toFixed(2)) : parseFloat(existingFin?.adminFeeValue || "0"));
+            const amount = (finalContractAmt * pct) / 100;
+            feeVal = pct.toFixed(2);
+            feeAmt = amount.toFixed(2);
+          }
+
+          if (existingFin) {
+            await db.update(projectFinancialDetails)
+              .set({
+                adminFeeType: feeType,
+                adminFeeValue: feeVal,
+                adminFeeAmount: feeAmt,
+                updatedAt: new Date(),
+              })
+              .where(eq(projectFinancialDetails.id, existingFin.id));
+          } else {
+            await db.insert(projectFinancialDetails).values({
+              projectId: contract.projectId,
+              adminFeeType: feeType,
+              adminFeeValue: feeVal,
+              adminFeeAmount: feeAmt,
+            });
+          }
+        }
       }
       
       return { success: true };

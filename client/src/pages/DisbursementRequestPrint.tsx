@@ -377,12 +377,41 @@ export default function DisbursementRequestPrint() {
   const actualProjectCost = isTamamLinked 
     ? parseFloat(customSupplier?.actualProjectValue?.toString() || "0") 
     : (hasContract ? parseFloat(contract.contractAmount || "0") : (project?.budget ? parseFloat(project.budget.toString()) : amount));
-  const managementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
-  const adminFees = request.adminFees 
-    ? parseFloat(request.adminFees.toString()) 
-    : (customSupplier?.adminFees 
-        ? parseFloat(customSupplier.adminFees) 
-        : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
+  let effectiveAdminFees = 0;
+  let effectiveManagementPercentage = hasContract ? parseFloat((contract as any).managementPercentage || "0") : 0;
+
+  const hasConfiguredFinFees = finDetail && (
+    (finDetail.adminFeeType === "fixed" && (parseFloat(finDetail.adminFeeAmount || "0") > 0 || parseFloat(finDetail.adminFeeValue || "0") > 0)) ||
+    (finDetail.adminFeeType === "percentage" && parseFloat(finDetail.adminFeeValue || "0") > 0) ||
+    parseFloat(finDetail.associationFundingAmount || "0") > 0
+  );
+
+  if (hasConfiguredFinFees) {
+    const feeVal = parseFloat(finDetail.adminFeeValue || "0");
+    const feeAmt = parseFloat(finDetail.adminFeeAmount || "0");
+    if (finDetail.adminFeeType === "fixed") {
+      effectiveAdminFees = feeAmt > 0 ? feeAmt : feeVal;
+      effectiveManagementPercentage = actualProjectCost > 0 ? Number(((effectiveAdminFees / actualProjectCost) * 100).toFixed(2)) : effectiveManagementPercentage;
+    } else if (finDetail.adminFeeType === "percentage") {
+      effectiveManagementPercentage = feeVal;
+      effectiveAdminFees = actualProjectCost > 0 ? (actualProjectCost * feeVal) / 100 : feeAmt;
+    } else if (parseFloat(finDetail.associationFundingAmount || "0") > 0) {
+      effectiveAdminFees = parseFloat(finDetail.associationFundingAmount);
+      effectiveManagementPercentage = actualProjectCost > 0 ? Number(((effectiveAdminFees / actualProjectCost) * 100).toFixed(2)) : effectiveManagementPercentage;
+    }
+  } else if ((request as any)?.computedAdminFees !== undefined && (request as any)?.computedAdminFees > 0) {
+    effectiveAdminFees = (request as any).computedAdminFees;
+    effectiveManagementPercentage = (request as any).computedManagementPercentage || effectiveManagementPercentage;
+  } else if (hasContract && effectiveManagementPercentage > 0) {
+    effectiveAdminFees = (actualProjectCost * effectiveManagementPercentage) / 100;
+  } else if (request.adminFees) {
+    effectiveAdminFees = parseFloat(request.adminFees.toString());
+  } else if (customSupplier?.adminFees) {
+    effectiveAdminFees = parseFloat(customSupplier.adminFees);
+  }
+
+  const adminFees = effectiveAdminFees;
+  const managementPercentage = effectiveManagementPercentage;
   const totalOpportunityValue = actualProjectCost;
 
   if (supportSources.length === 0 && supportingEntity && supportingEntity.trim() !== "" && supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
@@ -687,7 +716,7 @@ export default function DisbursementRequestPrint() {
                       </td>
                       <td className="p-1.5 sm:p-2.5 bg-gray-50/50 font-bold text-gray-750 border-l border-gray-200 w-1/6">الأجور الإدارية</td>
                       <td className="p-1.5 sm:p-2.5 font-bold font-mono text-gray-800 w-1/6">
-                        {adminFees > 0 ? adminFees.toLocaleString() : "0"}
+                        {adminFees > 0 ? adminFees.toLocaleString("en-US", { minimumFractionDigits: adminFees % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 }) : "0"}
                       </td>
                     </tr>
                     <tr>

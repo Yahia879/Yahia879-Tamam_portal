@@ -244,6 +244,7 @@ export default function ContractForm() {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDraftSaved, setIsDraftSaved] = useState(false);
   const loadedDraftStateRef = useRef<string | null>(null);
+  const hasInitializedFinancialsRef = useRef(false);
 
   const [expandedClauses, setExpandedClauses] = useState<Set<number>>(new Set());
   const [editDataLoaded, setEditDataLoaded] = useState(false);
@@ -275,6 +276,7 @@ export default function ContractForm() {
     totalValue: 0,
     managementPercentage: 0, // نسبة الإشراف/الإدارة
     managementAmount: 0, // قيمة الجمعية / الأجور الإدارية بالريال
+    managementFeeType: "percentage" as "percentage" | "fixed",
     baseValue: 0, // القيمة الأساسية قبل النسبة
     
     // ملاحظات
@@ -386,7 +388,7 @@ export default function ContractForm() {
 
   // عكس الأجور الإدارية ونسبة الجمعية المحددة في المشروع تلقائياً عند إنشاء العقد
   useEffect(() => {
-    if (projectFinancials?.financialDetail && !isEditMode) {
+    if (!isEditMode && !hasInitializedFinancialsRef.current && projectFinancials?.financialDetail) {
       const fd = projectFinancials.financialDetail;
       const feeVal = parseFloat(fd.adminFeeValue || "0");
       const feeAmt = parseFloat(fd.adminFeeAmount || "0");
@@ -394,31 +396,31 @@ export default function ContractForm() {
 
       let initialPct = 0;
       let initialAmt = 0;
+      let feeType: "percentage" | "fixed" = (fd.adminFeeType as "percentage" | "fixed") || "percentage";
 
       if (fd.adminFeeType === "percentage" && feeVal > 0) {
         initialPct = feeVal;
-        initialAmt = feeAmt > 0 ? feeAmt : (contractData.totalValue * feeVal) / 100;
+        initialAmt = contractData.totalValue > 0 ? (contractData.totalValue * feeVal) / 100 : feeAmt;
+        feeType = "percentage";
       } else if (fd.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
         initialAmt = feeAmt > 0 ? feeAmt : feeVal;
         initialPct = contractData.totalValue > 0 ? Number(((initialAmt / contractData.totalValue) * 100).toFixed(2)) : 0;
+        feeType = "fixed";
       } else if (assocAmt > 0) {
         initialAmt = assocAmt;
         initialPct = contractData.totalValue > 0 ? Number(((assocAmt / contractData.totalValue) * 100).toFixed(2)) : 0;
+        feeType = "fixed";
       }
 
-      setContractData(prev => {
-        const newPct = prev.managementPercentage || initialPct;
-        const newAmt = prev.managementAmount || (prev.totalValue > 0 && newPct > 0 ? (prev.totalValue * newPct) / 100 : initialAmt);
-
-        if (newPct !== prev.managementPercentage || newAmt !== prev.managementAmount) {
-          return {
-            ...prev,
-            managementPercentage: newPct,
-            managementAmount: newAmt,
-          };
-        }
-        return prev;
-      });
+      if (initialPct > 0 || initialAmt > 0) {
+        hasInitializedFinancialsRef.current = true;
+        setContractData(prev => ({
+          ...prev,
+          managementPercentage: initialPct,
+          managementAmount: initialAmt,
+          managementFeeType: feeType,
+        }));
+      }
     }
   }, [projectFinancials, isEditMode, contractData.totalValue]);
 
@@ -449,6 +451,10 @@ export default function ContractForm() {
       if (editContractId) {
         utils.contracts.getById.invalidate({ id: editContractId });
       }
+      utils.contracts.invalidate();
+      utils.projects.invalidate();
+      utils.disbursements.invalidate();
+      utils.disbursements.getFinancialReport.invalidate();
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء تحديث العقد");
@@ -522,6 +528,26 @@ export default function ContractForm() {
       const supportType = c.supportType || "full";
       const supportedAmount = c.supportedAmount ? parseFloat(c.supportedAmount) : 0;
 
+      const fd = (c as any).financialDetail || projectFinancials?.financialDetail;
+      const cAmt = c.contractAmount ? parseFloat(c.contractAmount) : 0;
+      let initMgmtPct = c.managementPercentage ? parseFloat(c.managementPercentage) : 0;
+      let initMgmtAmt = (c as any).managementAmount !== undefined ? (c as any).managementAmount : ((cAmt > 0 && initMgmtPct > 0) ? (cAmt * initMgmtPct) / 100 : 0);
+      let initFeeType: "percentage" | "fixed" = (fd?.adminFeeType as "percentage" | "fixed") || "percentage";
+
+      if (fd) {
+        const feeVal = parseFloat(fd.adminFeeValue || "0");
+        const feeAmt = parseFloat(fd.adminFeeAmount || "0");
+        if (fd.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
+          initMgmtAmt = feeAmt > 0 ? feeAmt : feeVal;
+          initMgmtPct = cAmt > 0 ? Number(((initMgmtAmt / cAmt) * 100).toFixed(2)) : initMgmtPct;
+          initFeeType = "fixed";
+        } else if (fd.adminFeeType === "percentage" && feeVal > 0) {
+          initMgmtPct = feeVal;
+          initMgmtAmt = cAmt > 0 ? (cAmt * feeVal) / 100 : feeAmt;
+          initFeeType = "percentage";
+        }
+      }
+
       setContractData({
         templateId: c.templateId || null,
         projectId: c.projectId || null,
@@ -534,10 +560,11 @@ export default function ContractForm() {
         durationUnit: c.durationUnit || "months",
         startDate: c.startDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate)) : "",
         startDateHijri: c.contractDateHijri ? c.contractDateHijri.replace(/[^0-9/]/g, '') : (c.startDate ? toHijriDate(new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(c.startDate))) : ""),
-        totalValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
-        managementPercentage: c.managementPercentage ? parseFloat(c.managementPercentage) : 0,
-        managementAmount: (c.contractAmount && c.managementPercentage) ? (parseFloat(c.contractAmount) * parseFloat(c.managementPercentage)) / 100 : 0,
-        baseValue: c.contractAmount ? parseFloat(c.contractAmount) : 0,
+        totalValue: cAmt,
+        managementPercentage: initMgmtPct,
+        managementAmount: initMgmtAmt,
+        managementFeeType: initFeeType,
+        baseValue: cAmt,
         notes: c.customTerms || "",
         supportingEntity,
         customSupportingEntity,
@@ -962,6 +989,8 @@ export default function ContractForm() {
         // قيمة ومدة العقد
         contractAmount: contractData.totalValue,
         managementPercentage: contractData.managementPercentage,
+        managementAmount: contractData.managementAmount,
+        managementFeeType: contractData.managementFeeType,
         duration: contractData.duration,
         durationUnit: contractData.durationUnit as any,
         contractDate: contractData.startDate,
@@ -1018,6 +1047,8 @@ export default function ContractForm() {
       // قيمة ومدة العقد
       contractAmount: contractData.totalValue,
       managementPercentage: contractData.managementPercentage,
+      managementAmount: contractData.managementAmount,
+      managementFeeType: contractData.managementFeeType,
       duration: contractData.duration,
       durationUnit: contractData.durationUnit as any,
       contractDate: contractData.startDate,
@@ -1079,6 +1110,8 @@ export default function ContractForm() {
       // قيمة ومدة العقد
       contractAmount: contractData.totalValue || 0,
       managementPercentage: contractData.managementPercentage || 0,
+      managementAmount: contractData.managementAmount || 0,
+      managementFeeType: contractData.managementFeeType,
       duration: contractData.duration || 1,
       durationUnit: (contractData.durationUnit || "months") as any,
       contractDate: contractData.startDate || undefined,
@@ -1624,10 +1657,10 @@ export default function ContractForm() {
                       onChange={(e) => {
                         const val = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
-                          const mgmtAmt = prev.managementPercentage > 0 
-                            ? (val * prev.managementPercentage) / 100 
-                            : prev.managementAmount;
-                          const mgmtPct = val > 0 && mgmtAmt > 0 ? (mgmtAmt / val) * 100 : prev.managementPercentage;
+                          const mgmtAmt = prev.managementFeeType === "fixed"
+                            ? prev.managementAmount
+                            : (val * prev.managementPercentage) / 100;
+                          const mgmtPct = val > 0 && mgmtAmt > 0 ? Number(((mgmtAmt / val) * 100).toFixed(2)) : prev.managementPercentage;
                           return { 
                             ...prev, 
                             totalValue: val,
@@ -1659,6 +1692,7 @@ export default function ContractForm() {
                             ...prev, 
                             managementPercentage: percentage,
                             managementAmount: mgmtAmt,
+                            managementFeeType: "percentage",
                             supportedAmount: prev.supportType === "full" ? prev.totalValue : prev.supportedAmount
                           };
                         });
@@ -1674,15 +1708,17 @@ export default function ContractForm() {
                       type="number"
                       min={0}
                       step="any"
-                      value={contractData.managementAmount || (contractData.totalValue && contractData.managementPercentage ? ((contractData.totalValue * contractData.managementPercentage) / 100) : "")}
+                      value={contractData.managementAmount || ""}
                       onChange={(e) => {
-                        const amount = parseFloat(e.target.value) || 0;
+                        const valStr = e.target.value;
+                        const amount = valStr === "" ? 0 : (parseFloat(valStr) || 0);
                         setContractData(prev => {
                           const percentage = prev.totalValue > 0 ? Number(((amount / prev.totalValue) * 100).toFixed(2)) : prev.managementPercentage;
                           return {
                             ...prev,
                             managementAmount: amount,
                             managementPercentage: percentage,
+                            managementFeeType: "fixed",
                             supportedAmount: prev.supportType === "full" ? prev.totalValue : prev.supportedAmount
                           };
                         });

@@ -2528,6 +2528,10 @@ export const projectsRouter = router({
         ? (input.supportSources[0].customEntity ?? "")
         : (input.customSupportEntity ?? "");
 
+      const feeAmount = input.adminFeeType === "fixed"
+        ? (input.adminFeeValue ?? input.adminFeeAmount ?? 0)
+        : (input.adminFeeAmount ?? 0);
+
       const values: any = {
         projectId: input.projectId,
         approvedQuotationId: input.approvedQuotationId ?? null,
@@ -2536,7 +2540,7 @@ export const projectsRouter = router({
         supportAmount: calculatedTotalSupport?.toString() ?? "0.00",
         adminFeeType: input.adminFeeType ?? "percentage",
         adminFeeValue: input.adminFeeValue?.toString() ?? "0.00",
-        adminFeeAmount: input.adminFeeAmount?.toString() ?? "0.00",
+        adminFeeAmount: feeAmount?.toString() ?? "0.00",
         associationFundingAmount: input.associationFundingAmount?.toString() ?? "0.00",
         associationFundingNotes: input.associationFundingNotes ?? "",
         supportSourcesJson: supportSourcesJson,
@@ -2549,6 +2553,47 @@ export const projectsRouter = router({
           .where(eq(projectFinancialDetails.id, existing.id));
       } else {
         await db.insert(projectFinancialDetails).values(values);
+      }
+
+      // مزامنة الأجور الإدارية ونسبة الجمعية في أي عقد مرتبط بالمشروع
+      const [project] = await db
+        .select({ id: projects.id, requestId: projects.requestId })
+        .from(projects)
+        .where(eq(projects.id, input.projectId));
+
+      const linkedContracts = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(or(
+          eq(contractsEnhanced.projectId, input.projectId),
+          project?.requestId ? eq(contractsEnhanced.requestId, project.requestId) : sql`1=0`
+        ));
+
+      if (linkedContracts && linkedContracts.length > 0) {
+        for (const c of linkedContracts) {
+          const contractAmt = parseFloat(c.contractAmount || "0");
+          let newManagementPct = 0;
+          if (input.adminFeeType === "percentage") {
+            newManagementPct = input.adminFeeValue ?? 0;
+          } else {
+            const fixedAmt = feeAmount;
+            newManagementPct = contractAmt > 0 ? parseFloat(((fixedAmt / contractAmt) * 100).toFixed(2)) : 0;
+          }
+
+          const contractUpdates: any = {
+            managementPercentage: newManagementPct.toFixed(2),
+            updatedAt: new Date(),
+          };
+
+          if (input.supportSources && input.supportSources.length > 0) {
+            contractUpdates.supportingEntity = supportSourcesJson;
+            contractUpdates.supportedAmount = calculatedTotalSupport?.toString() ?? c.supportedAmount;
+          }
+
+          await db.update(contractsEnhanced)
+            .set(contractUpdates)
+            .where(eq(contractsEnhanced.id, c.id));
+        }
       }
 
       return { success: true };

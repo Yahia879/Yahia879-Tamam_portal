@@ -364,7 +364,30 @@ export const disbursementsRouter = router({
 
       // جلب بيانات المشروع
       let project = null;
-      const projId = request.projectId;
+      let projId = request.projectId;
+
+      // إذا لم يكن هناك projectId في الطلب، نحاول الحصول عليه من الدفعة أو العقد
+      if (!projId && request.contractPaymentId) {
+        const [paymentData] = await db
+          .select({ contractId: contractPayments.contractId })
+          .from(contractPayments)
+          .where(eq(contractPayments.id, request.contractPaymentId));
+        if (paymentData?.contractId) {
+          const [c] = await db
+            .select({ projectId: contractsEnhanced.projectId })
+            .from(contractsEnhanced)
+            .where(eq(contractsEnhanced.id, paymentData.contractId));
+          if (c?.projectId) projId = c.projectId;
+        }
+      }
+      if (!projId && request.contractId) {
+        const [c] = await db
+          .select({ projectId: contractsEnhanced.projectId })
+          .from(contractsEnhanced)
+          .where(eq(contractsEnhanced.id, request.contractId));
+        if (c?.projectId) projId = c.projectId;
+      }
+
       if (projId) {
         const [projectData] = await db
           .select({
@@ -612,8 +635,35 @@ export const disbursementsRouter = router({
         }
       }
 
+      // حساب الأجور الإدارية ونسبتها المحدثة من البيانات المالية للمشروع أو العقد
+      let computedAdminFees = request.adminFees ? parseFloat(request.adminFees.toString()) : 0;
+      let computedManagementPercentage = contract?.managementPercentage ? parseFloat(contract.managementPercentage.toString()) : 0;
+      const contractOrProjectAmount = contract?.contractAmount 
+        ? parseFloat(contract.contractAmount.toString()) 
+        : (project?.budget ? parseFloat(project.budget.toString()) : parseFloat(request.amount || "0"));
+
+      if (financialDetail) {
+        const feeVal = parseFloat(financialDetail.adminFeeValue || "0");
+        const feeAmt = parseFloat(financialDetail.adminFeeAmount || "0");
+        if (financialDetail.adminFeeType === "fixed" && (feeVal > 0 || feeAmt > 0)) {
+          computedAdminFees = feeAmt > 0 ? feeAmt : feeVal;
+          computedManagementPercentage = contractOrProjectAmount > 0 ? parseFloat(((computedAdminFees / contractOrProjectAmount) * 100).toFixed(2)) : computedManagementPercentage;
+        } else if (financialDetail.adminFeeType === "percentage" && feeVal > 0) {
+          computedManagementPercentage = feeVal;
+          computedAdminFees = contractOrProjectAmount > 0 ? (contractOrProjectAmount * feeVal) / 100 : feeAmt;
+        } else if (parseFloat(financialDetail.associationFundingAmount || "0") > 0) {
+          computedAdminFees = parseFloat(financialDetail.associationFundingAmount || "0");
+          computedManagementPercentage = contractOrProjectAmount > 0 ? parseFloat(((computedAdminFees / contractOrProjectAmount) * 100).toFixed(2)) : computedManagementPercentage;
+        }
+      } else if (computedManagementPercentage > 0) {
+        computedAdminFees = (contractOrProjectAmount * computedManagementPercentage) / 100;
+      }
+
       return {
         ...request,
+        adminFees: computedAdminFees > 0 ? computedAdminFees.toFixed(2) : (request.adminFees || null),
+        computedAdminFees,
+        computedManagementPercentage,
         requestedBySignatureName: resolvedSignatureName,
         requestedBySignatureDepartment: resolvedSignatureDepartment,
         requestedBySignatureUrl: resolvedSignatureUrl,
@@ -3126,22 +3176,74 @@ export const disbursementsRouter = router({
             ), 0)
           `,
           managementPercentage: sql<number>`
-            COALESCE((
-              SELECT CAST(managementPercentage AS DECIMAL(5,2))
-              FROM contracts_enhanced
-              WHERE projectId = projects.id AND status != 'cancelled'
-              ORDER BY contracts_enhanced.id DESC
-              LIMIT 1
-            ), 0)
+            COALESCE(
+              (
+                SELECT 
+                  CASE 
+                    WHEN pfd.adminFeeType = 'percentage' AND CAST(pfd.adminFeeValue AS DECIMAL(5,2)) > 0 
+                      THEN CAST(pfd.adminFeeValue AS DECIMAL(5,2))
+                    WHEN pfd.adminFeeType = 'fixed' AND (CAST(pfd.adminFeeAmount AS DECIMAL(15,2)) > 0 OR CAST(pfd.adminFeeValue AS DECIMAL(15,2)) > 0)
+                      THEN ROUND(
+                        (COALESCE(NULLIF(CAST(pfd.adminFeeAmount AS DECIMAL(15,2)), 0), CAST(pfd.adminFeeValue AS DECIMAL(15,2))) / 
+                         NULLIF(COALESCE((
+                           SELECT CAST(contractAmount AS DECIMAL(15,2))
+                           FROM contracts_enhanced
+                           WHERE projectId = projects.id AND status != 'cancelled'
+                           ORDER BY contracts_enhanced.id DESC
+                           LIMIT 1
+                         ), 0), 0)) * 100, 
+                        2
+                      )
+                    ELSE NULL
+                  END
+                FROM project_financial_details pfd
+                WHERE pfd.projectId = projects.id
+                LIMIT 1
+              ),
+              (
+                SELECT CAST(managementPercentage AS DECIMAL(5,2))
+                FROM contracts_enhanced
+                WHERE projectId = projects.id AND status != 'cancelled'
+                ORDER BY contracts_enhanced.id DESC
+                LIMIT 1
+              ),
+              0
+            )
           `,
           associationValue: sql<number>`
-            COALESCE((
-              SELECT CAST(contractAmount AS DECIMAL(15,2)) * CAST(managementPercentage AS DECIMAL(5,2)) / 100
-              FROM contracts_enhanced
-              WHERE projectId = projects.id AND status != 'cancelled'
-              ORDER BY contracts_enhanced.id DESC
-              LIMIT 1
-            ), 0)
+            COALESCE(
+              (
+                SELECT 
+                  CASE 
+                    WHEN pfd.adminFeeType = 'fixed' AND CAST(pfd.adminFeeAmount AS DECIMAL(15,2)) > 0 
+                      THEN CAST(pfd.adminFeeAmount AS DECIMAL(15,2))
+                    WHEN pfd.adminFeeType = 'fixed' AND CAST(pfd.adminFeeValue AS DECIMAL(15,2)) > 0 
+                      THEN CAST(pfd.adminFeeValue AS DECIMAL(15,2))
+                    WHEN pfd.adminFeeType = 'percentage' AND CAST(pfd.adminFeeValue AS DECIMAL(5,2)) > 0 
+                      THEN (
+                        COALESCE((
+                          SELECT CAST(contractAmount AS DECIMAL(15,2))
+                          FROM contracts_enhanced
+                          WHERE projectId = projects.id AND status != 'cancelled'
+                          ORDER BY contracts_enhanced.id DESC
+                          LIMIT 1
+                        ), 0) * CAST(pfd.adminFeeValue AS DECIMAL(5,2)) / 100
+                      )
+                    ELSE NULL
+                  END
+                FROM project_financial_details pfd
+                WHERE pfd.projectId = projects.id
+                LIMIT 1
+              ),
+              (
+                SELECT CAST(contractAmount AS DECIMAL(15,2)) * CAST(managementPercentage AS DECIMAL(5,2)) / 100
+                FROM contracts_enhanced
+                WHERE projectId = projects.id AND status != 'cancelled'
+                ORDER BY contracts_enhanced.id DESC
+                LIMIT 1
+              ),
+              0
+            )
           `,
         })
         .from(projects)
