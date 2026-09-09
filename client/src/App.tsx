@@ -75,6 +75,7 @@ import AnalyticsHub from "./pages/AnalyticsHub";
 
 // صفحات الموردين
 import SupplierRegistration from "./pages/SupplierRegistration";
+import ModernSupplierRegistration from "./pages/ModernSupplierRegistration";
 import SuppliersManagement from "./pages/SuppliersManagement";
 import SupplierDetails from "./pages/SupplierDetails";
 import AddSupplier from "./pages/AddSupplier";
@@ -343,6 +344,8 @@ function Router() {
       <Route path="/statistics-hub">{() => <AdminRoute component={AnalyticsHub} />}</Route>
       
       {/* الموردين - إدارية */}
+      <Route path="/supplier-registration" component={ModernSupplierRegistration} />
+      <Route path="/supplier/join" component={ModernSupplierRegistration} />
       <Route path="/supplier/register" component={SupplierRegistration} />
       <Route path="/supplier/dashboard" component={RequesterDashboard} />
       <Route path="/suppliers">{() => <AdminRoute component={SuppliersManagement} />}</Route>

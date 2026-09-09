@@ -20,7 +20,8 @@ const entityInfoSchema = z.object({
   commercialRegister: z.string().min(1, "رقم السجل التجاري مطلوب"),
   commercialActivity: z.string().min(1, "النشاط حسب السجل التجاري مطلوب"),
   yearsOfExperience: z.number().min(0, "عدد سنوات الخبرة مطلوب"),
-  workFields: z.array(z.enum(workFields)).min(1, "يجب اختيار مجال عمل واحد على الأقل"),
+  workFields: z.array(z.string()).min(1, "يجب اختيار مجال عمل واحد على الأقل"),
+  otherWorkField: z.string().optional(),
 });
 
 // مخطط تسجيل المورد - الخطوة 2: معلومات التواصل
@@ -106,13 +107,26 @@ export const suppliersRouter = router({
         });
       }
 
+      // معالجة مجالات العمل مع مجال العمل الإضافي إن وجد
+      let finalWorkFields = [...input.workFields];
+      if (input.otherWorkField?.trim()) {
+        const customOther = `أخرى (${input.otherWorkField.trim()})`;
+        const otherIdx = finalWorkFields.indexOf("other");
+        if (otherIdx !== -1) {
+          finalWorkFields[otherIdx] = customOther;
+        } else if (!finalWorkFields.includes(customOther)) {
+          finalWorkFields.push(customOther);
+        }
+      }
+
       const [result] = await db.insert(suppliers).values({
         name: input.name,
         entityType: input.entityType,
         commercialRegister: cleanCR,
         commercialActivity: input.commercialActivity,
         yearsOfExperience: input.yearsOfExperience,
-        workFields: input.workFields,
+        workFields: finalWorkFields,
+        notes: input.otherWorkField?.trim() ? `مجال عمل آخر: ${input.otherWorkField.trim()}` : null,
         address: input.address,
         city: input.city,
         googleMapsUrl: input.googleMapsUrl,

@@ -83,7 +83,7 @@ export default function LandingPage() {
 
             {/* أزرار الدخول */}
             <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
-              <Link href="/supplier/register">
+              <Link href="/supplier-registration">
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -181,7 +181,7 @@ export default function LandingPage() {
                   طلب خدمة جديدة
                 </Button>
               </Link>
-              <Link href="/supplier/register">
+              <Link href="/supplier-registration">
                 <Button
                   size="lg"
                   className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer border border-emerald-300/40"
@@ -256,7 +256,7 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="flex flex-col gap-2.5 mt-auto">
-                <Link href="/supplier/register">
+                <Link href="/supplier-registration">
                   <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-5 cursor-pointer shadow-md">
                     <Truck className="w-4 h-4 ml-2" />
                     سجل معنا كمورد
