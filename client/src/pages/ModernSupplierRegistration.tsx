@@ -462,24 +462,32 @@ export default function ModernSupplierRegistration() {
                       <div
                         key={field.key}
                         onClick={() => toggleWorkField(field.key)}
-                        className={`flex items-center space-x-2 space-x-reverse p-2 rounded-xl transition-all cursor-pointer select-none ${
+                        role="checkbox"
+                        aria-checked={isChecked}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === " " || e.key === "Enter") {
+                            e.preventDefault();
+                            toggleWorkField(field.key);
+                          }
+                        }}
+                        className={`flex items-center space-x-2 space-x-reverse p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
                           isChecked
-                            ? "bg-emerald-50 border border-emerald-200/80 text-emerald-950 font-medium"
-                            : "hover:bg-white text-slate-700"
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-semibold shadow-2xs ring-1 ring-emerald-500/20"
+                            : "bg-white hover:bg-slate-100/70 border-slate-200 text-slate-700"
                         }`}
                       >
                         <Checkbox
                           id={field.key}
                           checked={isChecked}
-                          onCheckedChange={() => toggleWorkField(field.key)}
-                          className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md"
+                          tabIndex={-1}
+                          className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md pointer-events-none"
                         />
-                        <Label
-                          htmlFor={field.key}
-                          className="text-xs sm:text-sm cursor-pointer leading-tight truncate pr-1"
+                        <span
+                          className="text-xs sm:text-sm leading-tight truncate pr-1 select-none flex-1"
                         >
                           {field.label}
-                        </Label>
+                        </span>
                       </div>
                     );
                   })}
@@ -737,13 +745,13 @@ export default function ModernSupplierRegistration() {
             </div>
 
             <div className="p-4 sm:p-6 space-y-4">
-              {/* بطاقات الرفع الـ 4 */}
-              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className={`p-3 rounded-2xl border transition-all ${commercialRegisterDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-xs font-bold text-slate-800">السجل التجاري *</Label>
+              {/* بطاقات الرفع الأربعة */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${commercialRegisterDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-800">السجل التجاري *</Label>
                     {commercialRegisterDoc && (
-                      <span className="text-[10px] font-bold text-emerald-700">✓ مرفق</span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">✓ مرفق</span>
                     )}
                   </div>
                   <FileUpload
@@ -755,16 +763,15 @@ export default function ModernSupplierRegistration() {
                     maxFiles={1}
                     maxSizeMB={10}
                     label="السجل التجاري"
-                    description="ارفع صورة السجل التجاري (حتى 10MB)"
+                    description="ارفع صورة السجل التجاري (PDF أو صورة)"
                   />
-                  {commercialRegisterDoc && <p className="text-[10px] text-emerald-600 font-medium mt-1">✓ تم رفع الملف بنجاح</p>}
                 </div>
 
-                <div className={`p-3 rounded-2xl border transition-all ${vatCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-xs font-bold text-slate-800">شهادة الضريبة *</Label>
+                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${vatCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-800">شهادة الضريبة *</Label>
                     {vatCertificateDoc && (
-                      <span className="text-[10px] font-bold text-emerald-700">✓ مرفق</span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">✓ مرفق</span>
                     )}
                   </div>
                   <FileUpload
@@ -776,16 +783,15 @@ export default function ModernSupplierRegistration() {
                     maxFiles={1}
                     maxSizeMB={10}
                     label="شهادة الضريبة"
-                    description="ارفع شهادة ضريبة القيمة المضافة (حتى 10MB)"
+                    description="ارفع شهادة ضريبة القيمة المضافة (PDF أو صورة)"
                   />
-                  {vatCertificateDoc && <p className="text-[10px] text-emerald-600 font-medium mt-1">✓ تم رفع الملف بنجاح</p>}
                 </div>
 
-                <div className={`p-3 rounded-2xl border transition-all ${nationalAddressDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-xs font-bold text-slate-800">العنوان الوطني *</Label>
+                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${nationalAddressDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-800">العنوان الوطني *</Label>
                     {nationalAddressDoc && (
-                      <span className="text-[10px] font-bold text-emerald-700">✓ مرفق</span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">✓ مرفق</span>
                     )}
                   </div>
                   <FileUpload
@@ -797,16 +803,15 @@ export default function ModernSupplierRegistration() {
                     maxFiles={1}
                     maxSizeMB={10}
                     label="العنوان الوطني"
-                    description="ارفع صورة العنوان الوطني (حتى 10MB)"
+                    description="ارفع صورة العنوان الوطني (PDF أو صورة)"
                   />
-                  {nationalAddressDoc && <p className="text-[10px] text-emerald-600 font-medium mt-1">✓ تم رفع الملف بنجاح</p>}
                 </div>
 
-                <div className={`p-3 rounded-2xl border transition-all ${bankCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <Label className="text-xs font-bold text-slate-800">الشهادة البنكية *</Label>
+                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${bankCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs sm:text-sm font-bold text-slate-800">الشهادة البنكية *</Label>
                     {bankCertificateDoc && (
-                      <span className="text-[10px] font-bold text-emerald-700">✓ مرفق</span>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">✓ مرفق</span>
                     )}
                   </div>
                   <FileUpload
@@ -818,9 +823,8 @@ export default function ModernSupplierRegistration() {
                     maxFiles={1}
                     maxSizeMB={10}
                     label="الشهادة البنكية"
-                    description="ارفع صورة الشهادة البنكية (حتى 10MB)"
+                    description="ارفع صورة الشهادة البنكية (PDF أو صورة)"
                   />
-                  {bankCertificateDoc && <p className="text-[10px] text-emerald-600 font-medium mt-1">✓ تم رفع الملف بنجاح</p>}
                 </div>
               </div>
 

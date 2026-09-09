@@ -378,12 +378,12 @@ export function FileUpload({
 
       {/* قائمة الملفات */}
       {files.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 w-full min-w-0 overflow-hidden">
           {files.map((file, index) => (
             <Card
               key={`${file.fileName}-${index}`}
               className={cn(
-                "p-3 flex items-center gap-3",
+                "p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3 w-full min-w-0 overflow-hidden",
                 file.status === "error" && "border-red-200 bg-red-50"
               )}
             >
@@ -393,19 +393,19 @@ export function FileUpload({
                   <img
                     src={file.preview}
                     alt={file.fileName}
-                    className="w-12 h-12 object-cover rounded"
+                    className="w-11 h-11 sm:w-12 sm:h-12 object-cover rounded-lg border border-slate-200/80"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 bg-muted rounded-lg flex items-center justify-center">
                     {getFileIcon(file.mimeType)}
                   </div>
                 )}
               </div>
 
               {/* معلومات الملف */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{file.fileName}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <p className="text-xs sm:text-sm font-medium truncate w-full block" title={file.fileName}>{file.fileName}</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
                   {formatFileSize(file.size)}
                   {file.errorMessage && (
                     <span className="text-red-500 mr-2">{file.errorMessage}</span>
