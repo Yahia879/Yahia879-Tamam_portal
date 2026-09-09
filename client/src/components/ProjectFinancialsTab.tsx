@@ -545,6 +545,10 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     ? parseFloat(collectionRawPct.toFixed(2))
     : Math.min(100, Math.round(collectionRawPct));
 
+  // معادلة التغطية المالية تعتمد على إجمالي سندات القبض المعتمدة
+  const vouchersCoverageDifference = totalReceivedAmount - totalRequiredCost;
+  const isVouchersFullyCovered = totalRequiredCost > 0 && vouchersCoverageDifference >= -0.01;
+
   // Financial breakdown and surplus per supporter
   const supportersFinancials = useMemo(() => {
     const totalCommittedSupport = validSupportSources.reduce((sum, s) => sum + (s.amount || 0), 0);
@@ -560,13 +564,15 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
       const normCustom = normalizeArabicText(source.customEntity);
 
       const sVouchers = receiptVouchers.filter((v: any) => {
+        if (validSupportSources.length === 1) return true;
         const normPayer = normalizeArabicText(v.payerName);
         if (!normPayer) return false;
         return (
           normPayer === normSName ||
           normPayer === normEntity ||
           (normCustom && normPayer === normCustom) ||
-          (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+          (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer))) ||
+          (normEntity && (normPayer.includes(normEntity) || normEntity.includes(normPayer)))
         );
       });
 
@@ -908,12 +914,12 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
     <div className="space-y-6 dir-rtl text-right">
 
       {/* 1. معادلة التغطية المالية التجميعية (Combined Formula Status Banner) */}
-      <Card className={`border-2 shadow-sm ${isFullyCovered ? "border-green-300 bg-green-50/40" : "border-amber-300 bg-amber-50/40"}`}>
+      <Card className={`border-2 shadow-sm ${isVouchersFullyCovered ? "border-green-300 bg-green-50/40" : "border-amber-300 bg-amber-50/40"}`}>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                {isFullyCovered ? (
+                {isVouchersFullyCovered ? (
                   <Badge className="bg-green-600 hover:bg-green-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
                     <CheckCircle2 className="h-4 w-4" />
                     الدعم كافٍ ومغطى بالكامل (100%)
@@ -921,19 +927,19 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 ) : (
                   <Badge className="bg-amber-600 hover:bg-amber-700 text-white gap-1 px-3 py-1 text-sm font-semibold">
                     <AlertTriangle className="h-4 w-4" />
-                    عجز في تغطية المبلغ الكلي للمشروع
+                    المبالغ المقبوضة لم تغطِ التكلفة الكلية للمشروع بعد ({collectionPercentage}%)
                   </Badge>
                 )}
                 <span className="text-xs text-muted-foreground font-medium">المعادلة المجمعة</span>
               </div>
               <p className="text-sm text-gray-700 mt-2">
-                {isFullyCovered 
-                  ? "إجمالي مبلغ الدعم المقدم من الجهة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
+                {isVouchersFullyCovered 
+                  ? "إجمالي مبالغ سندات القبض المعتمدة كافٍ لتغطية التكلفة الكلية للمشروع (شاملة حصة المورد والأجور الإدارية للجمعية)."
                   : (
                     <span className="inline-flex items-center flex-wrap gap-1">
-                      <span>تنبيه: يوجد عجز مالي بمقدار ({Math.abs(coverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      <span>تنبيه: يوجد عجز في تحصيل دفعات المشروع بمقدار ({Math.abs(vouchersCoverageDifference).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
                       <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                      <span>). مبلغ الدعم المقدم لا يكفي لتغطية التكلفة الكلية للمشروع.</span>
+                      <span>). إجمالي سندات القبض المقبوضة لا يكفي لتغطية التكلفة الكلية للمشروع حتى الآن.</span>
                     </span>
                   )
                 }
@@ -941,7 +947,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </div>
 
             {/* Visual Formula summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 bg-white/80 p-3 rounded-lg border text-xs shadow-xs w-full md:w-auto">
               <div className="text-center p-2 border-r last:border-r-0">
                 <span className="text-muted-foreground block">مبلغ المورد (الصافي)</span>
                 <span className="font-bold text-gray-900 text-sm mt-0.5 inline-block font-sans">
@@ -960,10 +966,16 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   {totalRequiredCost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="text-center p-2">
+              <div className="text-center p-2 border-r last:border-r-0">
                 <span className="text-muted-foreground block">مبلغ الدعم المقدم</span>
                 <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isFullyCovered ? "text-green-700" : "text-red-600"}`}>
                   {currentSupportAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="text-center p-2 bg-emerald-50/60 rounded-sm border border-emerald-200/60">
+                <span className="text-muted-foreground block font-semibold text-emerald-950">إجمالي الدعم المقبوض</span>
+                <span className={`font-bold text-sm mt-0.5 inline-block font-sans ${isVouchersFullyCovered ? "text-green-700" : "text-amber-700"}`}>
+                  {vouchersTotalReceived.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -1570,7 +1582,7 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
             </div>
           ) : (
             <div className="space-y-6">
-              {validSupportSources.map((source, sIdx) => {
+              {(validSupportSources.length > 0 ? validSupportSources : [{ entity: "داعم المشروع", customEntity: "", amount: currentSupportAmount || 0 }]).map((source, sIdx, allSources) => {
                 const sName = source.entity === "اخرى" ? (source.customEntity || "جهة أخرى") : (source.entity || "داعم غير محدد");
                 const targetAmt = source.amount || 0;
                 const isGenAcc = isGeneralAccountName(sName);
@@ -1581,14 +1593,31 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                 const normCustom = normalizeArabicText(source.customEntity);
 
                 const sVouchers = receiptVouchers.filter(v => {
+                  if (allSources.length === 1) return true;
                   const normPayer = normalizeArabicText(v.payerName);
-                  if (!normPayer) return false;
-                  return (
+                  if (!normPayer) return sIdx === 0;
+
+                  const matchesThis = (
                     normPayer === normSName ||
                     normPayer === normEntity ||
                     (normCustom && normPayer === normCustom) ||
-                    (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer)))
+                    (normSName && (normPayer.includes(normSName) || normSName.includes(normPayer))) ||
+                    (normEntity && (normPayer.includes(normEntity) || normEntity.includes(normPayer)))
                   );
+                  if (matchesThis) return true;
+
+                  // If this voucher does not match ANY source, show it under the first supporter
+                  if (sIdx === 0) {
+                    const matchesAnyOther = allSources.slice(1).some(other => {
+                      const otherName = normalizeArabicText(other.entity === "اخرى" ? other.customEntity : other.entity);
+                      const otherEntity = normalizeArabicText(other.entity);
+                      return (otherName && (normPayer.includes(otherName) || otherName.includes(normPayer))) ||
+                             (otherEntity && (normPayer.includes(otherEntity) || otherEntity.includes(normPayer)));
+                    });
+                    return !matchesAnyOther;
+                  }
+
+                  return false;
                 });
 
                 const validSVouchers = sVouchers.filter(v => v.status === "approved");
@@ -1825,145 +1854,6 @@ const getCleanVoucherNotes = (notes?: string | null): string => {
                   </Card>
                 );
               })}
-
-              {/* Unassigned vouchers if any */}
-              {(() => {
-                const unassigned = receiptVouchers.filter(v => {
-                  const pName = (v.payerName || "").trim().toLowerCase();
-                  return !supportSources.some(src => {
-                    const sName = (src.entity === "اخرى" ? src.customEntity : src.entity) || "";
-                    return sName.trim().toLowerCase() === pName || (src.entity !== "اخرى" && src.entity.trim().toLowerCase() === pName);
-                  });
-                });
-
-                if (unassigned.length === 0) return null;
-
-                return (
-                  <Card className="border border-slate-200 bg-slate-50/30 overflow-hidden shadow-2xs">
-                    <CardHeader className="bg-slate-100/60 pb-3 border-b py-3 px-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-slate-200 text-slate-800 font-bold text-xs">
-                          سندات قبض أخرى / غير مصنفة
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">({unassigned.length} سندات)</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-3">
-                      <div className="border rounded-md overflow-x-auto bg-white">
-                        <Table dir="rtl">
-                          <TableHeader className="bg-slate-50/80">
-                            <TableRow>
-                              <TableHead className="text-right text-xs">اسم القابض / الداعم</TableHead>
-                              <TableHead className="text-right text-xs">رقم السند</TableHead>
-                              <TableHead className="text-right text-xs">تاريخ القبض</TableHead>
-                              <TableHead className="text-right text-xs">المبلغ المقبوض</TableHead>
-                              <TableHead className="text-right text-xs">وذلك مقابل</TableHead>
-                              <TableHead className="text-center text-xs">إجراءات</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {unassigned.map((voucher) => (
-                              <TableRow key={voucher.id}>
-                                <TableCell className="text-xs font-semibold">{voucher.payerName || "-"}</TableCell>
-                                <TableCell className="font-bold text-primary text-xs">{voucher.voucherNumber}</TableCell>
-                                <TableCell className="text-xs">{voucher.receiptDate ? new Date(voucher.receiptDate).toLocaleDateString("en-CA") : "-"}</TableCell>
-                                <TableCell className="font-bold text-emerald-700 text-xs inline-flex items-center gap-1">
-                                  {parseFloat(voucher.amount.toString()).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                  <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                                </TableCell>
-                                <TableCell className="text-xs text-muted-foreground font-medium max-w-[250px] truncate" title={getCleanVoucherNotes(voucher.notes)}>
-                                     {getCleanVoucherNotes(voucher.notes)}
-                                   </TableCell>
-                                <TableCell className="text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => navigate(`/receipt-vouchers/${voucher.id}/print`)}
-                                      className="h-7 w-7 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50"
-                                      title="معاينة وطباعة سند القبض"
-                                    >
-                                      <Eye className="h-3.5 w-3.5" />
-                                    </Button>
-
-                                    {/* زر إلغاء الاعتماد */}
-                                    {(isFaaa8User || hasExceptionApprove) && voucher.status === "approved" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleOpenRevokeModal(voucher)}
-                                        disabled={revokeVoucherApprovalMutation.isPending}
-                                        className="h-7 px-2 text-[11px] font-bold text-amber-700 hover:text-amber-900 hover:bg-amber-100/70 border border-amber-300 rounded-md gap-1"
-                                        title="إلغاء الاعتماد لإتاحة التعديل"
-                                      >
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                        <span>إلغاء الاعتماد</span>
-                                      </Button>
-                                    )}
-
-                                    {/* زر الاعتماد العادي للمسؤول المالي */}
-                                    {isFaaa8User && voucher.status === "pending_approval" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          approveVoucherMutation.mutate({ id: voucher.id });
-                                        }}
-                                        disabled={approveVoucherMutation.isPending}
-                                        className="h-7 px-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 hover:bg-emerald-100/70 border border-emerald-200 rounded-md gap-1"
-                                        title="اعتماد سند القبض"
-                                      >
-                                        <CheckCircle className="h-3.5 w-3.5" />
-                                        <span>اعتماد</span>
-                                      </Button>
-                                    )}
-
-                                    {/* زر استثناء الاعتماد لمن يملك صلاحية استثناء اعتماد السند */}
-                                    {hasExceptionApprove && voucher.status === "pending_approval" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleOpenExceptionModal(voucher)}
-                                        disabled={exceptionApproveVoucherMutation.isPending}
-                                        className="h-7 px-2 text-[11px] font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-100/80 border border-amber-300 rounded-md gap-1"
-                                        title="استثناء اعتماد سند القبض مع ذكر السبب"
-                                      >
-                                        <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
-                                        <span>استثناء الاعتماد</span>
-                                      </Button>
-                                    )}
-
-                                    {/* زر الرفض للمسؤول المالي أو صاحب صلاحية استثناء الاعتماد */}
-                                    {(isFaaa8User || hasExceptionApprove) && voucher.status === "pending_approval" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleOpenRejectModal(voucher)}
-                                        disabled={rejectVoucherMutation.isPending}
-                                        className="h-7 px-2 text-[11px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-100/70 border border-rose-200 rounded-md gap-1"
-                                        title="رفض سند القبض"
-                                      >
-                                        <XCircle className="h-3.5 w-3.5" />
-                                        <span>رفض</span>
-                                      </Button>
-                                    )}
-
-                                    {voucher.status !== "approved" && (
-                                      <Button variant="ghost" size="icon" onClick={() => openEditVoucherModal(voucher)} className="h-7 w-7 text-blue-600">
-                                        <Edit3 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
             </div>
           )}
 
