@@ -8,7 +8,6 @@ import {
   Users, 
   ArrowLeft, 
   Loader2,
-  Truck,
 } from "lucide-react";
 import { getUserHomeRoute } from "@/lib/routePermissions";
 import { trpc } from "@/lib/trpc";
@@ -167,15 +166,6 @@ export default function LandingPage() {
                   طلب خدمة جديدة
                 </Button>
               </Link>
-              <Link href="/supplier-registration">
-                <Button
-                  size="lg"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 md:px-8 py-5 md:py-6 text-sm md:text-base shadow-lg hover:shadow-xl transition-all w-full sm:w-auto cursor-pointer border border-emerald-300/40"
-                >
-                  <Truck className="w-4 h-4 md:w-5 md:h-5 ml-2" />
-                  سجل معنا كمورد
-                </Button>
-              </Link>
               <Link href="/login">
                 <Button
                   size="lg"
@@ -199,7 +189,7 @@ export default function LandingPage() {
       {/* ═══════════════ دعوة للعمل ═══════════════ */}
       <section className="py-12 md:py-16 bg-background">
         <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
             {/* بطاقة المستفيد */}
             <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">
               <div>
@@ -225,36 +215,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* بطاقة المورد */}
-            <div className="bg-card rounded-2xl border-2 border-emerald-500/30 p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between relative overflow-hidden bg-gradient-to-b from-emerald-500/[0.03] to-transparent">
-              <div>
-                <div className="w-14 h-14 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-6 shadow-sm">
-                  <Truck className="w-7 h-7" />
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-bold text-foreground">بوابة الموردين والمقاولين</h3>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-                    جديد
-                  </span>
-                </div>
-                <p className="text-muted-foreground mb-6 leading-relaxed text-sm">
-                  انضم إلى شبكة الموردين والمقاولين المعتمدين لدى الجمعية للمشاركة في تقديم عروض الأسعار وتنفيذ وتوريد مشاريع المساجد.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2.5 mt-auto">
-                <Link href="/supplier-registration">
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-5 cursor-pointer shadow-md">
-                    <Truck className="w-4 h-4 ml-2" />
-                    سجل معنا كمورد
-                  </Button>
-                </Link>
-                <Link href="/supplier/dashboard">
-                  <Button variant="outline" className="w-full border-emerald-600/30 text-emerald-700 hover:bg-emerald-50 font-medium cursor-pointer">
-                    بوابة خدمات الموردين
-                  </Button>
-                </Link>
-              </div>
-            </div>
 
             {/* بطاقة الموظف */}
             <div className="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-lg transition-all hover:-translate-y-0.5 flex flex-col justify-between">

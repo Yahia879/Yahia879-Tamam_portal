@@ -1558,6 +1558,11 @@ export const requestsRouter = router({
         notes: input.notes || `تم تحويل الطلب إلى مرحلة ${newStageName}`,
       });
 
+      // جلب عنوان/اسم المشروع المرتبط بالطلب إن وجد
+      const [projForNotif] = await db.select({ name: projects.name }).from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
+      const projectTitleForNotif = projForNotif?.name || request[0].descriptiveName;
+      const projectTitleSuffix = projectTitleForNotif ? ` لمشروع "${projectTitleForNotif}"` : "";
+
       // إرسال إشعار مخصص لمقدم الطلب بناءً على المرحلة الجديدة
       const stageNotificationMessages: Record<string, { title: string; message: string }> = {
         initial_review: {
@@ -1589,8 +1594,8 @@ export const requestsRouter = router({
           message: `تم توقيع العقد لطلبك رقم ${request[0].requestNumber} وبدأت أعمال التنفيذ في مسجدك. يمكنك متابعة التقدم من بوابتك.`,
         },
         handover: {
-          title: "🎉 اكتمال التنفيذ",
-          message: `اكتملت أعمال التنفيذ في مسجدك للطلب رقم ${request[0].requestNumber} وجارٍ الاستلام الرسمي.`,
+          title: "الانتقال إلى مرحلة التسليم النهائي",
+          message: `تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي${projectTitleSuffix} لطلبك رقم ${request[0].requestNumber}.`,
         },
         closed: {
           title: "✨ تم إغلاق الطلب بنجاح",
@@ -1628,6 +1633,7 @@ export const requestsRouter = router({
           type: "request_update",
           relatedType: "request",
           relatedId: input.requestId,
+          triggerId: input.newStage === "handover" ? "beneficiary_stage_handover" : undefined,
         });
       }
 
@@ -1883,30 +1889,6 @@ export const requestsRouter = router({
         comment: input.comment,
         isInternal,
       });
-
-      // إرسال إشعار لمقدم الطلب إذا كان التعليق من موظف وليس داخلياً
-      if (!isInternal) {
-        const [req] = await db
-          .select({ userId: mosqueRequests.userId, requestNumber: mosqueRequests.requestNumber })
-          .from(mosqueRequests)
-          .where(eq(mosqueRequests.id, input.requestId))
-          .limit(1);
-
-        if (req && req.userId && req.userId !== ctx.user.id) {
-          const [requester] = await db.select({ role: users.role }).from(users).where(eq(users.id, req.userId)).limit(1);
-          if (requester && requester.role === "service_requester") {
-            await createNotification({
-              userId: req.userId,
-              type: "info",
-              title: "تعليق جديد على طلبك",
-              message: `أضاف ${ctx.user.name || "المسؤول"} تعليقاً جديداً على طلبك رقم ${req.requestNumber}`,
-              relatedType: "request",
-              relatedId: input.requestId,
-              triggerId: "beneficiary_comment_added",
-            }).catch((err) => console.error("Failed to notify beneficiary about comment:", err));
-          }
-        }
-      }
 
       return { success: true, message: "تم إضافة التعليق بنجاح" };
     }),

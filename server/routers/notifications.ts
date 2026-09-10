@@ -242,9 +242,8 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
   beneficiary_financial_approved: "تم اعتماد طلبك رقم {رقم_الطلب} مالياً بمبلغ {القيمة} ريال وتم الانتقال لمرحلة التعاقد",
   beneficiary_stage_contracting: "تم اعتماد عرض السعر لطلبك رقم {رقم_الطلب} وجارٍ الآن إعداد العقد مع المقاول.",
   beneficiary_stage_execution: "تم توقيع العقد لطلبك رقم {رقم_الطلب} وبدأت أعمال التنفيذ في مسجدك. يمكنك متابعة التقدم من بوابتك.",
-  beneficiary_stage_handover: "اكتملت أعمال التنفيذ في مسجدك للطلب رقم {رقم_الطلب} وجارٍ الاستلام الرسمي.",
+  beneficiary_stage_handover: "تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي لطلبك رقم {رقم_الطلب}.",
   beneficiary_stage_closed: "يسعدنا إعلامك باكتمال مشروع طلبك رقم {رقم_الطلب} وإغلاقه رسمياً. شكراً لثقتك بمنارة.",
-  beneficiary_comment_added: "أضاف {اسم_المسؤول} تعليقاً جديداً على طلبك رقم {رقم_الطلب}",
   beneficiary_exception_submitted: "تم استلام طلب الاستثناء الخاص بك وهو قيد المراجعة حالياً من قبل الإدارة.",
   beneficiary_exception_approved: "تم قبول طلب الاستثناء الخاص بك، يمكنك الآن تقديم طلب جديد.",
   beneficiary_exception_rejected: "عذراً، تم رفض طلب الاستثناء الخاص بك.",
@@ -366,6 +365,12 @@ const ALTERNATIVE_PATTERNS: Record<string, string[]> = {
     'تم رفض أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم "{رقم_طلب_الصرف}") بقيمة {القيمة} ريال بسبب: {السبب}',
     'تم رفض أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) للمشروع "{اسم_المشروع}" بقيمة {القيمة} ريال بسبب: {السبب}',
     'تم رفض أمر الصرف رقم "{رقم_أمر_الصرف}" (طلب رقم {رقم_طلب_الصرف}) بقيمة {القيمة} ريال بسبب: {السبب}'
+  ],
+  beneficiary_stage_handover: [
+    'تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي لمشروع "{عنوان_المشروع}" لطلبك رقم {رقم_الطلب}.',
+    'تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي لطلبك رقم {رقم_الطلب}.',
+    'اكتملت أعمال التنفيذ في مسجدك للطلب رقم {رقم_الطلب} وجارٍ الاستلام الرسمي.',
+    'اكتملت أعمال التنفيذ لطلبك رقم {رقم_الطلب}، وهو الآن في مرحلة التسليم النهائي.'
   ]
 };
 
@@ -524,12 +529,17 @@ export async function createNotification(data: {
         triggerId = "beneficiary_stage_contracting";
       } else if (data.title === "🏗️ بدء التنفيذ" || data.message.includes("بدأت أعمال التنفيذ في مسجدك")) {
         triggerId = "beneficiary_stage_execution";
-      } else if (data.title === "🎉 اكتمال التنفيذ" || (data.message.includes("اكتمال التنفيذ") && data.message.includes("الاستلام الرسمي"))) {
+      } else if (
+        data.title === "🎉 اكتمال التنفيذ" || 
+        data.title.includes("التسليم النهائي") || 
+        data.title.includes("مرحلة التسليم") || 
+        (data.message.includes("اكتمال التنفيذ") && data.message.includes("الاستلام الرسمي")) || 
+        data.message.includes("مرحلة التسليم النهائي") ||
+        data.message.includes("مرحلة التسليم")
+      ) {
         triggerId = "beneficiary_stage_handover";
       } else if (data.title === "✨ تم إغلاق الطلب بنجاح" || data.message.includes("إغلاقه رسمياً")) {
         triggerId = "beneficiary_stage_closed";
-      } else if (data.title === "تعليق جديد على طلبك" || data.title === "تعليق جديد" || data.message.includes("تعليقاً على طلبك")) {
-        triggerId = "beneficiary_comment_added";
       } else if (data.title === "تم تقديم طلب الاستثناء") {
         triggerId = "beneficiary_exception_submitted";
       } else if (data.title === "تم قبول طلب الاستثناء") {
@@ -1174,21 +1184,15 @@ export async function notifyRequestStatusChange(
   });
 }
 
-// دالة لإرسال إشعار عند إضافة تعليق
+// دالة لإرسال إشعار عند إضافة تعليق (تم إيقافها بناءً على رغبة المستخدم)
 export async function notifyNewComment(
-  requestId: number,
-  requestNumber: string,
-  commenterName: string,
-  requesterId: number
+  _requestId: number,
+  _requestNumber: string,
+  _commenterName: string,
+  _requesterId: number
 ) {
-  await createNotification({
-    userId: requesterId,
-    type: "info",
-    title: "تعليق جديد",
-    message: `أضاف ${commenterName} تعليقاً على طلبك رقم ${requestNumber}`,
-    relatedType: "request",
-    relatedId: requestId,
-  });
+  // تم إيقاف إرسال إشعارات التعليقات
+  return;
 }
 
 // دالة لإرسال إشعار عند جدولة زيارة ميدانية

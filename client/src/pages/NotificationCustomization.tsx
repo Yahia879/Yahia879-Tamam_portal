@@ -722,11 +722,12 @@ export default function NotificationCustomization() {
       id: "beneficiary_stage_handover",
       category: "request",
       categoryNameAr: "الطلبات والمراحل",
-      nameAr: "مرحلة التسليم النهائي للمسجد",
-      description: "إشعار المستفيد بجاهزية المسجد للتسليم والاستلام بعد اكتمال التنفيذ",
-      defaultTemplate: "اكتملت أعمال التنفيذ لطلبك رقم {رقم_الطلب}، وهو الآن في مرحلة التسليم النهائي.",
+      nameAr: "الانتقال إلى مرحلة التسليم النهائي للمشروع",
+      description: "إشعار المستفيد بالانتقال إلى مرحلة التسليم النهائي وجاهزية المسجد للاستلام بعد اكتمال أعمال التنفيذ",
+      defaultTemplate: "تم الانتهاء من أعمال التنفيذ والانتقال إلى مرحلة التسليم النهائي لطلبك رقم {رقم_الطلب}.",
       variables: [
-        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
+        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
+        { placeholder: "{عنوان_المشروع}", nameAr: "عنوان المشروع" }
       ]
     },
     {
@@ -738,21 +739,6 @@ export default function NotificationCustomization() {
       defaultTemplate: "تم إغلاق الطلب رقم {رقم_الطلب} بنجاح بعد اكتمال كافة الأعمال الميدانية والموافقات. نسأل الله أن يتقبل من الجميع.",
       variables: [
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" }
-      ]
-    },
-
-    // === التعليقات والملاحظات ===
-    {
-      id: "beneficiary_comment_added",
-      category: "comments",
-      categoryNameAr: "التعليقات والملاحظات",
-      nameAr: "إضافة تعليق أو توجيه جديد على الطلب",
-      description: "إشعار المستفيد عند قيام أحد مسؤولي الجمعية بكتابة تعليق أو توجيه على طلبه",
-      defaultTemplate: "قام المسؤول {اسم_المسؤول} بإضافة تعليق جديد على طلبك رقم {رقم_الطلب}: \"{الملاحظات}\"",
-      variables: [
-        { placeholder: "{اسم_المسؤول}", nameAr: "اسم المسؤول" },
-        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
-        { placeholder: "{الملاحظات}", nameAr: "نص الملاحظة" }
       ]
     },
 
@@ -819,19 +805,6 @@ export default function NotificationCustomization() {
         { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" },
         { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
         { placeholder: "{رابط_الاستبيان}", nameAr: "رابط التقييم" }
-      ]
-    },
-    {
-      id: "beneficiary_survey_invite",
-      category: "surveys",
-      categoryNameAr: "الاستبيانات والتقييم",
-      nameAr: "دعوة للمشاركة في استبيان الرضا الدوري",
-      description: "دعوة للمستفيدين للمشاركة في الاستبيانات الدورية العامة لقياس جودة تجربة المستفيد",
-      defaultTemplate: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، ندعوكم للمشاركة في استبيان قياس رضا المستفيدين لتطوير رعايتنا لبيوت الله: {رابط_الاستبيان}",
-      variables: [
-        { placeholder: "{اسم_المستلم}", nameAr: "اسم المستلم" },
-        { placeholder: "{صفة_المستفيد}", nameAr: "صفة المستفيد" },
-        { placeholder: "{رابط_الاستبيان}", nameAr: "رابط الاستبيان" }
       ]
     }
   ];
@@ -1027,29 +1000,6 @@ export default function NotificationCustomization() {
       variables: [
         { placeholder: "{اسم_المرسل}", nameAr: "اسم المرسل" },
         { placeholder: "{رقم_التذكرة}", nameAr: "رقم التذكرة" }
-      ]
-    },
-    {
-      id: "beneficiary_survey_invite",
-      category: "request",
-      nameAr: "إرسال استبيان قياس رضا المستفيدين",
-      description: "دعوة واستبيان لقياس رضا المستفيدين المعتمدين والمتبرعين وأصحاب الاستفسارات",
-      defaultTemplate: "السلام عليكم ورحمة الله وبركاته {اسم_المستلم}، نود دعوتكم بلطف للمشاركة في استبيان قياس رضا المستفيدين لدى جمعية عمارة المساجد (منارة). رأيكم وملاحظاتكم تهمنا للغاية لتطوير خدماتنا والارتقاء برعاية بيوت الله، نأمل منكم التكرم بالضغط على الرابط أدناه لتعبئة الاستبيان:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
-      variables: [
-        { placeholder: "{اسم_المستلم}", nameAr: "اسم المستلم" },
-        { placeholder: "{صفة_المستفيد}", nameAr: "صفة المستفيد" }
-      ]
-    },
-    {
-      id: "beneficiary_survey_reminder",
-      category: "request",
-      nameAr: "الرسالة التذكيرية لاستبيان قياس الرضا (للطلبات المغلقة)",
-      description: "إرسال تذكير للمستفيد لتعبئة استبيان قياس الرضا بعد إغلاق طلبه المكتمل",
-      defaultTemplate: "السلام عليكم ورحمة الله وبركاته {اسم_المستفيد}، نود تذكيركم بلطف بأنه تم إغلاق طلبكم رقم {رقم_الطلب} بنجاح لدى جمعية عمارة المساجد (منارة). رأيكم واقتراحاتكم محل اهتمامنا البالغ وتسهم مباشرة في تطوير جودة خدماتنا لمسجد {اسم_المسجد}، نأمل منكم التكرم بالضغط على الرابط لتقييم الخدمة:\n\nشاكرين ومقدرين حسن تعاونكم الدائم.",
-      variables: [
-        { placeholder: "{اسم_المستفيد}", nameAr: "اسم المستفيد" },
-        { placeholder: "{رقم_الطلب}", nameAr: "رقم الطلب" },
-        { placeholder: "{اسم_المسجد}", nameAr: "اسم المسجد" }
       ]
     },
     {
@@ -2121,10 +2071,6 @@ export default function NotificationCustomization() {
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "request")
                 },
                 {
-                  title: "قسم التعليقات والملاحظات",
-                  triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "comments")
-                },
-                {
                   title: "قسم طلبات الاستثناء",
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "exceptions")
                 },
@@ -2132,7 +2078,7 @@ export default function NotificationCustomization() {
                   title: "قسم استبيانات الرضا والتقييم",
                   triggers: BENEFICIARY_NOTIFICATION_TRIGGERS.filter(t => t.category === "surveys")
                 }
-              ];
+              ].filter(s => s.triggers.length > 0);
 
               return (
                 <Card className="border border-border/50 shadow-sm overflow-hidden rounded-xl">

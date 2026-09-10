@@ -475,6 +475,26 @@ export default function ProjectDetailsPage() {
   const contractsCount = project?.contracts?.length || 0;
   const paymentsCount = project?.payments?.length || 0;
 
+  // أيقونة الريال المخصصة لشريط التنقل لتأخذ ألوان الأيقونات الأخرى (أخضر في الحالة العادية وأبيض عند التحديد)
+  const RiyalNavIcon = ({ className = "w-4 h-4", style, ...props }: { className?: string; style?: React.CSSProperties; [key: string]: any }) => (
+    <span
+      aria-hidden="true"
+      className={`inline-block shrink-0 bg-current ${className}`}
+      style={{
+        maskImage: "url('/riyal.png')",
+        WebkitMaskImage: "url('/riyal.png')",
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+        maskPosition: "center",
+        WebkitMaskPosition: "center",
+        ...style,
+      }}
+      {...props}
+    />
+  );
+
   const navItems = [
     { id: "overview", label: "نظرة عامة", icon: Building2 },
     { id: "progress_milestones", label: "الإنجاز والمعالم", icon: BarChart3 },
@@ -493,7 +513,7 @@ export default function ProjectDetailsPage() {
     ...(canViewFinancials ? [{ 
       id: "financials", 
       label: "المالية", 
-      icon: SaudiRiyal, 
+      icon: RiyalNavIcon, 
       isLocked: isFinancialsLocked 
     }] : []),
     { 
