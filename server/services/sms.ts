@@ -3,6 +3,9 @@
  * الجمعية الأهلية لعمارة المساجد (منارة) - بوابة تمام
  */
 
+import dotenv from "dotenv";
+dotenv.config();
+
 export interface SendSmsResult {
   success: boolean;
   messageId?: string;
@@ -79,6 +82,7 @@ export async function sendSms(
   messageText: string,
   senderName?: string
 ): Promise<SendSmsResult> {
+  dotenv.config({ override: true });
   const appKey = process.env.FOUR_JAWALY_APP_KEY;
   const appSecret = process.env.FOUR_JAWALY_APP_SECRET;
   const sender = senderName || process.env.FOUR_JAWALY_SENDER_NAME || "Manarah";

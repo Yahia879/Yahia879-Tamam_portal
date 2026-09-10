@@ -152,6 +152,7 @@ export async function triggerBeneficiarySatisfactionSurvey(requestId: number) {
       type: "request",
       relatedType: "request_evaluation",
       relatedId: requestId,
+      triggerId: "beneficiary_survey_evaluation",
     });
 
     // 2. Email Notification (إشعار البريد الإلكتروني بزر تفاعلي أنيق)
@@ -1625,6 +1626,18 @@ export const requestsRouter = router({
         .where(eq(users.id, request[0].userId!))
         .limit(1);
 
+      const stageTriggerMap: Record<string, string> = {
+        initial_review: "beneficiary_stage_initial_review",
+        field_visit: "beneficiary_stage_field_visit",
+        financial_eval_and_approval: "beneficiary_stage_financial_eval",
+        financial_evaluation: "beneficiary_stage_financial_eval",
+        financial_eval: "beneficiary_stage_financial_eval",
+        contracting: "beneficiary_stage_contracting",
+        execution: "beneficiary_stage_execution",
+        handover: "beneficiary_stage_handover",
+        closed: "beneficiary_stage_closed",
+      };
+
       if (ownerUser && ownerUser.role === "service_requester") {
         await createNotification({
           userId: request[0].userId!,
@@ -1633,7 +1646,7 @@ export const requestsRouter = router({
           type: "request_update",
           relatedType: "request",
           relatedId: input.requestId,
-          triggerId: input.newStage === "handover" ? "beneficiary_stage_handover" : undefined,
+          triggerId: stageTriggerMap[input.newStage] || "beneficiary_request_status_changed",
         });
       }
 
@@ -3002,6 +3015,7 @@ export const requestsRouter = router({
           type: 'info',
           relatedType: 'request',
           relatedId: input.requestId,
+          triggerId: "beneficiary_field_visit_scheduled",
         });
       }
 
@@ -3422,6 +3436,7 @@ export const requestsRouter = router({
           type: "request_update",
           relatedType: "request",
           relatedId: input.requestId,
+          triggerId: "beneficiary_financial_approved",
         });
       }
 
@@ -3998,6 +4013,7 @@ export const requestsRouter = router({
           message: "تم استلام طلب الاستثناء الخاص بك وهو قيد المراجعة حالياً من قبل الإدارة.",
           relatedType: "user",
           relatedId: ctx.user.id,
+          triggerId: "beneficiary_exception_submitted",
         });
       } catch (err) {
         console.error("Error sending self notification to user:", err);
@@ -4099,6 +4115,7 @@ export const requestsRouter = router({
               : "عذراً، تم رفض طلب الاستثناء الخاص بك.",
             relatedType: "user",
             relatedId: exRow.userId,
+            triggerId: isApproved ? "beneficiary_exception_approved" : "beneficiary_exception_rejected",
           });
 
           // 2. Email sending in background
@@ -5119,6 +5136,7 @@ export const requestsRouter = router({
         type: "request",
         relatedType: "request_evaluation",
         relatedId: request.id,
+        triggerId: "beneficiary_survey_reminder",
       });
 
       // تسجيل إرسال الرسالة التذكيرية في سجل التدقيق (audit_logs)

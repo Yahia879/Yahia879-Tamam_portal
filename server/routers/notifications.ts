@@ -1013,6 +1013,7 @@ export async function notifyRequestCreation(
         message: "تم إنشاء طلب جديد وهو بانتظار المعالجة",
         relatedType: "request",
         relatedId: requestId,
+        triggerId: "beneficiary_request_created",
       });
 
       // إشعار للمدراء والمسؤولين
