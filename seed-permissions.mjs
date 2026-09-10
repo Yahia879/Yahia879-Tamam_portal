@@ -11,7 +11,6 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 const TARGET_ROLES = [
   { id: "system_admin", nameAr: "مدير النظام" },
   { id: "super_admin", nameAr: "المدير العام" },
-  { id: "general_manager", nameAr: "المدير العام / المدير التنفيذي" },
   { id: "financial", nameAr: "الإدارة المالية" },
   { id: "financial_manager", nameAr: "المدير المالي" },
   { id: "projects_office", nameAr: "مكتب المشاريع" },
@@ -145,8 +144,42 @@ async function seed() {
       }
     }
 
+    // 4. التأكد من عدم إسناد الصلاحيات لدور general_manager (المدير التنفيذي)
+    console.log("\n📌 3) التأكد من عدم إسناد الصلاحيات لدور general_manager:");
+    for (const perm of TARGET_PERMISSIONS) {
+      const [deleted] = await connection.query(
+        "DELETE FROM `role_permissions` WHERE `role_id` = 'general_manager' AND `permission_id` = ?;",
+        [perm.id]
+      );
+      if (deleted.affectedRows > 0) {
+        console.log(`   🗑️ تم إزالة الصلاحية '${perm.nameAr}' من دور general_manager.`);
+      } else {
+        console.log(`   ✔️ دور general_manager لا يمتلك الصلاحية '${perm.nameAr}'.`);
+      }
+    }
+
+    // تنظيف description لدور general_manager إذا كان يحتوي عليها
+    const [gmRole] = await connection.query(
+      "SELECT description FROM `roles` WHERE `id` = 'general_manager' LIMIT 1;"
+    );
+    if (gmRole.length > 0 && gmRole[0].description) {
+      try {
+        const parsed = JSON.parse(gmRole[0].description);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(p => !TARGET_PERMISSIONS.some(tp => tp.id === p));
+          if (filtered.length !== parsed.length) {
+            await connection.query(
+              "UPDATE `roles` SET `description` = ? WHERE `id` = 'general_manager';",
+              [JSON.stringify(filtered)]
+            );
+            console.log(`   📝 تم تنظيف حقل description لدور general_manager.`);
+          }
+        }
+      } catch (_) {}
+    }
+
     console.log("\n==================================================================");
-    console.log("🎉 اكتمل تنفيذ الـ Seed بنجاح! تم منح الصلاحيات المطلوبة لكافة الأدوار.");
+    console.log("🎉 اكتمل تنفيذ الـ Seed بنجاح! تم منح الصلاحيات المطلوبة لكافة الأدوار المحددة فقط.");
     console.log("==================================================================");
   } catch (error) {
     console.error("❌ حدث خطأ أثناء تنفيذ السكربت:", error);
