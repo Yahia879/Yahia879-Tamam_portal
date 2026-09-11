@@ -168,9 +168,11 @@ async function startServer() {
     console.error("[API Error Handler Caught]:", err);
     if (res.headersSent) return;
     const statusCode = err.status || err.statusCode || 500;
+    const rawMsg = err.message || "";
+    const isUnexpect = /unexpect|<|syntaxerror/i.test(rawMsg);
     res.status(statusCode).json({
       error: {
-        message: err.message || "حدث خطأ أثناء معالجة الطلب على السيرفر",
+        message: isUnexpect ? "حدث خطأ حاول مرة أخرى" : (rawMsg || "حدث خطأ حاول مرة أخرى"),
         code: err.code || "INTERNAL_SERVER_ERROR",
       },
     });

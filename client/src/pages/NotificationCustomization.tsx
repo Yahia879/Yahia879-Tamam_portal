@@ -428,20 +428,24 @@ export default function NotificationCustomization() {
   const updateRoleChannelSettingMutation = trpc.permissions.updateRoleChannelSetting.useMutation({
     onSuccess: () => {
       debouncedRefetchRoles();
+      toast.success("تم تحديث إعدادات الرسائل بنجاح", { id: "notif-channel-setting" });
     },
     onError: (err) => {
       refetchRoles();
-      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+      const msg = err.message || "";
+      toast.error(/unexpect|<|token|json/i.test(msg) ? "حدث خطأ حاول مرة أخرى" : (msg || "حدث خطأ حاول مرة أخرى"), { id: "notif-channel-setting" });
     }
   });
 
   const updateUserChannelSettingMutation = trpc.users.updateUserChannelSetting.useMutation({
     onSuccess: () => {
       debouncedRefetchStaff();
+      toast.success("تم تحديث إعدادات الرسائل بنجاح", { id: "notif-channel-setting" });
     },
     onError: (err) => {
       refetchStaff();
-      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+      const msg = err.message || "";
+      toast.error(/unexpect|<|token|json/i.test(msg) ? "حدث خطأ حاول مرة أخرى" : (msg || "حدث خطأ حاول مرة أخرى"), { id: "notif-channel-setting" });
     }
   });
 
@@ -1373,10 +1377,12 @@ export default function NotificationCustomization() {
   const updateTriggerSettingMutation = trpc.notifications.updateTriggerSetting.useMutation({
     onSuccess: () => {
       debouncedRefetchTriggers();
+      toast.success("تم تحديث إعدادات الرسائل بنجاح", { id: "notif-trigger-setting" });
     },
     onError: (err) => {
       refetchTriggerSettings();
-      toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
+      const msg = err.message || "";
+      toast.error(/unexpect|<|token|json/i.test(msg) ? "حدث خطأ حاول مرة أخرى" : (msg || "حدث خطأ حاول مرة أخرى"), { id: "notif-trigger-setting" });
     }
   });
 
@@ -1387,7 +1393,8 @@ export default function NotificationCustomization() {
       setIsEditTemplateOpen(false);
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ القالب");
+      const msg = err.message || "";
+      toast.error(/unexpect|<|token|json/i.test(msg) ? "حدث خطأ حاول مرة أخرى" : (msg || "حدث خطأ أثناء حفظ القالب"));
     }
   });
 

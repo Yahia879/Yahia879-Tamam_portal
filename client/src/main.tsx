@@ -9,6 +9,16 @@ import App from "./App";
 import "./index.css";
 
 import { isAuthRedirecting, setAuthRedirecting, setSuspensionMessage } from "@/lib/authGuard";
+import { toast } from "sonner";
+
+// اعتراض وتطهير أي رسائل خطأ غامضة مثل "Unexpected token <" أو "Unexpected ..." لتحويلها لرسالة واضحة للمستخدم
+const originalToastError = toast.error;
+(toast as any).error = (message: any, data?: any) => {
+  if (typeof message === "string" && /unexpect|<|syntaxerror|not valid json/i.test(message)) {
+    return originalToastError("حدث خطأ حاول مرة أخرى", data);
+  }
+  return originalToastError(message, data);
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,21 +107,21 @@ const trpcClient = trpc.createClient({
 
         // حماية من خطأ Unexpected token < في حال إرجاع الخادم أو البروكسي صفحة HTML (مثل خطأ 502 أو 500)
         const contentType = response.headers.get("content-type") || "";
-        if (!response.ok && (contentType.includes("text/html") || contentType.includes("text/plain"))) {
+        if (!contentType.includes("application/json")) {
           try {
             const isBatch = typeof input === "string" ? input.includes("batch=1") : false;
             const errorObj = {
               error: {
-                message: "حدث خطأ مؤقت في الاتصال بالسيرفر، يرجى إعادة المحاولة.",
+                message: "حدث خطأ حاول مرة أخرى",
                 code: -32603,
                 data: {
                   code: "INTERNAL_SERVER_ERROR",
-                  httpStatus: response.status,
+                  httpStatus: response.status || 500,
                 },
               },
             };
             return new Response(JSON.stringify(isBatch ? [errorObj] : errorObj), {
-              status: response.status,
+              status: response.status >= 400 ? response.status : 500,
               statusText: response.statusText,
               headers: { "content-type": "application/json" },
             });
