@@ -26,6 +26,7 @@ import {
   Star,
   Camera,
   Download,
+  Printer,
   X
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -415,26 +416,45 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   {item.isCompleted && (
-                                    item.reportType === "final_report" ? (
-                                      <Link href={`/final-report/${item.reportId}`}>
-                                        <DropdownMenuItem className="cursor-pointer">
-                                          <FileText className="w-4 h-4 ml-2" />
+                                    <>
+                                      {item.reportType === "final_report" ? (
+                                        <Link href={`/final-report/${item.reportId}`}>
+                                          <DropdownMenuItem className="cursor-pointer">
+                                            <FileText className="w-4 h-4 ml-2" />
+                                            عرض التقرير
+                                          </DropdownMenuItem>
+                                        </Link>
+                                      ) : (
+                                        <DropdownMenuItem
+                                          className="cursor-pointer"
+                                          onClick={() => {
+                                            setSelectedRequestIdForView(item.id);
+                                            setSelectedReportTypeForView(item.reportType);
+                                            setReportDialogOpen(true);
+                                          }}
+                                        >
+                                          <Eye className="w-4 h-4 ml-2" />
                                           عرض التقرير
                                         </DropdownMenuItem>
-                                      </Link>
-                                    ) : (
+                                      )}
                                       <DropdownMenuItem
-                                        className="cursor-pointer"
+                                        className="cursor-pointer text-[#1a5f4a] focus:text-[#1a5f4a] font-semibold"
                                         onClick={() => {
-                                          setSelectedRequestIdForView(item.id);
-                                          setSelectedReportTypeForView(item.reportType);
-                                          setReportDialogOpen(true);
+                                          if (item.reportType === "final_report") {
+                                            setLocation(`/final-report/${item.reportId}`);
+                                          } else if (item.reportType === "field_visit") {
+                                            setLocation(`/requests/${item.id}/field-visit-report/print`);
+                                          } else if (item.reportType === "quick_request") {
+                                            setLocation(`/requests/${item.id}/quick-request-report/print`);
+                                          } else if (item.reportType === "quick_response") {
+                                            setLocation(`/requests/${item.id}/quick-response-report/print`);
+                                          }
                                         }}
                                       >
-                                        <Eye className="w-4 h-4 ml-2" />
-                                        عرض التقرير
+                                        <Printer className="w-4 h-4 ml-2 text-[#1a5f4a]" />
+                                        طباعة تقرير
                                       </DropdownMenuItem>
-                                    )
+                                    </>
                                   )}
                                   {!item.isCompleted && item.isLate && hasIntervenePermission && (
                                     <Link href={item.actionUrl}>
@@ -493,26 +513,45 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               {item.isCompleted && (
-                                item.reportType === "final_report" ? (
-                                  <Link href={`/final-report/${item.reportId}`}>
-                                    <DropdownMenuItem className="cursor-pointer">
-                                      <FileText className="w-4 h-4 ml-2" />
+                                <>
+                                  {item.reportType === "final_report" ? (
+                                    <Link href={`/final-report/${item.reportId}`}>
+                                      <DropdownMenuItem className="cursor-pointer">
+                                        <FileText className="w-4 h-4 ml-2" />
+                                        عرض التقرير
+                                      </DropdownMenuItem>
+                                    </Link>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer"
+                                      onClick={() => {
+                                        setSelectedRequestIdForView(item.id);
+                                        setSelectedReportTypeForView(item.reportType);
+                                        setReportDialogOpen(true);
+                                      }}
+                                    >
+                                      <Eye className="w-4 h-4 ml-2" />
                                       عرض التقرير
                                     </DropdownMenuItem>
-                                  </Link>
-                                ) : (
+                                  )}
                                   <DropdownMenuItem
-                                    className="cursor-pointer"
+                                    className="cursor-pointer text-[#1a5f4a] focus:text-[#1a5f4a] font-semibold"
                                     onClick={() => {
-                                      setSelectedRequestIdForView(item.id);
-                                      setSelectedReportTypeForView(item.reportType);
-                                      setReportDialogOpen(true);
+                                      if (item.reportType === "final_report") {
+                                        setLocation(`/final-report/${item.reportId}`);
+                                      } else if (item.reportType === "field_visit") {
+                                        setLocation(`/requests/${item.id}/field-visit-report/print`);
+                                      } else if (item.reportType === "quick_request") {
+                                        setLocation(`/requests/${item.id}/quick-request-report/print`);
+                                      } else if (item.reportType === "quick_response") {
+                                        setLocation(`/requests/${item.id}/quick-response-report/print`);
+                                      }
                                     }}
                                   >
-                                    <Eye className="w-4 h-4 ml-2" />
-                                    عرض التقرير
+                                    <Printer className="w-4 h-4 ml-2 text-[#1a5f4a]" />
+                                    طباعة تقرير
                                   </DropdownMenuItem>
-                                )
+                                </>
                               )}
                               {!item.isCompleted && item.isLate && hasIntervenePermission && (
                                 <Link href={item.actionUrl}>
@@ -690,6 +729,35 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
         )
       ) : (
         <div className="space-y-4" dir="rtl">
+          {/* شريط الإجراءات والطباعة داخل المودال */}
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 print:hidden">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                رقم الطلب: <span className="font-mono text-[#1a5f4a] dark:text-emerald-400 font-bold">{singleRequestData.requestNumber || `#${singleRequestData.id}`}</span>
+              </span>
+              {singleRequestData.mosque?.name && (
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  • {singleRequestData.mosque.name}
+                </span>
+              )}
+            </div>
+            <Button
+              size="sm"
+              className="bg-[#1a5f4a] hover:bg-[#144939] text-white font-bold gap-2 shadow-xs text-xs"
+              onClick={() => {
+                if (selectedReportTypeForView === "field_visit") {
+                  setLocation(`/requests/${singleRequestData.id}/field-visit-report/print`);
+                } else if (selectedReportTypeForView === "quick_request") {
+                  setLocation(`/requests/${singleRequestData.id}/quick-request-report/print`);
+                } else if (selectedReportTypeForView === "quick_response") {
+                  setLocation(`/requests/${singleRequestData.id}/quick-response-report/print`);
+                }
+              }}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              طباعة التقرير / PDF
+            </Button>
+          </div>
 
           {selectedReportTypeForView === "field_visit" ? (
             <div className="space-y-6 text-right">

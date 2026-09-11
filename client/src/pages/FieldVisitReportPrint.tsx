@@ -134,8 +134,8 @@ export default function FieldVisitReportPrint() {
     const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext || '') ||
       att.fileType?.toLowerCase() === 'image' ||
       att.fileType?.toLowerCase().startsWith('image/');
-    return isImg && (att.fileUrl?.includes('site_photo') || att.fileName?.includes('site_photo') || true);
-  }).slice(0, 8) || [];
+    return isImg;
+  }) || [];
 
   const visitDate = fieldReport?.visitDate ? new Date(fieldReport.visitDate) : new Date(request.createdAt);
 
@@ -384,12 +384,24 @@ export default function FieldVisitReportPrint() {
 
                 {/* تقييم صحة بيانات المستفيد */}
                 {fieldReport?.beneficiaryInfoAccuracyRating && (
-                  <div className="p-2.5 rounded-md border border-gray-200 bg-gray-50/60 text-xs flex flex-col gap-1">
+                  <div className="p-2.5 rounded-md border border-gray-200 bg-gray-50/60 text-xs flex flex-col gap-1.5">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-gray-800">تقييم صحة ومطابقة بيانات المستفيد:</span>
-                      <span className="font-bold text-gray-900">
-                        {ratingLabels[fieldReport.beneficiaryInfoAccuracyRating] || `${fieldReport.beneficiaryInfoAccuracyRating} من 5`}
-                      </span>
+                      <div className="flex items-center gap-1" style={{ direction: "ltr" }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${
+                              star <= fieldReport.beneficiaryInfoAccuracyRating
+                                ? "text-amber-500 fill-amber-400"
+                                : "text-slate-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-[11px] font-bold text-amber-800">
+                      {ratingLabels[fieldReport.beneficiaryInfoAccuracyRating] || `${fieldReport.beneficiaryInfoAccuracyRating} من 5`}
                     </div>
                     {fieldReport.beneficiaryInfoAccuracyNotes && (
                       <p className="text-[11px] text-gray-700 italic mt-0.5">

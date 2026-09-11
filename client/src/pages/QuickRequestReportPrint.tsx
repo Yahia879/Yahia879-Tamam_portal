@@ -94,7 +94,7 @@ export default function QuickRequestReportPrint() {
       att.fileType?.toLowerCase() === 'image' ||
       att.fileType?.toLowerCase().startsWith('image/');
     return isImg;
-  }).slice(0, 8) || [];
+  }) || [];
 
   const createdAtDate = new Date(request.createdAt);
   const responseDate = quickReport?.responseDate ? new Date(quickReport.responseDate) : createdAtDate;
@@ -265,16 +265,16 @@ export default function QuickRequestReportPrint() {
                   className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                   style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                 >
-                  2. تفاصيل البلاغ والمعالجة الفنية المنجزة:
+                  2. نتائج التدخل الفني وحالة الحل:
                 </h3>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2.5">
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">حالة الطلب:</span>
+                    <span className="text-[10px] text-slate-500 block mb-1">حالة المعالجة:</span>
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-gray-700" />
                       <span className="text-xs font-bold text-gray-900">
-                        {request.currentStage === "closed" ? "مكتمل ومغلق رسمياً" : "قيد المعالجة السريعة"}
+                        {quickReport?.resolved ? "تم حل المشكلة بالكامل" : "قيد المتابعة واستكمال الأعمال"}
                       </span>
                     </div>
                   </div>
@@ -282,12 +282,28 @@ export default function QuickRequestReportPrint() {
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <span className="text-[10px] text-slate-500 block mb-1">التقييم الفني:</span>
                     <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 inline-block">
-                      {evaluationLabels[quickReport?.finalEvaluation || 'good'] || "جيد ومطابق"}
+                      {evaluationLabels[quickReport?.finalEvaluation || 'good'] || quickReport?.finalEvaluation || "جيد ومطابق"}
+                    </span>
+                  </div>
+
+                  <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
+                    <span className="text-[10px] text-slate-500 block mb-1">الحاجة لمشروع متكامل:</span>
+                    <span className="text-xs font-bold text-gray-900">
+                      {quickReport?.requiresProject ? "نعم، يتطلب مشروعاً متكاملاً" : "لا يتطلب، تمت المعالجة المباشرة"}
                     </span>
                   </div>
                 </div>
+              </div>
 
-                {/* التوصيف الفني */}
+              {/* التقييم الفني والأعمال المنفذة */}
+              <div className="section-block space-y-2">
+                <h3 
+                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
+                  style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
+                >
+                  3. تفاصيل الأعمال والإجراءات الفنية:
+                </h3>
+
                 {quickReport?.technicalEvaluation ? (
                   <div className="p-2.5 rounded-md border border-slate-200 bg-slate-50/40 text-xs">
                     <span className="font-bold text-gray-800 block mb-1">تقرير الأعمال والإجراءات المنجزة:</span>
@@ -300,6 +316,15 @@ export default function QuickRequestReportPrint() {
                     تم استلام البلاغ المباشر من خلال بوابة تمام وتوجيه الفني المختص فوراً لتقديم الخدمة المطلوبة للمسجد وإغلاق البلاغ بنجاح.
                   </div>
                 )}
+
+                {quickReport?.unexecutedWorks && (
+                  <div className="p-2.5 rounded-md border border-gray-200 bg-gray-50/40 text-xs">
+                    <span className="font-bold text-gray-900 block mb-1">الأعمال غير المنفذة وأسباب عدم التنفيذ:</span>
+                    <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                      {quickReport.unexecutedWorks}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* قسم الصور والمرفقات التوثيقية */}
@@ -309,7 +334,7 @@ export default function QuickRequestReportPrint() {
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                   >
-                    3. الصور التوثيقية للبلاغ والمعالجة ({reportPhotos.length} صور):
+                    4. الصور التوثيقية للبلاغ والمعالجة ({reportPhotos.length} صور):
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {reportPhotos.map((photo: any, idx: number) => (

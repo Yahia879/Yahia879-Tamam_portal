@@ -94,7 +94,7 @@ export default function QuickResponseReportPrint() {
       att.fileType?.toLowerCase() === 'image' ||
       att.fileType?.toLowerCase().startsWith('image/');
     return isImg && (quickReport ? att.uploadedBy === quickReport.respondedBy || att.fileUrl?.includes('site_photo') : true);
-  }).slice(0, 8) || [];
+  }) || [];
 
   const responseDate = quickReport?.responseDate ? new Date(quickReport.responseDate) : new Date(request.createdAt);
 
