@@ -80,12 +80,26 @@ export default function QuickResponseReportPrint() {
 
   const quickReport = request.quickReports && request.quickReports.length > 0 ? request.quickReports[0] : null;
 
+  let programData: Record<string, any> = {};
+  if (request.programData) {
+    try {
+      programData = typeof request.programData === "string" 
+        ? JSON.parse(request.programData) 
+        : request.programData;
+    } catch (e) {
+      console.error("Error parsing programData:", e);
+      programData = {};
+    }
+  }
+
+  const isBunyan = request.programType === "bunyan" || request.programType === "bonyan";
+
   const evaluationLabels: Record<string, string> = {
-    excellent: "ممتاز (تم التنفيذ بأعلى المعايير)",
-    good: "جيد (تم التنفيذ بصورة ملائمة ومكتملة)",
-    acceptable: "مقبول (تم التنفيذ بالحد الأدنى المطلوب)",
-    needs_improvement: "يحتاج تحسين (يوجد بعض الملاحظات)",
-    poor: "ضعيف (غير مطابق للمواصفات)"
+    excellent: "ممتاز",
+    good: "جيد",
+    acceptable: "مقبول",
+    needs_improvement: "يحتاج تحسين",
+    poor: "ضعيف"
   };
 
   const reportPhotos = request.attachments?.filter((att: any) => {
@@ -177,8 +191,6 @@ export default function QuickResponseReportPrint() {
                     <h2 className="font-extrabold text-[#1a5f4a] text-base sm:text-lg">
                       {orgSettings?.officialReportsName || orgSettings?.organizationName || (orgSettings as any)?.associationName || "جمعية رعاية المساجد (تمام)"}
                     </h2>
-                    <p className="text-xs text-slate-500 font-medium">المملكة العربية السعودية • تصريح رقم 1000543501</p>
-                    <p className="text-[11px] text-slate-600 font-bold">إدارة المشاريع والتشغيل • وحدة الاستجابة السريعة</p>
                   </div>
                 </div>
 
@@ -186,10 +198,6 @@ export default function QuickResponseReportPrint() {
                   <div>
                     <span className="text-slate-500 ml-1">التاريخ:</span>
                     <span className="font-bold text-slate-800">{formatGregorianDate(responseDate)}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 ml-1">الموافق:</span>
-                    <span className="font-semibold text-slate-700">{toHijriDate(responseDate)}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 ml-1">رقم الطلب:</span>
@@ -220,20 +228,33 @@ export default function QuickResponseReportPrint() {
                   1. بيانات المسجد والطلب:
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-md border border-slate-200">
+                  {isBunyan ? (
+                    <div className="col-span-2">
+                      <span className="text-slate-500 block text-[10px]">اسم الحي:</span>
+                      <span className="font-bold text-gray-900 text-sm">
+                        {programData?.neighborhoodName 
+                          ? (programData.neighborhoodName.startsWith("حي") ? programData.neighborhoodName : `حي ${programData.neighborhoodName}`) 
+                          : (request.mosque?.district ? `حي ${request.mosque.district}` : (request.descriptiveName || "—"))}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">اسم المسجد:</span>
+                        <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">المدينة / الحي:</span>
+                        <span className="font-semibold text-gray-800">
+                          {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div>
-                    <span className="text-slate-500 block text-[10px]">اسم المسجد:</span>
-                    <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">المدينة / الموقع:</span>
-                    <span className="font-semibold text-gray-800">
-                      {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">المسار / البرنامج:</span>
+                    <span className="text-slate-500 block text-[10px]">نوع البرنامج:</span>
                     <span className="font-bold text-gray-900">
-                      مسار الاستجابة السريعة ({request.programName || (PROGRAM_LABELS as any)[request.programType] || request.programType})
+                      {request.programName || (PROGRAM_LABELS as any)[request.programType] || request.programType}
                     </span>
                   </div>
                   <div>
@@ -270,23 +291,12 @@ export default function QuickResponseReportPrint() {
                 >
                   2. نتائج التدخل الفني وحالة الحل:
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* حالة حل المشكلة */}
-                  <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">حالة المعالجة:</span>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-gray-700" />
-                      <span className="text-xs font-bold text-gray-900">
-                        {quickReport?.resolved ? "تم حل المشكلة بالكامل" : "قيد المتابعة واستكمال الأعمال"}
-                      </span>
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {/* التقييم النهائي */}
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <span className="text-[10px] text-slate-500 block mb-1">التقييم الفني النهائي:</span>
                     <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 inline-block">
-                      {evaluationLabels[quickReport?.finalEvaluation || 'good'] || quickReport?.finalEvaluation || "جيد"}
+                      {quickReport?.finalEvaluation ? (evaluationLabels[quickReport.finalEvaluation] || quickReport.finalEvaluation) : "—"}
                     </span>
                   </div>
 

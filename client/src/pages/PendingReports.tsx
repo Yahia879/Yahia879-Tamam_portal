@@ -437,23 +437,6 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                           عرض التقرير
                                         </DropdownMenuItem>
                                       )}
-                                      <DropdownMenuItem
-                                        className="cursor-pointer text-[#1a5f4a] focus:text-[#1a5f4a] font-semibold"
-                                        onClick={() => {
-                                          if (item.reportType === "final_report") {
-                                            setLocation(`/final-report/${item.reportId}`);
-                                          } else if (item.reportType === "field_visit") {
-                                            setLocation(`/requests/${item.id}/field-visit-report/print`);
-                                          } else if (item.reportType === "quick_request") {
-                                            setLocation(`/requests/${item.id}/quick-request-report/print`);
-                                          } else if (item.reportType === "quick_response") {
-                                            setLocation(`/requests/${item.id}/quick-response-report/print`);
-                                          }
-                                        }}
-                                      >
-                                        <Printer className="w-4 h-4 ml-2 text-[#1a5f4a]" />
-                                        طباعة تقرير
-                                      </DropdownMenuItem>
                                     </>
                                   )}
                                   {!item.isCompleted && item.isLate && hasIntervenePermission && (
@@ -534,23 +517,6 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                                       عرض التقرير
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem
-                                    className="cursor-pointer text-[#1a5f4a] focus:text-[#1a5f4a] font-semibold"
-                                    onClick={() => {
-                                      if (item.reportType === "final_report") {
-                                        setLocation(`/final-report/${item.reportId}`);
-                                      } else if (item.reportType === "field_visit") {
-                                        setLocation(`/requests/${item.id}/field-visit-report/print`);
-                                      } else if (item.reportType === "quick_request") {
-                                        setLocation(`/requests/${item.id}/quick-request-report/print`);
-                                      } else if (item.reportType === "quick_response") {
-                                        setLocation(`/requests/${item.id}/quick-response-report/print`);
-                                      }
-                                    }}
-                                  >
-                                    <Printer className="w-4 h-4 ml-2 text-[#1a5f4a]" />
-                                    طباعة تقرير
-                                  </DropdownMenuItem>
                                 </>
                               )}
                               {!item.isCompleted && item.isLate && hasIntervenePermission && (
@@ -735,15 +701,11 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 رقم الطلب: <span className="font-mono text-[#1a5f4a] dark:text-emerald-400 font-bold">{singleRequestData.requestNumber || `#${singleRequestData.id}`}</span>
               </span>
-              {singleRequestData.mosque?.name ? (
+              {singleRequestData.mosque?.name && (
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                   • {singleRequestData.mosque.name}
                 </span>
-              ) : (singleRequestData.programType === "bunyan" || singleRequestData.programType === "bonyan") ? (
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  • برنامج بنيان
-                </span>
-              ) : null}
+              )}
             </div>
             <Button
               size="sm"
@@ -784,23 +746,9 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                 critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900"
               };
 
-              const singleReqProgramData = (() => {
-                if (!singleRequestData?.programData) return {};
-                try {
-                  return typeof singleRequestData.programData === 'string'
-                    ? JSON.parse(singleRequestData.programData)
-                    : singleRequestData.programData;
-                } catch (e) {
-                  return {};
-                }
-              })();
-              const isBunyanReq = singleRequestData?.programType === "bunyan" || singleRequestData?.programType === "bonyan";
-
               const menLength = parseFloat(report.menPrayerLength || "0");
               const menWidth = parseFloat(report.menPrayerWidth || "0");
-              const calculatedMenArea = menLength * menWidth;
-              const specifiedMosqueArea = parseFloat(singleReqProgramData?.mosqueArea || singleRequestData?.mosque?.area || "0");
-              const menArea = calculatedMenArea > 0 ? calculatedMenArea : specifiedMosqueArea;
+              const menArea = menLength * menWidth;
 
               const womenLength = parseFloat(report.womenPrayerLength || "0");
               const womenWidth = parseFloat(report.womenPrayerWidth || "0");
@@ -842,26 +790,15 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {menArea > 0 && (
                       <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
-                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">
-                          {isBunyanReq || (!menLength || !menWidth) ? "مساحة ومواصفات المسجد المقترح" : "أبعاد مصلى الرجال"}
-                        </span>
+                        <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">أبعاد مصلى الرجال</span>
                         <div className="flex items-baseline gap-2">
                           <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
                             {menArea.toLocaleString('ar-SA')} م²
                           </span>
-                          {menLength > 0 && menWidth > 0 ? (
-                            <span className="text-xs text-slate-500">
-                              ({menLength.toLocaleString('ar-SA')}م × {menWidth.toLocaleString('ar-SA')}م)
-                            </span>
-                          ) : (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                              (مساحة محددة)
-                            </span>
-                          )}
+                          <span className="text-xs text-slate-500">
+                            ({menLength.toLocaleString('ar-SA')}م × {menWidth.toLocaleString('ar-SA')}م)
+                          </span>
                         </div>
-                        {singleReqProgramData?.actualWorshippers && (
-                          <p className="text-xs text-slate-500 mt-1">عدد المصلين: {parseFloat(singleReqProgramData.actualWorshippers).toLocaleString('ar-SA')} مصلي</p>
-                        )}
                         {report.menPrayerHeight && (
                           <p className="text-xs text-slate-500 mt-1">الارتفاع: {parseFloat(report.menPrayerHeight).toLocaleString('ar-SA')}م</p>
                         )}

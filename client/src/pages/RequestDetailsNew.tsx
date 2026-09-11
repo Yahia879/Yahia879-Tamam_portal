@@ -2517,8 +2517,42 @@ export default function RequestDetailsNew() {
           title={isEn ? "Approved Quick Response Report" : "تقرير الاستجابة السريعة المعتمد"}
           color="purple"
           icon={<Zap className="w-6 h-6" />}
+          extraFooterActions={
+            <Button
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+              onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              {isEn ? "Print Report" : "طباعة التقرير"}
+            </Button>
+          }
         >
           <div className="space-y-4">
+            {/* شريط الإجراءات والطباعة داخل المودال */}
+            <div className="flex items-center justify-between bg-purple-50/70 dark:bg-purple-950/40 p-3 rounded-xl border border-purple-200/70 dark:border-purple-900/60 print:hidden" style={{ direction: isEn ? "ltr" : "rtl" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-purple-950 dark:text-purple-200">
+                  {isEn ? "Request No: " : "رقم الطلب: "}
+                  <span className="font-mono text-purple-700 dark:text-purple-300 font-bold">
+                    {request.requestNumber || `#${request.id}`}
+                  </span>
+                </span>
+                {request.mosque?.name && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    • {request.mosque.name}
+                  </span>
+                )}
+              </div>
+              <Button
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                onClick={() => setLocation(`/requests/${request.id}/quick-response-report/print`)}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                {isEn ? "Print Report" : "طباعة التقرير"}
+              </Button>
+            </div>
             {request.quickReports.map((report: any) => {
               const evaluationLabels: Record<string, string> = {
                 excellent: isEn ? "Excellent" : "ممتاز",
@@ -2690,8 +2724,39 @@ export default function RequestDetailsNew() {
           title="تقرير المعاينة الميدانية الرسمي"
           color="indigo"
           icon={<FileText className="w-6 h-6" />}
+          extraFooterActions={
+            <Button
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+              onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              طباعة التقرير
+            </Button>
+          }
         >
           <div className="space-y-6 px-1">
+            {/* شريط الإجراءات والطباعة داخل المودال */}
+            <div className="flex items-center justify-between bg-indigo-50/70 dark:bg-indigo-950/40 p-3 rounded-xl border border-indigo-200/70 dark:border-indigo-900/60 print:hidden" style={{ direction: "rtl" }}>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                  رقم الطلب: <span className="font-mono text-indigo-700 dark:text-indigo-300 font-bold">{request.requestNumber || `#${request.id}`}</span>
+                </span>
+                {request.mosque?.name && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    • {request.mosque.name}
+                  </span>
+                )}
+              </div>
+              <Button
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-xs text-xs cursor-pointer"
+                onClick={() => setLocation(`/requests/${request.id}/field-visit-report/print`)}
+              >
+                <Printer className="w-3.5 h-3.5" />
+                طباعة التقرير
+              </Button>
+            </div>
             {request.fieldReports.map((report: any) => {
               const conditionLabels: Record<string, string> = {
                 excellent: "ممتاز",

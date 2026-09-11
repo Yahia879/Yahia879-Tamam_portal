@@ -178,8 +178,6 @@ export default function QuickRequestReportPrint() {
                     <h2 className="font-extrabold text-[#1a5f4a] text-base sm:text-lg">
                       {orgSettings?.officialReportsName || orgSettings?.organizationName || (orgSettings as any)?.associationName || "جمعية رعاية المساجد (تمام)"}
                     </h2>
-                    <p className="text-xs text-slate-500 font-medium">المملكة العربية السعودية • تصريح رقم 1000543501</p>
-                    <p className="text-[11px] text-slate-600 font-bold">إدارة المشاريع والخدمات • قسم الطلبات المباشرة السريعة</p>
                   </div>
                 </div>
 
@@ -187,10 +185,6 @@ export default function QuickRequestReportPrint() {
                   <div>
                     <span className="text-slate-500 ml-1">التاريخ:</span>
                     <span className="font-bold text-slate-800">{formatGregorianDate(createdAtDate)}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 ml-1">الموافق:</span>
-                    <span className="font-semibold text-slate-700">{toHijriDate(createdAtDate)}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 ml-1">رقم الطلب السريع:</span>
@@ -226,9 +220,9 @@ export default function QuickRequestReportPrint() {
                     <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[10px]">المدينة / الموقع:</span>
-                    <span className="font-semibold text-gray-800">
-                      {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
+                    <span className="text-slate-500 block text-[10px]">نوع الخدمة:</span>
+                    <span className="font-bold text-gray-900">
+                      {request.programName || (PROGRAM_LABELS as any)[request.programType] || request.programType || "خدمة مباشرة"}
                     </span>
                   </div>
                   <div>
@@ -259,49 +253,13 @@ export default function QuickRequestReportPrint() {
                 </div>
               </div>
 
-              {/* تفاصيل البلاغ والمعالجة */}
-              <div className="section-block">
-                <h3 
-                  className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
-                  style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
-                >
-                  2. نتائج التدخل الفني وحالة الحل:
-                </h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-2.5">
-                  <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">حالة المعالجة:</span>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-gray-700" />
-                      <span className="text-xs font-bold text-gray-900">
-                        {quickReport?.resolved ? "تم حل المشكلة بالكامل" : "قيد المتابعة واستكمال الأعمال"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">التقييم الفني:</span>
-                    <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 inline-block">
-                      {evaluationLabels[quickReport?.finalEvaluation || 'good'] || quickReport?.finalEvaluation || "جيد ومطابق"}
-                    </span>
-                  </div>
-
-                  <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
-                    <span className="text-[10px] text-slate-500 block mb-1">الحاجة لمشروع متكامل:</span>
-                    <span className="text-xs font-bold text-gray-900">
-                      {quickReport?.requiresProject ? "نعم، يتطلب مشروعاً متكاملاً" : "لا يتطلب، تمت المعالجة المباشرة"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
               {/* التقييم الفني والأعمال المنفذة */}
               <div className="section-block space-y-2">
                 <h3 
                   className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                   style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                 >
-                  3. تفاصيل الأعمال والإجراءات الفنية:
+                  2. تفاصيل الأعمال والإجراءات الفنية:
                 </h3>
 
                 {quickReport?.technicalEvaluation ? (
@@ -334,7 +292,7 @@ export default function QuickRequestReportPrint() {
                     className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                     style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                   >
-                    4. الصور التوثيقية للبلاغ والمعالجة ({reportPhotos.length} صور):
+                    3. الصور التوثيقية للبلاغ والمعالجة ({reportPhotos.length} صور):
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {reportPhotos.map((photo: any, idx: number) => (

@@ -12,6 +12,8 @@ interface ColoredDialogProps {
   icon?: ReactNode;
   wide?: boolean; // نافذة عريضة لجداول الكميات
   fullScreen?: boolean; // نافذة بملء الشاشة تقريباً
+  extraHeaderActions?: ReactNode;
+  extraFooterActions?: ReactNode;
 }
 
 const colorClasses = {
@@ -66,7 +68,7 @@ const colorClasses = {
   },
 };
 
-export function ColoredDialog({ open, onOpenChange, title, children, color, icon, wide, fullScreen }: ColoredDialogProps) {
+export function ColoredDialog({ open, onOpenChange, title, children, color, icon, wide, fullScreen, extraHeaderActions, extraFooterActions }: ColoredDialogProps) {
   const colors = colorClasses[color];
 
   return (
@@ -79,14 +81,17 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
               {icon && <div className={colors.accent}>{icon}</div>}
               <DialogTitle className={`text-2xl font-bold ${colors.text}`}>{title}</DialogTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className={`${colors.accent} hover:bg-white/50 dark:hover:bg-black/20`}
-            >
-              <X className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {extraHeaderActions}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className={`${colors.accent} hover:bg-white/50 dark:hover:bg-black/20`}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -95,8 +100,8 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
           {children}
         </div>
 
-        {/* Footer with back button */}
-        <div className={`${colors.header} p-4 border-t ${colors.border} flex justify-start`}>
+        {/* Footer with back button and extra actions */}
+        <div className={`${colors.header} p-4 border-t ${colors.border} flex items-center ${extraFooterActions ? 'justify-between' : 'justify-start'}`}>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -104,6 +109,11 @@ export function ColoredDialog({ open, onOpenChange, title, children, color, icon
           >
             رجوع
           </Button>
+          {extraFooterActions && (
+            <div className="flex items-center gap-2">
+              {extraFooterActions}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
