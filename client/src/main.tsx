@@ -89,11 +89,38 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, {
+      async fetch(input, init) {
+        const response = await globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
         });
+
+        // حماية من خطأ Unexpected token < في حال إرجاع الخادم أو البروكسي صفحة HTML (مثل خطأ 502 أو 500)
+        const contentType = response.headers.get("content-type") || "";
+        if (!response.ok && (contentType.includes("text/html") || contentType.includes("text/plain"))) {
+          try {
+            const isBatch = typeof input === "string" ? input.includes("batch=1") : false;
+            const errorObj = {
+              error: {
+                message: "حدث خطأ مؤقت في الاتصال بالسيرفر، يرجى إعادة المحاولة.",
+                code: -32603,
+                data: {
+                  code: "INTERNAL_SERVER_ERROR",
+                  httpStatus: response.status,
+                },
+              },
+            };
+            return new Response(JSON.stringify(isBatch ? [errorObj] : errorObj), {
+              status: response.status,
+              statusText: response.statusText,
+              headers: { "content-type": "application/json" },
+            });
+          } catch {
+            return response;
+          }
+        }
+
+        return response;
       },
     }),
   ],

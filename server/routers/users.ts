@@ -871,10 +871,27 @@ export const usersRouter = router({
 
       const field = fieldMap[input.category][input.channel];
 
-      await db
-        .update(users)
-        .set({ [field]: input.enabled })
-        .where(eq(users.id, input.userId));
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await db
+            .update(users)
+            .set({ [field]: input.enabled })
+            .where(eq(users.id, input.userId));
+          break;
+        } catch (err: any) {
+          const isLockError =
+            err?.code === "ER_LOCK_DEADLOCK" ||
+            err?.errno === 1213 ||
+            err?.code === "ER_LOCK_WAIT_TIMEOUT" ||
+            err?.errno === 1205 ||
+            (typeof err?.message === "string" && (err.message.includes("Deadlock") || err.message.includes("Lock wait timeout")));
+          if (isLockError && attempt < 3) {
+            await new Promise(res => setTimeout(res, 50 * attempt + Math.floor(Math.random() * 30)));
+            continue;
+          }
+          throw err;
+        }
+      }
 
       return { success: true };
     }),

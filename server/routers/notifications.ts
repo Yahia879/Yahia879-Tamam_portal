@@ -1294,6 +1294,32 @@ export async function notifyRequestStageChangeToOfficers(
 }
 
 
+// مساعد لإعادة محاولة استعلامات قاعدة البيانات تلقائياً في حال حدوث Deadlock أو Lock Wait Timeout بسبب التزامن
+async function withDeadlockRetry<T>(fn: () => Promise<T>, maxRetries = 3, baseDelayMs = 50): Promise<T> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const isLockError =
+        err?.code === "ER_LOCK_DEADLOCK" ||
+        err?.errno === 1213 ||
+        err?.code === "ER_LOCK_WAIT_TIMEOUT" ||
+        err?.errno === 1205 ||
+        (typeof err?.message === "string" && (err.message.includes("Deadlock") || err.message.includes("Lock wait timeout")));
+
+      if (isLockError && attempt < maxRetries) {
+        const jitter = Math.floor(Math.random() * 40);
+        await new Promise(resolve => setTimeout(resolve, baseDelayMs * attempt + jitter));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export const notificationsRouter = router({
   // جلب إشعارات المستخدم الحالي
   getMyNotifications: protectedProcedure
@@ -1479,19 +1505,21 @@ export const notificationsRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
       }
 
-      await db
-        .insert(notificationTriggerSettings)
-        .values({
-          triggerId: input.triggerId,
-          roleId: input.roleId,
-          channel: input.channel,
-          enabled: input.enabled,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
+      await withDeadlockRetry(async () => {
+        await db
+          .insert(notificationTriggerSettings)
+          .values({
+            triggerId: input.triggerId,
+            roleId: input.roleId,
+            channel: input.channel,
             enabled: input.enabled,
-          },
-        });
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              enabled: input.enabled,
+            },
+          });
+      });
 
       return { success: true };
     }),
@@ -1511,22 +1539,24 @@ export const notificationsRouter = router({
       }
 
       const channels = ["in_app", "email", "whatsapp", "sms"] as const;
-      for (const channel of channels) {
-        const isChannelEnabled = input.enabled ? (channel !== "sms") : false;
-        await db
-          .insert(notificationTriggerSettings)
-          .values({
-            triggerId: input.triggerId,
-            roleId: "service_requester",
-            channel,
-            enabled: isChannelEnabled,
-          })
-          .onDuplicateKeyUpdate({
-            set: {
+      await withDeadlockRetry(async () => {
+        for (const channel of channels) {
+          const isChannelEnabled = input.enabled ? (channel !== "sms") : false;
+          await db
+            .insert(notificationTriggerSettings)
+            .values({
+              triggerId: input.triggerId,
+              roleId: "service_requester",
+              channel,
               enabled: isChannelEnabled,
-            },
-          });
-      }
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                enabled: isChannelEnabled,
+              },
+            });
+        }
+      });
 
       return { success: true };
     }),

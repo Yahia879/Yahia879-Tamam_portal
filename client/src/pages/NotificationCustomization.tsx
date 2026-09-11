@@ -404,22 +404,43 @@ export default function NotificationCustomization() {
     };
   };
 
+  const utils = trpc.useUtils();
+
+  // مؤقتات لإعادة الجلب المؤجلة (Debounce) لمنع تضارب الطلبات عند التفعيل المتزامن
+  const roleRefetchTimer = useRef<NodeJS.Timeout | null>(null);
+  const userRefetchTimer = useRef<NodeJS.Timeout | null>(null);
+  const triggerRefetchTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedRefetchRoles = useCallback(() => {
+    if (roleRefetchTimer.current) clearTimeout(roleRefetchTimer.current);
+    roleRefetchTimer.current = setTimeout(() => {
+      refetchRoles();
+    }, 600);
+  }, [refetchRoles]);
+
+  const debouncedRefetchStaff = useCallback(() => {
+    if (userRefetchTimer.current) clearTimeout(userRefetchTimer.current);
+    userRefetchTimer.current = setTimeout(() => {
+      refetchStaff();
+    }, 600);
+  }, [refetchStaff]);
+
   const updateRoleChannelSettingMutation = trpc.permissions.updateRoleChannelSetting.useMutation({
     onSuccess: () => {
-      refetchRoles();
-      toast.success("تم تحديث إعدادات استقبال الإشعارات بنجاح");
+      debouncedRefetchRoles();
     },
     onError: (err) => {
+      refetchRoles();
       toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
     }
   });
 
   const updateUserChannelSettingMutation = trpc.users.updateUserChannelSetting.useMutation({
     onSuccess: () => {
-      refetchStaff();
-      toast.success("تم تحديث إعدادات استقبال الإشعارات بنجاح");
+      debouncedRefetchStaff();
     },
     onError: (err) => {
+      refetchStaff();
       toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
     }
   });
@@ -430,6 +451,34 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'whatsapp' | 'sms' | 'email',
     val: boolean
   ) => {
+    const fieldMap = {
+      beneficiary: {
+        in_app: "receiveBeneficiaryNotifications",
+        email: "receiveBeneficiaryEmail",
+        whatsapp: "receiveBeneficiaryWhatsapp",
+        sms: "receiveBeneficiarySms"
+      },
+      request: {
+        in_app: "receiveRequestNotifications",
+        email: "receiveRequestEmail",
+        whatsapp: "receiveRequestWhatsapp",
+        sms: "receiveRequestSms"
+      },
+      financial: {
+        in_app: "receiveFinancialAndContractNotifications",
+        email: "receiveFinancialEmail",
+        whatsapp: "receiveFinancialWhatsapp",
+        sms: "receiveFinancialSms"
+      }
+    } as const;
+    const field = fieldMap[category][channel];
+
+    // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
+    utils.permissions.getRoles.setData(undefined, (old: any) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((r: any) => r.id === roleId ? { ...r, [field]: val } : r);
+    });
+
     updateRoleChannelSettingMutation.mutate({
       roleId,
       category,
@@ -444,6 +493,34 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'whatsapp' | 'sms' | 'email',
     val: boolean
   ) => {
+    const fieldMap = {
+      beneficiary: {
+        in_app: "receiveBeneficiaryNotifications",
+        email: "receiveBeneficiaryEmail",
+        whatsapp: "receiveBeneficiaryWhatsapp",
+        sms: "receiveBeneficiarySms"
+      },
+      request: {
+        in_app: "receiveRequestNotifications",
+        email: "receiveRequestEmail",
+        whatsapp: "receiveRequestWhatsapp",
+        sms: "receiveRequestSms"
+      },
+      financial: {
+        in_app: "receiveFinancialAndContractNotifications",
+        email: "receiveFinancialEmail",
+        whatsapp: "receiveFinancialWhatsapp",
+        sms: "receiveFinancialSms"
+      }
+    } as const;
+    const field = fieldMap[category][channel];
+
+    // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
+    utils.users.getStaffUsers.setData(undefined, (old: any) => {
+      if (!Array.isArray(old)) return old;
+      return old.map((u: any) => u.id === userId ? { ...u, [field]: val } : u);
+    });
+
     updateUserChannelSettingMutation.mutate({
       userId,
       category,
@@ -1286,12 +1363,19 @@ export default function NotificationCustomization() {
   // جلب قوالب رسائل الإشعارات المخصصة
   const { data: customTemplates, refetch: refetchTemplates } = trpc.notifications.getNotificationTemplates.useQuery();
 
+  const debouncedRefetchTriggers = useCallback(() => {
+    if (triggerRefetchTimer.current) clearTimeout(triggerRefetchTimer.current);
+    triggerRefetchTimer.current = setTimeout(() => {
+      refetchTriggerSettings();
+    }, 600);
+  }, [refetchTriggerSettings]);
+
   const updateTriggerSettingMutation = trpc.notifications.updateTriggerSetting.useMutation({
     onSuccess: () => {
-      refetchTriggerSettings();
-      toast.success("تم تحديث إعدادات الحدث بنجاح");
+      debouncedRefetchTriggers();
     },
     onError: (err) => {
+      refetchTriggerSettings();
       toast.error(err.message || "حدث خطأ أثناء حفظ التحديث");
     }
   });
@@ -1312,6 +1396,26 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
     val: boolean
   ) => {
+    // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
+    utils.notifications.getTriggerSettings.setData(undefined, (old: any) => {
+      const list = Array.isArray(old) ? [...old] : [];
+      const idx = list.findIndex(
+        (ts: any) => ts.triggerId === triggerId && ts.roleId === selectedTriggerRoleId && ts.channel === channel
+      );
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], enabled: val };
+      } else {
+        list.push({
+          id: Date.now(),
+          triggerId,
+          roleId: selectedTriggerRoleId,
+          channel,
+          enabled: val,
+        });
+      }
+      return list;
+    });
+
     updateTriggerSettingMutation.mutate({
       triggerId,
       roleId: selectedTriggerRoleId,
@@ -1325,6 +1429,26 @@ export default function NotificationCustomization() {
     channel: 'in_app' | 'email' | 'whatsapp' | 'sms',
     val: boolean
   ) => {
+    // تحديث تفاؤلي فوري في الـ Cache لتبديل المفتاح فوراً بدون بطء
+    utils.notifications.getTriggerSettings.setData(undefined, (old: any) => {
+      const list = Array.isArray(old) ? [...old] : [];
+      const idx = list.findIndex(
+        (ts: any) => ts.triggerId === triggerId && ts.roleId === "service_requester" && ts.channel === channel
+      );
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], enabled: val };
+      } else {
+        list.push({
+          id: Date.now(),
+          triggerId,
+          roleId: "service_requester",
+          channel,
+          enabled: val,
+        });
+      }
+      return list;
+    });
+
     updateTriggerSettingMutation.mutate({
       triggerId,
       roleId: "service_requester",

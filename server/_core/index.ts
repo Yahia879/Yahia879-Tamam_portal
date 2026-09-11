@@ -149,6 +149,9 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError({ error, path, type }) {
+        console.error(`[tRPC ${type || "request"} error on '${path}']:`, error);
+      },
     })
   );
 
@@ -157,6 +160,19 @@ async function startServer() {
     res.status(404).json({
       error: "API endpoint not found",
       code: "NOT_FOUND"
+    });
+  });
+
+  // Global error handler for /api to guarantee JSON response and prevent any HTML 500 error pages
+  app.use("/api", (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("[API Error Handler Caught]:", err);
+    if (res.headersSent) return;
+    const statusCode = err.status || err.statusCode || 500;
+    res.status(statusCode).json({
+      error: {
+        message: err.message || "حدث خطأ أثناء معالجة الطلب على السيرفر",
+        code: err.code || "INTERNAL_SERVER_ERROR",
+      },
     });
   });
 
