@@ -694,8 +694,24 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     }
   }, [projectDetails, allReportsData, newReport.budgetSpent, newReport.projectId, editingReportId]);
 
+  // فحص ما إذا كانت الدفعة دفعة مقدمة
+  const isAdvancePayment = (payment: any, index?: number) => {
+    if (!payment) return false;
+    if (payment.paymentType === "advance") return true;
+    if (payment.phaseOrder !== undefined && payment.phaseOrder === 0) return true;
+    const desc = payment.description || "";
+    if (desc.includes("مقدمة") || desc.includes("المقدمة")) return true;
+    if (index !== undefined && index === 0) return true;
+    if (projectDetails?.payments && projectDetails.payments.length > 0 && projectDetails.payments[0]?.id === payment.id) return true;
+    return false;
+  };
+
   // معالجة اختيار الدفعة وملء الحقول تلقائياً
   const handleSelectPayment = (payment: any) => {
+    if (isAdvancePayment(payment)) {
+      toast.info("دفعة مقدمة لا ينشأ لها تقرير انجاز");
+      return;
+    }
 
     const isIncomplete = payment.source !== "manual" && (
       payment.completionPercentage === null || 
@@ -1115,9 +1131,10 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                       </div>
                     ) : projectDetails?.payments && projectDetails.payments.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto p-1.5 bg-muted/30 rounded-xl border border-border/60">
-                        {projectDetails.payments.map((payment: any) => {
+                        {projectDetails.payments.map((payment: any, index: number) => {
+                          const isAdvance = isAdvancePayment(payment, index);
                           const isSelected = selectedPaymentId === payment.id;
-                          const isIncomplete = payment.source !== "manual" && (
+                          const isIncomplete = !isAdvance && payment.source !== "manual" && (
                             payment.completionPercentage === null || 
                             payment.completionPercentage === undefined || 
                             payment.completionPercentage === 0 ||
@@ -1125,7 +1142,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             payment.workDescription.trim() === ""
                           );
                           const paymentKey = payment.description || payment.paymentNumber;
-                          const isAlreadyReported = (allReportsData || []).some((report: any) => {
+                          const isAlreadyReported = !isAdvance && (allReportsData || []).some((report: any) => {
                             if (Number(report.projectId) !== Number(newReport.projectId)) return false;
                             if (report.status === "rejected" || report.status === "revoked") return false;
                             const hasPaymentIdTag = report.workSummary && report.workSummary.includes("[معرف الدفعة:");
@@ -1136,13 +1153,17 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             return !!(paymentKey && paymentKey.trim() !== "" && report.title === expectedTitle);
                           });
                           
-                          const statusStyles = isIncomplete
+                          const statusStyles = isAdvance
+                            ? "bg-slate-200/90 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700 font-bold"
+                            : isIncomplete
                             ? "bg-destructive/10 text-destructive border-destructive/20 animate-pulse"
                             : isAlreadyReported
                             ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900/50 font-bold"
                             : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50 font-medium";
                             
-                          const statusLabel = isIncomplete 
+                          const statusLabel = isAdvance
+                            ? "دفعة مقدمة لا ينشأ لها تقرير انجاز"
+                            : isIncomplete 
                             ? "بيانات غير مكتملة" 
                             : isAlreadyReported
                             ? "تم تقديم تقرير"
@@ -1152,22 +1173,28 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
                             <div
                               key={payment.id}
                               onClick={() => {
+                                if (isAdvance) {
+                                  toast.info("دفعة مقدمة لا ينشأ لها تقرير انجاز");
+                                  return;
+                                }
                                 if (editingReportId) return;
                                 handleSelectPayment(payment);
                               }}
-                              className={`relative p-4 rounded-xl border-2 text-right cursor-pointer transition-all duration-300 flex flex-col justify-between gap-3 ${
-                                isSelected
-                                  ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20"
+                              className={`relative p-4 rounded-xl border-2 text-right transition-all duration-300 flex flex-col justify-between gap-3 ${
+                                isAdvance
+                                  ? "border-slate-200/80 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/30 opacity-60 cursor-not-allowed select-none shadow-none"
+                                  : isSelected
+                                  ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-sm ring-1 ring-primary/20 cursor-pointer"
                                   : isIncomplete
                                   ? "border-destructive/20 bg-destructive/[0.02] hover:border-destructive/40 hover:bg-destructive/[0.04] opacity-75 cursor-not-allowed"
                                   : isAlreadyReported
                                   ? "border-green-200 bg-green-50/10 hover:border-green-400 opacity-90 cursor-not-allowed font-bold"
                                   : editingReportId
                                   ? "border-transparent bg-background opacity-60 cursor-not-allowed"
-                                  : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm"
+                                  : "border-transparent bg-background hover:border-primary/40 hover:bg-accent/10 hover:shadow-sm cursor-pointer"
                               }`}
                             >
-                              {isSelected && (
+                              {isSelected && !isAdvance && (
                                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground rounded-full p-1 shadow-sm animate-in zoom-in duration-200">
                                   <Check className="w-3 h-3" />
                                 </div>

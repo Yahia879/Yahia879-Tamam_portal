@@ -521,9 +521,9 @@ export const projectsRouter = router({
 
       const contractIds = projectContracts.map(c => c.id);
 
-      // جلب دفعات العقود
+      // جلب دفعات العقود مرتبة تصاعدياً
       const allContractPayments = contractIds.length > 0 
-        ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+        ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds)).orderBy(contractPayments.phaseOrder)
         : [];
 
       // جلب طلبات الصرف
@@ -560,6 +560,14 @@ export const projectsRouter = router({
         return `${year}-${month}-${day}`;
       };
 
+      // حساب أقل مرحلة (الدفعة الأولى) لكل عقد
+      const minPhaseOrderByContract: Record<number, number> = {};
+      allContractPayments.forEach(cp => {
+        if (minPhaseOrderByContract[cp.contractId] === undefined || cp.phaseOrder < minPhaseOrderByContract[cp.contractId]) {
+          minPhaseOrderByContract[cp.contractId] = cp.phaseOrder;
+        }
+      });
+
       // توحيد الدفعات
       const unifiedPayments: any[] = [];
 
@@ -585,10 +593,15 @@ export const projectsRouter = router({
           paymentStatus = cp.status === "paid" ? "paid" : "pending";
         }
 
+        const isAdvance = 
+          cp.phaseOrder === minPhaseOrderByContract[cp.contractId] || 
+          (cp.phaseName && (cp.phaseName.includes("مقدمة") || cp.phaseName.includes("المقدمة")));
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
-          paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
+          paymentType: isAdvance ? "advance" : "progress",
+          phaseOrder: cp.phaseOrder,
           amount: cp.amount,
           status: paymentStatus,
           description: cp.phaseName,

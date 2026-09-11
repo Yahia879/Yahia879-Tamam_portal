@@ -21,6 +21,8 @@ export interface ProgressReportItem {
   status?: string | null;
   workSummary?: string | null;
   actualWorkDone?: string | null;
+  isAdvance?: boolean;
+  hint?: string;
   [key: string]: any;
 }
 
@@ -41,6 +43,10 @@ export interface ProgressReportSearchSelectProps {
 }
 
 export function getReportLabel(report: ProgressReportItem): string {
+  if (report.isAdvance) {
+    const amountStr = report.budgetSpent ? ` (${parseFloat(String(report.budgetSpent)).toLocaleString()} ر.س)` : "";
+    return `${report.title || "الدفعة الأولى"} - دفعة مقدمة${amountStr}`;
+  }
   let progressPart = "";
   if (report.actualProgress !== undefined && report.actualProgress !== null) {
     progressPart = ` (${report.actualProgress}%)`;
@@ -88,9 +94,10 @@ export function ProgressReportSearchSelect({
     return reports.filter((report) => {
       const rNumber = report.reportNumber || "";
       const rTitle = report.title || "";
+      const rHint = report.hint || (report.isAdvance ? "دفعة مقدمة بدون تقرير إنجاز" : "");
 
-      // نص البحث الموحد لتقرير الإنجاز (فقط رقم التقرير واسم/عنوان التقرير)
-      const combinedText = normalizeArabic(`${rNumber} ${rTitle}`);
+      // نص البحث الموحد لتقرير الإنجاز (فقط رقم التقرير واسم/عنوان التقرير والتلميح)
+      const combinedText = normalizeArabic(`${rNumber} ${rTitle} ${rHint}`);
 
       // التأكد من وجود كل كلمة من كلمات البحث
       return queryWords.every((word) => combinedText.includes(word));
@@ -273,15 +280,24 @@ export function ProgressReportSearchSelect({
                         ? "opacity-60 bg-muted/30 border-dashed border-border/60 cursor-not-allowed text-muted-foreground"
                         : isSelected
                         ? "bg-primary/10 border-primary/30 text-primary font-semibold cursor-pointer"
+                        : report.isAdvance
+                        ? "border-teal-200/80 bg-teal-50/40 hover:bg-teal-50/70 dark:bg-teal-950/20 text-foreground cursor-pointer"
                         : "border-transparent hover:bg-muted/70 hover:border-border/50 text-foreground cursor-pointer"
                     )}
                   >
                     <div className="flex-1 truncate min-w-0 pl-2">
-                      <span className={cn("truncate", isSelected && "font-bold")}>
-                        {labelText}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        <span className={cn("truncate", isSelected && "font-bold")}>
+                          {labelText}
+                        </span>
+                        {report.isAdvance && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-teal-100 text-teal-800 dark:bg-teal-950/70 dark:text-teal-300 border border-teal-300 shrink-0">
+                            دفعة مقدمة من دون تقرير إنجاز
+                          </span>
+                        )}
+                      </div>
                       {disabledReason && (
-                        <span className="text-amber-600 dark:text-amber-400 font-medium mr-1.5">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium mr-1.5 text-xs">
                           ({disabledReason})
                         </span>
                       )}
