@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
-import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs } from "../../drizzle/schema";
+import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports } from "../../drizzle/schema";
 import { eq, desc, asc, and, sql, inArray, or, ne, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
@@ -530,8 +530,22 @@ export const projectsRouter = router({
       const projectDisbursements = await db
         .select()
         .from(disbursementRequests)
-        .where(eq(disbursementRequests.projectId, targetProjectId))
+        .where(
+          contractIds.length > 0
+            ? or(
+                eq(disbursementRequests.projectId, targetProjectId),
+                inArray(disbursementRequests.contractId, contractIds)
+              )
+            : eq(disbursementRequests.projectId, targetProjectId)
+        )
         .orderBy(desc(disbursementRequests.createdAt));
+
+      // جلب تقارير الإنجاز لهذا المشروع
+      const projectProgressReports = await db
+        .select()
+        .from(progressReports)
+        .where(eq(progressReports.projectId, targetProjectId))
+        .orderBy(desc(progressReports.createdAt));
 
       // جلب أوامر الصرف المرتبطة بطلبات الصرف لهذا المشروع
       const disbIds = projectDisbursements.map(d => d.id);
@@ -573,7 +587,16 @@ export const projectsRouter = router({
 
       // 1. إضافة دفعات العقود المجدولة
       allContractPayments.forEach(cp => {
-        const linkedDisb = projectDisbursements.find(d => d.contractPaymentId === cp.id);
+        const isAdvance = 
+          cp.phaseOrder === minPhaseOrderByContract[cp.contractId] || 
+          (cp.phaseName && (cp.phaseName.includes("مقدمة") || cp.phaseName.includes("المقدمة")));
+
+        const cleanId = String(cp.id);
+
+        const linkedDisb = projectDisbursements.find(d => 
+          (d.contractPaymentId === cp.id) ||
+          (isAdvance && (d.paymentType === "advance" || (d as any).isAdvancePayment))
+        );
         const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
         const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
 
@@ -593,9 +616,28 @@ export const projectsRouter = router({
           paymentStatus = cp.status === "paid" ? "paid" : "pending";
         }
 
-        const isAdvance = 
-          cp.phaseOrder === minPhaseOrderByContract[cp.contractId] || 
-          (cp.phaseName && (cp.phaseName.includes("مقدمة") || cp.phaseName.includes("المقدمة")));
+        // التحقق مما إذا كان قد تم إنشاء طلب صرف قائم لهذه الدفعة
+        const hasDisb = projectDisbursements.some(d => {
+          if (d.status === "rejected") return false;
+          if (d.contractPaymentId && String(d.contractPaymentId) === cleanId) return true;
+          if (isAdvance && (d.paymentType === "advance" || (d as any).isAdvancePayment)) return true;
+          return false;
+        });
+
+        // التحقق مما إذا كان قد تم إنشاء تقرير إنجاز قائم لهذه الدفعة
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف الدفعة: cp-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const paymentTitle = `تقرير إنجاز - ${cp.phaseName || `الدفعة ${cp.phaseOrder + 1}`}`;
+          if (r.title === paymentTitle) return true;
+          if (cp.phaseName && cp.phaseName.trim() !== "" && r.title.includes(cp.phaseName.trim())) {
+            return true;
+          }
+          return false;
+        });
 
         unifiedPayments.push({
           id: `cp-${cp.id}`,
@@ -611,11 +653,15 @@ export const projectsRouter = router({
           workDescription: cp.notes,
           completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
           contractId: cp.contractId,
+          hasDisbursementRequest: hasDisb,
+          hasProgressReport: hasReport,
         });
       });
 
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
+        const cleanId = String(p.id);
+
         const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
         const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
         const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
@@ -635,6 +681,26 @@ export const projectsRouter = router({
           paymentStatus = p.status === "paid" ? "paid" : "pending";
         }
 
+        const hasDisb = projectDisbursements.some(d => {
+          if (d.status === "rejected") return false;
+          if (d.paymentId && String(d.paymentId) === cleanId) return true;
+          return false;
+        });
+
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف الدفعة: manual-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const paymentTitle = `تقرير إنجاز - ${p.description || p.paymentNumber}`;
+          if (r.title === paymentTitle) return true;
+          if (p.description && p.description.trim() !== "" && r.title.includes(p.description.trim())) {
+            return true;
+          }
+          return false;
+        });
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
@@ -647,6 +713,8 @@ export const projectsRouter = router({
           source: "manual",
           workDescription: p.description,
           completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
+          hasDisbursementRequest: hasDisb,
+          hasProgressReport: hasReport,
         });
       });
 
@@ -2173,8 +2241,22 @@ export const projectsRouter = router({
       const projectDisbursements = await db
         .select()
         .from(disbursementRequests)
-        .where(eq(disbursementRequests.projectId, proj.id))
+        .where(
+          contractIds.length > 0
+            ? or(
+                eq(disbursementRequests.projectId, proj.id),
+                inArray(disbursementRequests.contractId, contractIds)
+              )
+            : eq(disbursementRequests.projectId, proj.id)
+        )
         .orderBy(desc(disbursementRequests.createdAt));
+
+      // جلب تقارير الإنجاز لهذا المشروع
+      const projectProgressReports = await db
+        .select()
+        .from(progressReports)
+        .where(eq(progressReports.projectId, proj.id))
+        .orderBy(desc(progressReports.createdAt));
 
       // جلب أوامر الصرف المرتبطة بطلبات الصرف لهذا المشروع
       const disbIds = projectDisbursements.map(d => d.id);
@@ -2194,7 +2276,13 @@ export const projectsRouter = router({
 
       // 1. إضافة دفعات العقود المجدولة
       allContractPayments.forEach(cp => {
-        const linkedDisb = projectDisbursements.find(d => d.contractPaymentId === cp.id);
+        const isAdvance = cp.phaseOrder === 1 || (cp.phaseName && (cp.phaseName.includes("مقدمة") || cp.phaseName.includes("المقدمة")));
+        const cleanId = String(cp.id);
+
+        const linkedDisb = projectDisbursements.find(d => 
+          (d.contractPaymentId === cp.id) ||
+          (isAdvance && (d.paymentType === "advance" || (d as any).isAdvancePayment))
+        );
         const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
         const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
 
@@ -2213,10 +2301,31 @@ export const projectsRouter = router({
           paymentStatus = cp.status === "paid" ? "paid" : "pending";
         }
 
+        const hasDisb = projectDisbursements.some(d => {
+          if (d.status === "rejected") return false;
+          if (d.contractPaymentId && String(d.contractPaymentId) === cleanId) return true;
+          if (isAdvance && (d.paymentType === "advance" || (d as any).isAdvancePayment)) return true;
+          return false;
+        });
+
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف الدفعة: cp-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const paymentTitle = `تقرير إنجاز - ${cp.phaseName || `الدفعة ${cp.phaseOrder}`}`;
+          if (r.title === paymentTitle) return true;
+          if (cp.phaseName && cp.phaseName.trim() !== "" && r.title.includes(cp.phaseName.trim())) {
+            return true;
+          }
+          return false;
+        });
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
-          paymentType: cp.phaseOrder === 1 ? "advance" : "progress",
+          paymentType: isAdvance ? "advance" : "progress",
           amount: cp.amount,
           status: paymentStatus,
           description: cp.phaseName,
@@ -2225,11 +2334,15 @@ export const projectsRouter = router({
           source: "contract",
           workDescription: cp.notes,
           completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
+          hasDisbursementRequest: hasDisb,
+          hasProgressReport: hasReport,
         });
       });
 
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
+        const cleanId = String(p.id);
+
         const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
         const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
         const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
@@ -2249,6 +2362,26 @@ export const projectsRouter = router({
           paymentStatus = p.status === "paid" ? "paid" : "pending";
         }
 
+        const hasDisb = projectDisbursements.some(d => {
+          if (d.status === "rejected") return false;
+          if (d.paymentId && String(d.paymentId) === cleanId) return true;
+          return false;
+        });
+
+        const hasReport = projectProgressReports.some(r => {
+          if (r.status === "rejected" || r.status === "revoked") return false;
+          const ws = r.workSummary || "";
+          if (ws.includes(`[معرف الدفعة: manual-${cleanId}]`) || ws.includes(`[معرف الدفعة: ${cleanId}]`)) {
+            return true;
+          }
+          const paymentTitle = `تقرير إنجاز - ${p.description || p.paymentNumber}`;
+          if (r.title === paymentTitle) return true;
+          if (p.description && p.description.trim() !== "" && r.title.includes(p.description.trim())) {
+            return true;
+          }
+          return false;
+        });
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
@@ -2261,6 +2394,8 @@ export const projectsRouter = router({
           source: "manual",
           workDescription: p.description,
           completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
+          hasDisbursementRequest: hasDisb,
+          hasProgressReport: hasReport,
         });
       });
 

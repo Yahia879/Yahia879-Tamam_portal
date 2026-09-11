@@ -469,6 +469,19 @@ export default function ProjectDetailsPage() {
   const remainingContractSum = Math.max(0, totalContractsSum - paidPaymentsSum);
   const isContractFullyAllocated = allPaymentsSum >= totalContractsSum && totalContractsSum > 0;
 
+  // التحقق من اكتمال جدولة وبيانات كافة الدفعات
+  const hasIncompletePaymentsData = Boolean(project?.payments?.some(payment => payment.source !== "manual" && (
+    payment.completionPercentage === null || 
+    payment.completionPercentage === undefined || 
+    !payment.workDescription || 
+    payment.workDescription.trim() === ""
+  )));
+
+  const arePaymentsComplete = Boolean(
+    (totalContractsSum > 0 ? (allPaymentsSum >= totalContractsSum - 0.5) : (project?.payments && project.payments.length > 0)) &&
+    !hasIncompletePaymentsData
+  );
+
   const completedPhasesCount = project?.phases?.filter(p => p.status === "completed").length || 0;
   const totalPhasesCount = project?.phases?.length || 0;
   const boqItemsCount = boqData?.items?.length || 0;
@@ -1610,7 +1623,11 @@ export default function ProjectDetailsPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {project.payments.map((payment) => (
+                              {project.payments.map((payment, index) => {
+                                const isUnpaid = payment.status !== "paid" && payment.status !== "executed" && !payment.paidAt;
+                                const hasDisbursement = Boolean((payment as any).hasDisbursementRequest);
+                                const hasReport = Boolean((payment as any).hasProgressReport);
+                                return (
                                 <TableRow key={payment.id} className="hover:bg-muted/20">
                                   <TableCell className="font-bold text-right py-3.5 px-4 font-sans">{payment.paymentNumber}</TableCell>
                                   <TableCell className="text-right py-3.5 px-4">
@@ -1674,11 +1691,60 @@ export default function ProjectDetailsPage() {
                                   </TableCell>
                                   <TableCell className="text-center py-3.5 px-4">
                                     <div className="flex items-center gap-1.5 justify-center">
+                                      {arePaymentsComplete && isUnpaid && (
+                                        index === 0 ? (
+                                          <Button
+                                            size="sm"
+                                            disabled={hasDisbursement}
+                                            className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                                              hasDisbursement
+                                                ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
+                                                : "bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                                            }`}
+                                            onClick={() => {
+                                              if (!hasDisbursement) {
+                                                navigate(`/disbursements/new-linked?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || 1}&isAdvance=true`);
+                                              }
+                                            }}
+                                            title={hasDisbursement ? "تم إنشاء طلب صرف لهذه الدفعة مسبقاً" : "إنشاء طلب صرف للدفعة الأولى"}
+                                          >
+                                            {hasDisbursement ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                            ) : (
+                                              <CreditCard className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>{hasDisbursement ? "تم إنشاء طلب الصرف" : "إنشاء طلب صرف"}</span>
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            size="sm"
+                                            disabled={hasReport}
+                                            className={`h-8 px-2.5 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                                              hasReport
+                                                ? "bg-slate-100 text-slate-400 dark:bg-slate-800/80 dark:text-slate-500 border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-75 shadow-none"
+                                                : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                                            }`}
+                                            onClick={() => {
+                                              if (!hasReport) {
+                                                navigate(`/progress-reports?projectId=${project.id}&paymentId=${payment.id}&paymentNumber=${payment.paymentNumber || (index + 1)}`);
+                                              }
+                                            }}
+                                            title={hasReport ? "تم إنشاء تقرير إنجاز لهذه الدفعة مسبقاً" : "إنشاء تقرير إنجاز لهذه الدفعة"}
+                                          >
+                                            {hasReport ? (
+                                              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" />
+                                            ) : (
+                                              <FileText className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>{hasReport ? "تم إنشاء تقرير الإنجاز" : "إنشاء تقرير إنجاز"}</span>
+                                          </Button>
+                                        )
+                                      )}
                                       {payment.id && payment.status !== "paid" && (
                                         <Button
                                           variant="ghost"
                                           size="icon"
-                                          className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                          className="h-8 w-8 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
                                           onClick={() => navigate(`/payments/edit/${payment.id}`)}
                                           title="تعديل الدفعة"
                                         >
@@ -1688,7 +1754,8 @@ export default function ProjectDetailsPage() {
                                     </div>
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                              );
+                              })}
                             </TableBody>
                           </Table>
                         </div>

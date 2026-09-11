@@ -117,11 +117,23 @@ export default function NewLinkedDisbursementRequest() {
     return null;
   })();
 
+  // استرجاع معلمات الرابط عند التحويل المباشر من صفحة المشروع
+  const initialUrlParams = useMemo(() => {
+    if (typeof window === "undefined") return { projectId: 0, isAdvance: false, paymentId: "" };
+    const sp = new URLSearchParams(window.location.search);
+    return {
+      projectId: parseInt(sp.get("projectId") || "0") || 0,
+      isAdvance: sp.get("isAdvance") === "true" || sp.get("paymentNumber") === "1",
+      paymentId: sp.get("paymentId") || "",
+    };
+  }, []);
+
   // التحكم بالخطوات
   const [step, setStep] = useState(() => savedState?.step ?? 1);
   const [isDonationLinked, setIsDonationLinked] = useState(false);
   const [isTamamLinked, setIsTamamLinked] = useState(() => savedState?.isTamamLinked ?? false);
   const [requestType, setRequestType] = useState<string>(() => {
+    if (initialUrlParams.projectId > 0) return "project_linked";
     if (savedState?.requestType) {
       const val = savedState.requestType;
       if (val === "project_linked" && !canCreateStandard) {
@@ -135,6 +147,7 @@ export default function NewLinkedDisbursementRequest() {
     return canCreateStandard ? "project_linked" : "supplier_one_time";
   });
   const [isCustom, setIsCustom] = useState(() => {
+    if (initialUrlParams.projectId > 0) return false;
     const val = savedState?.isCustom ?? (!canCreateStandard);
     if (val && !canCreateCustom) {
       return false;
@@ -177,7 +190,7 @@ export default function NewLinkedDisbursementRequest() {
     amountsSpent?: number;
     fundingSourceName?: string;
   }>(() => savedState?.formData ?? {
-    projectId: 0,
+    projectId: initialUrlParams.projectId || 0,
     donationOpportunityId: 0,
     mosqueRequestId: 0,
     contractId: 0,
@@ -212,9 +225,34 @@ export default function NewLinkedDisbursementRequest() {
     return Boolean(savedState?.formData?.linkUrl || savedState?.showAttachmentFields);
   });
   const [selectedReportId, setSelectedReportId] = useState<number | null>(() => savedState?.selectedReportId ?? null);
-  const [isAdvanceSelected, setIsAdvanceSelected] = useState<boolean>(() => savedState?.isAdvanceSelected ?? false);
+  const [isAdvanceSelected, setIsAdvanceSelected] = useState<boolean>(() => {
+    if (initialUrlParams.projectId > 0 && initialUrlParams.isAdvance) return true;
+    return savedState?.isAdvanceSelected ?? false;
+  });
   const [showReportReviewDialog, setShowReportReviewDialog] = useState(false);
   const [billerSearch, setBillerSearch] = useState("");
+
+  // معالجة معلمات الرابط في حال التغيير
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const qProjectId = parseInt(sp.get("projectId") || "0") || 0;
+    const qIsAdvance = sp.get("isAdvance") === "true" || sp.get("paymentNumber") === "1";
+    if (qProjectId > 0) {
+      setIsCustom(false);
+      setIsDonationLinked(false);
+      setIsTamamLinked(false);
+      setRequestType("project_linked");
+      setFormData(prev => ({
+        ...prev,
+        projectId: qProjectId,
+      }));
+      if (qIsAdvance) {
+        setIsAdvanceSelected(true);
+        setSelectedReportId(null);
+      }
+    }
+  }, []);
 
   // حالات التنبيه الذكي عند عدم كفاية مدفوعات الداعم المقبوضة فعلياً
   const [showSupporterDeficitDialog, setShowSupporterDeficitDialog] = useState(false);

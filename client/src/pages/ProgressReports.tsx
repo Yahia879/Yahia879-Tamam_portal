@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -301,7 +301,18 @@ const uploadFile = async (fileObj: { name: string; base64: string }): Promise<st
 export default function ProgressReports({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState("list");
+  // استرجاع معلمات الرابط عند التحويل المباشر من تفاصيل المشروع
+  const initialUrlParams = useMemo(() => {
+    if (typeof window === "undefined") return { projectId: 0, paymentId: null, paymentNumber: null };
+    const sp = new URLSearchParams(window.location.search);
+    return {
+      projectId: parseInt(sp.get("projectId") || "0") || 0,
+      paymentId: sp.get("paymentId"),
+      paymentNumber: sp.get("paymentNumber"),
+    };
+  }, []);
+
+  const [activeTab, setActiveTab] = useState(() => initialUrlParams.projectId > 0 ? "create" : "list");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -345,7 +356,7 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
   const canExceptionApprove = hasExceptionApprove;
   
   const [newReport, setNewReport] = useState({
-    projectId: 0,
+    projectId: initialUrlParams.projectId || 0,
     title: "",
     reportDate: new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()),
     reportPeriodStart: "",
@@ -362,6 +373,20 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
     agreedPaymentAmount: "",
     actualWorkDone: "",
   });
+
+  // مزامنة معلمات الرابط في حال تغييرها لاحقاً
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const queryProjectId = parseInt(params.get("projectId") || "0") || 0;
+    if (queryProjectId > 0) {
+      setActiveTab("create");
+      setNewReport(prev => ({
+        ...prev,
+        projectId: queryProjectId,
+      }));
+    }
+  }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const filesList = e.target.files;
@@ -758,6 +783,36 @@ export default function ProgressReports({ embedded = false }: { embedded?: boole
 
     toast.success("تم اختيار الدفعة وملء البيانات تلقائياً");
   };
+
+  // معالجة اختيار الدفعة الممررة عبر الرابط تلقائياً فور تحميل بيانات المشروع
+  const queryPaymentHandled = useRef(false);
+  useEffect(() => {
+    if (queryPaymentHandled.current) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const queryPaymentId = params.get("paymentId");
+    const queryPaymentNumber = params.get("paymentNumber");
+
+    if (projectDetails?.payments && projectDetails.payments.length > 0 && (queryPaymentId || queryPaymentNumber)) {
+      const targetPayment = projectDetails.payments.find((p: any, idx: number) => {
+        if (queryPaymentId) {
+          const cleanQ = String(queryPaymentId).replace(/^(cp-|manual-|disb-)/i, "");
+          const cleanP = String(p.id).replace(/^(cp-|manual-|disb-)/i, "");
+          if (String(p.id) === String(queryPaymentId) || cleanP === cleanQ) return true;
+        }
+        if (queryPaymentNumber) {
+          if (String(p.paymentNumber) === String(queryPaymentNumber)) return true;
+          if (String(idx + 1) === String(queryPaymentNumber)) return true;
+        }
+        return false;
+      });
+
+      if (targetPayment) {
+        queryPaymentHandled.current = true;
+        handleSelectPayment(targetPayment);
+      }
+    }
+  }, [projectDetails?.payments]);
 
   // تحليل ملخص الأعمال المنفذة
   const parseWorkSummary = (combined: string) => {
