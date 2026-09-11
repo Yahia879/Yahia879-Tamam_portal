@@ -105,9 +105,25 @@ export default function FieldVisitReportPrint() {
     critical: "bg-red-50 text-red-800 border-red-300"
   };
 
+  let programData: Record<string, any> = {};
+  if (request.programData) {
+    try {
+      programData = typeof request.programData === "string" 
+        ? JSON.parse(request.programData) 
+        : request.programData;
+    } catch (e) {
+      console.error("Error parsing programData:", e);
+      programData = {};
+    }
+  }
+
+  const isBunyan = request.programType === "bunyan" || request.programType === "bonyan";
+
   const menLength = parseFloat(fieldReport?.menPrayerLength || "0");
   const menWidth = parseFloat(fieldReport?.menPrayerWidth || "0");
-  const menArea = menLength * menWidth;
+  const calculatedMenArea = menLength * menWidth;
+  const specifiedMosqueArea = parseFloat(programData?.mosqueArea || request.mosque?.area || "0");
+  const menArea = calculatedMenArea > 0 ? calculatedMenArea : specifiedMosqueArea;
 
   const womenLength = parseFloat(fieldReport?.womenPrayerLength || "0");
   const womenWidth = parseFloat(fieldReport?.womenPrayerWidth || "0");
@@ -261,16 +277,29 @@ export default function FieldVisitReportPrint() {
                   1. بيانات المسجد والطلب:
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50/80 p-2.5 rounded-md border border-slate-200">
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">اسم المسجد:</span>
-                    <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px]">المدينة / الحي:</span>
-                    <span className="font-semibold text-gray-800">
-                      {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
-                    </span>
-                  </div>
+                  {isBunyan ? (
+                    <div className="col-span-2">
+                      <span className="text-slate-500 block text-[10px]">اسم الحي:</span>
+                      <span className="font-bold text-gray-900 text-sm">
+                        {programData?.neighborhoodName 
+                          ? (programData.neighborhoodName.startsWith("حي") ? programData.neighborhoodName : `حي ${programData.neighborhoodName}`) 
+                          : (request.mosque?.district ? `حي ${request.mosque.district}` : (request.descriptiveName || "—"))}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">اسم المسجد:</span>
+                        <span className="font-bold text-gray-900">{request.mosque?.name || (request as any).mosqueName || (request as any).customMosqueName || "—"}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[10px]">المدينة / الحي:</span>
+                        <span className="font-semibold text-gray-800">
+                          {request.mosque?.city || "—"} {request.mosque?.district ? `• حي ${request.mosque.district}` : ""}
+                        </span>
+                      </div>
+                    </>
+                  )}
                   <div>
                     <span className="text-slate-500 block text-[10px]">نوع البرنامج:</span>
                     <span className="font-bold text-gray-900">
@@ -309,35 +338,55 @@ export default function FieldVisitReportPrint() {
                   className="font-bold py-2 px-4 rounded mb-3 flex items-center leading-none text-sm sm:text-base"
                   style={{ backgroundColor: '#d4a574', color: '#5d4037' }}
                 >
-                  2. نتائج الفحص الفني والمساحات:
+                  {isBunyan ? "2. مواصفات الموقع والمساحات المحددة (برنامج بنيان):" : "2. نتائج الفحص الفني والمساحات:"}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* مصلى الرجال */}
+                  {/* مصلى الرجال / مساحة المسجد */}
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="font-bold text-gray-800 text-xs">أبعاد مصلى الرجال:</span>
+                      <span className="font-bold text-gray-800 text-xs">
+                        {isBunyan ? "مساحة ومواصفات المسجد المقترح:" : "أبعاد مصلى الرجال:"}
+                      </span>
                       <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
                         المساحة: {menArea > 0 ? `${menArea.toLocaleString('ar-SA')} م²` : "غير محدد"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
-                      <div>الطول: <strong className="text-gray-900">{menLength ? `${menLength}م` : "—"}</strong></div>
-                      <div>العرض: <strong className="text-gray-900">{menWidth ? `${menWidth}م` : "—"}</strong></div>
-                      <div>الارتفاع: <strong className="text-gray-900">{fieldReport?.menPrayerHeight ? `${fieldReport.menPrayerHeight}م` : "—"}</strong></div>
-                    </div>
+                    {isBunyan && (!menLength || !menWidth) ? (
+                      <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
+                        <div>المساحة المحددة: <strong className="text-gray-900">{menArea > 0 ? `${menArea.toLocaleString('ar-SA')} م²` : "—"}</strong></div>
+                        <div>عدد المصلين: <strong className="text-gray-900">{programData?.actualWorshippers ? `${parseFloat(programData.actualWorshippers).toLocaleString('ar-SA')} مصلي` : "—"}</strong></div>
+                        <div>أرض المشروع: <strong className="text-gray-900">{programData?.landArea ? `${parseFloat(programData.landArea).toLocaleString('ar-SA')} م²` : (programData?.hasLand === "yes" ? "متوفرة" : "غير متوفرة")}</strong></div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
+                        <div>الطول: <strong className="text-gray-900">{menLength ? `${menLength}م` : "—"}</strong></div>
+                        <div>العرض: <strong className="text-gray-900">{menWidth ? `${menWidth}م` : "—"}</strong></div>
+                        <div>الارتفاع: <strong className="text-gray-900">{fieldReport?.menPrayerHeight ? `${fieldReport.menPrayerHeight}م` : "—"}</strong></div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* مصلى النساء */}
+                  {/* مصلى النساء / بيانات الموقع والأرض لبنيان */}
                   <div className="border border-slate-200 rounded-md p-2.5 bg-slate-50/50">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="font-bold text-gray-800 text-xs">مصلى النساء:</span>
+                      <span className="font-bold text-gray-800 text-xs">
+                        {isBunyan && !fieldReport?.womenPrayerExists ? "بيانات موقع وأرض المشروع:" : "مصلى النساء:"}
+                      </span>
                       <span className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                        {fieldReport?.womenPrayerExists 
-                          ? (womenArea > 0 ? `المساحة: ${womenArea.toLocaleString('ar-SA')} م²` : "موجود") 
-                          : "غير متوفر"}
+                        {isBunyan && !fieldReport?.womenPrayerExists
+                          ? (programData?.hasLand === "yes" ? "أرض مخصصة" : "بحث عن موقع")
+                          : (fieldReport?.womenPrayerExists 
+                            ? (womenArea > 0 ? `المساحة: ${womenArea.toLocaleString('ar-SA')} م²` : "موجود") 
+                            : "غير متوفر")}
                       </span>
                     </div>
-                    {fieldReport?.womenPrayerExists ? (
+                    {isBunyan && !fieldReport?.womenPrayerExists ? (
+                      <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
+                        <div>ملكية الأرض: <strong className="text-gray-900">{programData?.landOwnership === "owned" ? "ملك خاص" : programData?.landOwnership === "waqf" ? "وقف" : programData?.landOwnership === "government" ? "حكومية" : programData?.landOwnership || "—"}</strong></div>
+                        <div>متبرع البناء: <strong className="text-gray-900">{programData?.hasDonor === "yes" ? "متوفر" : "غير متوفر"}</strong></div>
+                        <div>أقرب مسجد: <strong className="text-gray-900">{programData?.nearestMosque ? `${programData.nearestMosque} (${programData.distanceToMosque ? `${programData.distanceToMosque} كم` : ""})` : "—"}</strong></div>
+                      </div>
+                    ) : fieldReport?.womenPrayerExists ? (
                       <div className="grid grid-cols-3 gap-1 text-[11px] text-gray-700">
                         <div>الطول: <strong className="text-gray-900">{womenLength ? `${womenLength}م` : "—"}</strong></div>
                         <div>العرض: <strong className="text-gray-900">{womenWidth ? `${womenWidth}م` : "—"}</strong></div>
