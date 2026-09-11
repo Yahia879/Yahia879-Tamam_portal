@@ -843,7 +843,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                     {menArea > 0 && (
                       <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/10">
                         <span className="text-xs font-bold text-slate-400 dark:text-slate-500 block mb-2">
-                          {isBunyanReq ? "مساحة ومواصفات المسجد المقترح" : "أبعاد مصلى الرجال"}
+                          {isBunyanReq || (!menLength || !menWidth) ? "مساحة ومواصفات المسجد المقترح" : "أبعاد مصلى الرجال"}
                         </span>
                         <div className="flex items-baseline gap-2">
                           <span className="text-xl sm:text-2xl font-extrabold text-slate-800 dark:text-slate-200">
@@ -859,7 +859,7 @@ export default function PendingReports({ embedded = false }: { embedded?: boolea
                             </span>
                           )}
                         </div>
-                        {isBunyanReq && singleReqProgramData?.actualWorshippers && (
+                        {singleReqProgramData?.actualWorshippers && (
                           <p className="text-xs text-slate-500 mt-1">عدد المصلين: {parseFloat(singleReqProgramData.actualWorshippers).toLocaleString('ar-SA')} مصلي</p>
                         )}
                         {report.menPrayerHeight && (
