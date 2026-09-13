@@ -159,14 +159,13 @@ describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
   });
 });
 
-describe('Sedana Workflow - Skip Field Visit', () => {
-  it('should exclude field_visit from Sedana workflow', () => {
+describe('Sedana Workflow - Simplified Direct Evaluation', () => {
+  it('should exclude field_visit and technical_eval from Sedana workflow', () => {
     const sedanaWorkflow = getWorkflowForRequest('standard', 'sedana');
     expect(sedanaWorkflow.some((s: any) => s.id === 'field_visit')).toBe(false);
+    expect(sedanaWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(false);
     expect(sedanaWorkflow.map((s: any) => s.id)).toEqual([
       'submitted',
-      'initial_review',
-      'technical_eval',
       'boq_preparation',
       'financial_eval_and_approval',
       'contracting',
@@ -175,30 +174,31 @@ describe('Sedana Workflow - Skip Field Visit', () => {
       'closed',
     ]);
 
-    // Ensure standard workflow still has field_visit
+    // Ensure standard workflow still has field_visit and technical_eval
     const standardWorkflow = getWorkflowForRequest('standard');
     expect(standardWorkflow.some((s: any) => s.id === 'field_visit')).toBe(true);
+    expect(standardWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(true);
   });
 
-  it('should transition directly from initial_review to technical_eval for Sedana', () => {
-    const nextStage = getNextStage('initial_review', 'standard', 'sedana');
-    expect(nextStage).toBe('technical_eval');
+  it('should transition directly from submitted to boq_preparation for Sedana', () => {
+    const nextStage = getNextStage('submitted', 'standard', 'sedana');
+    expect(nextStage).toBe('boq_preparation');
 
-    // For standard requests, it must still be field_visit
-    const standardNextStage = getNextStage('initial_review', 'standard');
-    expect(standardNextStage).toBe('field_visit');
+    // For standard requests, it must still be initial_review
+    const standardNextStage = getNextStage('submitted', 'standard');
+    expect(standardNextStage).toBe('initial_review');
   });
 
-  it('should require no prerequisites when transitioning from initial_review to technical_eval in Sedana', () => {
-    const prereqs = getPrerequisites('initial_review', 'technical_eval', 'standard', undefined, 'sedana');
+  it('should require no prerequisites when transitioning from submitted to boq_preparation in Sedana', () => {
+    const prereqs = getPrerequisites('submitted', 'boq_preparation', 'standard', undefined, 'sedana');
     expect(prereqs).toEqual([]);
   });
 
   it('should provide custom Arabic labels for Sedana stages', () => {
-    expect(getStageLabel('technical_eval', undefined, 'sedana')).toBe('التقييم المكتبي');
+    expect(getStageLabel('submitted', undefined, 'sedana')).toBe('تقديم وتدقيق الطلب');
     expect(getStageLabel('execution', undefined, 'sedana')).toBe('التشغيل والتنفيذ');
     // Standard requests should still have normal labels
-    expect(getStageLabel('technical_eval')).toBe('التقييم الفني');
+    expect(getStageLabel('submitted')).toBe('تقديم الطلب');
     expect(getStageLabel('execution')).toBe('التنفيذ');
   });
 });
