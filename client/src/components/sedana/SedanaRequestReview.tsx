@@ -1,5 +1,6 @@
 import React from 'react';
-import { SedanaCustomItem } from './SedanaRequestForm';
+import { SedanaBasketItem } from './sedanaTypes';
+import { Paperclip, CheckCircle2 } from 'lucide-react';
 
 interface SedanaRequestReviewProps {
   formData: Record<string, any>;
@@ -15,16 +16,19 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
   formData,
   selectedMosque,
 }) => {
-  const workforce = formData.workforce || {};
-  const cleaning = formData.cleaningMaterials || {};
-  const drinkingWater = formData.drinkingWater || {};
-  const waterTankers = formData.waterTankers || {};
-  const aromatic = formData.aromaticEnvironment || {};
-  const customItems: SedanaCustomItem[] = formData.customItems || [];
+  const mosqueArea = Number(formData.mosqueArea ?? selectedMosque?.area ?? 250);
+  const worshippers = Number(formData.actualWorshippers ?? selectedMosque?.capacity ?? 150);
+  const isConnectedToDesalination: boolean =
+    formData.isConnectedToDesalination !== undefined
+      ? Boolean(formData.isConnectedToDesalination)
+      : true;
+
+  const basketItems: SedanaBasketItem[] = formData.basketItems || [];
+  const warehousePhoto = formData.warehousePhoto;
 
   return (
     <div className="space-y-4 text-right" dir="rtl">
-      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3">
+      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3.5">
         <div className="flex items-center justify-between pb-2 border-b border-border/60">
           <h4 className="font-bold text-sm text-foreground">
             ملخص احتياجات سدانة (التشغيل السنوي)
@@ -36,69 +40,61 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-xs">
-          {/* القوى العاملة */}
-          <div className="space-y-1.5 border-b sm:border-b-0 pb-2 sm:pb-0 border-border/40">
-            <span className="font-bold text-foreground block">القوى العاملة:</span>
-            <div className="text-muted-foreground space-y-0.5">
-              <div>عامل نظافة متفرغ: <strong className="text-foreground">{workforce.hasFullTimeCleaner ? `نعم (${workforce.cleanerSalary || 0} ريال/شهرياً)` : 'لا'}</strong></div>
-              <div>مكافأة صيانة دورية: <strong className="text-foreground">{workforce.hasPeriodicMaintenanceReward ? `نعم (${workforce.maintenanceRewardAmount || 0} ريال)` : 'لا'}</strong></div>
-            </div>
-          </div>
-
-          {/* سقيا المياه */}
-          <div className="space-y-1.5 border-b sm:border-b-0 pb-2 sm:pb-0 border-border/40">
-            <span className="font-bold text-foreground block">سقيا المياه:</span>
-            <div className="text-muted-foreground space-y-0.5">
-              <div>كراتين مياه الشرب: <strong className="text-foreground">{drinkingWater.cartonsQty || 0} كرتون/سنة</strong></div>
-              <div>الجدول: <strong className="text-foreground">{drinkingWater.schedule === 'monthly' ? 'شهري منتظم' : drinkingWater.schedule === 'bimonthly' ? 'كل شهرين' : 'مواسم'}</strong></div>
-            </div>
-          </div>
-
-          {/* مواد النظافة */}
-          <div className="space-y-1.5 sm:col-span-2 border-t border-border/40 pt-2">
-            <span className="font-bold text-foreground block">مواد النظافة والتعقيم:</span>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-muted-foreground pt-0.5">
-              <div>مناديل ورقية: <strong className="text-foreground">{cleaning.tissuesQty || 0} كرتون</strong></div>
-              <div>صابون سائل: <strong className="text-foreground">{cleaning.liquidSoapQty || 0} جالون</strong></div>
-              <div>صابون رغوة: <strong className="text-foreground">{cleaning.foamSoapQty || 0} عبوة</strong></div>
-              <div>مطهر أرضيات: <strong className="text-foreground">{cleaning.floorDisinfectantQty || 0} جالون</strong></div>
-              <div>أكياس نفايات: <strong className="text-foreground">{cleaning.trashBagsQty || 0} كرتون</strong></div>
-            </div>
-          </div>
-
-          {/* صهاريج المياه والبيئة العطرية */}
-          <div className="space-y-1.5 sm:col-span-2 border-t border-border/40 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <span className="font-bold text-foreground block">صهاريج المياه:</span>
-              <span className="text-muted-foreground">
-                {!waterTankers.isConnectedToNetwork
-                  ? `${waterTankers.tankersQtyPerYear || 0} صهريج/سنة (${waterTankers.tankerSize || 'وايت عادي'})`
-                  : 'متصل بشبكة المياه العامة'}
-              </span>
-            </div>
-            <div>
-              <span className="font-bold text-foreground block">البيئة العطرية:</span>
-              <span className="text-muted-foreground">
-                {aromatic.diffusersCount || 0} أجهزة تعطير ({aromatic.refillsPerYear || 0} عبوات زيت سنوياً)
-              </span>
-            </div>
-          </div>
-
-          {/* البنود المخصصة إن وجدت */}
-          {customItems.length > 0 && (
-            <div className="space-y-1.5 sm:col-span-2 border-t border-border/40 pt-2">
-              <span className="font-bold text-foreground block">بنود مخصصة:</span>
-              <div className="flex flex-wrap gap-2 text-muted-foreground">
-                {customItems.map((item) => (
-                  <span key={item.id} className="bg-muted/40 px-2 py-0.5 rounded text-[11px]">
-                    {item.name}: <strong className="text-foreground">{item.quantity} {item.unit}</strong>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* شبكة المياه (التحلية) */}
+        <div className="p-2.5 rounded-lg bg-muted/20 border border-border/40 text-xs flex items-center justify-between">
+          <span className="text-muted-foreground">شبكة المياه (التحلية):</span>
+          <strong className={isConnectedToDesalination ? 'text-foreground' : 'text-amber-600 font-bold'}>
+            {isConnectedToDesalination ? 'متصل بالتحلية' : 'غير متصل (يتطلب صهاريج مياه)'}
+          </strong>
         </div>
+
+        {/* جدول بنود السلة السنوية */}
+        <div className="space-y-1.5 pt-1">
+          <span className="font-bold text-xs text-foreground block">
+            بنود سلة الاحتياجات السنوية ({basketItems.length} صنف):
+          </span>
+
+          <div className="overflow-x-auto border border-border/70 rounded-md">
+            <table className="w-full text-xs text-right">
+              <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-semibold">
+                <tr>
+                  <th className="p-2">الصنف</th>
+                  <th className="p-2">التصنيف</th>
+                  <th className="p-2 text-center">الكمية السنوية</th>
+                  <th className="p-2 text-center">الوحدة</th>
+                  <th className="p-2 text-center">دورية التوريد</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {basketItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-muted/10">
+                    <td className="p-2 font-medium text-foreground">
+                      {item.name}
+                      {item.isCustom && (
+                        <span className="text-[10px] text-primary mr-1">(مخصص)</span>
+                      )}
+                    </td>
+                    <td className="p-2 text-muted-foreground text-[11px]">{item.category}</td>
+                    <td className="p-2 text-center font-bold text-foreground font-mono">
+                      {item.quantity}
+                    </td>
+                    <td className="p-2 text-center text-muted-foreground">{item.unit}</td>
+                    <td className="p-2 text-center text-foreground font-medium">{item.frequency}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* مرفق صور المستودع إن وجد */}
+        {warehousePhoto && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200 text-xs text-emerald-800 dark:text-emerald-300">
+            <Paperclip className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+            <span>مرفق صور مستودع المسجد: <strong>{warehousePhoto}</strong></span>
+            <CheckCircle2 className="w-3.5 h-3.5 mr-auto text-emerald-600" />
+          </div>
+        )}
       </div>
     </div>
   );
