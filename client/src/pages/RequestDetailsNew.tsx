@@ -1985,7 +1985,6 @@ export default function RequestDetailsNew() {
                     </div>
                   </button>
                 </div>
-                )
               )}
                   </>
                 )}
