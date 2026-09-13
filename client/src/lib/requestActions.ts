@@ -23,6 +23,7 @@ export function getActiveAction(
     requestTrack?: string | null;
     quickReports?: any[];
     userPermissions?: string[];
+    programType?: string | null;
   }
 ): ActiveAction | null {
   const config = ACTION_CONFIGS[currentStage as keyof typeof ACTION_CONFIGS];
@@ -114,6 +115,21 @@ export function getActiveAction(
     hasRole = Boolean(userRole && allowedQRRoles.includes(userRole)) || hasQuickResponsePerm;
     isAssignedToUser = true;
     allowedRoles = allowedQRRoles;
+  }
+
+  // تخصيص لبرنامج سدانة: تخطي الزيارة الميدانية والانتقال مباشرة للتقييم المكتبي
+  if (requestData?.programType === 'sedana') {
+    if (currentStage === 'initial_review') {
+      title = "المراجعة الأولية (سدانة)";
+      description = "راجع بيانات المسجد وبنود الباقة السنوية والمرفقات. بعد التحقق من اكتمالها، يمكنك الانتقال مباشرة للتقييم المكتبي.";
+      actionButton = {
+        label: "الانتقال للتقييم المكتبي",
+        nextStage: "technical_eval",
+      };
+    } else if (currentStage === 'technical_eval') {
+      title = "التقييم الفني المكتبي (سدانة)";
+      description = "مراجعة وتدقيق بنود سلة الاحتياجات السنوية واعتماد جدول الكميات بدون الحاجة لزيارة ميدانية.";
+    }
   }
 
   const canPerformAction = Boolean(hasRole && isAssignedToUser);
