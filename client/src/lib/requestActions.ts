@@ -119,10 +119,20 @@ export function getActiveAction(
 
   // تخصيص لبرنامج سدانة: دراسة وتدقيق الاحتياج السنوي في أول مرحلة
   if (requestData?.programType === 'sedana') {
-    if (currentStage === 'submitted' || currentStage === 'initial_review' || currentStage === 'technical_eval') {
+    if (currentStage === 'submitted') {
+      title = "بدء دراسة وتدقيق الاحتياج (سدانة)";
+      description = "قم ببدء دراسة وتدقيق الاحتياج السنوي للمسجد لاعتماد الكميات المطلوبة في الباقة السنوية.";
+      actionButton = {
+        label: "بدء دراسة وتدقيق الاحتياج",
+        nextStage: "initial_review",
+      };
+    } else if (currentStage === 'initial_review' || currentStage === 'technical_eval') {
       title = "دراسة وتدقيق الاحتياج السنوي (سدانة)";
       description = "راجع بنود سلة الاحتياجات السنوية للمسجد واضبط الكميات المعتمدة في الجدول أدناه لاعتمادها والانتقال لجدول الكميات.";
-      actionButton = undefined; // زر الاعتماد والانتقال لجدول الكميات موجود ومخصص داخل جدول التقييم المكتبي أدناه
+      actionButton = {
+        label: "الانتقال لجدول الكميات",
+        nextStage: "boq_preparation",
+      };
     }
   }
 
