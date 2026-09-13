@@ -1247,7 +1247,7 @@ export const requestsRouter = router({
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
       const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
       const isSedana = request[0].programType === 'sedana';
-      const sedanaStages = ["submitted", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+      const sedanaStages = ["submitted", "initial_review", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const stages = isQuickResponse 
         ? quickResponseStages 
         : isDonation 
