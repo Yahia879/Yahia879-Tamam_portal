@@ -17,6 +17,8 @@ import {
   hasErrors,
 } from '@/lib/formValidation';
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
+import { SedanaRequestForm } from '@/components/sedana/SedanaRequestForm';
+import { SedanaRequestReview } from '@/components/sedana/SedanaRequestReview';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -405,6 +407,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         return;
       }
 
+      if (selectedService === 'sedana') {
+        if (!formData.mosqueId) {
+          setErrors({ mosqueId: 'يرجى اختيار المسجد' });
+          alert('يرجى اختيار المسجد للمتابعة');
+          return;
+        }
+        setCurrentStep('review');
+        return;
+      }
+
       if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
         const customErrors: Record<string, string> = {};
         for (const field of visibleFields) {
@@ -465,6 +477,44 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
       if (selectedService === 'bunyan' && formData.hasPrayerHall !== undefined) {
         programData.hasPrayerHall = formData.hasPrayerHall;
+      }
+
+      if (selectedService === 'sedana') {
+        programData.workforce = formData.workforce || {
+          hasFullTimeCleaner: false,
+          cleanerSalary: 1500,
+          cleanerNotes: '',
+          hasPeriodicMaintenanceReward: false,
+          maintenanceRewardAmount: 500,
+          maintenanceNotes: '',
+        };
+        programData.cleaningMaterials = formData.cleaningMaterials || {
+          liquidSoapQty: 12,
+          foamSoapQty: 24,
+          floorDisinfectantQty: 24,
+          trashBagsQty: 24,
+          tissuesQty: 120,
+        };
+        programData.drinkingWater = formData.drinkingWater || {
+          cartonsQty: 240,
+          schedule: 'monthly',
+        };
+        programData.waterTankers = formData.waterTankers || {
+          isConnectedToNetwork: true,
+          tankersQtyPerYear: 0,
+          tankerSize: 'وايت عادي (19 طن)',
+        };
+        programData.aromaticEnvironment = formData.aromaticEnvironment || {
+          enabled: true,
+          diffusersCount: Math.max(1, Math.round((currentMosque?.area ? Number(currentMosque.area) : 250) / 100)),
+          refillsPerYear: Math.max(2, Math.round((currentMosque?.area ? Number(currentMosque.area) : 250) / 100) * 2),
+          schedule: 'every_6_months',
+        };
+        programData.customItems = formData.customItems || [];
+        programData.contractDurationMonths = 12;
+        programData.tissuesQty = programData.cleaningMaterials.tissuesQty;
+        programData.cartonsNeeded = programData.drinkingWater.cartonsQty;
+        programData.workDescription = formData.workDescription || 'برنامج سدانة - عقد تشغيل ورعاية سنوي مستمر (12 شهراً)';
       }
 
       const result = await createRequestMutation.mutateAsync({
@@ -647,10 +697,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {activePrograms.map((program) => {
                   const Icon = ICON_MAP[program.icon || 'Package'] || Package;
+                  const isSedana = program.id === 'sedana';
                   return (
                     <Card
                       key={program.id}
-                      className={`p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg border-2 overflow-hidden break-words ${
+                      className={`p-3 sm:p-4 cursor-pointer transition-all hover:shadow-lg border-2 overflow-hidden break-words relative ${
                         selectedService === program.id
                           ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
                           : 'border-transparent hover:border-primary/20 bg-muted/20'
@@ -660,8 +711,12 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color || 'bg-indigo-600'} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
-                      <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">{program.name}</h3>
-                      <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">{program.description}</p>
+                      <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">
+                        {isSedana ? 'سدانة (التشغيل السنوي)' : program.name}
+                      </h3>
+                      <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
+                        {isSedana ? 'رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)' : program.description}
+                      </p>
                     </Card>
                   );
                 })}
@@ -787,7 +842,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
               {(selectedService === 'bunyan'
                 ? visibleFields.filter(f => f.name !== 'womenPrayerArea' && f.name !== 'womenPrayerCapacity')
-                : visibleFields
+                : selectedService === 'sedana'
+                  ? visibleFields.filter(f => f.name === 'mosqueId')
+                  : visibleFields
               ).map((field) => {
                 const isFullWidth =
                   field.type === 'textarea' ||
@@ -1127,6 +1184,18 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   </React.Fragment>
                 );
               })}
+
+              {/* نموذج إدخال بنود سدانة التفاعلي - المحطة 1 */}
+              {selectedService === 'sedana' && (
+                <div className="col-span-1 sm:col-span-2 pt-2">
+                  <SedanaRequestForm
+                    formData={formData}
+                    onFieldChange={handleFieldChange}
+                    selectedMosque={currentMosque}
+                    errors={errors}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1200,8 +1269,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </div>
 
               {/* تفاصيل الطلب */}
-              <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
-                <p className="text-[10px] sm:text-xs text-muted-foreground mb-4 uppercase tracking-wider font-bold">تفاصيل ونطاق الطلب</p>
+              {selectedService === 'sedana' ? (
+                <SedanaRequestReview
+                  formData={formData}
+                  selectedMosque={currentMosque}
+                />
+              ) : (
+                <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mb-4 uppercase tracking-wider font-bold">تفاصيل ونطاق الطلب</p>
                 <div className="space-y-4">
                   {visibleFields.map((field) => {
                     const val = formData[field.name];
@@ -1267,6 +1342,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   )}
                 </div>
               </div>
+              )}
             </div>
           </div>
         )}
@@ -1314,7 +1390,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>إرسال الطلب</span>
+                  <span>{selectedService === 'sedana' ? 'إرسال الطلب السنوي' : 'إرسال الطلب'}</span>
                 </>
               )}
             </Button>
