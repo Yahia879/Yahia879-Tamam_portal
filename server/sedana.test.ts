@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateSedanaNeeds } from '../client/src/components/sedana/sedanaBenchmarks';
 import { getDefaultBasketItems } from '../client/src/components/sedana/sedanaTypes';
+import { getWorkflowForRequest, getNextStage, getPrerequisites, getStageLabel, SEDANA_WORKFLOW, WORKFLOW_STEPS } from '../shared/constants';
 
 describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
   it('should detect excess waste when quantities exceed fair standard (e.g. 150 worshippers requesting 1000 cartons)', () => {
@@ -157,3 +158,48 @@ describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
     expect(evalTanker?.status).toBe('fair');
   });
 });
+
+describe('Sedana Workflow - Skip Field Visit', () => {
+  it('should exclude field_visit from Sedana workflow', () => {
+    const sedanaWorkflow = getWorkflowForRequest('standard', 'sedana');
+    expect(sedanaWorkflow.some((s: any) => s.id === 'field_visit')).toBe(false);
+    expect(sedanaWorkflow.map((s: any) => s.id)).toEqual([
+      'submitted',
+      'initial_review',
+      'technical_eval',
+      'boq_preparation',
+      'financial_eval_and_approval',
+      'contracting',
+      'execution',
+      'handover',
+      'closed',
+    ]);
+
+    // Ensure standard workflow still has field_visit
+    const standardWorkflow = getWorkflowForRequest('standard');
+    expect(standardWorkflow.some((s: any) => s.id === 'field_visit')).toBe(true);
+  });
+
+  it('should transition directly from initial_review to technical_eval for Sedana', () => {
+    const nextStage = getNextStage('initial_review', 'standard', 'sedana');
+    expect(nextStage).toBe('technical_eval');
+
+    // For standard requests, it must still be field_visit
+    const standardNextStage = getNextStage('initial_review', 'standard');
+    expect(standardNextStage).toBe('field_visit');
+  });
+
+  it('should require no prerequisites when transitioning from initial_review to technical_eval in Sedana', () => {
+    const prereqs = getPrerequisites('initial_review', 'technical_eval', 'standard', undefined, 'sedana');
+    expect(prereqs).toEqual([]);
+  });
+
+  it('should provide custom Arabic labels for Sedana stages', () => {
+    expect(getStageLabel('technical_eval', undefined, 'sedana')).toBe('التقييم المكتبي');
+    expect(getStageLabel('execution', undefined, 'sedana')).toBe('التشغيل والتنفيذ');
+    // Standard requests should still have normal labels
+    expect(getStageLabel('technical_eval')).toBe('التقييم الفني');
+    expect(getStageLabel('execution')).toBe('التنفيذ');
+  });
+});
+
