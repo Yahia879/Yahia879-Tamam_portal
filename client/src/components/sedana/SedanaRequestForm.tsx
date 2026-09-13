@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2 } from 'lucide-react';
-
-export interface SedanaCustomItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-  notes?: string;
-}
+import { Trash2, Plus, Upload, Check } from 'lucide-react';
+import {
+  SedanaBasketItem,
+  SedanaCategory,
+  SedanaDeliveryFrequency,
+  SEDANA_CATEGORIES,
+  DELIVERY_FREQUENCIES,
+  getDefaultBasketItems,
+} from './sedanaTypes';
 
 interface SedanaRequestFormProps {
   formData: Record<string, any>;
@@ -24,381 +23,222 @@ interface SedanaRequestFormProps {
     area?: number | string | null;
   } | null;
   errors?: Record<string, string>;
+  selectedFile?: File | null;
+  onSelectFile?: (file: File | null) => void;
 }
 
 export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   formData,
   onFieldChange,
   selectedMosque,
+  selectedFile,
+  onSelectFile,
 }) => {
-  const mosqueCapacity = Number(selectedMosque?.capacity) || Number(formData.actualWorshippers) || 150;
-  const mosqueArea = Number(selectedMosque?.area) || Number(formData.mosqueArea) || 250;
+  // خيار فحص المياه (متصل بالتحلية)
+  const isConnectedToDesalination: boolean =
+    formData.isConnectedToDesalination !== undefined
+      ? Boolean(formData.isConnectedToDesalination)
+      : true;
 
-  // 1. القوى العاملة
-  const workforce = formData.workforce || {
-    hasFullTimeCleaner: false,
-    cleanerSalary: 1500,
-    hasPeriodicMaintenanceReward: false,
-    maintenanceRewardAmount: 500,
+  // سلة الاحتياجات السنوية
+  const [basketItems, setBasketItems] = useState<SedanaBasketItem[]>(() => {
+    if (Array.isArray(formData.basketItems) && formData.basketItems.length > 0) {
+      return formData.basketItems;
+    }
+    const mosqueArea = Number(selectedMosque?.area ?? 250);
+    const worshippers = Number(selectedMosque?.capacity ?? 150);
+    return getDefaultBasketItems(mosqueArea, worshippers, isConnectedToDesalination);
+  });
+
+  // مزامنة السلة مع formData
+  useEffect(() => {
+    onFieldChange('basketItems', basketItems);
+    onFieldChange('isConnectedToDesalination', isConnectedToDesalination);
+  }, [basketItems, isConnectedToDesalination]);
+
+  // تحديث خيار فحص المياه والتفعيل التلقائي لصهاريج المياه
+  const handleToggleDesalination = (connected: boolean) => {
+    onFieldChange('isConnectedToDesalination', connected);
+    if (!connected) {
+      // إذا "لا": تفعيل صهاريج المياه تلقائياً
+      setBasketItems((prev) => {
+        const hasTanker = prev.some((i) => i.id === 'water_tankers');
+        if (hasTanker) return prev;
+        const waterIdx = prev.findIndex((i) => i.category === 'سقيا الماء');
+        const newItem: SedanaBasketItem = {
+          id: 'water_tankers',
+          category: 'سقيا الماء',
+          name: 'صهاريج مياه (وايت ماء 19 طن)',
+          quantity: 24,
+          unit: 'صهريج',
+          frequency: 'شهري',
+        };
+        const next = [...prev];
+        if (waterIdx !== -1) {
+          next.splice(waterIdx + 1, 0, newItem);
+        } else {
+          next.push(newItem);
+        }
+        return next;
+      });
+    } else {
+      // إذا "نعم": إزالة بند صهاريج المياه تلقائياً
+      setBasketItems((prev) => prev.filter((i) => i.id !== 'water_tankers'));
+    }
   };
 
-  // 2. مواد النظافة
-  const cleaning = formData.cleaningMaterials || {
-    liquidSoapQty: 12,
-    foamSoapQty: 24,
-    floorDisinfectantQty: 24,
-    trashBagsQty: 24,
-    tissuesQty: 120,
+  // تعديل صنف في السلة
+  const handleUpdateItem = (id: string, patch: Partial<SedanaBasketItem>) => {
+    setBasketItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+    );
   };
 
-  // 3. سقيا المياه
-  const drinkingWater = formData.drinkingWater || {
-    cartonsQty: 240,
-    schedule: 'monthly',
+  // حذف صنف
+  const handleRemoveItem = (id: string) => {
+    setBasketItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // 4. صهاريج المياه
-  const waterTankers = formData.waterTankers || {
-    isConnectedToNetwork: true,
-    tankersQtyPerYear: 0,
-    tankerSize: 'وايت عادي (19 طن)',
-  };
-
-  // 5. البيئة العطرية
-  const aromatic = formData.aromaticEnvironment || {
-    enabled: true,
-    diffusersCount: Math.max(1, Math.round(mosqueArea / 100)),
-    refillsPerYear: Math.max(2, Math.round(mosqueArea / 100) * 2),
-    schedule: 'every_6_months',
-  };
-
-  // 6. بنود مخصصة
-  const customItems: SedanaCustomItem[] = formData.customItems || [];
-
-  const updateWorkforce = (patch: Partial<typeof workforce>) => {
-    onFieldChange('workforce', { ...workforce, ...patch });
-  };
-
-  const updateCleaning = (patch: Partial<typeof cleaning>) => {
-    const updated = { ...cleaning, ...patch };
-    onFieldChange('cleaningMaterials', updated);
-    if (patch.tissuesQty !== undefined) onFieldChange('tissuesQty', patch.tissuesQty);
-  };
-
-  const updateDrinkingWater = (patch: Partial<typeof drinkingWater>) => {
-    const updated = { ...drinkingWater, ...patch };
-    onFieldChange('drinkingWater', updated);
-    if (patch.cartonsQty !== undefined) onFieldChange('cartonsNeeded', patch.cartonsQty);
-  };
-
-  const updateWaterTankers = (patch: Partial<typeof waterTankers>) => {
-    const updated = { ...waterTankers, ...patch };
-    onFieldChange('waterTankers', updated);
-    onFieldChange('isConnectedToWaterNetwork', updated.isConnectedToNetwork);
-  };
-
-  const updateAromatic = (patch: Partial<typeof aromatic>) => {
-    onFieldChange('aromaticEnvironment', { ...aromatic, ...patch });
-  };
-
-  // بنود مخصصة
-  const [newCustomName, setNewCustomName] = useState('');
-  const [newCustomQty, setNewCustomQty] = useState(1);
-  const [newCustomUnit, setNewCustomUnit] = useState('قطعة');
+  // إضافة بند مخصص
   const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customCategory, setCustomCategory] = useState<SedanaCategory>('أدوات المسجد العامة');
+  const [customQty, setCustomQty] = useState(1);
+  const [customUnit, setCustomUnit] = useState('قطعة');
+  const [customFreq, setCustomFreq] = useState<SedanaDeliveryFrequency>('ربع سنوي');
 
-  const handleAddCustomItem = () => {
-    if (!newCustomName.trim()) return;
-    const updated = [
-      ...customItems,
-      {
-        id: Date.now().toString(),
-        name: newCustomName.trim(),
-        quantity: Number(newCustomQty) || 1,
-        unit: newCustomUnit.trim() || 'قطعة',
-      },
-    ];
-    onFieldChange('customItems', updated);
-    setNewCustomName('');
-    setNewCustomQty(1);
+  const handleAddCustom = () => {
+    if (!customName.trim()) return;
+    const newItem: SedanaBasketItem = {
+      id: 'custom_' + Date.now(),
+      name: customName.trim(),
+      category: customCategory,
+      quantity: Number(customQty) || 1,
+      unit: customUnit.trim() || 'قطعة',
+      frequency: customFreq,
+      isCustom: true,
+    };
+    setBasketItems((prev) => [...prev, newItem]);
+    setCustomName('');
+    setCustomQty(1);
     setShowAddCustom(false);
   };
 
-  const handleRemoveCustomItem = (id: string) => {
-    onFieldChange('customItems', customItems.filter((i) => i.id !== id));
+  // رفع ملف مستودع المسجد
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      if (onSelectFile) onSelectFile(file);
+      onFieldChange('warehousePhoto', file.name);
+    }
   };
 
-  // تعبئة تقديرية سريعة بناءً على حجم المسجد
-  const handleAutoFill = () => {
-    const cap = mosqueCapacity;
-    const ar = mosqueArea;
-    updateCleaning({
-      tissuesQty: Math.round(cap * 0.85),
-      liquidSoapQty: Math.max(8, Math.round(cap * 0.12)),
-      foamSoapQty: Math.max(16, Math.round(cap * 0.2)),
-      floorDisinfectantQty: Math.max(16, Math.round(ar * 0.1)),
-      trashBagsQty: Math.max(16, Math.round(cap * 0.2 + ar * 0.04)),
-    });
-    updateDrinkingWater({ cartonsQty: Math.round(cap * 1.8) });
-    const diffs = Math.max(1, Math.round(ar / 100));
-    updateAromatic({ diffusersCount: diffs, refillsPerYear: diffs * 2 });
+  const handleRemoveFile = () => {
+    if (onSelectFile) onSelectFile(null);
+    onFieldChange('warehousePhoto', '');
   };
 
   return (
-    <div className="space-y-4 pt-1" dir="rtl">
-      {/* شريط العنوان والزر القياسي */}
-      <div className="flex items-center justify-between pb-2 border-b border-border/70">
-        <div>
-          <h3 className="font-bold text-sm sm:text-base text-foreground">
-            احتياجات التشغيل السنوي (سدانة)
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            حدد الكميات المطلوبة للمسجد لمدة سنة كاملة
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleAutoFill}
-          className="h-8 text-xs font-normal"
-        >
-          اقتراح كميات قياسية
-        </Button>
-      </div>
-
-      {/* 1. القوى العاملة */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-3">
-        <h4 className="font-bold text-xs sm:text-sm text-foreground">1. القوى العاملة</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-2 p-2.5 rounded-md bg-muted/20 border border-border/40">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={workforce.hasFullTimeCleaner}
-                onCheckedChange={(checked) => updateWorkforce({ hasFullTimeCleaner: !!checked })}
-              />
-              <span className="text-xs font-medium text-foreground">عامل نظافة للمسجد</span>
-            </label>
-            {workforce.hasFullTimeCleaner && (
-              <div className="pt-1.5">
-                <Label className="text-[11px] text-muted-foreground block mb-1">المكافأة الشهرية (ريال)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="100"
-                  value={workforce.cleanerSalary || ''}
-                  onChange={(e) => updateWorkforce({ cleanerSalary: Number(e.target.value) })}
-                  className="h-8 text-xs"
-                  placeholder="1500"
-                />
-              </div>
-            )}
+    <div className="space-y-4 text-right" dir="rtl">
+      {/* 1. خيار فحص المياه: هل المسجد متصل بالتحلية؟ */}
+      <div className="p-3.5 sm:p-4 rounded-xl border border-border/80 bg-card space-y-2.5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-xs sm:text-sm text-foreground">
+              فحص شبكة المياه
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              هل المسجد متصل بالتحلية؟ (إذا كان غير متصل، يتم تفعيل بند صهاريج المياه تلقائياً)
+            </p>
           </div>
 
-          <div className="space-y-2 p-2.5 rounded-md bg-muted/20 border border-border/40">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <Checkbox
-                checked={workforce.hasPeriodicMaintenanceReward}
-                onCheckedChange={(checked) => updateWorkforce({ hasPeriodicMaintenanceReward: !!checked })}
-              />
-              <span className="text-xs font-medium text-foreground">مكافأة صيانة دورية</span>
-            </label>
-            {workforce.hasPeriodicMaintenanceReward && (
-              <div className="pt-1.5">
-                <Label className="text-[11px] text-muted-foreground block mb-1">المكافأة الشهرية (ريال)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="50"
-                  value={workforce.maintenanceRewardAmount || ''}
-                  onChange={(e) => updateWorkforce({ maintenanceRewardAmount: Number(e.target.value) })}
-                  className="h-8 text-xs"
-                  placeholder="500"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 2. مواد النظافة والتعقيم */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-3">
-        <h4 className="font-bold text-xs sm:text-sm text-foreground">2. مواد النظافة والتعقيم (سنوياً)</h4>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">مناديل ورقية (كرتون)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={cleaning.tissuesQty ?? ''}
-              onChange={(e) => updateCleaning({ tissuesQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">صابون سائل (جالون)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={cleaning.liquidSoapQty ?? ''}
-              onChange={(e) => updateCleaning({ liquidSoapQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">صابون رغوة (عبوة)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={cleaning.foamSoapQty ?? ''}
-              onChange={(e) => updateCleaning({ foamSoapQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">مطهر أرضيات (جالون)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={cleaning.floorDisinfectantQty ?? ''}
-              onChange={(e) => updateCleaning({ floorDisinfectantQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">أكياس نفايات (كرتون)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={cleaning.trashBagsQty ?? ''}
-              onChange={(e) => updateCleaning({ trashBagsQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. سقيا المياه */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-3">
-        <h4 className="font-bold text-xs sm:text-sm text-foreground">3. سقيا المياه</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">كراتين مياه الشرب (سنوياً)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={drinkingWater.cartonsQty ?? ''}
-              onChange={(e) => updateDrinkingWater({ cartonsQty: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">جدول التوريد</Label>
-            <select
-              value={drinkingWater.schedule || 'monthly'}
-              onChange={(e) => updateDrinkingWater({ schedule: e.target.value })}
-              className="w-full h-8 rounded-md border border-input bg-background px-2.5 text-xs"
+          <div className="flex items-center gap-2 h-8 w-full sm:w-60">
+            <button
+              type="button"
+              onClick={() => handleToggleDesalination(true)}
+              className={`flex-1 h-full rounded-md border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                isConnectedToDesalination
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-muted/30 hover:bg-muted/50 border-border/70 text-muted-foreground'
+              }`}
             >
-              <option value="monthly">توريد شهري منتظم</option>
-              <option value="bimonthly">توريد كل شهرين</option>
-              <option value="seasons">حسب المواسم (رمضان والأعياد)</option>
-            </select>
+              {isConnectedToDesalination && <Check className="w-3.5 h-3.5" />}
+              <span>نعم (متصل)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleToggleDesalination(false)}
+              className={`flex-1 h-full rounded-md border text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
+                !isConnectedToDesalination
+                  ? 'bg-amber-600 text-white border-amber-600'
+                  : 'bg-muted/30 hover:bg-muted/50 border-border/70 text-muted-foreground'
+              }`}
+            >
+              {!isConnectedToDesalination && <Check className="w-3.5 h-3.5" />}
+              <span>لا (غير متصل)</span>
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* 4. صهاريج المياه (مشروط) */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-2.5">
-        <h4 className="font-bold text-xs sm:text-sm text-foreground">4. صهاريج المياه</h4>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <Checkbox
-            checked={!waterTankers.isConnectedToNetwork}
-            onCheckedChange={(checked) => updateWaterTankers({ isConnectedToNetwork: !checked })}
-          />
-          <span className="text-xs text-foreground">المسجد غير متصل بالشبكة ويحتاج صهاريج مياه</span>
-        </label>
-
-        {!waterTankers.isConnectedToNetwork && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1.5">
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">عدد الصهاريج (سنوياً)</Label>
-              <Input
-                type="number"
-                min="1"
-                value={waterTankers.tankersQtyPerYear || ''}
-                onChange={(e) => updateWaterTankers({ tankersQtyPerYear: Number(e.target.value) })}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">سعة الصهريج</Label>
-              <select
-                value={waterTankers.tankerSize || 'وايت عادي (19 طن)'}
-                onChange={(e) => updateWaterTankers({ tankerSize: e.target.value })}
-                className="w-full h-8 rounded-md border border-input bg-background px-2.5 text-xs"
-              >
-                <option value="وايت عادي (19 طن)">وايت عادي (19 طن)</option>
-                <option value="وايت كبير (32 طن)">وايت كبير (32 طن)</option>
-                <option value="وايت صغير (10 طن)">وايت صغير (10 طن)</option>
-              </select>
-            </div>
+        {/* تنبيه تفعيل صهاريج المياه عند اختيار لا */}
+        {!isConnectedToDesalination && (
+          <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200">
+            ✓ المسجد غير متصل بالتحلية: تم تفعيل بند <strong>صهاريج المياه (وايت ماء)</strong> تلقائياً في سلة الاحتياجات السنوية أدناه.
           </div>
         )}
       </div>
 
-      {/* 5. البيئة العطرية */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-3">
-        <h4 className="font-bold text-xs sm:text-sm text-foreground">5. البيئة العطرية</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* 2. جدول بنود الباقة السنوية (سلة الاحتياجات) */}
+      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3.5 shadow-xs">
+        <div className="flex items-center justify-between pb-2 border-b border-border/60">
           <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">عدد أجهزة التعطير</Label>
-            <Input
-              type="number"
-              min="0"
-              value={aromatic.diffusersCount ?? ''}
-              onChange={(e) => updateAromatic({ diffusersCount: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
+            <h3 className="font-bold text-sm sm:text-base text-foreground">
+              جدول بنود الباقة السنوية (سلة الاحتياجات)
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              يحتوي التصنيفات الستة المعتمدة مع إمكانية تعديل الكميات ودورية التوريد
+            </p>
           </div>
-          <div>
-            <Label className="text-[11px] mb-1 block text-muted-foreground">عبوات الزيت العطري (سنوياً)</Label>
-            <Input
-              type="number"
-              min="0"
-              value={aromatic.refillsPerYear ?? ''}
-              onChange={(e) => updateAromatic({ refillsPerYear: Number(e.target.value) })}
-              className="h-8 text-xs"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 6. بنود إضافية مخصصة */}
-      <div className="p-3.5 rounded-lg border border-border/70 bg-card space-y-2.5">
-        <div className="flex items-center justify-between">
-          <h4 className="font-bold text-xs sm:text-sm text-foreground">6. بنود إضافية (اختياري)</h4>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setShowAddCustom(!showAddCustom)}
-            className="h-7 text-xs"
+            onClick={() => setShowAddCustom(true)}
+            className="h-8 text-xs font-medium gap-1 text-primary hover:bg-primary/10 border-primary/30"
           >
-            + إضافة بند
+            <Plus className="w-3.5 h-3.5" />
+            <span>إضافة بند مخصص</span>
           </Button>
         </div>
 
+        {/* نموذج إضافة بند مخصص سريع */}
         {showAddCustom && (
-          <div className="p-2.5 rounded-md bg-muted/20 border border-border/50 space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="p-3 rounded-lg bg-muted/20 border border-primary/30 space-y-3 animate-in fade-in duration-150">
+            <p className="text-xs font-bold text-foreground">إضافة صنف إضافي لسلة الاحتياجات</p>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
               <div className="sm:col-span-2">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">اسم البند</Label>
+                <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف</Label>
                 <Input
-                  value={newCustomName}
-                  onChange={(e) => setNewCustomName(e.target.value)}
-                  placeholder="مثال: سجاد إضافي، كراسي كبار السن..."
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder="مثال: سجاد خارجي، معطر سجاد..."
                   className="h-8 text-xs"
                 />
+              </div>
+              <div>
+                <Label className="text-[11px] mb-1 block text-muted-foreground">التصنيف</Label>
+                <select
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value as SedanaCategory)}
+                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
+                >
+                  {SEDANA_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <Label className="text-[11px] mb-1 block text-muted-foreground">الكمية والوحدة</Label>
@@ -406,50 +246,185 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                   <Input
                     type="number"
                     min="1"
-                    value={newCustomQty}
-                    onChange={(e) => setNewCustomQty(Number(e.target.value))}
+                    value={customQty}
+                    onChange={(e) => setCustomQty(Number(e.target.value))}
                     className="h-8 text-xs w-16"
                   />
                   <Input
-                    value={newCustomUnit}
-                    onChange={(e) => setNewCustomUnit(e.target.value)}
+                    value={customUnit}
+                    onChange={(e) => setCustomUnit(e.target.value)}
                     placeholder="قطعة"
                     className="h-8 text-xs flex-1"
                   />
                 </div>
               </div>
+              <div>
+                <Label className="text-[11px] mb-1 block text-muted-foreground">دورية التوريد</Label>
+                <select
+                  value={customFreq}
+                  onChange={(e) => setCustomFreq(e.target.value as SedanaDeliveryFrequency)}
+                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
+                >
+                  {DELIVERY_FREQUENCIES.map((freq) => (
+                    <option key={freq} value={freq}>
+                      {freq}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddCustom(false)} className="h-7 text-xs">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAddCustom(false)}
+                className="h-7 text-xs"
+              >
                 إلغاء
               </Button>
-              <Button type="button" size="sm" onClick={handleAddCustomItem} className="h-7 text-xs">
-                إضافة
+              <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs">
+                إضافة للسلة
               </Button>
             </div>
           </div>
         )}
 
-        {customItems.length > 0 ? (
-          <div className="divide-y divide-border/60 border border-border/60 rounded-md overflow-hidden bg-background">
-            {customItems.map((item) => (
-              <div key={item.id} className="p-2 flex items-center justify-between text-xs">
-                <span className="font-medium text-foreground">
-                  {item.name} ({item.quantity} {item.unit})
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveCustomItem(item.id)}
-                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
+        {/* جدول بنود السلة */}
+        <div className="overflow-x-auto border border-border/70 rounded-lg">
+          <table className="w-full text-xs text-right">
+            <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
+              <tr>
+                <th className="p-2.5">اسم الصنف</th>
+                <th className="p-2.5">التصنيف</th>
+                <th className="p-2.5 w-28 text-center">الكمية السنوية</th>
+                <th className="p-2.5 w-24 text-center">وحدة القياس</th>
+                <th className="p-2.5 w-32 text-center">دورية التوريد</th>
+                <th className="p-2.5 w-12 text-center">إجراء</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {basketItems.map((item) => (
+                <tr key={item.id} className="hover:bg-muted/15 transition-colors">
+                  <td className="p-2.5 font-medium text-foreground">
+                    {item.name}
+                    {item.isCustom && (
+                      <span className="text-[10px] text-primary mr-1.5 font-normal">(مخصص)</span>
+                    )}
+                  </td>
+                  <td className="p-2.5">
+                    <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-muted/60 text-muted-foreground font-medium">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="p-2.5 text-center">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                      }
+                      className="h-7 text-xs text-center w-20 mx-auto"
+                    />
+                  </td>
+                  <td className="p-2.5 text-center text-muted-foreground font-medium">
+                    {item.unit}
+                  </td>
+                  <td className="p-2.5 text-center">
+                    <select
+                      value={item.frequency}
+                      onChange={(e) =>
+                        handleUpdateItem(item.id, {
+                          frequency: e.target.value as SedanaDeliveryFrequency,
+                        })
+                      }
+                      className="h-7 rounded-md border border-input bg-background px-2 text-xs w-28 mx-auto"
+                    >
+                      {DELIVERY_FREQUENCIES.map((freq) => (
+                        <option key={freq} value={freq}>
+                          {freq}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-2.5 text-center">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      title="حذف الصنف"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 3. حقل رفع صور مستودع المسجد الحالي */}
+      <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
+        <div>
+          <h3 className="font-bold text-sm sm:text-base text-foreground">
+            صور مستودع المسجد الحالي (المرفقات)
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            يرجى إرفاق صور واضحة لمستودع المسجد أو خزانة الأدوات والمواد المتوفرة للمساعدة في دراسة الاحتياج بدقة
+          </p>
+        </div>
+
+        <input
+          type="file"
+          id="sedana-warehouse-photo"
+          accept="image/*,.pdf"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        {selectedFile ? (
+          <div className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4" />
               </div>
-            ))}
+              <div className="min-w-0">
+                <p className="font-bold text-xs text-foreground truncate">{selectedFile.name}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">
+                  {(selectedFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleRemoveFile}
+                className="h-7 text-xs text-destructive hover:bg-destructive/10"
+              >
+                إزالة
+              </Button>
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <div
+            onClick={() => document.getElementById('sedana-warehouse-photo')?.click()}
+            className="p-5 border-2 border-dashed border-border/70 hover:border-primary/50 hover:bg-primary/5 transition-all rounded-xl cursor-pointer text-center"
+          >
+            <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
+            <p className="font-bold text-xs text-foreground">
+              اضغط لرفع صور مستودع المسجد أو اسحب الملف هنا
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
