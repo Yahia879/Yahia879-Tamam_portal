@@ -217,7 +217,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                 <span>جاري الاعتماد...</span>
               </>
             ) : (
-              <span>اعتماد الاحتياج السنوي</span>
+              <span>اعتماد الاحتياج السنوي والانتقال لجدول الكميات</span>
             )}
           </Button>
         </div>
