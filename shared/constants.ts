@@ -299,7 +299,9 @@ export function getStageLabel(stage: string, track?: string, programType?: strin
     return 'تقرير الاستجابة السريعة';
   }
   if (programType === 'sedana') {
-    if (stage === 'technical_eval') return 'التقييم المكتبي';
+    if (stage === 'submitted') return 'تقديم وتدقيق الطلب';
+    if (stage === 'initial_review') return 'دراسة وتدقيق الاحتياج';
+    if (stage === 'technical_eval') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'execution') return 'التشغيل والتنفيذ';
   }
   return STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage;
@@ -655,10 +657,13 @@ export function getNextStage(currentStage: string, track: 'standard' | 'quick_re
     return 'contracting';
   }
   if (programType === 'sedana') {
-    const sedanaStages = ['submitted', 'initial_review', 'technical_eval', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
+    const sedanaStages = ['submitted', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
     const currentIndex = sedanaStages.indexOf(currentStage);
     if (currentIndex >= 0 && currentIndex < sedanaStages.length - 1) {
       return sedanaStages[currentIndex + 1];
+    }
+    if (currentStage === 'initial_review' || currentStage === 'technical_eval') {
+      return 'boq_preparation';
     }
     return null;
   }
@@ -1021,9 +1026,15 @@ export function getPrerequisites(
 ): StagePrerequisite[] {
   const key = `${currentStage}_to_${nextStage}`;
   
-  // لبرنامج سدانة: التقييم الفني مكتبي بالكامل ولا يتطلب تقرير زيارة ميدانية
+  // لبرنامج سدانة: دراسة وتدقيق الاحتياج مكتبية في المرحلة الأولى ولا تتطلب تقارير مسبقة
   if (programType === 'sedana') {
-    if (key === 'field_visit_to_technical_eval' || key === 'initial_review_to_technical_eval') {
+    if (
+      key === 'submitted_to_boq_preparation' ||
+      key === 'initial_review_to_boq_preparation' ||
+      key === 'technical_eval_to_boq_preparation' ||
+      key === 'field_visit_to_technical_eval' ||
+      key === 'initial_review_to_technical_eval'
+    ) {
       return [];
     }
   }
@@ -1242,17 +1253,15 @@ export const FAST_RESPONSE_WORKFLOW = [
 ] as const;
 
 // مسار سدانة (Sedana Workflow)
-// يتخطى مرحلة الزيارة الميدانية ويعتمد على التقييم المكتبي المباشر
+// يتخطى مرحلة الزيارة الميدانية والتقييم الفني المنفصل، ويبدأ بدراسة وتدقيق الاحتياج المكتبي في أول مرحلة
 export const SEDANA_WORKFLOW = [
-  { id: "submitted", label: "تقديم الطلب", order: 1 },
-  { id: "initial_review", label: "المراجعة الأولية", order: 2 },
-  { id: "technical_eval", label: "التقييم المكتبي", order: 3 },
-  { id: "boq_preparation", label: "جدول الكميات", order: 4 },
-  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 5 },
-  { id: "contracting", label: "التعاقد", order: 6 },
-  { id: "execution", label: "التشغيل والتنفيذ", order: 7 },
-  { id: "handover", label: "الاستلام والتسليم", order: 8 },
-  { id: "closed", label: "الإغلاق", order: 9 },
+  { id: "submitted", label: "تقديم وتدقيق الطلب", order: 1 },
+  { id: "boq_preparation", label: "جدول الكميات", order: 2 },
+  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 3 },
+  { id: "contracting", label: "التعاقد", order: 4 },
+  { id: "execution", label: "التشغيل والتنفيذ", order: 5 },
+  { id: "handover", label: "الاستلام والتسليم", order: 6 },
+  { id: "closed", label: "الإغلاق", order: 7 },
 ] as const;
 
 // دالة لاختيار Workflow المناسب حسب نوع الطلب
