@@ -46,21 +46,24 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
   const existingApprovedPlan = programData.approvedPlan;
   const isAlreadyApproved = Boolean(existingApprovedPlan?.approvedAt);
 
-  const mosqueCapacity = Number(request.mosque?.capacity) || Number(programData.actualWorshippers) || 150;
-  const mosqueArea = Number(request.mosque?.area) || Number(programData.mosqueArea) || 250;
-  const isConnectedToNetwork = programData.waterTankers?.isConnectedToNetwork ?? programData.isConnectedToWaterNetwork ?? true;
+  const mosqueArea = Number(programData.mosqueArea ?? request.mosque?.area ?? 250);
+  const worshippers = Number(programData.actualWorshippers ?? request.mosque?.capacity ?? 150);
+  const isConnectedToDesalination =
+    programData.isConnectedToDesalination !== undefined
+      ? Boolean(programData.isConnectedToDesalination)
+      : true;
 
   const evaluation = useMemo(() => {
     return evaluateSedanaNeeds(
       {
-        capacity: mosqueCapacity,
+        capacity: worshippers,
         area: mosqueArea,
-        actualWorshippers: programData.actualWorshippers,
-        isConnectedToWaterNetwork: isConnectedToNetwork,
+        actualWorshippers: worshippers,
+        isConnectedToDesalination,
       },
       programData
     );
-  }, [mosqueCapacity, mosqueArea, isConnectedToNetwork, programData]);
+  }, [worshippers, mosqueArea, isConnectedToDesalination, programData]);
 
   const [approvedQuantities, setApprovedQuantities] = useState<Record<string, number>>(() => {
     if (existingApprovedPlan?.approvedItems) {
@@ -74,7 +77,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
   });
 
   const [officeNotes, setOfficeNotes] = useState<string>(
-    existingApprovedPlan?.notes || 'تمت دراسة الاحتياج السنوي مكتبياً وضبط الكميات القياسية للمسجد.'
+    existingApprovedPlan?.notes || 'تمت دراسة الاحتياج السنوي مكتبياً ومطابقته لبيانات المسجد وضبط الكميات القياسية العادلة.'
   );
 
   const handleQuantityChange = (key: string, val: number) => {
@@ -115,7 +118,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
   const wasteAlerts = evaluation.items.filter((i) => i.status === 'waste' && i.warningMessage);
 
   return (
-    <div className="space-y-3.5 p-4 rounded-lg border border-border/80 bg-card text-right" dir="rtl">
+    <div className="space-y-3.5 p-4 rounded-xl border border-border/80 bg-card text-right" dir="rtl">
       {/* شريط العنوان والمواصفات */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-border/70 gap-2">
         <div>
@@ -123,7 +126,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             التقييم الفني المكتبي (سدانة)
           </h4>
           <p className="text-xs text-muted-foreground mt-0.5">
-            سعة المسجد: <strong className="text-foreground">{mosqueCapacity} مصلياً</strong> | المساحة: <strong className="text-foreground">{mosqueArea} م²</strong> | شبكة المياه: <strong className="text-foreground">{isConnectedToNetwork ? 'متصل' : 'غير متصل (وايت)'}</strong>
+            شبكة المياه (التحلية): <strong className={isConnectedToDesalination ? 'text-foreground' : 'text-amber-600'}>{isConnectedToDesalination ? 'متصل بالتحلية' : 'غير متصل (يتطلب صهاريج مياه)'}</strong>
           </p>
         </div>
 
@@ -147,7 +150,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             <span className="font-bold block">ملاحظات ضبط الكميات:</span>
             {wasteAlerts.map((item) => (
               <span key={item.key} className="block text-[11px] text-amber-800 dark:text-amber-300">
-                • {item.label}: المطلوب ({item.requestedQty} {item.unit}) يتجاوز المعيار القياسي المقترح ({item.standardQty} {item.unit}).
+                • {item.label}: المطلوب ({item.requestedQty} {item.unit}) يتجاوز المعيار القياسي لمسجد بهذا الحجم ({item.standardQty} {item.unit}).
               </span>
             ))}
           </AlertDescription>
@@ -159,7 +162,9 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
         <table className="w-full text-xs text-right">
           <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-semibold">
             <tr>
-              <th className="p-2">البند</th>
+              <th className="p-2">الصنف</th>
+              <th className="p-2">التصنيف</th>
+              <th className="p-2 text-center">دورية التوريد</th>
               <th className="p-2 text-center">الكمية المطلوبة</th>
               <th className="p-2 text-center">المعيار القياسي</th>
               <th className="p-2 w-28 text-center">الكمية المعتمدة</th>
@@ -174,13 +179,14 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                 <tr key={item.key} className={isWaste ? 'bg-amber-50/25 dark:bg-amber-950/10' : ''}>
                   <td className="p-2">
                     <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="text-[10px] text-muted-foreground block">{item.unit}</span>
                   </td>
+                  <td className="p-2 text-[11px] text-muted-foreground">{item.category}</td>
+                  <td className="p-2 text-center text-muted-foreground">{item.frequency || 'شهري'}</td>
                   <td className="p-2 text-center font-bold text-foreground">
-                    {item.requestedQty}
+                    {item.requestedQty} <span className="text-[10px] text-muted-foreground font-normal">{item.unit}</span>
                   </td>
                   <td className="p-2 text-center text-muted-foreground">
-                    {item.standardQty}
+                    {item.standardQty} <span className="text-[10px]">{item.unit}</span>
                   </td>
                   <td className="p-2 text-center">
                     {canEvaluate && !isAlreadyApproved ? (
@@ -192,7 +198,9 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                         className="h-7 text-xs text-center w-20 mx-auto"
                       />
                     ) : (
-                      <strong className="font-bold text-emerald-600">{approvedVal}</strong>
+                      <strong className="font-bold text-emerald-600">
+                        {approvedVal} {item.unit}
+                      </strong>
                     )}
                   </td>
                 </tr>
@@ -204,14 +212,14 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
 
       {/* ملاحظات الموظف */}
       <div>
-        <label className="text-xs font-medium text-foreground mb-1 block">ملاحظات التقييم</label>
+        <label className="text-xs font-medium text-foreground mb-1 block">ملاحظات التقييم المكتبي</label>
         <Textarea
           rows={2}
           value={officeNotes}
           onChange={(e) => setOfficeNotes(e.target.value)}
           disabled={!canEvaluate || isAlreadyApproved}
           className="text-xs resize-none"
-          placeholder="ملاحظات فنية حول الاحتياج..."
+          placeholder="ملاحظات فنية حول دراسة الاحتياج وضبط الكميات..."
         />
       </div>
 
