@@ -109,7 +109,7 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
             محضر الاعتماد الفني المكتبي
           </p>
           <p className="text-xs text-foreground leading-relaxed">
-            {approvedPlan.notes || 'تم اعتماد الاحتياج السنوي للمسجد وضبط الكميات القياسية العادلة.'}
+            {approvedPlan.notes || 'تم اعتماد الاحتياج السنوي للمسجد وتدقيق الكميات المطلوبة.'}
           </p>
         </div>
       )}
