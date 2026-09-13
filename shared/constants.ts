@@ -657,12 +657,12 @@ export function getNextStage(currentStage: string, track: 'standard' | 'quick_re
     return 'contracting';
   }
   if (programType === 'sedana') {
-    const sedanaStages = ['submitted', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
+    const sedanaStages = ['submitted', 'initial_review', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
     const currentIndex = sedanaStages.indexOf(currentStage);
     if (currentIndex >= 0 && currentIndex < sedanaStages.length - 1) {
       return sedanaStages[currentIndex + 1];
     }
-    if (currentStage === 'initial_review' || currentStage === 'technical_eval') {
+    if (currentStage === 'technical_eval') {
       return 'boq_preparation';
     }
     return null;
@@ -1253,15 +1253,16 @@ export const FAST_RESPONSE_WORKFLOW = [
 ] as const;
 
 // مسار سدانة (Sedana Workflow)
-// يتخطى مرحلة الزيارة الميدانية والتقييم الفني المنفصل، ويبدأ بدراسة وتدقيق الاحتياج المكتبي في أول مرحلة
+// يتخطى مرحلة الزيارة الميدانية والتقييم الفني المنفصل، ويبدأ بدراسة وتدقيق الاحتياج المكتبي
 export const SEDANA_WORKFLOW = [
-  { id: "submitted", label: "تقديم وتدقيق الطلب", order: 1 },
-  { id: "boq_preparation", label: "جدول الكميات", order: 2 },
-  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 3 },
-  { id: "contracting", label: "التعاقد", order: 4 },
-  { id: "execution", label: "التشغيل والتنفيذ", order: 5 },
-  { id: "handover", label: "الاستلام والتسليم", order: 6 },
-  { id: "closed", label: "الإغلاق", order: 7 },
+  { id: "submitted", label: "تقديم الطلب", order: 1 },
+  { id: "initial_review", label: "دراسة وتدقيق الاحتياج", order: 2 },
+  { id: "boq_preparation", label: "جدول الكميات", order: 3 },
+  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 4 },
+  { id: "contracting", label: "التعاقد", order: 5 },
+  { id: "execution", label: "التشغيل والتنفيذ", order: 6 },
+  { id: "handover", label: "الاستلام والتسليم", order: 7 },
+  { id: "closed", label: "الإغلاق", order: 8 },
 ] as const;
 
 // دالة لاختيار Workflow المناسب حسب نوع الطلب
