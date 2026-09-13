@@ -27,6 +27,15 @@ const stageSteps = [
   { key: "closed", label: "الإغلاق" },
 ];
 
+const sedanaStageSteps = [
+  { key: "submitted", label: "تقديم الطلب" },
+  { key: "initial_review", label: "الفرز والمراجعة" },
+  { key: "technical_eval", label: "التقييم المكتبي" },
+  { key: "financial_eval", label: "الاعتماد المالي" },
+  { key: "execution", label: "التشغيل والتنفيذ" },
+  { key: "closed", label: "الإغلاق" },
+];
+
 export default function TrackRequest() {
   const [requestNumber, setRequestNumber] = useState("");
   const [searchedNumber, setSearchedNumber] = useState("");
@@ -43,7 +52,8 @@ export default function TrackRequest() {
     }
   };
 
-  const currentStageIndex = request ? stageSteps.findIndex(s => s.key === request.currentStage) : -1;
+  const steps = request?.programType === 'sedana' ? sedanaStageSteps : stageSteps;
+  const currentStageIndex = request ? steps.findIndex(s => s.key === request.currentStage) : -1;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/5 to-background" dir="rtl">
@@ -165,7 +175,7 @@ export default function TrackRequest() {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
                   <div className="space-y-4 sm:space-y-5">
-                    {stageSteps.map((stage, index) => {
+                    {steps.map((stage, index) => {
                       const isCompleted = index < currentStageIndex;
                       const isCurrent = index === currentStageIndex;
                       return (
