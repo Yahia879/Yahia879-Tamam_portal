@@ -480,37 +480,58 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       }
 
       if (selectedService === 'sedana') {
+        const basket: any[] = formData.basketItems || [];
+        const findQty = (pattern: string, fallback: number) => {
+          const it = basket.find(b => b.name?.includes(pattern) || b.id?.includes(pattern));
+          return it ? Number(it.quantity) : fallback;
+        };
+
+        const cleanerItem = basket.find(b => b.id === 'cleaner' || b.name?.includes('عامل نظافة'));
+        const maintItem = basket.find(b => b.id === 'maintenance' || b.name?.includes('صيانة'));
+        const tankerItem = basket.find(b => b.id === 'water_tankers' || b.name?.includes('صهاريج'));
+
+        programData.basketItems = basket;
+        programData.isConnectedToDesalination = formData.isConnectedToDesalination !== undefined ? Boolean(formData.isConnectedToDesalination) : true;
+        programData.mosqueArea = Number(formData.mosqueArea) || (currentMosque?.area ? Number(currentMosque.area) : 250);
+        programData.actualWorshippers = Number(formData.actualWorshippers) || (currentMosque?.capacity ? Number(currentMosque.capacity) : 150);
+        programData.warehousePhoto = formData.warehousePhoto || (selectedFile ? selectedFile.name : '');
+
         programData.workforce = formData.workforce || {
-          hasFullTimeCleaner: false,
+          hasFullTimeCleaner: !!cleanerItem,
           cleanerSalary: 1500,
           cleanerNotes: '',
-          hasPeriodicMaintenanceReward: false,
+          hasPeriodicMaintenanceReward: !!maintItem,
           maintenanceRewardAmount: 500,
           maintenanceNotes: '',
         };
         programData.cleaningMaterials = formData.cleaningMaterials || {
-          liquidSoapQty: 12,
-          foamSoapQty: 24,
-          floorDisinfectantQty: 24,
-          trashBagsQty: 24,
-          tissuesQty: 120,
+          liquidSoapQty: findQty('صابون سائل', 12),
+          foamSoapQty: findQty('صابون رغوة', 24),
+          floorDisinfectantQty: findQty('مطهر', 24),
+          trashBagsQty: findQty('أكياس نفايات', 24),
+          tissuesQty: findQty('مناديل', 120),
         };
         programData.drinkingWater = formData.drinkingWater || {
-          cartonsQty: 240,
+          cartonsQty: findQty('مياه شرب', 240),
           schedule: 'monthly',
         };
         programData.waterTankers = formData.waterTankers || {
-          isConnectedToNetwork: true,
-          tankersQtyPerYear: 0,
+          isConnectedToNetwork: programData.isConnectedToDesalination,
+          tankersQtyPerYear: tankerItem ? Number(tankerItem.quantity) : 0,
           tankerSize: 'وايت عادي (19 طن)',
         };
         programData.aromaticEnvironment = formData.aromaticEnvironment || {
           enabled: true,
-          diffusersCount: Math.max(1, Math.round((currentMosque?.area ? Number(currentMosque.area) : 250) / 100)),
-          refillsPerYear: Math.max(2, Math.round((currentMosque?.area ? Number(currentMosque.area) : 250) / 100) * 2),
+          diffusersCount: findQty('أجهزة تعطير', Math.max(1, Math.round(Number(programData.mosqueArea) / 100))),
+          refillsPerYear: findQty('زيت عطري', Math.max(2, Math.round(Number(programData.mosqueArea) / 100) * 2)),
           schedule: 'every_6_months',
         };
-        programData.customItems = formData.customItems || [];
+        programData.customItems = basket.filter(b => b.isCustom).map(b => ({
+          id: b.id,
+          name: b.name,
+          quantity: b.quantity,
+          unit: b.unit,
+        }));
         programData.contractDurationMonths = 12;
         programData.tissuesQty = programData.cleaningMaterials.tissuesQty;
         programData.cartonsNeeded = programData.drinkingWater.cartonsQty;
@@ -1193,6 +1214,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     onFieldChange={handleFieldChange}
                     selectedMosque={currentMosque}
                     errors={errors}
+                    selectedFile={selectedFile}
+                    onSelectFile={setSelectedFile}
                   />
                 </div>
               )}
