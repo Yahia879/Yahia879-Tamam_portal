@@ -299,7 +299,7 @@ export function getStageLabel(stage: string, track?: string, programType?: strin
     return 'تقرير الاستجابة السريعة';
   }
   if (programType === 'sedana') {
-    if (stage === 'submitted') return 'تقديم وتدقيق الطلب';
+    if (stage === 'submitted') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'initial_review') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'technical_eval') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'execution') return 'التشغيل والتنفيذ';
