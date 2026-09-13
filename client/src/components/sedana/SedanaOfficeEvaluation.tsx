@@ -71,13 +71,13 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
     }
     const initial: Record<string, number> = {};
     evaluation.items.forEach((item) => {
-      initial[item.key] = item.status === 'waste' ? item.standardQty : item.requestedQty;
+      initial[item.key] = item.requestedQty;
     });
     return initial;
   });
 
   const [officeNotes, setOfficeNotes] = useState<string>(
-    existingApprovedPlan?.notes || 'تمت دراسة الاحتياج السنوي مكتبياً ومطابقته لبيانات المسجد وضبط الكميات القياسية العادلة.'
+    existingApprovedPlan?.notes || 'تمت دراسة ومراجعة الاحتياج السنوي مكتبياً واعتماد البنود والكميات.'
   );
 
   const handleQuantityChange = (key: string, val: number) => {
@@ -85,15 +85,6 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       ...prev,
       [key]: Math.max(0, val),
     }));
-  };
-
-  const handleApplyAllStandard = () => {
-    const updated: Record<string, number> = {};
-    evaluation.items.forEach((item) => {
-      updated[item.key] = item.standardQty;
-    });
-    setApprovedQuantities(updated);
-    toast.success('تم تطبيق الكميات القياسية العادلة');
   };
 
   const approveMutation = trpc.requests.approveSedanaEvaluation.useMutation({
@@ -129,18 +120,6 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             شبكة المياه (التحلية): <strong className={isConnectedToDesalination ? 'text-foreground' : 'text-amber-600'}>{isConnectedToDesalination ? 'متصل بالتحلية' : 'غير متصل (يتطلب صهاريج مياه)'}</strong>
           </p>
         </div>
-
-        {canEvaluate && !isAlreadyApproved && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleApplyAllStandard}
-            className="h-8 text-xs self-start sm:self-center font-normal"
-          >
-            تطبيق الكميات القياسية
-          </Button>
-        )}
       </div>
 
       {/* تنبيه الهدر إن وجد */}
@@ -172,7 +151,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
           </thead>
           <tbody className="divide-y divide-border/60">
             {evaluation.items.map((item) => {
-              const approvedVal = approvedQuantities[item.key] ?? item.standardQty;
+              const approvedVal = approvedQuantities[item.key] ?? item.requestedQty;
               const isWaste = item.status === 'waste';
 
               return (
