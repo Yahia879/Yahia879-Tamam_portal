@@ -1680,8 +1680,44 @@ export default function RequestDetailsNew() {
               </div>
             ) : (
               <div className="space-y-6">
-
-
+                {/* جدول دراسة وتدقيق الاحتياج السنوي لبرنامج سدانة - يظهر كأول عنصر في أول مرحلة */}
+                {request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage) && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
+                  <div className="space-y-4">
+                    <SedanaOfficeEvaluation 
+                      request={request as any} 
+                      onEvaluationComplete={() => {
+                        refetch();
+                      }} 
+                      canEvaluate={isManagementUser || (activeAction ? activeAction.canPerformAction : true)} 
+                    />
+                    
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-xs text-muted-foreground ml-auto">خيارات إدارية بديلة:</span>
+                      <button 
+                        className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-300"
+                        onClick={() => {
+                          setSelectedDecision('suspend');
+                          setShowTechnicalEvalDialog(true);
+                        }}
+                        disabled={technicalEvalMutation.isPending}
+                      >
+                        <PauseCircle className="w-3.5 h-3.5" />
+                        التعليق المؤقت
+                      </button>
+                      <button 
+                        className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-red-950/30 dark:border-red-900 dark:text-red-300"
+                        onClick={() => {
+                          setSelectedDecision('apologize');
+                          setShowTechnicalEvalDialog(true);
+                        }}
+                        disabled={technicalEvalMutation.isPending}
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        الاعتذار
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {activeAction && (
                   <>
@@ -1730,10 +1766,10 @@ export default function RequestDetailsNew() {
                           translatedAction.actionButton.openModal === 'quick_response_report'
                         )
                           ? {
-                              label: request.programType === 'sedana' && request.currentStage === 'initial_review'
+                              label: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                 ? "الانتقال لجدول الكميات"
                                 : translatedAction.actionButton.label,
-                              onClick: request.programType === 'sedana' && request.currentStage === 'initial_review'
+                              onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
                                 : (translatedAction.actionButton as any).onClick || handleStageTransition,
                               disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted),
@@ -1813,45 +1849,6 @@ export default function RequestDetailsNew() {
                     />
                   );
                 })()}
-              
-              {/* جدول التقييم والتدقيق المكتبي لبرنامج سدانة في أول مرحلة */}
-              {request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage) && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
-                <div className="space-y-4">
-                  <SedanaOfficeEvaluation 
-                    request={request as any} 
-                    onEvaluationComplete={() => {
-                      refetch();
-                    }} 
-                    canEvaluate={isManagementUser || (activeAction ? activeAction.canPerformAction : true)} 
-                  />
-                  
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-xs text-muted-foreground ml-auto">خيارات إدارية بديلة:</span>
-                    <button 
-                      className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-300"
-                      onClick={() => {
-                        setSelectedDecision('suspend');
-                        setShowTechnicalEvalDialog(true);
-                      }}
-                      disabled={technicalEvalMutation.isPending}
-                    >
-                      <PauseCircle className="w-3.5 h-3.5" />
-                      التعليق المؤقت
-                    </button>
-                    <button 
-                      className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-red-950/30 dark:border-red-900 dark:text-red-300"
-                      onClick={() => {
-                        setSelectedDecision('apologize');
-                        setShowTechnicalEvalDialog(true);
-                      }}
-                      disabled={technicalEvalMutation.isPending}
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      الاعتذار
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* قسم المراجعة الأولية لباقي البرامج */}
               {request.currentStage === 'initial_review' && request.programType !== 'sedana' && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
