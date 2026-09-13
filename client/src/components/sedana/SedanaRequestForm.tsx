@@ -69,7 +69,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
-          quantity: 24,
+          quantity: 0,
           unit: 'صهريج',
           frequency: 'شهري',
         };
@@ -103,7 +103,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customCategory, setCustomCategory] = useState<SedanaCategory>('أدوات المسجد العامة');
-  const [customQty, setCustomQty] = useState(1);
+  const [customQty, setCustomQty] = useState(0);
   const [customUnit, setCustomUnit] = useState('قطعة');
   const [customFreq, setCustomFreq] = useState<SedanaDeliveryFrequency>('ربع سنوي');
 
@@ -113,14 +113,14 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       id: 'custom_' + Date.now(),
       name: customName.trim(),
       category: customCategory,
-      quantity: Number(customQty) || 1,
+      quantity: Number(customQty) || 0,
       unit: customUnit.trim() || 'قطعة',
       frequency: customFreq,
       isCustom: true,
     };
     setBasketItems((prev) => [...prev, newItem]);
     setCustomName('');
-    setCustomQty(1);
+    setCustomQty(0);
     setShowAddCustom(false);
   };
 
@@ -245,10 +245,10 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                 <div className="flex gap-1">
                   <Input
                     type="number"
-                    min="1"
+                    min="0"
                     value={customQty}
                     onChange={(e) => setCustomQty(Number(e.target.value))}
-                    className="h-8 text-xs w-16"
+                    className="h-8 text-xs w-16 text-center"
                   />
                   <Input
                     value={customUnit}
@@ -320,7 +320,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                   <td className="p-2.5 text-center">
                     <Input
                       type="number"
-                      min="1"
+                      min="0"
                       value={item.quantity}
                       onChange={(e) =>
                         handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
@@ -367,14 +367,19 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         </div>
       </div>
 
-      {/* 3. حقل رفع صور مستودع المسجد الحالي */}
+      {/* 3. حقل رفع صور مستودع المسجد الحالي (اختياري) */}
       <div className="p-4 rounded-xl border border-border/80 bg-card space-y-3 shadow-xs">
         <div>
-          <h3 className="font-bold text-sm sm:text-base text-foreground">
-            صور مستودع المسجد الحالي (المرفقات)
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            يرجى إرفاق صور واضحة لمستودع المسجد أو خزانة الأدوات والمواد المتوفرة للمساعدة في دراسة الاحتياج بدقة
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-sm sm:text-base text-foreground">
+              صور مستودع المسجد الحالي (المرفقات)
+            </h3>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground border border-border/70">
+              اختياري
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            (اختياري - ليس إلزامياً) يمكنك إرفاق صور واضحة لمستودع المسجد أو خزانة الأدوات والمواد إن وُجدت للمساعدة في دراسة الاحتياج، أو المتابعة دون إرفاق
           </p>
         </div>
 
@@ -418,10 +423,10 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
             <p className="font-bold text-xs text-foreground">
-              اضغط لرفع صور مستودع المسجد أو اسحب الملف هنا
+              اضغط لرفع صور مستودع المسجد (اختياري) أو اسحب الملف هنا
             </p>
             <p className="text-[11px] text-muted-foreground mt-0.5">
-              يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت
+              اختياري - يدعم الصور (JPG, PNG, WEBP) ومستندات PDF بحد أقصى 10 ميجابايت
             </p>
           </div>
         )}

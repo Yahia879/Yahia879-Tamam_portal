@@ -144,7 +144,7 @@ describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
     const tanker = disconnectedItems.find((i: any) => i.id === 'water_tankers');
     expect(tanker).toBeDefined();
     expect(tanker.category).toBe('سقيا الماء');
-    expect(tanker.quantity).toBe(24);
+    expect(tanker.quantity).toBe(0);
     expect(tanker.frequency).toBe('شهري');
 
     // Evaluation with basket items

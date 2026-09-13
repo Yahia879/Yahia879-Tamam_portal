@@ -153,17 +153,17 @@ export function evaluateSedanaNeeds(
         maxStd = 12;
       }
 
-      const ratio = req > 0 && std > 0 ? Math.round((req / std) * 100) : req === 0 && std === 0 ? 100 : 999;
+      const ratio = req > 0 && std > 0 ? Math.round((req / std) * 100) : req === 0 ? 0 : 999;
       let status: 'fair' | 'moderate' | 'waste' = 'fair';
 
       if (std === 0 && req > 0) {
         status = 'waste';
-      } else if (req > maxStd * 2.2) {
+      } else if (req > 0 && req > maxStd * 2.2) {
         status = 'waste';
         if (!warningMsg) {
           warningMsg = `الكمية المطلوبة (${req}) تتجاوز المعدل القياسي لمسجد بسعة ${cap} ومساحة ${area} م² (${std} ${bItem.unit}).`;
         }
-      } else if (req > maxStd * 1.3) {
+      } else if (req > 0 && req > maxStd * 1.3) {
         status = 'moderate';
       }
 

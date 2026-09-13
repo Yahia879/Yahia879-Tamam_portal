@@ -505,14 +505,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           maintenanceNotes: '',
         };
         programData.cleaningMaterials = formData.cleaningMaterials || {
-          liquidSoapQty: findQty('صابون سائل', 12),
-          foamSoapQty: findQty('صابون رغوة', 24),
-          floorDisinfectantQty: findQty('مطهر', 24),
-          trashBagsQty: findQty('أكياس نفايات', 24),
-          tissuesQty: findQty('مناديل', 120),
+          liquidSoapQty: findQty('صابون سائل', 0),
+          foamSoapQty: findQty('صابون رغوة', 0),
+          floorDisinfectantQty: findQty('مطهر', 0),
+          trashBagsQty: findQty('أكياس نفايات', 0),
+          tissuesQty: findQty('مناديل', 0),
         };
         programData.drinkingWater = formData.drinkingWater || {
-          cartonsQty: findQty('مياه شرب', 240),
+          cartonsQty: findQty('مياه شرب', 0),
           schedule: 'monthly',
         };
         programData.waterTankers = formData.waterTankers || {
@@ -522,8 +522,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         };
         programData.aromaticEnvironment = formData.aromaticEnvironment || {
           enabled: true,
-          diffusersCount: findQty('أجهزة تعطير', Math.max(1, Math.round(Number(programData.mosqueArea) / 100))),
-          refillsPerYear: findQty('زيت عطري', Math.max(2, Math.round(Number(programData.mosqueArea) / 100) * 2)),
+          diffusersCount: findQty('أجهزة تعطير', 0),
+          refillsPerYear: findQty('زيت عطري', 0),
           schedule: 'every_6_months',
         };
         programData.customItems = basket.filter(b => b.isCustom).map(b => ({
