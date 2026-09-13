@@ -166,6 +166,7 @@ describe('Sedana Workflow - Simplified Direct Evaluation', () => {
     expect(sedanaWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(false);
     expect(sedanaWorkflow.map((s: any) => s.id)).toEqual([
       'submitted',
+      'initial_review',
       'boq_preparation',
       'financial_eval_and_approval',
       'contracting',
@@ -180,25 +181,31 @@ describe('Sedana Workflow - Simplified Direct Evaluation', () => {
     expect(standardWorkflow.some((s: any) => s.id === 'technical_eval')).toBe(true);
   });
 
-  it('should transition directly from submitted to boq_preparation for Sedana', () => {
-    const nextStage = getNextStage('submitted', 'standard', 'sedana');
-    expect(nextStage).toBe('boq_preparation');
+  it('should transition directly from submitted to initial_review and then to boq_preparation for Sedana', () => {
+    const nextStage1 = getNextStage('submitted', 'standard', 'sedana');
+    expect(nextStage1).toBe('initial_review');
 
-    // For standard requests, it must still be initial_review
-    const standardNextStage = getNextStage('submitted', 'standard');
-    expect(standardNextStage).toBe('initial_review');
+    const nextStage2 = getNextStage('initial_review', 'standard', 'sedana');
+    expect(nextStage2).toBe('boq_preparation');
+
+    // For standard requests, initial_review still transitions to field_visit
+    const standardNextStage = getNextStage('initial_review', 'standard');
+    expect(standardNextStage).toBe('field_visit');
   });
 
-  it('should require no prerequisites when transitioning from submitted to boq_preparation in Sedana', () => {
-    const prereqs = getPrerequisites('submitted', 'boq_preparation', 'standard', undefined, 'sedana');
-    expect(prereqs).toEqual([]);
+  it('should require no prerequisites when transitioning in Sedana', () => {
+    const prereqs1 = getPrerequisites('submitted', 'initial_review', 'standard', undefined, 'sedana');
+    expect(prereqs1).toEqual([]);
+
+    const prereqs2 = getPrerequisites('initial_review', 'boq_preparation', 'standard', undefined, 'sedana');
+    expect(prereqs2).toEqual([]);
   });
 
   it('should provide custom Arabic labels for Sedana stages', () => {
-    expect(getStageLabel('submitted', undefined, 'sedana')).toBe('تقديم وتدقيق الطلب');
+    expect(getStageLabel('initial_review', undefined, 'sedana')).toBe('دراسة وتدقيق الاحتياج');
     expect(getStageLabel('execution', undefined, 'sedana')).toBe('التشغيل والتنفيذ');
     // Standard requests should still have normal labels
-    expect(getStageLabel('submitted')).toBe('تقديم الطلب');
+    expect(getStageLabel('initial_review')).toBe('المراجعة الأولية');
     expect(getStageLabel('execution')).toBe('التنفيذ');
   });
 });
