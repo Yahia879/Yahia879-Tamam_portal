@@ -114,7 +114,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2.5 border-b border-border/70 gap-2">
         <div>
           <h4 className="font-bold text-sm text-foreground">
-            التقييم الفني المكتبي (سدانة)
+            دراسة وتدقيق الاحتياج السنوي (سدانة)
           </h4>
           <p className="text-xs text-muted-foreground mt-0.5">
             شبكة المياه (التحلية): <strong className={isConnectedToDesalination ? 'text-foreground' : 'text-amber-600'}>{isConnectedToDesalination ? 'متصل بالتحلية' : 'غير متصل (يتطلب صهاريج مياه)'}</strong>
