@@ -117,18 +117,12 @@ export function getActiveAction(
     allowedRoles = allowedQRRoles;
   }
 
-  // تخصيص لبرنامج سدانة: تخطي الزيارة الميدانية والانتقال مباشرة للتقييم المكتبي
+  // تخصيص لبرنامج سدانة: دراسة وتدقيق الاحتياج السنوي في أول مرحلة
   if (requestData?.programType === 'sedana') {
-    if (currentStage === 'initial_review') {
-      title = "المراجعة الأولية (سدانة)";
-      description = "راجع بيانات المسجد وبنود الباقة السنوية والمرفقات. بعد التحقق من اكتمالها، يمكنك الانتقال مباشرة للتقييم المكتبي.";
-      actionButton = {
-        label: "الانتقال للتقييم المكتبي",
-        nextStage: "technical_eval",
-      };
-    } else if (currentStage === 'technical_eval') {
-      title = "التقييم الفني المكتبي (سدانة)";
-      description = "مراجعة وتدقيق بنود سلة الاحتياجات السنوية واعتماد جدول الكميات بدون الحاجة لزيارة ميدانية.";
+    if (currentStage === 'submitted' || currentStage === 'initial_review' || currentStage === 'technical_eval') {
+      title = "دراسة وتدقيق الاحتياج السنوي (سدانة)";
+      description = "راجع بنود سلة الاحتياجات السنوية للمسجد واضبط الكميات المعتمدة في الجدول أدناه لاعتمادها والانتقال لجدول الكميات.";
+      actionButton = undefined; // زر الاعتماد والانتقال لجدول الكميات موجود ومخصص داخل جدول التقييم المكتبي أدناه
     }
   }
 
