@@ -294,9 +294,13 @@ export const STAGE_LABELS: Record<string, string> = {
 };
 
 // دالة للحصول على تسمية المرحلة مع دعم مسارات الطلبات
-export function getStageLabel(stage: string, track?: string): string {
+export function getStageLabel(stage: string, track?: string, programType?: string): string {
   if (stage === 'execution' && track === 'quick_response') {
     return 'تقرير الاستجابة السريعة';
+  }
+  if (programType === 'sedana') {
+    if (stage === 'technical_eval') return 'التقييم المكتبي';
+    if (stage === 'execution') return 'التشغيل والتنفيذ';
   }
   return STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage;
 }
@@ -651,7 +655,7 @@ export function getNextStage(currentStage: string, track: 'standard' | 'quick_re
     return 'contracting';
   }
   if (programType === 'sedana') {
-    const sedanaStages = ['submitted', 'initial_review', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
+    const sedanaStages = ['submitted', 'initial_review', 'technical_eval', 'boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'];
     const currentIndex = sedanaStages.indexOf(currentStage);
     if (currentIndex >= 0 && currentIndex < sedanaStages.length - 1) {
       return sedanaStages[currentIndex + 1];
@@ -1237,8 +1241,28 @@ export const FAST_RESPONSE_WORKFLOW = [
   { id: "closed", label: "الإغلاق", order: 6 },
 ] as const;
 
+// مسار سدانة (Sedana Workflow)
+// يتخطى مرحلة الزيارة الميدانية ويعتمد على التقييم المكتبي المباشر
+export const SEDANA_WORKFLOW = [
+  { id: "submitted", label: "تقديم الطلب", order: 1 },
+  { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+  { id: "technical_eval", label: "التقييم المكتبي", order: 3 },
+  { id: "boq_preparation", label: "جدول الكميات", order: 4 },
+  { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 5 },
+  { id: "contracting", label: "التعاقد", order: 6 },
+  { id: "execution", label: "التشغيل والتنفيذ", order: 7 },
+  { id: "handover", label: "الاستلام والتسليم", order: 8 },
+  { id: "closed", label: "الإغلاق", order: 9 },
+] as const;
+
 // دالة لاختيار Workflow المناسب حسب نوع الطلب
-export function getWorkflowForRequest(requestTrack: 'standard' | 'quick_response' | 'rejected') {
+export function getWorkflowForRequest(
+  requestTrack: 'standard' | 'quick_response' | 'rejected',
+  programType?: string
+) {
+  if (programType === 'sedana') {
+    return SEDANA_WORKFLOW;
+  }
   if (requestTrack === 'quick_response') {
     return FAST_RESPONSE_WORKFLOW;
   }
