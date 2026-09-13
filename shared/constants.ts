@@ -96,7 +96,7 @@ export const PROGRAMS = {
     key: 'sedana',
     name: 'سدانة',
     nameEn: 'Sedana',
-    description: 'خدمات التشغيل والنظافة',
+    description: 'عقد تشغيل ورعاية سنوي مستمر وشامل لمدة 12 شهراً',
     icon: 'Sparkles',
     color: '#0891B2', // سماوي
   },
@@ -646,9 +646,17 @@ export function canChangeStatus(userRole: string, action: string): boolean {
 }
 
 // الحصول على اسم المرحلة التالية (للمسار العادي)
-export function getNextStage(currentStage: string, track: 'standard' | 'quick_response' = 'standard'): string | null {
+export function getNextStage(currentStage: string, track: 'standard' | 'quick_response' = 'standard', programType?: string): string | null {
   if (currentStage === 'financial_eval_and_approval') {
     return 'contracting';
+  }
+  if (programType === 'sedana') {
+    const sedanaStages = ['submitted', 'initial_review', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
+    const currentIndex = sedanaStages.indexOf(currentStage);
+    if (currentIndex >= 0 && currentIndex < sedanaStages.length - 1) {
+      return sedanaStages[currentIndex + 1];
+    }
+    return null;
   }
   const standardStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'boq_preparation', 'financial_eval', 'quotation_approval', 'contracting', 'execution', 'handover', 'closed'];
   const quickResponseStages = ['submitted', 'initial_review', 'field_visit', 'technical_eval', 'execution', 'closed'];
@@ -1004,10 +1012,18 @@ export function getPrerequisites(
   currentStage: string,
   nextStage: string,
   requestTrack: string = 'standard',
-  technicalEvalDecision?: string
+  technicalEvalDecision?: string,
+  programType?: string
 ): StagePrerequisite[] {
   const key = `${currentStage}_to_${nextStage}`;
   
+  // لبرنامج سدانة: التقييم الفني مكتبي بالكامل ولا يتطلب تقرير زيارة ميدانية
+  if (programType === 'sedana') {
+    if (key === 'field_visit_to_technical_eval' || key === 'initial_review_to_technical_eval') {
+      return [];
+    }
+  }
+
   if (technicalEvalDecision === 'convert_to_donation') {
     if (currentStage === 'execution' && nextStage === 'closed') {
       return [];
