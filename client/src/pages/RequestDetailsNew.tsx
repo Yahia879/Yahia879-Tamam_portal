@@ -811,7 +811,7 @@ export default function RequestDetailsNew() {
     }
     
     // إذا لم يكن هناك redirectUrl، انتقل إلى المرحلة التالية
-    const nextStage = getNextStage(request.currentStage);
+    const nextStage = activeAction?.actionButton?.nextStage || getNextStage(request.currentStage, request.requestTrack || undefined, request.programType || undefined);
     if (!nextStage) {
       toast.error("لا توجد مرحلة تالية");
       return;
@@ -835,10 +835,9 @@ export default function RequestDetailsNew() {
     ? (request?.programType === 'sedana'
         ? [
             { id: "submitted", label: "تقديم الطلب", order: 1 },
-            { id: "initial_review", label: "المراجعة الأولية", order: 2 },
-            { id: "technical_eval", label: "التقييم المكتبي", order: 3 },
-            { id: "execution", label: "التشغيل والتنفيذ", order: 4 },
-            { id: "closed", label: "الإغلاق", order: 5 },
+            { id: "initial_review", label: "دراسة وتدقيق الاحتياج", order: 2 },
+            { id: "execution", label: "التشغيل والتنفيذ", order: 3 },
+            { id: "closed", label: "الإغلاق", order: 4 },
           ]
         : [
             { id: "submitted", label: "تقديم الطلب", order: 1 },
@@ -1732,12 +1731,12 @@ export default function RequestDetailsNew() {
                         )
                           ? {
                               label: request.programType === 'sedana' && request.currentStage === 'initial_review'
-                                ? "الانتقال للتقييم المكتبي"
+                                ? "الانتقال لجدول الكميات"
                                 : translatedAction.actionButton.label,
                               onClick: request.programType === 'sedana' && request.currentStage === 'initial_review'
-                                ? () => updateStageMutation.mutate({ requestId, newStage: 'technical_eval' as any })
+                                ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
                                 : (translatedAction.actionButton as any).onClick || handleStageTransition,
-                              disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && !request.reviewCompleted),
+                              disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted),
                             }
                           : undefined
                       }
