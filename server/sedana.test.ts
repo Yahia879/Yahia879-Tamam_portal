@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateSedanaNeeds } from '../client/src/components/sedana/sedanaBenchmarks';
+import { getDefaultBasketItems } from '../client/src/components/sedana/sedanaTypes';
 
 describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
   it('should detect excess waste when quantities exceed fair standard (e.g. 150 worshippers requesting 1000 cartons)', () => {
@@ -130,5 +131,29 @@ describe('Sedana Program - Benchmarks & Office Evaluation Engine', () => {
     const wasteEvaluation = evaluateSedanaNeeds(specs, wasteRequestedData);
     const wasteTankerEval = wasteEvaluation.items.find(i => i.key === 'tankersQtyPerYear');
     expect(wasteTankerEval?.status).toBe('waste');
+  });
+
+  it('should automatically activate water tankers when isConnectedToDesalination is false and evaluate basket items', () => {
+    // Connected to desalination
+    const connectedItems = getDefaultBasketItems(250, 150, true);
+    expect(connectedItems.some((i: any) => i.id === 'water_tankers')).toBe(false);
+
+    // Disconnected from desalination
+    const disconnectedItems = getDefaultBasketItems(250, 150, false);
+    const tanker = disconnectedItems.find((i: any) => i.id === 'water_tankers');
+    expect(tanker).toBeDefined();
+    expect(tanker.category).toBe('سقيا الماء');
+    expect(tanker.quantity).toBe(24);
+    expect(tanker.frequency).toBe('شهري');
+
+    // Evaluation with basket items
+    const evaluation = evaluateSedanaNeeds(
+      { capacity: 150, area: 250, isConnectedToDesalination: false },
+      { basketItems: disconnectedItems, isConnectedToDesalination: false }
+    );
+    expect(evaluation.items.length).toBe(disconnectedItems.length);
+    const evalTanker = evaluation.items.find(i => i.key === 'water_tankers');
+    expect(evalTanker).toBeDefined();
+    expect(evalTanker?.status).toBe('fair');
   });
 });
