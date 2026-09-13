@@ -1246,20 +1246,28 @@ export const requestsRouter = router({
       // تحديد المسار بناءً على نوع الطلب
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
       const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
+      const isSedana = request[0].programType === 'sedana';
+      const sedanaStages = ["submitted", "initial_review", "technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const stages = isQuickResponse 
         ? quickResponseStages 
         : isDonation 
           ? ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"] 
-          : standardStages;
+          : isSedana
+            ? sedanaStages
+            : standardStages;
       const currentIndex = stages.indexOf(oldStage);
       const newIndex = stages.indexOf(input.newStage);
       
       // السماح فقط بالتقدم للمرحلة التالية (وليس القفز)
       if (newIndex !== currentIndex + 1) {
-        throw new TRPCError({ 
-          code: "BAD_REQUEST", 
-          message: "يمكن فقط التحويل للمرحلة التالية مباشرة" 
-        });
+        if (isSedana && oldStage === 'field_visit' && input.newStage === 'technical_eval') {
+          // السماح بالانتقال من الزيارة الميدانية للتقييم الفني في حال كان الطلب قديم
+        } else {
+          throw new TRPCError({ 
+            code: "BAD_REQUEST", 
+            message: "يمكن فقط التحويل للمرحلة التالية مباشرة" 
+          });
+        }
       }
 
       // التحقق من شروط الدفعات للانتقال لمرحلة الاستلام
@@ -1341,7 +1349,13 @@ export const requestsRouter = router({
       const isCriticalTransition = criticalStages.includes(input.newStage);
       
       if (!input.skipPrerequisites || isCriticalTransition) {
-        const prerequisites = getPrerequisites(oldStage, input.newStage, requestTrack, request[0].technicalEvalDecision || undefined);
+        const prerequisites = getPrerequisites(
+          oldStage, 
+          input.newStage, 
+          requestTrack, 
+          request[0].technicalEvalDecision || undefined,
+          request[0].programType || undefined
+        );
         const missingPrerequisites: string[] = [];
 
         for (const prereq of prerequisites) {
@@ -2544,6 +2558,98 @@ export const requestsRouter = router({
       });
 
       return { success: true, requestId, requestNumber, message: "تم إنشاء طلب الاستجابة السريعة وإغلاقه بنجاح" };
+    }),
+
+  // اعتماد الاحتياج السنوي لبرنامج سدانة (التقييم الفني المكتبي)
+  approveSedanaEvaluation: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      approvedItems: z.record(z.string(), z.number()),
+      notes: z.string().optional(),
+      shouldAdvanceStage: z.boolean().default(true),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من الصلاحيات الإدارية
+      const allowedRoles = ['super_admin', 'system_admin', 'projects_office', 'general_manager', 'executive_director'];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لاعتماد الاحتياج الفني" });
+      }
+
+      // قراءة وتحديث programData
+      let currentProgramData: Record<string, any> = {};
+      try {
+        if (typeof request.programData === 'string') {
+          currentProgramData = JSON.parse(request.programData);
+        } else if (typeof request.programData === 'object' && request.programData !== null) {
+          currentProgramData = { ...request.programData };
+        }
+      } catch (e) {
+        currentProgramData = {};
+      }
+
+      // حفظ الخطة السنوية المعتمدة
+      const approvedPlan = {
+        approvedItems: input.approvedItems,
+        notes: input.notes || 'تم اعتماد الاحتياج السنوي عبر التقييم الفني المكتبي وفق المعايير القياسية.',
+        approvedBy: ctx.user.id,
+        approvedByName: ctx.user.name,
+        approvedAt: new Date().toISOString(),
+      };
+
+      currentProgramData.approvedPlan = approvedPlan;
+
+      const updateData: any = {
+        programData: currentProgramData,
+        technicalEvalDecision: 'convert_to_project',
+        technicalEvalJustification: input.notes || 'تم اعتماد خطة التشغيل والرعاية السنوية عبر التقييم الفني المكتبي الذكي.',
+      };
+
+      if (input.shouldAdvanceStage) {
+        if (['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(request.currentStage)) {
+          updateData.currentStage = 'boq_preparation';
+        }
+        updateData.status = 'in_progress';
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      // تسجيل التقييم الفني وتاريخ الطلب
+      try {
+        await db.insert(requestEvaluations).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          decision: 'convert_to_project',
+          justification: 'اعتماد الاحتياج السنوي المكتبي (سدانة)',
+          notes: input.notes || 'تم اعتماد الخطة التشغيلية السنوية من خلال التقييم الفني المكتبي',
+        });
+
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: request.currentStage,
+          toStage: updateData.currentStage || request.currentStage,
+          fromStatus: request.status,
+          toStatus: updateData.status || request.status,
+          action: 'technical_eval_convert_to_project',
+          notes: input.notes || 'تم اعتماد الاحتياج السنوي لبرنامج سدانة',
+        });
+      } catch (logErr) {
+        console.error("Evaluation log error:", logErr);
+      }
+
+      return {
+        success: true,
+        message: "تم اعتماد الاحتياج السنوي بنجاح",
+        approvedPlan,
+      };
     }),
 
   // التقييم الفني - الخيارات الأربعة
