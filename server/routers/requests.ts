@@ -1247,7 +1247,7 @@ export const requestsRouter = router({
       const isQuickResponse = requestTrack === 'quick_response' || request[0].technicalEvalDecision === 'quick_response';
       const isDonation = request[0].technicalEvalDecision === 'convert_to_donation';
       const isSedana = request[0].programType === 'sedana';
-      const sedanaStages = ["submitted", "initial_review", "technical_eval", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
+      const sedanaStages = ["submitted", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
       const stages = isQuickResponse 
         ? quickResponseStages 
         : isDonation 
@@ -1260,8 +1260,8 @@ export const requestsRouter = router({
       
       // السماح فقط بالتقدم للمرحلة التالية (وليس القفز)
       if (newIndex !== currentIndex + 1) {
-        if (isSedana && oldStage === 'field_visit' && input.newStage === 'technical_eval') {
-          // السماح بالانتقال من الزيارة الميدانية للتقييم الفني في حال كان الطلب قديم
+        if (isSedana && ['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(oldStage) && input.newStage === 'boq_preparation') {
+          // السماح بالانتقال المباشر لجدول الكميات في سدانة
         } else {
           throw new TRPCError({ 
             code: "BAD_REQUEST", 
