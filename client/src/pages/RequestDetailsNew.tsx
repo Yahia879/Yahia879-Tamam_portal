@@ -24,7 +24,7 @@ import { ProgressStepper } from "@/components/ProgressStepper";
 import { RequestDetailsModal } from "@/components/RequestDetailsModal";
 import { getActiveAction, getCompletedSteps, getProgressPercentage } from "@/lib/requestActions";
 import { BASE_ROLE_PERMISSIONS, hasRouteAccess } from "@/lib/routePermissions";
-import { WORKFLOW_STEPS, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, ROLE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
+import { WORKFLOW_STEPS, SEDANA_WORKFLOW, PROGRAM_LABELS, STATUS_LABELS, STAGE_LABELS, ROLE_LABELS, getStageLabel, AUDIT_ACTION_LABELS, TECHNICAL_EVAL_OPTIONS, TECHNICAL_EVAL_OPTION_LABELS, getWorkflowForRequest, canTransitionStage } from "../../../shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { MultiMosquesIcon } from "@/components/MultiMosquesIcon";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -116,24 +116,24 @@ export default function RequestDetailsNew() {
     return PROGRAM_LABELS[type as keyof typeof PROGRAM_LABELS] || type;
   };
 
-  const translateStage = (stage: string, track?: string) => {
+  const translateStage = (stage: string, track?: string, programType?: string) => {
     if (isEn) {
       const enStages: Record<string, string> = {
         submitted: "Submitted",
         initial_review: "Initial Review",
         field_visit: "Field Visit",
-        technical_eval: "Technical Evaluation",
+        technical_eval: programType === 'sedana' ? "Desk Evaluation" : "Technical Evaluation",
         boq_preparation: "BOQ Preparation",
         financial_eval_and_approval: "Financial Evaluation",
         quotation_approval: "Quotation Approval",
         contracting: "Contracting",
-        execution: "Execution",
+        execution: programType === 'sedana' ? "Annual Operation" : "Execution",
         handover: "Handover",
         closed: "Closed",
       };
       return enStages[stage] || stage;
     }
-    return getStageLabel(stage, track);
+    return getStageLabel(stage, track, programType);
   };
 
   const translateStatus = (status: string) => {
@@ -453,7 +453,7 @@ export default function RequestDetailsNew() {
   // Fetch field visit data for field_visit stage
   const { data: fieldVisit } = trpc.fieldVisits.getVisit.useQuery(
     { requestId },
-    { enabled: request?.currentStage === 'field_visit' }
+    { enabled: request?.currentStage === 'field_visit' && request?.programType !== 'sedana' }
   );
 
   // Fetch project data if request is converted to project
@@ -827,17 +827,28 @@ export default function RequestDetailsNew() {
     });
   };
 
-  // Get workflow based on request track
-  const rawWorkflow = request ? getWorkflowForRequest(request.requestTrack || 'standard') : WORKFLOW_STEPS;
+  // Get workflow based on request track & program type
+  const rawWorkflow = request
+    ? getWorkflowForRequest(request.requestTrack || 'standard', request.programType || undefined)
+    : WORKFLOW_STEPS;
   const workflow = request?.technicalEvalDecision === 'convert_to_donation'
-    ? [
-        { id: "submitted", label: "تقديم الطلب", order: 1 },
-        { id: "initial_review", label: "المراجعة الأولية", order: 2 },
-        { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
-        { id: "technical_eval", label: "التقييم الفني", order: 4 },
-        { id: "execution", label: "التنفيذ", order: 5 },
-        { id: "closed", label: "الإغلاق", order: 6 },
-      ]
+    ? (request?.programType === 'sedana'
+        ? [
+            { id: "submitted", label: "تقديم الطلب", order: 1 },
+            { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+            { id: "technical_eval", label: "التقييم المكتبي", order: 3 },
+            { id: "execution", label: "التشغيل والتنفيذ", order: 4 },
+            { id: "closed", label: "الإغلاق", order: 5 },
+          ]
+        : [
+            { id: "submitted", label: "تقديم الطلب", order: 1 },
+            { id: "initial_review", label: "المراجعة الأولية", order: 2 },
+            { id: "field_visit", label: "الزيارة الميدانية", order: 3 },
+            { id: "technical_eval", label: "التقييم الفني", order: 4 },
+            { id: "execution", label: "التنفيذ", order: 5 },
+            { id: "closed", label: "الإغلاق", order: 6 },
+          ]
+      )
     : rawWorkflow;
 
   // Get next stage
@@ -900,6 +911,7 @@ export default function RequestDetailsNew() {
         requestTrack: request.requestTrack,
         quickReports: request.quickReports,
         userPermissions,
+        programType: request.programType,
       });
 
   // تخصيص الإجراء النشط للمشروع المغلق أو المرفوض
@@ -1458,7 +1470,7 @@ export default function RequestDetailsNew() {
 
             {/* Progress Stepper */}
             <ProgressStepper
-              steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack || undefined) }))}
+              steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack || undefined, request.programType || undefined) }))}
               currentStep={request.currentStage}
               completedSteps={completedSteps}
             />
@@ -1696,6 +1708,7 @@ export default function RequestDetailsNew() {
                           : undefined
                       }
                       fieldReportButton={
+                        request.programType !== 'sedana' &&
                         !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
                         !['boq_preparation', 'financial_eval_and_approval', 'contracting', 'execution', 'handover', 'closed'].includes(request.currentStage) &&
                         !(isQuickResponse && (
@@ -1719,7 +1732,7 @@ export default function RequestDetailsNew() {
                         )
                           ? {
                               label: request.programType === 'sedana' && request.currentStage === 'initial_review'
-                                ? "الانتقال للتقييم الفني المكتبي"
+                                ? "الانتقال للتقييم المكتبي"
                                 : translatedAction.actionButton.label,
                               onClick: request.programType === 'sedana' && request.currentStage === 'initial_review'
                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'technical_eval' as any })
