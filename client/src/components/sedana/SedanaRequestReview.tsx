@@ -59,6 +59,7 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
               <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-semibold">
                 <tr>
                   <th className="p-2">الصنف</th>
+                  <th className="p-2">التصنيف</th>
                   <th className="p-2 text-center">الكمية السنوية</th>
                   <th className="p-2 text-center">الوحدة</th>
                   <th className="p-2 text-center">دورية التوريد</th>
@@ -89,6 +90,7 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
                         return null;
                       })()}
                     </td>
+                    <td className="p-2 text-muted-foreground text-[11px]">{item.category}</td>
                     <td className="p-2 text-center font-bold text-foreground font-mono">
                       {item.quantity}
                     </td>
