@@ -19,6 +19,7 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { SedanaRequestForm } from '@/components/sedana/SedanaRequestForm';
 import { SedanaRequestReview } from '@/components/sedana/SedanaRequestReview';
+import { getItemLimitForFrequency, SedanaBasketItem } from '@/components/sedana/sedanaTypes';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -423,6 +424,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           alert('يرجى اختيار المسجد للمتابعة');
           return;
         }
+
+        const basket: SedanaBasketItem[] = formData.basketItems || [];
+        const invalidItem = basket.find((item) => {
+          if (item.isCustom) return false;
+          const minLimit = getItemLimitForFrequency(item);
+          return minLimit !== undefined && minLimit > 0 && item.quantity < minLimit;
+        });
+
+        if (invalidItem) {
+          const minLimit = getItemLimitForFrequency(invalidItem);
+          alert(`كمية (${invalidItem.name}) أقل من الحد الأدنى المطلوب (${minLimit} ${invalidItem.unit})`);
+          return;
+        }
+
         setCurrentStep('review');
         return;
       }
