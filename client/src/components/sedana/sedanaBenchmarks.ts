@@ -169,7 +169,7 @@ export function evaluateSedanaNeeds(
 
       items.push({
         key: bItem.id,
-        category: bItem.category,
+        category: bItem.category || 'أدوات المسجد العامة',
         label: bItem.name,
         unit: bItem.unit,
         frequency: bItem.frequency,
