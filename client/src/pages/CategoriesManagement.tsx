@@ -486,22 +486,7 @@ export default function CategoriesManagement() {
                             )}
                             {selectedType === "sedana_items" && (
                               <>
-                                <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                                  <select
-                                    value={sedanaForm.category}
-                                    onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
-                                    dir="rtl"
-                                  >
-                                    <option value="العمالة">العمالة</option>
-                                    <option value="مواد النظافة">مواد النظافة</option>
-                                    <option value="المعطرات">المعطرات</option>
-                                    <option value="سقيا الماء">سقيا الماء</option>
-                                    <option value="البلاستيكيات">البلاستيكيات</option>
-                                    <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
-                                  </select>
-                                </div>
+
 
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
@@ -623,10 +608,8 @@ export default function CategoriesManagement() {
                               )}
                               {selectedType === "sedana_items" && (
                                 <>
-                                  <TableHead className="text-right">التصنيف</TableHead>
                                   <TableHead className="text-center">وحدة القياس</TableHead>
-                                  <TableHead className="text-center">دورية التوريد</TableHead>
-                                  <TableHead className="text-center">الحد الشهري</TableHead>
+                                  <TableHead className="text-center">حدود التوريد</TableHead>
                                   <TableHead className="text-center">الكمية السنوية</TableHead>
                                 </>
                               )}
@@ -657,10 +640,14 @@ export default function CategoriesManagement() {
                                 )}
                                 {selectedType === "sedana_items" && (
                                   <>
-                                    <TableCell className="text-muted-foreground">{value.metadata?.category || "أدوات المسجد العامة"}</TableCell>
                                     <TableCell className="text-center">{value.metadata?.unit || "قطعة"}</TableCell>
-                                    <TableCell className="text-center">{value.metadata?.frequency || "شهري"}</TableCell>
-                                    <TableCell className="text-center font-mono font-bold text-amber-600">{value.metadata?.monthlyLimit || "-"}</TableCell>
+                                     <TableCell className="text-center">
+                                       <div className="text-[11px] font-mono space-y-0.5">
+                                         <div>شهري: <span className="font-bold text-amber-600">{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</span></div>
+                                         <div>ربع سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</span></div>
+                                         <div>نصف سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</span></div>
+                                       </div>
+                                     </TableCell>
                                     <TableCell className="text-center font-mono font-bold">{value.metadata?.defaultQuantity ?? 0}</TableCell>
                                   </>
                                 )}
@@ -761,12 +748,8 @@ export default function CategoriesManagement() {
                             {selectedType === "sedana_items" && (
                               <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-dashed">
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">التصنيف:</span>
-                                  <span className="font-medium">{value.metadata?.category || "أدوات المسجد العامة"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground block text-[10px]">الوحدة والدورية:</span>
-                                  <span className="font-medium">{value.metadata?.unit || "قطعة"} ({value.metadata?.frequency || "شهري"})</span>
+                                  <span className="text-muted-foreground block text-[10px]">الوحدة:</span>
+                                  <span className="font-medium">{value.metadata?.unit || "قطعة"}</span>
                                 </div>
                                  <div className="col-span-2">
                                    <span className="text-muted-foreground block text-[10px]">حدود التوريد:</span>
@@ -831,22 +814,7 @@ export default function CategoriesManagement() {
               )}
               {selectedType === "sedana_items" && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                    <select
-                      value={sedanaForm.category}
-                      onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
-                      dir="rtl"
-                    >
-                      <option value="العمالة">العمالة</option>
-                      <option value="مواد النظافة">مواد النظافة</option>
-                      <option value="المعطرات">المعطرات</option>
-                      <option value="سقيا الماء">سقيا الماء</option>
-                      <option value="البلاستيكيات">البلاستيكيات</option>
-                      <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
-                    </select>
-                  </div>
+
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
