@@ -99,7 +99,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
           periodLimits,
-          quantity: Number(meta.defaultQuantity) || 0,
+          quantity: 0,
           unit: meta.unit || 'قطعة',
           frequency: 'شهري' as SedanaDeliveryFrequency,
         };
