@@ -1,5 +1,5 @@
 import React from 'react';
-import { SedanaBasketItem } from './sedanaTypes';
+import { SedanaBasketItem, getItemLimitForFrequency } from './sedanaTypes';
 import { Paperclip, CheckCircle2 } from 'lucide-react';
 
 interface SedanaRequestReviewProps {
@@ -78,11 +78,17 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
                       {item.description && (
                         <p className="text-[10px] text-muted-foreground mt-0.5">{item.description}</p>
                       )}
-                      {item.monthlyLimit !== undefined && item.monthlyLimit > 0 && (
-                        <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
-                          الحد الشهري: <strong className="font-mono">{item.monthlyLimit}</strong> {item.unit}
-                        </div>
-                      )}
+                      {(() => {
+                        const activeLimit = getItemLimitForFrequency(item);
+                        if (activeLimit !== undefined && activeLimit > 0 && !item.isCustom) {
+                          return (
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
+                              الحد المسموح ({item.frequency}): <strong className="font-mono">{activeLimit}</strong> {item.unit}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                     <td className="p-2 text-muted-foreground text-[11px]">{item.category}</td>
                     <td className="p-2 text-center font-bold text-foreground font-mono">
