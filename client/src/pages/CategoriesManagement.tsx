@@ -529,7 +529,7 @@ export default function CategoriesManagement() {
                                     </select>
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium mb-1 text-right">الحد الشهري (اللمت)</label>
+                                    <label className="block text-xs font-medium mb-1 text-right">الحد الشهري</label>
                                     <Input
                                       type="number"
                                       min="0"
@@ -543,7 +543,7 @@ export default function CategoriesManagement() {
                                 </div>
 
                                 <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية الافتراضية</label>
+                                  <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
                                   <Input
                                     type="number"
                                     min="0"
@@ -598,7 +598,7 @@ export default function CategoriesManagement() {
                                   <TableHead className="text-right">التصنيف</TableHead>
                                   <TableHead className="text-center">وحدة القياس</TableHead>
                                   <TableHead className="text-center">دورية التوريد</TableHead>
-                                  <TableHead className="text-center">الحد الشهري (اللمت)</TableHead>
+                                  <TableHead className="text-center">الحد الشهري</TableHead>
                                   <TableHead className="text-center">الكمية السنوية</TableHead>
                                 </>
                               )}
@@ -745,7 +745,7 @@ export default function CategoriesManagement() {
                                 </div>
                                 {value.metadata?.monthlyLimit !== undefined && (
                                   <div className="col-span-2">
-                                    <span className="text-muted-foreground block text-[10px]">الحد الشهري (اللمت):</span>
+                                    <span className="text-muted-foreground block text-[10px]">الحد الشهري:</span>
                                     <span className="font-bold text-amber-600 font-mono">{value.metadata.monthlyLimit}</span>
                                   </div>
                                 )}
@@ -858,7 +858,7 @@ export default function CategoriesManagement() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-right">الحد الشهري (اللمت)</label>
+                      <label className="block text-xs font-medium mb-1 text-right">الحد الشهري</label>
                       <Input
                         type="number"
                         min="0"
@@ -872,7 +872,7 @@ export default function CategoriesManagement() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية الافتراضية</label>
+                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
                     <Input
                       type="number"
                       min="0"
