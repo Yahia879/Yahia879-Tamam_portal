@@ -11,7 +11,21 @@ export const categoriesRouter = router({
     const db = await getDb();
     if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-    return db.select().from(categories).where(eq(categories.isActive, true)).orderBy(categories.sortOrder);
+    const cats = await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(categories.sortOrder);
+    return cats.map(c => {
+      let metaObj = null;
+      if (c.metadata) {
+        try {
+          metaObj = typeof c.metadata === "string" ? JSON.parse(c.metadata) : c.metadata;
+        } catch (e) {
+          metaObj = null;
+        }
+      }
+      return {
+        ...c,
+        metadata: metaObj,
+      };
+    });
   }),
 
   // الحصول على تصنيف محدد مع قيم التابعة لنفس النوع
@@ -39,13 +53,26 @@ export const categoriesRouter = router({
 
       return {
         ...category[0],
-        values: values.map(v => ({
-          id: v.id,
-          value: v.name,
-          valueAr: v.nameAr,
-          sortOrder: v.sortOrder,
-          isActive: v.isActive,
-        })),
+        values: values.map(v => {
+          let metaObj = null;
+          if (v.metadata) {
+            try {
+              metaObj = typeof v.metadata === "string" ? JSON.parse(v.metadata) : v.metadata;
+            } catch (e) {
+              metaObj = null;
+            }
+          }
+          return {
+            id: v.id,
+            name: v.name,
+            nameAr: v.nameAr,
+            value: v.name,
+            valueAr: v.nameAr,
+            sortOrder: v.sortOrder,
+            isActive: v.isActive,
+            metadata: metaObj,
+          };
+        }),
       };
     }),
 
@@ -70,13 +97,26 @@ export const categoriesRouter = router({
         .where(and(eq(categories.type, category[0].type), eq(categories.isActive, true)))
         .orderBy(categories.sortOrder);
 
-      return values.map(v => ({
-        id: v.id,
-        value: v.name,
-        valueAr: v.nameAr,
-        sortOrder: v.sortOrder,
-        isActive: v.isActive,
-      }));
+      return values.map(v => {
+        let metaObj = null;
+        if (v.metadata) {
+          try {
+            metaObj = typeof v.metadata === "string" ? JSON.parse(v.metadata) : v.metadata;
+          } catch (e) {
+            metaObj = null;
+          }
+        }
+        return {
+          id: v.id,
+          name: v.name,
+          nameAr: v.nameAr,
+          value: v.name,
+          valueAr: v.nameAr,
+          sortOrder: v.sortOrder,
+          isActive: v.isActive,
+          metadata: metaObj,
+        };
+      });
     }),
 
   // الحصول على تصنيف حسب النوع
@@ -97,13 +137,26 @@ export const categoriesRouter = router({
         .where(and(eq(categories.type, typeQuery), eq(categories.isActive, true)))
         .orderBy(categories.sortOrder);
 
-      const values = cats.map(c => ({
-        id: c.id,
-        value: c.name,
-        valueAr: c.nameAr,
-        sortOrder: c.sortOrder,
-        isActive: c.isActive,
-      }));
+      const values = cats.map(c => {
+        let metaObj = null;
+        if (c.metadata) {
+          try {
+            metaObj = typeof c.metadata === "string" ? JSON.parse(c.metadata) : c.metadata;
+          } catch (e) {
+            metaObj = null;
+          }
+        }
+        return {
+          id: c.id,
+          name: c.name,
+          nameAr: c.nameAr,
+          value: c.name,
+          valueAr: c.nameAr,
+          sortOrder: c.sortOrder,
+          isActive: c.isActive,
+          metadata: metaObj,
+        };
+      });
 
       return {
         id: 0,
@@ -159,6 +212,7 @@ export const categoriesRouter = router({
         type: z.string().min(1, "نوع التصنيف مطلوب"),
         parentId: z.number().optional(),
         sortOrder: z.number().default(0),
+        metadata: z.any().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -175,12 +229,15 @@ export const categoriesRouter = router({
         }
       }
 
+      const metadataStr = input.metadata ? (typeof input.metadata === "string" ? input.metadata : JSON.stringify(input.metadata)) : null;
+
       await db.insert(categories).values({
         name: input.name,
         nameAr: input.nameAr,
         type: input.type,
         parentId: input.parentId,
         sortOrder: input.sortOrder,
+        metadata: metadataStr,
         isActive: true,
       });
 
@@ -205,6 +262,7 @@ export const categoriesRouter = router({
         type: z.string().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
+        metadata: z.any().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -221,12 +279,66 @@ export const categoriesRouter = router({
         }
       }
 
-      const { id, ...data } = input;
+      const { id, metadata, ...data } = input;
+      const updateData: any = { ...data };
+      if (metadata !== undefined) {
+        updateData.metadata = metadata ? (typeof metadata === "string" ? metadata : JSON.stringify(metadata)) : null;
+      }
 
-      await db.update(categories).set(data).where(eq(categories.id, id));
+      await db.update(categories).set(updateData).where(eq(categories.id, id));
 
       return { success: true };
     }),
+
+  // استيراد بنود سدانة الافتراضية بنقرة واحدة
+  seedSedanaDefaultItems: protectedProcedure.mutation(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    // التحقق من الصلاحيات
+    if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPermissions = await calculateUserPermissions(ctx.user.id);
+      const hasAddPerm = userPermissions.includes("settings_categories.add");
+      if (!hasAddPerm) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+    }
+
+    const defaultItems = [
+      { name: "cleaner", nameAr: "عامل نظافة متفرغ للمسجد", category: "العمالة", unit: "شهر", frequency: "شهري", defaultQuantity: 0, sortOrder: 1 },
+      { name: "maintenance", nameAr: "مكافأة صيانة دورية", category: "العمالة", unit: "شهر", frequency: "شهري", defaultQuantity: 0, sortOrder: 2 },
+      { name: "liquid_soap", nameAr: "صابون سائل للأيدي", category: "مواد النظافة", unit: "جالون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 3 },
+      { name: "foam_soap", nameAr: "صابون رغوة للمغاسل", category: "مواد النظافة", unit: "عبوة", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 4 },
+      { name: "floor_disinfectant", nameAr: "مطهر ومعقم أرضيات", category: "مواد النظافة", unit: "جالون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 5 },
+      { name: "diffusers", nameAr: "أجهزة تعطير ذكية", category: "المعطرات", unit: "جهاز", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 6 },
+      { name: "aroma_refills", nameAr: "عبوات زيت عطري فاخر", category: "المعطرات", unit: "عبوة", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 7 },
+      { name: "water_cartons", nameAr: "كراتين مياه شرب (330 مل)", category: "سقيا الماء", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 8 },
+      { name: "trash_bags", nameAr: "أكياس نفايات كبيرة (50 جالون)", category: "البلاستيكيات", unit: "كرتون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 9 },
+      { name: "plastic_cups", nameAr: "كاسات ماء بلاستيك", category: "البلاستيكيات", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 10 },
+      { name: "tissues", nameAr: "مناديل ورقية (سحب / رول)", category: "البلاستيكيات", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 11 },
+      { name: "cleaning_tools", nameAr: "طقم مكانس ومساحات أرضية", category: "أدوات المسجد العامة", unit: "طقم", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 12 },
+      { name: "mop_bucket", nameAr: "سطل وعصارة نظافة متحركة", category: "أدوات المسجد العامة", unit: "قطعة", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 13 },
+    ];
+
+    for (const item of defaultItems) {
+      await db.insert(categories).values({
+        name: item.name,
+        nameAr: item.nameAr,
+        type: "sedana_items",
+        sortOrder: item.sortOrder,
+        metadata: JSON.stringify({
+          category: item.category,
+          unit: item.unit,
+          frequency: item.frequency,
+          defaultQuantity: item.defaultQuantity,
+        }),
+        isActive: true,
+      });
+    }
+
+    return { success: true };
+  }),
 
   // حذف تصنيف (محمي)
   deleteCategory: protectedProcedure
