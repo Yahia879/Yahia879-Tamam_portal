@@ -361,9 +361,19 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
               {basketItems.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/15 transition-colors">
                   <td className="p-2.5 font-medium text-foreground">
-                    {item.name}
-                    {item.isCustom && (
-                      <span className="text-[10px] text-primary mr-1.5 font-normal">(مخصص)</span>
+                    <div>
+                      <span>{item.name}</span>
+                      {item.isCustom && (
+                        <span className="text-[10px] text-primary mr-1.5 font-normal">(مخصص)</span>
+                      )}
+                    </div>
+                    {item.description && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
+                    )}
+                    {item.monthlyLimit !== undefined && item.monthlyLimit > 0 && (
+                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
+                        الحد الشهري (اللمت): <strong className="font-mono">{item.monthlyLimit}</strong> {item.unit}
+                      </div>
                     )}
                   </td>
                   <td className="p-2.5">
