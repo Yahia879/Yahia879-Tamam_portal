@@ -10,7 +10,7 @@ export type SedanaDeliveryFrequency = 'شهري' | 'ربع سنوي' | 'نصف �
 
 export interface SedanaBasketItem {
   id: string;
-  category: SedanaCategory;
+  category?: SedanaCategory;
   name: string;
   description?: string;
   monthlyLimit?: number;
