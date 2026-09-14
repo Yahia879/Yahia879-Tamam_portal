@@ -372,7 +372,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                     )}
                     {item.monthlyLimit !== undefined && item.monthlyLimit > 0 && (
                       <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
-                        الحد الشهري (اللمت): <strong className="font-mono">{item.monthlyLimit}</strong> {item.unit}
+                        الحد الشهري: <strong className="font-mono">{item.monthlyLimit}</strong> {item.unit}
                       </div>
                     )}
                   </td>
