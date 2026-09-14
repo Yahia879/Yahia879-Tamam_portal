@@ -851,7 +851,7 @@ export default function RequestDetailsNew() {
     : rawWorkflow;
 
   // Get next stage
-  const getNextStage = (currentStage: string) => {
+  const getNextStage = (currentStage: string, _track?: string, _programType?: string) => {
     const currentIndex = workflow.findIndex((s) => s.id === currentStage);
     if (currentIndex === -1 || currentIndex === workflow.length - 1) return null;
     return workflow[currentIndex + 1].id;
