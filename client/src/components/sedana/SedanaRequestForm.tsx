@@ -10,6 +10,7 @@ import {
   SedanaDeliveryFrequency,
   SEDANA_CATEGORIES,
   DELIVERY_FREQUENCIES,
+  getItemLimitForFrequency,
 } from './sedanaTypes';
 
 interface SedanaRequestFormProps {
@@ -76,15 +77,22 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       isInitializedRef.current = true;
       const dbItems: SedanaBasketItem[] = sedanaCategoryData.values.map((v: any) => {
         const meta = v.metadata || {};
+        const periodLimits = meta.limits || {
+          'شهري': Number(meta.monthlyLimit) || 0,
+          'ربع سنوي': Number(meta.quarterlyLimit) || 0,
+          'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+        };
         return {
           id: `item_${v.id}`,
           category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
           name: v.valueAr || v.value,
-          description: meta.description || undefined,
-          monthlyLimit: meta.monthlyLimit !== undefined && meta.monthlyLimit !== null ? Number(meta.monthlyLimit) : undefined,
+          monthlyLimit: Number(meta.monthlyLimit) || 0,
+          quarterlyLimit: Number(meta.quarterlyLimit) || 0,
+          semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+          periodLimits,
           quantity: Number(meta.defaultQuantity) || 0,
           unit: meta.unit || 'قطعة',
-          frequency: (meta.frequency || 'شهري') as SedanaDeliveryFrequency,
+          frequency: 'شهري' as SedanaDeliveryFrequency,
         };
       });
 
@@ -156,6 +164,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   // إضافة بند مخصص
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [customName, setCustomName] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
   const [customCategory, setCustomCategory] = useState<SedanaCategory>('أدوات المسجد العامة');
   const [customQty, setCustomQty] = useState(0);
   const [customUnit, setCustomUnit] = useState('قطعة');
@@ -167,6 +176,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       id: 'custom_' + Date.now(),
       name: customName.trim(),
       category: customCategory,
+      description: customDescription.trim() || undefined,
       quantity: Number(customQty) || 0,
       unit: customUnit.trim() || 'قطعة',
       frequency: customFreq,
@@ -174,6 +184,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
     };
     updateBasketItems((prev) => [...prev, newItem]);
     setCustomName('');
+    setCustomDescription('');
     setCustomQty(0);
     setShowAddCustom(false);
   };
@@ -270,13 +281,22 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         {showAddCustom && (
           <div className="p-3 rounded-lg bg-muted/20 border border-primary/30 space-y-3 animate-in fade-in duration-150">
             <p className="text-xs font-bold text-foreground">إضافة صنف إضافي لسلة الاحتياجات</p>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
               <div className="sm:col-span-2">
-                <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف</Label>
+                <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الصنف *</Label>
                 <Input
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder="مثال: سجاد خارجي، معطر سجاد..."
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Label className="text-[11px] mb-1 block text-muted-foreground">الوصف / الملاحظات (اختياري)</Label>
+                <Input
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  placeholder="ملاحظات أو مواصفات البند..."
                   className="h-8 text-xs"
                 />
               </div>
@@ -293,24 +313,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <Label className="text-[11px] mb-1 block text-muted-foreground">الكمية والوحدة</Label>
-                <div className="flex gap-1">
-                  <Input
-                    type="number"
-                    min="0"
-                    value={customQty}
-                    onChange={(e) => setCustomQty(Number(e.target.value))}
-                    className="h-8 text-xs w-16 text-center"
-                  />
-                  <Input
-                    value={customUnit}
-                    onChange={(e) => setCustomUnit(e.target.value)}
-                    placeholder="قطعة"
-                    className="h-8 text-xs flex-1"
-                  />
-                </div>
               </div>
               <div>
                 <Label className="text-[11px] mb-1 block text-muted-foreground">دورية التوريد</Label>
@@ -370,11 +372,17 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                     {item.description && (
                       <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
                     )}
-                    {item.monthlyLimit !== undefined && item.monthlyLimit > 0 && (
-                      <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
-                        الحد الشهري: <strong className="font-mono">{item.monthlyLimit}</strong> {item.unit}
-                      </div>
-                    )}
+                    {(() => {
+                      const activeLimit = getItemLimitForFrequency(item);
+                      if (activeLimit !== undefined && activeLimit > 0 && !item.isCustom) {
+                        return (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
+                            الحد المسموح ({item.frequency}): <strong className="font-mono">{activeLimit}</strong> {item.unit}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </td>
                   <td className="p-2.5">
                     <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-muted/60 text-muted-foreground font-medium">
