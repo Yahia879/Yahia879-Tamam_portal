@@ -300,20 +300,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                   className="h-8 text-xs"
                 />
               </div>
-              <div>
-                <Label className="text-[11px] mb-1 block text-muted-foreground">التصنيف</Label>
-                <select
-                  value={customCategory}
-                  onChange={(e) => setCustomCategory(e.target.value as SedanaCategory)}
-                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
-                >
-                  {SEDANA_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
+
               <div>
                 <Label className="text-[11px] mb-1 block text-muted-foreground">دورية التوريد</Label>
                 <select
@@ -352,7 +339,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
               <tr>
                 <th className="p-2.5">اسم الصنف</th>
-                <th className="p-2.5">التصنيف</th>
                 <th className="p-2.5 w-28 text-center">الكمية السنوية</th>
                 <th className="p-2.5 w-24 text-center">وحدة القياس</th>
                 <th className="p-2.5 w-32 text-center">دورية التوريد</th>
@@ -383,11 +369,6 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                       }
                       return null;
                     })()}
-                  </td>
-                  <td className="p-2.5">
-                    <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-muted/60 text-muted-foreground font-medium">
-                      {item.category}
-                    </span>
                   </td>
                   <td className="p-2.5 text-center">
                     <Input
