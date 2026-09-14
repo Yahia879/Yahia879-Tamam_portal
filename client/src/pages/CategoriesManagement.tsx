@@ -19,10 +19,12 @@ interface Category {
   sortOrder: number | null;
   isActive: boolean | null;
   valuesCount?: number;
+  metadata?: any;
 }
 
 // تعريف أسماء التصنيفات بالعربية
 const categoryTypeNames: Record<string, string> = {
+  sedana_items: "أصناف خدمات سدانة",
   boq_category: "تصنيفات جداول الكميات",
   bank: "البنوك",
   city: "المدن",
@@ -52,6 +54,15 @@ export default function CategoriesManagement() {
   const [valueForm, setValueForm] = useState({
     name: "",
     nameAr: "",
+  });
+
+  const [sedanaForm, setSedanaForm] = useState({
+    category: "العمالة",
+    description: "",
+    monthlyLimit: 0,
+    unit: "شهر",
+    frequency: "شهري",
+    defaultQuantity: 0,
   });
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -121,7 +132,7 @@ export default function CategoriesManagement() {
   }, [allCategories]);
 
   // الحصول على أنواع التصنيفات الفريدة
-  const categoryTypes = ["boq_category", "bank", "city", "boq_unit", "funding_support", "donation_purposes", "main_projects", "sadad_billers"];
+  const categoryTypes = ["sedana_items", "boq_category", "bank", "city", "boq_unit", "funding_support", "donation_purposes", "main_projects", "sadad_billers"];
 
   const parentCategory = useMemo(() => {
     if (!selectedType) return null;
@@ -177,6 +188,16 @@ export default function CategoriesManagement() {
     },
   });
 
+  const seedSedanaMutation = trpc.categories.seedSedanaDefaultItems.useMutation({
+    onSuccess: () => {
+      toast.success("تم استيراد البنود الافتراضية بنجاح");
+      refetchCategories();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const handleAddValue = () => {
     if (!valueForm.nameAr || !selectedType) {
       toast.error("جميع الحقول مطلوبة");
@@ -192,6 +213,22 @@ export default function CategoriesManagement() {
         name: valueForm.name,
         nameAr: valueForm.nameAr,
         type: selectedType,
+      });
+    } else if (selectedType === "sedana_items") {
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      const generatedName = `sedana_${Date.now()}_${randomSuffix}`;
+      createCategoryMutation.mutate({
+        name: generatedName,
+        nameAr: valueForm.nameAr,
+        type: selectedType,
+        metadata: {
+          category: sedanaForm.category,
+          description: sedanaForm.description,
+          monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
+          unit: sedanaForm.unit,
+          frequency: sedanaForm.frequency,
+          defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
+        },
       });
     } else {
       // Generate a unique English identifier for the database
@@ -221,6 +258,20 @@ export default function CategoriesManagement() {
         nameAr: valueForm.nameAr,
         type: selectedType,
       });
+    } else if (selectedType === "sedana_items") {
+      updateCategoryMutation.mutate({
+        id: editingValue.id,
+        nameAr: valueForm.nameAr,
+        type: selectedType,
+        metadata: {
+          category: sedanaForm.category,
+          description: sedanaForm.description,
+          monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
+          unit: sedanaForm.unit,
+          frequency: sedanaForm.frequency,
+          defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
+        },
+      });
     } else {
       updateCategoryMutation.mutate({
         id: editingValue.id,
@@ -236,6 +287,14 @@ export default function CategoriesManagement() {
       name: "",
       nameAr: "",
     });
+    setSedanaForm({
+      category: "العمالة",
+      description: "",
+      monthlyLimit: 0,
+      unit: "شهر",
+      frequency: "شهري",
+      defaultQuantity: 0,
+    });
     setIsAddValueOpen(true);
   };
 
@@ -244,6 +303,15 @@ export default function CategoriesManagement() {
     setValueForm({
       name: value.name,
       nameAr: value.nameAr,
+    });
+    const meta = value.metadata || {};
+    setSedanaForm({
+      category: meta.category || "العمالة",
+      description: meta.description || "",
+      monthlyLimit: meta.monthlyLimit || 0,
+      unit: meta.unit || "شهر",
+      frequency: meta.frequency || "شهري",
+      defaultQuantity: meta.defaultQuantity || 0,
     });
     setIsEditValueOpen(true);
   };
@@ -393,10 +461,10 @@ export default function CategoriesManagement() {
                           <div className="space-y-4 py-4 text-right">
                             <div>
                               <label className="block text-sm font-medium mb-2 text-right">
-                                {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
+                                {selectedType === "sadad_billers" ? "اسم المفوتر *" : selectedType === "sedana_items" ? "اسم الصنف *" : "القيمة بالعربية *"}
                               </label>
                               <Input
-                                placeholder={selectedType === "sadad_billers" ? "مثال: الشركة السعودية للكهرباء" : "مثال: الرياض"}
+                                placeholder={selectedType === "sadad_billers" ? "مثال: الشركة السعودية للكهرباء" : selectedType === "sedana_items" ? "مثال: صابون سائل للأيدي" : "مثال: الرياض"}
                                 value={valueForm.nameAr}
                                 onChange={(e) => setValueForm({ ...valueForm, nameAr: e.target.value })}
                                 className="h-9 text-right"
@@ -414,6 +482,88 @@ export default function CategoriesManagement() {
                                   dir="rtl"
                                 />
                               </div>
+                            )}
+                            {selectedType === "sedana_items" && (
+                              <>
+                                <div>
+                                  <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
+                                  <select
+                                    value={sedanaForm.category}
+                                    onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
+                                    dir="rtl"
+                                  >
+                                    <option value="العمالة">العمالة</option>
+                                    <option value="مواد النظافة">مواد النظافة</option>
+                                    <option value="المعطرات">المعطرات</option>
+                                    <option value="سقيا الماء">سقيا الماء</option>
+                                    <option value="البلاستيكيات">البلاستيكيات</option>
+                                    <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium mb-1 text-right">وصف الصنف / الملاحظات</label>
+                                  <Input
+                                    placeholder="مثال: عامل نظافة براتب شهري ثابت..."
+                                    value={sedanaForm.description}
+                                    onChange={(e) => setSedanaForm({ ...sedanaForm, description: e.target.value })}
+                                    className="h-9 text-right"
+                                    dir="rtl"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1 text-right">وحدة القياس *</label>
+                                    <Input
+                                      placeholder="مثال: شهر"
+                                      value={sedanaForm.unit}
+                                      onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
+                                      className="h-9 text-right text-xs"
+                                      dir="rtl"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1 text-right">دورية التوريد *</label>
+                                    <select
+                                      value={sedanaForm.frequency}
+                                      onChange={(e) => setSedanaForm({ ...sedanaForm, frequency: e.target.value })}
+                                      className="w-full h-9 rounded-md border border-input bg-background px-1.5 text-xs text-right"
+                                      dir="rtl"
+                                    >
+                                      <option value="شهري">شهري</option>
+                                      <option value="ربع سنوي">ربع سنوي</option>
+                                      <option value="نصف سنوي">نصف سنوي</option>
+                                      <option value="سنوي">سنوي</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium mb-1 text-right">الحد الشهري (اللمت)</label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      placeholder="0"
+                                      value={sedanaForm.monthlyLimit}
+                                      onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
+                                      className="h-9 text-right font-mono text-xs"
+                                      dir="rtl"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية الافتراضية</label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={sedanaForm.defaultQuantity}
+                                    onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
+                                    className="h-9 text-right font-mono"
+                                    dir="rtl"
+                                  />
+                                </div>
+                              </>
                             )}
                           </div>
                           <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-start sm:justify-start">
@@ -433,10 +583,23 @@ export default function CategoriesManagement() {
                 </CardHeader>
                 <CardContent className="p-0">
                   {filteredValues.length === 0 ? (
-                    <div className="p-8 sm:p-12 text-center text-gray-500">
-                      <Tag className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 text-gray-300" />
+                    <div className="p-8 sm:p-12 text-center text-gray-500 space-y-3">
+                      <Tag className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300" />
                       <p className="font-medium text-sm sm:text-base">لا توجد قيم لهذا التصنيف</p>
-                      <p className="text-xs sm:text-sm mt-1">أضف قيماً جديدة باستخدام زر "إضافة قيمة"</p>
+                      <p className="text-xs sm:text-sm">أضف قيماً جديدة باستخدام زر "إضافة قيمة"</p>
+                      {selectedType === "sedana_items" && canAdd && (
+                        <div className="pt-2">
+                          <Button
+                            type="button"
+                            onClick={() => seedSedanaMutation.mutate()}
+                            disabled={seedSedanaMutation.isPending}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm font-bold gap-1.5"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>{seedSedanaMutation.isPending ? "جاري الاستيراد..." : "تعبئة البنود الافتراضية بنقرة واحدة"}</span>
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -448,10 +611,19 @@ export default function CategoriesManagement() {
                               {canEdit && <TableHead className="w-12 text-center"></TableHead>}
                               <TableHead className="text-right w-12">#</TableHead>
                               <TableHead className="text-right">
-                                {selectedType === "sadad_billers" ? "اسم المفوتر" : "القيمة بالعربية"}
+                                {selectedType === "sadad_billers" ? "اسم المفوتر" : selectedType === "sedana_items" ? "الصنف والوصف" : "القيمة بالعربية"}
                               </TableHead>
                               {selectedType === "sadad_billers" && (
                                 <TableHead className="text-right">رمز/رقم المفوتر</TableHead>
+                              )}
+                              {selectedType === "sedana_items" && (
+                                <>
+                                  <TableHead className="text-right">التصنيف</TableHead>
+                                  <TableHead className="text-center">وحدة القياس</TableHead>
+                                  <TableHead className="text-center">دورية التوريد</TableHead>
+                                  <TableHead className="text-center">الحد الشهري (اللمت)</TableHead>
+                                  <TableHead className="text-center">الكمية السنوية</TableHead>
+                                </>
                               )}
                               <TableHead className="w-24 text-center">الإجراءات</TableHead>
                             </TableRow>
@@ -472,9 +644,23 @@ export default function CategoriesManagement() {
                                   </TableCell>
                                 )}
                                 <TableCell className="text-gray-500">{index + 1}</TableCell>
-                                <TableCell className="font-medium">{value.nameAr}</TableCell>
+                                <TableCell>
+                                  <div className="font-medium">{value.nameAr}</div>
+                                  {selectedType === "sedana_items" && value.metadata?.description && (
+                                    <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">{value.metadata.description}</div>
+                                  )}
+                                </TableCell>
                                 {selectedType === "sadad_billers" && (
                                   <TableCell className="font-mono">{value.name}</TableCell>
+                                )}
+                                {selectedType === "sedana_items" && (
+                                  <>
+                                    <TableCell className="text-muted-foreground">{value.metadata?.category || "أدوات المسجد العامة"}</TableCell>
+                                    <TableCell className="text-center">{value.metadata?.unit || "قطعة"}</TableCell>
+                                    <TableCell className="text-center">{value.metadata?.frequency || "شهري"}</TableCell>
+                                    <TableCell className="text-center font-mono font-bold text-amber-600">{value.metadata?.monthlyLimit || "-"}</TableCell>
+                                    <TableCell className="text-center font-mono font-bold">{value.metadata?.defaultQuantity ?? 0}</TableCell>
+                                  </>
                                 )}
                                 <TableCell>
                                   <div className="flex items-center justify-center gap-1">
@@ -557,14 +743,35 @@ export default function CategoriesManagement() {
                             </div>
                             <div>
                               <p className="text-[10px] text-gray-500 mb-0.5">
-                                {selectedType === "sadad_billers" ? "اسم المفوتر" : "بالعربية"}
+                                {selectedType === "sadad_billers" ? "اسم المفوتر" : selectedType === "sedana_items" ? "اسم الصنف" : "بالعربية"}
                               </p>
                               <p className="text-sm font-bold">{value.nameAr}</p>
+                              {selectedType === "sedana_items" && value.metadata?.description && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{value.metadata.description}</p>
+                              )}
                             </div>
                             {selectedType === "sadad_billers" && (
                               <div>
                                 <p className="text-[10px] text-gray-500 mb-0.5">رمز/رقم المفوتر</p>
                                 <p className="text-sm font-mono font-bold">{value.name}</p>
+                              </div>
+                            )}
+                            {selectedType === "sedana_items" && (
+                              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-dashed">
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">التصنيف:</span>
+                                  <span className="font-medium">{value.metadata?.category || "أدوات المسجد العامة"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block text-[10px]">الوحدة والدورية:</span>
+                                  <span className="font-medium">{value.metadata?.unit || "قطعة"} ({value.metadata?.frequency || "شهري"})</span>
+                                </div>
+                                {value.metadata?.monthlyLimit !== undefined && (
+                                  <div className="col-span-2">
+                                    <span className="text-muted-foreground block text-[10px]">الحد الشهري (اللمت):</span>
+                                    <span className="font-bold text-amber-600 font-mono">{value.metadata.monthlyLimit}</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -598,7 +805,7 @@ export default function CategoriesManagement() {
             <div className="space-y-4 py-4 text-right">
               <div>
                 <label className="block text-sm font-medium mb-2 text-right">
-                  {selectedType === "sadad_billers" ? "اسم المفوتر *" : "القيمة بالعربية *"}
+                  {selectedType === "sadad_billers" ? "اسم المفوتر *" : selectedType === "sedana_items" ? "اسم الصنف *" : "القيمة بالعربية *"}
                 </label>
                 <Input
                   value={valueForm.nameAr}
@@ -617,6 +824,88 @@ export default function CategoriesManagement() {
                     dir="rtl"
                   />
                 </div>
+              )}
+              {selectedType === "sedana_items" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
+                    <select
+                      value={sedanaForm.category}
+                      onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
+                      dir="rtl"
+                    >
+                      <option value="العمالة">العمالة</option>
+                      <option value="مواد النظافة">مواد النظافة</option>
+                      <option value="المعطرات">المعطرات</option>
+                      <option value="سقيا الماء">سقيا الماء</option>
+                      <option value="البلاستيكيات">البلاستيكيات</option>
+                      <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-right">وصف الصنف / الملاحظات</label>
+                    <Input
+                      placeholder="مثال: عامل نظافة براتب شهري ثابت..."
+                      value={sedanaForm.description}
+                      onChange={(e) => setSedanaForm({ ...sedanaForm, description: e.target.value })}
+                      className="h-9 text-right"
+                      dir="rtl"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-right">وحدة القياس *</label>
+                      <Input
+                        placeholder="مثال: شهر"
+                        value={sedanaForm.unit}
+                        onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
+                        className="h-9 text-right text-xs"
+                        dir="rtl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-right">دورية التوريد *</label>
+                      <select
+                        value={sedanaForm.frequency}
+                        onChange={(e) => setSedanaForm({ ...sedanaForm, frequency: e.target.value })}
+                        className="w-full h-9 rounded-md border border-input bg-background px-1.5 text-xs text-right"
+                        dir="rtl"
+                      >
+                        <option value="شهري">شهري</option>
+                        <option value="ربع سنوي">ربع سنوي</option>
+                        <option value="نصف سنوي">نصف سنوي</option>
+                        <option value="سنوي">سنوي</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-right">الحد الشهري (اللمت)</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={sedanaForm.monthlyLimit}
+                        onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
+                        className="h-9 text-right font-mono text-xs"
+                        dir="rtl"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية الافتراضية</label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={sedanaForm.defaultQuantity}
+                      onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
+                      className="h-9 text-right font-mono"
+                      dir="rtl"
+                    />
+                  </div>
+                </>
               )}
             </div>
             <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-start sm:justify-start">
