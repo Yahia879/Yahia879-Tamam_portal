@@ -58,10 +58,10 @@ export default function CategoriesManagement() {
 
   const [sedanaForm, setSedanaForm] = useState({
     category: "العمالة",
-    description: "",
     monthlyLimit: 0,
+    quarterlyLimit: 0,
+    semiAnnualLimit: 0,
     unit: "شهر",
-    frequency: "شهري",
     defaultQuantity: 0,
   });
 
@@ -213,10 +213,15 @@ export default function CategoriesManagement() {
         type: selectedType,
         metadata: {
           category: sedanaForm.category,
-          description: sedanaForm.description,
           monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
+          quarterlyLimit: Number(sedanaForm.quarterlyLimit) || 0,
+          semiAnnualLimit: Number(sedanaForm.semiAnnualLimit) || 0,
+          limits: {
+            'شهري': Number(sedanaForm.monthlyLimit) || 0,
+            'ربع سنوي': Number(sedanaForm.quarterlyLimit) || 0,
+            'نصف سنوي': Number(sedanaForm.semiAnnualLimit) || 0,
+          },
           unit: sedanaForm.unit,
-          frequency: sedanaForm.frequency,
           defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
         },
       });
@@ -255,10 +260,15 @@ export default function CategoriesManagement() {
         type: selectedType,
         metadata: {
           category: sedanaForm.category,
-          description: sedanaForm.description,
           monthlyLimit: Number(sedanaForm.monthlyLimit) || 0,
+          quarterlyLimit: Number(sedanaForm.quarterlyLimit) || 0,
+          semiAnnualLimit: Number(sedanaForm.semiAnnualLimit) || 0,
+          limits: {
+            'شهري': Number(sedanaForm.monthlyLimit) || 0,
+            'ربع سنوي': Number(sedanaForm.quarterlyLimit) || 0,
+            'نصف سنوي': Number(sedanaForm.semiAnnualLimit) || 0,
+          },
           unit: sedanaForm.unit,
-          frequency: sedanaForm.frequency,
           defaultQuantity: Number(sedanaForm.defaultQuantity) || 0,
         },
       });
@@ -279,10 +289,10 @@ export default function CategoriesManagement() {
     });
     setSedanaForm({
       category: "العمالة",
-      description: "",
       monthlyLimit: 0,
+      quarterlyLimit: 0,
+      semiAnnualLimit: 0,
       unit: "شهر",
-      frequency: "شهري",
       defaultQuantity: 0,
     });
     setIsAddValueOpen(true);
@@ -295,12 +305,13 @@ export default function CategoriesManagement() {
       nameAr: value.nameAr,
     });
     const meta = value.metadata || {};
+    const limits = meta.limits || {};
     setSedanaForm({
       category: meta.category || "العمالة",
-      description: meta.description || "",
-      monthlyLimit: meta.monthlyLimit || 0,
+      monthlyLimit: limits['شهري'] ?? (meta.monthlyLimit || 0),
+      quarterlyLimit: limits['ربع سنوي'] ?? (meta.quarterlyLimit || 0),
+      semiAnnualLimit: limits['نصف سنوي'] ?? (meta.semiAnnualLimit || 0),
       unit: meta.unit || "شهر",
-      frequency: meta.frequency || "شهري",
       defaultQuantity: meta.defaultQuantity || 0,
     });
     setIsEditValueOpen(true);
@@ -492,20 +503,9 @@ export default function CategoriesManagement() {
                                   </select>
                                 </div>
 
-                                <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">وصف الصنف / الملاحظات</label>
-                                  <Input
-                                    placeholder="مثال: عامل نظافة براتب شهري ثابت..."
-                                    value={sedanaForm.description}
-                                    onChange={(e) => setSedanaForm({ ...sedanaForm, description: e.target.value })}
-                                    className="h-9 text-right"
-                                    dir="rtl"
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 gap-3">
                                   <div>
-                                    <label className="block text-xs font-medium mb-1 text-right">وحدة القياس *</label>
+                                    <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
                                     <Input
                                       placeholder="مثال: شهر"
                                       value={sedanaForm.unit}
@@ -515,43 +515,71 @@ export default function CategoriesManagement() {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-xs font-medium mb-1 text-right">دورية التوريد *</label>
-                                    <select
-                                      value={sedanaForm.frequency}
-                                      onChange={(e) => setSedanaForm({ ...sedanaForm, frequency: e.target.value })}
-                                      className="w-full h-9 rounded-md border border-input bg-background px-1.5 text-xs text-right"
-                                      dir="rtl"
-                                    >
-                                      <option value="شهري">شهري</option>
-                                      <option value="ربع سنوي">ربع سنوي</option>
-                                      <option value="نصف سنوي">نصف سنوي</option>
-                                      <option value="سنوي">سنوي</option>
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium mb-1 text-right">الحد الشهري</label>
+                                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
                                     <Input
                                       type="number"
                                       min="0"
-                                      placeholder="0"
-                                      value={sedanaForm.monthlyLimit}
-                                      onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
-                                      className="h-9 text-right font-mono text-xs"
+                                      value={sedanaForm.defaultQuantity}
+                                      onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
+                                      className="h-9 text-right font-mono"
                                       dir="rtl"
                                     />
                                   </div>
                                 </div>
 
-                                <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    value={sedanaForm.defaultQuantity}
-                                    onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
-                                    className="h-9 text-right font-mono"
-                                    dir="rtl"
-                                  />
+                                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 text-right">
+                                    حدود التوريد (الحد المسموح لكل فترة):
+                                  </label>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                      <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">1. شهري:</span>
+                                      <div className="flex-1 flex items-center gap-1.5">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          placeholder="0"
+                                          value={sedanaForm.monthlyLimit}
+                                          onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
+                                          className="h-8 text-right font-mono text-xs"
+                                          dir="rtl"
+                                        />
+                                        <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                      <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">2. ربع سنوي:</span>
+                                      <div className="flex-1 flex items-center gap-1.5">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          placeholder="0"
+                                          value={sedanaForm.quarterlyLimit}
+                                          onChange={(e) => setSedanaForm({ ...sedanaForm, quarterlyLimit: Number(e.target.value) })}
+                                          className="h-8 text-right font-mono text-xs"
+                                          dir="rtl"
+                                        />
+                                        <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 text-xs">
+                                      <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">3. نصف سنوي:</span>
+                                      <div className="flex-1 flex items-center gap-1.5">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          placeholder="0"
+                                          value={sedanaForm.semiAnnualLimit}
+                                          onChange={(e) => setSedanaForm({ ...sedanaForm, semiAnnualLimit: Number(e.target.value) })}
+                                          className="h-8 text-right font-mono text-xs"
+                                          dir="rtl"
+                                        />
+                                        <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                               </>
                             )}
@@ -623,9 +651,6 @@ export default function CategoriesManagement() {
                                 <TableCell className="text-gray-500">{index + 1}</TableCell>
                                 <TableCell>
                                   <div className="font-medium">{value.nameAr}</div>
-                                  {selectedType === "sedana_items" && value.metadata?.description && (
-                                    <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">{value.metadata.description}</div>
-                                  )}
                                 </TableCell>
                                 {selectedType === "sadad_billers" && (
                                   <TableCell className="font-mono">{value.name}</TableCell>
@@ -743,12 +768,14 @@ export default function CategoriesManagement() {
                                   <span className="text-muted-foreground block text-[10px]">الوحدة والدورية:</span>
                                   <span className="font-medium">{value.metadata?.unit || "قطعة"} ({value.metadata?.frequency || "شهري"})</span>
                                 </div>
-                                {value.metadata?.monthlyLimit !== undefined && (
-                                  <div className="col-span-2">
-                                    <span className="text-muted-foreground block text-[10px]">الحد الشهري:</span>
-                                    <span className="font-bold text-amber-600 font-mono">{value.metadata.monthlyLimit}</span>
-                                  </div>
-                                )}
+                                 <div className="col-span-2">
+                                   <span className="text-muted-foreground block text-[10px]">حدود التوريد:</span>
+                                   <div className="text-[11px] font-mono space-y-0.5 text-amber-600">
+                                     <span>شهري: <strong>{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</strong></span> | 
+                                     <span> ربع سنوي: <strong>{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</strong></span> | 
+                                     <span> نصف سنوي: <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong></span>
+                                   </div>
+                                 </div>
                               </div>
                             )}
                           </div>
@@ -821,20 +848,9 @@ export default function CategoriesManagement() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-right">وصف الصنف / الملاحظات</label>
-                    <Input
-                      placeholder="مثال: عامل نظافة براتب شهري ثابت..."
-                      value={sedanaForm.description}
-                      onChange={(e) => setSedanaForm({ ...sedanaForm, description: e.target.value })}
-                      className="h-9 text-right"
-                      dir="rtl"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-right">وحدة القياس *</label>
+                      <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
                       <Input
                         placeholder="مثال: شهر"
                         value={sedanaForm.unit}
@@ -844,43 +860,71 @@ export default function CategoriesManagement() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1 text-right">دورية التوريد *</label>
-                      <select
-                        value={sedanaForm.frequency}
-                        onChange={(e) => setSedanaForm({ ...sedanaForm, frequency: e.target.value })}
-                        className="w-full h-9 rounded-md border border-input bg-background px-1.5 text-xs text-right"
-                        dir="rtl"
-                      >
-                        <option value="شهري">شهري</option>
-                        <option value="ربع سنوي">ربع سنوي</option>
-                        <option value="نصف سنوي">نصف سنوي</option>
-                        <option value="سنوي">سنوي</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1 text-right">الحد الشهري</label>
+                      <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
                       <Input
                         type="number"
                         min="0"
-                        placeholder="0"
-                        value={sedanaForm.monthlyLimit}
-                        onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
-                        className="h-9 text-right font-mono text-xs"
+                        value={sedanaForm.defaultQuantity}
+                        onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
+                        className="h-9 text-right font-mono"
                         dir="rtl"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={sedanaForm.defaultQuantity}
-                      onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
-                      className="h-9 text-right font-mono"
-                      dir="rtl"
-                    />
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 text-right">
+                      حدود التوريد (الحد المسموح لكل فترة):
+                    </label>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">1. شهري:</span>
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={sedanaForm.monthlyLimit}
+                            onChange={(e) => setSedanaForm({ ...sedanaForm, monthlyLimit: Number(e.target.value) })}
+                            className="h-8 text-right font-mono text-xs"
+                            dir="rtl"
+                          />
+                          <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">2. ربع سنوي:</span>
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={sedanaForm.quarterlyLimit}
+                            onChange={(e) => setSedanaForm({ ...sedanaForm, quarterlyLimit: Number(e.target.value) })}
+                            className="h-8 text-right font-mono text-xs"
+                            dir="rtl"
+                          />
+                          <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 w-24 text-right">3. نصف سنوي:</span>
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={sedanaForm.semiAnnualLimit}
+                            onChange={(e) => setSedanaForm({ ...sedanaForm, semiAnnualLimit: Number(e.target.value) })}
+                            className="h-8 text-right font-mono text-xs"
+                            dir="rtl"
+                          />
+                          <span className="text-[11px] text-muted-foreground">{sedanaForm.unit}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
