@@ -80,6 +80,8 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: `item_${v.id}`,
           category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
           name: v.valueAr || v.value,
+          description: meta.description || undefined,
+          monthlyLimit: meta.monthlyLimit !== undefined && meta.monthlyLimit !== null ? Number(meta.monthlyLimit) : undefined,
           quantity: Number(meta.defaultQuantity) || 0,
           unit: meta.unit || 'قطعة',
           frequency: (meta.frequency || 'شهري') as SedanaDeliveryFrequency,
