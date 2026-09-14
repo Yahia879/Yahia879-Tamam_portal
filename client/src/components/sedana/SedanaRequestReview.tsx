@@ -59,43 +59,50 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
               <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-semibold">
                 <tr>
                   <th className="p-2">الصنف</th>
-                  <th className="p-2 text-center">الكمية السنوية</th>
+                  <th className="p-2 text-center">الكمية</th>
                   <th className="p-2 text-center">الوحدة</th>
                   <th className="p-2 text-center">دورية التوريد</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {basketItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-muted/10">
-                    <td className="p-2 font-medium text-foreground">
-                      <div>
-                        <span>{item.name}</span>
-                        {item.isCustom && (
-                          <span className="text-[10px] text-primary mr-1">(مخصص)</span>
+                {basketItems.map((item) => {
+                  const activeLimit = getItemLimitForFrequency(item);
+                  const isExceeded =
+                    activeLimit !== undefined &&
+                    activeLimit > 0 &&
+                    item.quantity > activeLimit &&
+                    !item.isCustom;
+
+                  return (
+                    <tr key={item.id} className="hover:bg-muted/10">
+                      <td className="p-2.5 font-medium text-foreground align-middle">
+                        <div>
+                          <span>{item.name}</span>
+                          {item.isCustom && (
+                            <span className="text-[10px] text-primary mr-1.5 font-normal bg-primary/10 px-1.5 py-0.5 rounded">
+                              (مخصص)
+                            </span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{item.description}</p>
                         )}
-                      </div>
-                      {item.description && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{item.description}</p>
-                      )}
-                      {(() => {
-                        const activeLimit = getItemLimitForFrequency(item);
-                        if (activeLimit !== undefined && activeLimit > 0 && !item.isCustom) {
-                          return (
-                            <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
-                              الحد المسموح ({item.frequency}): <strong className="font-mono">{activeLimit}</strong> {item.unit}
+                      </td>
+                      <td className="p-2.5 text-center font-bold text-foreground font-mono align-middle">
+                        <div className="flex flex-col items-center justify-center">
+                          <span>{item.quantity}</span>
+                          {isExceeded && (
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 whitespace-nowrap">
+                              تجاوز الحد ({activeLimit})
                             </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </td>
-                    <td className="p-2 text-center font-bold text-foreground font-mono">
-                      {item.quantity}
-                    </td>
-                    <td className="p-2 text-center text-muted-foreground">{item.unit}</td>
-                    <td className="p-2 text-center text-foreground font-medium">{item.frequency}</td>
-                  </tr>
-                ))}
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2 text-center text-muted-foreground">{item.unit}</td>
+                      <td className="p-2 text-center text-foreground font-medium">{item.frequency}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
