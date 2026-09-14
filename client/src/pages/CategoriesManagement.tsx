@@ -655,10 +655,14 @@ export default function CategoriesManagement() {
                                 )}
                                 {selectedType === "sedana_items" && (
                                   <>
-                                    <TableCell className="text-muted-foreground">{value.metadata?.category || "أدوات المسجد العامة"}</TableCell>
                                     <TableCell className="text-center">{value.metadata?.unit || "قطعة"}</TableCell>
-                                    <TableCell className="text-center">{value.metadata?.frequency || "شهري"}</TableCell>
-                                    <TableCell className="text-center font-mono font-bold text-amber-600">{value.metadata?.monthlyLimit || "-"}</TableCell>
+                                    <TableCell className="text-center">
+                                      <div className="text-[11px] font-mono space-y-0.5">
+                                        <div>شهري: <span className="font-bold text-amber-600">{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</span></div>
+                                        <div>ربع سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</span></div>
+                                        <div>نصف سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</span></div>
+                                      </div>
+                                    </TableCell>
                                     <TableCell className="text-center font-mono font-bold">{value.metadata?.defaultQuantity ?? 0}</TableCell>
                                   </>
                                 )}
