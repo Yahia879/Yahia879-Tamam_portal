@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Trash2, Plus, Upload, Check } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 import {
   SedanaBasketItem,
   SedanaCategory,
   SedanaDeliveryFrequency,
   SEDANA_CATEGORIES,
   DELIVERY_FREQUENCIES,
-  getDefaultBasketItems,
 } from './sedanaTypes';
 
 interface SedanaRequestFormProps {
@@ -40,28 +40,80 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       ? Boolean(formData.isConnectedToDesalination)
       : true;
 
+  // جلب تصنيفات سدانة من قاعدة البيانات
+  const { data: sedanaCategoryData } = trpc.categories.getCategoryByType.useQuery({ type: 'sedana_items' });
+
   // سلة الاحتياجات السنوية
   const [basketItems, setBasketItems] = useState<SedanaBasketItem[]>(() => {
     if (Array.isArray(formData.basketItems) && formData.basketItems.length > 0) {
       return formData.basketItems;
     }
-    const mosqueArea = Number(selectedMosque?.area ?? 250);
-    const worshippers = Number(selectedMosque?.capacity ?? 150);
-    return getDefaultBasketItems(mosqueArea, worshippers, isConnectedToDesalination);
+    return [];
   });
 
-  // مزامنة السلة مع formData
+  const isInitializedRef = useRef(false);
+
+  // تحديث السلة المحلية وإشعارات formData
+  const updateBasketItems = (nextOrFn: SedanaBasketItem[] | ((prev: SedanaBasketItem[]) => SedanaBasketItem[])) => {
+    setBasketItems((prev) => {
+      const next = typeof nextOrFn === 'function' ? nextOrFn(prev) : nextOrFn;
+      onFieldChange('basketItems', next);
+      return next;
+    });
+  };
+
+  // مزامنة السلة الديناميكية عند تحميل بيانات التصنيفات لأول مرة فقط
   useEffect(() => {
-    onFieldChange('basketItems', basketItems);
-    onFieldChange('isConnectedToDesalination', isConnectedToDesalination);
-  }, [basketItems, isConnectedToDesalination]);
+    if (isInitializedRef.current) return;
+
+    if (Array.isArray(formData.basketItems) && formData.basketItems.length > 0) {
+      isInitializedRef.current = true;
+      setBasketItems(formData.basketItems);
+      return;
+    }
+
+    if (sedanaCategoryData?.values && Array.isArray(sedanaCategoryData.values)) {
+      isInitializedRef.current = true;
+      const dbItems: SedanaBasketItem[] = sedanaCategoryData.values.map((v: any) => {
+        const meta = v.metadata || {};
+        return {
+          id: `item_${v.id}`,
+          category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
+          name: v.valueAr || v.value,
+          quantity: Number(meta.defaultQuantity) || 0,
+          unit: meta.unit || 'قطعة',
+          frequency: (meta.frequency || 'شهري') as SedanaDeliveryFrequency,
+        };
+      });
+
+      if (!isConnectedToDesalination && dbItems.length > 0) {
+        const waterIndex = dbItems.findIndex((i) => i.category === 'سقيا الماء');
+        const tankerItem: SedanaBasketItem = {
+          id: 'water_tankers',
+          category: 'سقيا الماء',
+          name: 'صهاريج مياه (وايت ماء 19 طن)',
+          quantity: 0,
+          unit: 'صهريج',
+          frequency: 'شهري',
+        };
+        if (waterIndex !== -1) {
+          dbItems.splice(waterIndex + 1, 0, tankerItem);
+        } else {
+          dbItems.push(tankerItem);
+        }
+      }
+
+      setBasketItems(dbItems);
+      onFieldChange('basketItems', dbItems);
+    }
+  }, [sedanaCategoryData]);
 
   // تحديث خيار فحص المياه والتفعيل التلقائي لصهاريج المياه
   const handleToggleDesalination = (connected: boolean) => {
     onFieldChange('isConnectedToDesalination', connected);
     if (!connected) {
       // إذا "لا": تفعيل صهاريج المياه تلقائياً
-      setBasketItems((prev) => {
+      updateBasketItems((prev) => {
         const hasTanker = prev.some((i) => i.id === 'water_tankers');
         if (hasTanker) return prev;
         const waterIdx = prev.findIndex((i) => i.category === 'سقيا الماء');
@@ -83,20 +135,20 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       });
     } else {
       // إذا "نعم": إزالة بند صهاريج المياه تلقائياً
-      setBasketItems((prev) => prev.filter((i) => i.id !== 'water_tankers'));
+      updateBasketItems((prev) => prev.filter((i) => i.id !== 'water_tankers'));
     }
   };
 
   // تعديل صنف في السلة
   const handleUpdateItem = (id: string, patch: Partial<SedanaBasketItem>) => {
-    setBasketItems((prev) =>
+    updateBasketItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
     );
   };
 
   // حذف صنف
   const handleRemoveItem = (id: string) => {
-    setBasketItems((prev) => prev.filter((item) => item.id !== id));
+    updateBasketItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   // إضافة بند مخصص
@@ -118,7 +170,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       frequency: customFreq,
       isCustom: true,
     };
-    setBasketItems((prev) => [...prev, newItem]);
+    updateBasketItems((prev) => [...prev, newItem]);
     setCustomName('');
     setCustomQty(0);
     setShowAddCustom(false);
