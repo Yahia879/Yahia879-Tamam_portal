@@ -393,10 +393,10 @@ export const PROGRAM_CONFIGS: Record<string, ProgramConfig> = {
 
   sedana: {
     id: 'sedana',
-    name: 'برنامج سدانة - التشغيل السنوي المستدام',
+    name: 'الخدمات السنوية (سدانة)',
     description: 'عقد تشغيل ورعاية سنوي مستمر وشامل لمدة 12 شهراً يغطي العمالة والنظافة والمياه والمعطرات والاستهلاكيات',
     icon: Sparkles,
-    color: 'bg-cyan-600',
+    color: 'bg-emerald-600',
     requiresMosque: true,
     sharedFields: ['mosqueId'],
     specificFields: NO_SPECIFIC_FIELDS,
