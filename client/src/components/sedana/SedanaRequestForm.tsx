@@ -99,7 +99,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
           periodLimits,
-          quantity: Number(meta.defaultQuantity) || 1,
+          quantity: Number(meta.defaultQuantity) || 0,
           unit: meta.unit || 'قطعة',
           frequency: 'شهري' as SedanaDeliveryFrequency,
         };
@@ -111,7 +111,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
-          quantity: 1,
+          quantity: 0,
           unit: 'صهريج',
           frequency: 'شهري',
         };
@@ -176,7 +176,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
       periodLimits,
-      quantity: 1,
+      quantity: 0,
       unit: meta.unit || 'قطعة',
       frequency: 'شهري' as SedanaDeliveryFrequency,
     };
@@ -197,7 +197,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
-          quantity: 1,
+          quantity: 0,
           unit: 'صهريج',
           frequency: 'شهري',
         };
@@ -232,7 +232,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   const [customName, setCustomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
   const [customCategory, setCustomCategory] = useState<SedanaCategory>('أدوات المسجد العامة');
-  const [customQty, setCustomQty] = useState(1);
+  const [customQty, setCustomQty] = useState(0);
   const [customUnit, setCustomUnit] = useState('قطعة');
   const [customFreq, setCustomFreq] = useState<SedanaDeliveryFrequency>('ربع سنوي');
 
@@ -243,7 +243,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       name: customName.trim(),
       category: customCategory,
       description: customDescription.trim() || undefined,
-      quantity: Number(customQty) || 1,
+      quantity: Number(customQty) || 0,
       unit: customUnit.trim() || 'قطعة',
       frequency: customFreq,
       isCustom: true,
@@ -251,7 +251,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
     updateBasketItems((prev) => [...prev, newItem]);
     setCustomName('');
     setCustomDescription('');
-    setCustomQty(1);
+    setCustomQty(0);
     setShowAddCustom(false);
   };
 
