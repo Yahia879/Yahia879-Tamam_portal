@@ -1,4 +1,10 @@
-export type SedanaCategory = string;
+export type SedanaCategory =
+  | 'العمالة'
+  | 'مواد النظافة'
+  | 'المعطرات'
+  | 'سقيا الماء'
+  | 'البلاستيكيات'
+  | 'أدوات المسجد العامة';
 
 export type SedanaDeliveryFrequency = 'شهري' | 'ربع سنوي' | 'نصف سنوي';
 
