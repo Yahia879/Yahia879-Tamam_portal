@@ -5,6 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Plus, Upload, Check } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   SedanaBasketItem,
   SedanaCategory,
   SedanaDeliveryFrequency,
@@ -75,7 +82,8 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
     if (sedanaCategoryData?.values && Array.isArray(sedanaCategoryData.values)) {
       isInitializedRef.current = true;
-      const dbItems: SedanaBasketItem[] = sedanaCategoryData.values.map((v: any) => {
+      // نختار أول بندين افتراضياً كما طلب المستخدم
+      const initialDbItems: SedanaBasketItem[] = sedanaCategoryData.values.slice(0, 2).map((v: any, index: number) => {
         const meta = v.metadata || {};
         const periodLimits = meta.limits || {
           'شهري': Number(meta.monthlyLimit) || 0,
@@ -83,40 +91,98 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
         };
         return {
-          id: `item_${v.id}`,
+          id: `item_${v.id}_${Date.now()}_${index}`,
+          dbCategoryId: v.id,
           category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
           name: v.valueAr || v.value,
           monthlyLimit: Number(meta.monthlyLimit) || 0,
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
           periodLimits,
-          quantity: Number(meta.defaultQuantity) || 0,
+          quantity: Number(meta.defaultQuantity) || 1,
           unit: meta.unit || 'قطعة',
           frequency: 'شهري' as SedanaDeliveryFrequency,
         };
       });
 
-      if (!isConnectedToDesalination && dbItems.length > 0) {
-        const waterIndex = dbItems.findIndex((i) => i.category === 'سقيا الماء');
+      if (!isConnectedToDesalination && initialDbItems.length > 0) {
+        const waterIndex = initialDbItems.findIndex((i) => i.category === 'سقيا الماء');
         const tankerItem: SedanaBasketItem = {
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
-          quantity: 0,
+          quantity: 1,
           unit: 'صهريج',
           frequency: 'شهري',
         };
         if (waterIndex !== -1) {
-          dbItems.splice(waterIndex + 1, 0, tankerItem);
+          initialDbItems.splice(waterIndex + 1, 0, tankerItem);
         } else {
-          dbItems.push(tankerItem);
+          initialDbItems.push(tankerItem);
         }
       }
 
-      setBasketItems(dbItems);
-      onFieldChange('basketItems', dbItems);
+      setBasketItems(initialDbItems);
+      onFieldChange('basketItems', initialDbItems);
     }
   }, [sedanaCategoryData]);
+
+  // قائمة أصناف القاعدة للاختيار من بينها
+  const dbOptions = sedanaCategoryData?.values || [];
+
+  // تغيير الصنف المحدد من المنسدلة
+  const handleSelectDbCategory = (rowId: string, selectedId: number) => {
+    const selectedDbItem = dbOptions.find((v: any) => v.id === selectedId);
+    if (!selectedDbItem) return;
+
+    const meta = selectedDbItem.metadata || {};
+    const periodLimits = meta.limits || {
+      'شهري': Number(meta.monthlyLimit) || 0,
+      'ربع سنوي': Number(meta.quarterlyLimit) || 0,
+      'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+    };
+
+    handleUpdateItem(rowId, {
+      dbCategoryId: selectedDbItem.id,
+      name: selectedDbItem.valueAr || selectedDbItem.value,
+      category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
+      monthlyLimit: Number(meta.monthlyLimit) || 0,
+      quarterlyLimit: Number(meta.quarterlyLimit) || 0,
+      semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      periodLimits,
+      unit: meta.unit || 'قطعة',
+    });
+  };
+
+  // إضافة بند جديد من أصناف القاعدة
+  const handleAddNewRow = () => {
+    if (dbOptions.length === 0) return;
+    const usedDbIds = new Set(basketItems.map((item) => item.dbCategoryId).filter(Boolean));
+    const availableOption = dbOptions.find((opt: any) => !usedDbIds.has(opt.id)) || dbOptions[0];
+
+    const meta = availableOption.metadata || {};
+    const periodLimits = meta.limits || {
+      'شهري': Number(meta.monthlyLimit) || 0,
+      'ربع سنوي': Number(meta.quarterlyLimit) || 0,
+      'نصف سنوي': Number(meta.semiAnnualLimit) || 0,
+    };
+
+    const newItem: SedanaBasketItem = {
+      id: `item_${availableOption.id}_${Date.now()}`,
+      dbCategoryId: availableOption.id,
+      category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
+      name: availableOption.valueAr || availableOption.value,
+      monthlyLimit: Number(meta.monthlyLimit) || 0,
+      quarterlyLimit: Number(meta.quarterlyLimit) || 0,
+      semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
+      periodLimits,
+      quantity: 1,
+      unit: meta.unit || 'قطعة',
+      frequency: 'شهري' as SedanaDeliveryFrequency,
+    };
+
+    updateBasketItems((prev) => [...prev, newItem]);
+  };
 
   // تحديث خيار فحص المياه والتفعيل التلقائي لصهاريج المياه
   const handleToggleDesalination = (connected: boolean) => {
@@ -131,7 +197,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
-          quantity: 0,
+          quantity: 1,
           unit: 'صهريج',
           frequency: 'شهري',
         };
@@ -166,7 +232,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
   const [customName, setCustomName] = useState('');
   const [customDescription, setCustomDescription] = useState('');
   const [customCategory, setCustomCategory] = useState<SedanaCategory>('أدوات المسجد العامة');
-  const [customQty, setCustomQty] = useState(0);
+  const [customQty, setCustomQty] = useState(1);
   const [customUnit, setCustomUnit] = useState('قطعة');
   const [customFreq, setCustomFreq] = useState<SedanaDeliveryFrequency>('ربع سنوي');
 
@@ -177,7 +243,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       name: customName.trim(),
       category: customCategory,
       description: customDescription.trim() || undefined,
-      quantity: Number(customQty) || 0,
+      quantity: Number(customQty) || 1,
       unit: customUnit.trim() || 'قطعة',
       frequency: customFreq,
       isCustom: true,
@@ -185,7 +251,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
     updateBasketItems((prev) => [...prev, newItem]);
     setCustomName('');
     setCustomDescription('');
-    setCustomQty(0);
+    setCustomQty(1);
     setShowAddCustom(false);
   };
 
@@ -262,7 +328,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
               جدول بنود الباقة السنوية (سلة الاحتياجات)
             </h3>
             <p className="text-xs text-muted-foreground">
-              يحتوي التصنيفات الستة المعتمدة مع إمكانية تعديل الكميات ودورية التوريد
+              اختيار الأصناف المعتمدة وتحديد الكميات ودورية التوريد
             </p>
           </div>
           <Button
@@ -270,7 +336,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             variant="outline"
             size="sm"
             onClick={() => setShowAddCustom(true)}
-            className="h-8 text-xs font-medium gap-1 text-primary hover:bg-primary/10 border-primary/30"
+            className="h-8 text-xs font-medium gap-1.5 text-primary hover:bg-primary/10 border-primary/30 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>إضافة بند مخصص</span>
@@ -303,17 +369,21 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
               <div>
                 <Label className="text-[11px] mb-1 block text-muted-foreground">دورية التوريد</Label>
-                <select
+                <Select
                   value={customFreq}
-                  onChange={(e) => setCustomFreq(e.target.value as SedanaDeliveryFrequency)}
-                  className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  onValueChange={(val) => setCustomFreq(val as SedanaDeliveryFrequency)}
                 >
-                  {DELIVERY_FREQUENCIES.map((freq) => (
-                    <option key={freq} value={freq}>
-                      {freq}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger size="sm" className="h-8 text-xs w-full bg-background border-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {DELIVERY_FREQUENCIES.map((freq) => (
+                      <SelectItem key={freq} value={freq} className="text-xs">
+                        {freq}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
@@ -338,85 +408,132 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           <table className="w-full text-xs text-right">
             <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
               <tr>
-                <th className="p-2.5">اسم الصنف</th>
-                <th className="p-2.5 w-28 text-center">الكمية السنوية</th>
-                <th className="p-2.5 w-24 text-center">وحدة القياس</th>
-                <th className="p-2.5 w-32 text-center">دورية التوريد</th>
-                <th className="p-2.5 w-12 text-center">إجراء</th>
+                <th className="p-3 min-w-[200px]">اسم الصنف</th>
+                <th className="p-3 w-36 text-center">الكمية</th>
+                <th className="p-3 w-24 text-center">وحدة القياس</th>
+                <th className="p-3 w-32 text-center">دورية التوريد</th>
+                <th className="p-3 w-12 text-center">إجراء</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {basketItems.map((item) => (
-                <tr key={item.id} className="hover:bg-muted/15 transition-colors">
-                  <td className="p-2.5 font-medium text-foreground">
-                    <div>
-                      <span>{item.name}</span>
-                      {item.isCustom && (
-                        <span className="text-[10px] text-primary mr-1.5 font-normal">(مخصص)</span>
+              {basketItems.map((item) => {
+                const activeLimit = getItemLimitForFrequency(item);
+                const isExceeded =
+                  activeLimit !== undefined &&
+                  activeLimit > 0 &&
+                  item.quantity > activeLimit &&
+                  !item.isCustom;
+
+                return (
+                  <tr key={item.id} className="hover:bg-muted/15 transition-colors">
+                    <td className="p-3 font-medium text-foreground align-middle">
+                      {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
+                        <div>
+                          <span className="font-semibold">{item.name}</span>
+                          {item.isCustom && (
+                            <span className="text-[10px] text-primary mr-1.5 font-normal bg-primary/10 px-1.5 py-0.5 rounded">
+                              (مخصص)
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <Select
+                          value={String(item.dbCategoryId || dbOptions.find((v: any) => (v.valueAr || v.value) === item.name)?.id || '')}
+                          onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
+                        >
+                          <SelectTrigger size="sm" className="h-8 text-xs w-full bg-background border-input font-medium">
+                            <SelectValue placeholder="اختر الصنف..." />
+                          </SelectTrigger>
+                          <SelectContent dir="rtl">
+                            {dbOptions.map((opt: any) => (
+                              <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
+                                {opt.valueAr || opt.value} {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
-                    </div>
-                    {item.description && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
-                    )}
-                    {(() => {
-                      const activeLimit = getItemLimitForFrequency(item);
-                      if (activeLimit !== undefined && activeLimit > 0 && !item.isCustom) {
-                        return (
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-normal">
-                            الحد المسموح ({item.frequency}): <strong className="font-mono">{activeLimit}</strong> {item.unit}
+                      {item.description && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
+                      )}
+                    </td>
+                    <td className="p-3 text-center align-middle">
+                      <div className="flex flex-col items-center justify-center">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                          }
+                          className={`h-8 text-xs text-center w-24 mx-auto transition-all ${
+                            isExceeded
+                              ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
+                              : ''
+                          }`}
+                        />
+                        {isExceeded && (
+                          <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
+                            تجاوز الحد ({activeLimit})
                           </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <Input
-                      type="number"
-                      min="0"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
-                      }
-                      className="h-7 text-xs text-center w-20 mx-auto"
-                    />
-                  </td>
-                  <td className="p-2.5 text-center text-muted-foreground font-medium">
-                    {item.unit}
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <select
-                      value={item.frequency}
-                      onChange={(e) =>
-                        handleUpdateItem(item.id, {
-                          frequency: e.target.value as SedanaDeliveryFrequency,
-                        })
-                      }
-                      className="h-7 rounded-md border border-input bg-background px-2 text-xs w-28 mx-auto"
-                    >
-                      {DELIVERY_FREQUENCIES.map((freq) => (
-                        <option key={freq} value={freq}>
-                          {freq}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="p-2.5 text-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      title="حذف الصنف"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 text-center text-muted-foreground font-medium align-middle">
+                      {item.unit}
+                    </td>
+                    <td className="p-3 text-center align-middle">
+                      <Select
+                        value={item.frequency}
+                        onValueChange={(val) =>
+                          handleUpdateItem(item.id, {
+                            frequency: val as SedanaDeliveryFrequency,
+                          })
+                        }
+                      >
+                        <SelectTrigger size="sm" className="h-8 text-xs w-28 mx-auto bg-background border-input font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {DELIVERY_FREQUENCIES.map((freq) => (
+                            <SelectItem key={freq} value={freq} className="text-xs">
+                              {freq}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-3 text-center align-middle">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="حذف الصنف"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+
+        {/* أزرار إضافة بند جديد */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddNewRow}
+            className="h-8 text-xs font-medium gap-1.5 text-primary border-primary/30 hover:bg-primary/5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>إضافة بند جديد</span>
+          </Button>
         </div>
       </div>
 
