@@ -290,56 +290,6 @@ export const categoriesRouter = router({
       return { success: true };
     }),
 
-  // استيراد بنود سدانة الافتراضية بنقرة واحدة
-  seedSedanaDefaultItems: protectedProcedure.mutation(async ({ ctx }) => {
-    const db = await getDb();
-    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-
-    // التحقق من الصلاحيات
-    if (!["super_admin", "system_admin"].includes(ctx.user.role)) {
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPermissions = await calculateUserPermissions(ctx.user.id);
-      const hasAddPerm = userPermissions.includes("settings_categories.add");
-      if (!hasAddPerm) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-    }
-
-    const defaultItems = [
-      { name: "cleaner", nameAr: "عامل نظافة متفرغ للمسجد", category: "العمالة", unit: "شهر", frequency: "شهري", defaultQuantity: 0, sortOrder: 1 },
-      { name: "maintenance", nameAr: "مكافأة صيانة دورية", category: "العمالة", unit: "شهر", frequency: "شهري", defaultQuantity: 0, sortOrder: 2 },
-      { name: "liquid_soap", nameAr: "صابون سائل للأيدي", category: "مواد النظافة", unit: "جالون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 3 },
-      { name: "foam_soap", nameAr: "صابون رغوة للمغاسل", category: "مواد النظافة", unit: "عبوة", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 4 },
-      { name: "floor_disinfectant", nameAr: "مطهر ومعقم أرضيات", category: "مواد النظافة", unit: "جالون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 5 },
-      { name: "diffusers", nameAr: "أجهزة تعطير ذكية", category: "المعطرات", unit: "جهاز", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 6 },
-      { name: "aroma_refills", nameAr: "عبوات زيت عطري فاخر", category: "المعطرات", unit: "عبوة", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 7 },
-      { name: "water_cartons", nameAr: "كراتين مياه شرب (330 مل)", category: "سقيا الماء", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 8 },
-      { name: "trash_bags", nameAr: "أكياس نفايات كبيرة (50 جالون)", category: "البلاستيكيات", unit: "كرتون", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 9 },
-      { name: "plastic_cups", nameAr: "كاسات ماء بلاستيك", category: "البلاستيكيات", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 10 },
-      { name: "tissues", nameAr: "مناديل ورقية (سحب / رول)", category: "البلاستيكيات", unit: "كرتون", frequency: "شهري", defaultQuantity: 0, sortOrder: 11 },
-      { name: "cleaning_tools", nameAr: "طقم مكانس ومساحات أرضية", category: "أدوات المسجد العامة", unit: "طقم", frequency: "ربع سنوي", defaultQuantity: 0, sortOrder: 12 },
-      { name: "mop_bucket", nameAr: "سطل وعصارة نظافة متحركة", category: "أدوات المسجد العامة", unit: "قطعة", frequency: "نصف سنوي", defaultQuantity: 0, sortOrder: 13 },
-    ];
-
-    for (const item of defaultItems) {
-      await db.insert(categories).values({
-        name: item.name,
-        nameAr: item.nameAr,
-        type: "sedana_items",
-        sortOrder: item.sortOrder,
-        metadata: JSON.stringify({
-          category: item.category,
-          unit: item.unit,
-          frequency: item.frequency,
-          defaultQuantity: item.defaultQuantity,
-        }),
-        isActive: true,
-      });
-    }
-
-    return { success: true };
-  }),
-
   // حذف تصنيف (محمي)
   deleteCategory: protectedProcedure
     .input(z.object({ id: z.number() }))
