@@ -488,13 +488,19 @@ export default function CategoriesManagement() {
                               <>
                                 <div>
                                   <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                                  <Input
-                                    placeholder="مثال: العمالة، مواد النظافة، المعطرات..."
+                                  <select
                                     value={sedanaForm.category}
                                     onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                                    className="h-9 text-right"
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
                                     dir="rtl"
-                                  />
+                                  >
+                                    <option value="العمالة">العمالة</option>
+                                    <option value="مواد النظافة">مواد النظافة</option>
+                                    <option value="المعطرات">المعطرات</option>
+                                    <option value="سقيا الماء">سقيا الماء</option>
+                                    <option value="البلاستيكيات">البلاستيكيات</option>
+                                    <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
+                                  </select>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
@@ -827,13 +833,19 @@ export default function CategoriesManagement() {
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                    <Input
-                      placeholder="مثال: العمالة، مواد النظافة، المعطرات..."
+                    <select
                       value={sedanaForm.category}
                       onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                      className="h-9 text-right"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
                       dir="rtl"
-                    />
+                    >
+                      <option value="العمالة">العمالة</option>
+                      <option value="مواد النظافة">مواد النظافة</option>
+                      <option value="المعطرات">المعطرات</option>
+                      <option value="سقيا الماء">سقيا الماء</option>
+                      <option value="البلاستيكيات">البلاستيكيات</option>
+                      <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
+                    </select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
