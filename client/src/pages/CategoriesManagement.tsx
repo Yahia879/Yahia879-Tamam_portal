@@ -188,16 +188,6 @@ export default function CategoriesManagement() {
     },
   });
 
-  const seedSedanaMutation = trpc.categories.seedSedanaDefaultItems.useMutation({
-    onSuccess: () => {
-      toast.success("تم استيراد البنود الافتراضية بنجاح");
-      refetchCategories();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-
   const handleAddValue = () => {
     if (!valueForm.nameAr || !selectedType) {
       toast.error("جميع الحقول مطلوبة");
@@ -587,19 +577,6 @@ export default function CategoriesManagement() {
                       <Tag className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-gray-300" />
                       <p className="font-medium text-sm sm:text-base">لا توجد قيم لهذا التصنيف</p>
                       <p className="text-xs sm:text-sm">أضف قيماً جديدة باستخدام زر "إضافة قيمة"</p>
-                      {selectedType === "sedana_items" && canAdd && (
-                        <div className="pt-2">
-                          <Button
-                            type="button"
-                            onClick={() => seedSedanaMutation.mutate()}
-                            disabled={seedSedanaMutation.isPending}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-xs sm:text-sm font-bold gap-1.5"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span>{seedSedanaMutation.isPending ? "جاري الاستيراد..." : "تعبئة البنود الافتراضية بنقرة واحدة"}</span>
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <>
