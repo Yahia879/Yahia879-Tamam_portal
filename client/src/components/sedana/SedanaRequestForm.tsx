@@ -367,23 +367,14 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                 />
               </div>
 
-              <div>
-                <Label className="text-[11px] mb-1 block text-muted-foreground">دورية التوريد</Label>
-                <Select
-                  value={customFreq}
-                  onValueChange={(val) => setCustomFreq(val as SedanaDeliveryFrequency)}
-                >
-                  <SelectTrigger size="sm" className="h-8 text-xs w-full bg-background border-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    {DELIVERY_FREQUENCIES.map((freq) => (
-                      <SelectItem key={freq} value={freq} className="text-xs">
-                        {freq}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="sm:col-span-2">
+                <Label className="text-[11px] mb-1 block text-muted-foreground">وحدة القياس *</Label>
+                <Input
+                  value={customUnit}
+                  onChange={(e) => setCustomUnit(e.target.value)}
+                  placeholder="مثال: قطعة، كرتون، لتر..."
+                  className="h-8 text-xs"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-1">
@@ -397,7 +388,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                 إلغاء
               </Button>
               <Button type="button" size="sm" onClick={handleAddCustom} className="h-7 text-xs">
-                إضافة للسلة
+                إضافة للجدول
               </Button>
             </div>
           </div>
@@ -417,11 +408,11 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             </thead>
             <tbody className="divide-y divide-border/60">
               {basketItems.map((item) => {
-                const activeLimit = getItemLimitForFrequency(item);
-                const isExceeded =
-                  activeLimit !== undefined &&
-                  activeLimit > 0 &&
-                  item.quantity > activeLimit &&
+                const minLimit = getItemLimitForFrequency(item);
+                const isUnderMin =
+                  minLimit !== undefined &&
+                  minLimit > 0 &&
+                  item.quantity < minLimit &&
                   !item.isCustom;
 
                 return (
@@ -461,20 +452,20 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                       <div className="flex flex-col items-center justify-center">
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
                           value={item.quantity}
                           onChange={(e) =>
                             handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
                           }
                           className={`h-8 text-xs text-center w-24 mx-auto transition-all ${
-                            isExceeded
+                            isUnderMin
                               ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
                               : ''
                           }`}
                         />
-                        {isExceeded && (
+                        {isUnderMin && (
                           <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
-                            تجاوز الحد ({activeLimit})
+                            أقل من الحد الأدنى ({minLimit})
                           </div>
                         )}
                       </div>
