@@ -692,6 +692,7 @@ export default function Dashboard() {
         { title: "تقويم المواعيد", href: "/field-visits/calendar", icon: Calendar, color: "text-orange-600", bg: "bg-orange-50" },
         { title: "الزيارات الميدانية", href: "/field-visits", icon: Activity, color: "text-blue-600", bg: "bg-blue-50" },
         { title: "طلباتي المسندة", href: "/my-requests", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { title: "الخدمات السنوية (سدانة)", href: "/service-request?service=sedana", icon: Sparkles, color: "text-emerald-600", bg: "bg-emerald-50" },
         { title: "إنشاء استجابة سريعة", href: "/requests/quick-create", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
       ];
     }
@@ -1133,6 +1134,12 @@ export default function Dashboard() {
                 <>
                   {isQuickResponse ? (
                     <>
+                      <Link href="/service-request?service=sedana">
+                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
+                          <span>الخدمات السنوية (سدانة)</span>
+                        </Button>
+                      </Link>
                       <Link href="/requests/quick-create">
                         <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs font-bold gap-1.5 h-9 rounded-xl shadow-xs">
                           <Zap className="w-3.5 h-3.5" />
