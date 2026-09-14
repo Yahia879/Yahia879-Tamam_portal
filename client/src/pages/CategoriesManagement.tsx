@@ -486,22 +486,6 @@ export default function CategoriesManagement() {
                             )}
                             {selectedType === "sedana_items" && (
                               <>
-                                <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                                  <select
-                                    value={sedanaForm.category}
-                                    onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
-                                    dir="rtl"
-                                  >
-                                    <option value="العمالة">العمالة</option>
-                                    <option value="مواد النظافة">مواد النظافة</option>
-                                    <option value="المعطرات">المعطرات</option>
-                                    <option value="سقيا الماء">سقيا الماء</option>
-                                    <option value="البلاستيكيات">البلاستيكيات</option>
-                                    <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
-                                  </select>
-                                </div>
 
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
@@ -611,24 +595,24 @@ export default function CategoriesManagement() {
                       {/* Desktop View Table */}
                       <div className="hidden md:block overflow-x-auto">
                         <Table>
-                          <TableHeader>
-                            <TableRow>
-                              {canEdit && <TableHead className="w-12 text-center"></TableHead>}
-                              <TableHead className="text-right w-12">#</TableHead>
-                              <TableHead className="text-right">
-                                {selectedType === "sadad_billers" ? "اسم المفوتر" : selectedType === "sedana_items" ? "الصنف والوصف" : "القيمة بالعربية"}
+                          <TableHeader className="bg-slate-50/80 dark:bg-slate-900/60">
+                            <TableRow className="border-b border-border/80">
+                              {canEdit && <TableHead className="w-12 text-center py-3.5"></TableHead>}
+                              <TableHead className="text-right w-12 py-3.5 font-bold text-xs">#</TableHead>
+                              <TableHead className="text-right py-3.5 font-bold text-xs min-w-[180px]">
+                                {selectedType === "sadad_billers" ? "اسم المفوتر" : selectedType === "sedana_items" ? "اسم الصنف" : "القيمة بالعربية"}
                               </TableHead>
                               {selectedType === "sadad_billers" && (
-                                <TableHead className="text-right">رمز/رقم المفوتر</TableHead>
+                                <TableHead className="text-right py-3.5 font-bold text-xs">رمز/رقم المفوتر</TableHead>
                               )}
                               {selectedType === "sedana_items" && (
                                 <>
-                                  <TableHead className="text-center">وحدة القياس</TableHead>
-                                  <TableHead className="text-center">حدود التوريد</TableHead>
-                                  <TableHead className="text-center">الكمية السنوية</TableHead>
+                                  <TableHead className="text-center py-3.5 font-bold text-xs w-28">وحدة القياس</TableHead>
+                                  <TableHead className="text-center py-3.5 font-bold text-xs min-w-[260px]">حدود التوريد</TableHead>
+                                  <TableHead className="text-center py-3.5 font-bold text-xs w-28">الكمية السنوية</TableHead>
                                 </>
                               )}
-                              <TableHead className="w-24 text-center">الإجراءات</TableHead>
+                              <TableHead className="w-24 text-center py-3.5 font-bold text-xs">الإجراءات</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -655,15 +639,24 @@ export default function CategoriesManagement() {
                                 )}
                                 {selectedType === "sedana_items" && (
                                   <>
-                                    <TableCell className="text-center">{value.metadata?.unit || "قطعة"}</TableCell>
-                                    <TableCell className="text-center">
-                                      <div className="text-[11px] font-mono space-y-0.5">
-                                        <div>شهري: <span className="font-bold text-amber-600">{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</span></div>
-                                        <div>ربع سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</span></div>
-                                        <div>نصف سنوي: <span className="font-bold text-amber-600">{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</span></div>
+                                    <TableCell className="text-center py-3.5 text-xs font-medium text-foreground">{value.metadata?.unit || "قطعة"}</TableCell>
+                                    <TableCell className="text-center py-3.5">
+                                      <div className="flex flex-wrap items-center justify-center gap-1.5 font-mono text-[11px]">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                          <span className="text-[10px] font-sans text-muted-foreground">شهري:</span>
+                                          <strong>{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</strong>
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                          <span className="text-[10px] font-sans text-muted-foreground">ربع سنوي:</span>
+                                          <strong>{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</strong>
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                          <span className="text-[10px] font-sans text-muted-foreground">نصف سنوي:</span>
+                                          <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong>
+                                        </span>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="text-center font-mono font-bold">{value.metadata?.defaultQuantity ?? 0}</TableCell>
+                                    <TableCell className="text-center py-3.5 font-mono font-bold text-xs">{value.metadata?.defaultQuantity ?? 0}</TableCell>
                                   </>
                                 )}
                                 <TableCell>
@@ -761,23 +754,32 @@ export default function CategoriesManagement() {
                               </div>
                             )}
                             {selectedType === "sedana_items" && (
-                              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-dashed">
+                              <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 mt-2 border-t border-dashed border-border/60">
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">التصنيف:</span>
-                                  <span className="font-medium">{value.metadata?.category || "أدوات المسجد العامة"}</span>
+                                  <span className="text-muted-foreground block text-[10px] mb-0.5">وحدة القياس:</span>
+                                  <span className="font-medium text-foreground">{value.metadata?.unit || "قطعة"}</span>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground block text-[10px]">الوحدة والدورية:</span>
-                                  <span className="font-medium">{value.metadata?.unit || "قطعة"} ({value.metadata?.frequency || "شهري"})</span>
+                                  <span className="text-muted-foreground block text-[10px] mb-0.5">الكمية السنوية:</span>
+                                  <span className="font-mono font-bold text-foreground">{value.metadata?.defaultQuantity ?? 0}</span>
                                 </div>
-                                 <div className="col-span-2">
-                                   <span className="text-muted-foreground block text-[10px]">حدود التوريد:</span>
-                                   <div className="text-[11px] font-mono space-y-0.5 text-amber-600">
-                                     <span>شهري: <strong>{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</strong></span> | 
-                                     <span> ربع سنوي: <strong>{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</strong></span> | 
-                                     <span> نصف سنوي: <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong></span>
-                                   </div>
-                                 </div>
+                                <div className="col-span-2 pt-1">
+                                  <span className="text-muted-foreground block text-[10px] mb-1">حدود التوريد:</span>
+                                  <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                      <span className="text-[10px] font-sans text-muted-foreground">شهري:</span>
+                                      <strong>{value.metadata?.limits?.['شهري'] ?? value.metadata?.monthlyLimit ?? 0}</strong>
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                      <span className="text-[10px] font-sans text-muted-foreground">ربع سنوي:</span>
+                                      <strong>{value.metadata?.limits?.['ربع سنوي'] ?? value.metadata?.quarterlyLimit ?? 0}</strong>
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
+                                      <span className="text-[10px] font-sans text-muted-foreground">نصف سنوي:</span>
+                                      <strong>{value.metadata?.limits?.['نصف سنوي'] ?? value.metadata?.semiAnnualLimit ?? 0}</strong>
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -833,22 +835,6 @@ export default function CategoriesManagement() {
               )}
               {selectedType === "sedana_items" && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 text-right">التصنيف الفرعي *</label>
-                    <select
-                      value={sedanaForm.category}
-                      onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-right"
-                      dir="rtl"
-                    >
-                      <option value="العمالة">العمالة</option>
-                      <option value="مواد النظافة">مواد النظافة</option>
-                      <option value="المعطرات">المعطرات</option>
-                      <option value="سقيا الماء">سقيا الماء</option>
-                      <option value="البلاستيكيات">البلاستيكيات</option>
-                      <option value="أدوات المسجد العامة">أدوات المسجد العامة</option>
-                    </select>
-                  </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
