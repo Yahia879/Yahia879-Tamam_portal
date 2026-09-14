@@ -486,29 +486,15 @@ export default function CategoriesManagement() {
                             )}
                             {selectedType === "sedana_items" && (
                               <>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
-                                    <Input
-                                      placeholder="مثال: شهر"
-                                      value={sedanaForm.unit}
-                                      onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
-                                      className="h-9 text-right text-xs"
-                                      dir="rtl"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      value={sedanaForm.defaultQuantity}
-                                      onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
-                                      className="h-9 text-right font-mono"
-                                      dir="rtl"
-                                    />
-                                  </div>
+                                <div>
+                                  <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
+                                  <Input
+                                    placeholder="مثال: شهر"
+                                    value={sedanaForm.unit}
+                                    onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
+                                    className="h-9 text-right text-xs"
+                                    dir="rtl"
+                                  />
                                 </div>
 
                                 <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
@@ -609,7 +595,6 @@ export default function CategoriesManagement() {
                                 <>
                                   <TableHead className="text-center py-3.5 font-bold text-xs w-28">وحدة القياس</TableHead>
                                   <TableHead className="text-center py-3.5 font-bold text-xs min-w-[260px]">حدود التوريد</TableHead>
-                                  <TableHead className="text-center py-3.5 font-bold text-xs w-28">الكمية السنوية</TableHead>
                                 </>
                               )}
                               <TableHead className="w-24 text-center py-3.5 font-bold text-xs">الإجراءات</TableHead>
@@ -656,7 +641,6 @@ export default function CategoriesManagement() {
                                         </span>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="text-center py-3.5 font-mono font-bold text-xs">{value.metadata?.defaultQuantity ?? 0}</TableCell>
                                   </>
                                 )}
                                 <TableCell>
@@ -754,16 +738,12 @@ export default function CategoriesManagement() {
                               </div>
                             )}
                             {selectedType === "sedana_items" && (
-                              <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 mt-2 border-t border-dashed border-border/60">
+                              <div className="text-xs pt-2.5 mt-2 border-t border-dashed border-border/60 space-y-1.5">
                                 <div>
                                   <span className="text-muted-foreground block text-[10px] mb-0.5">وحدة القياس:</span>
                                   <span className="font-medium text-foreground">{value.metadata?.unit || "قطعة"}</span>
                                 </div>
-                                <div>
-                                  <span className="text-muted-foreground block text-[10px] mb-0.5">الكمية السنوية:</span>
-                                  <span className="font-mono font-bold text-foreground">{value.metadata?.defaultQuantity ?? 0}</span>
-                                </div>
-                                <div className="col-span-2 pt-1">
+                                <div className="pt-1">
                                   <span className="text-muted-foreground block text-[10px] mb-1">حدود التوريد:</span>
                                   <div className="flex flex-wrap gap-1.5 font-mono text-[11px]">
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/40">
@@ -836,28 +816,15 @@ export default function CategoriesManagement() {
               {selectedType === "sedana_items" && (
                 <>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
-                      <Input
-                        placeholder="مثال: شهر"
-                        value={sedanaForm.unit}
-                        onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
-                        className="h-9 text-right text-xs"
-                        dir="rtl"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-right">الكمية السنوية</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={sedanaForm.defaultQuantity}
-                        onChange={(e) => setSedanaForm({ ...sedanaForm, defaultQuantity: Number(e.target.value) })}
-                        className="h-9 text-right font-mono"
-                        dir="rtl"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-right">وحدة القياس *</label>
+                    <Input
+                      placeholder="مثال: قطعة، لتر، كرتون..."
+                      value={sedanaForm.unit}
+                      onChange={(e) => setSedanaForm({ ...sedanaForm, unit: e.target.value })}
+                      className="h-9 text-right text-xs"
+                      dir="rtl"
+                    />
                   </div>
 
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
