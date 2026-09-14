@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
@@ -145,6 +145,16 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // الفحص التلقائي لمحدد الخدمة في الرابط (مثل ?service=sedana)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const serviceParam = params.get('service');
+    if (serviceParam) {
+      setSelectedService(serviceParam);
+      setCurrentStep('terms');
+    }
+  }, []);
 
   // حالة معاينة المستندات والصور (Lightbox) تماماً كما في صفحة الموردين
   const [previewDoc, setPreviewDoc] = useState<{ title: string; contentType?: string } | null>(null);
@@ -716,7 +726,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-                {activePrograms.map((program) => {
+                {activePrograms.filter((program) => program.id !== 'sedana').map((program) => {
                   const Icon = ICON_MAP[program.icon || 'Package'] || Package;
                   const isSedana = program.id === 'sedana';
                   return (
@@ -729,11 +739,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${program.color || 'bg-indigo-600'} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-emerald-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">
-                        {isSedana ? 'سدانة (التشغيل السنوي)' : program.name}
+                        {isSedana ? 'الخدمات السنوية (سدانة)' : program.name}
                       </h3>
                       <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
                         {isSedana ? 'رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)' : program.description}
