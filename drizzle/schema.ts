@@ -799,6 +799,7 @@ export const categories = mysqlTable("categories", {
   parentId: int("parentId"),
   sortOrder: int("sortOrder").default(0),
   isActive: boolean("isActive").default(true),
+  metadata: text("metadata"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
