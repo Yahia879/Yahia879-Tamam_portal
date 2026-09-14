@@ -66,11 +66,11 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
               </thead>
               <tbody className="divide-y divide-border/60">
                 {basketItems.map((item) => {
-                  const activeLimit = getItemLimitForFrequency(item);
-                  const isExceeded =
-                    activeLimit !== undefined &&
-                    activeLimit > 0 &&
-                    item.quantity > activeLimit &&
+                  const minLimit = getItemLimitForFrequency(item);
+                  const isUnderMin =
+                    minLimit !== undefined &&
+                    minLimit > 0 &&
+                    item.quantity < minLimit &&
                     !item.isCustom;
 
                   return (
@@ -91,9 +91,9 @@ export const SedanaRequestReview: React.FC<SedanaRequestReviewProps> = ({
                       <td className="p-2.5 text-center font-bold text-foreground font-mono align-middle">
                         <div className="flex flex-col items-center justify-center">
                           <span>{item.quantity}</span>
-                          {isExceeded && (
+                          {isUnderMin && (
                             <div className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 whitespace-nowrap">
-                              تجاوز الحد ({activeLimit})
+                              أقل من الحد الأدنى ({minLimit})
                             </div>
                           )}
                         </div>
