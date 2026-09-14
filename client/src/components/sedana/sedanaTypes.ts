@@ -14,11 +14,36 @@ export interface SedanaBasketItem {
   name: string;
   description?: string;
   monthlyLimit?: number;
+  quarterlyLimit?: number;
+  semiAnnualLimit?: number;
+  periodLimits?: Record<string, number>;
   quantity: number;
   unit: string;
   frequency: SedanaDeliveryFrequency;
   isCustom?: boolean;
 }
+
+export const getItemLimitForFrequency = (
+  item: SedanaBasketItem
+): number | undefined => {
+  if (item.isCustom) return undefined;
+  if (item.periodLimits && item.frequency in item.periodLimits) {
+    const limit = item.periodLimits[item.frequency];
+    if (limit !== undefined && limit !== null && Number(limit) > 0) {
+      return Number(limit);
+    }
+  }
+  if (item.frequency === 'شهري' && item.monthlyLimit && item.monthlyLimit > 0) {
+    return item.monthlyLimit;
+  }
+  if (item.frequency === 'ربع سنوي' && item.quarterlyLimit && item.quarterlyLimit > 0) {
+    return item.quarterlyLimit;
+  }
+  if (item.frequency === 'نصف سنوي' && item.semiAnnualLimit && item.semiAnnualLimit > 0) {
+    return item.semiAnnualLimit;
+  }
+  return undefined;
+};
 
 export const SEDANA_CATEGORIES: SedanaCategory[] = [
   'العمالة',
