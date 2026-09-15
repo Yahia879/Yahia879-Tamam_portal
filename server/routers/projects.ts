@@ -1338,7 +1338,14 @@ export const projectsRouter = router({
         if (request && request.programData) {
           let pData: any = {};
           try {
-            pData = typeof request.programData === 'string' ? JSON.parse(request.programData) : request.programData;
+            pData = request.programData;
+            while (typeof pData === "string") {
+              try {
+                pData = JSON.parse(pData);
+              } catch {
+                break;
+              }
+            }
           } catch (e) {
             pData = {};
           }
@@ -2128,8 +2135,14 @@ export const projectsRouter = router({
       if (request) {
         let pData: any = {};
         try {
-          pData = typeof request.programData === "string" ? JSON.parse(request.programData) : (request.programData || {});
+          pData = request.programData;
+          while (typeof pData === "string") {
+            pData = JSON.parse(pData);
+          }
         } catch (_) {
+          pData = {};
+        }
+        if (!pData || typeof pData !== "object" || Array.isArray(pData)) {
           pData = {};
         }
         pData.actualMosqueCost = totalApprovedBaseCost;
@@ -2138,10 +2151,26 @@ export const projectsRouter = router({
         await db
           .update(mosqueRequests)
           .set({
-            programData: JSON.stringify(pData),
+            programData: pData,
             updatedAt: new Date(),
           })
           .where(eq(mosqueRequests.id, input.requestId));
+
+        // تحديث التكلفة الفعلية في المشروع المرتبط إن وجد
+        const [proj] = await db
+          .select()
+          .from(projects)
+          .where(eq(projects.requestId, input.requestId))
+          .limit(1);
+        if (proj) {
+          await db
+            .update(projects)
+            .set({
+              actualCost: totalApprovedBaseCost.toString(),
+              updatedAt: new Date(),
+            })
+            .where(eq(projects.id, proj.id));
+        }
       }
 
       return {
