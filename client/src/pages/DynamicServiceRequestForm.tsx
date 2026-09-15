@@ -19,6 +19,7 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { SedanaRequestForm } from '@/components/sedana/SedanaRequestForm';
 import { SedanaRequestReview } from '@/components/sedana/SedanaRequestReview';
+import { SedanaPricingAndFunding } from '@/components/sedana/SedanaPricingAndFunding';
 import { getItemLimitForFrequency, SedanaBasketItem } from '@/components/sedana/sedanaTypes';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -81,7 +82,7 @@ const ICON_MAP: Record<string, any> = {
   Building2, Hammer, Wrench, Package, Receipt, Sparkles, Sun, Droplets, GlassWater,
 };
 
-type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
+type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'pricing-and-funding' | 'review';
 
 const STEPS: { key: Step; label: string; order: number }[] = [
   { key: 'service-selection', label: 'اختيار الخدمة', order: 1 },
@@ -146,6 +147,27 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // خطوات النموذج الديناميكية المخصصة لبرنامج سدانة
+  const activeSteps = useMemo(() => {
+    if (selectedService === 'sedana') {
+      return [
+        { key: 'service-selection' as Step, label: 'اختيار الخدمة', order: 1 },
+        { key: 'terms' as Step, label: 'الشروط والأحكام', order: 2 },
+        { key: 'requester-info' as Step, label: 'بيانات مقدم الطلب', order: 3 },
+        { key: 'details' as Step, label: 'تفاصيل الطلب', order: 4 },
+        { key: 'pricing-and-funding' as Step, label: 'التسعير والتمويل', order: 5 },
+        { key: 'review' as Step, label: 'المراجعة والإرسال', order: 6 },
+      ];
+    }
+    return [
+      { key: 'service-selection' as Step, label: 'اختيار الخدمة', order: 1 },
+      { key: 'terms' as Step, label: 'الشروط والأحكام', order: 2 },
+      { key: 'requester-info' as Step, label: 'بيانات مقدم الطلب', order: 3 },
+      { key: 'details' as Step, label: 'تفاصيل الطلب', order: 4 },
+      { key: 'review' as Step, label: 'المراجعة والإرسال', order: 5 },
+    ];
+  }, [selectedService]);
 
   // الفحص التلقائي لمحدد الخدمة في الرابط (مثل ?service=sedana)
   useEffect(() => {
@@ -438,7 +460,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           return;
         }
 
-        setCurrentStep('review');
+        setCurrentStep('pricing-and-funding');
         return;
       }
 
@@ -467,13 +489,15 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         }
       }
       setCurrentStep('review');
+    } else if (currentStep === 'pricing-and-funding') {
+      setCurrentStep('review');
     }
   };
 
   // معالج الخطوة السابقة
   const handlePreviousStep = () => {
-    const currentIndex = STEPS.findIndex((s) => s.key === currentStep);
-    if (currentIndex > 0) setCurrentStep(STEPS[currentIndex - 1].key);
+    const currentIndex = activeSteps.findIndex((s) => s.key === currentStep);
+    if (currentIndex > 0) setCurrentStep(activeSteps[currentIndex - 1].key);
   };
 
   // الحصول على بيانات المستخدم الحالي
@@ -561,6 +585,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         programData.tissuesQty = programData.cleaningMaterials.tissuesQty;
         programData.cartonsNeeded = programData.drinkingWater.cartonsQty;
         programData.workDescription = formData.workDescription || 'برنامج سدانة - عقد تشغيل ورعاية سنوي مستمر (12 شهراً)';
+
+        if (formData.sedanaSuppliersMatrix) {
+          programData.sedanaSuppliersMatrix = formData.sedanaSuppliersMatrix;
+        }
+        if (formData.actualMosqueCost) {
+          programData.actualMosqueCost = formData.actualMosqueCost;
+        }
+        if (formData.sedanaFundingDetails) {
+          programData.sedanaFundingDetails = formData.sedanaFundingDetails;
+        }
+        if (formData.donorOpportunityPrice) {
+          programData.donorOpportunityPrice = formData.donorOpportunityPrice;
+        }
       }
 
       const result = await createRequestMutation.mutateAsync({
@@ -671,8 +708,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     }
   };
 
-  const currentStepIndex = STEPS.findIndex((s) => s.key === currentStep);
-  const progressPercentage = ((currentStepIndex + 1) / STEPS.length) * 100;
+  const currentStepIndex = activeSteps.findIndex((s) => s.key === currentStep);
+  const progressPercentage = ((currentStepIndex + 1) / activeSteps.length) * 100;
 
   const content = (
     <>
@@ -699,7 +736,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       {/* شريط التقدم */}
       <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
         <div className="flex items-center justify-between min-w-[320px] sm:min-w-0 px-1">
-          {STEPS.map((step, index) => (
+          {activeSteps.map((step, index) => (
             <React.Fragment key={step.key}>
               <div className={`flex flex-col items-center justify-start self-start shrink-0 min-h-[64px] sm:min-h-[88px] ${index <= currentStepIndex ? 'opacity-100' : 'opacity-40'}`}>
                 <div
@@ -717,7 +754,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                   {step.label}
                 </p>
               </div>
-              {index < STEPS.length - 1 && (
+              {index < activeSteps.length - 1 && (
                 <div className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 rounded-full transition-colors duration-300 ${index < currentStepIndex ? 'bg-primary' : 'bg-muted'}`} />
               )}
             </React.Fragment>
@@ -1248,7 +1285,37 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           </div>
         )}
 
-        {/* الخطوة 5: المراجعة والإرسال */}
+        {/* الخطوة 5 (لسدانة): التسعير والهندسة المالية (تجزئة الشراء ونموذج 25/30) */}
+        {currentStep === 'pricing-and-funding' && selectedService === 'sedana' && (
+          <div className="space-y-5 sm:space-y-6">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">تجزئة الشراء والهندسة المالية (سدانة)</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">تفكيك بنود التوريد على الموردين وتحديد التكلفة الفعلية وتكلفة الفرصة الكافلة (نموذج 25/30)</p>
+            </div>
+
+            <SedanaPricingAndFunding
+              request={{
+                id: 0,
+                requestNumber: 'DRAFT',
+                programType: 'sedana',
+                programData: formData,
+                currentStage: 'boq_preparation',
+              }}
+              canEdit={true}
+              onSaveDraft={(updates) => {
+                setFormData((prev) => ({
+                  ...prev,
+                  ...updates,
+                }));
+              }}
+              onComplete={() => {
+                setCurrentStep('review');
+              }}
+            />
+          </div>
+        )}
+
+        {/* الخطوة الأخيرة: المراجعة والإرسال */}
         {currentStep === 'review' && (
           <div className="space-y-5 sm:space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
