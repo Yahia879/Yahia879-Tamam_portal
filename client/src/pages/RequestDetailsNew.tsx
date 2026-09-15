@@ -1851,8 +1851,8 @@ export default function RequestDetailsNew() {
                   </div>
                 )}
 
-                {/* المحطة 3 والمحطة 4: تجزئة الشراء وتعدد الموردين + الهندسة المالية ونموذج 25/30 لبرنامج سدانة */}
-                {request.programType === 'sedana' && ['boq_preparation', 'financial_eval', 'financial_eval_and_approval', 'quotation_approval', 'contracting', 'execution'].includes(request.currentStage) && user?.role !== 'service_requester' && (
+                {/* الهندسة المالية وحاسبة الأجور ومسار التمويل لبرنامج سدانة - تظهر فقط في مرحلة التعاقد والتنفيذ */}
+                {request.programType === 'sedana' && ['contracting', 'execution'].includes(request.currentStage) && user?.role !== 'service_requester' && (
                   <div className="space-y-4">
                     <SedanaPricingAndFunding
                       request={request as any}
