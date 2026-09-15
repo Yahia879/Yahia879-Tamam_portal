@@ -2080,6 +2080,77 @@ export const projectsRouter = router({
       };
     }),
 
+  // اعتماد عروض أسعار متعددة الموردين بحسب البنود (برنامج سدانة)
+  approveSedanaMultiVendorQuotations: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      itemVendorSelections: z.array(z.object({
+        boqItemId: z.number(),
+        quotationId: z.number(),
+        unitPrice: z.number(),
+        totalPrice: z.number(),
+        supplierName: z.string().optional(),
+      })),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const quotationIds = Array.from(new Set(input.itemVendorSelections.map(s => s.quotationId)));
+
+      // 1. اعتماد كافة عروض الأسعار المختارة
+      for (const qId of quotationIds) {
+        await db
+          .update(quotations)
+          .set({ status: "accepted" })
+          .where(eq(quotations.id, qId));
+      }
+
+      // 2. تحديث جدول الكميات للطلب
+      let totalApprovedBaseCost = 0;
+      for (const sel of input.itemVendorSelections) {
+        totalApprovedBaseCost += sel.totalPrice;
+        await db
+          .update(quantitySchedules)
+          .set({
+            unitPrice: sel.unitPrice.toString(),
+            totalPrice: sel.totalPrice.toString(),
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(quantitySchedules.id, sel.boqItemId),
+            eq(quantitySchedules.requestId, input.requestId)
+          ));
+      }
+
+      // 3. تحديث التكلفة الفعلية للطلب في programData
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (request) {
+        let pData: any = {};
+        try {
+          pData = typeof request.programData === "string" ? JSON.parse(request.programData) : (request.programData || {});
+        } catch (_) {
+          pData = {};
+        }
+        pData.actualMosqueCost = totalApprovedBaseCost;
+        pData.baseCost = totalApprovedBaseCost;
+
+        await db
+          .update(mosqueRequests)
+          .set({
+            programData: JSON.stringify(pData),
+            updatedAt: new Date(),
+          })
+          .where(eq(mosqueRequests.id, input.requestId));
+      }
+
+      return {
+        success: true,
+        totalApprovedBaseCost,
+        approvedQuotationsCount: quotationIds.length,
+      };
+    }),
+
   // ==================== الموردين ====================
 
   // جلب جميع الموردين
