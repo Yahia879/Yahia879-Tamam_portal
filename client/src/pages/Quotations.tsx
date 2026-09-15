@@ -663,7 +663,7 @@ export default function Quotations() {
     toast.info("تمت إعادة ضبط جميع اختيارات الموردين");
   };
 
-  // فلترة بنود جدول الكميات حسب البحث وحالة الترسية
+  // فلترة بنود جدول الكميات حسب البحث
   const filteredBoqItems = useMemo(() => {
     if (!boqData?.items) return [];
     return boqData.items.filter((item: any) => {
@@ -675,18 +675,9 @@ export default function Quotations() {
         if (!matchName && !matchDesc && !matchCat) return false;
       }
 
-      const isAssigned = Boolean(selectedWinningVendors[item.id]);
-      const validOffers = allQuotations.filter((quote: any) => {
-        const offer = getOfferForItem(item, quote, boqData.items.length);
-        return offer !== null;
-      });
-
-      if (sedanaFilterStatus === "unassigned") return !isAssigned;
-      if (sedanaFilterStatus === "assigned") return isAssigned;
-      if (sedanaFilterStatus === "multiple") return validOffers.length > 1;
-
+      return true;
     });
-  }, [boqData?.items, sedanaItemSearch, sedanaFilterStatus, selectedWinningVendors, allQuotations]);
+  }, [boqData?.items, sedanaItemSearch]);
 
   const deleteBoqItemMutation = trpc.projects.deleteBOQItem.useMutation({
     onSuccess: () => {
@@ -2154,16 +2145,13 @@ export default function Quotations() {
                     {filteredBoqItems.length === 0 ? (
                       <div className="text-center py-10 border border-dashed rounded-xl p-8 bg-muted/10">
                         <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-                        <p className="font-bold text-sm text-foreground">لا توجد بنود مطابقة لمعايير البحث أو التصفية</p>
-                        <p className="text-xs text-muted-foreground mt-1">جرّب مسح نص البحث أو اختيار خيار تصفية آخر</p>
+                        <p className="font-bold text-sm text-foreground">لا توجد بنود مطابقة لنص البحث</p>
+                        <p className="text-xs text-muted-foreground mt-1">جرّب مسح نص البحث لعرض كافة البنود</p>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="mt-3 text-xs"
-                          onClick={() => {
-                            setSedanaItemSearch("");
-                            setSedanaFilterStatus("all");
-                          }}
+                          onClick={() => setSedanaItemSearch("")}
                         >
                           عرض جميع البنود ({totalBoqItemsCount})
                         </Button>
