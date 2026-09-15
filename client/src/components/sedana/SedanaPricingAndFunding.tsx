@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SedanaSuppliersMatrix } from './SedanaSuppliersMatrix';
 import { SedanaFundingAndOpportunity } from './SedanaFundingAndOpportunity';
-import { FileText, Coins, Layers, ArrowLeftRight } from 'lucide-react';
+import { FileText, Coins, Layers } from 'lucide-react';
 
 interface SedanaPricingAndFundingProps {
   request: {
@@ -12,12 +12,14 @@ interface SedanaPricingAndFundingProps {
     currentStage: string;
   };
   onComplete?: () => void;
+  onSaveDraft?: (fieldUpdates: any) => void;
   canEdit?: boolean;
 }
 
 export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = ({
   request,
   onComplete,
+  onSaveDraft,
   canEdit = true,
 }) => {
   let programData: Record<string, any> = {};
@@ -80,6 +82,14 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
         <SedanaSuppliersMatrix
           request={request}
           canEdit={canEdit}
+          onSaveDraft={(matrixData) => {
+            if (onSaveDraft) {
+              onSaveDraft({
+                sedanaSuppliersMatrix: matrixData,
+                actualMosqueCost: matrixData.totalActualCost,
+              });
+            }
+          }}
           onComplete={() => {
             setActiveTab('funding');
           }}
@@ -88,6 +98,14 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
         <SedanaFundingAndOpportunity
           request={request}
           canEdit={canEdit}
+          onSaveDraft={(fundingData) => {
+            if (onSaveDraft) {
+              onSaveDraft({
+                sedanaFundingDetails: fundingData,
+                donorOpportunityPrice: fundingData.donorOpportunityPrice,
+              });
+            }
+          }}
           onComplete={onComplete}
         />
       )}
