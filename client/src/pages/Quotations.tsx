@@ -1897,61 +1897,37 @@ export default function Quotations() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                {isSedanaProgram && (
-                  <>
-                    <input
-                      type="file"
-                      id="bulk-quotation-excel-upload-sedana"
-                      className="hidden"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleBulkQuotationExcelUpload}
-                    />
-                    <Button
-                      onClick={downloadBulkQuotationTemplate}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-8 px-3 gap-1 border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                      قالب Excel
-                    </Button>
-                    <Button
-                      onClick={() => document.getElementById("bulk-quotation-excel-upload-sedana")?.click()}
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-8 px-3 gap-1 border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      رفع عروض الأسعار
-                    </Button>
-                    <Button
-                      onClick={() => setShowAddDialog(true)}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      إضافة عرض سعر
-                    </Button>
-                  </>
-                )}
-                {hasAcceptedQuotation ? (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    عرض السعر معتمد (الجدول مقفل)
-                  </Badge>
-                ) : (
+                {isSedanaProgram ? (
                   <Button
-                    variant="outline"
+                    onClick={() => setShowAddDialog(true)}
                     size="sm"
-                    className="gap-1.5"
-                    onClick={() => {
-                      setEditingBoqItem(null);
-                      setShowBoqDialog(true);
-                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1 shadow-xs"
                   >
-                    <Plus className="h-4 w-4" />
-                    إضافة بند جديد
+                    <Plus className="h-3.5 w-3.5" />
+                    إضافة عرض سعر
                   </Button>
+                ) : (
+                  <>
+                    {hasAcceptedQuotation ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs gap-1 py-1 px-2.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        عرض السعر معتمد (الجدول مقفل)
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => {
+                          setEditingBoqItem(null);
+                          setShowBoqDialog(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        إضافة بند جديد
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </CardHeader>
@@ -1964,7 +1940,7 @@ export default function Quotations() {
                 isSedanaProgram ? (
                   <div className="space-y-5" dir="rtl">
                     {/* 1. لوحة المؤشرات التنفيذية للترسية */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* بطاقة نسبة اكتمال الترسية */}
                       <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
@@ -2002,21 +1978,6 @@ export default function Quotations() {
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           مجموع أسعار البنود المعتمدة حالياً
-                        </p>
-                      </div>
-
-                      {/* بطاقة الوفر المالي المحقق */}
-                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                          <span className="font-semibold">الوفر المالي المحقق</span>
-                          <TrendingDown className="h-4 w-4 text-emerald-600" />
-                        </div>
-                        <div className="text-lg font-extrabold text-foreground flex items-center gap-1 my-1">
-                          <span className="text-emerald-600">{estimatedSavings.toLocaleString("ar-SA")}</span>
-                          <SaudiRiyal className="w-4 h-4 inline text-emerald-600" />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          وفر باختيار أفضل الأسعار مقارنة بأعلى العروض
                         </p>
                       </div>
 
@@ -2149,66 +2110,18 @@ export default function Quotations() {
                         </div>
                       </div>
 
-                      {/* أزرار الفلترة حسب حالة الترسية */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Button
-                          size="sm"
-                          variant={sedanaFilterStatus === "all" ? "default" : "outline"}
-                          onClick={() => setSedanaFilterStatus("all")}
-                          className="h-8 text-xs px-2.5"
-                        >
-                          الكل ({totalBoqItemsCount})
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={sedanaFilterStatus === "unassigned" ? "default" : "outline"}
-                          onClick={() => setSedanaFilterStatus("unassigned")}
-                          className={cn(
-                            "h-8 text-xs px-2.5 gap-1",
-                            unassignedItemsCount > 0 && sedanaFilterStatus !== "unassigned" && "border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/20"
-                          )}
-                        >
-                          بانتظار مورد ({unassignedItemsCount})
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={sedanaFilterStatus === "assigned" ? "default" : "outline"}
-                          onClick={() => setSedanaFilterStatus("assigned")}
-                          className="h-8 text-xs px-2.5"
-                        >
-                          تمت الترسية ({assignedItemsCount})
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={sedanaFilterStatus === "multiple" ? "default" : "outline"}
-                          onClick={() => setSedanaFilterStatus("multiple")}
-                          className="h-8 text-xs px-2.5"
-                        >
-                          عروض متنافسة ({multipleOffersCount})
-                        </Button>
-                      </div>
-
-                      {/* أزرار الإجراءات السريعة وتبديل العرض */}
+                      {/* أزرار الإجراءات وتبديل العرض */}
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        {/* زر الترسية الذكية للأقل سعراً */}
-                        <Button
-                          onClick={handleAutoSelectLowestPrices}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1.5 shadow-xs"
-                          title="اختيار المورد صاحب العرض الأقل سعراً لكل بند بشكل فوري"
-                        >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          ترسية الأقل سعراً تلقائياً
-                        </Button>
-
                         {/* زر إعادة ضبط الاختيارات */}
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={handleResetAllSelections}
-                          className="h-8 text-xs px-2.5 text-muted-foreground hover:text-red-600 hover:border-red-300"
+                          className="h-8 text-xs px-2.5 text-muted-foreground hover:text-red-600 hover:border-red-300 gap-1.5"
                           title="إلغاء كافة الاختيارات وإعادة ضبط الجدول"
                         >
                           <RotateCcw className="h-3.5 w-3.5" />
+                          إعادة ضبط
                         </Button>
 
                         {/* مبدل نمط العرض: مصفوفة المقارنة مقابل جدول تفصيلي */}
