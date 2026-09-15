@@ -2652,6 +2652,221 @@ export const requestsRouter = router({
       };
     }),
 
+  // حفظ مصفوفة عروض الأسعار والموردين حسب المجال (المرحلة الخامسة - سدانة)
+  saveSedanaSuppliersMatrix: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      suppliersMatrix: z.object({
+        water: z.object({
+          supplierName: z.string().optional(),
+          quoteRef: z.string().optional(),
+          quoteFileUrl: z.string().optional(),
+          totalCost: z.number().default(0),
+          items: z.array(z.string()).optional(),
+          notes: z.string().optional(),
+        }).optional(),
+        supplies: z.object({
+          supplierName: z.string().optional(),
+          quoteRef: z.string().optional(),
+          quoteFileUrl: z.string().optional(),
+          totalCost: z.number().default(0),
+          items: z.array(z.string()).optional(),
+          notes: z.string().optional(),
+        }).optional(),
+        labor: z.object({
+          supplierName: z.string().optional(),
+          quoteRef: z.string().optional(),
+          quoteFileUrl: z.string().optional(),
+          totalCost: z.number().default(0),
+          items: z.array(z.string()).optional(),
+          notes: z.string().optional(),
+        }).optional(),
+      }),
+      totalActualCost: z.number(),
+      notes: z.string().optional(),
+      shouldAdvanceStage: z.boolean().default(false),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      const allowedRoles = ['super_admin', 'system_admin', 'projects_office', 'financial', 'general_manager', 'executive_director'];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لحفظ مصفوفة عروض الأسعار" });
+      }
+
+      let currentProgramData: Record<string, any> = {};
+      try {
+        if (typeof request.programData === 'string') {
+          currentProgramData = JSON.parse(request.programData);
+        } else if (typeof request.programData === 'object' && request.programData !== null) {
+          currentProgramData = { ...request.programData };
+        }
+      } catch (e) {
+        currentProgramData = {};
+      }
+
+      const matrixData = {
+        matrix: input.suppliersMatrix,
+        totalActualCost: input.totalActualCost,
+        updatedAt: new Date().toISOString(),
+        updatedBy: ctx.user.id,
+        updatedByName: ctx.user.name,
+        notes: input.notes,
+      };
+
+      currentProgramData.sedanaSuppliersMatrix = matrixData;
+      currentProgramData.actualMosqueCost = input.totalActualCost;
+
+      const updateData: any = {
+        programData: currentProgramData,
+      };
+
+      if (input.shouldAdvanceStage) {
+        if (['boq_preparation', 'submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)) {
+          updateData.currentStage = 'financial_eval_and_approval';
+        } else if (request.currentStage === 'execution') {
+          updateData.currentStage = 'handover';
+        }
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: request.currentStage,
+          toStage: updateData.currentStage || request.currentStage,
+          fromStatus: request.status,
+          toStatus: request.status,
+          action: 'update_sedana_suppliers_matrix',
+          notes: input.notes || `تم حفظ مصفوفة عروض الأسعار بإجمالي تكلفة فعلية: ${input.totalActualCost} ريال`,
+        });
+      } catch (logErr) {
+        console.error("Matrix log error:", logErr);
+      }
+
+      return {
+        success: true,
+        message: "تم حفظ مصفوفة عروض الأسعار وتحديد التكلفة الفعلية للمسجد بنجاح",
+        suppliersMatrix: matrixData,
+      };
+    }),
+
+  // حفظ تسعير الفرصة وتحديد مسار التمويل (المرحلة السادسة - سدانة)
+  saveSedanaFundingChoice: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      actualMosqueCost: z.number(),
+      operationalFeePercent: z.number().default(15),
+      gatewayFeePercent: z.number().default(5),
+      adminFeeTotal: z.number().default(0),
+      donorOpportunityPrice: z.number(),
+      fundingPath: z.enum(['direct_purchase', 'crowdfunding']),
+      directDonorInfo: z.object({
+        donorName: z.string().optional(),
+        donorPhone: z.string().optional(),
+        receiptRef: z.string().optional(),
+        receiptFileUrl: z.string().optional(),
+        notes: z.string().optional(),
+      }).optional(),
+      crowdfundingConfig: z.object({
+        sharePrices: z.array(z.number()).optional(),
+        defaultSharePrice: z.number().optional(),
+        targetAmount: z.number().optional(),
+      }).optional(),
+      notes: z.string().optional(),
+      shouldAdvanceStage: z.boolean().default(true),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      const allowedRoles = ['super_admin', 'system_admin', 'projects_office', 'financial', 'general_manager', 'executive_director'];
+      if (!allowedRoles.includes(ctx.user.role)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية لتحديد مسار التمويل والتسعير" });
+      }
+
+      let currentProgramData: Record<string, any> = {};
+      try {
+        if (typeof request.programData === 'string') {
+          currentProgramData = JSON.parse(request.programData);
+        } else if (typeof request.programData === 'object' && request.programData !== null) {
+          currentProgramData = { ...request.programData };
+        }
+      } catch (e) {
+        currentProgramData = {};
+      }
+
+      const fundingDetails = {
+        actualMosqueCost: input.actualMosqueCost,
+        operationalFeePercent: input.operationalFeePercent,
+        gatewayFeePercent: input.gatewayFeePercent,
+        adminFeeTotal: input.adminFeeTotal,
+        donorOpportunityPrice: input.donorOpportunityPrice,
+        fundingPath: input.fundingPath,
+        directDonorInfo: input.directDonorInfo || null,
+        crowdfundingConfig: input.crowdfundingConfig || null,
+        configuredAt: new Date().toISOString(),
+        configuredBy: ctx.user.id,
+        configuredByName: ctx.user.name,
+        notes: input.notes,
+      };
+
+      currentProgramData.sedanaFundingDetails = fundingDetails;
+      currentProgramData.donorOpportunityPrice = input.donorOpportunityPrice;
+
+      const updateData: any = {
+        programData: currentProgramData,
+      };
+
+      if (input.shouldAdvanceStage) {
+        if (['boq_preparation', 'financial_eval', 'financial_eval_and_approval', 'quotation_approval', 'contracting'].includes(request.currentStage)) {
+          updateData.currentStage = 'execution';
+          updateData.status = 'in_progress';
+        } else if (request.currentStage === 'handover') {
+          updateData.currentStage = 'closed';
+          updateData.status = 'completed';
+        }
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: request.currentStage,
+          toStage: updateData.currentStage || request.currentStage,
+          fromStatus: request.status,
+          toStatus: updateData.status || request.status,
+          action: 'set_sedana_funding_choice',
+          notes: `تم اعتماد مسار التمويل (${input.fundingPath === 'crowdfunding' ? 'طرح للتمويل الجماعي' : 'متبرع مباشر / شراء مباشر'}) بسعر فرصة: ${input.donorOpportunityPrice} ريال`,
+        });
+      } catch (logErr) {
+        console.error("Funding choice log error:", logErr);
+      }
+
+      return {
+        success: true,
+        message: input.fundingPath === 'crowdfunding'
+          ? "تم تحديد سعر الفرصة بنجاح وإتاحة الطلب للتمويل الجماعي على المنصة"
+          : "تم تسجيل بيانات المتبرع المباشر واعتماد الشراء والتنفيذ بنجاح",
+        fundingDetails,
+      };
+    }),
+
   // التقييم الفني - الخيارات الأربعة
   technicalEvalDecision: protectedProcedure
     .input(z.object({
