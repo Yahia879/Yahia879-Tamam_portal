@@ -34,6 +34,7 @@ import { getAllFieldsForProgram } from "@/lib/programFields";
 import { SedanaDetailsView } from "@/components/sedana/SedanaDetailsView";
 import { SedanaOfficeEvaluation } from "@/components/sedana/SedanaOfficeEvaluation";
 import { SedanaPricingAndFunding } from "@/components/sedana/SedanaPricingAndFunding";
+import { MultiVendorContractingCard } from "@/components/MultiVendorContractingCard";
 
 function ProgressiveImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [loading, setLoading] = useState(true);
@@ -1848,6 +1849,20 @@ export default function RequestDetailsNew() {
                         الاعتذار
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* كارد مرحلة التعاقد وإصدار العقود للموردين المعتمدين */}
+                {['contracting', 'execution'].includes(request.currentStage) && user?.role !== 'service_requester' && (
+                  <div className="space-y-4">
+                    <MultiVendorContractingCard
+                      requestId={requestId}
+                      projectId={request.project?.id || undefined}
+                      isSedanaProgram={request.programType === 'sedana'}
+                      hasAcceptedQuotation={hasApprovedQuotation}
+                      userRole={user?.role}
+                      onRefresh={() => refetch()}
+                    />
                   </div>
                 )}
 
