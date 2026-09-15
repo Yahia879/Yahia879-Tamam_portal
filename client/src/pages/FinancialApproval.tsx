@@ -10,6 +10,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -302,6 +303,19 @@ export default function FinancialApproval() {
 
   // إحصائيات الترسية
   const totalBoqItemsCount = boqData?.items?.length || 0;
+
+  // إجمالي تسعير جدول الكميات (التكلفة التقديرية)
+  const totalBoqCost = useMemo(() => {
+    if (typeof boqData?.total === "number" && boqData.total > 0) return boqData.total;
+    if (!boqData?.items) return 0;
+    return boqData.items.reduce((sum: number, item: any) => {
+      const p = parseFloat(String(item.totalPrice || "0").replace(/,/g, ''));
+      if (!isNaN(p) && p > 0) return sum + p;
+      const u = parseFloat(String(item.unitPrice || "0").replace(/,/g, ''));
+      const q = parseFloat(String(item.quantity || "1").replace(/,/g, '')) || 1;
+      return sum + (u * q);
+    }, 0);
+  }, [boqData]);
   const assignedItemsCount = useMemo(() => {
     if (!selectedQuotationId || !boqData?.items) return 0;
     return boqData.items.filter((item: any) => selectedWinningVendors[item.id] === selectedQuotationId).length;
@@ -611,7 +625,7 @@ export default function FinancialApproval() {
 
                     <CardContent className="space-y-5">
                       {/* 1. لوحة المؤشرات التنفيذية للترسية */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                         {/* بطاقة نسبة اكتمال الترسية */}
                         <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
                           <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
@@ -634,6 +648,21 @@ export default function FinancialApproval() {
                             {selectedQuotation 
                               ? `مكتمل: تم اختيار ${selectedQuotation.supplierName}` 
                               : `متبقي ${unassignedItemsCount} بند دون تحديد مورد`}
+                          </p>
+                        </div>
+
+                        {/* بطاقة إجمالي تسعير جدول الكميات */}
+                        <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                            <span className="font-semibold">إجمالي تسعير جدول الكميات</span>
+                            <Calculator className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="text-lg font-extrabold text-foreground flex items-center gap-1 my-1">
+                            <span>{totalBoqCost.toLocaleString("ar-SA")}</span>
+                            <SaudiRiyal className="w-4 h-4 inline" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            التكلفة التقديرية لكافة بنود جدول الكميات
                           </p>
                         </div>
 
@@ -731,6 +760,22 @@ export default function FinancialApproval() {
                                   <TableHead className="font-bold min-w-[220px]">البند والمواصفات</TableHead>
                                   <TableHead className="text-center font-bold min-w-[90px] border-r border-slate-200 dark:border-slate-800">الكمية</TableHead>
                                   
+                                  {/* عمود تسعير جدول الكميات التقديري */}
+                                  <TableHead className="min-w-[160px] text-center p-3 border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50">
+                                    <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                                      <div className="font-bold text-xs text-foreground flex items-center justify-center gap-1">
+                                        <Calculator className="w-3.5 h-3.5 text-primary" />
+                                        <span>تسعير جدول الكميات</span>
+                                      </div>
+                                      <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 font-medium">
+                                        <span>إجمالي:</span>
+                                        <span className="font-bold text-foreground inline-flex items-center gap-0.5">
+                                          {totalBoqCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </TableHead>
+                                  
                                   {/* أعمدة الموردين المشاركين مع زر اختر لكل بنود المورد */}
                                   {participatingVendors.map(vendor => {
                                     const isSelected = selectedQuotationId === vendor.quotationId;
@@ -820,6 +865,29 @@ export default function FinancialApproval() {
                                         </span>
                                         <span className="text-[11px] text-muted-foreground block">{item.unit || "عدد"}</span>
                                       </TableCell>
+
+                                      {/* خلية تسعير جدول الكميات للبند */}
+                                      {(() => {
+                                        const boqUnitPrice = parseFloat(String(item.unitPrice || "0").replace(/,/g, '')) || 0;
+                                        const boqQty = parseFloat(String(item.quantity || "1").replace(/,/g, '')) || 1;
+                                        const boqTotalPrice = parseFloat(String(item.totalPrice || "0").replace(/,/g, '')) || (boqUnitPrice * boqQty);
+
+                                        return (
+                                          <TableCell className="p-2 align-middle border-r border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20">
+                                            <div className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-background/80 text-center shadow-2xs">
+                                              <div className="text-[10px] text-muted-foreground font-medium mb-0.5">سعر الوحدة التقديري</div>
+                                              <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
+                                                <span>{boqUnitPrice.toLocaleString("ar-SA")}</span>
+                                                <span className="text-[10px] text-muted-foreground font-normal">ر.س</span>
+                                              </div>
+                                              <div className="text-[10px] text-primary font-bold mt-1 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between px-1">
+                                                <span className="text-muted-foreground font-normal">الإجمالي:</span>
+                                                <span>{boqTotalPrice.toLocaleString("ar-SA")} ر.س</span>
+                                              </div>
+                                            </div>
+                                          </TableCell>
+                                        );
+                                      })()}
 
                                       {/* خلايا الموردين لكل بند (عرض أسعار المقارنة دون اختيار بالبند الفردي) */}
                                       {participatingVendors.map(vendor => {
@@ -919,6 +987,36 @@ export default function FinancialApproval() {
                                   );
                                 })}
                               </TableBody>
+                              <TableFooter className="bg-muted/40 font-bold border-t-2 border-slate-300 dark:border-slate-700">
+                                <TableRow>
+                                  <TableCell colSpan={3} className="text-center font-bold text-xs py-3">
+                                    الإجمالي الكلي
+                                  </TableCell>
+                                  {/* إجمالي تسعير جدول الكميات */}
+                                  <TableCell className="text-center border-r border-slate-200 dark:border-slate-800 py-3 bg-slate-50/70 dark:bg-slate-900/50">
+                                    <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
+                                      <span>{totalBoqCost.toLocaleString("ar-SA")}</span>
+                                      <SaudiRiyal className="w-3 h-3 inline" />
+                                    </div>
+                                  </TableCell>
+                                  {/* إجمالي عروض أسعار الموردين */}
+                                  {participatingVendors.map(vendor => (
+                                    <TableCell key={vendor.quotationId} className="text-center border-r border-slate-200 dark:border-slate-800 py-3">
+                                      <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
+                                        <span>{vendor.totalAmount.toLocaleString("ar-SA")}</span>
+                                        <SaudiRiyal className="w-3 h-3 inline" />
+                                      </div>
+                                    </TableCell>
+                                  ))}
+                                  {/* إجمالي المعتمد حالياً */}
+                                  <TableCell className="text-center border-r border-emerald-500/20 py-3 bg-emerald-500/5">
+                                    <div className="font-extrabold text-xs text-emerald-700 dark:text-emerald-400 flex items-center justify-center gap-0.5">
+                                      <span>{totalSelectedItemsCost.toLocaleString("ar-SA")}</span>
+                                      <SaudiRiyal className="w-3 h-3 inline" />
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              </TableFooter>
                             </Table>
                           </div>
                         </div>
