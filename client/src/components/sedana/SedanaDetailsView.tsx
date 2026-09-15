@@ -295,6 +295,19 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
               </p>
             </div>
           )}
+
+          {/* المحطة 5: صورة التأمين وأمر الشراء */}
+          {funding.procurementMode && (
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">صورة التأمين وأمر الشراء (المحطة 05):</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 rounded-md">
+                {funding.procurementMode === 'supplier_contract' && 'عقد مع مورد'}
+                {funding.procurementMode === 'direct_purchase' && 'شراء مباشر'}
+                {funding.procurementMode === 'official_commission' && 'تعميد جهة'}
+                {funding.procurementMode === 'csr_in_kind' && 'مسؤولية مجتمعية / عيني'}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>
