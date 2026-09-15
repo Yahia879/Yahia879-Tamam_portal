@@ -38,7 +38,6 @@ import { usePermission } from "@/hooks/usePermission";
 import { cn } from "@/lib/utils";
 import {
   CheckSquare,
-  Eye,
   CheckCircle2,
   Loader2,
   FileText,
@@ -921,49 +920,6 @@ export default function FinancialApproval() {
                         </div>
                       )}
 
-                      {/* 4. شريط الاعتماد المالي والترسية النهائي */}
-                      <div className="p-4 bg-muted/40 dark:bg-slate-900/90 rounded-xl border border-border mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm" dir="rtl">
-                        <div>
-                          <h4 className="font-bold text-sm flex items-center gap-2 text-foreground">
-                            <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-                            اعتماد وترسية عرض السعر
-                          </h4>
-                          <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
-                            {selectedQuotation ? (
-                              <span className="text-emerald-700 dark:text-emerald-400 font-bold">
-                                تم اختيار المورد: <strong>{selectedQuotation.supplierName}</strong> لكافة البنود ({totalBoqItemsCount} بند).
-                              </span>
-                            ) : (
-                              <span>
-                                لم يتم اختيار أي مورد بعد. يرجى النقر على زر <strong>"اختر"</strong> أعلى المورد المطلوب.
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
-                          <div className="text-right">
-                            <span className="text-[11px] text-muted-foreground block">إجمالي مبالغ الترسية:</span>
-                            <span className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
-                              {totalSelectedItemsCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-4 h-4 inline" />
-                            </span>
-                          </div>
-
-                          {canApprove && (
-                            <Button
-                              onClick={() => setShowApprovalDialog(true)}
-                              disabled={approveMultiVendorMutation.isPending || approveMutation.isPending || !selectedQuotationId}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-sm disabled:opacity-50"
-                            >
-                              {(approveMultiVendorMutation.isPending || approveMutation.isPending) && (
-                                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                              )}
-                              <CheckCircle2 className="h-4 w-4 ml-2" />
-                              اعتماد وترسية عرض السعر
-                            </Button>
-                          )}
-                        </div>
-                      </div>
                     </CardContent>
                   </Card>
                 )}
@@ -1074,71 +1030,7 @@ export default function FinancialApproval() {
                   </Card>
                 )}
 
-                {/* ==================== ملخص الاعتماد المالي ==================== */}
-                {selectedQuotationId && selectedQuotation && (
-                  <Card className="border-primary/40 shadow-xs">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CheckSquare className="h-5 w-5 text-primary" />
-                        ملخص الاعتماد المالي
-                      </CardTitle>
-                      <CardDescription>مراجعة التكلفة المعتمدة قبل الاعتماد النهائي والانتقال لمرحلة التعاقد</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {/* تفاصيل التكلفة */}
-                        <div className="grid gap-4 md:grid-cols-2">
-                          {/* جدول الكميات */}
-                          <div className="p-4 bg-muted rounded-lg">
-                            <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                              <Calculator className="h-4 w-4" />
-                              <span>إجمالي جدول الكميات التقديري</span>
-                            </div>
-                            <p className="text-2xl font-bold inline-flex items-center gap-1.5">
-                              {boqTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" />
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-2">للمرجعية والتقدير</p>
-                          </div>
 
-                          {/* التكلفة المعتمدة */}
-                          <div className="p-4 bg-primary/10 rounded-lg border border-primary">
-                            <div className="flex items-center gap-2 text-primary mb-2">
-                              <SaudiRiyal className="h-4 w-4" />
-                              <span>التكلفة المعتمدة النهائية</span>
-                            </div>
-                            <p className="text-2xl font-bold text-primary inline-flex items-center gap-1.5">
-                              {displayFinalCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" />
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              المورد المعتمد: {selectedQuotation?.supplierName || "غير محدد"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* أزرار الإجراءات */}
-                        <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => navigate("/requests/" + selectedRequestId)}
-                            className="w-full sm:w-auto order-2 sm:order-1"
-                          >
-                            <Eye className="h-4 w-4 ml-2" />
-                            عرض تفاصيل الطلب
-                          </Button>
-                          {canApprove && (
-                            <Button 
-                              onClick={() => setShowApprovalDialog(true)}
-                              className="w-full sm:w-auto order-1 sm:order-2 bg-emerald-600 hover:bg-emerald-700 text-white"
-                            >
-                              <CheckCircle2 className="h-4 w-4 ml-2" />
-                              اعتماد مالياً وانتقال للتعاقد
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             )}
           </>
