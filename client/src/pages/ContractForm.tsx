@@ -350,6 +350,9 @@ export default function ContractForm() {
     staleTime: 10 * 60 * 1000, // 10 دقائق
   });
 
+  // جلب جميع الموردين النشطين
+  const { data: suppliersList = [] } = trpc.contracts.getSuppliers.useQuery();
+
   // جلب المشروع إذا تم تمرير معرفه أو في وضع التعديل للحصول على بيانات المشروع
   const { data: projectDetails } = trpc.projects.getById.useQuery(
     { id: (projectId || contractData.projectId)! },
@@ -1530,62 +1533,122 @@ export default function ContractForm() {
               </div>
             )}
 
-            {/* الخطوة 2: الطرف الثاني */}
+            {/* الخطوة 2: الطرف الثاني (اختيار المورد) */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                {hasApprovedSupplier && (
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Check className="h-4 w-4 text-blue-600" />
-                    <AlertTitle className="text-blue-800">تم اختيار المورد تلقائياً</AlertTitle>
-                    <AlertDescription className="text-blue-700">
-                      تم تحديد المورد "{approvedSupplierQuotation.supplierName}" بناءً على عرض السعر المعتمد في المرحلة المالية.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <div className="space-y-2 text-right" dir="rtl">
+                  <Label className="text-sm font-bold">المورد (الطرف الثاني) *</Label>
+                  <Select
+                    value={contractData.supplierId?.toString() || ""}
+                    onValueChange={(val) => {
+                      const suppId = parseInt(val);
+                      setContractData(prev => ({
+                        ...prev,
+                        supplierId: suppId,
+                      }));
 
-                <div className="space-y-2">
-                  <Label>المورد (الطرف الثاني) *</Label>
-                  <Input 
-                    value={selectedSupplier?.name || (contractData.supplierId ? "جاري تحميل بيانات المورد..." : "لم يتم تحديد مورد")} 
-                    readOnly 
-                    className="bg-muted" 
-                  />
-                  {hasApprovedSupplier && (
-                    <p className="text-xs text-blue-600 font-medium">
-                      لا يمكن تغيير المورد لوجود عرض سعر معتمد مرتب بهذا الطلب.
-                    </p>
-                  )}
+                      // البحث عن عرض سعر المورد وتطبيق قيمة العقد تلقائياً
+                      const quotesArr = Array.isArray((approvedQuotation as any)?.quotations)
+                        ? (approvedQuotation as any).quotations
+                        : [];
+                      const matchQuotation = quotesArr.find((q: any) => 
+                        q.supplierId === suppId || (q.supplierName && q.supplierName.trim() === suppliersList.find((s: any) => s.id === suppId)?.name?.trim())
+                      );
+                      if (matchQuotation) {
+                        const qAmount = parseFloat(matchQuotation.approvedAmount || matchQuotation.finalAmount || matchQuotation.totalAmount || "0");
+                        if (qAmount > 0) {
+                          setContractData(prev => ({
+                            ...prev,
+                            totalValue: qAmount,
+                            baseValue: qAmount,
+                          }));
+                          toast.success(`تم اختيار المورد وتحديد قيمة العقد بـ ${qAmount.toLocaleString("ar-SA")} ريال بناءً على عرض السعر`);
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-10 text-sm font-medium">
+                      <SelectValue placeholder="اختر المورد (الطرف الثاني) المراد إصدار العقد له..." />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl" className="text-right">
+                      {/* الموردون المرتبطون بعروض أسعار الطلب الحالي */}
+                      {effectiveRequestId && Array.isArray((approvedQuotation as any)?.quotations) && (approvedQuotation as any).quotations.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
+                            موردو عروض أسعار هذا الطلب:
+                          </div>
+                          {(approvedQuotation as any).quotations.map((q: any) => {
+                            const qAmount = parseFloat(q.approvedAmount || q.finalAmount || q.totalAmount || "0");
+                            const matchingSupplier = suppliersList.find((s: any) => s.id === q.supplierId || s.name === q.supplierName);
+                            const sId = matchingSupplier?.id || q.supplierId;
+                            if (!sId) return null;
+                            return (
+                              <SelectItem key={`q-supp-${q.id}`} value={String(sId)} className="text-sm cursor-pointer py-2">
+                                <div className="flex items-center justify-between gap-4 w-full">
+                                  <span className="font-bold text-foreground">{q.supplierName || matchingSupplier?.name || "مورد"}</span>
+                                  <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+                                    مبلغ الترسية: {qAmount.toLocaleString("ar-SA")} ريال
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                          <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground bg-muted/40 border-t mt-1">
+                            جميع الموردين المسجلين:
+                          </div>
+                        </>
+                      )}
+
+                      {/* جميع الموردين المسجلين في النظام */}
+                      {suppliersList.map((supp: any) => (
+                        <SelectItem key={`all-supp-${supp.id}`} value={String(supp.id)} className="text-sm cursor-pointer">
+                          <div className="flex items-center justify-between gap-3 w-full">
+                            <span>{supp.name}</span>
+                            {supp.commercialRegister && (
+                              <span className="text-xs text-muted-foreground">س.ت: {supp.commercialRegister}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    اختر المورد المناسب لإصدار وتوليد العقد الخاص به لهذا الطلب.
+                  </p>
                 </div>
 
                 {selectedSupplier && (
-                  <Card className="bg-muted/50">
+                  <Card className="bg-muted/50 border border-border">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">بيانات المورد</CardTitle>
+                      <CardTitle className="text-base font-bold flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-emerald-600" />
+                        بيانات المورد المختار (الطرف الثاني)
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-muted-foreground">الاسم:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.name}</span>
+                        <span className="text-muted-foreground">اسم المورد:</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.name}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">السجل التجاري:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.commercialRegister || "-"}</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.commercialRegister || "-"}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">المسؤول:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.contactPerson || "-"}</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.contactPerson || "-"}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">الجوال:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.phone || "-"}</span>
+                        <span className="text-muted-foreground">رقم الجوال:</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.phone || "-"}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">البريد:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.email || "-"}</span>
+                        <span className="text-muted-foreground">البريد الإلكتروني:</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.email || "-"}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">العنوان:</span>
-                        <span className="mr-2 font-medium">{selectedSupplier.address || "-"}</span>
+                        <span className="mr-2 font-bold text-foreground">{selectedSupplier.address || "-"}</span>
                       </div>
                     </CardContent>
                   </Card>
