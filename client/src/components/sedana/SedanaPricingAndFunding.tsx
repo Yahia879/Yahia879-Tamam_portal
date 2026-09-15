@@ -27,11 +27,15 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 }) => {
   let programData: Record<string, any> = {};
   try {
-    if (typeof request.programData === 'string') {
-      programData = JSON.parse(request.programData);
-    } else {
-      programData = request.programData || {};
+    let pData: any = request.programData;
+    while (typeof pData === 'string') {
+      try {
+        pData = JSON.parse(pData);
+      } catch {
+        break;
+      }
     }
+    programData = pData && typeof pData === 'object' && !Array.isArray(pData) ? pData : {};
   } catch (e) {
     programData = {};
   }
