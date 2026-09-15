@@ -2586,10 +2586,16 @@ export const requestsRouter = router({
       // قراءة وتحديث programData
       let currentProgramData: Record<string, any> = {};
       try {
-        if (typeof request.programData === 'string') {
-          currentProgramData = JSON.parse(request.programData);
-        } else if (typeof request.programData === 'object' && request.programData !== null) {
-          currentProgramData = { ...request.programData };
+        let pData: any = request.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+          currentProgramData = { ...pData };
         }
       } catch (e) {
         currentProgramData = {};
@@ -2702,10 +2708,16 @@ export const requestsRouter = router({
 
       let currentProgramData: Record<string, any> = {};
       try {
-        if (typeof request.programData === 'string') {
-          currentProgramData = JSON.parse(request.programData);
-        } else if (typeof request.programData === 'object' && request.programData !== null) {
-          currentProgramData = { ...request.programData };
+        let pData: any = request.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+          currentProgramData = { ...pData };
         }
       } catch (e) {
         currentProgramData = {};
@@ -2802,10 +2814,16 @@ export const requestsRouter = router({
 
       let currentProgramData: Record<string, any> = {};
       try {
-        if (typeof request.programData === 'string') {
-          currentProgramData = JSON.parse(request.programData);
-        } else if (typeof request.programData === 'object' && request.programData !== null) {
-          currentProgramData = { ...request.programData };
+        let pData: any = request.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+          currentProgramData = { ...pData };
         }
       } catch (e) {
         currentProgramData = {};
