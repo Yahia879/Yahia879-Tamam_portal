@@ -1330,16 +1330,77 @@ export const projectsRouter = router({
         .from(quantitySchedules)
         .leftJoin(mosques, eq(quantitySchedules.mosqueId, mosques.id))
         .where(and(...conditions))
-        .orderBy(quantitySchedules.category, quantitySchedules.itemName);
+      let itemsList = rawItems;
+
+      // إذا لم تكن هناك بنود في جدول الكميات وكان هناك requestId، نفحص إذا كان ينبغي مزامنة البنود من الطلب
+      if (itemsList.length === 0 && input.requestId) {
+        const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, input.requestId)).limit(1);
+        if (request && request.programData) {
+          let pData: any = {};
+          try {
+            pData = typeof request.programData === 'string' ? JSON.parse(request.programData) : request.programData;
+          } catch (e) {
+            pData = {};
+          }
+
+          const basketItems: any[] = pData.basketItems || [];
+          const approvedItems: Record<string, number> = pData.approvedPlan?.approvedItems || {};
+
+          if (Array.isArray(basketItems) && basketItems.length > 0) {
+            for (const item of basketItems) {
+              const qty = approvedItems[item.id] !== undefined ? approvedItems[item.id] : (Number(item.quantity) || 1);
+              await db.insert(quantitySchedules).values({
+                requestId: input.requestId,
+                mosqueId: request.mosqueId || null,
+                boqCode: `BOQ-SED-${item.id || Math.random().toString(36).substring(7)}`,
+                boqName: 'جدول كميات سدانة السنوي',
+                itemName: item.name || 'بند سدانة',
+                itemDescription: `دورية التوريد: ${item.frequency || 'سنوي'}`,
+                unit: item.unit || 'عدد',
+                quantity: String(qty),
+                unitPrice: '0',
+                totalPrice: '0',
+                category: item.category || 'بنود سدانة التشغيلية',
+              });
+            }
+
+            // إعادة جلب البنود المضافة حديثاً
+            itemsList = await db
+              .select({
+                id: quantitySchedules.id,
+                requestId: quantitySchedules.requestId,
+                projectId: quantitySchedules.projectId,
+                mosqueId: quantitySchedules.mosqueId,
+                boqCode: quantitySchedules.boqCode,
+                boqName: quantitySchedules.boqName,
+                itemName: quantitySchedules.itemName,
+                itemDescription: quantitySchedules.itemDescription,
+                unit: quantitySchedules.unit,
+                quantity: quantitySchedules.quantity,
+                unitPrice: quantitySchedules.unitPrice,
+                totalPrice: quantitySchedules.totalPrice,
+                category: quantitySchedules.category,
+                createdAt: quantitySchedules.createdAt,
+                updatedAt: quantitySchedules.updatedAt,
+                mosqueName: mosques.name,
+                mosqueCity: mosques.city,
+              })
+              .from(quantitySchedules)
+              .leftJoin(mosques, eq(quantitySchedules.mosqueId, mosques.id))
+              .where(and(...conditions))
+              .orderBy(quantitySchedules.category, quantitySchedules.itemName);
+          }
+        }
+      }
 
       // حساب الإجمالي الكلي
-      const total = rawItems.reduce((sum, item) => {
+      const total = itemsList.reduce((sum, item) => {
         return sum + (item.totalPrice ? parseFloat(item.totalPrice) : 0);
       }, 0);
 
       // تجميع حسب المسجد
-      const byMosque: Record<number | string, { mosqueId: number | null; mosqueName: string | null; items: typeof rawItems; total: number }> = {};
-      for (const item of rawItems) {
+      const byMosque: Record<number | string, { mosqueId: number | null; mosqueName: string | null; items: typeof itemsList; total: number }> = {};
+      for (const item of itemsList) {
         const mKey = item.mosqueId ?? 'unassigned';
         if (!byMosque[mKey]) {
           byMosque[mKey] = {
@@ -1353,7 +1414,7 @@ export const projectsRouter = router({
         byMosque[mKey].total += item.totalPrice ? parseFloat(item.totalPrice) : 0;
       }
 
-      return { items: rawItems, total, byMosque };
+      return { items: itemsList, total, byMosque };
     }),
 
   // ==================== العقود ====================
