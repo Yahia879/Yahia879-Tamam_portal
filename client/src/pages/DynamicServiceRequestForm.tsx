@@ -19,7 +19,6 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { SedanaRequestForm } from '@/components/sedana/SedanaRequestForm';
 import { SedanaRequestReview } from '@/components/sedana/SedanaRequestReview';
-import { SedanaPricingAndFunding } from '@/components/sedana/SedanaPricingAndFunding';
 import { getItemLimitForFrequency, SedanaBasketItem } from '@/components/sedana/sedanaTypes';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -148,18 +147,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // خطوات النموذج الديناميكية المخصصة لبرنامج سدانة
+  // خطوات النموذج الديناميكية
   const activeSteps = useMemo(() => {
-    if (selectedService === 'sedana') {
-      return [
-        { key: 'service-selection' as Step, label: 'اختيار الخدمة', order: 1 },
-        { key: 'terms' as Step, label: 'الشروط والأحكام', order: 2 },
-        { key: 'requester-info' as Step, label: 'بيانات مقدم الطلب', order: 3 },
-        { key: 'details' as Step, label: 'تفاصيل الطلب', order: 4 },
-        { key: 'pricing-and-funding' as Step, label: 'التسعير والتمويل', order: 5 },
-        { key: 'review' as Step, label: 'المراجعة والإرسال', order: 6 },
-      ];
-    }
     return [
       { key: 'service-selection' as Step, label: 'اختيار الخدمة', order: 1 },
       { key: 'terms' as Step, label: 'الشروط والأحكام', order: 2 },
@@ -167,7 +156,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       { key: 'details' as Step, label: 'تفاصيل الطلب', order: 4 },
       { key: 'review' as Step, label: 'المراجعة والإرسال', order: 5 },
     ];
-  }, [selectedService]);
+  }, []);
 
   // الفحص التلقائي لمحدد الخدمة في الرابط (مثل ?service=sedana)
   useEffect(() => {
@@ -1285,35 +1274,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           </div>
         )}
 
-        {/* الخطوة 5 (لسدانة): التسعير والهندسة المالية (تجزئة الشراء ونموذج 25/30) */}
-        {currentStep === 'pricing-and-funding' && selectedService === 'sedana' && (
-          <div className="space-y-5 sm:space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">تجزئة الشراء والهندسة المالية (سدانة)</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">تفكيك بنود التوريد على الموردين وتحديد التكلفة الفعلية وتكلفة الفرصة الكافلة (نموذج 25/30)</p>
-            </div>
 
-            <SedanaPricingAndFunding
-              request={{
-                id: 0,
-                requestNumber: 'DRAFT',
-                programType: 'sedana',
-                programData: formData,
-                currentStage: 'boq_preparation',
-              }}
-              canEdit={true}
-              onSaveDraft={(updates) => {
-                setFormData((prev) => ({
-                  ...prev,
-                  ...updates,
-                }));
-              }}
-              onComplete={() => {
-                setCurrentStep('review');
-              }}
-            />
-          </div>
-        )}
 
         {/* الخطوة الأخيرة: المراجعة والإرسال */}
         {currentStep === 'review' && (
