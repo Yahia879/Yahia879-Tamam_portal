@@ -1972,10 +1972,10 @@ export default function Quotations() {
                         </p>
                       </div>
 
-                      {/* بطاقة الموردين الفائزين */}
+                      {/* بطاقة الموردين المعتمدين */}
                       <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                          <span className="font-semibold">الموردين الفائزين</span>
+                          <span className="font-semibold">الموردين المعتمدين</span>
                           <Store className="h-4 w-4 text-blue-600" />
                         </div>
                         <div className="text-lg font-extrabold text-foreground flex items-center gap-1.5 my-1">
@@ -2175,7 +2175,7 @@ export default function Quotations() {
                                     </div>
                                     <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1.5">
                                       <span>إجمالي: {vendor.totalAmount.toLocaleString("ar-SA")} ر.س</span>
-                                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">({vendor.awardedCount} فائز)</span>
+                                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">({vendor.awardedCount} معتمد)</span>
                                     </div>
                                   </TableHead>
                                 ))}
@@ -2526,7 +2526,7 @@ export default function Quotations() {
                           <span>تم تحديد موردين لـ <strong className="text-foreground font-extrabold">{assignedItemsCount}</strong> من أصل <strong className="text-foreground">{totalBoqItemsCount}</strong> بند.</span>
                           {winningVendorsCount > 0 && (
                             <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded text-[11px]">
-                              موزعة على {winningVendorsCount} موردين فائزين
+                              موزعة على {winningVendorsCount} موردين معتمدين
                             </span>
                           )}
                         </div>
