@@ -67,9 +67,19 @@ import {
   Edit,
   Trash2,
   Sparkles,
+  LayoutGrid,
+  ListFilter,
+  Check,
+  TrendingDown,
+  Store,
+  ArrowRightLeft,
+  Filter,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // حالات عروض الأسعار
 const QUOTATION_STATUS: Record<string, { label: string; color: string; icon: any }> = {
@@ -287,10 +297,22 @@ export default function Quotations() {
   // حالة اختيار المورد الفائز لكل بند في طلبات سدانة (boqItemId -> quotationId)
   const [selectedWinningVendors, setSelectedWinningVendors] = useState<Record<number, number>>({});
 
+  // خيارات العرض والبحث والفلترة لمقارنة عروض أسعار سدانة متعددة الموردين
+  const [sedanaItemSearch, setSedanaItemSearch] = useState("");
+  const [sedanaFilterStatus, setSedanaFilterStatus] = useState<"all" | "unassigned" | "assigned" | "multiple">("all");
+  const [sedanaViewMode, setSedanaViewMode] = useState<"matrix" | "table">("matrix");
+
+  // إعادة ضبط التحديدات عند تغيير الطلب المحدد
+  useEffect(() => {
+    setSelectedWinningVendors({});
+    setSedanaItemSearch("");
+    setSedanaFilterStatus("all");
+  }, [selectedRequestId]);
+
   // طفرة اعتماد عروض أسعار متعددة الموردين بحسب البنود
   const approveSedanaMultiVendorMutation = trpc.projects.approveSedanaMultiVendorQuotations.useMutation({
     onSuccess: () => {
-      toast.success("تم تفكيك اعتماد عروض الموردين وحفظ أسعار البنود بنجاح");
+      toast.success("تم اعتماد وترسية عروض الموردين وحفظ تفكيك التوريد بنجاح");
       refetchQuotations();
       refetchBOQ();
     },
@@ -299,9 +321,29 @@ export default function Quotations() {
     }
   });
 
-  // المزامنة التلقائية للموردين المعتمدين مسبقاً لكل بند
+  // المزامنة التلقائية للموردين المعتمدين مسبقاً أو المقترحين لكل بند
   useEffect(() => {
     if (isSedanaProgram && boqData?.items && allQuotations.length > 0) {
+      // 1. استعادة الترسية السابقة المحفوظة في بيانات الطلب إن وجدت
+      let awarded = (currentSelectedRequest as any)?.programData?.awardedItemVendors;
+      if (typeof awarded === "string") {
+        try { awarded = JSON.parse(awarded); } catch {}
+      }
+      if (Array.isArray(awarded) && awarded.length > 0) {
+        setSelectedWinningVendors(prev => {
+          const updated = { ...prev };
+          let changed = false;
+          awarded.forEach((sel: any) => {
+            if (sel.boqItemId && sel.quotationId && !updated[sel.boqItemId]) {
+              updated[sel.boqItemId] = sel.quotationId;
+              changed = true;
+            }
+          });
+          return changed ? updated : prev;
+        });
+      }
+
+      // 2. مزامنة عروض الأسعار المعتمدة مسبقاً أو تحديد العرض الوحيد
       setSelectedWinningVendors(prev => {
         const updated = { ...prev };
         let changed = false;
@@ -332,7 +374,7 @@ export default function Quotations() {
         return changed ? updated : prev;
       });
     }
-  }, [isSedanaProgram, boqData?.items, allQuotations]);
+  }, [isSedanaProgram, boqData?.items, allQuotations, currentSelectedRequest]);
 
   // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين وتجاهل العروض ذات السعر صفر
   const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
@@ -449,6 +491,192 @@ export default function Quotations() {
       itemVendorSelections: selections,
     });
   };
+
+  // قائمة الموردين المشاركين بعروض أسعار وتفاصيل مشاركتهم وترسيتهم في سدانة
+  const participatingVendors = useMemo(() => {
+    if (!isSedanaProgram || !boqData?.items) return [];
+    return allQuotations.map((quotation: any) => {
+      let offeredCount = 0;
+      let awardedCount = 0;
+      let awardedTotal = 0;
+
+      boqData.items.forEach((item: any) => {
+        const offer = getOfferForItem(item, quotation, boqData.items.length);
+        if (offer && offer.unitPrice > 0) {
+          offeredCount++;
+          if (selectedWinningVendors[item.id] === quotation.id) {
+            awardedCount++;
+            awardedTotal += offer.totalPrice;
+          }
+        }
+      });
+
+      return {
+        quotation,
+        quotationId: quotation.id,
+        supplierId: quotation.supplierId,
+        supplierName: quotation.supplierName || `عرض #${quotation.quotationNumber}`,
+        quotationNumber: quotation.quotationNumber,
+        offeredCount,
+        awardedCount,
+        awardedTotal,
+        totalAmount: parseFloat(String(quotation.totalAmount || "0").replace(/,/g, '')),
+      };
+    }).filter(v => v.offeredCount > 0);
+  }, [isSedanaProgram, boqData?.items, allQuotations, selectedWinningVendors]);
+
+  // إحصائيات الترسية لبرنامج سدانة
+  const totalBoqItemsCount = boqData?.items?.length || 0;
+  const assignedItemsCount = useMemo(() => {
+    if (!boqData?.items) return 0;
+    return boqData.items.filter((item: any) => Boolean(selectedWinningVendors[item.id])).length;
+  }, [boqData?.items, selectedWinningVendors]);
+  const unassignedItemsCount = Math.max(0, totalBoqItemsCount - assignedItemsCount);
+  const awardProgressPercentage = totalBoqItemsCount > 0 ? Math.round((assignedItemsCount / totalBoqItemsCount) * 100) : 0;
+  const winningVendorsCount = useMemo(() => {
+    const ids = new Set<number>();
+    if (!boqData?.items) return 0;
+    boqData.items.forEach((item: any) => {
+      const qId = selectedWinningVendors[item.id];
+      if (qId) ids.add(qId);
+    });
+    return ids.size;
+  }, [boqData?.items, selectedWinningVendors]);
+
+  // حساب إجمالي الوفر التقديري مقارنة بأعلى الأسعار المعروضة لكل بند
+  const estimatedSavings = useMemo(() => {
+    if (!boqData?.items) return 0;
+    let maxCost = 0;
+    let chosenCost = 0;
+
+    boqData.items.forEach((item: any) => {
+      const validOffers = allQuotations.flatMap((q: any) => {
+        const offer = getOfferForItem(item, q, boqData.items.length);
+        return (offer && offer.unitPrice > 0) ? [offer.totalPrice] : [];
+      });
+
+      if (validOffers.length > 1) {
+        maxCost += Math.max(...validOffers);
+        const qId = selectedWinningVendors[item.id];
+        if (qId) {
+          const quotation = allQuotations.find((q: any) => q.id === qId);
+          const offer = quotation ? getOfferForItem(item, quotation, boqData.items.length) : null;
+          if (offer && offer.totalPrice > 0) {
+            chosenCost += offer.totalPrice;
+          } else {
+            chosenCost += Math.min(...validOffers);
+          }
+        } else {
+          chosenCost += Math.min(...validOffers);
+        }
+      }
+    });
+
+    return Math.max(0, maxCost - chosenCost);
+  }, [boqData?.items, selectedWinningVendors, allQuotations]);
+
+  // عدد البنود التي يتنافس عليها أكثر من مورد
+  const multipleOffersCount = useMemo(() => {
+    if (!boqData?.items) return 0;
+    return boqData.items.filter((item: any) => {
+      const validOffers = allQuotations.filter((quote: any) => {
+        const offer = getOfferForItem(item, quote, boqData.items.length);
+        return offer && offer.unitPrice > 0;
+      });
+      return validOffers.length > 1;
+    }).length;
+  }, [boqData?.items, allQuotations]);
+
+  // الإجراء الذكي: الترسية التلقائية للأقل سعراً لجميع البنود
+  const handleAutoSelectLowestPrices = () => {
+    if (!boqData?.items || boqData.items.length === 0) return;
+    const newSelections: Record<number, number> = { ...selectedWinningVendors };
+    let count = 0;
+
+    boqData.items.forEach((item: any) => {
+      const offers = allQuotations.flatMap((quotation: any) => {
+        const offer = getOfferForItem(item, quotation, boqData.items.length);
+        if (offer && offer.unitPrice > 0) {
+          return [{ quotationId: quotation.id, unitPrice: offer.unitPrice }];
+        }
+        return [];
+      });
+
+      if (offers.length > 0) {
+        offers.sort((a, b) => a.unitPrice - b.unitPrice);
+        newSelections[item.id] = offers[0].quotationId;
+        count++;
+      }
+    });
+
+    setSelectedWinningVendors(newSelections);
+    toast.success(`تم اختيار العرض الأقل سعراً تلقائياً لـ ${count} بند بنجاح`);
+  };
+
+  // ترسية كافة بنود مورد معين
+  const handleAwardAllForVendor = (quotationId: number) => {
+    if (!boqData?.items) return;
+    const vendor = participatingVendors.find(v => v.quotationId === quotationId);
+    const newSelections: Record<number, number> = { ...selectedWinningVendors };
+    let count = 0;
+
+    boqData.items.forEach((item: any) => {
+      const offer = getOfferForItem(item, vendor?.quotation, boqData.items.length);
+      if (offer && offer.unitPrice > 0) {
+        newSelections[item.id] = quotationId;
+        count++;
+      }
+    });
+
+    setSelectedWinningVendors(newSelections);
+    toast.success(`تمت ترسية ${count} بند على ${vendor?.supplierName || "المورد"} بنجاح`);
+  };
+
+  // إلغاء ترسية بنود مورد معين
+  const handleClearVendorAward = (quotationId: number) => {
+    const newSelections = { ...selectedWinningVendors };
+    let count = 0;
+    Object.entries(newSelections).forEach(([itemId, qId]) => {
+      if (qId === quotationId) {
+        delete newSelections[Number(itemId)];
+        count++;
+      }
+    });
+    setSelectedWinningVendors(newSelections);
+    toast.info(`تم إلغاء ترسية ${count} بند من هذا المورد`);
+  };
+
+  // إعادة ضبط اختيارات الترسية
+  const handleResetAllSelections = () => {
+    setSelectedWinningVendors({});
+    toast.info("تمت إعادة ضبط جميع اختيارات الموردين");
+  };
+
+  // فلترة بنود جدول الكميات حسب البحث وحالة الترسية
+  const filteredBoqItems = useMemo(() => {
+    if (!boqData?.items) return [];
+    return boqData.items.filter((item: any) => {
+      if (sedanaItemSearch.trim()) {
+        const q = sedanaItemSearch.trim().toLowerCase();
+        const matchName = String(item.itemName || "").toLowerCase().includes(q);
+        const matchDesc = String(item.itemDescription || "").toLowerCase().includes(q);
+        const matchCat = String(item.category || "").toLowerCase().includes(q);
+        if (!matchName && !matchDesc && !matchCat) return false;
+      }
+
+      const isAssigned = Boolean(selectedWinningVendors[item.id]);
+      const validOffers = allQuotations.filter((quote: any) => {
+        const offer = getOfferForItem(item, quote, boqData.items.length);
+        return offer && offer.unitPrice > 0;
+      });
+
+      if (sedanaFilterStatus === "unassigned") return !isAssigned;
+      if (sedanaFilterStatus === "assigned") return isAssigned;
+      if (sedanaFilterStatus === "multiple") return validOffers.length > 1;
+
+      return true;
+    });
+  }, [boqData?.items, sedanaItemSearch, sedanaFilterStatus, selectedWinningVendors, allQuotations]);
 
   const deleteBoqItemMutation = trpc.projects.deleteBOQItem.useMutation({
     onSuccess: () => {
@@ -1716,191 +1944,785 @@ export default function Quotations() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : boqData?.items && boqData.items.length > 0 ? (
-                <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-b-2 border-slate-300 dark:border-slate-700">
-                        <TableHead className="w-12 text-center font-bold">#</TableHead>
-                        <TableHead className="font-bold">البند</TableHead>
-                        <TableHead className="font-bold">الوصف</TableHead>
-                        <TableHead className="font-bold">الوحدة</TableHead>
-                        <TableHead className="text-center font-bold">الكمية</TableHead>
-                        {isSedanaProgram && (
-                          <TableHead className="font-bold min-w-[240px]">اختر المورد والعرض المناسب</TableHead>
-                        )}
-                        <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
-                        <TableHead className="text-center font-bold">الإجمالي</TableHead>
-                        {!hasAcceptedQuotation && (
-                          <TableHead className="text-center font-bold w-24">الإجراءات</TableHead>
-                        )}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
-                      {boqData.items.map((item: any, index: number) => {
-                        const offersForItem = isSedanaProgram ? allQuotations.flatMap((quotation: any) => {
-                          const offer = getOfferForItem(item, quotation, boqData?.items?.length || 1);
-                          if (offer) {
-                            return [{
-                              quotation,
-                              unitPrice: offer.unitPrice,
-                              totalPrice: offer.totalPrice,
-                            }];
-                          }
-                          return [];
-                        }) : [];
+                isSedanaProgram ? (
+                  <div className="space-y-5" dir="rtl">
+                    {/* 1. لوحة المؤشرات التنفيذية للترسية */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {/* بطاقة نسبة اكتمال الترسية */}
+                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                          <span className="font-semibold">اكتمال الترسية</span>
+                          <span className="font-bold text-foreground">{assignedItemsCount} من {totalBoqItemsCount} بند</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div 
+                              className={cn(
+                                "h-full transition-all duration-500 rounded-full",
+                                awardProgressPercentage === 100 ? "bg-emerald-600" : "bg-amber-500"
+                              )}
+                              style={{ width: `${awardProgressPercentage}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-bold shrink-0">{awardProgressPercentage}%</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {unassignedItemsCount > 0 
+                            ? `متبقي ${unassignedItemsCount} بند دون تحديد مورد` 
+                            : "مكتمل: تم تحديد موردين لكافة البنود"}
+                        </p>
+                      </div>
 
-                        const selectedQuotationId = selectedWinningVendors[item.id];
-                        const selectedOffer = offersForItem.find(o => o.quotation.id === selectedQuotationId);
+                      {/* بطاقة إجمالي تكلفة الترسية */}
+                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                          <span className="font-semibold">إجمالي التكلفة المعتمدة</span>
+                          <Receipt className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 my-1">
+                          <span>{totalSelectedItemsCost.toLocaleString("ar-SA")}</span>
+                          <SaudiRiyal className="w-4 h-4 inline" />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          مجموع أسعار البنود المعتمدة حالياً
+                        </p>
+                      </div>
 
-                        const displayUnitPrice = isSedanaProgram 
-                          ? (selectedOffer ? selectedOffer.unitPrice : (item.unitPrice && parseFloat(String(item.unitPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null))
-                          : (item.unitPrice ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null);
+                      {/* بطاقة الوفر المالي المحقق */}
+                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                          <span className="font-semibold">الوفر المالي المحقق</span>
+                          <TrendingDown className="h-4 w-4 text-emerald-600" />
+                        </div>
+                        <div className="text-lg font-extrabold text-foreground flex items-center gap-1 my-1">
+                          <span className="text-emerald-600">{estimatedSavings.toLocaleString("ar-SA")}</span>
+                          <SaudiRiyal className="w-4 h-4 inline text-emerald-600" />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          وفر باختيار أفضل الأسعار مقارنة بأعلى العروض
+                        </p>
+                      </div>
 
-                        const displayTotalPrice = isSedanaProgram 
-                          ? (selectedOffer ? selectedOffer.totalPrice : (item.totalPrice && parseFloat(String(item.totalPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null))
-                          : (item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null);
+                      {/* بطاقة الموردين الفائزين */}
+                      <div className="p-3.5 rounded-xl border bg-card text-card-foreground shadow-xs">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                          <span className="font-semibold">الموردين الفائزين</span>
+                          <Store className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="text-lg font-extrabold text-foreground flex items-center gap-1.5 my-1">
+                          <span>{winningVendorsCount}</span>
+                          <span className="text-xs font-normal text-muted-foreground">
+                            من أصل {participatingVendors.length} موردين مشاركين
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          تجزئة الشراء بين الموردين وفق البنود
+                        </p>
+                      </div>
+                    </div>
 
-                        return (
-                          <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <TableCell className="text-center">{index + 1}</TableCell>
-                            <TableCell className="font-medium align-middle max-w-[300px] min-w-[160px]">
-                              <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
-                                {item.itemName}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {item.itemDescription || "-"}
-                            </TableCell>
-                            <TableCell>{item.unit}</TableCell>
-                            <TableCell className="text-center">
-                              {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
-                            </TableCell>
+                    {/* 2. توزيع الترسية على الموردين المشاركين مع إجراءات الترسية الفورية */}
+                    {participatingVendors.length > 0 && (
+                      <div className="p-4 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <Store className="h-4 w-4 text-primary" />
+                            <h4 className="text-xs font-bold text-foreground">توزيع الترسية على الموردين المشاركين ({participatingVendors.length})</h4>
+                          </div>
+                          <span className="text-[11px] text-muted-foreground">يمكنك ترسية كافة بنود مورد محدد بنقرة واحدة أو إلغاء ترسيته</span>
+                        </div>
 
-                            {/* قائمة السلكت لاختيار المورد في سدانة */}
-                            {isSedanaProgram && (
-                              <TableCell className="align-middle min-w-[240px]">
-                                {offersForItem.length > 0 ? (
-                                  <Select
-                                    value={selectedQuotationId ? String(selectedQuotationId) : ""}
-                                    onValueChange={(val) => {
-                                      setSelectedWinningVendors(prev => ({
-                                        ...prev,
-                                        [item.id]: parseInt(val)
-                                      }));
-                                    }}
-                                  >
-                                    <SelectTrigger className="h-9 text-xs bg-background text-right font-medium" dir="rtl">
-                                      <SelectValue placeholder="اختر المورد والعرض المناسب..." />
-                                    </SelectTrigger>
-                                    <SelectContent dir="rtl" className="text-right">
-                                      {offersForItem.map(({ quotation, unitPrice }: any) => (
-                                        <SelectItem key={quotation.id} value={String(quotation.id)} className="text-xs text-right cursor-pointer">
-                                          <div className="flex items-center justify-between gap-3 w-full font-medium">
-                                            <span>{quotation.supplierName || "مورد"}</span>
-                                            <span className="font-bold text-emerald-700 dark:text-emerald-400 mr-2">
-                                              {unitPrice.toLocaleString("ar-SA")} ريال/وحدة
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground italic">لا توجد عروض أسعار بعد</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {participatingVendors.map((vendor) => {
+                            const isFullyAwarded = vendor.awardedCount === vendor.offeredCount && vendor.offeredCount > 0;
+                            const isPartiallyAwarded = vendor.awardedCount > 0 && vendor.awardedCount < vendor.offeredCount;
+                            return (
+                              <div 
+                                key={vendor.quotationId}
+                                className={cn(
+                                  "p-3 rounded-lg border transition-all duration-200 flex flex-col justify-between gap-2.5",
+                                  isFullyAwarded 
+                                    ? "bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/80 shadow-2xs" 
+                                    : isPartiallyAwarded
+                                      ? "bg-blue-50/60 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40"
+                                      : "bg-background border-border"
                                 )}
-                              </TableCell>
-                            )}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-xs text-foreground truncate" title={vendor.supplierName}>
+                                      {vendor.supplierName}
+                                    </p>
+                                    <span className="text-[10px] text-muted-foreground block mt-0.5">
+                                      رقم العرض: {vendor.quotationNumber}
+                                    </span>
+                                  </div>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={cn(
+                                      "text-[10px] py-0 px-2 font-bold shrink-0",
+                                      vendor.awardedCount > 0 
+                                        ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border-emerald-300" 
+                                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                    )}
+                                  >
+                                    {vendor.awardedCount} من {vendor.offeredCount} بند معتمد
+                                  </Badge>
+                                </div>
 
-                            <TableCell className="text-center font-bold">
-                              {displayUnitPrice !== null ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                                  {displayUnitPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
-                                </span>
-                              ) : "-"}
-                            </TableCell>
-                            <TableCell className="text-center font-bold">
-                              {displayTotalPrice !== null ? (
-                                <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                                  {displayTotalPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
-                                </span>
-                              ) : "-"}
-                            </TableCell>
-                            {!hasAcceptedQuotation && (
-                              <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                    title="تعديل البند"
-                                    onClick={() => {
-                                      setEditingBoqItem(item);
-                                      setShowBoqDialog(true);
-                                    }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    title="حذف البند"
-                                    onClick={() => handleDeleteBoqItem(item.id)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
+                                  <div>
+                                    <span className="text-[10px] text-muted-foreground block">مبلغ الترسية:</span>
+                                    <span className="font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5">
+                                      {vendor.awardedTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    {vendor.awardedCount < vendor.offeredCount && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleAwardAllForVendor(vendor.quotationId)}
+                                        className="h-7 text-[11px] px-2.5 bg-background border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 hover:border-emerald-500"
+                                        title="ترسية جميع البنود التي قدم فيها هذا المورد عرضاً"
+                                      >
+                                        ترسية كل بنوده ({vendor.offeredCount})
+                                      </Button>
+                                    )}
+                                    {vendor.awardedCount > 0 && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleClearVendorAward(vendor.quotationId)}
+                                        className="h-7 text-[11px] px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                        title="إلغاء ترسية بنود هذا المورد"
+                                      >
+                                        إلغاء الترسية
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. شريط التحكم الذكي والفلترة للبنود الكثيرة */}
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-muted/20 dark:bg-slate-900/60 rounded-xl border border-border">
+                      {/* حقل البحث بالاسم والتصنيف */}
+                      <div className="flex items-center gap-2 flex-1 max-w-md">
+                        <div className="relative w-full">
+                          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          <Input 
+                            value={sedanaItemSearch}
+                            onChange={(e) => setSedanaItemSearch(e.target.value)}
+                            placeholder="ابحث باسم البند، الوصف، أو التصنيف..."
+                            className="pr-9 h-9 text-xs bg-background"
+                          />
+                          {sedanaItemSearch && (
+                            <button 
+                              onClick={() => setSedanaItemSearch("")}
+                              className="absolute left-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* أزرار الفلترة حسب حالة الترسية */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Button
+                          size="sm"
+                          variant={sedanaFilterStatus === "all" ? "default" : "outline"}
+                          onClick={() => setSedanaFilterStatus("all")}
+                          className="h-8 text-xs px-2.5"
+                        >
+                          الكل ({totalBoqItemsCount})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={sedanaFilterStatus === "unassigned" ? "default" : "outline"}
+                          onClick={() => setSedanaFilterStatus("unassigned")}
+                          className={cn(
+                            "h-8 text-xs px-2.5 gap-1",
+                            unassignedItemsCount > 0 && sedanaFilterStatus !== "unassigned" && "border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50/50 dark:bg-amber-950/20"
+                          )}
+                        >
+                          بانتظار مورد ({unassignedItemsCount})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={sedanaFilterStatus === "assigned" ? "default" : "outline"}
+                          onClick={() => setSedanaFilterStatus("assigned")}
+                          className="h-8 text-xs px-2.5"
+                        >
+                          تمت الترسية ({assignedItemsCount})
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={sedanaFilterStatus === "multiple" ? "default" : "outline"}
+                          onClick={() => setSedanaFilterStatus("multiple")}
+                          className="h-8 text-xs px-2.5"
+                        >
+                          عروض متنافسة ({multipleOffersCount})
+                        </Button>
+                      </div>
+
+                      {/* أزرار الإجراءات السريعة وتبديل العرض */}
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {/* زر الترسية الذكية للأقل سعراً */}
+                        <Button
+                          onClick={handleAutoSelectLowestPrices}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-8 px-3 gap-1.5 shadow-xs"
+                          title="اختيار المورد صاحب العرض الأقل سعراً لكل بند بشكل فوري"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          ترسية الأقل سعراً تلقائياً
+                        </Button>
+
+                        {/* زر إعادة ضبط الاختيارات */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleResetAllSelections}
+                          className="h-8 text-xs px-2.5 text-muted-foreground hover:text-red-600 hover:border-red-300"
+                          title="إلغاء كافة الاختيارات وإعادة ضبط الجدول"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+
+                        {/* مبدل نمط العرض: مصفوفة المقارنة مقابل جدول تفصيلي */}
+                        <div className="flex items-center border border-border rounded-lg p-0.5 bg-background">
+                          <Button
+                            size="sm"
+                            variant={sedanaViewMode === "matrix" ? "default" : "ghost"}
+                            onClick={() => setSedanaViewMode("matrix")}
+                            className="h-7 px-2.5 text-xs gap-1 rounded-md"
+                            title="عرض مصفوفة المقارنة الشاملة للموردين"
+                          >
+                            <LayoutGrid className="h-3.5 w-3.5" />
+                            مصفوفة المقارنة
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={sedanaViewMode === "table" ? "default" : "ghost"}
+                            onClick={() => setSedanaViewMode("table")}
+                            className="h-7 px-2.5 text-xs gap-1 rounded-md"
+                            title="عرض الجدول التفصيلي للبنود"
+                          >
+                            <ListFilter className="h-3.5 w-3.5" />
+                            جدول تفصيلي
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4. عرض المحتوى بناءً على نمط العرض المحدد */}
+                    {filteredBoqItems.length === 0 ? (
+                      <div className="text-center py-10 border border-dashed rounded-xl p-8 bg-muted/10">
+                        <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="font-bold text-sm text-foreground">لا توجد بنود مطابقة لمعايير البحث أو التصفية</p>
+                        <p className="text-xs text-muted-foreground mt-1">جرّب مسح نص البحث أو اختيار خيار تصفية آخر</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="mt-3 text-xs"
+                          onClick={() => {
+                            setSedanaItemSearch("");
+                            setSedanaFilterStatus("all");
+                          }}
+                        >
+                          عرض جميع البنود ({totalBoqItemsCount})
+                        </Button>
+                      </div>
+                    ) : sedanaViewMode === "matrix" ? (
+                      /* ==================== نمط مصفوفة المقارنة ==================== */
+                      <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
+                                <TableHead className="w-12 text-center font-bold">#</TableHead>
+                                <TableHead className="font-bold min-w-[220px]">البند والمواصفات</TableHead>
+                                <TableHead className="text-center font-bold min-w-[100px]">الكمية</TableHead>
+                                
+                                {/* أعمدة الموردين المشاركين في المصفوفة */}
+                                {participatingVendors.map(vendor => (
+                                  <TableHead key={vendor.quotationId} className="min-w-[190px] text-center p-2.5 border-r border-slate-200 dark:border-slate-800">
+                                    <div className="font-bold text-xs text-foreground truncate" title={vendor.supplierName}>
+                                      {vendor.supplierName}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1.5">
+                                      <span>إجمالي: {vendor.totalAmount.toLocaleString("ar-SA")} ر.س</span>
+                                      <span className="text-emerald-700 dark:text-emerald-400 font-bold">({vendor.awardedCount} فائز)</span>
+                                    </div>
+                                  </TableHead>
+                                ))}
+
+                                <TableHead className="text-center font-bold min-w-[190px] bg-emerald-500/5 border-r border-emerald-500/20">
+                                  المورد المعتمد حالياً
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
+                              {filteredBoqItems.map((item: any, index: number) => {
+                                const itemOffers = allQuotations.flatMap((q: any) => {
+                                  const offer = getOfferForItem(item, q, boqData.items.length);
+                                  if (offer && offer.unitPrice > 0) {
+                                    return [{ quotation: q, unitPrice: offer.unitPrice, totalPrice: offer.totalPrice }];
+                                  }
+                                  return [];
+                                });
+
+                                const minUnitPrice = itemOffers.length > 0 ? Math.min(...itemOffers.map(o => o.unitPrice)) : null;
+                                const currentWinningQId = selectedWinningVendors[item.id];
+                                const currentWinningOffer = itemOffers.find(o => o.quotation.id === currentWinningQId);
+
+                                return (
+                                  <TableRow key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                                    <TableCell className="text-center font-semibold text-muted-foreground">{index + 1}</TableCell>
+                                    <TableCell className="align-middle">
+                                      <div className="font-bold text-xs text-foreground leading-snug">{item.itemName}</div>
+                                      {item.itemDescription && (
+                                        <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1" title={item.itemDescription}>
+                                          {item.itemDescription}
+                                        </div>
+                                      )}
+                                      {item.category && (
+                                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 mt-1 bg-slate-100 dark:bg-slate-800">
+                                          {item.category}
+                                        </Badge>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="text-center align-middle">
+                                      <span className="font-extrabold text-xs">
+                                        {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : 1}
+                                      </span>
+                                      <span className="text-[11px] text-muted-foreground block">{item.unit || "عدد"}</span>
+                                    </TableCell>
+
+                                    {/* خلايا الموردين لكل بند */}
+                                      {participatingVendors.map(vendor => {
+                                        const vOffer = getOfferForItem(item, vendor.quotation, boqData.items.length);
+                                        const hasOffer = Boolean(vOffer && vOffer.unitPrice > 0);
+                                        const isLowest = Boolean(vOffer && minUnitPrice !== null && vOffer.unitPrice === minUnitPrice);
+                                        const isSelected = currentWinningQId === vendor.quotationId;
+
+                                        return (
+                                          <TableCell key={vendor.quotationId} className="p-2 align-middle border-r border-slate-200 dark:border-slate-800">
+                                            {vOffer && hasOffer ? (
+                                            <div
+                                              onClick={() => {
+                                                setSelectedWinningVendors(prev => {
+                                                  const updated = { ...prev };
+                                                  if (isSelected) {
+                                                    delete updated[item.id];
+                                                  } else {
+                                                    updated[item.id] = vendor.quotationId;
+                                                  }
+                                                  return updated;
+                                                });
+                                              }}
+                                              className={cn(
+                                                "p-2 rounded-lg border text-center transition-all duration-150 cursor-pointer select-none group",
+                                                isSelected
+                                                  ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/80 shadow-2xs"
+                                                  : isLowest
+                                                    ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300 dark:border-emerald-800/60 hover:border-emerald-400 hover:shadow-2xs"
+                                                    : "bg-background border-border hover:border-slate-400 dark:hover:border-slate-600"
+                                              )}
+                                              title={isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند"}
+                                            >
+                                              <div className="flex items-center justify-between gap-1 mb-1">
+                                                {isLowest ? (
+                                                  <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
+                                                    <Sparkles className="w-2.5 h-2.5" />
+                                                    الأقل
+                                                  </Badge>
+                                                ) : <span />}
+                                                {isSelected ? (
+                                                  <Badge className="bg-emerald-700 hover:bg-emerald-700 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
+                                                    <Check className="w-2.5 h-2.5" />
+                                                    معتمد
+                                                  </Badge>
+                                                ) : (
+                                                  <span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    اختر
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
+                                                <span>{vOffer.unitPrice.toLocaleString("ar-SA")}</span>
+                                                <span className="text-[10px] text-muted-foreground font-normal">ر.س</span>
+                                              </div>
+                                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                                الإجمالي: {vOffer.totalPrice.toLocaleString("ar-SA")}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="p-2 text-center text-muted-foreground/40 text-[11px] italic">
+                                              —
+                                            </div>
+                                          )}
+                                        </TableCell>
+                                      );
+                                    })}
+
+                                    {/* خانة المورد المعتمد حالياً */}
+                                    <TableCell className="p-2 align-middle text-center bg-emerald-500/5 border-r border-emerald-500/20">
+                                      {currentWinningOffer ? (
+                                        <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-2xs text-right relative group">
+                                          <div className="flex items-center justify-between gap-1">
+                                            <span className="font-bold text-xs text-emerald-800 dark:text-emerald-200 truncate" title={currentWinningOffer.quotation.supplierName}>
+                                              {currentWinningOffer.quotation.supplierName || "المورد المعتمد"}
+                                            </span>
+                                            <button
+                                              onClick={() => {
+                                                setSelectedWinningVendors(prev => {
+                                                  const updated = { ...prev };
+                                                  delete updated[item.id];
+                                                  return updated;
+                                                });
+                                              }}
+                                              className="text-muted-foreground hover:text-red-600 p-0.5 rounded transition-colors"
+                                              title="إلغاء الترسية لهذا البند"
+                                            >
+                                              <X className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                          <div className="text-[11px] text-foreground font-bold mt-1 flex items-center justify-between">
+                                            <span className="text-[10px] text-muted-foreground font-normal">سعر الوحدة:</span>
+                                            <span>{currentWinningOffer.unitPrice.toLocaleString("ar-SA")} ر.س</span>
+                                          </div>
+                                          <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center justify-between mt-0.5">
+                                            <span className="text-[10px] text-muted-foreground font-normal">الإجمالي:</span>
+                                            <span>{currentWinningOffer.totalPrice.toLocaleString("ar-SA")} ر.س</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="p-2 rounded-lg border border-dashed border-amber-300 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 text-center">
+                                          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 block">بانتظار تحديد مورد</span>
+                                          <span className="text-[9px] text-muted-foreground block mt-0.5">انقر على عرض المورد في الجدول</span>
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ==================== نمط الجدول التفصيلي ==================== */
+                      <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
+                              <TableHead className="w-12 text-center font-bold">#</TableHead>
+                              <TableHead className="font-bold">البند</TableHead>
+                              <TableHead className="font-bold">الوصف والتصنيف</TableHead>
+                              <TableHead className="font-bold">الوحدة</TableHead>
+                              <TableHead className="text-center font-bold">الكمية</TableHead>
+                              <TableHead className="font-bold min-w-[280px]">المورد وعرض السعر المعتمد</TableHead>
+                              <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
+                              <TableHead className="text-center font-bold">الإجمالي</TableHead>
+                              {!hasAcceptedQuotation && (
+                                <TableHead className="text-center font-bold w-20">الإجراءات</TableHead>
+                              )}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
+                            {filteredBoqItems.map((item: any, index: number) => {
+                              const offersForItem = allQuotations.flatMap((quotation: any) => {
+                                const offer = getOfferForItem(item, quotation, boqData.items.length);
+                                if (offer && offer.unitPrice > 0) {
+                                  return [{
+                                    quotation,
+                                    unitPrice: offer.unitPrice,
+                                    totalPrice: offer.totalPrice,
+                                  }];
+                                }
+                                return [];
+                              });
+
+                              const minPrice = offersForItem.length > 0 ? Math.min(...offersForItem.map(o => o.unitPrice)) : null;
+                              const selectedQuotationId = selectedWinningVendors[item.id];
+                              const selectedOffer = offersForItem.find(o => o.quotation.id === selectedQuotationId);
+                              const lowestOffer = offersForItem.find(o => o.unitPrice === minPrice);
+
+                              const displayUnitPrice = selectedOffer 
+                                ? selectedOffer.unitPrice 
+                                : (item.unitPrice && parseFloat(String(item.unitPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null);
+
+                              const displayTotalPrice = selectedOffer 
+                                ? selectedOffer.totalPrice 
+                                : (item.totalPrice && parseFloat(String(item.totalPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null);
+
+                              return (
+                                <TableRow key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                                  <TableCell className="text-center font-semibold text-muted-foreground">{index + 1}</TableCell>
+                                  <TableCell className="font-bold text-xs align-middle max-w-[240px]">
+                                    <div className="whitespace-normal break-words leading-relaxed" title={item.itemName}>
+                                      {item.itemName}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground text-xs">
+                                    {item.itemDescription || "-"}
+                                    {item.category && (
+                                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 block w-fit mt-1">
+                                        {item.category}
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-xs">{item.unit}</TableCell>
+                                  <TableCell className="text-center font-extrabold text-xs">
+                                    {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
+                                  </TableCell>
+
+                                  {/* قائمة الموردين المنسدلة لاختيار العرض المناسب */}
+                                  <TableCell className="align-middle min-w-[280px]">
+                                    {offersForItem.length > 0 ? (
+                                      <div className="space-y-1.5">
+                                        <Select
+                                          value={selectedQuotationId ? String(selectedQuotationId) : ""}
+                                          onValueChange={(val) => {
+                                            setSelectedWinningVendors(prev => ({
+                                              ...prev,
+                                              [item.id]: parseInt(val)
+                                            }));
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-9 text-xs bg-background text-right font-medium" dir="rtl">
+                                            <SelectValue placeholder="اختر المورد والعرض المناسب..." />
+                                          </SelectTrigger>
+                                          <SelectContent dir="rtl" className="text-right">
+                                            {offersForItem.map(({ quotation, unitPrice }: any) => {
+                                              const isMin = minPrice !== null && unitPrice === minPrice;
+                                              return (
+                                                <SelectItem key={quotation.id} value={String(quotation.id)} className="text-xs text-right cursor-pointer">
+                                                  <div className="flex items-center justify-between gap-3 w-full font-medium">
+                                                    <div className="flex items-center gap-1.5 truncate">
+                                                      <span>{quotation.supplierName || "مورد"}</span>
+                                                      {isMin && (
+                                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/80 px-1 rounded">
+                                                          الأقل سعراً
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <span className="font-bold text-emerald-700 dark:text-emerald-400 mr-2 shrink-0">
+                                                      {unitPrice.toLocaleString("ar-SA")} ر.س/وحدة
+                                                    </span>
+                                                  </div>
+                                                </SelectItem>
+                                              );
+                                            })}
+                                          </SelectContent>
+                                        </Select>
+
+                                        {/* زر سريع لاختيار الأقل سعراً إذا لم يكن محدداً */}
+                                        {lowestOffer && selectedQuotationId !== lowestOffer.quotation.id && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedWinningVendors(prev => ({
+                                                ...prev,
+                                                [item.id]: lowestOffer.quotation.id
+                                              }));
+                                            }}
+                                            className="text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                                          >
+                                            <Sparkles className="w-3 h-3" />
+                                            اختيار الأقل سعراً: {lowestOffer.quotation.supplierName} ({lowestOffer.unitPrice.toLocaleString("ar-SA")} ر.س)
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground italic">لا توجد عروض أسعار بعد</span>
+                                    )}
+                                  </TableCell>
+
+                                  <TableCell className="text-center font-bold text-xs">
+                                    {displayUnitPrice !== null ? (
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                        {displayUnitPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                                      </span>
+                                    ) : "-"}
+                                  </TableCell>
+                                  <TableCell className="text-center font-bold text-xs">
+                                    {displayTotalPrice !== null ? (
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                        {displayTotalPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                                      </span>
+                                    ) : "-"}
+                                  </TableCell>
+                                  {!hasAcceptedQuotation && (
+                                    <TableCell className="text-center">
+                                      <div className="flex items-center justify-center gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                          title="تعديل البند"
+                                          onClick={() => {
+                                            setEditingBoqItem(item);
+                                            setShowBoqDialog(true);
+                                          }}
+                                        >
+                                          <Edit className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          title="حذف البند"
+                                          onClick={() => handleDeleteBoqItem(item.id)}
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
+                                  )}
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {/* 5. شريط الاعتماد النهائي لبرنامج سدانة */}
+                    <div className="p-4 bg-muted/40 dark:bg-slate-900/90 rounded-xl border border-border mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm" dir="rtl">
+                      <div>
+                        <h4 className="font-bold text-sm flex items-center gap-2 text-foreground">
+                          <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
+                          اعتماد وترسية عروض الأسعار متعددة الموردين
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
+                          <span>تم تحديد موردين لـ <strong className="text-foreground font-extrabold">{assignedItemsCount}</strong> من أصل <strong className="text-foreground">{totalBoqItemsCount}</strong> بند.</span>
+                          {winningVendorsCount > 0 && (
+                            <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded text-[11px]">
+                              موزعة على {winningVendorsCount} موردين فائزين
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end">
+                        <div className="text-right">
+                          <span className="text-[11px] text-muted-foreground block">إجمالي مبالغ الترسية:</span>
+                          <span className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
+                            {totalSelectedItemsCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-4 h-4 inline" />
+                          </span>
+                        </div>
+
+                        <Button
+                          onClick={handleApproveItemSelections}
+                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-sm"
+                        >
+                          {approveSedanaMultiVendorMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                          <CheckCircle2 className="h-4 w-4 ml-2" />
+                          اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-b-2 border-slate-300 dark:border-slate-700">
+                          <TableHead className="w-12 text-center font-bold">#</TableHead>
+                          <TableHead className="font-bold">البند</TableHead>
+                          <TableHead className="font-bold">الوصف</TableHead>
+                          <TableHead className="font-bold">الوحدة</TableHead>
+                          <TableHead className="text-center font-bold">الكمية</TableHead>
+                          <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
+                          <TableHead className="text-center font-bold">الإجمالي</TableHead>
+                          {!hasAcceptedQuotation && (
+                            <TableHead className="text-center font-bold w-24">الإجراءات</TableHead>
+                          )}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
+                        {boqData.items.map((item: any, index: number) => {
+                          const displayUnitPrice = item.unitPrice ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null;
+                          const displayTotalPrice = item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null;
+
+                          return (
+                            <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <TableCell className="text-center">{index + 1}</TableCell>
+                              <TableCell className="font-medium align-middle max-w-[300px] min-w-[160px]">
+                                <div className="whitespace-normal break-words leading-relaxed [overflow-wrap:anywhere]" title={item.itemName}>
+                                  {item.itemName}
                                 </div>
                               </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {item.itemDescription || "-"}
+                              </TableCell>
+                              <TableCell>{item.unit}</TableCell>
+                              <TableCell className="text-center">
+                                {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
+                              </TableCell>
+                              <TableCell className="text-center font-bold">
+                                {displayUnitPrice !== null ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                    {displayUnitPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                                  </span>
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell className="text-center font-bold">
+                                {displayTotalPrice !== null ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
+                                    {displayTotalPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
+                                  </span>
+                                ) : "-"}
+                              </TableCell>
+                              {!hasAcceptedQuotation && (
+                                <TableCell className="text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                      title="تعديل البند"
+                                      onClick={() => {
+                                        setEditingBoqItem(item);
+                                        setShowBoqDialog(true);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                      title="حذف البند"
+                                      onClick={() => handleDeleteBoqItem(item.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
 
-                  {!isSedanaProgram && (
                     <div className="flex justify-end">
                       <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg font-bold inline-flex items-center gap-1">
                         <span>إجمالي جدول الكميات: {boqTotal.toLocaleString("ar-SA")}</span>
                         <SaudiRiyal className="w-3.5 h-3.5 inline" />
                       </div>
                     </div>
-                  )}
-
-                  {/* شريط الاعتماد لطلبات سدانة في أسفل جدول الكميات */}
-                  {isSedanaProgram && (
-                    <div className="p-3.5 bg-muted/30 dark:bg-slate-900/80 rounded-xl border border-border mt-4 flex flex-wrap items-center justify-between gap-3" dir="rtl">
-                      <div>
-                        <h4 className="font-bold text-xs flex items-center gap-1.5 text-foreground">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          اعتماد عروض الأسعار
-                        </h4>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          تم تحديد موردين لـ {Object.keys(selectedWinningVendors).length} من أصل {boqData.items.length} بند.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <span className="text-[11px] text-muted-foreground block">إجمالي العروض المعتمدة:</span>
-                          <span className="text-base font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-1">
-                            {totalSelectedItemsCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                          </span>
-                        </div>
-
-                        <Button
-                          onClick={handleApproveItemSelections}
-                          disabled={approveSedanaMultiVendorMutation.isPending || Object.keys(selectedWinningVendors).length === 0}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 shadow-sm"
-                        >
-                          {approveSedanaMultiVendorMutation.isPending && <Loader2 className="h-3.5 w-3.5 ml-1.5 animate-spin" />}
-                          <CheckCircle2 className="h-3.5 w-3.5 ml-1.5" />
-                          اعتماد عروض الأسعار
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />

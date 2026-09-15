@@ -2147,11 +2147,13 @@ export const projectsRouter = router({
         }
         pData.actualMosqueCost = totalApprovedBaseCost;
         pData.baseCost = totalApprovedBaseCost;
+        pData.awardedItemVendors = input.itemVendorSelections;
 
         await db
           .update(mosqueRequests)
           .set({
             programData: pData,
+            approvedBudget: totalApprovedBaseCost.toString(),
             updatedAt: new Date(),
           })
           .where(eq(mosqueRequests.id, input.requestId));
