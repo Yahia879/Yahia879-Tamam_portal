@@ -1746,8 +1746,20 @@ export default function Quotations() {
                                       </a>
                                     )}
                                   </div>
+                                <TableCell>
+                                  <div className="space-y-1 text-right" dir="rtl">
+                                    <span className="font-bold text-foreground block">{quotation.supplierName || "غير محدد"}</span>
+                                    {isSedanaProgram && Array.isArray(quotation.items) && quotation.items.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 max-w-[250px] pt-0.5">
+                                        {quotation.items.map((it: any, idx: number) => (
+                                          <Badge key={idx} variant="outline" className="text-[10px] bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-medium">
+                                            {it.itemName || it.name}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 </TableCell>
-                                <TableCell>{quotation.supplierName || "غير محدد"}</TableCell>
                                 <TableCell>
                                   <span className="inline-flex items-center gap-1">
                                     {parseFloat(quotation.totalAmount).toLocaleString("ar-SA")} <SaudiRiyal className="w-3.5 h-3.5" />
@@ -1994,6 +2006,12 @@ export default function Quotations() {
                     <div className="flex items-center gap-2">
                     </div>
                   </div>
+                  {isSedanaProgram && (
+                    <div className="mb-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 text-right" dir="rtl">
+                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span><strong>تخصيص بنود سدانة للمورد:</strong> يتيح لك النظام إدخال أسعار البنود المسندة لهذا المورد فقط (مثال: مياه، مستلزمات ورقية، عمالة) وترك البنود غير الخاصة به دون سعر.</span>
+                    </div>
+                  )}
                   <div className="border rounded-lg overflow-x-auto shadow-sm">
                     <Table>
                       <TableHeader>
