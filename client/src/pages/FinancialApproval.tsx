@@ -53,8 +53,6 @@ import {
   X,
   Search,
   RotateCcw,
-  LayoutGrid,
-  ListFilter,
   SlidersHorizontal,
 } from "lucide-react";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
@@ -85,7 +83,6 @@ export default function FinancialApproval() {
   const [selectedQuotationId, setSelectedQuotationId] = useState<number | null>(null);
   const [selectedWinningVendors, setSelectedWinningVendors] = useState<Record<number, number>>({});
   const [itemSearch, setItemSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"matrix" | "table">("matrix");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalNotes, setApprovalNotes] = useState("");
 
@@ -153,7 +150,7 @@ export default function FinancialApproval() {
     return [];
   };
 
-  // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين (تقبل السعر 0 كعرض صحيح)
+  // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين
   const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
     if (!item || !quotation) return null;
     const itemsArr = parseQuotationItems(quotation.items);
@@ -200,7 +197,6 @@ export default function FinancialApproval() {
         }
       }
 
-      // المورد أدخل قائمة بنود تفصيلية ولكن هذا البند لم يتم تسعيره
       return null;
     }
 
@@ -218,75 +214,25 @@ export default function FinancialApproval() {
     return null;
   };
 
-  // استعادة الترسية السابقة أو التحديد الافتراضي
+  // استعادة الترسية السابقة فقط في حال كان الطلب معتمداً مسبقاً
   useEffect(() => {
     if (boqData?.items && allQuotations.length > 0) {
-      // 1. استعادة الترسية السابقة المحفوظة في بيانات الطلب إن وجدت
-      let awarded = (requestDetails as any)?.programData?.awardedItemVendors;
-      if (typeof awarded === "string") {
-        try { awarded = JSON.parse(awarded); } catch {}
-      }
-      if (Array.isArray(awarded) && awarded.length > 0) {
-        setSelectedWinningVendors(prev => {
-          const updated = { ...prev };
-          let changed = false;
-          awarded.forEach((sel: any) => {
-            if (sel.boqItemId && sel.quotationId && !updated[sel.boqItemId]) {
-              updated[sel.boqItemId] = sel.quotationId;
-              changed = true;
-            }
-          });
-          return changed ? updated : prev;
-        });
-      } else if (requestDetails?.selectedQuotationId) {
-        // إذا كان هناك عرض سعر فائز معتمد مسبقاً
+      const isAlreadyApproved = (requestDetails as any)?.status === "approved" || (requestDetails as any)?.currentStage === "contracting";
+      if (isAlreadyApproved && requestDetails?.selectedQuotationId) {
         const winningQuote = allQuotations.find((q: any) => q.quotationNumber === requestDetails.selectedQuotationId);
         if (winningQuote) {
-          setSelectedWinningVendors(prev => {
-            const updated = { ...prev };
-            boqData.items.forEach((item: any) => {
-              if (!updated[item.id]) {
-                updated[item.id] = winningQuote.id;
-              }
-            });
-            return updated;
+          const updated: Record<number, number> = {};
+          boqData.items.forEach((item: any) => {
+            updated[item.id] = winningQuote.id;
           });
+          setSelectedWinningVendors(updated);
           setSelectedQuotationId(winningQuote.id);
         }
-      } else {
-        // 2. مزامنة عروض الأسعار الوحيدة أو المعتمدة مسبقاً
-        setSelectedWinningVendors(prev => {
-          const updated = { ...prev };
-          let changed = false;
-          boqData.items.forEach((item: any) => {
-            if (!updated[item.id]) {
-              const acceptedQuote = allQuotations.find((q: any) => {
-                if (q.status !== 'accepted' && q.status !== 'approved') return false;
-                const offer = getOfferForItem(item, q, boqData.items.length);
-                return offer !== null;
-              });
-              if (acceptedQuote) {
-                updated[item.id] = acceptedQuote.id;
-                changed = true;
-              } else {
-                const offers = allQuotations.filter((q: any) => {
-                  const offer = getOfferForItem(item, q, boqData.items.length);
-                  return offer !== null;
-                });
-                if (offers.length === 1) {
-                  updated[item.id] = offers[0].id;
-                  changed = true;
-                }
-              }
-            }
-          });
-          return changed ? updated : prev;
-        });
       }
     }
-  }, [boqData?.items, allQuotations, requestDetails, isSedanaProgram]);
+  }, [boqData?.items, allQuotations, requestDetails]);
 
-  // قائمة الموردين المشاركين بعروض أسعار وتفاصيل ترسيتهم
+  // قائمة الموردين المشاركين بعروض أسعار
   const participatingVendors = useMemo(() => {
     if (!boqData?.items) return [];
     return allQuotations.map((quotation: any) => {
@@ -319,109 +265,81 @@ export default function FinancialApproval() {
     }).filter(v => v.offeredCount > 0);
   }, [boqData?.items, allQuotations, selectedWinningVendors, isSedanaProgram]);
 
-  // إحصائيات الترسية والمبالغ
+  // معرفة أقل إجمالي بين الموردين
+  const minVendorTotal = useMemo(() => {
+    if (participatingVendors.length === 0) return null;
+    return Math.min(...participatingVendors.map(v => v.totalAmount));
+  }, [participatingVendors]);
+
+  // دالة اختيار المورد وكافة بنوده (على مستوى رأس العمود كما طلب المستخدم)
+  const handleSelectVendor = (quotationId: number) => {
+    if (selectedQuotationId === quotationId) {
+      // إلغاء الاختيار
+      setSelectedQuotationId(null);
+      setSelectedWinningVendors({});
+      toast.info("تم إلغاء اختيار المورد");
+    } else {
+      const vendor = allQuotations.find((q: any) => q.id === quotationId);
+      setSelectedQuotationId(quotationId);
+      const newSelections: Record<number, number> = {};
+      if (boqData?.items) {
+        boqData.items.forEach((item: any) => {
+          newSelections[item.id] = quotationId;
+        });
+      }
+      setSelectedWinningVendors(newSelections);
+      toast.success(`تم اختيار ${vendor?.supplierName || "المورد"} لكافة البنود بنجاح`);
+    }
+  };
+
+  // إحصائيات الترسية
   const totalBoqItemsCount = boqData?.items?.length || 0;
   const assignedItemsCount = useMemo(() => {
-    if (!boqData?.items) return 0;
-    return boqData.items.filter((item: any) => Boolean(selectedWinningVendors[item.id])).length;
-  }, [boqData?.items, selectedWinningVendors]);
+    if (!selectedQuotationId || !boqData?.items) return 0;
+    return boqData.items.filter((item: any) => selectedWinningVendors[item.id] === selectedQuotationId).length;
+  }, [selectedQuotationId, boqData?.items, selectedWinningVendors]);
   const unassignedItemsCount = Math.max(0, totalBoqItemsCount - assignedItemsCount);
   const awardProgressPercentage = totalBoqItemsCount > 0 ? Math.round((assignedItemsCount / totalBoqItemsCount) * 100) : 0;
-  const winningVendorsCount = useMemo(() => {
-    const ids = new Set<number>();
-    if (!boqData?.items) return 0;
-    boqData.items.forEach((item: any) => {
-      const qId = selectedWinningVendors[item.id];
-      if (qId) ids.add(qId);
-    });
-    return ids.size;
-  }, [boqData?.items, selectedWinningVendors]);
+  const winningVendorsCount = selectedQuotationId ? 1 : 0;
 
-  // حساب إجمالي التكلفة المعتمدة بناءً على البنود أو العرض المختار
+  // إجمالي التكلفة المعتمدة: تكون صفر تماماً قبل اختيار/اعتماد عرض السعر كما طلب المستخدم
   const totalSelectedItemsCost = useMemo(() => {
-    if (!boqData?.items) return 0;
-    return boqData.items.reduce((sum: number, item: any) => {
-      const qId = selectedWinningVendors[item.id];
-      if (qId) {
-        const quotation = allQuotations.find((q: any) => q.id === qId);
-        if (quotation) {
-          const offer = getOfferForItem(item, quotation, boqData.items.length);
-          if (offer && typeof offer.totalPrice === 'number') return sum + offer.totalPrice;
-        }
-      }
-      const savedTot = item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : 0;
-      if (savedTot > 0) return sum + savedTot;
-      const savedUnit = item.unitPrice ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : 0;
-      const qty = parseFloat(String(item.quantity || 1).replace(/,/g, '')) || 1;
-      return sum + (savedUnit * qty);
-    }, 0);
-  }, [boqData?.items, selectedWinningVendors, allQuotations, isSedanaProgram]);
+    if (!selectedQuotationId || !boqData?.items || boqData.items.length === 0) return 0;
+    const quotation = allQuotations.find((q: any) => q.id === selectedQuotationId);
+    if (!quotation) return 0;
 
-  // الترسية التلقائية للأقل سعراً لكافة البنود
-  const handleAutoSelectLowestPrices = () => {
-    if (!boqData?.items || boqData.items.length === 0) return;
-    const newSelections: Record<number, number> = { ...selectedWinningVendors };
-    let count = 0;
-
+    let sum = 0;
+    let countedItems = 0;
     boqData.items.forEach((item: any) => {
-      const offers = allQuotations.flatMap((quotation: any) => {
+      if (selectedWinningVendors[item.id] === selectedQuotationId) {
         const offer = getOfferForItem(item, quotation, boqData.items.length);
-        if (offer) {
-          return [{ quotationId: quotation.id, unitPrice: offer.unitPrice }];
+        if (offer && typeof offer.totalPrice === "number") {
+          sum += offer.totalPrice;
+          countedItems++;
         }
-        return [];
-      });
-
-      if (offers.length > 0) {
-        offers.sort((a, b) => a.unitPrice - b.unitPrice);
-        newSelections[item.id] = offers[0].quotationId;
-        count++;
       }
     });
 
-    setSelectedWinningVendors(newSelections);
-    toast.success(`تم اختيار العرض الأقل سعراً تلقائياً لـ ${count} بند بنجاح`);
+    if (countedItems > 0 && sum > 0) return sum;
+    const finalAmt = parseFloat(String(quotation.finalAmount || quotation.totalAmount || "0").replace(/,/g, ""));
+    return isNaN(finalAmt) ? 0 : finalAmt;
+  }, [selectedQuotationId, selectedWinningVendors, boqData?.items, allQuotations, isSedanaProgram]);
+
+  // الترسية التلقائية للمورد الأقل سعراً إجمالياً
+  const handleAutoSelectLowestPrices = () => {
+    if (participatingVendors.length === 0) return;
+    const sorted = [...participatingVendors].sort((a, b) => a.totalAmount - b.totalAmount);
+    if (sorted.length > 0) {
+      handleSelectVendor(sorted[0].quotationId);
+      toast.success(`تم اختيار العرض الأقل سعراً تلقائياً: ${sorted[0].supplierName} (${sorted[0].totalAmount.toLocaleString("ar-SA")} ر.س)`);
+    }
   };
 
-  // ترسية كافة بنود مورد معين
-  const handleAwardAllForVendor = (quotationId: number) => {
-    if (!boqData?.items) return;
-    const vendor = participatingVendors.find(v => v.quotationId === quotationId);
-    const newSelections: Record<number, number> = { ...selectedWinningVendors };
-    let count = 0;
-
-    boqData.items.forEach((item: any) => {
-      const offer = getOfferForItem(item, vendor?.quotation, boqData.items.length);
-      if (offer) {
-        newSelections[item.id] = quotationId;
-        count++;
-      }
-    });
-
-    setSelectedWinningVendors(newSelections);
-    setSelectedQuotationId(quotationId);
-    toast.success(`تمت ترسية ${count} بند على ${vendor?.supplierName || "المورد"} بنجاح`);
-  };
-
-  // إلغاء ترسية بنود مورد معين
-  const handleClearVendorAward = (quotationId: number) => {
-    const newSelections = { ...selectedWinningVendors };
-    let count = 0;
-    Object.entries(newSelections).forEach(([itemId, qId]) => {
-      if (qId === quotationId) {
-        delete newSelections[Number(itemId)];
-        count++;
-      }
-    });
-    setSelectedWinningVendors(newSelections);
-    toast.info(`تم إلغاء ترسية ${count} بند من هذا المورد`);
-  };
-
-  // إعادة ضبط الترسية
+  // إعادة ضبط الترسية لمسح الاختيار وجعل التكلفة صفر
   const handleResetAllSelections = () => {
     setSelectedWinningVendors({});
     setSelectedQuotationId(null);
-    toast.info("تمت إعادة ضبط جميع اختيارات الموردين");
+    toast.info("تمت إعادة ضبط الاختيار وتصفير التكلفة المعتمدة");
   };
 
   // فلترة البنود بالبحث
@@ -439,13 +357,13 @@ export default function FinancialApproval() {
     });
   }, [boqData?.items, itemSearch]);
 
-  // طفرة اعتماد وترسية عروض الأسعار بحسب البنود
+  // طفرة اعتماد وترسية عروض الأسعار
   const approveMultiVendorMutation = trpc.projects.approveSedanaMultiVendorQuotations.useMutation({
     onSuccess: (data) => {
       toast.success(
-        `✅ تم الاعتماد المالي بنجاح!\n\n` +
+        `✅ تم الاعتماد المالي وترسية العرض بنجاح!\n\n` +
         `💰 التكلفة المعتمدة: ${data.totalApprovedBaseCost.toLocaleString("ar-SA")} ريال\n` +
-        `🏭 عدد الموردين المعتمدين: ${data.approvedQuotationsCount}\n\n` +
+        `🏭 المورد المعتمد: ${selectedQuotation?.supplierName || "المورد المختار"}\n\n` +
         `➡️ تم الانتقال إلى مرحلة التعاقد`,
         { duration: 5000 }
       );
@@ -462,25 +380,12 @@ export default function FinancialApproval() {
     },
   });
 
-  // اختيار عرض السعر الفائز المفرد
-  const selectWinningMutation = trpc.requests.selectWinningQuotation.useMutation({
-    onSuccess: () => {
-      toast.success("تم اختيار العرض الفائز بنجاح");
-      refetchQuotations();
-      utils.requests.getById.invalidate({ id: parseInt(selectedRequestId) });
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "حدث خطأ أثناء اختيار العرض");
-    },
-  });
-
-  // الاعتماد المالي النهائي لعرض مفرد
+  // طفرة الاعتماد المالي البديلة
   const approveMutation = trpc.requests.approveFinancially.useMutation({
     onSuccess: () => {
-      const approvedQuotation = selectedQuotation;
-      const supplierName = approvedQuotation?.supplierName || "غير محدد";
-      const finalAmt = parseFloat(approvedQuotation?.finalAmount || approvedQuotation?.totalAmount || "0").toLocaleString("ar-SA");
-      const quotationNumber = approvedQuotation?.quotationNumber || "";
+      const supplierName = selectedQuotation?.supplierName || "غير محدد";
+      const finalAmt = totalSelectedItemsCost.toLocaleString("ar-SA");
+      const quotationNumber = selectedQuotation?.quotationNumber || "";
       
       toast.success(
         `✅ تم الاعتماد المالي بنجاح!\n\n` +
@@ -506,8 +411,12 @@ export default function FinancialApproval() {
   // تنفيذ الاعتماد المالي
   const handleConfirmApproval = () => {
     if (!selectedRequestId) return;
+    if (!selectedQuotationId) {
+      toast.error("يرجى النقر على زر 'اختر' أعلى المورد المطلوب اعتماده قبل المتابعة");
+      return;
+    }
 
-    // تجهيز الاختيارات بحسب البنود
+    const quotation = allQuotations.find((q: any) => q.id === selectedQuotationId);
     const selections: Array<{
       boqItemId: number;
       quotationId: number;
@@ -516,22 +425,17 @@ export default function FinancialApproval() {
       supplierName?: string;
     }> = [];
 
-    if (boqData?.items && boqData.items.length > 0) {
+    if (boqData?.items && boqData.items.length > 0 && quotation) {
       for (const item of boqData.items) {
-        const qId = selectedWinningVendors[item.id];
-        if (qId) {
-          const quotation = allQuotations.find((q: any) => q.id === qId);
-          if (!quotation) continue;
-          const offer = getOfferForItem(item, quotation, boqData.items.length);
-          if (offer) {
-            selections.push({
-              boqItemId: item.id,
-              quotationId: qId,
-              unitPrice: offer.unitPrice,
-              totalPrice: offer.totalPrice,
-              supplierName: quotation?.supplierName || undefined,
-            });
-          }
+        const offer = getOfferForItem(item, quotation, boqData.items.length);
+        if (offer) {
+          selections.push({
+            boqItemId: item.id,
+            quotationId: selectedQuotationId,
+            unitPrice: offer.unitPrice,
+            totalPrice: offer.totalPrice,
+            supplierName: quotation?.supplierName || undefined,
+          });
         }
       }
     }
@@ -542,30 +446,24 @@ export default function FinancialApproval() {
         itemVendorSelections: selections,
         approvalNotes,
       });
-    } else if (selectedQuotationId) {
+    } else {
       approveMutation.mutate({
         requestId: parseInt(selectedRequestId),
         approvalNotes,
       });
-    } else {
-      toast.error("يرجى تحديد مورد على الأقل للبنود أو اختيار عرض سعر قبل الاعتماد");
     }
   };
 
-  // حساب التكاليف
-  const boqTotal = boqData?.total || 0;
-  const selectedQuotation = quotationsData?.quotations?.find((q: any) => 
-    requestDetails?.selectedQuotationId ? q.quotationNumber === requestDetails.selectedQuotationId : q.id === selectedQuotationId
-  );
-  
-  const displayFinalCost = assignedItemsCount > 0 
-    ? totalSelectedItemsCost 
-    : (selectedQuotation ? parseFloat(selectedQuotation.finalAmount || selectedQuotation.totalAmount) : 0);
+  // العرض المختار حالياً
+  const selectedQuotation = useMemo(() => {
+    return allQuotations.find((q: any) => q.id === selectedQuotationId);
+  }, [allQuotations, selectedQuotationId]);
 
+  const displayFinalCost = totalSelectedItemsCost;
+  const boqTotal = boqData?.total || 0;
   const isLoading = boqLoading || quotationsLoading;
   const hasBoq = boqData?.items && boqData.items.length > 0;
   const hasQuotations = quotationsData?.quotations && quotationsData.quotations.length > 0;
-  const hasSelectedQuotation = !!requestDetails?.selectedQuotationId || !!selectedQuotationId || assignedItemsCount > 0;
 
   // التحقق من الصلاحيات
   const hasApprove = usePermission("financial_approval.approve");
@@ -684,11 +582,11 @@ export default function FinancialApproval() {
                             {requestDetails?.programName ? ` (${requestDetails.programName})` : ""}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            اختر المورد والعرض المناسب لكل بند من القائمة المنسدلة أو عبر النقر المباشر في مصفوفة المقارنة
+                            انقر على زر <strong>"اختر"</strong> أعلى عمود المورد المطلوب لاعتماده لكافة البنود
                           </CardDescription>
                         </div>
 
-                        {/* زر سريع لاختيار الأقل سعراً لكافة البنود */}
+                        {/* زر سريع لاختيار الأقل سعراً */}
                         <div className="flex items-center gap-2">
                           <Button
                             onClick={handleAutoSelectLowestPrices}
@@ -725,9 +623,9 @@ export default function FinancialApproval() {
                             <span className="text-xs font-bold shrink-0">{awardProgressPercentage}%</span>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            {unassignedItemsCount > 0 
-                              ? `متبقي ${unassignedItemsCount} بند دون تحديد مورد` 
-                              : "مكتمل: تم تحديد موردين لكافة البنود"}
+                            {selectedQuotation 
+                              ? `مكتمل: تم اختيار ${selectedQuotation.supplierName}` 
+                              : `متبقي ${unassignedItemsCount} بند دون تحديد مورد`}
                           </p>
                         </div>
 
@@ -742,7 +640,7 @@ export default function FinancialApproval() {
                             <SaudiRiyal className="w-4 h-4 inline" />
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            مجموع أسعار البنود المعتمدة حالياً
+                            {selectedQuotation ? "مجموع أسعار البنود للمورد المعتمد" : "صفر (بانتظار اعتماد عرض السعر)"}
                           </p>
                         </div>
 
@@ -759,102 +657,13 @@ export default function FinancialApproval() {
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground">
-                            تجزئة الشراء بين الموردين وفق البنود
+                            {selectedQuotation ? selectedQuotation.supplierName : "لم يتم تحديد مورد بعد"}
                           </p>
                         </div>
                       </div>
 
-                      {/* 2. توزيع الترسية على الموردين المشاركين */}
-                      {participatingVendors.length > 0 && (
-                        <div className="p-4 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <Store className="h-4 w-4 text-primary" />
-                              <h4 className="text-xs font-bold text-foreground">توزيع الترسية على الموردين المشاركين ({participatingVendors.length})</h4>
-                            </div>
-                            <span className="text-[11px] text-muted-foreground">يمكنك ترسية كافة بنود مورد محدد بنقرة واحدة أو إلغاء ترسيته</span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {participatingVendors.map((vendor) => {
-                              const isFullyAwarded = vendor.awardedCount === vendor.offeredCount && vendor.offeredCount > 0;
-                              const isPartiallyAwarded = vendor.awardedCount > 0 && vendor.awardedCount < vendor.offeredCount;
-                              return (
-                                <div 
-                                  key={vendor.quotationId}
-                                  className={cn(
-                                    "p-3 rounded-lg border transition-all duration-200 flex flex-col justify-between gap-2.5",
-                                    isFullyAwarded 
-                                      ? "bg-emerald-50/80 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800/80 shadow-2xs" 
-                                      : isPartiallyAwarded
-                                        ? "bg-blue-50/60 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40"
-                                        : "bg-background border-border"
-                                  )}
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
-                                      <p className="font-bold text-xs text-foreground truncate" title={vendor.supplierName}>
-                                        {vendor.supplierName}
-                                      </p>
-                                      <span className="text-[10px] text-muted-foreground block mt-0.5">
-                                        رقم العرض: {vendor.quotationNumber}
-                                      </span>
-                                    </div>
-                                    <Badge 
-                                      variant="outline" 
-                                      className={cn(
-                                        "text-[10px] py-0 px-2 font-bold shrink-0",
-                                        vendor.awardedCount > 0 
-                                          ? "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border-emerald-300" 
-                                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                                      )}
-                                    >
-                                      {vendor.awardedCount} من {vendor.offeredCount} بند معتمد
-                                    </Badge>
-                                  </div>
-
-                                  <div className="flex items-center justify-between text-xs pt-1 border-t border-border/60">
-                                    <div>
-                                      <span className="text-[10px] text-muted-foreground block">مبلغ الترسية:</span>
-                                      <span className="font-extrabold text-emerald-700 dark:text-emerald-400 inline-flex items-center gap-0.5">
-                                        {vendor.awardedTotal.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      {vendor.awardedCount < vendor.offeredCount && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => handleAwardAllForVendor(vendor.quotationId)}
-                                          className="h-7 text-[11px] px-2.5 bg-background border-emerald-600/40 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 hover:border-emerald-500"
-                                          title="ترسية جميع البنود التي قدم فيها هذا المورد عرضاً"
-                                        >
-                                          ترسية كل بنوده ({vendor.offeredCount})
-                                        </Button>
-                                      )}
-                                      {vendor.awardedCount > 0 && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleClearVendorAward(vendor.quotationId)}
-                                          className="h-7 text-[11px] px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                          title="إلغاء ترسية بنود هذا المورد"
-                                        >
-                                          إلغاء الترسية
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 3. شريط التحكم الذكي والفلترة للبنود */}
+                      {/* 2. شريط البحث وإعادة الضبط */}
                       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-muted/20 dark:bg-slate-900/60 rounded-xl border border-border">
-                        {/* حقل البحث */}
                         <div className="flex items-center gap-2 flex-1 max-w-md">
                           <div className="relative w-full">
                             <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -875,45 +684,21 @@ export default function FinancialApproval() {
                           </div>
                         </div>
 
-                        {/* أزرار الإجراءات وتبديل نمط العرض */}
-                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={handleResetAllSelections}
-                            className="h-8 text-xs px-2.5 text-muted-foreground hover:text-red-600 hover:border-red-300 gap-1.5"
-                            title="إلغاء كافة الاختيارات وإعادة ضبط الجدول"
+                            className="h-8 text-xs px-3 text-muted-foreground hover:text-red-600 hover:border-red-300 gap-1.5"
+                            title="إلغاء التحديد وإعادة ضبط الجدول"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             إعادة ضبط
                           </Button>
-
-                          <div className="flex items-center border border-border rounded-lg p-0.5 bg-background">
-                            <Button
-                              size="sm"
-                              variant={viewMode === "matrix" ? "default" : "ghost"}
-                              onClick={() => setViewMode("matrix")}
-                              className="h-7 px-2.5 text-xs gap-1 rounded-md"
-                              title="عرض مصفوفة المقارنة الشاملة للموردين"
-                            >
-                              <LayoutGrid className="h-3.5 w-3.5" />
-                              مصفوفة المقارنة
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant={viewMode === "table" ? "default" : "ghost"}
-                              onClick={() => setViewMode("table")}
-                              className="h-7 px-2.5 text-xs gap-1 rounded-md"
-                              title="عرض الجدول التفصيلي للبنود"
-                            >
-                              <ListFilter className="h-3.5 w-3.5" />
-                              جدول تفصيلي
-                            </Button>
-                          </div>
                         </div>
                       </div>
 
-                      {/* 4. محتوى البنود وفق نمط العرض المحدد */}
+                      {/* 3. مصفوفة مقارنة عروض الأسعار مع أزرار اختر في رأس الأعمدة */}
                       {filteredBoqItems.length === 0 ? (
                         <div className="text-center py-10 border border-dashed rounded-xl p-8 bg-muted/10">
                           <SlidersHorizontal className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
@@ -928,8 +713,7 @@ export default function FinancialApproval() {
                             عرض جميع البنود ({totalBoqItemsCount})
                           </Button>
                         </div>
-                      ) : viewMode === "matrix" ? (
-                        /* ==================== نمط مصفوفة المقارنة ==================== */
+                      ) : (
                         <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
                           <div className="overflow-x-auto">
                             <Table>
@@ -937,20 +721,62 @@ export default function FinancialApproval() {
                                 <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
                                   <TableHead className="w-12 text-center font-bold">#</TableHead>
                                   <TableHead className="font-bold min-w-[220px]">البند والمواصفات</TableHead>
-                                  <TableHead className="text-center font-bold min-w-[100px]">الكمية</TableHead>
+                                  <TableHead className="text-center font-bold min-w-[90px]">الكمية</TableHead>
                                   
-                                  {/* أعمدة الموردين المشاركين */}
-                                  {participatingVendors.map(vendor => (
-                                    <TableHead key={vendor.quotationId} className="min-w-[190px] text-center p-2.5 border-r border-slate-200 dark:border-slate-800">
-                                      <div className="font-bold text-xs text-foreground truncate" title={vendor.supplierName}>
-                                        {vendor.supplierName}
-                                      </div>
-                                      <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1.5">
-                                        <span>إجمالي: {vendor.totalAmount.toLocaleString("ar-SA")} ر.س</span>
-                                        <span className="text-emerald-700 dark:text-emerald-400 font-bold">({vendor.awardedCount} معتمد)</span>
-                                      </div>
-                                    </TableHead>
-                                  ))}
+                                  {/* أعمدة الموردين المشاركين مع زر اختر لكل بنود المورد */}
+                                  {participatingVendors.map(vendor => {
+                                    const isSelected = selectedQuotationId === vendor.quotationId;
+                                    const isLowestTotal = minVendorTotal !== null && vendor.totalAmount === minVendorTotal;
+
+                                    return (
+                                      <TableHead 
+                                        key={vendor.quotationId} 
+                                        className={cn(
+                                          "min-w-[190px] text-center p-3 border-r border-slate-200 dark:border-slate-800 transition-all",
+                                          isSelected 
+                                            ? "bg-emerald-50 dark:bg-emerald-950/40 border-b-2 border-b-emerald-600 shadow-xs" 
+                                            : "bg-muted/30"
+                                        )}
+                                      >
+                                        <div className="flex flex-col items-center justify-center gap-1.5 py-1">
+                                          <div className="font-bold text-xs text-foreground truncate max-w-[180px]" title={vendor.supplierName}>
+                                            {vendor.supplierName}
+                                          </div>
+                                          <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 font-medium">
+                                            <span>إجمالي:</span>
+                                            <span className="font-bold text-foreground inline-flex items-center gap-0.5">
+                                              {vendor.totalAmount.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3 inline" />
+                                            </span>
+                                          </div>
+
+                                          {/* زر اختر المورد لكافة بنوده */}
+                                          <Button
+                                            size="sm"
+                                            type="button"
+                                            onClick={() => handleSelectVendor(vendor.quotationId)}
+                                            className={cn(
+                                              "h-7 text-xs px-4 font-bold shadow-xs transition-all w-full max-w-[130px] mt-1 cursor-pointer",
+                                              isSelected
+                                                ? "bg-emerald-700 hover:bg-emerald-800 text-white ring-2 ring-emerald-500/60"
+                                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                            )}
+                                          >
+                                            {isSelected ? (
+                                              <span className="flex items-center gap-1">
+                                                <Check className="w-3.5 h-3.5" />
+                                                معتمد
+                                              </span>
+                                            ) : (
+                                              <span className="flex items-center gap-1">
+                                                {isLowestTotal && <Sparkles className="w-3 h-3 text-amber-300" />}
+                                                اختر
+                                              </span>
+                                            )}
+                                          </Button>
+                                        </div>
+                                      </TableHead>
+                                    );
+                                  })}
 
                                   <TableHead className="text-center font-bold min-w-[190px] bg-emerald-500/5 border-r border-emerald-500/20">
                                     المورد المعتمد حالياً
@@ -968,8 +794,6 @@ export default function FinancialApproval() {
                                   });
 
                                   const minUnitPrice = itemOffers.length > 0 ? Math.min(...itemOffers.map(o => o.unitPrice)) : null;
-                                  const currentWinningQId = selectedWinningVendors[item.id];
-                                  const currentWinningOffer = itemOffers.find(o => o.quotation.id === currentWinningQId);
 
                                   return (
                                     <TableRow key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
@@ -977,7 +801,7 @@ export default function FinancialApproval() {
                                       <TableCell className="align-middle">
                                         <div className="font-bold text-xs text-foreground leading-snug">{item.itemName}</div>
                                         {item.itemDescription && (
-                                          <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1" title={item.itemDescription}>
+                                          <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1" title={item.itemDescription || undefined}>
                                             {item.itemDescription}
                                           </div>
                                         )}
@@ -994,37 +818,31 @@ export default function FinancialApproval() {
                                         <span className="text-[11px] text-muted-foreground block">{item.unit || "عدد"}</span>
                                       </TableCell>
 
-                                      {/* خلايا الموردين لكل بند */}
+                                      {/* خلايا الموردين لكل بند (عرض أسعار المقارنة دون اختيار بالبند الفردي) */}
                                       {participatingVendors.map(vendor => {
                                         const vOffer = getOfferForItem(item, vendor.quotation, boqData.items.length);
                                         const hasOffer = Boolean(vOffer);
                                         const isLowest = Boolean(vOffer && minUnitPrice !== null && vOffer.unitPrice === minUnitPrice);
-                                        const isSelected = currentWinningQId === vendor.quotationId;
+                                        const isVendorSelected = selectedQuotationId === vendor.quotationId;
 
                                         return (
-                                          <TableCell key={vendor.quotationId} className="p-2 align-middle border-r border-slate-200 dark:border-slate-800">
+                                          <TableCell 
+                                            key={vendor.quotationId} 
+                                            className={cn(
+                                              "p-2 align-middle border-r border-slate-200 dark:border-slate-800 transition-colors",
+                                              isVendorSelected && "bg-emerald-50/40 dark:bg-emerald-950/20"
+                                            )}
+                                          >
                                             {vOffer && hasOffer ? (
                                               <div
-                                                onClick={() => {
-                                                  setSelectedWinningVendors(prev => {
-                                                    const updated = { ...prev };
-                                                    if (isSelected) {
-                                                      delete updated[item.id];
-                                                    } else {
-                                                      updated[item.id] = vendor.quotationId;
-                                                    }
-                                                    return updated;
-                                                  });
-                                                }}
                                                 className={cn(
-                                                  "p-2 rounded-lg border text-center transition-all duration-150 cursor-pointer select-none group",
-                                                  isSelected
-                                                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-2 ring-emerald-500/80 shadow-2xs"
+                                                  "p-2 rounded-lg border text-center transition-all duration-150",
+                                                  isVendorSelected
+                                                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500/60 shadow-2xs"
                                                     : isLowest
-                                                      ? "bg-emerald-50/40 dark:bg-emerald-950/15 border-emerald-300 dark:border-emerald-800/60 hover:border-emerald-400 hover:shadow-2xs"
-                                                      : "bg-background border-border hover:border-slate-400 dark:hover:border-slate-600"
+                                                      ? "bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-300/80 dark:border-emerald-800/40"
+                                                      : "bg-background border-border/80"
                                                 )}
-                                                title={isSelected ? "انقر لإلغاء الترسية" : "انقر لاختيار هذا المورد لهذا البند"}
                                               >
                                                 <div className="flex items-center justify-between gap-1 mb-1">
                                                   {isLowest ? (
@@ -1033,15 +851,11 @@ export default function FinancialApproval() {
                                                       الأقل
                                                     </Badge>
                                                   ) : <span />}
-                                                  {isSelected ? (
+                                                  {isVendorSelected && (
                                                     <Badge className="bg-emerald-700 hover:bg-emerald-700 text-white text-[9px] py-0 px-1.5 h-4 gap-0.5 font-bold">
                                                       <Check className="w-2.5 h-2.5" />
                                                       معتمد
                                                     </Badge>
-                                                  ) : (
-                                                    <span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      اختر
-                                                    </span>
                                                   )}
                                                 </div>
                                                 <div className="font-extrabold text-xs text-foreground flex items-center justify-center gap-0.5">
@@ -1063,39 +877,38 @@ export default function FinancialApproval() {
 
                                       {/* خانة المورد المعتمد حالياً */}
                                       <TableCell className="p-2 align-middle text-center bg-emerald-500/5 border-r border-emerald-500/20">
-                                        {currentWinningOffer ? (
-                                          <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-2xs text-right relative group">
-                                            <div className="flex items-center justify-between gap-1">
-                                              <span className="font-bold text-xs text-emerald-800 dark:text-emerald-200 truncate" title={currentWinningOffer.quotation.supplierName}>
-                                                {currentWinningOffer.quotation.supplierName || "المورد المعتمد"}
-                                              </span>
-                                              <button
-                                                onClick={() => {
-                                                  setSelectedWinningVendors(prev => {
-                                                    const updated = { ...prev };
-                                                    delete updated[item.id];
-                                                    return updated;
-                                                  });
-                                                }}
-                                                className="text-muted-foreground hover:text-red-600 p-0.5 rounded transition-colors"
-                                                title="إلغاء الترسية لهذا البند"
-                                              >
-                                                <X className="h-3.5 w-3.5" />
-                                              </button>
-                                            </div>
-                                            <div className="text-[11px] text-foreground font-bold mt-1 flex items-center justify-between">
-                                              <span className="text-[10px] text-muted-foreground font-normal">سعر الوحدة:</span>
-                                              <span>{currentWinningOffer.unitPrice.toLocaleString("ar-SA")} ر.س</span>
-                                            </div>
-                                            <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center justify-between mt-0.5">
-                                              <span className="text-[10px] text-muted-foreground font-normal">الإجمالي:</span>
-                                              <span>{currentWinningOffer.totalPrice.toLocaleString("ar-SA")} ر.س</span>
-                                            </div>
-                                          </div>
+                                        {selectedQuotation ? (
+                                          (() => {
+                                            const selectedOffer = getOfferForItem(item, selectedQuotation, boqData.items.length);
+                                            return selectedOffer ? (
+                                              <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 shadow-2xs text-right">
+                                                <div className="flex items-center justify-between gap-1">
+                                                  <span className="font-bold text-xs text-emerald-800 dark:text-emerald-200 truncate" title={selectedQuotation.supplierName || undefined}>
+                                                    {selectedQuotation.supplierName || "المورد المعتمد"}
+                                                  </span>
+                                                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[9px] px-1 py-0 border-emerald-300">
+                                                    معتمد
+                                                  </Badge>
+                                                </div>
+                                                <div className="text-[11px] text-foreground font-bold mt-1 flex items-center justify-between">
+                                                  <span className="text-[10px] text-muted-foreground font-normal">سعر الوحدة:</span>
+                                                  <span>{selectedOffer.unitPrice.toLocaleString("ar-SA")} ر.س</span>
+                                                </div>
+                                                <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center justify-between mt-0.5">
+                                                  <span className="text-[10px] text-muted-foreground font-normal">الإجمالي:</span>
+                                                  <span>{selectedOffer.totalPrice.toLocaleString("ar-SA")} ر.س</span>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <div className="p-2 text-center text-muted-foreground text-xs">
+                                                غير مسعر في العرض
+                                              </div>
+                                            );
+                                          })()
                                         ) : (
                                           <div className="p-2 rounded-lg border border-dashed border-amber-300 dark:border-amber-800/60 bg-amber-50/50 dark:bg-amber-950/20 text-center">
                                             <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 block">بانتظار تحديد مورد</span>
-                                            <span className="text-[9px] text-muted-foreground block mt-0.5">انقر على عرض المورد في الجدول</span>
+                                            <span className="text-[9px] text-muted-foreground block mt-0.5">انقر على زر "اختر" أعلى عرض المورد</span>
                                           </div>
                                         )}
                                       </TableCell>
@@ -1106,169 +919,23 @@ export default function FinancialApproval() {
                             </Table>
                           </div>
                         </div>
-                      ) : (
-                        /* ==================== نمط الجدول التفصيلي ==================== */
-                        <div className="border border-border rounded-xl overflow-hidden bg-card shadow-xs">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
-                                <TableHead className="w-12 text-center font-bold">#</TableHead>
-                                <TableHead className="font-bold">البند</TableHead>
-                                <TableHead className="font-bold">الوصف والتصنيف</TableHead>
-                                <TableHead className="font-bold">الوحدة</TableHead>
-                                <TableHead className="text-center font-bold">الكمية</TableHead>
-                                <TableHead className="font-bold min-w-[280px]">المورد وعرض السعر المعتمد</TableHead>
-                                <TableHead className="text-center font-bold">سعر الوحدة</TableHead>
-                                <TableHead className="text-center font-bold">الإجمالي</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-slate-200 dark:divide-slate-800">
-                              {filteredBoqItems.map((item: any, index: number) => {
-                                const offersForItem = allQuotations.flatMap((quotation: any) => {
-                                  const offer = getOfferForItem(item, quotation, boqData.items.length);
-                                  if (offer) {
-                                    return [{
-                                      quotation,
-                                      unitPrice: offer.unitPrice,
-                                      totalPrice: offer.totalPrice,
-                                    }];
-                                  }
-                                  return [];
-                                });
-
-                                const minPrice = offersForItem.length > 0 ? Math.min(...offersForItem.map(o => o.unitPrice)) : null;
-                                const currentQId = selectedWinningVendors[item.id];
-                                const selectedOffer = offersForItem.find(o => o.quotation.id === currentQId);
-                                const lowestOffer = offersForItem.find(o => o.unitPrice === minPrice);
-
-                                const itemUnitNum = item.unitPrice !== undefined && item.unitPrice !== null && String(item.unitPrice).trim() !== "" ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null;
-                                const itemTotalNum = item.totalPrice !== undefined && item.totalPrice !== null && String(item.totalPrice).trim() !== "" ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null;
-
-                                const displayUnitPrice = selectedOffer 
-                                  ? selectedOffer.unitPrice 
-                                  : (itemUnitNum !== null && !isNaN(itemUnitNum) && itemUnitNum >= 0 ? itemUnitNum : null);
-
-                                const displayTotalPrice = selectedOffer 
-                                  ? selectedOffer.totalPrice 
-                                  : (itemTotalNum !== null && !isNaN(itemTotalNum) && itemTotalNum >= 0 ? itemTotalNum : null);
-
-                                return (
-                                  <TableRow key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
-                                    <TableCell className="text-center font-semibold text-muted-foreground">{index + 1}</TableCell>
-                                    <TableCell className="font-bold text-xs align-middle max-w-[240px]">
-                                      <div className="whitespace-normal break-words leading-relaxed" title={item.itemName}>
-                                        {item.itemName}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-xs">
-                                      {item.itemDescription || "-"}
-                                      {item.category && (
-                                        <Badge variant="outline" className="text-[9px] py-0 px-1.5 block w-fit mt-1">
-                                          {item.category}
-                                        </Badge>
-                                      )}
-                                    </TableCell>
-                                    <TableCell className="text-xs">{item.unit || "عدد"}</TableCell>
-                                    <TableCell className="text-center font-extrabold text-xs">
-                                      {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : ""}
-                                    </TableCell>
-
-                                    {/* قائمة الموردين المنسدلة لاختيار العرض المناسب */}
-                                    <TableCell className="align-middle min-w-[280px]">
-                                      {offersForItem.length > 0 ? (
-                                        <div className="space-y-1.5">
-                                          <Select
-                                            value={currentQId ? String(currentQId) : ""}
-                                            onValueChange={(val) => {
-                                              setSelectedWinningVendors(prev => ({
-                                                ...prev,
-                                                [item.id]: parseInt(val)
-                                              }));
-                                            }}
-                                          >
-                                            <SelectTrigger className="h-9 text-xs bg-background text-right font-medium" dir="rtl">
-                                              <SelectValue placeholder="اختر المورد والعرض المناسب..." />
-                                            </SelectTrigger>
-                                            <SelectContent dir="rtl" className="text-right">
-                                              {offersForItem.map(({ quotation, unitPrice }: any) => {
-                                                const isMin = minPrice !== null && unitPrice === minPrice;
-                                                return (
-                                                  <SelectItem key={quotation.id} value={String(quotation.id)} className="text-xs text-right cursor-pointer">
-                                                    <div className="flex items-center justify-between gap-3 w-full font-medium">
-                                                      <div className="flex items-center gap-1.5 truncate">
-                                                        <span>{quotation.supplierName || "مورد"}</span>
-                                                        {isMin && (
-                                                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/80 px-1 rounded">
-                                                            الأقل سعراً
-                                                          </span>
-                                                        )}
-                                                      </div>
-                                                      <span className="font-bold text-emerald-700 dark:text-emerald-400 mr-2 shrink-0">
-                                                        {unitPrice.toLocaleString("ar-SA")} ر.س/وحدة
-                                                      </span>
-                                                    </div>
-                                                  </SelectItem>
-                                                );
-                                              })}
-                                            </SelectContent>
-                                          </Select>
-
-                                          {/* زر سريع لاختيار الأقل سعراً إذا لم يكن محدداً */}
-                                          {lowestOffer && currentQId !== lowestOffer.quotation.id && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedWinningVendors(prev => ({
-                                                  ...prev,
-                                                  [item.id]: lowestOffer.quotation.id
-                                                }));
-                                              }}
-                                              className="text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 font-bold flex items-center gap-1 hover:underline cursor-pointer"
-                                            >
-                                              <Sparkles className="w-3 h-3" />
-                                              اختيار الأقل سعراً: {lowestOffer.quotation.supplierName} ({lowestOffer.unitPrice.toLocaleString("ar-SA")} ر.س)
-                                            </button>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span className="text-xs text-muted-foreground italic">لا توجد عروض أسعار بعد</span>
-                                      )}
-                                    </TableCell>
-
-                                    <TableCell className="text-center font-bold text-xs">
-                                      {displayUnitPrice !== null ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                                          {displayUnitPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
-                                        </span>
-                                      ) : "-"}
-                                    </TableCell>
-                                    <TableCell className="text-center font-bold text-xs">
-                                      {displayTotalPrice !== null ? (
-                                        <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400">
-                                          {displayTotalPrice.toLocaleString("ar-SA")} <SaudiRiyal className="w-3 h-3" />
-                                        </span>
-                                      ) : "-"}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
                       )}
 
-                      {/* 5. شريط الاعتماد المالي والترسية النهائي */}
+                      {/* 4. شريط الاعتماد المالي والترسية النهائي */}
                       <div className="p-4 bg-muted/40 dark:bg-slate-900/90 rounded-xl border border-border mt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm" dir="rtl">
                         <div>
                           <h4 className="font-bold text-sm flex items-center gap-2 text-foreground">
                             <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
-                            اعتماد وترسية عروض الأسعار
+                            اعتماد وترسية عرض السعر
                           </h4>
                           <div className="flex items-center gap-2 mt-1 flex-wrap text-xs text-muted-foreground">
-                            <span>تم تحديد موردين لـ <strong className="text-foreground font-extrabold">{assignedItemsCount}</strong> من أصل <strong className="text-foreground">{totalBoqItemsCount}</strong> بند.</span>
-                            {winningVendorsCount > 0 && (
-                              <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold px-2 py-0.5 rounded text-[11px]">
-                                موزعة على {winningVendorsCount} موردين معتمدين
+                            {selectedQuotation ? (
+                              <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                                تم اختيار المورد: <strong>{selectedQuotation.supplierName}</strong> لكافة البنود ({totalBoqItemsCount} بند).
+                              </span>
+                            ) : (
+                              <span>
+                                لم يتم اختيار أي مورد بعد. يرجى النقر على زر <strong>"اختر"</strong> أعلى المورد المطلوب.
                               </span>
                             )}
                           </div>
@@ -1285,12 +952,14 @@ export default function FinancialApproval() {
                           {canApprove && (
                             <Button
                               onClick={() => setShowApprovalDialog(true)}
-                              disabled={approveMultiVendorMutation.isPending || assignedItemsCount === 0}
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-sm"
+                              disabled={approveMultiVendorMutation.isPending || approveMutation.isPending || !selectedQuotationId}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-sm disabled:opacity-50"
                             >
-                              {approveMultiVendorMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
+                              {(approveMultiVendorMutation.isPending || approveMutation.isPending) && (
+                                <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                              )}
                               <CheckCircle2 className="h-4 w-4 ml-2" />
-                              اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                              اعتماد وترسية عرض السعر
                             </Button>
                           )}
                         </div>
@@ -1299,7 +968,7 @@ export default function FinancialApproval() {
                   </Card>
                 )}
 
-                {/* ==================== جدول مقارنة عروض الأسعار المفردة (بديل في حال عدم وجود بنود كميات) ==================== */}
+                {/* ==================== جدول مقارنة عروض الأسعار المفردة (في حال عدم وجود جدول كميات) ==================== */}
                 {hasQuotations && !hasBoq && (
                   <Card>
                     <CardHeader>
@@ -1308,8 +977,8 @@ export default function FinancialApproval() {
                         مقارنة عروض الأسعار
                       </CardTitle>
                       <CardDescription>
-                        {requestDetails?.selectedQuotationId 
-                          ? "تم اختيار العرض الفائز - يمكنك المتابعة للاعتماد المالي"
+                        {selectedQuotationId 
+                          ? "تم اختيار العرض - يمكنك المتابعة للاعتماد المالي"
                           : "اختر أفضل عرض سعر من القائمة أدناه"}
                       </CardDescription>
                     </CardHeader>
@@ -1330,9 +999,7 @@ export default function FinancialApproval() {
                           </TableHeader>
                           <TableBody>
                             {quotationsData.quotations.map((quotation: any) => {
-                              const isSelected = requestDetails?.selectedQuotationId 
-                                ? quotation.id === requestDetails.selectedQuotationId 
-                                : quotation.id === selectedQuotationId;
+                              const isSelected = quotation.id === selectedQuotationId;
                               const totalAmount = parseFloat(quotation.totalAmount);
                               const taxAmount = parseFloat(quotation.taxAmount || "0");
                               const discountAmount = parseFloat(quotation.discountAmount || "0");
@@ -1345,7 +1012,7 @@ export default function FinancialApproval() {
                                 >
                                   <TableCell>
                                     <RadioGroup
-                                      value={requestDetails?.selectedQuotationId?.toString() || selectedQuotationId?.toString() || ""}
+                                      value={selectedQuotationId?.toString() || ""}
                                       onValueChange={(value) => setSelectedQuotationId(parseInt(value))}
                                       disabled={!canApprove}
                                     >
@@ -1402,36 +1069,13 @@ export default function FinancialApproval() {
                             })}
                           </TableBody>
                         </Table>
-
-                        {/* زر اختيار العرض الفائز */}
-                        {!requestDetails?.selectedQuotationId && canApprove && (
-                          <div className="flex justify-end">
-                            <Button 
-                              onClick={() => {
-                                if (!selectedQuotationId) {
-                                  toast.error("يرجى اختيار عرض سعر");
-                                  return;
-                                }
-                                selectWinningMutation.mutate({
-                                  requestId: parseInt(selectedRequestId),
-                                  quotationId: selectedQuotationId,
-                                });
-                              }}
-                              disabled={!selectedQuotationId || selectWinningMutation.isPending}
-                            >
-                              {selectWinningMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-                              <CheckCircle2 className="h-4 w-4 ml-2" />
-                              تأكيد اختيار العرض الفائز
-                            </Button>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {/* ==================== ملخص الاعتماد المالي ==================== */}
-                {hasSelectedQuotation && (
+                {selectedQuotationId && selectedQuotation && (
                   <Card className="border-primary/40 shadow-xs">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1466,9 +1110,7 @@ export default function FinancialApproval() {
                               {displayFinalCost.toLocaleString("ar-SA")} <SaudiRiyal className="w-5 h-5 inline" />
                             </p>
                             <p className="text-xs text-muted-foreground mt-2">
-                              {assignedItemsCount > 0 
-                                ? `موزعة على ${winningVendorsCount} موردين معتمدين لـ ${assignedItemsCount} بند`
-                                : `المورد: ${selectedQuotation?.supplierName || "غير محدد"}`}
+                              المورد المعتمد: {selectedQuotation?.supplierName || "غير محدد"}
                             </p>
                           </div>
                         </div>
@@ -1520,28 +1162,14 @@ export default function FinancialApproval() {
                   </span>
                 </div>
 
-                {assignedItemsCount > 0 ? (
-                  <div>
-                    <span className="text-xs text-muted-foreground block mb-1.5">الموردين والبنود المعتمدة:</span>
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                      {participatingVendors.filter(v => v.awardedCount > 0).map(v => (
-                        <div key={v.quotationId} className="flex items-center justify-between text-xs bg-background p-2 rounded-lg border">
-                          <span className="font-medium text-foreground">{v.supplierName} ({v.awardedCount} بند)</span>
-                          <span className="font-bold text-emerald-700 dark:text-emerald-400">
-                            {v.awardedTotal.toLocaleString("ar-SA")} ر.س
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <span className="text-muted-foreground">رقم العرض:</span>
-                    <span className="font-medium">{selectedQuotation?.quotationNumber}</span>
-                    <span className="text-muted-foreground">المورد:</span>
-                    <span className="font-medium">{selectedQuotation?.supplierName || "غير محدد"}</span>
-                  </div>
-                )}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <span className="text-muted-foreground">رقم العرض:</span>
+                  <span className="font-medium">{selectedQuotation?.quotationNumber}</span>
+                  <span className="text-muted-foreground">المورد المعتمد:</span>
+                  <span className="font-medium text-foreground font-bold">{selectedQuotation?.supplierName || "غير محدد"}</span>
+                  <span className="text-muted-foreground">عدد البنود:</span>
+                  <span className="font-medium">{totalBoqItemsCount} بند</span>
+                </div>
               </div>
 
               <div>
