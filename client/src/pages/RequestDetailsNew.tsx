@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { getAllFieldsForProgram } from "@/lib/programFields";
 import { SedanaDetailsView } from "@/components/sedana/SedanaDetailsView";
 import { SedanaOfficeEvaluation } from "@/components/sedana/SedanaOfficeEvaluation";
+import { SedanaPricingAndFunding } from "@/components/sedana/SedanaPricingAndFunding";
 
 function ProgressiveImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
   const [loading, setLoading] = useState(true);
@@ -1847,6 +1848,19 @@ export default function RequestDetailsNew() {
                         الاعتذار
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* المحطة 3 والمحطة 4: تجزئة الشراء وتعدد الموردين + الهندسة المالية ونموذج 25/30 لبرنامج سدانة */}
+                {request.programType === 'sedana' && ['boq_preparation', 'financial_eval', 'financial_eval_and_approval', 'quotation_approval', 'contracting', 'execution'].includes(request.currentStage) && user?.role !== 'service_requester' && (
+                  <div className="space-y-4">
+                    <SedanaPricingAndFunding
+                      request={request as any}
+                      onComplete={() => {
+                        refetch();
+                      }}
+                      canEdit={isManagementUser || (activeAction ? activeAction.canPerformAction : true)}
+                    />
                   </div>
                 )}
 
