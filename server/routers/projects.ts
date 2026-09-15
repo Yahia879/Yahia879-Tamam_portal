@@ -1890,6 +1890,7 @@ export const projectsRouter = router({
         discountValue: input.discountValue?.toString() || null,
         discountAmount: input.discountAmount?.toString() || null,
         documentUrl: input.documentUrl || null,
+        items: input.items || null,
       } as any);
 
       const quotationId = result[0].insertId;

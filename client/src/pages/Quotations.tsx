@@ -353,7 +353,7 @@ export default function Quotations() {
             const acceptedQuote = allQuotations.find((q: any) => {
               if (q.status !== 'accepted' && q.status !== 'approved') return false;
               const offer = getOfferForItem(item, q, boqData.items.length);
-              return offer && offer.unitPrice > 0;
+              return offer !== null;
             });
             if (acceptedQuote) {
               updated[item.id] = acceptedQuote.id;
@@ -362,7 +362,7 @@ export default function Quotations() {
               // ثانياً: إذا كان هناك مورد واحد فقط قدم سعراً لهذا البند، يتم تحديده تلقائياً لتسهيل الاعتماد
               const offers = allQuotations.filter((q: any) => {
                 const offer = getOfferForItem(item, q, boqData.items.length);
-                return offer && offer.unitPrice > 0;
+                return offer !== null;
               });
               if (offers.length === 1) {
                 updated[item.id] = offers[0].id;
@@ -376,7 +376,7 @@ export default function Quotations() {
     }
   }, [isSedanaProgram, boqData?.items, allQuotations, currentSelectedRequest]);
 
-  // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين وتجاهل العروض ذات السعر صفر
+  // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين (تقبل السعر 0 وتستبعد البنود غير المسعرة)
   const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
     if (!item || !quotation) return null;
     const itemsArr = parseQuotationItems(quotation.items);
@@ -396,28 +396,39 @@ export default function Quotations() {
       });
 
       if (itemOffer) {
-        const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount ?? 0;
-        let uPrice = parseFloat(String(rawUnitPrice || 0).replace(/,/g, ''));
-        const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price ?? 0;
-        let tPrice = parseFloat(String(rawTotPrice || 0).replace(/,/g, ''));
+        const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount;
+        const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price;
 
-        if (uPrice <= 0 && tPrice > 0) {
-          uPrice = tPrice / qty;
-        }
-        if (uPrice > 0) {
-          if (tPrice <= 0) tPrice = uPrice * qty;
-          return {
-            unitPrice: uPrice,
-            totalPrice: tPrice,
-          };
+        // فحص ما إذا كان البند مسعراً فعلياً (يقبل السعر 0 كعرض صحيح)
+        if (rawUnitPrice !== undefined && rawUnitPrice !== null && String(rawUnitPrice).trim() !== "") {
+          const uPrice = parseFloat(String(rawUnitPrice).replace(/,/g, ''));
+          if (!isNaN(uPrice) && uPrice >= 0) {
+            let tPrice = rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== ""
+              ? parseFloat(String(rawTotPrice).replace(/,/g, ''))
+              : uPrice * qty;
+            if (isNaN(tPrice) || tPrice < 0) tPrice = uPrice * qty;
+            return {
+              unitPrice: uPrice,
+              totalPrice: tPrice,
+            };
+          }
+        } else if (rawTotPrice !== undefined && rawTotPrice !== null && String(rawTotPrice).trim() !== "") {
+          const tPrice = parseFloat(String(rawTotPrice).replace(/,/g, ''));
+          if (!isNaN(tPrice) && tPrice >= 0) {
+            return {
+              unitPrice: qty > 0 ? tPrice / qty : 0,
+              totalPrice: tPrice,
+            };
+          }
         }
       }
 
-      // المورد أدخل قائمة بنود ولكن ترك سعر هذا البند 0 أو فارغاً، فيستثنى من خيارات الترسية لهذا البند
+      // المورد أدخل قائمة بنود ولكن هذا البند لم يتم تسعيره، فيستثنى من الترسية ولا يظهر للمورد
       return null;
     }
 
-    if (totAmount > 0) {
+    // إذا لم تكن هناك قائمة بنود تفصيلية، فقط لغير برنامج سدانة يمكن توزيع المبلغ الإجمالي
+    if (!isSedanaProgram && totAmount > 0) {
       const itemsCount = totalBoqItemsCount || 1;
       const itemTotal = totAmount / itemsCount;
       const itemUnitPrice = itemTotal / qty;
@@ -439,7 +450,7 @@ export default function Quotations() {
         const quotation = allQuotations.find((q: any) => q.id === qId);
         if (quotation) {
           const offer = getOfferForItem(item, quotation, boqData.items.length);
-          if (offer && offer.totalPrice > 0) return sum + offer.totalPrice;
+          if (offer && typeof offer.totalPrice === 'number') return sum + offer.totalPrice;
         }
       }
       const savedTot = item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : 0;
@@ -502,7 +513,7 @@ export default function Quotations() {
 
       boqData.items.forEach((item: any) => {
         const offer = getOfferForItem(item, quotation, boqData.items.length);
-        if (offer && offer.unitPrice > 0) {
+        if (offer) {
           offeredCount++;
           if (selectedWinningVendors[item.id] === quotation.id) {
             awardedCount++;
@@ -552,7 +563,7 @@ export default function Quotations() {
     boqData.items.forEach((item: any) => {
       const validOffers = allQuotations.flatMap((q: any) => {
         const offer = getOfferForItem(item, q, boqData.items.length);
-        return (offer && offer.unitPrice > 0) ? [offer.totalPrice] : [];
+        return offer ? [offer.totalPrice] : [];
       });
 
       if (validOffers.length > 1) {
@@ -561,7 +572,7 @@ export default function Quotations() {
         if (qId) {
           const quotation = allQuotations.find((q: any) => q.id === qId);
           const offer = quotation ? getOfferForItem(item, quotation, boqData.items.length) : null;
-          if (offer && offer.totalPrice > 0) {
+          if (offer && typeof offer.totalPrice === 'number') {
             chosenCost += offer.totalPrice;
           } else {
             chosenCost += Math.min(...validOffers);
@@ -581,7 +592,7 @@ export default function Quotations() {
     return boqData.items.filter((item: any) => {
       const validOffers = allQuotations.filter((quote: any) => {
         const offer = getOfferForItem(item, quote, boqData.items.length);
-        return offer && offer.unitPrice > 0;
+        return offer !== null;
       });
       return validOffers.length > 1;
     }).length;
@@ -596,7 +607,7 @@ export default function Quotations() {
     boqData.items.forEach((item: any) => {
       const offers = allQuotations.flatMap((quotation: any) => {
         const offer = getOfferForItem(item, quotation, boqData.items.length);
-        if (offer && offer.unitPrice > 0) {
+        if (offer) {
           return [{ quotationId: quotation.id, unitPrice: offer.unitPrice }];
         }
         return [];
@@ -622,7 +633,7 @@ export default function Quotations() {
 
     boqData.items.forEach((item: any) => {
       const offer = getOfferForItem(item, vendor?.quotation, boqData.items.length);
-      if (offer && offer.unitPrice > 0) {
+      if (offer) {
         newSelections[item.id] = quotationId;
         count++;
       }
@@ -667,14 +678,13 @@ export default function Quotations() {
       const isAssigned = Boolean(selectedWinningVendors[item.id]);
       const validOffers = allQuotations.filter((quote: any) => {
         const offer = getOfferForItem(item, quote, boqData.items.length);
-        return offer && offer.unitPrice > 0;
+        return offer !== null;
       });
 
       if (sedanaFilterStatus === "unassigned") return !isAssigned;
       if (sedanaFilterStatus === "assigned") return isAssigned;
       if (sedanaFilterStatus === "multiple") return validOffers.length > 1;
 
-      return true;
     });
   }, [boqData?.items, sedanaItemSearch, sedanaFilterStatus, selectedWinningVendors, allQuotations]);
 
@@ -1458,21 +1468,28 @@ export default function Quotations() {
       return;
     }
     
-    const pricedItems = quotationItems.filter((item) => item.unitPrice && parseFloat(item.unitPrice) > 0);
+    const isPriced = (item: typeof quotationItems[0]) =>
+      item.unitPrice !== undefined &&
+      item.unitPrice !== null &&
+      item.unitPrice.trim() !== "" &&
+      !isNaN(parseFloat(item.unitPrice)) &&
+      parseFloat(item.unitPrice) >= 0;
+
+    const pricedItems = quotationItems.filter(isPriced);
     if (isSedanaProgram) {
       if (pricedItems.length === 0) {
         toast.error("يرجى تسعير بند واحد على الأقل لهذا المورد");
         return;
       }
     } else {
-      const unpriced = quotationItems.filter((item) => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
+      const unpriced = quotationItems.filter((item) => !isPriced(item));
       if (unpriced.length > 0) {
         toast.error(`يرجى تسعير جميع البنود (${unpriced.length} بند غير مسعر)`);
         return;
       }
     }
 
-    if (totalAmount <= 0) {
+    if (isNaN(totalAmount) || totalAmount < 0) {
       toast.error("يرجى إدخال أسعار صحيحة للبنود");
       return;
     }
@@ -1517,7 +1534,7 @@ export default function Quotations() {
       discountType: formData.discountType && formData.discountType !== "none" ? formData.discountType : null,
       discountValue: formData.discountType && formData.discountType !== "none" && formData.discountValue ? parseFloat(formData.discountValue) : null,
       discountAmount: discountAmount > 0 ? discountAmount : null,
-      items: (isSedanaProgram ? pricedItems : quotationItems).map((item) => ({
+      items: (isSedanaProgram ? pricedItems : quotationItems).filter(isPriced).map((item) => ({
         boqItemId: item.boqItemId,
         itemName: item.itemName,
         quantity: item.quantity,
@@ -2271,7 +2288,7 @@ export default function Quotations() {
                               {filteredBoqItems.map((item: any, index: number) => {
                                 const itemOffers = allQuotations.flatMap((q: any) => {
                                   const offer = getOfferForItem(item, q, boqData.items.length);
-                                  if (offer && offer.unitPrice > 0) {
+                                  if (offer) {
                                     return [{ quotation: q, unitPrice: offer.unitPrice, totalPrice: offer.totalPrice }];
                                   }
                                   return [];
@@ -2307,7 +2324,7 @@ export default function Quotations() {
                                     {/* خلايا الموردين لكل بند */}
                                       {participatingVendors.map(vendor => {
                                         const vOffer = getOfferForItem(item, vendor.quotation, boqData.items.length);
-                                        const hasOffer = Boolean(vOffer && vOffer.unitPrice > 0);
+                                        const hasOffer = Boolean(vOffer);
                                         const isLowest = Boolean(vOffer && minUnitPrice !== null && vOffer.unitPrice === minUnitPrice);
                                         const isSelected = currentWinningQId === vendor.quotationId;
 
@@ -2439,7 +2456,7 @@ export default function Quotations() {
                             {filteredBoqItems.map((item: any, index: number) => {
                               const offersForItem = allQuotations.flatMap((quotation: any) => {
                                 const offer = getOfferForItem(item, quotation, boqData.items.length);
-                                if (offer && offer.unitPrice > 0) {
+                                if (offer) {
                                   return [{
                                     quotation,
                                     unitPrice: offer.unitPrice,
@@ -2454,13 +2471,16 @@ export default function Quotations() {
                               const selectedOffer = offersForItem.find(o => o.quotation.id === selectedQuotationId);
                               const lowestOffer = offersForItem.find(o => o.unitPrice === minPrice);
 
+                              const itemUnitNum = item.unitPrice !== undefined && item.unitPrice !== null && String(item.unitPrice).trim() !== "" ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null;
+                              const itemTotalNum = item.totalPrice !== undefined && item.totalPrice !== null && String(item.totalPrice).trim() !== "" ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null;
+
                               const displayUnitPrice = selectedOffer 
                                 ? selectedOffer.unitPrice 
-                                : (item.unitPrice && parseFloat(String(item.unitPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null);
+                                : (itemUnitNum !== null && !isNaN(itemUnitNum) && itemUnitNum >= 0 ? itemUnitNum : null);
 
                               const displayTotalPrice = selectedOffer 
                                 ? selectedOffer.totalPrice 
-                                : (item.totalPrice && parseFloat(String(item.totalPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null);
+                                : (itemTotalNum !== null && !isNaN(itemTotalNum) && itemTotalNum >= 0 ? itemTotalNum : null);
 
                               return (
                                 <TableRow key={item.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
@@ -3137,7 +3157,7 @@ export default function Quotations() {
                         تسعير البنود ({quotationItems.length} بند)
                       </Label>
                       <Badge variant="outline" className="text-sm">
-                        المسعر: {quotationItems.filter(i => parseFloat(i.unitPrice) > 0).length} / {quotationItems.length}
+                        المسعر: {quotationItems.filter(i => i.unitPrice !== undefined && i.unitPrice !== null && i.unitPrice.trim() !== "" && !isNaN(parseFloat(i.unitPrice)) && parseFloat(i.unitPrice) >= 0).length} / {quotationItems.length}
                       </Badge>
                     </div>
                   </div>
@@ -3184,8 +3204,8 @@ export default function Quotations() {
                               />
                             </TableCell>
                             <TableCell className="text-center align-middle">
-                              <span className={`font-bold ${item.totalPrice > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
-                                {item.totalPrice > 0 ? `${item.totalPrice.toLocaleString("ar-SA")}` : "-"}
+                              <span className={`font-bold ${item.unitPrice.trim() !== "" && !isNaN(parseFloat(item.unitPrice)) && parseFloat(item.unitPrice) >= 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
+                                {item.unitPrice.trim() !== "" && !isNaN(parseFloat(item.unitPrice)) && parseFloat(item.unitPrice) >= 0 ? `${item.totalPrice.toLocaleString("ar-SA")}` : "-"}
                               </span>
                             </TableCell>
                           </TableRow>
