@@ -17,10 +17,15 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
 }) => {
   const data = React.useMemo(() => {
     try {
-      if (typeof rawProgramData === 'string') {
-        return JSON.parse(rawProgramData);
+      let pData: any = rawProgramData;
+      while (typeof pData === 'string') {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
       }
-      return (rawProgramData as Record<string, any>) || {};
+      return pData && typeof pData === 'object' && !Array.isArray(pData) ? pData : {};
     } catch (e) {
       return {};
     }
