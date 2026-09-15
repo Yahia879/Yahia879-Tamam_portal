@@ -42,6 +42,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import BoqFormDialog from "@/components/BoqFormDialog";
+import { MultiVendorContractingCard } from "@/components/MultiVendorContractingCard";
 import {
   Receipt,
   Search,
@@ -2181,7 +2182,22 @@ export default function Quotations() {
           </Card>
         )}
 
-
+        {/* قسم مرحلة التعاقد وتوليد عقود الموردين المعتمدين */}
+        {selectedRequestId && (
+          <MultiVendorContractingCard
+            requestId={parseInt(selectedRequestId)}
+            projectId={(singleRequestData as any)?.request?.projectId || (allRequestsList.find((r: any) => r.id.toString() === selectedRequestId) as any)?.projectId || undefined}
+            isSedanaProgram={isSedanaProgram}
+            boqItems={boqData?.items || []}
+            allQuotations={allQuotations || []}
+            hasAcceptedQuotation={hasAcceptedQuotation}
+            userRole={user?.role}
+            onRefresh={() => {
+              refetchQuotations();
+              refetchBOQ();
+            }}
+          />
+        )}
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
