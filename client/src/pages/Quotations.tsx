@@ -1746,6 +1746,7 @@ export default function Quotations() {
                                       </a>
                                     )}
                                   </div>
+                                </TableCell>
                                 <TableCell>
                                   <div className="space-y-1 text-right" dir="rtl">
                                     <span className="font-bold text-foreground block">{quotation.supplierName || "غير محدد"}</span>
