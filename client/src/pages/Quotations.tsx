@@ -66,6 +66,7 @@ import {
   RotateCcw,
   Edit,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 
 import { Handshake } from "lucide-react";
@@ -246,11 +247,18 @@ export default function Quotations() {
     { enabled: !!selectedRequestId }
   );
 
+  const currentSelectedRequest = useMemo(() => {
+    return (singleRequestData as any)?.request || displayedRequestsList.find((r: any) => r.id.toString() === selectedRequestId);
+  }, [singleRequestData, displayedRequestsList, selectedRequestId]);
+
+  const isSedanaProgram = currentSelectedRequest?.programType === 'sedana';
+
   const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
   const hasAcceptedQuotation = useMemo(() => {
+    if (isSedanaProgram) return false;
     return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved") ||
       Boolean((singleRequestData as any)?.hasAcceptedQuotation || (singleRequestData as any)?.request?.hasAcceptedQuotation);
-  }, [allQuotations, singleRequestData]);
+  }, [allQuotations, singleRequestData, isSedanaProgram]);
 
   // جلب جدول الكميات للطلب المحدد
   const { data: boqData, isLoading: boqLoading, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
@@ -1041,11 +1049,18 @@ export default function Quotations() {
       return;
     }
     
-    // التحقق من تسعير جميع البنود
-    const unpriced = quotationItems.filter((item) => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
-    if (unpriced.length > 0) {
-      toast.error(`يرجى تسعير جميع البنود (${unpriced.length} بند غير مسعر)`);
-      return;
+    const pricedItems = quotationItems.filter((item) => item.unitPrice && parseFloat(item.unitPrice) > 0);
+    if (isSedanaProgram) {
+      if (pricedItems.length === 0) {
+        toast.error("يرجى تسعير بند واحد على الأقل لهذا المورد");
+        return;
+      }
+    } else {
+      const unpriced = quotationItems.filter((item) => !item.unitPrice || parseFloat(item.unitPrice) <= 0);
+      if (unpriced.length > 0) {
+        toast.error(`يرجى تسعير جميع البنود (${unpriced.length} بند غير مسعر)`);
+        return;
+      }
     }
 
     if (totalAmount <= 0) {
@@ -1093,7 +1108,7 @@ export default function Quotations() {
       discountType: formData.discountType && formData.discountType !== "none" ? formData.discountType : null,
       discountValue: formData.discountType && formData.discountType !== "none" && formData.discountValue ? parseFloat(formData.discountValue) : null,
       discountAmount: discountAmount > 0 ? discountAmount : null,
-      items: quotationItems.map((item) => ({
+      items: (isSedanaProgram ? pricedItems : quotationItems).map((item) => ({
         boqItemId: item.boqItemId,
         itemName: item.itemName,
         quantity: item.quantity,
@@ -1644,6 +1659,14 @@ export default function Quotations() {
               </div>
             </CardHeader>
             <CardContent>
+              {isSedanaProgram && (
+                <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>
+                    <strong>تنبيه تجزئة المشتريات (برنامج سدانة):</strong> يتيح لك النظام اعتماد أكثر من عرض سعر واحد لموردين مختلفين لتغطية البنود المتنوعة في جدول الكميات (توريد مياه، مستلزمات ورقية ونظافة، عمالة وتأمين).
+                  </span>
+                </div>
+              )}
               {quotationsLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
