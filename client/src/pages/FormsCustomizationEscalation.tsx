@@ -17,8 +17,6 @@ import {
   Minus,
   Calendar,
   Lock,
-  FileCheck,
-  Info,
 } from "lucide-react";
 
 export default function FormsCustomizationEscalation() {
@@ -235,54 +233,28 @@ export default function FormsCustomizationEscalation() {
               return (
                 <Card 
                   key={stg.stageCode} 
-                  className={`border shadow-xs transition-all ${
-                    isExecution 
-                      ? "border-amber-200/90 bg-amber-50/20 dark:bg-amber-950/10 dark:border-amber-900/40" 
-                      : "border-border hover:border-primary/40"
-                  }`}
+                  className="border border-border shadow-xs hover:border-primary/40 transition-all"
                 >
                   <CardContent className="p-3.5 sm:p-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center justify-between gap-4">
                       {/* رقم واسم المرحلة */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 ${
-                          isExecution 
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" 
-                            : "bg-primary/10 text-primary"
-                        }`}>
+                        <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
                           {index + 1}
                         </span>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm text-foreground truncate">
-                              {stg.stageName}
-                            </span>
-                            {isExecution && (
-                              <Badge variant="outline" className="text-2xs bg-amber-100/80 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold gap-1 py-0 px-2">
-                                <FileCheck className="w-3 h-3" />
-                                <span>مدة العقد المعتمد</span>
-                              </Badge>
-                            )}
-                          </div>
-                          {isExecution && (
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
-                              <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                              <span>غير قابلة للتعديل؛ تُحسب تلقائياً وفق مدة العقد المعتمد مع المورد لكل طلب (مثال: إذا كان العقد 3 أشهر تكون المدة 90 يوماً).</span>
-                            </p>
-                          )}
-                        </div>
+                        <span className="font-bold text-sm text-foreground truncate">
+                          {stg.stageName}
+                        </span>
                       </div>
 
                       {/* عداد الأيام أو شارة غير قابلة للتعديل */}
                       {isExecution ? (
-                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-bold shadow-2xs">
-                            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                            <span>غير قابلة للتعديل (حسب العقد المعتمد)</span>
-                          </div>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-muted/50 text-muted-foreground text-xs font-semibold shrink-0">
+                          <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>غير قابلة للتعديل (حسب العقد المعتمد)</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0 self-end sm:self-center">
+                        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
                           <Button
                             type="button"
                             variant="ghost"
