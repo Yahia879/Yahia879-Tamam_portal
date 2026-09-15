@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Droplets, Package, Users, FileText, CheckCircle2, Coins, UserCheck, Share2, Paperclip, Building2, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { Loader2, FileText, CheckCircle2, Coins, UserCheck, Share2, Paperclip, Building2, ShieldCheck, RefreshCw, Calculator } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
@@ -36,39 +36,29 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
     programData = {};
   }
 
-  const existingMatrix = programData.sedanaSuppliersMatrix?.matrix || {};
   const existingFunding = programData.sedanaFundingDetails || {};
 
-  // 1. مصفوفة عروض الأسعار للموردين (Multi-Vendor Quotations)
-  const [waterSupplier, setWaterSupplier] = useState({
-    supplierName: existingMatrix.water?.supplierName || '',
-    quoteRef: existingMatrix.water?.quoteRef || '',
-    quoteFileUrl: existingMatrix.water?.quoteFileUrl || '',
-    totalCost: Number(existingMatrix.water?.totalCost || 0),
-  });
+  // جلب إجمالي جدول الكميات (BOQ) التلقائي
+  const { data: boqResult, isLoading: isLoadingBOQ, refetch: refetchBOQ } = trpc.projects.getBOQ.useQuery(
+    { requestId: request.id },
+    { enabled: Boolean(request.id && request.id !== 0) }
+  );
 
-  const [suppliesSupplier, setSuppliesSupplier] = useState({
-    supplierName: existingMatrix.supplies?.supplierName || '',
-    quoteRef: existingMatrix.supplies?.quoteRef || '',
-    quoteFileUrl: existingMatrix.supplies?.quoteFileUrl || '',
-    totalCost: Number(existingMatrix.supplies?.totalCost || 0),
-  });
+  const boqTotal = boqResult?.total || 0;
 
-  const [laborSupplier, setLaborSupplier] = useState({
-    supplierName: existingMatrix.labor?.supplierName || '',
-    quoteRef: existingMatrix.labor?.quoteRef || '',
-    quoteFileUrl: existingMatrix.labor?.quoteFileUrl || '',
-    totalCost: Number(existingMatrix.labor?.totalCost || 0),
-  });
+  // التكلفة الفعلية الشاملة (Base Cost)
+  const [actualCostOverride, setActualCostOverride] = useState<number | null>(
+    programData.actualMosqueCost !== undefined ? Number(programData.actualMosqueCost) : null
+  );
 
-  // حساب التكلفة الفعلية الشاملة (Base Cost)
   const totalActualCost = useMemo(() => {
-    return Number(waterSupplier.totalCost || 0) + 
-           Number(suppliesSupplier.totalCost || 0) + 
-           Number(laborSupplier.totalCost || 0);
-  }, [waterSupplier.totalCost, suppliesSupplier.totalCost, laborSupplier.totalCost]);
+    if (actualCostOverride !== null && actualCostOverride > 0) {
+      return actualCostOverride;
+    }
+    return boqTotal > 0 ? boqTotal : Number(programData.actualMosqueCost || 0);
+  }, [actualCostOverride, boqTotal, programData.actualMosqueCost]);
 
-  // 2. حاسبة الرسوم والمصاريف الإدارية (Fee Loading Calculator)
+  // حاسبة الرسوم والمصاريف الإدارية (Fee Loading Calculator - نموذج 25/30)
   const [operationalFeePercent, setOperationalFeePercent] = useState<number>(
     Number(existingFunding.operationalFeePercent ?? 15)
   );
@@ -84,7 +74,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
   const totalAdminFees = useMemo(() => operationalAmount + gatewayAmount + Number(supervisionFeeFixed || 0), [operationalAmount, gatewayAmount, supervisionFeeFixed]);
   const targetOpportunityValue = useMemo(() => totalActualCost + totalAdminFees, [totalActualCost, totalAdminFees]);
 
-  // 3. مسار التمويل والتنفيذ
+  // مسار التمويل والتنفيذ
   const [fundingPath, setFundingPath] = useState<'direct_purchase' | 'crowdfunding'>(
     existingFunding.fundingPath || 'crowdfunding'
   );
@@ -102,7 +92,6 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
     receiptFileUrl: existingDirectDonor.receiptFileUrl || '',
   });
 
-  const saveMatrixMutation = trpc.requests.saveSedanaSuppliersMatrix.useMutation();
   const saveFundingMutation = trpc.requests.saveSedanaFundingChoice.useMutation();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -114,16 +103,6 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 
     setIsSaving(true);
     try {
-      const matrixPayload = {
-        suppliersMatrix: {
-          water: { ...waterSupplier, items: ['مياه الشرب والصهاريج'] },
-          supplies: { ...suppliesSupplier, items: ['المناديل والورقيات والمنظفات'] },
-          labor: { ...laborSupplier, items: ['عقد عمالة النظافة والتشغيل'] },
-        },
-        totalActualCost,
-        notes: 'تم اعتماد تجزئة الشراء والتكلفة الفعلية للمسجد.',
-      };
-
       const fundingPayload = {
         actualMosqueCost: totalActualCost,
         operationalFeePercent,
@@ -143,7 +122,6 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 
       if (onSaveDraft) {
         onSaveDraft({
-          sedanaSuppliersMatrix: matrixPayload,
           actualMosqueCost: totalActualCost,
           sedanaFundingDetails: fundingPayload,
           donorOpportunityPrice: targetOpportunityValue,
@@ -151,12 +129,6 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
       }
 
       if (request.id && request.id !== 0) {
-        await saveMatrixMutation.mutateAsync({
-          requestId: request.id,
-          ...matrixPayload,
-          shouldAdvanceStage: false,
-        });
-
         await saveFundingMutation.mutateAsync({
           requestId: request.id,
           ...fundingPayload,
@@ -164,7 +136,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
         });
       }
 
-      toast.success('تم حفظ التكلفة والهندسة المالية ومسار التمويل بنجاح');
+      toast.success('تم حفظ الهندسة المالية ومسار التمويل بنجاح');
       if (onComplete) onComplete();
     } catch (err: any) {
       toast.error(err?.message || 'حدث خطأ أثناء الحفظ');
@@ -175,257 +147,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 
   return (
     <div className="space-y-5 text-right" dir="rtl">
-      {/* المحطة 03: مصفوفة عروض الأسعار وتعدد الموردين */}
-      <div className="bg-card border border-border/80 p-5 rounded-2xl space-y-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/60 gap-2">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              03
-            </span>
-            <h3 className="font-bold text-base text-foreground">مصفوفة عروض الأسعار وتعدد الموردين</h3>
-          </div>
-          <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 self-start sm:self-center flex items-center gap-2">
-            <span>التكلفة الفعلية الشاملة (Base Cost):</span>
-            <span className="font-mono text-sm font-extrabold">{totalActualCost.toLocaleString()} ر.س</span>
-          </div>
-        </div>
-
-        {/* الموردين 3 مسارات مجهزة تحت بعض أو شبكة متناسقة */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* 1. مورد المياه */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/30 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Droplets className="w-4 h-4 text-blue-600" />
-                مورد مياه الصفا والصهاريج
-              </span>
-              <span className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 font-bold px-2 py-0.5 rounded">
-                مياه
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">اسم المورد / الشركة</label>
-                <Input
-                  placeholder="شركة سقيا المياه"
-                  value={waterSupplier.supplierName}
-                  onChange={(e) => setWaterSupplier((prev) => ({ ...prev, supplierName: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">رقم عرض السعر</label>
-                <Input
-                  placeholder="QUO-WAT-2026"
-                  value={waterSupplier.quoteRef}
-                  onChange={(e) => setWaterSupplier((prev) => ({ ...prev, quoteRef: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">إرفاق عرض السعر</label>
-                {canEdit ? (
-                  <FileUpload
-                    onFilesSelected={(files: UploadedFile[]) => {
-                      if (files.length > 0) {
-                        setWaterSupplier((prev) => ({ ...prev, quoteFileUrl: files[0].fileData }));
-                        toast.success('تم إرفاق عرض سعر المياه');
-                      }
-                    }}
-                    maxFiles={1}
-                    maxSizeMB={5}
-                    label="رفع الملف"
-                  />
-                ) : null}
-                {waterSupplier.quoteFileUrl && (
-                  <a
-                    href={waterSupplier.quoteFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold hover:underline mt-1"
-                  >
-                    <Paperclip className="w-3.5 h-3.5" />
-                    معاينة الملف المرفق
-                  </a>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">التكلفة (ريال)</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={waterSupplier.totalCost || ''}
-                  onChange={(e) => setWaterSupplier((prev) => ({ ...prev, totalCost: Number(e.target.value) }))}
-                  disabled={!canEdit}
-                  className="text-xs font-bold font-mono h-9 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 2. مورد المستلزمات والمنظفات */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/30 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-purple-600" />
-                مورد المنظفات والورقيات
-              </span>
-              <span className="text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 font-bold px-2 py-0.5 rounded">
-                مستلزمات
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">اسم المصنع / المورد</label>
-                <Input
-                  placeholder="مصنع المنظفات والورقيات"
-                  value={suppliesSupplier.supplierName}
-                  onChange={(e) => setSuppliesSupplier((prev) => ({ ...prev, supplierName: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">رقم عرض السعر</label>
-                <Input
-                  placeholder="QUO-SUP-2026"
-                  value={suppliesSupplier.quoteRef}
-                  onChange={(e) => setSuppliesSupplier((prev) => ({ ...prev, quoteRef: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">إرفاق عرض السعر</label>
-                {canEdit ? (
-                  <FileUpload
-                    onFilesSelected={(files: UploadedFile[]) => {
-                      if (files.length > 0) {
-                        setSuppliesSupplier((prev) => ({ ...prev, quoteFileUrl: files[0].fileData }));
-                        toast.success('تم إرفاق عرض سعر المستلزمات');
-                      }
-                    }}
-                    maxFiles={1}
-                    maxSizeMB={5}
-                    label="رفع الملف"
-                  />
-                ) : null}
-                {suppliesSupplier.quoteFileUrl && (
-                  <a
-                    href={suppliesSupplier.quoteFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold hover:underline mt-1"
-                  >
-                    <Paperclip className="w-3.5 h-3.5" />
-                    معاينة الملف المرفق
-                  </a>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">التكلفة (ريال)</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={suppliesSupplier.totalCost || ''}
-                  onChange={(e) => setSuppliesSupplier((prev) => ({ ...prev, totalCost: Number(e.target.value) }))}
-                  disabled={!canEdit}
-                  className="text-xs font-bold font-mono h-9 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. شركة العمالة والتشغيل */}
-          <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/30 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-amber-600" />
-                شركة التشغيل وعمالة النظافة
-              </span>
-              <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-2 py-0.5 rounded">
-                عمالة وتأمين
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">اسم الشركة / الجهة</label>
-                <Input
-                  placeholder="شركة الصيانة التشغيلية"
-                  value={laborSupplier.supplierName}
-                  onChange={(e) => setLaborSupplier((prev) => ({ ...prev, supplierName: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">رقم العقد / التعميد</label>
-                <Input
-                  placeholder="CNT-LBR-2026"
-                  value={laborSupplier.quoteRef}
-                  onChange={(e) => setLaborSupplier((prev) => ({ ...prev, quoteRef: e.target.value }))}
-                  disabled={!canEdit}
-                  className="text-xs h-9 bg-white dark:bg-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] text-muted-foreground block mb-1">إرفاق العقد الرسمي</label>
-                {canEdit ? (
-                  <FileUpload
-                    onFilesSelected={(files: UploadedFile[]) => {
-                      if (files.length > 0) {
-                        setLaborSupplier((prev) => ({ ...prev, quoteFileUrl: files[0].fileData }));
-                        toast.success('تم إرفاق عقد العمالة والتشغيل');
-                      }
-                    }}
-                    maxFiles={1}
-                    maxSizeMB={5}
-                    label="رفع العقد"
-                  />
-                ) : null}
-                {laborSupplier.quoteFileUrl && (
-                  <a
-                    href={laborSupplier.quoteFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold hover:underline mt-1"
-                  >
-                    <Paperclip className="w-3.5 h-3.5" />
-                    معاينة الملف المرفق
-                  </a>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">التكلفة (ريال)</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={laborSupplier.totalCost || ''}
-                  onChange={(e) => setLaborSupplier((prev) => ({ ...prev, totalCost: Number(e.target.value) }))}
-                  disabled={!canEdit}
-                  className="text-xs font-bold font-mono h-9 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* المحطة 04: الهندسة المالية وحاسبة الرسوم الإدارية (نموذج 25/30) */}
+      {/* الهندسة المالية وحاسبة الأجور (نموذج 25/30) */}
       <div className="bg-card border border-border/80 p-5 rounded-2xl space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/60 gap-2">
           <div className="flex items-center gap-2">
@@ -440,6 +162,47 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
           </div>
         </div>
 
+        {/* كرت التكلفة الفعلية المستخرجة من جدول الكميات BOQ */}
+        <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="space-y-1">
+            <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <Calculator className="w-4 h-4 text-emerald-600" />
+              التكلفة الفعلية الشاملة للمسجد (Base Cost):
+            </span>
+            <p className="text-[11px] text-muted-foreground">
+              {boqTotal > 0
+                ? `محسوبة تلقائياً من إجمالي جدول الكميات (${boqResult?.items?.length || 0} صنف)`
+                : 'يتم احتساب التكلفة تلقائياً عند تسعير بنود جدول الكميات'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              placeholder="0"
+              value={totalActualCost || ''}
+              onChange={(e) => setActualCostOverride(Number(e.target.value))}
+              disabled={!canEdit}
+              className="w-36 text-xs font-bold font-mono h-9 text-center bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400"
+            />
+            <span className="font-bold text-slate-600 dark:text-slate-400">ر.س</span>
+            {boqTotal > 0 && actualCostOverride !== null && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setActualCostOverride(null)}
+                className="h-9 px-2 text-[11px] gap-1"
+                title="إعادة التزامن مع إجمالي جدول الكميات"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                مزامنة الـ BOQ
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* حقول النسب والأجور */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-slate-50/60 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs">
           <div>
             <label className="text-muted-foreground block text-[11px] mb-1 font-medium">المصاريف الإدارية والتشغيلية (%)</label>
@@ -658,7 +421,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
             className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-11 px-7 gap-2 font-bold shadow-md rounded-xl"
           >
             {isSaving ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
-            اعتماد التسعير والهندسة المالية وإصدار أمر الشراء
+            اعتماد الهندسة المالية وإصدار أمر الشراء
           </Button>
         </div>
       )}
