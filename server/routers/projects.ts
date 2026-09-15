@@ -1863,6 +1863,7 @@ export const projectsRouter = router({
           supplierId: quotations.supplierId,
           supplierName: suppliers.name,
           documentUrl: quotations.documentUrl,
+          items: quotations.items,
           createdAt: quotations.createdAt,
         })
         .from(quotations)
