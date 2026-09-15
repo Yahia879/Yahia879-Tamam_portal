@@ -42,7 +42,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import BoqFormDialog from "@/components/BoqFormDialog";
-import { MultiVendorContractingCard } from "@/components/MultiVendorContractingCard";
 import {
   Receipt,
   Search,
@@ -325,6 +324,60 @@ export default function Quotations() {
     }
   }, [isSedanaProgram, boqData?.items, allQuotations]);
 
+  // دالة موحدة لاستخراج عرض المورد الفعلي لبند معين وتجاهل العروض ذات السعر صفر
+  const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
+    if (!item || !quotation) return null;
+    const itemsArr = parseQuotationItems(quotation.items);
+    const qty = parseFloat(item.quantity) || 1;
+    const totAmount = parseFloat(quotation.totalAmount || "0");
+
+    if (itemsArr && itemsArr.length > 0) {
+      let itemOffer = itemsArr.find((it: any) => {
+        if (!it) return false;
+        const itBoqId = it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id;
+        if (itBoqId !== undefined && String(itBoqId) === String(item.id)) {
+          return true;
+        }
+        const itName = String(it.itemName ?? it.item_name ?? it.name ?? it.title ?? "").trim().toLowerCase();
+        const targetName = String(item.itemName || "").trim().toLowerCase();
+        return itName && targetName && (itName === targetName || targetName.includes(itName) || itName.includes(targetName));
+      });
+
+      if (itemOffer) {
+        const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount ?? 0;
+        let uPrice = parseFloat(String(rawUnitPrice || 0));
+        const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price ?? 0;
+        let tPrice = parseFloat(String(rawTotPrice || 0));
+
+        if (uPrice <= 0 && tPrice > 0) {
+          uPrice = tPrice / qty;
+        }
+        if (uPrice > 0) {
+          if (tPrice <= 0) tPrice = uPrice * qty;
+          return {
+            unitPrice: uPrice,
+            totalPrice: tPrice,
+          };
+        }
+      }
+
+      // المورد أدخل قائمة بنود ولكن ترك سعر هذا البند 0 أو فارغاً، فيستثنى من خيارات الترسية لهذا البند
+      return null;
+    }
+
+    if (totAmount > 0) {
+      const itemsCount = totalBoqItemsCount || 1;
+      const itemTotal = totAmount / itemsCount;
+      const itemUnitPrice = itemTotal / qty;
+      return {
+        unitPrice: itemUnitPrice,
+        totalPrice: itemTotal,
+      };
+    }
+
+    return null;
+  };
+
   // حساب إجمالي التكلفة بناءً على عروض الموردين الفائزين المحددين لكل بند
   const totalSelectedItemsCost = useMemo(() => {
     if (!boqData?.items) return 0;
@@ -333,23 +386,8 @@ export default function Quotations() {
       if (!qId) return sum;
       const quotation = allQuotations.find((q: any) => q.id === qId);
       if (!quotation) return sum;
-      const itemsArr = parseQuotationItems(quotation.items);
-      let itemOffer = itemsArr.find((it: any) =>
-        String(it.boqItemId) === String(item.id) || (it.itemName && item.itemName && String(it.itemName).trim().toLowerCase() === String(item.itemName).trim().toLowerCase())
-      );
-      if (!itemOffer && itemsArr.length === 0 && boqData.items.length === 1 && parseFloat(quotation.totalAmount || "0") > 0) {
-        const qty = parseFloat(item.quantity) || 1;
-        const fallbackUnitPrice = parseFloat(quotation.totalAmount) / qty;
-        const fallbackTotalPrice = parseFloat(quotation.totalAmount);
-        itemOffer = { unitPrice: fallbackUnitPrice, totalPrice: fallbackTotalPrice };
-      }
-      if (itemOffer) {
-        const uPrice = parseFloat(itemOffer.unitPrice || itemOffer.price || 0);
-        const qty = parseFloat(item.quantity) || 1;
-        const tPrice = parseFloat(itemOffer.totalPrice || 0) || (uPrice * qty);
-        return sum + tPrice;
-      }
-      return sum;
+      const offer = getOfferForItem(item, quotation, boqData.items.length);
+      return sum + (offer ? offer.totalPrice : 0);
     }, 0);
   }, [boqData?.items, selectedWinningVendors, allQuotations]);
 
@@ -371,25 +409,13 @@ export default function Quotations() {
       if (qId) {
         const quotation = allQuotations.find((q: any) => q.id === qId);
         if (!quotation) continue;
-        const itemsArr = parseQuotationItems(quotation.items);
-        let itemOffer = itemsArr.find((it: any) =>
-          String(it.boqItemId) === String(item.id) || (it.itemName && item.itemName && String(it.itemName).trim().toLowerCase() === String(item.itemName).trim().toLowerCase())
-        );
-        if (!itemOffer && itemsArr.length === 0 && boqData.items.length === 1 && parseFloat(quotation.totalAmount || "0") > 0) {
-          const qty = parseFloat(item.quantity) || 1;
-          const fallbackUnitPrice = parseFloat(quotation.totalAmount) / qty;
-          const fallbackTotalPrice = parseFloat(quotation.totalAmount);
-          itemOffer = { unitPrice: fallbackUnitPrice, totalPrice: fallbackTotalPrice };
-        }
-        if (itemOffer) {
-          const uPrice = parseFloat(itemOffer.unitPrice || itemOffer.price || 0);
-          const qty = parseFloat(item.quantity) || 1;
-          const tPrice = parseFloat(itemOffer.totalPrice || 0) || (uPrice * qty);
+        const offer = getOfferForItem(item, quotation, boqData.items.length);
+        if (offer) {
           selections.push({
             boqItemId: item.id,
             quotationId: qId,
-            unitPrice: uPrice,
-            totalPrice: tPrice,
+            unitPrice: offer.unitPrice,
+            totalPrice: offer.totalPrice,
             supplierName: quotation?.supplierName || undefined,
           });
         }
@@ -2182,22 +2208,6 @@ export default function Quotations() {
           </Card>
         )}
 
-        {/* قسم مرحلة التعاقد وتوليد عقود الموردين المعتمدين */}
-        {selectedRequestId && (
-          <MultiVendorContractingCard
-            requestId={parseInt(selectedRequestId)}
-            projectId={(singleRequestData as any)?.request?.projectId || (allRequestsList.find((r: any) => r.id.toString() === selectedRequestId) as any)?.projectId || undefined}
-            isSedanaProgram={isSedanaProgram}
-            boqItems={boqData?.items || []}
-            allQuotations={allQuotations || []}
-            hasAcceptedQuotation={hasAcceptedQuotation}
-            userRole={user?.role}
-            onRefresh={() => {
-              refetchQuotations();
-              refetchBOQ();
-            }}
-          />
-        )}
 
         {/* Dialog إضافة عرض سعر مع تسعير البنود */}
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
