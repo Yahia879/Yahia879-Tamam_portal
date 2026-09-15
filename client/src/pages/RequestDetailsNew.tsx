@@ -1703,6 +1703,14 @@ export default function RequestDetailsNew() {
                             }
                           : undefined
                       }
+                      detailsButton={
+                        request.programType === 'sedana' && ['submitted', 'initial_review'].includes(request.currentStage)
+                          ? {
+                              label: 'عرض التفاصيل',
+                              onClick: () => setLocation(`/requests/${requestId}/sedana-evaluation`),
+                            }
+                          : undefined
+                      }
                       fieldReportButton={
                         request.programType !== 'sedana' &&
                         !isFieldTeam && !isQuickResponseUser && hasFieldReport &&
@@ -1810,46 +1818,6 @@ export default function RequestDetailsNew() {
                     />
                   );
                 })()}
-
-                {/* جدول دراسة وتدقيق الاحتياج السنوي لبرنامج سدانة - يظهر مباشرة تحت كرت الإجراء */}
-                {request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage) && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
-                  <div className="space-y-4">
-                    <SedanaOfficeEvaluation 
-                      request={request as any} 
-                      onEvaluationComplete={() => {
-                        refetch();
-                      }} 
-                      canEvaluate={isManagementUser || (activeAction ? activeAction.canPerformAction : true)} 
-                    />
-                    
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                      <span className="text-xs text-muted-foreground ml-auto">خيارات إدارية بديلة:</span>
-                      <button 
-                        className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-300"
-                        onClick={() => {
-                          setSelectedDecision('suspend');
-                          setShowTechnicalEvalDialog(true);
-                        }}
-                        disabled={technicalEvalMutation.isPending}
-                      >
-                        <PauseCircle className="w-3.5 h-3.5" />
-                        التعليق المؤقت
-                      </button>
-                      <button 
-                        className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-800 text-xs font-medium flex items-center gap-1.5 transition-colors dark:bg-red-950/30 dark:border-red-900 dark:text-red-300"
-                        onClick={() => {
-                          setSelectedDecision('apologize');
-                          setShowTechnicalEvalDialog(true);
-                        }}
-                        disabled={technicalEvalMutation.isPending}
-                      >
-                        <XCircle className="w-3.5 h-3.5" />
-                        الاعتذار
-                      </button>
-                    </div>
-                  </div>
-                )}
-
 
               {/* قسم المراجعة الأولية لباقي البرامج */}
               {request.currentStage === 'initial_review' && request.programType !== 'sedana' && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (

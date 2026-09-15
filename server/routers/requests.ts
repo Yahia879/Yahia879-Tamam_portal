@@ -2567,6 +2567,7 @@ export const requestsRouter = router({
       approvedItems: z.record(z.string(), z.number()),
       notes: z.string().optional(),
       shouldAdvanceStage: z.boolean().default(true),
+      basketItems: z.array(z.any()).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -2601,24 +2602,28 @@ export const requestsRouter = router({
         currentProgramData = {};
       }
 
-      // حفظ الخطة السنوية المعتمدة
+      if (input.basketItems) {
+        currentProgramData.basketItems = input.basketItems;
+      }
+
+      // حفظ الخطة السنوية المعتمدة أو المسودة
       const approvedPlan = {
         approvedItems: input.approvedItems,
-        notes: input.notes || 'تم اعتماد الاحتياج السنوي عبر التقييم الفني المكتبي وفق المعايير القياسية.',
+        notes: input.notes || 'تمت مراجعة الاحتياج السنوي عبر التقييم الفني المكتبي وفق المعايير القياسية.',
         approvedBy: ctx.user.id,
         approvedByName: ctx.user.name,
-        approvedAt: new Date().toISOString(),
+        approvedAt: input.shouldAdvanceStage ? new Date().toISOString() : (currentProgramData.approvedPlan?.approvedAt || null),
       };
 
       currentProgramData.approvedPlan = approvedPlan;
 
       const updateData: any = {
         programData: currentProgramData,
-        technicalEvalDecision: 'convert_to_project',
-        technicalEvalJustification: input.notes || 'تم اعتماد خطة التشغيل والرعاية السنوية عبر التقييم الفني المكتبي الذكي.',
       };
 
       if (input.shouldAdvanceStage) {
+        updateData.technicalEvalDecision = 'convert_to_project';
+        updateData.technicalEvalJustification = input.notes || 'تم اعتماد خطة التشغيل والرعاية السنوية عبر التقييم الفني المكتبي الذكي.';
         if (['submitted', 'initial_review', 'field_visit', 'technical_eval'].includes(request.currentStage)) {
           updateData.currentStage = 'boq_preparation';
         }
@@ -2627,33 +2632,35 @@ export const requestsRouter = router({
 
       await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
 
-      // تسجيل التقييم الفني وتاريخ الطلب
-      try {
-        await db.insert(requestEvaluations).values({
-          requestId: input.requestId,
-          userId: ctx.user.id,
-          decision: 'convert_to_project',
-          justification: 'اعتماد الاحتياج السنوي المكتبي (سدانة)',
-          notes: input.notes || 'تم اعتماد الخطة التشغيلية السنوية من خلال التقييم الفني المكتبي',
-        });
+      if (input.shouldAdvanceStage) {
+        // تسجيل التقييم الفني وتاريخ الطلب
+        try {
+          await db.insert(requestEvaluations).values({
+            requestId: input.requestId,
+            userId: ctx.user.id,
+            decision: 'convert_to_project',
+            justification: 'اعتماد الاحتياج السنوي المكتبي (سدانة)',
+            notes: input.notes || 'تم اعتماد الخطة التشغيلية السنوية من خلال التقييم الفني المكتبي',
+          });
 
-        await db.insert(requestHistory).values({
-          requestId: input.requestId,
-          userId: ctx.user.id,
-          fromStage: request.currentStage,
-          toStage: updateData.currentStage || request.currentStage,
-          fromStatus: request.status,
-          toStatus: updateData.status || request.status,
-          action: 'technical_eval_convert_to_project',
-          notes: input.notes || 'تم اعتماد الاحتياج السنوي لبرنامج سدانة',
-        });
-      } catch (logErr) {
-        console.error("Evaluation log error:", logErr);
+          await db.insert(requestHistory).values({
+            requestId: input.requestId,
+            userId: ctx.user.id,
+            fromStage: request.currentStage,
+            toStage: updateData.currentStage || request.currentStage,
+            fromStatus: request.status,
+            toStatus: updateData.status || request.status,
+            action: 'technical_eval_convert_to_project',
+            notes: input.notes || 'تم اعتماد الاحتياج السنوي لبرنامج سدانة',
+          });
+        } catch (logErr) {
+          console.error("Evaluation log error:", logErr);
+        }
       }
 
       return {
         success: true,
-        message: "تم اعتماد الاحتياج السنوي بنجاح",
+        message: input.shouldAdvanceStage ? "تم اعتماد الاحتياج السنوي بنجاح" : "تم حفظ التعديلات بنجاح",
         approvedPlan,
       };
     }),

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { LucideIcon, FileText } from "lucide-react";
+import { LucideIcon, FileText, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ActiveActionCardProps {
@@ -20,6 +20,12 @@ interface ActiveActionCardProps {
     variant?: "default" | "destructive" | "outline" | "secondary";
     disabled?: boolean;
     title?: string;
+  };
+  detailsButton?: {
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "destructive" | "outline" | "secondary";
+    disabled?: boolean;
   };
   fieldReportButton?: {
     label: string;
@@ -51,6 +57,7 @@ export function ActiveActionCard({
   iconColor = "text-primary",
   actionButton,
   secondaryButton,
+  detailsButton,
   fieldReportButton,
   commitmentFormButton,
   additionalActions,
@@ -129,6 +136,24 @@ export function ActiveActionCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.3 }}
           >
+            {detailsButton && (
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+              >
+                <Button
+                  size="lg"
+                  variant={detailsButton.variant || "outline"}
+                  onClick={detailsButton.onClick}
+                  disabled={detailsButton.disabled}
+                  className="w-full text-base sm:text-lg py-5 sm:py-6 flex items-center justify-center gap-2 border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/30 font-bold shadow-xs cursor-pointer"
+                >
+                  <Eye className="w-5 h-5 shrink-0" />
+                  {detailsButton.label}
+                </Button>
+              </motion.div>
+            )}
+
             {fieldReportButton && (
               <motion.div
                 whileHover={{ scale: 1.01 }}

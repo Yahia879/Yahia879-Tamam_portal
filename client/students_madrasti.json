@@ -1,0 +1,26 @@
+    {
+        "students": [
+            {
+                "full_name": "باسل عبدالله الحتيرشي",
+                "school_email": "s9469106@mkhb.moe.gov.sa",
+                "student_account": "s9469106@mkhb.moe.gov.sa",
+                "phone": "966506967548",
+                "class_name": "أول متوسط - 3",
+                "status": "منتظم",
+                "guardian_name": "ريم سعد الحتيرشي",
+                "guardian_phone": "966506967548",
+                "school_name": "ابن كثير المتوسطة بمكة المكرمة"
+            },
+            {
+                "full_name": "يوسف الوليد خلف الله",
+                "school_email": "s99493457@mkhb.moe.gov.sa",
+                "student_account": "s99493457@mkhb.moe.gov.sa",
+                "phone": "966576311752",
+                "class_name": "أول متوسط - 2",
+                "status": "منتظم",
+                "guardian_name": "الوليد يوسف عبدالله",
+                "guardian_phone": "966576311752",
+                "school_name": "ابن كثير المتوسطة بمكة المكرمة"
+            }
+        ]
+    }

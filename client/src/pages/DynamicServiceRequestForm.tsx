@@ -81,7 +81,7 @@ const ICON_MAP: Record<string, any> = {
   Building2, Hammer, Wrench, Package, Receipt, Sparkles, Sun, Droplets, GlassWater,
 };
 
-type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'pricing-and-funding' | 'review';
+type Step = 'service-selection' | 'terms' | 'requester-info' | 'details' | 'review';
 
 const STEPS: { key: Step; label: string; order: number }[] = [
   { key: 'service-selection', label: 'اختيار الخدمة', order: 1 },
@@ -449,7 +449,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           return;
         }
 
-        setCurrentStep('pricing-and-funding');
+        setCurrentStep('review');
         return;
       }
 
@@ -477,8 +477,6 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           return;
         }
       }
-      setCurrentStep('review');
-    } else if (currentStep === 'pricing-and-funding') {
       setCurrentStep('review');
     }
   };

@@ -34,6 +34,7 @@ import EditImam from "./pages/EditImam";
 // صفحات الطلبات
 import Requests from "./pages/Requests";
 import RequestDetails from "./pages/RequestDetailsNew";
+import SedanaEvaluationPage from "./pages/SedanaEvaluationPage";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
@@ -284,6 +285,8 @@ function Router() {
       <Route path="/requests/quick-create">{() => <AdminRoute component={QuickRequestCreate} />}</Route>
       <Route path="/requests/:id/edit">{() => <AdminRoute component={RequestForm} />}</Route>
       <Route path="/requests/:id" component={RequestDetails} />
+      <Route path="/requests/:id/sedana-evaluation" component={SedanaEvaluationPage} />
+      <Route path="/requester/requests/:id/sedana-evaluation" component={SedanaEvaluationPage} />
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
