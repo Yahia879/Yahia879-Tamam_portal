@@ -16,6 +16,9 @@ import {
   Plus,
   Minus,
   Calendar,
+  Lock,
+  FileCheck,
+  Info,
 } from "lucide-react";
 
 export default function FormsCustomizationEscalation() {
@@ -48,19 +51,22 @@ export default function FormsCustomizationEscalation() {
     }
   }, [slaData]);
 
-  // التحقق من وجود تعديلات غير محفوظة
+  // التحقق من وجود تعديلات غير محفوظة (مع استثناء مرحلة التنفيذ لأنها غير قابلة للتعديل وتعتمد على العقد)
   const hasChanges = useMemo(() => {
     if (draftBeneficiaryDays !== initialBeneficiaryDays) return true;
     if (draftStages.length !== initialStages.length) return true;
     for (let i = 0; i < draftStages.length; i++) {
+      if (draftStages[i].stageCode === "execution") continue;
       if (draftStages[i].durationDays !== initialStages[i]?.durationDays) return true;
     }
     return false;
   }, [draftBeneficiaryDays, draftStages, initialBeneficiaryDays, initialStages]);
 
-  // إجمالي عدد أيام الدورة الكاملة
+  // إجمالي عدد أيام المراحل الثابتة
   const totalCycleDays = useMemo(() => {
-    return draftStages.reduce((acc, curr) => acc + (curr.durationDays || 0), 0);
+    return draftStages
+      .filter(s => s.stageCode !== "execution")
+      .reduce((acc, curr) => acc + (curr.durationDays || 0), 0);
   }, [draftStages]);
 
   // تحديث الإعدادات على الخادم
@@ -156,7 +162,7 @@ export default function FormsCustomizationEscalation() {
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-rose-500" />
-            <span>إجمالي مدة الدورة: <strong className="text-foreground">{totalCycleDays} يوم</strong></span>
+            <span>إجمالي مدد المراحل الثابتة: <strong className="text-foreground">{totalCycleDays} يوم</strong> <span className="text-2xs text-muted-foreground font-normal">(+ مدة العقد المعتمد)</span></span>
           </div>
         </div>
 
@@ -223,71 +229,108 @@ export default function FormsCustomizationEscalation() {
           <h3 className="text-xs font-bold text-muted-foreground px-1">مدة مراحل الطلبات</h3>
 
           <div className="space-y-2">
-            {draftStages.map((stg, index) => (
-              <Card 
-                key={stg.stageCode} 
-                className="border border-border shadow-xs hover:border-primary/40 transition-all"
-              >
-                <CardContent className="p-3.5 sm:p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    {/* رقم واسم المرحلة */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
-                        {index + 1}
-                      </span>
-                      <span className="font-bold text-sm text-foreground truncate">
-                        {stg.stageName}
-                      </span>
+            {draftStages.map((stg, index) => {
+              const isExecution = stg.stageCode === "execution";
+
+              return (
+                <Card 
+                  key={stg.stageCode} 
+                  className={`border shadow-xs transition-all ${
+                    isExecution 
+                      ? "border-amber-200/90 bg-amber-50/20 dark:bg-amber-950/10 dark:border-amber-900/40" 
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <CardContent className="p-3.5 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      {/* رقم واسم المرحلة */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center shrink-0 ${
+                          isExecution 
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" 
+                            : "bg-primary/10 text-primary"
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-sm text-foreground truncate">
+                              {stg.stageName}
+                            </span>
+                            {isExecution && (
+                              <Badge variant="outline" className="text-2xs bg-amber-100/80 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-bold gap-1 py-0 px-2">
+                                <FileCheck className="w-3 h-3" />
+                                <span>مدة العقد المعتمد</span>
+                              </Badge>
+                            )}
+                          </div>
+                          {isExecution && (
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                              <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                              <span>غير قابلة للتعديل؛ تُحسب تلقائياً وفق مدة العقد المعتمد مع المورد لكل طلب (مثال: إذا كان العقد 3 أشهر تكون المدة 90 يوماً).</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* عداد الأيام أو شارة غير قابلة للتعديل */}
+                      {isExecution ? (
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-xs font-bold shadow-2xs">
+                            <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>غير قابلة للتعديل (حسب العقد المعتمد)</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0 self-end sm:self-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDraftStages(prev => prev.map((item, idx) => 
+                                idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
+                              ));
+                            }}
+                            className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+
+                          <Input
+                            type="number"
+                            min={0}
+                            max={180}
+                            value={stg.durationDays}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value) || 0;
+                              setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
+                            }}
+                            className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
+                          />
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDraftStages(prev => prev.map((item, idx) => 
+                                idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
+                              ));
+                            }}
+                            className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+
+                          <span className="text-xs font-medium text-muted-foreground px-2">يوم</span>
+                        </div>
+                      )}
                     </div>
-
-                    {/* عداد الأيام */}
-                    <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDraftStages(prev => prev.map((item, idx) => 
-                            idx === index ? { ...item, durationDays: Math.max(0, item.durationDays - 1) } : item
-                          ));
-                        }}
-                        className="h-8 w-8 p-0 rounded-lg hover:bg-background"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-
-                      <Input
-                        type="number"
-                        min={0}
-                        max={180}
-                        value={stg.durationDays}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value) || 0;
-                          setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
-                        }}
-                        className="w-12 text-center font-bold text-sm h-8 bg-background border border-border/80 focus-visible:ring-1 focus-visible:ring-primary p-0"
-                      />
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDraftStages(prev => prev.map((item, idx) => 
-                            idx === index ? { ...item, durationDays: Math.min(180, item.durationDays + 1) } : item
-                          ));
-                        }}
-                        className="h-8 w-8 p-0 rounded-lg hover:bg-background"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-
-                      <span className="text-xs font-medium text-muted-foreground px-2">يوم</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 

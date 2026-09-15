@@ -1678,8 +1678,25 @@ export const requestsRouter = router({
         .where(eq(stageSettings.stageCode, input.newStage)).limit(1);
       
       if (stageSetting) {
+        let duration = stageSetting.durationDays || 30;
+        if (input.newStage === "execution") {
+          const [approvedContract] = await db.select().from(contractsEnhanced)
+            .where(and(
+              eq(contractsEnhanced.requestId, input.requestId),
+              eq(contractsEnhanced.status, "approved")
+            )).limit(1);
+          if (approvedContract && approvedContract.duration) {
+            const unit = (approvedContract.durationUnit || "months").trim().toLowerCase();
+            if (unit === "days") duration = approvedContract.duration;
+            else if (unit === "weeks") duration = approvedContract.duration * 7;
+            else if (unit === "months") duration = approvedContract.duration * 30;
+            else if (unit === "years") duration = approvedContract.duration * 365;
+            else duration = approvedContract.duration * 30;
+          }
+        }
+
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + stageSetting.durationDays);
+        dueDate.setDate(dueDate.getDate() + duration);
         
         await db.insert(requestStageTracking).values({
           requestId: input.requestId,

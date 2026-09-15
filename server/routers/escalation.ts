@@ -11,10 +11,29 @@ import {
   programs,
   projects,
   projectMosques,
+  contractsEnhanced,
 } from "../../drizzle/schema";
 import { eq, desc, asc, and, inArray, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { createNotification } from "./notifications";
+
+// تحويل مدة العقد إلى أيام وفق وحدة المدة المعتمدة
+export function convertContractDurationToDays(duration: number, durationUnit?: string | null): number {
+  if (!duration || duration <= 0) return 90;
+  const unit = (durationUnit || "months").trim().toLowerCase();
+  switch (unit) {
+    case "days":
+      return duration;
+    case "weeks":
+      return duration * 7;
+    case "months":
+      return duration * 30;
+    case "years":
+      return duration * 365;
+    default:
+      return duration * 30;
+  }
+}
 
 // الإعدادات الافتراضية لمدد مراحل الطلبات (SLA)
 export const DEFAULT_STAGE_SLAS = [
@@ -78,9 +97,9 @@ export const DEFAULT_STAGE_SLAS = [
     stageCode: "execution", 
     stageName: "التنفيذ", 
     stageOrder: 8, 
-    durationDays: 30, 
+    durationDays: 0, 
     warningDays: 5, 
-    description: "تنفيذ الأعمال ورفع تقارير الإنجاز وطلبات الصرف" 
+    description: "تنفيذ الأعمال ورفع تقارير الإنجاز وطلبات الصرف (تحدد تلقائياً وفق مدة العقد المعتمد مع المورد)" 
   },
   { 
     stageCode: "handover", 
@@ -159,10 +178,11 @@ export const escalationRouter = router({
         stageCode: def.stageCode,
         stageName: found?.stageName || def.stageName,
         stageOrder: def.stageOrder,
-        durationDays: found?.durationDays ?? def.durationDays,
+        durationDays: def.stageCode === "execution" ? 0 : (found?.durationDays ?? def.durationDays),
         warningDays: found?.warningDays ?? def.warningDays,
         description: found?.description || def.description,
         isActive: found?.isActive ?? true,
+        isDynamicContractDuration: def.stageCode === "execution",
       };
     });
 
@@ -200,6 +220,18 @@ export const escalationRouter = router({
 
       // تحديث أو إدخال كل مرحلة
       for (const s of input.stages) {
+        if (s.stageCode === "execution") {
+          // مرحلة التنفيذ محكومة تلقائياً بمدة العقد المعتمد مع المورد ولا يتم تعديل مدتها يدوياً
+          await db.update(stageSettings)
+            .set({
+              durationDays: 0,
+              description: "مدة التنفيذ تُحدد تلقائياً وفق مدة العقد المعتمد مع المورد لكل طلب",
+              updatedAt: now,
+            })
+            .where(eq(stageSettings.stageCode, "execution"));
+          continue;
+        }
+
         const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, s.stageCode)).limit(1);
         if (existing.length > 0) {
           await db.update(stageSettings)
@@ -352,10 +384,47 @@ export const escalationRouter = router({
       currentStage: mosqueRequests.currentStage,
       status: mosqueRequests.status,
       programType: mosqueRequests.programType,
+      projectId: projects.id,
       createdAt: mosqueRequests.createdAt,
       updatedAt: mosqueRequests.updatedAt,
       submittedAt: mosqueRequests.submittedAt,
-    }).from(mosqueRequests);
+    }).from(mosqueRequests)
+      .leftJoin(projects, eq(mosqueRequests.id, projects.requestId));
+
+    // جلب العقود لتحديد مدة التنفيذ تلقائياً وفق مدة العقد المعتمد مع المورد
+    const contractsList = await db.select({
+      id: contractsEnhanced.id,
+      contractNumber: contractsEnhanced.contractNumber,
+      requestId: contractsEnhanced.requestId,
+      projectId: contractsEnhanced.projectId,
+      duration: contractsEnhanced.duration,
+      durationUnit: contractsEnhanced.durationUnit,
+      status: contractsEnhanced.status,
+    }).from(contractsEnhanced);
+
+    const approvedContractByReqId = new Map<number, typeof contractsList[0]>();
+    const approvedContractByProjId = new Map<number, typeof contractsList[0]>();
+    const anyContractByReqId = new Map<number, typeof contractsList[0]>();
+    const anyContractByProjId = new Map<number, typeof contractsList[0]>();
+
+    for (const c of contractsList) {
+      if (c.requestId) {
+        if (c.status === "approved" && !approvedContractByReqId.has(c.requestId)) {
+          approvedContractByReqId.set(c.requestId, c);
+        }
+        if (!anyContractByReqId.has(c.requestId)) {
+          anyContractByReqId.set(c.requestId, c);
+        }
+      }
+      if (c.projectId) {
+        if (c.status === "approved" && !approvedContractByProjId.has(c.projectId)) {
+          approvedContractByProjId.set(c.projectId, c);
+        }
+        if (!anyContractByProjId.has(c.projectId)) {
+          anyContractByProjId.set(c.projectId, c);
+        }
+      }
+    }
 
     // 3. جلب سجل التحولات لتحديد تاريخ دخول المرحلة
     const transitions = await db.select({
@@ -393,7 +462,22 @@ export const escalationRouter = router({
       }
 
       const stageKey = (req.currentStage as string) === "financial_eval" ? "financial_eval_and_approval" : req.currentStage;
-      const allowedDays = slaMap.get(stageKey) ?? slaMap.get(req.currentStage) ?? 5;
+      let allowedDays = slaMap.get(stageKey) ?? slaMap.get(req.currentStage) ?? 5;
+
+      // مرحلة التنفيذ: مدة التأخير تؤخذ تلقائياً من مدة العقد المعتمد مع المورد
+      if (stageKey === "execution" || req.currentStage === "execution") {
+        const contract = (req.id ? approvedContractByReqId.get(req.id) : null)
+          || (req.projectId ? approvedContractByProjId.get(req.projectId) : null)
+          || (req.id ? anyContractByReqId.get(req.id) : null)
+          || (req.projectId ? anyContractByProjId.get(req.projectId) : null);
+
+        if (contract) {
+          allowedDays = convertContractDurationToDays(contract.duration, contract.durationUnit);
+        } else {
+          allowedDays = slaMap.get("execution") || 90;
+        }
+      }
+
       if (allowedDays <= 0) continue;
 
       const stageEntryDate = req.currentStage === "submitted"
@@ -544,6 +628,41 @@ export const escalationRouter = router({
         }
       }
 
+      // جلب العقود لتحديد مدة التنفيذ تلقائياً وفق مدة العقد المعتمد مع المورد
+      const contractsList = await db.select({
+        id: contractsEnhanced.id,
+        contractNumber: contractsEnhanced.contractNumber,
+        requestId: contractsEnhanced.requestId,
+        projectId: contractsEnhanced.projectId,
+        duration: contractsEnhanced.duration,
+        durationUnit: contractsEnhanced.durationUnit,
+        status: contractsEnhanced.status,
+      }).from(contractsEnhanced);
+
+      const approvedContractByReqId = new Map<number, typeof contractsList[0]>();
+      const approvedContractByProjId = new Map<number, typeof contractsList[0]>();
+      const anyContractByReqId = new Map<number, typeof contractsList[0]>();
+      const anyContractByProjId = new Map<number, typeof contractsList[0]>();
+
+      for (const c of contractsList) {
+        if (c.requestId) {
+          if (c.status === "approved" && !approvedContractByReqId.has(c.requestId)) {
+            approvedContractByReqId.set(c.requestId, c);
+          }
+          if (!anyContractByReqId.has(c.requestId)) {
+            anyContractByReqId.set(c.requestId, c);
+          }
+        }
+        if (c.projectId) {
+          if (c.status === "approved" && !approvedContractByProjId.has(c.projectId)) {
+            approvedContractByProjId.set(c.projectId, c);
+          }
+          if (!anyContractByProjId.has(c.projectId)) {
+            anyContractByProjId.set(c.projectId, c);
+          }
+        }
+      }
+
       const delayedList = [];
 
       for (const row of allRows) {
@@ -558,7 +677,24 @@ export const escalationRouter = router({
         }
 
         const normalizedStage = (req.currentStage as string) === "financial_eval" ? "financial_eval_and_approval" : req.currentStage;
-        const allowedDays = slaMap.get(normalizedStage) ?? slaMap.get(req.currentStage) ?? 5;
+        let allowedDays = slaMap.get(normalizedStage) ?? slaMap.get(req.currentStage) ?? 5;
+        let matchedContract: typeof contractsList[0] | null = null;
+
+        // مرحلة التنفيذ: مدة التأخير تؤخذ تلقائياً من مدة العقد المعتمد مع المورد
+        if (normalizedStage === "execution" || req.currentStage === "execution") {
+          matchedContract = (req.id ? approvedContractByReqId.get(req.id) : null)
+            || (row.projectId ? approvedContractByProjId.get(row.projectId) : null)
+            || (req.id ? anyContractByReqId.get(req.id) : null)
+            || (row.projectId ? anyContractByProjId.get(row.projectId) : null)
+            || null;
+
+          if (matchedContract) {
+            allowedDays = convertContractDurationToDays(matchedContract.duration, matchedContract.durationUnit);
+          } else {
+            allowedDays = slaMap.get("execution") || 90;
+          }
+        }
+
         if (allowedDays <= 0) continue;
 
         const stageEntryDate = req.currentStage === "submitted"
@@ -672,6 +808,13 @@ export const escalationRouter = router({
             delayHoursOnly,
             totalDelayHours,
             severity,
+            contractInfo: matchedContract ? {
+              id: matchedContract.id,
+              contractNumber: matchedContract.contractNumber,
+              duration: matchedContract.duration,
+              durationUnit: matchedContract.durationUnit,
+              durationDays: allowedDays,
+            } : null,
             createdAt: req.createdAt,
           });
         }
