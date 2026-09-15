@@ -124,7 +124,14 @@ export default function FinancialApproval() {
 
   const currentProgramType = (requestDetails as any)?.programType;
   const isSedanaProgram = currentProgramType === "sedana";
-  const allQuotations = useMemo(() => quotationsData?.quotations ?? [], [quotationsData?.quotations]);
+  const allQuotations = useMemo(() => {
+    const list = quotationsData?.quotations ? [...quotationsData.quotations] : [];
+    return list.sort((a: any, b: any) => {
+      const aTotal = parseFloat(String(a.totalAmount || "0").replace(/,/g, ''));
+      const bTotal = parseFloat(String(b.totalAmount || "0").replace(/,/g, ''));
+      return aTotal - bTotal;
+    });
+  }, [quotationsData?.quotations]);
 
   // إعادة ضبط الحالة عند تغيير الطلب
   useEffect(() => {
@@ -261,7 +268,9 @@ export default function FinancialApproval() {
         awardedTotal,
         totalAmount: parseFloat(String(quotation.totalAmount || "0").replace(/,/g, '')),
       };
-    }).filter(v => v.offeredCount > 0);
+    })
+    .filter(v => v.offeredCount > 0)
+    .sort((a, b) => a.totalAmount - b.totalAmount || a.quotationId - b.quotationId);
   }, [boqData?.items, allQuotations, selectedWinningVendors, isSedanaProgram]);
 
   // معرفة أقل إجمالي بين الموردين
@@ -720,7 +729,7 @@ export default function FinancialApproval() {
                                 <TableRow className="bg-muted/40 border-b-2 border-slate-300 dark:border-slate-700">
                                   <TableHead className="w-12 text-center font-bold">#</TableHead>
                                   <TableHead className="font-bold min-w-[220px]">البند والمواصفات</TableHead>
-                                  <TableHead className="text-center font-bold min-w-[90px]">الكمية</TableHead>
+                                  <TableHead className="text-center font-bold min-w-[90px] border-r border-slate-200 dark:border-slate-800">الكمية</TableHead>
                                   
                                   {/* أعمدة الموردين المشاركين مع زر اختر لكل بنود المورد */}
                                   {participatingVendors.map(vendor => {
@@ -804,13 +813,8 @@ export default function FinancialApproval() {
                                             {item.itemDescription}
                                           </div>
                                         )}
-                                        {item.category && (
-                                          <Badge variant="outline" className="text-[9px] py-0 px-1.5 mt-1 bg-slate-100 dark:bg-slate-800">
-                                            {item.category}
-                                          </Badge>
-                                        )}
                                       </TableCell>
-                                      <TableCell className="text-center align-middle">
+                                      <TableCell className="text-center align-middle border-r border-slate-200 dark:border-slate-800">
                                         <span className="font-extrabold text-xs">
                                           {item.quantity ? parseFloat(item.quantity).toLocaleString("ar-SA") : 1}
                                         </span>
@@ -954,7 +958,7 @@ export default function FinancialApproval() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {quotationsData.quotations.map((quotation: any) => {
+                            {allQuotations.map((quotation: any) => {
                               const isSelected = quotation.id === selectedQuotationId;
                               const totalAmount = parseFloat(quotation.totalAmount);
                               const taxAmount = parseFloat(quotation.taxAmount || "0");
