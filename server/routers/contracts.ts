@@ -234,6 +234,22 @@ export const contractsRouter = router({
       return contract || null;
     }),
 
+  // جلب جميع عقود الطلب بواسطة requestId
+  getAllByRequestId: permissionProcedure("contracts.view")
+    .input(z.object({ requestId: z.number() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("قاعدة البيانات غير متاحة");
+      
+      const contractsList = await db
+        .select()
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.requestId, input.requestId))
+        .orderBy(desc(contractsEnhanced.createdAt));
+      
+      return contractsList;
+    }),
+
   // جلب عقد بالتفصيل
   getById: permissionProcedure("contracts.view")
     .input(z.object({ id: z.number(), lightweight: z.boolean().optional() }))
