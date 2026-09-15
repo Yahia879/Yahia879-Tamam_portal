@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Coins, Share2, ShoppingCart, CheckCircle2, TrendingUp, Calculator, UserCheck, CreditCard, Paperclip, Sparkles, Building2 } from 'lucide-react';
+import { Loader2, Coins, Share2, CheckCircle2, Calculator, UserCheck, Paperclip, Sparkles, Building2 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
@@ -16,12 +16,14 @@ interface SedanaFundingAndOpportunityProps {
     currentStage: string;
   };
   onComplete?: () => void;
+  onSaveDraft?: (data: any) => void;
   canEdit?: boolean;
 }
 
 export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityProps> = ({
   request,
   onComplete,
+  onSaveDraft,
   canEdit = true,
 }) => {
   let programData: Record<string, any> = {};
@@ -111,8 +113,7 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
       return;
     }
 
-    saveFundingMutation.mutate({
-      requestId: request.id,
+    const payload = {
       actualMosqueCost,
       operationalFeePercent,
       gatewayFeePercent,
@@ -126,6 +127,21 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
         targetAmount: calculatedOpportunityPrice,
       } : undefined,
       notes,
+    };
+
+    if (onSaveDraft) {
+      onSaveDraft(payload);
+    }
+
+    if (!request.id || request.id === 0) {
+      toast.success('تم تحديد سعر الفرصة وإعداد نموذج التمويل بنجاح');
+      if (onComplete) onComplete();
+      return;
+    }
+
+    saveFundingMutation.mutate({
+      requestId: request.id,
+      ...payload,
       shouldAdvanceStage: true,
     });
   };
@@ -145,7 +161,7 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
             </h4>
           </div>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            احتداب أجور الإدارة ورسوم بوابات الدفع آلياً (تحويل الـ 25 ألف إلى 30 ألف) واختيار مسار الكفالة (متبرع مباشر أم تمويل جماعي).
+            احتساب أجور الإدارة ورسوم بوابات الدفع آلياً (تحويل الـ 25 ألف إلى 30 ألف) واختيار مسار الكفالة (متبرع مباشر أم تمويل جماعي).
           </p>
         </div>
         {isAlreadyConfigured && (
@@ -471,7 +487,7 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
               <CheckCircle2 className="w-4 h-4 ml-1" />
             )}
             {fundingPath === 'crowdfunding'
-              ? 'اعتماد الطرح للتمويل الجماعي بسعر الفرصة والانتقال للتنفيذ'
+              ? 'اعتماد الطرح للتمويل الجماعي بسعر الفرصة والانتقال للمراجعة النهائي'
               : 'اعتماد المتبرع المباشر وتأكيد الشراء والتنفيذ'}
           </Button>
         </div>
