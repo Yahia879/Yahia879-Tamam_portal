@@ -56,6 +56,7 @@ import {
 } from "@shared/constants";
 import { ProgramIcon } from "@/components/ProgramIcon";
 import { RequestProgressCard } from "@/components/RequestProgressCard";
+import { MultiVendorContractingCard } from "@/components/MultiVendorContractingCard";
 
 // ترجمة أنواع الأحداث في سجل الطلب
 const ACTION_LABELS: Record<string, string> = {
@@ -164,7 +165,13 @@ export default function RequestDetails() {
   // جلب العقد المرتبط بالطلب
   const { data: existingContract } = trpc.contracts.getByRequestId.useQuery(
     { requestId },
-    { enabled: !!request && ['financial_eval_and_approval', 'execution', 'closed'].includes(request.currentStage) }
+    { enabled: !!request && ['financial_eval_and_approval', 'contracting', 'execution', 'closed'].includes(request.currentStage) }
+  );
+  
+  // جلب كافة العقود المسجلة لهذا الطلب
+  const { data: requestContracts = [] } = trpc.contracts.getAllByRequestId.useQuery(
+    { requestId },
+    { enabled: !!requestId }
   );
   
   // جلب موظفي الفريق الميداني
@@ -540,9 +547,13 @@ export default function RequestDetails() {
         );
         break;
       case 'contracting':
-        const hasContract = !!existingContract;
+        const allApprovedQuotes = quotations?.quotations?.filter((q: any) => q.status === 'approved' || q.status === 'accepted') || [];
+        const isMultiVendorReq = request.programType === 'sedana' || allApprovedQuotes.length > 1;
+        const hasContract = isMultiVendorReq 
+          ? (allApprovedQuotes.length > 0 && allApprovedQuotes.every((q: any) => requestContracts.some((c: any) => c.supplierId === q.supplierId)))
+          : !!existingContract;
         checklist.push(
-          { id: '1', label: 'إنشاء العقد', completed: hasContract, required: true },
+          { id: '1', label: isMultiVendorReq ? 'إنشاء عقود كافة الموردين' : 'إنشاء العقد', completed: hasContract, required: true },
           { id: '2', label: 'توقيع العقد', completed: false, required: true }
         );
         break;
@@ -1121,9 +1132,30 @@ export default function RequestDetails() {
                       </CardContent>
                     </Card>
 
-                    {/* ملخص التكلفة */}
+                    {/* ملخص التكلفة وعقود التعاقد */}
                     {(() => {
-                      const approvedQuotation = quotations?.quotations?.find((q: any) => q.status === 'approved' || q.status === 'accepted');
+                      const allAccepted = quotations?.quotations?.filter((q: any) => q.status === 'approved' || q.status === 'accepted') || [];
+                      const isMultiVendor = request.programType === 'sedana' || allAccepted.length > 1;
+
+                      if (isMultiVendor && allAccepted.length > 0) {
+                        return (
+                          <MultiVendorContractingCard
+                            requestId={requestId}
+                            projectId={request.project?.id}
+                            isSedanaProgram={request.programType === 'sedana'}
+                            boqItems={boqItems?.items || []}
+                            allQuotations={quotations?.quotations || []}
+                            hasAcceptedQuotation={allAccepted.length > 0}
+                            userRole={user?.role}
+                            onRefresh={() => {
+                              utils.requests.getById.invalidate({ id: requestId });
+                              utils.contracts.invalidate();
+                            }}
+                          />
+                        );
+                      }
+
+                      const approvedQuotation = allAccepted[0];
                       const originalAmount = parseFloat(approvedQuotation?.totalAmount || '0');
                       const negotiatedAmount = approvedQuotation?.negotiatedAmount ? parseFloat(approvedQuotation.negotiatedAmount) : null;
                       const approvedAmount = approvedQuotation?.approvedAmount ? parseFloat(approvedQuotation.approvedAmount) : null;

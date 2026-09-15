@@ -221,10 +221,13 @@ export default function ContractForm() {
   const params = useParams();
   const search = useSearch();
   
-  // قراءة requestId من query parameters
+  // قراءة المعاملات من query parameters
   const searchParams = new URLSearchParams(search || '');
   const requestIdFromQuery = searchParams.get('requestId');
   const projectIdFromQuery = searchParams.get('projectId');
+  const supplierIdFromQuery = searchParams.get('supplierId') ? parseInt(searchParams.get('supplierId')!) : null;
+  const quotationIdFromQuery = searchParams.get('quotationId') ? parseInt(searchParams.get('quotationId')!) : null;
+  const amountFromQuery = searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : null;
   
   // كشف وضع التعديل من المسار أو المسودة المنشأة حديثاً
   const [createdDraftId, setCreatedDraftId] = useState<number | null>(null);
@@ -262,7 +265,7 @@ export default function ContractForm() {
     signatoryId: null as number | null,
     
     // المورد (الطرف الثاني)
-    supplierId: null as number | null,
+    supplierId: supplierIdFromQuery || null as number | null,
     
     // تفاصيل العقد
     subject: "",
@@ -376,6 +379,19 @@ export default function ContractForm() {
     { enabled: !!effectiveRequestId }
   );
 
+  // جلب كافة العقود المسجلة لهذا الطلب
+  const { data: requestContractsList = [] } = trpc.contracts.getAllByRequestId.useQuery(
+    { requestId: effectiveRequestId! },
+    { enabled: !!effectiveRequestId }
+  );
+
+  // استخراج كافة عروض الأسعار المعتمدة للطلب
+  const allApprovedQuotations = Array.isArray((approvedQuotation as any)?.quotations)
+    ? (approvedQuotation as any).quotations.filter((q: any) => q.status === "accepted" || q.status === "approved")
+    : [];
+
+  const isMultiVendorSedana = allApprovedQuotations.length > 1;
+
   // جلب تفاصيل الطلب للحصول على المشروع المرتبط
   const { data: requestDetails, isLoading: isLoadingRequest } = trpc.requests.getById.useQuery(
     { id: effectiveRequestId! },
@@ -436,10 +452,10 @@ export default function ContractForm() {
   );
 
   // تحديد ما إذا كان هناك عرض سعر معتمد (لتثبيت المورد)
-  const approvedSupplierQuotation = Array.isArray((approvedQuotation as any)?.quotations)
-    ? (approvedQuotation as any).quotations.find((q: any) => q.status === "accepted" || q.status === "approved")
-    : null;
-  const hasApprovedSupplier = !!approvedSupplierQuotation;
+  const approvedSupplierQuotation = allApprovedQuotations.find((q: any) => 
+    contractData.supplierId ? q.supplierId === contractData.supplierId : true
+  ) || (allApprovedQuotations.length === 1 ? allApprovedQuotations[0] : null);
+  const hasApprovedSupplier = allApprovedQuotations.length > 0;
 
   // Mutation لإنشاء العقد
   const createMutation = trpc.contracts.create.useMutation({
@@ -468,22 +484,25 @@ export default function ContractForm() {
     },
   });
 
-  // جلب العقد الموجود مسبقاً بناءً على requestId إن وجد في وضع الإنشاء
+  // جلب العقد الموجود مسبقاً بناءً على requestId و supplierId إن وجد في وضع الإنشاء
   const { data: contractByRequest } = trpc.contracts.getByRequestId.useQuery(
-    { requestId: effectiveRequestId! },
-    { enabled: !editContractId && !createdDraftId && !!effectiveRequestId }
+    { 
+      requestId: effectiveRequestId!,
+      supplierId: contractData.supplierId || undefined
+    },
+    { enabled: !editContractId && !createdDraftId && !!effectiveRequestId && !!contractData.supplierId }
   );
 
-  // إذا وجد مسودة سابقة لنفس الطلب، يتم فتحها وتعيين المعرف
+  // إذا وجد مسودة سابقة لنفس الطلب والمورد المحدد، يتم فتحها وتعيين المعرف
   useEffect(() => {
     const rawContract = contractByRequest as any;
     const c = rawContract?.contract || (rawContract?.id ? rawContract : null);
-    if (!editContractId && !createdDraftId && c) {
+    if (!editContractId && !createdDraftId && c && c.supplierId === contractData.supplierId) {
       if (c.status === "draft") {
         setCreatedDraftId(c.id);
       }
     }
-  }, [contractByRequest, editContractId, createdDraftId]);
+  }, [contractByRequest, editContractId, createdDraftId, contractData.supplierId]);
 
   // جلب بيانات العقد الحالي (في وضع التعديل)
   const { data: existingContract, isLoading: isLoadingContract } = trpc.contracts.getById.useQuery(
@@ -723,39 +742,93 @@ export default function ContractForm() {
   }, [templateClauses, isEditMode, selectedTemplateChanged, clauseValues.length]);
 
 
-  // تحديث القيمة والمورد من العرض المعتمد
-  useEffect(() => {
-    if (approvedSupplierQuotation && !isEditMode) {
-      // المبلغ الأصلي من المورد
-      const originalAmount = parseFloat(approvedSupplierQuotation.totalAmount) || 0;
-      
-      // المبلغ بعد التفاوض (إن وجد)
-      const negotiatedAmount = approvedSupplierQuotation.negotiatedAmount 
-        ? parseFloat(approvedSupplierQuotation.negotiatedAmount) 
-        : null;
-      
-      // المبلغ المعتمد (إن وجد)
-      const approvedAmount = approvedSupplierQuotation.approvedAmount 
-        ? parseFloat(approvedSupplierQuotation.approvedAmount) 
-        : null;
-      
-      // الأولوية: المبلغ المعتمد > المبلغ بعد التفاوض > المبلغ النهائي للعرض > المبلغ الأصلي
-      const finalAmount = approvedAmount ?? negotiatedAmount ?? (approvedSupplierQuotation.finalAmount ? parseFloat(approvedSupplierQuotation.finalAmount) : null) ?? originalAmount;
-      
-      // حساب النسبة إذا كانت مخزنة في العرض
-      const managementPercentage = approvedSupplierQuotation.managementPercentage 
-        ? parseFloat(approvedSupplierQuotation.managementPercentage) 
-        : 0;
-      
-      setContractData(prev => ({
-        ...prev,
-        supplierId: approvedSupplierQuotation.supplierId,
-        baseValue: finalAmount,
-        managementPercentage: managementPercentage,
-        totalValue: finalAmount,
-      }));
+  // دالة تطبيق بيانات عرض السعر المعتمد على بيانات العقد
+  const applySupplierQuotation = (targetQuotation: any) => {
+    if (!targetQuotation) return;
+    const sId = targetQuotation.supplierId;
+    const originalAmount = parseFloat(targetQuotation.totalAmount) || 0;
+    const negotiatedAmount = targetQuotation.negotiatedAmount 
+      ? parseFloat(targetQuotation.negotiatedAmount) 
+      : null;
+    const approvedAmount = targetQuotation.approvedAmount 
+      ? parseFloat(targetQuotation.approvedAmount) 
+      : null;
+    const finalAmount = approvedAmount ?? negotiatedAmount ?? (targetQuotation.finalAmount ? parseFloat(targetQuotation.finalAmount) : null) ?? originalAmount;
+    const managementPercentage = targetQuotation.managementPercentage 
+      ? parseFloat(targetQuotation.managementPercentage) 
+      : 0;
+
+    let itemsList: any[] = [];
+    if (Array.isArray(targetQuotation.items)) {
+      itemsList = targetQuotation.items;
+    } else if (typeof targetQuotation.items === "string") {
+      try {
+        itemsList = JSON.parse(targetQuotation.items);
+      } catch (e) {
+        itemsList = [];
+      }
     }
-  }, [approvedSupplierQuotation]);
+
+    const supplierObj = suppliersList.find((s: any) => s.id === sId);
+    const supplierName = targetQuotation.supplierName || supplierObj?.name || "";
+
+    setContractData(prev => {
+      let updatedSubject = prev.subject;
+      const mosqueName = requestDetails?.mosque?.name || "";
+      const isSedana = requestDetails?.programType === 'sedana';
+      const progTitle = isSedana ? 'نظافة وتشغيل' : 'توريد وخدمات';
+
+      if (!updatedSubject || updatedSubject.includes("مسجد") || updatedSubject.startsWith("عقد ")) {
+        if (allApprovedQuotations.length > 1 && supplierName) {
+          updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName} - (${supplierName})`;
+        } else if (mosqueName) {
+          updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName}`;
+        }
+      }
+
+      let updatedDesc = prev.description;
+      if (!updatedDesc && itemsList.length > 0) {
+        const itemNames = itemsList.map((it: any) => it.itemName || it.item_name || it.name).filter(Boolean).join("، ");
+        if (itemNames) {
+          updatedDesc = `يشمل العقد البنود المعتمدة من عرض السعر: ${itemNames}`;
+        }
+      }
+
+      return {
+        ...prev,
+        supplierId: sId,
+        baseValue: finalAmount,
+        totalValue: finalAmount,
+        managementPercentage: managementPercentage || prev.managementPercentage,
+        subject: updatedSubject,
+        description: updatedDesc,
+      };
+    });
+  };
+
+  // تهيئة وتحديد المورد وعرض السعر المعتمد تلقائياً عند فتح النموذج
+  const hasInitializedSupplierRef = useRef(false);
+  useEffect(() => {
+    if (allApprovedQuotations.length > 0 && !isEditMode && !createdDraftId && !hasInitializedSupplierRef.current) {
+      if (supplierIdFromQuery) {
+        const matchingQ = allApprovedQuotations.find((q: any) => q.supplierId === supplierIdFromQuery);
+        if (matchingQ) {
+          applySupplierQuotation(matchingQ);
+          hasInitializedSupplierRef.current = true;
+          return;
+        }
+      }
+
+      if (!contractData.supplierId) {
+        const uncontractedQ = allApprovedQuotations.find((q: any) => 
+          !requestContractsList.some((c: any) => c.supplierId === q.supplierId)
+        );
+        const selectedQ = uncontractedQ || allApprovedQuotations[0];
+        applySupplierQuotation(selectedQ);
+        hasInitializedSupplierRef.current = true;
+      }
+    }
+  }, [allApprovedQuotations, isEditMode, createdDraftId, supplierIdFromQuery, contractData.supplierId, requestContractsList]);
 
   // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
@@ -1283,6 +1356,11 @@ export default function ContractForm() {
                       ? <>{contractData.totalValue.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline" /></>
                       : "لم يتم التحديد"}
                   </p>
+                  {allApprovedQuotations.length > 1 && (
+                    <span className="block text-[11px] text-muted-foreground font-medium">
+                      (خاص بالمورد المحدد من إجمالي الطلب)
+                    </span>
+                  )}
                 </div>
               </div>
               {requestDetails.project && (
@@ -1296,6 +1374,145 @@ export default function ContractForm() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* بطاقة اختيار المورد لعقود سدانة متعددة الموردين */}
+        {effectiveRequestId && allApprovedQuotations.length > 1 && (
+          <Card className="border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50/70 via-slate-50/50 to-teal-50/60 dark:from-emerald-950/20 dark:to-slate-900/40 shadow-sm overflow-hidden">
+            <CardHeader className="pb-3 border-b border-emerald-100 dark:border-emerald-900/40">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shadow-xs">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                      عروض الأسعار المعتمدة للطلب (عقود سدانة للموردين)
+                      <Badge variant="outline" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-xs">
+                        {allApprovedQuotations.length} موردين معتمدين
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      تمت ترسية بنود هذا الطلب على عدة موردين. يجب إنشاء عقد مستقل لكل مورد بقيمة البنود المعتمدة له.
+                    </CardDescription>
+                  </div>
+                </div>
+
+                {requestContractsList.length > 0 && (
+                  <div className="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-3 py-1 rounded-full border border-emerald-200">
+                    تم إنشاء {requestContractsList.length} من أصل {allApprovedQuotations.length} عقود
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {allApprovedQuotations.map((quotation: any) => {
+                  const sId = quotation.supplierId;
+                  const sObj = suppliersList.find((s: any) => s.id === sId);
+                  const sName = quotation.supplierName || sObj?.name || `مورد رقم ${sId}`;
+                  const qAmount = parseFloat(quotation.approvedAmount || quotation.negotiatedAmount || quotation.finalAmount || quotation.totalAmount || "0");
+                  const existingContract = requestContractsList.find((c: any) => c.supplierId === sId);
+                  const isSelected = contractData.supplierId === sId;
+
+                  let itemsCount = 0;
+                  if (Array.isArray(quotation.items)) {
+                    itemsCount = quotation.items.length;
+                  } else if (typeof quotation.items === "string") {
+                    try {
+                      itemsCount = JSON.parse(quotation.items).length;
+                    } catch (e) {
+                      itemsCount = 1;
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={`vendor-card-${sId || quotation.id}`}
+                      onClick={() => {
+                        if (existingContract) {
+                          navigate(`/contracts/${existingContract.id}/edit`);
+                        } else {
+                          setCreatedDraftId(null);
+                          applySupplierQuotation(quotation);
+                          toast.info(`تم اختيار المورد (${sName}) لإنشاء العقد`);
+                        }
+                      }}
+                      className={cn(
+                        "p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3",
+                        isSelected
+                          ? "border-emerald-600 bg-emerald-50/90 dark:bg-emerald-950/40 shadow-sm ring-2 ring-emerald-500/20"
+                          : "border-border bg-background/80 hover:border-emerald-400 hover:bg-muted/30"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-sm text-foreground">{sName}</span>
+                            {isSelected && (
+                              <Badge className="bg-emerald-600 text-white text-[10px] py-0 px-1.5 flex items-center gap-1">
+                                <Check className="w-3 h-3" /> المورد المحدد
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            {itemsCount > 0 && <span>عدد البنود المعتمدة: <strong>{itemsCount}</strong></span>}
+                            {sObj?.phone && <span>• جوال: {sObj.phone}</span>}
+                          </div>
+                        </div>
+
+                        {existingContract ? (
+                          <Badge 
+                            variant="outline"
+                            className={cn(
+                              "text-[11px] font-bold shrink-0",
+                              existingContract.status === 'approved'
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                : "bg-amber-100 text-amber-800 border-amber-300"
+                            )}
+                          >
+                            {existingContract.status === 'approved' ? 'عقد معتمد' : 'مسودة عقد'} ({existingContract.contractNumber})
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[11px] font-bold shrink-0">
+                            بانتظار إنشاء العقد
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          قيمة الترسية: <strong className="text-sm font-black text-emerald-700 dark:text-emerald-400">{qAmount.toLocaleString("ar-SA")} ريال</strong>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "text-xs h-7 px-3 font-bold",
+                            isSelected ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (existingContract) {
+                              navigate(`/contracts/${existingContract.id}/edit`);
+                            } else {
+                              setCreatedDraftId(null);
+                              applySupplierQuotation(quotation);
+                              toast.info(`تم اختيار المورد (${sName}) لإنشاء العقد`);
+                            }
+                          }}
+                        >
+                          {existingContract ? "تعديل العقد" : isSelected ? "محدد للإنشاء" : "اختيار المورد"}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1536,34 +1753,34 @@ export default function ContractForm() {
             {/* الخطوة 2: الطرف الثاني (اختيار المورد) */}
             {currentStep === 2 && (
               <div className="space-y-6">
+                {allApprovedQuotations.length > 1 && (
+                  <Alert className="bg-emerald-50/70 border-emerald-300 text-emerald-900 mb-2">
+                    <Building2 className="h-4 w-4 text-emerald-600" />
+                    <AlertTitle className="text-sm font-bold">عقود متعددة الموردين للطلب (سدانة)</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      تم اعتماد عروض أسعار لـ {allApprovedQuotations.length} موردين لهذا الطلب. يتطلب النظام إصدار عقد مستقل لكل مورد بقيمة البنود المعتمدة له.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="space-y-2 text-right" dir="rtl">
                   <Label className="text-sm font-bold">المورد (الطرف الثاني) *</Label>
                   <Select
                     value={contractData.supplierId?.toString() || ""}
                     onValueChange={(val) => {
                       const suppId = parseInt(val);
-                      setContractData(prev => ({
-                        ...prev,
-                        supplierId: suppId,
-                      }));
-
-                      // البحث عن عرض سعر المورد وتطبيق قيمة العقد تلقائياً
-                      const quotesArr = Array.isArray((approvedQuotation as any)?.quotations)
-                        ? (approvedQuotation as any).quotations
-                        : [];
-                      const matchQuotation = quotesArr.find((q: any) => 
+                      const matchQuotation = allApprovedQuotations.find((q: any) => 
                         q.supplierId === suppId || (q.supplierName && q.supplierName.trim() === suppliersList.find((s: any) => s.id === suppId)?.name?.trim())
                       );
                       if (matchQuotation) {
+                        applySupplierQuotation(matchQuotation);
                         const qAmount = parseFloat(matchQuotation.approvedAmount || matchQuotation.finalAmount || matchQuotation.totalAmount || "0");
-                        if (qAmount > 0) {
-                          setContractData(prev => ({
-                            ...prev,
-                            totalValue: qAmount,
-                            baseValue: qAmount,
-                          }));
-                          toast.success(`تم اختيار المورد وتحديد قيمة العقد بـ ${qAmount.toLocaleString("ar-SA")} ريال بناءً على عرض السعر`);
-                        }
+                        toast.success(`تم اختيار المورد (${matchQuotation.supplierName || 'المورد'}) وتحديد قيمة العقد بـ ${qAmount.toLocaleString("ar-SA")} ريال بناءً على عرض السعر`);
+                      } else {
+                        setContractData(prev => ({
+                          ...prev,
+                          supplierId: suppId,
+                        }));
                       }
                     }}
                   >
@@ -1572,20 +1789,28 @@ export default function ContractForm() {
                     </SelectTrigger>
                     <SelectContent dir="rtl" className="text-right">
                       {/* الموردون المرتبطون بعروض أسعار الطلب الحالي */}
-                      {effectiveRequestId && Array.isArray((approvedQuotation as any)?.quotations) && (approvedQuotation as any).quotations.length > 0 && (
+                      {effectiveRequestId && allApprovedQuotations.length > 0 && (
                         <>
                           <div className="px-2 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
                             موردو عروض أسعار هذا الطلب:
                           </div>
-                          {(approvedQuotation as any).quotations.map((q: any) => {
+                          {allApprovedQuotations.map((q: any) => {
                             const qAmount = parseFloat(q.approvedAmount || q.finalAmount || q.totalAmount || "0");
                             const matchingSupplier = suppliersList.find((s: any) => s.id === q.supplierId || s.name === q.supplierName);
                             const sId = matchingSupplier?.id || q.supplierId;
+                            const existingC = requestContractsList.find((c: any) => c.supplierId === sId);
                             if (!sId) return null;
                             return (
                               <SelectItem key={`q-supp-${q.id}`} value={String(sId)} className="text-sm cursor-pointer py-2">
                                 <div className="flex items-center justify-between gap-4 w-full">
-                                  <span className="font-bold text-foreground">{q.supplierName || matchingSupplier?.name || "مورد"}</span>
+                                  <span className="font-bold text-foreground">
+                                    {q.supplierName || matchingSupplier?.name || "مورد"}
+                                    {existingC && (
+                                      <span className="text-[10px] text-muted-foreground mr-1.5 font-normal">
+                                        ({existingC.status === 'approved' ? 'عقد معتمد' : 'مسودة عقد'})
+                                      </span>
+                                    )}
+                                  </span>
                                   <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
                                     مبلغ الترسية: {qAmount.toLocaleString("ar-SA")} ريال
                                   </span>

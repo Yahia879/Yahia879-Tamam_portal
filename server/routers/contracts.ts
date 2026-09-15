@@ -220,15 +220,24 @@ export const contractsRouter = router({
   
   // جلب عقد بواسطة requestId
   getByRequestId: permissionProcedure("contracts.view")
-    .input(z.object({ requestId: z.number() }))
+    .input(z.object({ 
+      requestId: z.number(),
+      supplierId: z.number().optional() 
+    }))
     .query(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("قاعدة البيانات غير متاحة");
       
+      const conditions = [eq(contractsEnhanced.requestId, input.requestId)];
+      if (input.supplierId) {
+        conditions.push(eq(contractsEnhanced.supplierId, input.supplierId));
+      }
+
       const [contract] = await db
         .select()
         .from(contractsEnhanced)
-        .where(eq(contractsEnhanced.requestId, input.requestId))
+        .where(and(...conditions))
+        .orderBy(desc(contractsEnhanced.createdAt))
         .limit(1);
       
       return contract || null;
@@ -1193,25 +1202,65 @@ export const contractsRouter = router({
         
         // تحديث مرحلة الطلب إلى "execution" عند اعتماد العقد
         if (contract.requestId) {
-          console.log('[Contract Approve] Updating request stage to execution for requestId:', contract.requestId);
-          await db
-            .update(mosqueRequests)
-            .set({
-              currentStage: "execution",
-              updatedAt: new Date(),
-            })
-            .where(eq(mosqueRequests.id, contract.requestId));
+          const [request] = await db.select().from(mosqueRequests).where(eq(mosqueRequests.id, contract.requestId)).limit(1);
+          const isSedana = request?.programType === 'sedana';
           
-          console.log('[Contract Approve] Request stage updated successfully');
-          
-          // إضافة سجل في تاريخ الطلب
-          await db.insert(requestHistory).values({
-            requestId: contract.requestId,
-            userId: ctx.user.id,
-            action: "اعتماد العقد",
-            notes: `تم اعتماد العقد رقم ${contract.contractNumber} وتحويل المشروع إلى مرحلة التنفيذ`,
-          });
-          console.log('[Contract Approve] Request history entry added');
+          let shouldTransitionToExecution = true;
+          if (isSedana) {
+            // جلب كافة عروض الأسعار المقبولة للطلب
+            const acceptedQuotes = await db
+              .select()
+              .from(quotations)
+              .where(and(
+                eq(quotations.requestId, contract.requestId),
+                inArray(quotations.status, ["accepted", "approved"])
+              ));
+            
+            // جلب كافة العقود المسجلة للطلب
+            const allReqContracts = await db
+              .select()
+              .from(contractsEnhanced)
+              .where(eq(contractsEnhanced.requestId, contract.requestId));
+            
+            const approvedSupplierIds = new Set(
+              allReqContracts
+                .filter(c => c.status === "approved" || c.id === contract.id)
+                .map(c => c.supplierId)
+            );
+            
+            const allSuppliersCovered = acceptedQuotes.length > 0 
+              ? acceptedQuotes.every(q => approvedSupplierIds.has(q.supplierId))
+              : true;
+            shouldTransitionToExecution = allSuppliersCovered;
+          }
+
+          if (shouldTransitionToExecution) {
+            console.log('[Contract Approve] Updating request stage to execution for requestId:', contract.requestId);
+            await db
+              .update(mosqueRequests)
+              .set({
+                currentStage: "execution",
+                updatedAt: new Date(),
+              })
+              .where(eq(mosqueRequests.id, contract.requestId));
+            
+            await db.insert(requestHistory).values({
+              requestId: contract.requestId,
+              userId: ctx.user.id,
+              action: "اعتماد العقد",
+              notes: isSedana 
+                ? `تم اعتماد كافة عقود الموردين وتحويل المشروع إلى مرحلة التنفيذ`
+                : `تم اعتماد العقد رقم ${contract.contractNumber} وتحويل المشروع إلى مرحلة التنفيذ`,
+            });
+          } else {
+            console.log('[Contract Approve] Multi-vendor contract approved, waiting for remaining contracts');
+            await db.insert(requestHistory).values({
+              requestId: contract.requestId,
+              userId: ctx.user.id,
+              action: "اعتماد العقد",
+              notes: `تم اعتماد عقد المورد (${contract.secondPartyName}) رقم ${contract.contractNumber}، بانتظار استكمال باقي عقود الموردين للطلب`,
+            });
+          }
         } else {
           console.log('[Contract Approve] No requestId found, skipping request stage update');
         }

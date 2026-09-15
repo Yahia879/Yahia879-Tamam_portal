@@ -66,7 +66,7 @@ export function MultiVendorContractingCard({
     }>();
 
     const acceptedQuotations = allQuotations.filter((q: any) => 
-      q.status === "accepted" || q.status === "approved" || hasAcceptedQuotation
+      q.status === "accepted" || q.status === "approved"
     );
 
     acceptedQuotations.forEach((quotation: any) => {
@@ -127,7 +127,7 @@ export function MultiVendorContractingCard({
         contract: existingContract || null
       };
     });
-  }, [allQuotations, hasAcceptedQuotation, contractsList]);
+  }, [allQuotations, contractsList]);
 
   // العقد النشط المعروض حالياً في قسم العرض التنقلي
   const activeContract = contractsList[activeContractIndex] || null;
@@ -142,7 +142,7 @@ export function MultiVendorContractingCard({
     if (supplierData.supplierName) params.set("supplierName", supplierData.supplierName);
     if (supplierData.totalAmount) params.set("amount", String(supplierData.totalAmount));
 
-    setLocation(`/contracts/new/request/${requestId}?${params.toString()}`);
+    setLocation(`/contracts/new?${params.toString()}`);
   };
 
   return (
