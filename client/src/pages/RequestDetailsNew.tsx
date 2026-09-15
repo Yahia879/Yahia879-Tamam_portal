@@ -1758,7 +1758,7 @@ export default function RequestDetailsNew() {
                               onClick: () => setLocation(`/quotations?requestId=${requestId}`),
                               variant: 'outline' as const,
                             }
-                          : request.currentStage === 'contracting' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                          : request.currentStage === 'contracting' && (request.programType === 'sedana' || hasApprovedContract) && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
                               label: "الانتقال إلى مرحلة التنفيذ",
                               onClick: () => updateStageMutation.mutate({ requestId, newStage: 'execution' as any }),
