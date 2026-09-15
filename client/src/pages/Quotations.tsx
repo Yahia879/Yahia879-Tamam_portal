@@ -304,22 +304,32 @@ export default function Quotations() {
     if (isSedanaProgram && boqData?.items && allQuotations.length > 0) {
       setSelectedWinningVendors(prev => {
         const updated = { ...prev };
+        let changed = false;
         boqData.items.forEach((item: any) => {
           if (!updated[item.id]) {
+            // أولاً: البحث عن عرض معتمد مسبقاً لهذا البند
             const acceptedQuote = allQuotations.find((q: any) => {
               if (q.status !== 'accepted' && q.status !== 'approved') return false;
-              const itemsArr = parseQuotationItems(q.items);
-              return itemsArr.some((it: any) => 
-                (String(it.boqItemId) === String(item.id) || (it.itemName && item.itemName && String(it.itemName).trim().toLowerCase() === String(item.itemName).trim().toLowerCase())) &&
-                parseFloat(it.unitPrice || it.price || 0) > 0
-              );
+              const offer = getOfferForItem(item, q, boqData.items.length);
+              return offer && offer.unitPrice > 0;
             });
             if (acceptedQuote) {
               updated[item.id] = acceptedQuote.id;
+              changed = true;
+            } else {
+              // ثانياً: إذا كان هناك مورد واحد فقط قدم سعراً لهذا البند، يتم تحديده تلقائياً لتسهيل الاعتماد
+              const offers = allQuotations.filter((q: any) => {
+                const offer = getOfferForItem(item, q, boqData.items.length);
+                return offer && offer.unitPrice > 0;
+              });
+              if (offers.length === 1) {
+                updated[item.id] = offers[0].id;
+                changed = true;
+              }
             }
           }
         });
-        return updated;
+        return changed ? updated : prev;
       });
     }
   }, [isSedanaProgram, boqData?.items, allQuotations]);
@@ -328,8 +338,8 @@ export default function Quotations() {
   const getOfferForItem = (item: any, quotation: any, totalBoqItemsCount: number = 1) => {
     if (!item || !quotation) return null;
     const itemsArr = parseQuotationItems(quotation.items);
-    const qty = parseFloat(item.quantity) || 1;
-    const totAmount = parseFloat(quotation.totalAmount || "0");
+    const qty = parseFloat(String(item.quantity || 1).replace(/,/g, '')) || 1;
+    const totAmount = parseFloat(String(quotation.totalAmount || "0").replace(/,/g, ''));
 
     if (itemsArr && itemsArr.length > 0) {
       let itemOffer = itemsArr.find((it: any) => {
@@ -345,9 +355,9 @@ export default function Quotations() {
 
       if (itemOffer) {
         const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount ?? 0;
-        let uPrice = parseFloat(String(rawUnitPrice || 0));
+        let uPrice = parseFloat(String(rawUnitPrice || 0).replace(/,/g, ''));
         const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price ?? 0;
-        let tPrice = parseFloat(String(rawTotPrice || 0));
+        let tPrice = parseFloat(String(rawTotPrice || 0).replace(/,/g, ''));
 
         if (uPrice <= 0 && tPrice > 0) {
           uPrice = tPrice / qty;
@@ -378,16 +388,23 @@ export default function Quotations() {
     return null;
   };
 
-  // حساب إجمالي التكلفة بناءً على عروض الموردين الفائزين المحددين لكل بند
+  // حساب إجمالي التكلفة بناءً على عروض الموردين الفائزين المحددين لكل بند أو الأسعار المعتمدة مسبقاً
   const totalSelectedItemsCost = useMemo(() => {
     if (!boqData?.items) return 0;
     return boqData.items.reduce((sum: number, item: any) => {
       const qId = selectedWinningVendors[item.id];
-      if (!qId) return sum;
-      const quotation = allQuotations.find((q: any) => q.id === qId);
-      if (!quotation) return sum;
-      const offer = getOfferForItem(item, quotation, boqData.items.length);
-      return sum + (offer ? offer.totalPrice : 0);
+      if (qId) {
+        const quotation = allQuotations.find((q: any) => q.id === qId);
+        if (quotation) {
+          const offer = getOfferForItem(item, quotation, boqData.items.length);
+          if (offer && offer.totalPrice > 0) return sum + offer.totalPrice;
+        }
+      }
+      const savedTot = item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : 0;
+      if (savedTot > 0) return sum + savedTot;
+      const savedUnit = item.unitPrice ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : 0;
+      const qty = parseFloat(String(item.quantity || 1).replace(/,/g, '')) || 1;
+      return sum + (savedUnit * qty);
     }, 0);
   }, [boqData?.items, selectedWinningVendors, allQuotations]);
 
@@ -1721,51 +1738,14 @@ export default function Quotations() {
                     <TableBody className="divide-y divide-slate-300 dark:divide-slate-700">
                       {boqData.items.map((item: any, index: number) => {
                         const offersForItem = isSedanaProgram ? allQuotations.flatMap((quotation: any) => {
-                          const itemsArr = parseQuotationItems(quotation.items);
-                          const qty = parseFloat(item.quantity) || 1;
-                          const totAmount = parseFloat(quotation.totalAmount || "0");
-
-                          let itemOffer = itemsArr.find((it: any) => {
-                            if (!it) return false;
-                            const itBoqId = it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id;
-                            if (itBoqId !== undefined && String(itBoqId) === String(item.id)) {
-                              return true;
-                            }
-                            const itName = String(it.itemName ?? it.item_name ?? it.name ?? it.title ?? "").trim().toLowerCase();
-                            const targetName = String(item.itemName || "").trim().toLowerCase();
-                            return itName && targetName && (itName === targetName || targetName.includes(itName) || itName.includes(targetName));
-                          });
-
-                          if (itemOffer) {
-                            const rawUnitPrice = itemOffer.unitPrice ?? itemOffer.unit_price ?? itemOffer.price ?? itemOffer.rate ?? itemOffer.amount ?? 0;
-                            let uPrice = parseFloat(String(rawUnitPrice || 0));
-                            const rawTotPrice = itemOffer.totalPrice ?? itemOffer.total_price ?? 0;
-                            let tPrice = parseFloat(String(rawTotPrice || 0));
-
-                            if (uPrice <= 0 && tPrice > 0) {
-                              uPrice = tPrice / qty;
-                            }
-                            if (uPrice > 0) {
-                              if (tPrice <= 0) tPrice = uPrice * qty;
-                              return [{
-                                quotation,
-                                unitPrice: uPrice,
-                                totalPrice: tPrice,
-                              }];
-                            }
-                          }
-
-                          if (totAmount > 0) {
-                            const itemsCount = boqData?.items?.length || 1;
-                            const itemTotal = totAmount / itemsCount;
-                            const itemUnitPrice = itemTotal / qty;
+                          const offer = getOfferForItem(item, quotation, boqData?.items?.length || 1);
+                          if (offer) {
                             return [{
                               quotation,
-                              unitPrice: itemUnitPrice,
-                              totalPrice: itemTotal,
+                              unitPrice: offer.unitPrice,
+                              totalPrice: offer.totalPrice,
                             }];
                           }
-
                           return [];
                         }) : [];
 
@@ -1773,12 +1753,12 @@ export default function Quotations() {
                         const selectedOffer = offersForItem.find(o => o.quotation.id === selectedQuotationId);
 
                         const displayUnitPrice = isSedanaProgram 
-                          ? (selectedOffer ? selectedOffer.unitPrice : null)
-                          : (item.unitPrice ? parseFloat(item.unitPrice) : null);
+                          ? (selectedOffer ? selectedOffer.unitPrice : (item.unitPrice && parseFloat(String(item.unitPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null))
+                          : (item.unitPrice ? parseFloat(String(item.unitPrice).replace(/,/g, '')) : null);
 
                         const displayTotalPrice = isSedanaProgram 
-                          ? (selectedOffer ? selectedOffer.totalPrice : null)
-                          : (item.totalPrice ? parseFloat(item.totalPrice) : null);
+                          ? (selectedOffer ? selectedOffer.totalPrice : (item.totalPrice && parseFloat(String(item.totalPrice).replace(/,/g, '')) > 0 ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null))
+                          : (item.totalPrice ? parseFloat(String(item.totalPrice).replace(/,/g, '')) : null);
 
                         return (
                           <TableRow key={item.id} className="border-b border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50">
