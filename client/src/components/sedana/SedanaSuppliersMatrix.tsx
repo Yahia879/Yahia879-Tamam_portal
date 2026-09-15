@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Droplets, Package, Users, FileText, CheckCircle2, ArrowRight, Upload, Paperclip, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Loader2, Droplets, Package, Users, FileText, CheckCircle2, ArrowRight, Paperclip, ShoppingBag } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { FileUpload, UploadedFile } from '@/components/FileUpload';
@@ -16,12 +16,14 @@ interface SedanaSuppliersMatrixProps {
     currentStage: string;
   };
   onComplete?: () => void;
+  onSaveDraft?: (data: any) => void;
   canEdit?: boolean;
 }
 
 export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
   request,
   onComplete,
+  onSaveDraft,
   canEdit = true,
 }) => {
   let programData: Record<string, any> = {};
@@ -117,8 +119,7 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
   });
 
   const handleSave = (shouldAdvanceStage: boolean) => {
-    saveMatrixMutation.mutate({
-      requestId: request.id,
+    const payload = {
       suppliersMatrix: {
         water: {
           ...waterSupplier,
@@ -135,6 +136,21 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
       },
       totalActualCost,
       notes: generalNotes,
+    };
+
+    if (onSaveDraft) {
+      onSaveDraft(payload);
+    }
+
+    if (!request.id || request.id === 0) {
+      toast.success('تم تحديد التكلفة الفعلية للمسجد بنجاح');
+      if (onComplete) onComplete();
+      return;
+    }
+
+    saveMatrixMutation.mutate({
+      requestId: request.id,
+      ...payload,
       shouldAdvanceStage,
     });
   };
