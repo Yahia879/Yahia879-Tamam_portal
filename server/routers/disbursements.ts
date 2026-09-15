@@ -2175,6 +2175,10 @@ export const disbursementsRouter = router({
               sadadNumber: input.sadadNumber || null,
               billerCode: input.billerCode || null,
               status: "edited" as any,
+              rejectedBy: null,
+              rejectedAt: null,
+              rejectionReason: null,
+              rejectedRole: null,
               updatedAt: new Date(),
             })
             .where(eq(disbursementOrders.id, existingOrder.id));
@@ -2933,6 +2937,16 @@ export const disbursementsRouter = router({
         .leftJoin(disbursementRequests, eq(disbursementOrders.disbursementRequestId, disbursementRequests.id))
         .where(eq(disbursementOrders.id, input.id));
 
+      // تحديد دور الجهة الرافضة (المسؤول المالي، المدير التنفيذي، أو رئيس مجلس الإدارة)
+      let rejectedRole = "board_chairman";
+      if (orderData.status === "pending" || orderData.status === "draft" || orderData.status === "edited") {
+        rejectedRole = "financial";
+      } else if (orderData.status === "pending_executive") {
+        rejectedRole = "executive_director";
+      } else if (orderData.status === "approved" || isChairmanUser) {
+        rejectedRole = "board_chairman";
+      }
+
       await db
         .update(disbursementOrders)
         .set({
@@ -2940,6 +2954,7 @@ export const disbursementsRouter = router({
           rejectedBy: ctx.user.id,
           rejectedAt: new Date(),
           rejectionReason: input.reason,
+          rejectedRole,
         })
         .where(eq(disbursementOrders.id, input.id));
 

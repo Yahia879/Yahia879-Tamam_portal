@@ -27,6 +27,9 @@ async function ensureSchemaUpdated(p: mysql.Pool) {
     if (!colNames.includes("executiveNotesRepliedAt")) {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN executiveNotesRepliedAt DATETIME");
     }
+    if (!colNames.includes("rejectedRole")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN rejectedRole VARCHAR(50) DEFAULT NULL");
+    }
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
   }

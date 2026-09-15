@@ -1197,6 +1197,7 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   rejectedBy: int("rejectedBy").references(() => users.id, { onDelete: "set null" }),
   rejectedAt: datetime("rejectedAt"),
   rejectionReason: text("rejectionReason"),
+  rejectedRole: varchar("rejectedRole", { length: 50 }), // 'financial' | 'executive_director' | 'board_chairman'
 
   // ملاحظات وتوجيهات رئيس المجلس / صاحب الصلاحية (مستقلة عن ملاحظات الاعتماد والرفض)
   executiveNotes: text("executiveNotes"),

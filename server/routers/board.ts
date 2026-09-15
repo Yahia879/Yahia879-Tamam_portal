@@ -92,10 +92,18 @@ export const boardRouter = router({
       }
 
       // ==================== 1️⃣ طلبات وأوامر الصرف المعتمدة لرئيس مجلس الإدارة مع البحث والترقيم والفلترة ====================
-      // لا تظهر في لوحة رئيس مجلس الإدارة إلا الأوامر المعتمدة من الإدارة (approved) أو المنفذة/المرفوضة
-      const baseApprovedOrdersWhere = inArray(
-        disbursementOrders.status,
-        ["approved", "executed", "rejected"] as any
+      // لا تظهر في لوحة رئيس مجلس الإدارة إلا الأوامر المعتمدة من الإدارة (approved) أو المنفذة (executed)
+      // أما الأوامر المرفوضة فتظهر فقط إذا كان الرفض صادراً من رئيس مجلس الإدارة حصراً (rejectedRole = 'board_chairman')
+      // وأي أمر صرف رُفض من المسؤول المالي أو المدير التنفيذي يُستبعد تماماً من هذه اللوحة
+      const chairmanRejectedCondition = and(
+        eq(disbursementOrders.status, "rejected" as any),
+        eq(disbursementOrders.rejectedRole, "board_chairman" as any)
+      );
+
+      const baseApprovedOrdersWhere = or(
+        eq(disbursementOrders.status, "approved" as any),
+        eq(disbursementOrders.status, "executed" as any),
+        chairmanRejectedCondition
       );
 
       let statusCondition;
@@ -104,7 +112,7 @@ export const boardRouter = router({
       } else if (statusFilter === "executed" || statusFilter === "approved_done") {
         statusCondition = eq(disbursementOrders.status, "executed" as any);
       } else if (statusFilter === "rejected") {
-        statusCondition = eq(disbursementOrders.status, "rejected" as any);
+        statusCondition = chairmanRejectedCondition;
       } else {
         statusCondition = baseApprovedOrdersWhere;
       }
@@ -162,6 +170,7 @@ export const boardRouter = router({
           orderStatus: disbursementOrders.status,
           orderCreatedAt: disbursementOrders.createdAt,
           rejectionReason: disbursementOrders.rejectionReason,
+          rejectedRole: disbursementOrders.rejectedRole,
           approvalNotes: disbursementOrders.approvalNotes,
           executiveNotes: disbursementOrders.executiveNotes,
           executiveNotesReply: disbursementOrders.executiveNotesReply,
@@ -199,6 +208,7 @@ export const boardRouter = router({
           orderStatus: o.orderStatus,
           orderCreatedAt: o.orderCreatedAt ? new Date(o.orderCreatedAt).toISOString() : new Date().toISOString(),
           rejectionReason: o.rejectionReason || null,
+          rejectedRole: o.rejectedRole || null,
           approvalNotes: o.approvalNotes || null,
           executiveNotes: o.executiveNotes || null,
           executiveNotesReply: o.executiveNotesReply || null,
@@ -264,7 +274,7 @@ export const boardRouter = router({
       const [rejectedCountRes] = await db
         .select({ count: count() })
         .from(disbursementOrders)
-        .where(eq(disbursementOrders.status, "rejected" as any));
+        .where(chairmanRejectedCondition);
 
     // ==================== 2️⃣ إحصائيات المساجد ====================
     const [totalMosquesRes] = await db
