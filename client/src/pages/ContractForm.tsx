@@ -1753,93 +1753,42 @@ export default function ContractForm() {
             {/* الخطوة 2: الطرف الثاني (اختيار المورد) */}
             {currentStep === 2 && (
               <div className="space-y-6">
-                {allApprovedQuotations.length > 1 && (
-                  <Alert className="bg-emerald-50/70 border-emerald-300 text-emerald-900 mb-2">
-                    <Building2 className="h-4 w-4 text-emerald-600" />
-                    <AlertTitle className="text-sm font-bold">عقود متعددة الموردين للطلب (سدانة)</AlertTitle>
-                    <AlertDescription className="text-xs">
-                      تم اعتماد عروض أسعار لـ {allApprovedQuotations.length} موردين لهذا الطلب. يتطلب النظام إصدار عقد مستقل لكل مورد بقيمة البنود المعتمدة له.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
                 <div className="space-y-2 text-right" dir="rtl">
                   <Label className="text-sm font-bold">المورد (الطرف الثاني) *</Label>
-                  <Select
-                    value={contractData.supplierId?.toString() || ""}
-                    onValueChange={(val) => {
-                      const suppId = parseInt(val);
-                      const matchQuotation = allApprovedQuotations.find((q: any) => 
-                        q.supplierId === suppId || (q.supplierName && q.supplierName.trim() === suppliersList.find((s: any) => s.id === suppId)?.name?.trim())
-                      );
-                      if (matchQuotation) {
-                        applySupplierQuotation(matchQuotation);
-                        const qAmount = parseFloat(matchQuotation.approvedAmount || matchQuotation.finalAmount || matchQuotation.totalAmount || "0");
-                        toast.success(`تم اختيار المورد (${matchQuotation.supplierName || 'المورد'}) وتحديد قيمة العقد بـ ${qAmount.toLocaleString("ar-SA")} ريال بناءً على عرض السعر`);
-                      } else {
+                  {hasApprovedSupplier ? (
+                    <Input
+                      value={selectedSupplier?.name || approvedSupplierQuotation?.supplierName || ""}
+                      readOnly
+                      className="bg-muted font-bold cursor-not-allowed text-foreground"
+                    />
+                  ) : (
+                    <Select
+                      value={contractData.supplierId?.toString() || ""}
+                      onValueChange={(val) => {
+                        const suppId = parseInt(val);
                         setContractData(prev => ({
                           ...prev,
                           supplierId: suppId,
                         }));
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-10 text-sm font-medium">
-                      <SelectValue placeholder="اختر المورد (الطرف الثاني) المراد إصدار العقد له..." />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl" className="text-right">
-                      {/* الموردون المرتبطون بعروض أسعار الطلب الحالي */}
-                      {effectiveRequestId && allApprovedQuotations.length > 0 && (
-                        <>
-                          <div className="px-2 py-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40">
-                            موردو عروض أسعار هذا الطلب:
-                          </div>
-                          {allApprovedQuotations.map((q: any) => {
-                            const qAmount = parseFloat(q.approvedAmount || q.finalAmount || q.totalAmount || "0");
-                            const matchingSupplier = suppliersList.find((s: any) => s.id === q.supplierId || s.name === q.supplierName);
-                            const sId = matchingSupplier?.id || q.supplierId;
-                            const existingC = requestContractsList.find((c: any) => c.supplierId === sId);
-                            if (!sId) return null;
-                            return (
-                              <SelectItem key={`q-supp-${q.id}`} value={String(sId)} className="text-sm cursor-pointer py-2">
-                                <div className="flex items-center justify-between gap-4 w-full">
-                                  <span className="font-bold text-foreground">
-                                    {q.supplierName || matchingSupplier?.name || "مورد"}
-                                    {existingC && (
-                                      <span className="text-[10px] text-muted-foreground mr-1.5 font-normal">
-                                        ({existingC.status === 'approved' ? 'عقد معتمد' : 'مسودة عقد'})
-                                      </span>
-                                    )}
-                                  </span>
-                                  <span className="text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
-                                    مبلغ الترسية: {qAmount.toLocaleString("ar-SA")} ريال
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            );
-                          })}
-                          <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground bg-muted/40 border-t mt-1">
-                            جميع الموردين المسجلين:
-                          </div>
-                        </>
-                      )}
-
-                      {/* جميع الموردين المسجلين في النظام */}
-                      {suppliersList.map((supp: any) => (
-                        <SelectItem key={`all-supp-${supp.id}`} value={String(supp.id)} className="text-sm cursor-pointer">
-                          <div className="flex items-center justify-between gap-3 w-full">
-                            <span>{supp.name}</span>
-                            {supp.commercialRegister && (
-                              <span className="text-xs text-muted-foreground">س.ت: {supp.commercialRegister}</span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    اختر المورد المناسب لإصدار وتوليد العقد الخاص به لهذا الطلب.
-                  </p>
+                      }}
+                    >
+                      <SelectTrigger className="h-10 text-sm font-medium">
+                        <SelectValue placeholder="اختر المورد (الطرف الثاني) المراد إصدار العقد له..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl" className="text-right">
+                        {suppliersList.map((supp: any) => (
+                          <SelectItem key={`all-supp-${supp.id}`} value={String(supp.id)} className="text-sm cursor-pointer">
+                            <div className="flex items-center justify-between gap-3 w-full">
+                              <span>{supp.name}</span>
+                              {supp.commercialRegister && (
+                                <span className="text-xs text-muted-foreground">س.ت: {supp.commercialRegister}</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 {selectedSupplier && (
