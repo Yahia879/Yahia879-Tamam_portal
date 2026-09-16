@@ -636,7 +636,13 @@ export default function UserPermissions() {
         view: "عرض قسم التصعيد الإداري",
       },
       beneficiary_evaluations: {
-        view: "عرض قسم رضا المستفيدين",
+        view: "عرض تقييمات رضا المستفيدين",
+        view_details: "عرض تفاصيل وملاحظات التقييم",
+        view_logs: "عرض سجلات الاستبيانات المرسلة",
+        send_reminder: "إرسال بريد تذكيري بالاستبيان",
+        send_survey: "إرسال استبيان رضا مخصص",
+        export: "تصدير بيانات وتقارير الرضا",
+        delete: "حذف سجلات التقييم",
       },
       projects: {
         view: "عرض المشاريع",
@@ -812,9 +818,9 @@ export default function UserPermissions() {
           perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"]
         },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "view_details", "view_logs", "send_reminder", "send_survey", "export", "delete"] },
       ]
     },
     {
