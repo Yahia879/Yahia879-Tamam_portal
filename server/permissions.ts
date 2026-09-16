@@ -348,8 +348,50 @@ async function ensureRequestsPermissionsExist(db: any) {
         id: "beneficiary_evaluations.view",
         moduleId: "beneficiary_evaluations",
         action: "view",
-        nameAr: "عرض تقييمات المستفيدين",
+        nameAr: "عرض تقييمات رضا المستفيدين",
         nameEn: "View Beneficiary Evaluations"
+      },
+      {
+        id: "beneficiary_evaluations.view_details",
+        moduleId: "beneficiary_evaluations",
+        action: "view_details",
+        nameAr: "عرض تفاصيل وملاحظات التقييم",
+        nameEn: "View Evaluation Details"
+      },
+      {
+        id: "beneficiary_evaluations.view_logs",
+        moduleId: "beneficiary_evaluations",
+        action: "view_logs",
+        nameAr: "عرض سجلات الاستبيانات المرسلة",
+        nameEn: "View Survey Logs"
+      },
+      {
+        id: "beneficiary_evaluations.send_reminder",
+        moduleId: "beneficiary_evaluations",
+        action: "send_reminder",
+        nameAr: "إرسال بريد تذكيري بالاستبيان",
+        nameEn: "Send Survey Reminder"
+      },
+      {
+        id: "beneficiary_evaluations.send_survey",
+        moduleId: "beneficiary_evaluations",
+        action: "send_survey",
+        nameAr: "إرسال استبيان رضا مخصص",
+        nameEn: "Send Custom Survey"
+      },
+      {
+        id: "beneficiary_evaluations.export",
+        moduleId: "beneficiary_evaluations",
+        action: "export",
+        nameAr: "تصدير تقارير وبيانات الرضا",
+        nameEn: "Export Satisfaction Reports"
+      },
+      {
+        id: "beneficiary_evaluations.delete",
+        moduleId: "beneficiary_evaluations",
+        action: "delete",
+        nameAr: "حذف سجلات التقييم",
+        nameEn: "Delete Evaluation Records"
       }
     ];
 
@@ -384,16 +426,16 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_logs", "beneficiary_evaluations.send_reminder", "beneficiary_evaluations.send_survey", "beneficiary_evaluations.export", "beneficiary_evaluations.delete"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_logs", "beneficiary_evaluations.send_reminder", "beneficiary_evaluations.send_survey", "beneficiary_evaluations.export", "beneficiary_evaluations.delete"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_logs", "beneficiary_evaluations.send_reminder", "beneficiary_evaluations.send_survey", "beneficiary_evaluations.export"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
       project_manager: ["requests.view", "requests.create", "requests.view_details"],
       corporate_comm: ["requests.view", "requests.upload_final_report"],
-      super_admin: ["beneficiary_evaluations.view", "escalation.view"],
-      system_admin: ["beneficiary_evaluations.view", "escalation.view"],
+      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_logs", "beneficiary_evaluations.send_reminder", "beneficiary_evaluations.send_survey", "beneficiary_evaluations.export", "beneficiary_evaluations.delete", "escalation.view"],
+      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.view_details", "beneficiary_evaluations.view_logs", "beneficiary_evaluations.send_reminder", "beneficiary_evaluations.send_survey", "beneficiary_evaluations.export", "beneficiary_evaluations.delete", "escalation.view"],
     };
 
     const roleNamesAr: Record<string, string> = {
@@ -689,6 +731,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "analytics_hub.operations", moduleId: "analytics_hub", action: "operations", nameAr: "عرض تقارير العمليات والمعاينات", nameEn: "View Operations & Pending Reports" },
       { id: "analytics_hub.progress", moduleId: "analytics_hub", action: "progress", nameAr: "عرض تقارير ونسب الإنجاز", nameEn: "View Progress Reports" },
       { id: "beneficiary_evaluations.view", moduleId: "beneficiary_evaluations", action: "view", nameAr: "عرض قسم رضا المستفيدين", nameEn: "View Beneficiary Satisfaction" },
+      { id: "beneficiary_evaluations.view_details", moduleId: "beneficiary_evaluations", action: "view_details", nameAr: "عرض تفاصيل وملاحظات التقييم", nameEn: "View Evaluation Details" },
+      { id: "beneficiary_evaluations.view_logs", moduleId: "beneficiary_evaluations", action: "view_logs", nameAr: "عرض سجلات الاستبيانات المرسلة", nameEn: "View Survey Logs" },
+      { id: "beneficiary_evaluations.send_reminder", moduleId: "beneficiary_evaluations", action: "send_reminder", nameAr: "إرسال بريد تذكيري بالاستبيان", nameEn: "Send Survey Reminder" },
+      { id: "beneficiary_evaluations.send_survey", moduleId: "beneficiary_evaluations", action: "send_survey", nameAr: "إرسال استبيان رضا مخصص", nameEn: "Send Custom Survey" },
+      { id: "beneficiary_evaluations.export", moduleId: "beneficiary_evaluations", action: "export", nameAr: "تصدير تقارير وبيانات الرضا", nameEn: "Export Satisfaction Reports" },
+      { id: "beneficiary_evaluations.delete", moduleId: "beneficiary_evaluations", action: "delete", nameAr: "حذف سجلات التقييم", nameEn: "Delete Evaluation Records" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
@@ -1117,7 +1165,17 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.delete("beneficiary_evaluations");
     allPermissions.delete("beneficiary_evaluations.view");
     allPermissions.delete("beneficiary_satisfaction");
-  } else if (allPermissions.has("beneficiary_evaluations.view") || allPermissions.has("beneficiary_evaluations") || allPermissions.has("beneficiary_satisfaction")) {
+  } else if (
+    allPermissions.has("beneficiary_evaluations.view") ||
+    allPermissions.has("beneficiary_evaluations") ||
+    allPermissions.has("beneficiary_satisfaction") ||
+    allPermissions.has("beneficiary_evaluations.view_details") ||
+    allPermissions.has("beneficiary_evaluations.view_logs") ||
+    allPermissions.has("beneficiary_evaluations.send_reminder") ||
+    allPermissions.has("beneficiary_evaluations.send_survey") ||
+    allPermissions.has("beneficiary_evaluations.export") ||
+    allPermissions.has("beneficiary_evaluations.delete")
+  ) {
     allPermissions.add("beneficiary_evaluations");
     allPermissions.add("beneficiary_evaluations.view");
     allPermissions.add("beneficiary_satisfaction");
