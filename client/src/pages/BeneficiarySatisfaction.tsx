@@ -852,7 +852,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 )}
 
             {/* عند اختيار استبيانات الطلبات المغلقة */}
-            {logsSubView === "requests" && (
+            {canViewDispatchLogs && (logsSubView === "requests" || !canViewContacts) && (
               <div className="space-y-4">
                 {/* Filter and Search Bar للسجلات */}
                 <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
@@ -1234,7 +1234,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
             )}
 
             {/* عند اختيار قسم المستفيدين المعتمدين والمتبرعين والاستفسارات */}
-            {logsSubView === "contacts" && (
+            {canViewContacts && (logsSubView === "contacts" || !canViewDispatchLogs) && (
               <div className="space-y-4">
                 {/* Filter and Search Bar لجهات الاتصال */}
                 <Card className="rounded-2xl border border-border/80 shadow-xs bg-card" dir="rtl">
@@ -1650,17 +1650,143 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                         </p>
                       </div>
                     )}
+
+                    {/* الرد الرسمي للجمعية إن وجد */}
+                    {selectedEval.reply ? (
+                      <div className="p-4 sm:p-5 rounded-2xl bg-teal-500/10 border border-teal-500/25 space-y-2 text-right">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <span className="text-xs sm:text-sm font-bold text-teal-800 dark:text-teal-300 flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-teal-600" />
+                            <span>الرد الرسمي المسجل:</span>
+                          </span>
+                          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                            <span>{selectedEval.reply.userName || "إدارة الجمعية"}</span>
+                            <span>•</span>
+                            <span>{formatDateEn(selectedEval.reply.repliedAt)}</span>
+                          </div>
+                        </div>
+                        <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap bg-card/70 p-3.5 rounded-xl border border-teal-500/15">
+                          {selectedEval.reply.text}
+                        </p>
+                      </div>
+                    ) : (
+                      canReply && (
+                        <div className="p-4 rounded-2xl bg-muted/40 border border-dashed border-border flex items-center justify-between gap-3">
+                          <div className="text-xs text-muted-foreground">
+                            لم يتم تسجيل رد رسمي على هذا التقييم بعد.
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleOpenReplyDialog(selectedEval)}
+                            className="text-xs font-bold gap-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl h-8 px-3 shrink-0"
+                          >
+                            <MessageSquarePlus className="w-3.5 h-3.5" />
+                            <span>إضافة رد رسمي</span>
+                          </Button>
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
 
-                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end items-center">
+                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-between items-center flex-row">
+                  {canReply && selectedEval.reply && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenReplyDialog(selectedEval)}
+                      className="text-xs font-bold rounded-xl px-4 gap-1.5 text-teal-700 dark:text-teal-300 border-teal-500/30 hover:bg-teal-500/10"
+                    >
+                      <MessageSquarePlus className="w-3.5 h-3.5" />
+                      <span>تعديل الرد الرسمي</span>
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setIsDetailModalOpen(false)}
-                    className="text-xs font-bold rounded-xl px-6"
+                    className="text-xs font-bold rounded-xl px-6 mr-auto"
                   >
                     إغلاق
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* حوار إضافة / تعديل الرد الرسمي على التقييم */}
+        <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+          <DialogContent className="max-w-lg w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
+            <DialogHeader className="text-right space-y-1">
+              <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
+                <MessageSquarePlus className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <span>{replyTargetEval?.reply ? "تعديل الرد الرسمي على التقييم" : "إضافة رد رسمي على التقييم"}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-right">
+                توثيق الرد الرسمي لجمعية عمارة المساجد على تقييم المستفيد وملاحظاته.
+              </DialogDescription>
+            </DialogHeader>
+
+            {replyTargetEval && (
+              <div className="space-y-4 pt-2">
+                {/* ملخص التقييم */}
+                <div className="bg-muted/50 p-3.5 rounded-xl border border-border/70 space-y-2 text-xs text-right">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">المستفيد: <strong className="text-foreground">{replyTargetEval.requesterName}</strong></span>
+                    <span className="font-mono text-muted-foreground">{replyTargetEval.requestNumber}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-600 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                    <span>{replyTargetEval.rating} من 5 نجوم</span>
+                  </div>
+                  {replyTargetEval.comments && (
+                    <p className="text-muted-foreground italic bg-card/60 p-2.5 rounded-lg border border-border/50 text-[11px] leading-relaxed">
+                      "{replyTargetEval.comments}"
+                    </p>
+                  )}
+                </div>
+
+                {/* حقل نص الرد */}
+                <div className="space-y-1.5 text-right">
+                  <Label className="text-xs font-bold text-foreground text-right block">نص الرد الرسمي *</Label>
+                  <Textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="اكتب الرد الرسمي للإدارة على هذا التقييم والملاحظات الواردة..."
+                    rows={4}
+                    className="text-xs text-right resize-none"
+                    dir="rtl"
+                  />
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-0 pt-2 flex items-center justify-between" dir="rtl">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setReplyDialogOpen(false)}
+                    className="text-xs h-9"
+                  >
+                    إلغاء
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={saveReplyMutation.isPending || !replyText.trim()}
+                    onClick={() => {
+                      if (!replyTargetEval || !replyText.trim()) return;
+                      saveReplyMutation.mutate({
+                        evalId: replyTargetEval.id,
+                        replyText: replyText.trim(),
+                      });
+                    }}
+                    className="text-xs h-9 font-bold bg-teal-600 hover:bg-teal-700 text-white gap-1.5"
+                  >
+                    {saveReplyMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <MessageSquarePlus className="w-3.5 h-3.5" />
+                    )}
+                    <span>حفظ الرد الرسمي</span>
                   </Button>
                 </DialogFooter>
               </div>
