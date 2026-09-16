@@ -18,7 +18,6 @@ import {
   Filter,
   ChevronLeft,
   Zap,
-  Sparkles,
   MapPin,
   ClipboardList,
   Languages,
@@ -254,14 +253,6 @@ export default function Requests({
           </div>
           {!initialAssignedToMe && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
-              <PermissionGuard permission="requests.create">
-                <Link href="/service-request?service=sedana">
-                  <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm font-bold border-0 transition-all">
-                    <Sparkles className="w-4 h-4 text-emerald-200" />
-                    <span>الخدمات السنوية (سدانة)</span>
-                  </Button>
-                </Link>
-              </PermissionGuard>
               {(user?.role === "quick_response" || userPermissions.includes("requests.create_quick_request")) && (
                 <>
                   <Link href="/requests/quick-create">
