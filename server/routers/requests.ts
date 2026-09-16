@@ -4985,8 +4985,9 @@ export const requestsRouter = router({
       }
 
       const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
-      const canHide = isAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
+      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
+      const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || isSuperAdminFallback;
+      const canHide = userPerms.includes("beneficiary_evaluations.hide") || isSuperAdminFallback;
 
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       let items = allEvaluations.map((e) => {
@@ -5098,7 +5099,7 @@ export const requestsRouter = router({
       }
 
       return {
-        items: filteredItems,
+        items: canViewEvaluationsLog ? filteredItems : [],
         stats: {
           totalEvaluations,
           avgRating,
@@ -5127,6 +5128,25 @@ export const requestsRouter = router({
       const isStaff = ctx.user.role !== "service_requester";
       if (!isStaff) {
         throw new TRPCError({ code: "FORBIDDEN", message: "هذا القسم متاح للموظفين والإدارة فقط." });
+      }
+
+      const userPerms = ((ctx.user as any).permissions as string[]) || [];
+      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
+      const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") || isSuperAdminFallback;
+      if (!canViewDispatchLogs) {
+        return {
+          items: [],
+          total: 0,
+          page: 1,
+          limit: 15,
+          totalPages: 1,
+          stats: {
+            totalDispatched: 0,
+            totalEvaluated: 0,
+            totalPending: 0,
+            responseRate: 0,
+          },
+        };
       }
 
       const page = input?.page || 1;
@@ -5597,8 +5617,8 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
-      if (!isAdmin && !userPerms.includes("beneficiary_evaluations.reply") && !userPerms.includes("beneficiary_evaluations")) {
+      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
+      if (!userPerms.includes("beneficiary_evaluations.reply") && !isSuperAdminFallback) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
       }
 
@@ -5655,8 +5675,8 @@ export const requestsRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
       const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
-      if (!isAdmin && !userPerms.includes("beneficiary_evaluations.hide") && !userPerms.includes("beneficiary_evaluations")) {
+      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
+      if (!userPerms.includes("beneficiary_evaluations.hide") && !isSuperAdminFallback) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إخفاء أو إظهار تقييمات المستفيدين" });
       }
 
@@ -5700,7 +5720,9 @@ export const requestsRouter = router({
       return {
         success: true,
         message: input.isHidden ? "تم إخفاء التقييم بنجاح ولن يظهر للمستخدمين الآخرين" : "تم إلغاء إخفاء التقييم وإظهاره بنجاح",
+        evalId: input.evalId,
         isHidden: input.isHidden,
+        hiddenBy: parsedNotes.hiddenBy || null,
       };
     }),
 
@@ -5723,6 +5745,25 @@ export const requestsRouter = router({
       const isStaff = ctx.user.role !== "service_requester";
       if (!isStaff) {
         throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
+      }
+
+      const userPerms = ((ctx.user as any).permissions as string[]) || [];
+      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
+      const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") || isSuperAdminFallback;
+      if (!canViewContacts) {
+        return {
+          items: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+          stats: {
+            totalAll: 0,
+            totalApprovedBeneficiaries: 0,
+            totalDonors: 0,
+            totalInquirers: 0,
+          },
+        };
       }
 
       const page = input?.page || 1;
