@@ -5038,6 +5038,7 @@ export const requestsRouter = router({
           communicationRating: parsedNotes.communicationRating || answers.communicationRating || null,
           overallSatisfaction: parsedNotes.overallSatisfaction || answers.overallSatisfaction || null,
           comments: parsedNotes.comments || parsedNotes.notes || answers.comments || null,
+          reply: parsedNotes.reply || null,
           answers: answers,
           rawNotes: e.notes,
         };
