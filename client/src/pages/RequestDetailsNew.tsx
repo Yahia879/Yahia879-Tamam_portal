@@ -3301,9 +3301,6 @@ export default function RequestDetailsNew() {
                     rows={4}
                     className="text-right text-xs sm:text-sm"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    سيتم توثيق هذا السبب في سجلات الطلب وإظهاره في بنر الحالة لطالب الخدمة وفريق العمل.
-                  </p>
                 </div>
               </div>
             )}
