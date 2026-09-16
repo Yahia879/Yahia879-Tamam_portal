@@ -900,9 +900,9 @@ export default function RolePermissions() {
         { id: "mosque_map", nameAr: "خريطة المساجد", icon: Map, perms: ["view"] },
         { id: "requests", nameAr: "الطلبات", icon: Zap, perms: ["view", "create", "view_details", "add_review_note", "manage_as_field_team", "manage_as_quick_response", "upload_final_report", "create_quick_request"] },
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
-        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
+        { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "view_details", "view_logs", "send_reminder", "send_survey", "export", "delete"] },
       ]
     },
     {
@@ -1053,7 +1053,13 @@ export default function RolePermissions() {
         view: "عرض قسم التصعيد الإداري",
       },
       beneficiary_evaluations: {
-        view: "عرض قسم رضا المستفيدين",
+        view: "عرض تقييمات رضا المستفيدين",
+        view_details: "عرض تفاصيل وملاحظات التقييم",
+        view_logs: "عرض سجلات الاستبيانات المرسلة",
+        send_reminder: "إرسال بريد تذكيري بالاستبيان",
+        send_survey: "إرسال استبيان رضا مخصص",
+        export: "تصدير بيانات وتقارير الرضا",
+        delete: "حذف سجلات التقييم",
       },
       projects: {
         view: "عرض المشاريع",
@@ -1498,6 +1504,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !selectedPerms.includes("project_reports.view")) ||
                                  (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !selectedPerms.includes("requesters.view")) ||
                                  (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !selectedPerms.includes("reports.view_stats")) ||
+                                 (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !selectedPerms.includes("beneficiary_evaluations.view")) ||
                                  (perm.id === "financial_approval.approve" && !selectedPerms.includes("financial_approval.view"));
                               return (
                                 <div 
