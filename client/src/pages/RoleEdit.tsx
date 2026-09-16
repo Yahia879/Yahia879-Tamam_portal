@@ -62,7 +62,7 @@ const superAdminGroups = [
       { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
       { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
       { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-      { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "view_details", "view_logs", "send_reminder", "send_survey", "export", "delete"] },
+      { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "dispatch_log", "contacts", "reply"] },
     ]
   },
   {
@@ -195,13 +195,11 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض قسم التصعيد الإداري"
     },
     beneficiary_evaluations: {
-      view: "عرض تقييمات رضا المستفيدين",
-      view_details: "عرض تفاصيل وملاحظات التقييم",
-      view_logs: "عرض سجلات الاستبيانات المرسلة",
-      send_reminder: "إرسال بريد تذكيري بالاستبيان",
-      send_survey: "إرسال استبيان رضا مخصص",
-      export: "تصدير بيانات وتقارير الرضا",
-      delete: "حذف سجلات التقييم",
+      view: "عرض قسم رضا المستفيدين",
+      evaluations_log: "سجل استبيانات التقييم",
+      dispatch_log: "سجل الإرسال",
+      contacts: "المستفيدين المعتمدين والاستفسارات",
+      reply: "إضافة رد على التقييم",
     },
 
     projects: {
