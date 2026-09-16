@@ -4984,8 +4984,12 @@ export const requestsRouter = router({
         mosqueList.forEach((m) => mosqueMap.set(m.id, m.name));
       }
 
+      const userPerms = ((ctx.user as any).permissions as string[]) || [];
+      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
+      const canHide = isAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
+
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
-      const items = allEvaluations.map((e) => {
+      let items = allEvaluations.map((e) => {
         let parsedNotes: any = {};
         try {
           if (e.notes) parsedNotes = JSON.parse(e.notes);
@@ -5039,10 +5043,17 @@ export const requestsRouter = router({
           overallSatisfaction: parsedNotes.overallSatisfaction || answers.overallSatisfaction || null,
           comments: parsedNotes.comments || parsedNotes.notes || answers.comments || null,
           reply: parsedNotes.reply || null,
+          isHidden: Boolean(parsedNotes.isHidden),
+          hiddenBy: parsedNotes.hiddenBy || null,
           answers: answers,
           rawNotes: e.notes,
         };
       });
+
+      // إذا كان المستخدم لا يملك صلاحية إخفاء التقييمات، يتم استبعاد التقييمات المخفية تماماً
+      if (!canHide) {
+        items = items.filter((item) => !item.isHidden);
+      }
 
       // إحصائيات عامة
       const totalEvaluations = items.length;
@@ -5628,6 +5639,68 @@ export const requestsRouter = router({
         success: true,
         message: "تم حفظ الرد على التقييم بنجاح",
         reply: parsedNotes.reply,
+      };
+    }),
+
+  // تبديل حالة إخفاء التقييم (إخفاء أو إظهار)
+  toggleBeneficiaryEvaluationVisibility: protectedProcedure
+    .input(
+      z.object({
+        evalId: z.number(),
+        isHidden: z.boolean(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const userPerms = ((ctx.user as any).permissions as string[]) || [];
+      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
+      if (!isAdmin && !userPerms.includes("beneficiary_evaluations.hide") && !userPerms.includes("beneficiary_evaluations")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إخفاء أو إظهار تقييمات المستفيدين" });
+      }
+
+      const [evalRecord] = await db
+        .select()
+        .from(requestEvaluations)
+        .where(eq(requestEvaluations.id, input.evalId))
+        .limit(1);
+
+      if (!evalRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "سجل التقييم غير موجود" });
+      }
+
+      let parsedNotes: any = {};
+      try {
+        if (evalRecord.notes) {
+          parsedNotes = JSON.parse(evalRecord.notes);
+        }
+      } catch {
+        parsedNotes = { comments: evalRecord.notes };
+      }
+
+      parsedNotes.isHidden = input.isHidden;
+      if (input.isHidden) {
+        parsedNotes.hiddenBy = {
+          userId: ctx.user.id,
+          userName: ctx.user.name || "الإدارة",
+          hiddenAt: new Date().toISOString(),
+        };
+      } else {
+        delete parsedNotes.hiddenBy;
+      }
+
+      await db
+        .update(requestEvaluations)
+        .set({
+          notes: JSON.stringify(parsedNotes),
+        })
+        .where(eq(requestEvaluations.id, input.evalId));
+
+      return {
+        success: true,
+        message: input.isHidden ? "تم إخفاء التقييم بنجاح ولن يظهر للمستخدمين الآخرين" : "تم إلغاء إخفاء التقييم وإظهاره بنجاح",
+        isHidden: input.isHidden,
       };
     }),
 
