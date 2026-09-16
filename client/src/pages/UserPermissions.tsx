@@ -641,6 +641,7 @@ export default function UserPermissions() {
         dispatch_log: "سجل الإرسال",
         contacts: "المستفيدين المعتمدين والاستفسارات",
         reply: "إضافة رد على التقييم",
+        hide: "إخفاء وإظهار التقييمات",
       },
       projects: {
         view: "عرض المشاريع",
@@ -818,7 +819,7 @@ export default function UserPermissions() {
         { id: "escalation", nameAr: "التصعيد الإداري", icon: AlertTriangle, perms: ["view"] },
         { id: "pending_reports", nameAr: "تقارير الطلبات", icon: FileText, perms: ["view", "intervene"] },
         { id: "appointments", nameAr: "تقويم المواعيد", icon: Calendar, perms: ["view_all", "view_own"] },
-        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "dispatch_log", "contacts", "reply"] },
+        { id: "beneficiary_evaluations", nameAr: "رضا المستفيدين", icon: HeartHandshake, perms: ["view", "evaluations_log", "dispatch_log", "contacts", "reply", "hide"] },
       ]
     },
     {
