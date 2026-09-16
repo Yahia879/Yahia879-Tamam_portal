@@ -1122,6 +1122,8 @@ export default function UserPermissions() {
                               (perm.id.startsWith("progress_reports.") && perm.id !== "progress_reports.view" && !isChecked("progress_reports.view")) ||
                               (perm.id.startsWith("project_reports.") && perm.id !== "project_reports.view" && !isChecked("project_reports.view")) ||
                               (perm.id.startsWith("requesters.") && perm.id !== "requesters.view" && !isChecked("requesters.view")) ||
+                              (perm.id.startsWith("reports.") && perm.id !== "reports.view_stats" && !isChecked("reports.view_stats")) ||
+                              (perm.id.startsWith("beneficiary_evaluations.") && perm.id !== "beneficiary_evaluations.view" && !isChecked("beneficiary_evaluations.view")) ||
                               (perm.id === "financial_approval.approve" && !isChecked("financial_approval.view"));
 
                             // تحديد نمط البطاقة بناءً على نوع حالة الصلاحية (موروثة، ممنوحة، مسحوبة)
