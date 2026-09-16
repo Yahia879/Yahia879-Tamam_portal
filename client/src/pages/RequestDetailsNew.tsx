@@ -322,6 +322,8 @@ export default function RequestDetailsNew() {
   const [showTechnicalEvalDialog, setShowTechnicalEvalDialog] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
+  const [closureType, setClosureType] = useState<'apology' | 'rejection' | 'other'>('apology');
+  const [customClosureReason, setCustomClosureReason] = useState<string>("");
   const [projectName, setProjectName] = useState("");
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
@@ -331,6 +333,25 @@ export default function RequestDetailsNew() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [selectedQuickResponseMemberId, setSelectedQuickResponseMemberId] = useState<string | null>(null);
   const [showRejectionReportDialog, setShowRejectionReportDialog] = useState(false);
+
+  // تصنيفات إغلاق الطلب (اعتذار / رفض / أسباب أخرى)
+  const CLOSURE_CATEGORIES = [
+    {
+      id: 'apology' as const,
+      label: 'اعتذار عن الطلب',
+      desc: 'الاعتذار لعدم توفر التمويل أو عدم استيفاء المعايير',
+    },
+    {
+      id: 'rejection' as const,
+      label: 'رفض الطلب',
+      desc: 'رفض الطلب لعدم الأهلية أو التكرار أو مخالفة الشروط',
+    },
+    {
+      id: 'other' as const,
+      label: 'أسباب أخرى',
+      desc: 'إغلاق الطلب لظروف خاصة أو بناءً على رغبة المستفيد',
+    },
+  ];
 
   // States for donation opportunity
   const [donationTitle, setDonationTitle] = useState("");
@@ -1941,22 +1962,25 @@ export default function RequestDetailsNew() {
                     </div>
                   </button>
 
-                  {/* الاعتذار */}
+                  {/* إغلاق الطلب */}
                   <button 
-                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50/70 hover:bg-red-50 hover:border-red-300 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm"
+                    className="group p-3 rounded-xl border-2 border-red-200 bg-red-50/70 hover:bg-red-100/70 hover:border-red-400 transition-all text-right disabled:opacity-50 dark:bg-red-950/20 dark:border-red-900/50 shadow-sm"
                     onClick={() => {
                       setSelectedDecision('apologize');
+                      setClosureType('apology');
+                      setCustomClosureReason('');
+                      setJustification('');
                       setShowTechnicalEvalDialog(true);
                     }}
                     disabled={technicalEvalMutation.isPending}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900 flex items-center justify-center shrink-0">
-                        <XCircle className="w-5 h-5 text-red-500 dark:text-red-400" />
+                      <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/60 flex items-center justify-center shrink-0">
+                        <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="font-bold text-red-700 dark:text-red-200 text-xs sm:text-sm mb-0.5">الاعتذار (الرفض)</h5>
-                        <p className="text-[10px] sm:text-[11px] text-red-500 dark:text-red-400 leading-snug">رفض الطلب نهائياً مع توضيح أسباب الاعتذار</p>
+                        <h5 className="font-bold text-red-700 dark:text-red-200 text-xs sm:text-sm mb-0.5">إغلاق الطلب</h5>
+                        <p className="text-[10px] sm:text-[11px] text-red-500 dark:text-red-400 leading-snug">إغلاق الطلب نهائياً مع تحديد نوع وسبب الإغلاق</p>
                       </div>
                     </div>
                   </button>
@@ -3186,18 +3210,107 @@ export default function RequestDetailsNew() {
 
       {/* Technical Evaluation Dialog */}
       {showTechnicalEvalDialog && selectedDecision && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className={`bg-white dark:bg-slate-900 rounded-lg p-6 w-full mx-4 shadow-xl border dark:border-slate-800 transition-all duration-200 ${selectedDecision === 'convert_to_donation' ? 'max-w-lg' : 'max-w-md'}`}>
-            <h3 className="text-lg font-bold mb-4 text-foreground">
-              {TECHNICAL_EVAL_OPTION_LABELS[selectedDecision]}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {TECHNICAL_EVAL_OPTIONS[selectedDecision as keyof typeof TECHNICAL_EVAL_OPTIONS]?.description}
-            </p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 w-full shadow-2xl border border-slate-200 dark:border-slate-800 transition-all duration-200 max-h-[90vh] overflow-y-auto ${
+            selectedDecision === 'apologize' ? 'max-w-xl sm:max-w-2xl' : selectedDecision === 'convert_to_donation' ? 'max-w-lg' : 'max-w-md'
+          }`}>
+            {/* رأس النافذة */}
+            {selectedDecision === 'apologize' ? (
+              <div className="flex items-start gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800 text-right" dir="rtl">
+                <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-black text-foreground">
+                    إغلاق الطلب
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    حدد نوع الإغلاق واكتب سبب ومبررات الإغلاق لتوضيحها للمستفيد والإدارة
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 text-right" dir="rtl">
+                <h3 className="text-lg font-bold text-foreground">
+                  {TECHNICAL_EVAL_OPTION_LABELS[selectedDecision]}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {TECHNICAL_EVAL_OPTIONS[selectedDecision as keyof typeof TECHNICAL_EVAL_OPTIONS]?.description}
+                </p>
+              </div>
+            )}
 
-            {/* حقل المبررات (مطلوب للاعتذار والتعليق) */}
-            {(selectedDecision === 'apologize' || selectedDecision === 'suspend') && (
-              <div className="mb-4">
+            {/* تفاصيل وخيارات إغلاق الطلب (اعتذار / رفض / أسباب أخرى) */}
+            {selectedDecision === 'apologize' && (
+              <div className="space-y-4 text-right" dir="rtl">
+                {/* اختيار تصنيف الإغلاق */}
+                <div>
+                  <label className="block text-xs font-bold text-foreground mb-2">
+                    نوع وتصنيف الإغلاق <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {CLOSURE_CATEGORIES.map((cat) => {
+                      const isSelected = closureType === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setClosureType(cat.id);
+                          }}
+                          className={`p-3 rounded-xl border-2 text-right transition-all flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-red-500 bg-red-50/80 dark:bg-red-950/50 shadow-sm ring-2 ring-red-500/20'
+                              : 'border-slate-200 dark:border-slate-800 bg-card hover:bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-1">
+                            <span className={`text-xs font-bold ${isSelected ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}>
+                              {cat.label}
+                            </span>
+                            {isSelected ? (
+                              <CheckCircle2 className="w-4 h-4 text-red-600 shrink-0" />
+                            ) : (
+                              <span className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-700" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-muted-foreground leading-snug">
+                            {cat.desc}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* حقل كتابة سبب ومبررات الإغلاق */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-foreground">
+                    سبب ومبررات الإغلاق <span className="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    value={customClosureReason}
+                    onChange={(e) => setCustomClosureReason(e.target.value)}
+                    placeholder={
+                      closureType === 'apology'
+                        ? "اكتب هنا سبب ومبررات الاعتذار عن الطلب بالتفصيل..."
+                        : closureType === 'rejection'
+                        ? "اكتب هنا سبب ومبررات رفض الطلب بالتفصيل..."
+                        : "اكتب هنا سبب ومبررات إغلاق الطلب بالتفصيل..."
+                    }
+                    rows={4}
+                    className="text-right text-xs sm:text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    سيتم توثيق هذا السبب في سجلات الطلب وإظهاره في بنر الحالة لطالب الخدمة وفريق العمل.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* حقل المبررات لقرار التعليق المؤقت */}
+            {selectedDecision === 'suspend' && (
+              <div className="mb-4 text-right" dir="rtl">
                 <label className="block text-sm font-medium mb-2 text-foreground">
                   المبررات <span className="text-red-500">*</span>
                 </label>
@@ -3212,7 +3325,7 @@ export default function RequestDetailsNew() {
 
             {/* حقل اسم المشروع والفرصة (مطلوب عند التحويل لمشروع أو فرصة تبرع) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'convert_to_donation') && (
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-right">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 text-right" dir="rtl">
                 {selectedDecision === 'convert_to_project' && (
                   <>
                     <div className="mb-4">
@@ -3304,7 +3417,7 @@ export default function RequestDetailsNew() {
 
             {/* تحديد المسؤول للاستجابة السريعة */}
             {selectedDecision === 'quick_response' && (
-              <div className="space-y-4 text-right">
+              <div className="space-y-4 text-right" dir="rtl">
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2 text-foreground">
                     الشخص المسؤول <span className="text-red-500">*</span>
@@ -3398,7 +3511,7 @@ export default function RequestDetailsNew() {
 
             {/* ملاحظات إضافية (اختياري) */}
             {(selectedDecision === 'convert_to_project' || selectedDecision === 'quick_response') && (
-              <div className="mb-4 text-right">
+              <div className="mb-4 text-right" dir="rtl">
                 <label className="block text-sm font-medium mb-2 text-foreground">ملاحظات (اختياري)</label>
                 <Textarea
                   value={justification}
@@ -3410,13 +3523,15 @@ export default function RequestDetailsNew() {
               </div>
             )}
 
-            <div className="flex gap-3 justify-end mt-6">
+            <div className="flex gap-3 justify-end mt-6 pt-3 border-t border-slate-100 dark:border-slate-800" dir="rtl">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowTechnicalEvalDialog(false);
                   setSelectedDecision(null);
                   setJustification("");
+                  setClosureType('apology');
+                  setCustomClosureReason("");
                   setProjectName("");
                   setSelectedQuickResponseMemberId(null);
                   setStartDate("");
@@ -3466,6 +3581,19 @@ export default function RequestDetailsNew() {
                     return;
                   }
                   
+                  // التحقق من صحة بيانات إغلاق الطلب
+                  if (selectedDecision === 'apologize') {
+                    if (!customClosureReason.trim() && !justification.trim()) {
+                      toast.error("يرجى كتابة سبب ومبررات الإغلاق");
+                      return;
+                    }
+                  }
+
+                  if (selectedDecision === 'suspend' && !justification.trim()) {
+                    toast.error("يجب ذكر المبررات للتعليق");
+                    return;
+                  }
+
                   let calculatedStartDate = undefined;
                   let calculatedEndDate = undefined;
                   if (selectedDecision === 'convert_to_project') {
@@ -3475,6 +3603,14 @@ export default function RequestDetailsNew() {
                     end.setDate(start.getDate() + days);
                     calculatedStartDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(start);
                     calculatedEndDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(end);
+                  }
+
+                  // تجهيز نص المبررات النهائي
+                  let finalJustification = justification || undefined;
+                  if (selectedDecision === 'apologize') {
+                    const catLabel = CLOSURE_CATEGORIES.find(c => c.id === closureType)?.label || 'إغلاق الطلب';
+                    const reasonText = customClosureReason.trim() || justification.trim();
+                    finalJustification = `[نوع الإغلاق: ${catLabel}]\nسبب ومبررات الإغلاق: ${reasonText}`;
                   }
 
                   technicalEvalMutation.mutate({
@@ -3490,25 +3626,26 @@ export default function RequestDetailsNew() {
                     donationTitle: selectedDecision === 'convert_to_donation' ? donationTitle.trim() : undefined,
                     donationTargetAmount: selectedDecision === 'convert_to_donation' ? parseFloat(donationTargetAmount) : undefined,
                     donationDescription: selectedDecision === 'convert_to_donation' ? donationDescription.trim() : undefined,
-                    justification: justification || undefined,
+                    justification: finalJustification,
                   });
                 }}
                 disabled={
                   technicalEvalMutation.isPending ||
-                  ((selectedDecision === 'apologize' || selectedDecision === 'suspend') && !justification.trim()) ||
+                  (selectedDecision === 'apologize' && !customClosureReason.trim() && !justification.trim()) ||
+                  (selectedDecision === 'suspend' && !justification.trim()) ||
                   (selectedDecision === 'convert_to_project' && (!projectName.trim() || !durationDays || isNaN(parseInt(durationDays)) || parseInt(durationDays) <= 0 || !selectedManagerId)) ||
                   (selectedDecision === 'convert_to_donation' && (!donationTitle.trim() || !donationTargetAmount || isNaN(parseFloat(donationTargetAmount)) || parseFloat(donationTargetAmount) <= 0)) ||
                   (selectedDecision === 'quick_response' && (!selectedQuickResponseMemberId || !scheduledDate || !scheduledTime))
                 }
                 className={
-                  selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700' :
-                  selectedDecision === 'convert_to_donation' ? 'bg-pink-600 hover:bg-pink-700' :
-                  selectedDecision === 'quick_response' ? 'bg-purple-600 hover:bg-purple-700' :
-                  selectedDecision === 'suspend' ? 'bg-amber-500 hover:bg-amber-600' :
-                  'bg-red-600 hover:bg-red-700'
+                  selectedDecision === 'convert_to_project' ? 'bg-green-600 hover:bg-green-700 font-bold' :
+                  selectedDecision === 'convert_to_donation' ? 'bg-pink-600 hover:bg-pink-700 font-bold' :
+                  selectedDecision === 'quick_response' ? 'bg-purple-600 hover:bg-purple-700 font-bold' :
+                  selectedDecision === 'suspend' ? 'bg-amber-500 hover:bg-amber-600 font-bold' :
+                  'bg-red-600 hover:bg-red-700 text-white font-bold'
                 }
               >
-                {technicalEvalMutation.isPending ? 'جاري...' : 'تأكيد'}
+                {technicalEvalMutation.isPending ? 'جاري...' : selectedDecision === 'apologize' ? 'تأكيد إغلاق الطلب' : 'تأكيد'}
               </Button>
             </div>
           </div>
