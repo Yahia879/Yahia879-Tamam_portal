@@ -214,7 +214,7 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
                   disabled={isActionPending}
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  <span>إغلاق الطلب</span>
+                  <span>الاعتذار (الرفض)</span>
                 </button>
               )}
             </div>
