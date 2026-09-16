@@ -5585,7 +5585,7 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userPerms = (ctx.user.permissions as string[]) || [];
+      const userPerms = ((ctx.user as any).permissions as string[]) || [];
       const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
       if (!isAdmin && !userPerms.includes("beneficiary_evaluations.reply") && !userPerms.includes("beneficiary_evaluations")) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
