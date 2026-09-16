@@ -1450,6 +1450,18 @@ export default function RequestDetailsNew() {
                       <Badge variant="destructive" className="rounded-lg text-xs font-bold px-2.5 py-0.5 bg-rose-600">
                         مرفوض
                       </Badge>
+                      {(() => {
+                        const raw = request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes || "";
+                        const match = raw.match(/\[نوع الإغلاق:\s*([^\]]+)\]/);
+                        if (match && match[1]) {
+                          return (
+                            <Badge variant="outline" className="rounded-lg text-xs font-bold px-2.5 py-0.5 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 bg-white/80 dark:bg-rose-950/40">
+                              {match[1]}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
                       نعتذر لكم عن عدم إمكانية استكمال تنفيذ هذا الطلب وفقاً لمعايير وإجراءات الفرز والمراجعة المعتمدة لدى الجمعية.
@@ -1461,7 +1473,11 @@ export default function RequestDetailsNew() {
                           <span>مبررات الاعتذار والرفض:</span>
                         </p>
                         <p className="text-xs sm:text-sm text-foreground font-medium whitespace-pre-wrap leading-relaxed">
-                          {request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes}
+                          {(() => {
+                            const raw = request.technicalEvalJustification || (request as any).rejectionReason || (request as any).reviewNotes || "";
+                            const cleaned = raw.replace(/\[نوع الإغلاق:\s*[^\]]+\]\s*(?:سبب ومبررات الإغلاق:\s*)?/, '').trim();
+                            return cleaned || raw;
+                          })()}
                         </p>
                       </div>
                     )}
@@ -3664,12 +3680,30 @@ export default function RequestDetailsNew() {
             </div>
             <h4 className="text-lg font-black text-red-800 dark:text-red-300">تم الاعتذار عن هذا الطلب</h4>
             <p className="text-sm text-muted-foreground">تم اتخاذ قرار بالاعتذار عن تلبية هذا الطلب في مرحلة التقييم الفني.</p>
+            {(() => {
+              const raw = request?.technicalEvalJustification || "";
+              const match = raw.match(/\[نوع الإغلاق:\s*([^\]]+)\]/);
+              if (match && match[1]) {
+                return (
+                  <div className="inline-block mt-1">
+                    <Badge variant="outline" className="text-xs font-bold border-red-300 text-red-700 bg-red-50 dark:bg-red-950/40 dark:text-red-300">
+                      {match[1]}
+                    </Badge>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
           
           <div className="border border-border/80 rounded-xl p-4 space-y-2 bg-background">
             <h5 className="text-sm font-bold text-foreground">مبررات الاعتذار / أسباب الرفض:</h5>
             <p className="text-sm text-slate-700 dark:text-slate-350 bg-muted/30 p-3 rounded-lg border leading-relaxed whitespace-pre-wrap">
-              {request?.technicalEvalJustification || "لا توجد مبررات مسجلة"}
+              {(() => {
+                const raw = request?.technicalEvalJustification || "";
+                const cleaned = raw.replace(/\[نوع الإغلاق:\s*[^\]]+\]\s*(?:سبب ومبررات الإغلاق:\s*)?/, '').trim();
+                return cleaned || raw || "لا توجد مبررات مسجلة";
+              })()}
             </p>
           </div>
           
