@@ -5573,6 +5573,64 @@ export const requestsRouter = router({
       };
     }),
 
+  // إضافة أو تحديث الرد على تقييم رضا المستفيد
+  saveBeneficiaryEvaluationReply: protectedProcedure
+    .input(
+      z.object({
+        evalId: z.number(),
+        replyText: z.string().min(1, "يرجى كتابة نص الرد"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const userPerms = (ctx.user.permissions as string[]) || [];
+      const isAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(ctx.user.role || "");
+      if (!isAdmin && !userPerms.includes("beneficiary_evaluations.reply") && !userPerms.includes("beneficiary_evaluations")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
+      }
+
+      const [evalRecord] = await db
+        .select()
+        .from(requestEvaluations)
+        .where(eq(requestEvaluations.id, input.evalId))
+        .limit(1);
+
+      if (!evalRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "سجل التقييم غير موجود" });
+      }
+
+      let parsedNotes: any = {};
+      try {
+        if (evalRecord.notes) {
+          parsedNotes = JSON.parse(evalRecord.notes);
+        }
+      } catch {
+        parsedNotes = { comments: evalRecord.notes };
+      }
+
+      parsedNotes.reply = {
+        text: input.replyText.trim(),
+        userId: ctx.user.id,
+        userName: ctx.user.name || "إدارة الجمعية",
+        repliedAt: new Date().toISOString(),
+      };
+
+      await db
+        .update(requestEvaluations)
+        .set({
+          notes: JSON.stringify(parsedNotes),
+        })
+        .where(eq(requestEvaluations.id, input.evalId));
+
+      return {
+        success: true,
+        message: "تم حفظ الرد على التقييم بنجاح",
+        reply: parsedNotes.reply,
+      };
+    }),
+
   /**
    * جلب المستفيدين المعتمدين، المتبرعين، وأصحاب الاستفسارات لإرسال استبيانات رضا لهم
    */
