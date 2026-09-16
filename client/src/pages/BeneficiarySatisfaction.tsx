@@ -1501,7 +1501,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
               </div>
             )}
           </TabsContent>
-        </Tabs>
+        )}
+      </Tabs>
+    )}
 
         {/* Modal: Full Survey Details Styled Exactly Like RequestEvaluation */}
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
