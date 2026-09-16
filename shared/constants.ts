@@ -690,9 +690,9 @@ export function getStageOrder(stage: string): number {
 export const TECHNICAL_EVAL_OPTIONS = {
   apologize: {
     key: 'apologize',
-    name: 'الاعتذار عن الطلب',
-    nameEn: 'Apologize for Request',
-    description: 'رفض الطلب مع ذكر المبررات',
+    name: 'إغلاق الطلب',
+    nameEn: 'Close Request',
+    description: 'إغلاق الطلب مع ذكر المبررات',
     requiresJustification: true,
     nextStage: 'closed',
     resultStatus: 'rejected',
@@ -754,7 +754,7 @@ export const TECHNICAL_EVAL_OPTIONS = {
 } as const;
 
 export const TECHNICAL_EVAL_OPTION_LABELS: Record<string, string> = {
-  apologize: 'الاعتذار عن الطلب',
+  apologize: 'إغلاق الطلب',
   suspend: 'تعليق الطلب',
   quick_response: 'التحويل إلى الاستجابة السريعة',
   convert_to_project: 'التحويل إلى مشروع',
