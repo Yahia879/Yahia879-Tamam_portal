@@ -22,7 +22,7 @@ describe("التقييم الفني - الخيارات الأربعة", () => {
     });
 
     it("يجب أن تكون الأسماء العربية موجودة", () => {
-      expect(TECHNICAL_EVAL_OPTION_LABELS.apologize).toBe("الاعتذار عن الطلب");
+      expect(TECHNICAL_EVAL_OPTION_LABELS.apologize).toBe("إغلاق الطلب");
       expect(TECHNICAL_EVAL_OPTION_LABELS.suspend).toBe("تعليق الطلب");
       expect(TECHNICAL_EVAL_OPTION_LABELS.quick_response).toBe("التحويل إلى الاستجابة السريعة");
       expect(TECHNICAL_EVAL_OPTION_LABELS.convert_to_project).toBe("التحويل إلى مشروع");
