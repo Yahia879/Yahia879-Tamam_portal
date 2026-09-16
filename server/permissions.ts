@@ -378,6 +378,13 @@ async function ensureRequestsPermissionsExist(db: any) {
         action: "reply",
         nameAr: "إضافة رد على التقييم",
         nameEn: "Reply to Evaluation"
+      },
+      {
+        id: "beneficiary_evaluations.hide",
+        moduleId: "beneficiary_evaluations",
+        action: "hide",
+        nameAr: "إخفاء وإظهار التقييمات",
+        nameEn: "Hide & Show Evaluations"
       }
     ];
 
@@ -412,16 +419,16 @@ async function ensureRequestsPermissionsExist(db: any) {
     const defaultMappings: Record<string, string[]> = {
       board_chairman: ["board_chairman"],
       board_member: ["board_member"],
-      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply"],
-      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply"],
-      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply"],
+      general_manager: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      executive_director: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
+      projects_office: ["requests.view", "requests.create", "requests.view_details", "escalation.view", "beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide"],
       field_team: ["requests.view", "requests.manage_as_field_team"],
       quick_response: ["requests.view", "requests.manage_as_quick_response"],
       financial_manager: ["requests.view", "requests.view_details"],
       project_manager: ["requests.view", "requests.create", "requests.view_details"],
       corporate_comm: ["requests.view", "requests.upload_final_report"],
-      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "escalation.view"],
-      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "escalation.view"],
+      super_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
+      system_admin: ["beneficiary_evaluations.view", "beneficiary_evaluations.evaluations_log", "beneficiary_evaluations.dispatch_log", "beneficiary_evaluations.contacts", "beneficiary_evaluations.reply", "beneficiary_evaluations.hide", "escalation.view"],
     };
 
     const roleNamesAr: Record<string, string> = {
@@ -721,6 +728,7 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "beneficiary_evaluations.dispatch_log", moduleId: "beneficiary_evaluations", action: "dispatch_log", nameAr: "سجل الإرسال", nameEn: "Dispatch Survey Log" },
       { id: "beneficiary_evaluations.contacts", moduleId: "beneficiary_evaluations", action: "contacts", nameAr: "المستفيدين المعتمدين والاستفسارات", nameEn: "Approved Beneficiaries & Inquiries" },
       { id: "beneficiary_evaluations.reply", moduleId: "beneficiary_evaluations", action: "reply", nameAr: "إضافة رد على التقييم", nameEn: "Reply to Evaluation" },
+      { id: "beneficiary_evaluations.hide", moduleId: "beneficiary_evaluations", action: "hide", nameAr: "إخفاء وإظهار التقييمات", nameEn: "Hide & Show Evaluations" },
       { id: "Create_Ticket", moduleId: "technical_support", action: "create", nameAr: "إنشاء تذكرة دعم فني", nameEn: "Create Support Ticket" },
       { id: "View_Tickets", moduleId: "technical_support", action: "view", nameAr: "عرض تذاكر الدعم الفني", nameEn: "View Support Tickets" },
       { id: "mosque_map.view", moduleId: "mosques", action: "view", nameAr: "عرض خريطة المساجد", nameEn: "View Mosque Map" },
@@ -1156,7 +1164,8 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("beneficiary_evaluations.evaluations_log") ||
     allPermissions.has("beneficiary_evaluations.dispatch_log") ||
     allPermissions.has("beneficiary_evaluations.contacts") ||
-    allPermissions.has("beneficiary_evaluations.reply")
+    allPermissions.has("beneficiary_evaluations.reply") ||
+    allPermissions.has("beneficiary_evaluations.hide")
   ) {
     allPermissions.add("beneficiary_evaluations");
     allPermissions.add("beneficiary_evaluations.view");
