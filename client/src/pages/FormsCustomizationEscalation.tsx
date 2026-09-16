@@ -49,12 +49,11 @@ export default function FormsCustomizationEscalation() {
     }
   }, [slaData]);
 
-  // التحقق من وجود تعديلات غير محفوظة (مع استثناء مرحلة التنفيذ لأنها غير قابلة للتعديل وتعتمد على العقد)
+  // التحقق من وجود تعديلات غير محفوظة
   const hasChanges = useMemo(() => {
     if (draftBeneficiaryDays !== initialBeneficiaryDays) return true;
     if (draftStages.length !== initialStages.length) return true;
     for (let i = 0; i < draftStages.length; i++) {
-      if (draftStages[i].stageCode === "execution") continue;
       if (draftStages[i].durationDays !== initialStages[i]?.durationDays) return true;
     }
     return false;
@@ -249,9 +248,60 @@ export default function FormsCustomizationEscalation() {
 
                       {/* عداد الأيام أو شارة غير قابلة للتعديل */}
                       {isExecution ? (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-muted/50 text-muted-foreground text-xs font-semibold shrink-0">
-                          <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                          <span>غير قابلة للتعديل (حسب العقد المعتمد)</span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-muted/50 text-muted-foreground text-xs font-semibold shrink-0">
+                            <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            <span>المشاريع: مدة العقد المعتمد</span>
+                          </div>
+
+                          <div className="flex items-center gap-2 bg-amber-50/70 dark:bg-amber-950/30 p-1 px-3 rounded-xl border border-amber-200 dark:border-amber-800/60 shrink-0">
+                            <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
+                              فرص التبرع (بعد طلب الصرف):
+                            </span>
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDraftStages(prev => prev.map((item, idx) => 
+                                  idx === index ? { ...item, durationDays: Math.max(1, (Number(item.durationDays) || 30) - 1) } : item
+                                ));
+                              }}
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                            >
+                              <Minus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                            </Button>
+
+                            <Input
+                              type="number"
+                              min={1}
+                              max={365}
+                              value={stg.durationDays ?? 30}
+                              onChange={(e) => {
+                                const parsed = parseInt(e.target.value);
+                                const val = isNaN(parsed) ? 0 : parsed;
+                                setDraftStages(prev => prev.map((item, idx) => idx === index ? { ...item, durationDays: val } : item));
+                              }}
+                              className="w-14 text-center font-bold text-sm h-8 bg-background border border-amber-300/80 dark:border-amber-700/80 focus-visible:ring-1 focus-visible:ring-amber-500 p-0"
+                            />
+
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setDraftStages(prev => prev.map((item, idx) => 
+                                  idx === index ? { ...item, durationDays: Math.min(365, (Number(item.durationDays) || 30) + 1) } : item
+                                ));
+                              }}
+                              className="h-8 w-8 p-0 rounded-lg hover:bg-background"
+                            >
+                              <Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                            </Button>
+
+                            <span className="text-xs font-semibold text-amber-800 dark:text-amber-300 px-1">يوم</span>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 bg-muted/50 p-1 rounded-xl border border-border shrink-0">

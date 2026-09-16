@@ -37,6 +37,8 @@ import {
   receiptVouchers,
   notificationTemplates,
   evaluationTokens,
+  disbursementRequests,
+  disbursementOrders,
 } from "../../drizzle/schema";
 import { eq, ne, and, desc, sql, inArray, notInArray, or, gte, lte, gt, isNotNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/mysql-core";
@@ -1469,6 +1471,46 @@ export const requestsRouter = router({
 
       if (input.newStage === 'handover' && input.finalReportAssignedTo) {
         currentResponsible = input.finalReportAssignedTo;
+      }
+
+      // التحقق من شروط إغلاق فرص التبرع: يجب أن يكون أمر الصرف المرتبط بحالة "منفذ"
+      if (input.newStage === 'closed' && isDonation) {
+        const requestsWithOrders = await db
+          .select({
+            id: disbursementRequests.id,
+            attachmentsJson: disbursementRequests.attachmentsJson,
+            orderStatus: disbursementOrders.status,
+          })
+          .from(disbursementRequests)
+          .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId));
+
+        const hasExecutedOrder = requestsWithOrders.some(req => {
+          if (!req.attachmentsJson) return false;
+          try {
+            const attachments = typeof req.attachmentsJson === 'string' 
+              ? JSON.parse(req.attachmentsJson) 
+              : req.attachmentsJson;
+            if (Array.isArray(attachments)) {
+              const metadataObj = attachments.find((a: any) => a.name === 'custom_supplier_info' && a.type === 'metadata');
+              if (metadataObj && metadataObj.url) {
+                const meta = JSON.parse(metadataObj.url);
+                if (meta.mosqueRequestId === input.requestId) {
+                  return req.orderStatus === 'executed';
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing attachmentsJson:", e);
+          }
+          return false;
+        });
+
+        if (!hasExecutedOrder) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن إغلاق الطلب: يجب أن يكون أمر الصرف المرتبط بفرصة التبرع بحالة 'منفذ' أولاً.",
+          });
+        }
       }
 
       const updateData: any = {

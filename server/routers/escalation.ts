@@ -12,6 +12,8 @@ import {
   projects,
   projectMosques,
   contractsEnhanced,
+  disbursementRequests,
+  disbursementOrders,
 } from "../../drizzle/schema";
 import { eq, desc, asc, and, inArray, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -178,7 +180,7 @@ export const escalationRouter = router({
         stageCode: def.stageCode,
         stageName: found?.stageName || def.stageName,
         stageOrder: def.stageOrder,
-        durationDays: def.stageCode === "execution" ? 0 : (found?.durationDays ?? def.durationDays),
+        durationDays: def.stageCode === "execution" ? (found?.durationDays && found.durationDays > 0 ? found.durationDays : 30) : (found?.durationDays ?? def.durationDays),
         warningDays: found?.warningDays ?? def.warningDays,
         description: found?.description || def.description,
         isActive: found?.isActive ?? true,
@@ -221,14 +223,29 @@ export const escalationRouter = router({
       // تحديث أو إدخال كل مرحلة
       for (const s of input.stages) {
         if (s.stageCode === "execution") {
-          // مرحلة التنفيذ محكومة تلقائياً بمدة العقد المعتمد مع المورد ولا يتم تعديل مدتها يدوياً
-          await db.update(stageSettings)
-            .set({
-              durationDays: 0,
-              description: "مدة التنفيذ تُحدد تلقائياً وفق مدة العقد المعتمد مع المورد لكل طلب",
+          // مرحلة التنفيذ: للمشاريع محكومة تلقائياً بمدة العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف
+          const existing = await db.select().from(stageSettings).where(eq(stageSettings.stageCode, "execution")).limit(1);
+          if (existing.length > 0) {
+            await db.update(stageSettings)
+              .set({
+                durationDays: s.durationDays,
+                description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+                updatedAt: now,
+              })
+              .where(eq(stageSettings.stageCode, "execution"));
+          } else {
+            await db.insert(stageSettings).values({
+              stageCode: "execution",
+              stageName: "التنفيذ",
+              stageOrder: 8,
+              durationDays: s.durationDays,
+              warningDays: 1,
+              description: "مدة التنفيذ للمشاريع تُحدد وفق العقد المعتمد، ولفرص التبرع تُحسب بعد إنشاء طلب الصرف",
+              isActive: true,
+              createdAt: now,
               updatedAt: now,
-            })
-            .where(eq(stageSettings.stageCode, "execution"));
+            });
+          }
           continue;
         }
 
@@ -384,6 +401,7 @@ export const escalationRouter = router({
       currentStage: mosqueRequests.currentStage,
       status: mosqueRequests.status,
       programType: mosqueRequests.programType,
+      technicalEvalDecision: mosqueRequests.technicalEvalDecision,
       projectId: projects.id,
       createdAt: mosqueRequests.createdAt,
       updatedAt: mosqueRequests.updatedAt,
@@ -426,6 +444,56 @@ export const escalationRouter = router({
       }
     }
 
+    // جلب طلبات الصرف لربطها بفرص التبرع
+    const allDisbursementsStats = await db.select({
+      id: disbursementRequests.id,
+      requestNumber: disbursementRequests.requestNumber,
+      projectId: disbursementRequests.projectId,
+      amount: disbursementRequests.amount,
+      status: disbursementRequests.status,
+      requestedAt: disbursementRequests.requestedAt,
+      attachmentsJson: disbursementRequests.attachmentsJson,
+      orderStatus: disbursementOrders.status,
+    })
+    .from(disbursementRequests)
+    .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId));
+
+    const disbursementByReqId = new Map<number, {
+      id: number;
+      requestNumber: string;
+      requestedAt: Date;
+      amount: string | null;
+      status: string | null;
+      orderStatus?: string | null;
+    }>();
+
+    for (const d of allDisbursementsStats) {
+      if (d.attachmentsJson) {
+        try {
+          const attachments = typeof d.attachmentsJson === "string" ? JSON.parse(d.attachmentsJson) : d.attachmentsJson;
+          if (Array.isArray(attachments)) {
+            const metaObj = attachments.find((a: any) => a.name === "custom_supplier_info" && a.type === "metadata");
+            if (metaObj && metaObj.url) {
+              const meta = typeof metaObj.url === "string" ? JSON.parse(metaObj.url) : metaObj.url;
+              const reqId = meta.mosqueRequestId ? Number(meta.mosqueRequestId) : null;
+              if (reqId && !disbursementByReqId.has(reqId)) {
+                disbursementByReqId.set(reqId, {
+                  id: d.id,
+                  requestNumber: d.requestNumber,
+                  requestedAt: new Date(d.requestedAt),
+                  amount: d.amount,
+                  status: d.status,
+                  orderStatus: d.orderStatus,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
     // 3. جلب سجل التحولات لتحديد تاريخ دخول المرحلة
     const transitions = await db.select({
       requestId: requestHistory.requestId,
@@ -463,28 +531,45 @@ export const escalationRouter = router({
 
       const stageKey = (req.currentStage as string) === "financial_eval" ? "financial_eval_and_approval" : req.currentStage;
       let allowedDays = slaMap.get(stageKey) ?? slaMap.get(req.currentStage) ?? 5;
+      const isDonation = req.technicalEvalDecision === "convert_to_donation";
+      let stageEntryDate: Date | null = null;
 
-      // مرحلة التنفيذ: مدة التأخير تؤخذ تلقائياً من مدة العقد المعتمد مع المورد
+      // مرحلة التنفيذ:
       if (stageKey === "execution" || req.currentStage === "execution") {
-        const contract = (req.id ? approvedContractByReqId.get(req.id) : null)
-          || (req.projectId ? approvedContractByProjId.get(req.projectId) : null)
-          || (req.id ? anyContractByReqId.get(req.id) : null)
-          || (req.projectId ? anyContractByProjId.get(req.projectId) : null);
-
-        if (contract) {
-          allowedDays = convertContractDurationToDays(contract.duration, contract.durationUnit);
+        if (isDonation) {
+          const linkedDisbursement = req.id ? disbursementByReqId.get(req.id) : null;
+          if (!linkedDisbursement) {
+            // فرصة تبرع ولم يُرفع لها طلب صرف بعد (لا تزال قيد جمع التبرعات) -> استثناء تام من عداد التأخير
+            continue;
+          }
+          // وُجد طلب صرف -> يبدأ العداد من تاريخ إنشاء طلب الصرف
+          const donationSla = slaMap.get("execution");
+          allowedDays = (donationSla && donationSla > 0) ? donationSla : 30;
+          stageEntryDate = linkedDisbursement.requestedAt;
         } else {
-          allowedDays = slaMap.get("execution") || 90;
+          // للمشاريع: تؤخذ المدة تلقائياً من العقد المعتمد مع المورد
+          const contract = (req.id ? approvedContractByReqId.get(req.id) : null)
+            || (req.projectId ? approvedContractByProjId.get(req.projectId) : null)
+            || (req.id ? anyContractByReqId.get(req.id) : null)
+            || (req.projectId ? anyContractByProjId.get(req.projectId) : null);
+
+          if (contract) {
+            allowedDays = convertContractDurationToDays(contract.duration, contract.durationUnit);
+          } else {
+            allowedDays = slaMap.get("execution") || 90;
+          }
         }
       }
 
       if (allowedDays <= 0) continue;
 
-      const stageEntryDate = req.currentStage === "submitted"
-        ? new Date(req.submittedAt || req.createdAt)
-        : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
-           latestTransitionByReqStage.get(`${req.id}_${stageKey}`) ||
-           new Date(req.updatedAt || req.createdAt));
+      if (!stageEntryDate) {
+        stageEntryDate = req.currentStage === "submitted"
+          ? new Date(req.submittedAt || req.createdAt)
+          : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
+             latestTransitionByReqStage.get(`${req.id}_${stageKey}`) ||
+             new Date(req.updatedAt || req.createdAt));
+      }
 
       const diffMs = now.getTime() - stageEntryDate.getTime();
       const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
@@ -663,6 +748,56 @@ export const escalationRouter = router({
         }
       }
 
+      // جلب طلبات الصرف لربطها بفرص التبرع
+      const allDisbursements = await db.select({
+        id: disbursementRequests.id,
+        requestNumber: disbursementRequests.requestNumber,
+        projectId: disbursementRequests.projectId,
+        amount: disbursementRequests.amount,
+        status: disbursementRequests.status,
+        requestedAt: disbursementRequests.requestedAt,
+        attachmentsJson: disbursementRequests.attachmentsJson,
+        orderStatus: disbursementOrders.status,
+      })
+      .from(disbursementRequests)
+      .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId));
+
+      const disbursementByReqId = new Map<number, {
+        id: number;
+        requestNumber: string;
+        requestedAt: Date;
+        amount: string | null;
+        status: string | null;
+        orderStatus?: string | null;
+      }>();
+
+      for (const d of allDisbursements) {
+        if (d.attachmentsJson) {
+          try {
+            const attachments = typeof d.attachmentsJson === "string" ? JSON.parse(d.attachmentsJson) : d.attachmentsJson;
+            if (Array.isArray(attachments)) {
+              const metaObj = attachments.find((a: any) => a.name === "custom_supplier_info" && a.type === "metadata");
+              if (metaObj && metaObj.url) {
+                const meta = typeof metaObj.url === "string" ? JSON.parse(metaObj.url) : metaObj.url;
+                const reqId = meta.mosqueRequestId ? Number(meta.mosqueRequestId) : null;
+                if (reqId && !disbursementByReqId.has(reqId)) {
+                  disbursementByReqId.set(reqId, {
+                    id: d.id,
+                    requestNumber: d.requestNumber,
+                    requestedAt: new Date(d.requestedAt),
+                    amount: d.amount,
+                    status: d.status,
+                    orderStatus: d.orderStatus,
+                  });
+                }
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+
       const delayedList = [];
 
       for (const row of allRows) {
@@ -679,29 +814,47 @@ export const escalationRouter = router({
         const normalizedStage = (req.currentStage as string) === "financial_eval" ? "financial_eval_and_approval" : req.currentStage;
         let allowedDays = slaMap.get(normalizedStage) ?? slaMap.get(req.currentStage) ?? 5;
         let matchedContract: typeof contractsList[0] | null = null;
+        const isDonation = req.technicalEvalDecision === "convert_to_donation";
+        let linkedDisbursement = null;
+        let stageEntryDate: Date | null = null;
 
-        // مرحلة التنفيذ: مدة التأخير تؤخذ تلقائياً من مدة العقد المعتمد مع المورد
+        // مرحلة التنفيذ:
         if (normalizedStage === "execution" || req.currentStage === "execution") {
-          matchedContract = (req.id ? approvedContractByReqId.get(req.id) : null)
-            || (row.projectId ? approvedContractByProjId.get(row.projectId) : null)
-            || (req.id ? anyContractByReqId.get(req.id) : null)
-            || (row.projectId ? anyContractByProjId.get(row.projectId) : null)
-            || null;
-
-          if (matchedContract) {
-            allowedDays = convertContractDurationToDays(matchedContract.duration, matchedContract.durationUnit);
+          if (isDonation) {
+            linkedDisbursement = req.id ? disbursementByReqId.get(req.id) : null;
+            if (!linkedDisbursement) {
+              // فرصة تبرع ولم يُرفع لها طلب صرف بعد (لا تزال قيد جمع التبرعات) -> استثناء تام من عداد التأخير
+              continue;
+            }
+            // وُجد طلب صرف -> يبدأ العداد من تاريخ إنشاء طلب الصرف
+            const donationSla = slaMap.get("execution");
+            allowedDays = (donationSla && donationSla > 0) ? donationSla : 30;
+            stageEntryDate = linkedDisbursement.requestedAt;
           } else {
-            allowedDays = slaMap.get("execution") || 90;
+            // مدة التأخير للمشاريع تؤخذ تلقائياً من مدة العقد المعتمد مع المورد
+            matchedContract = (req.id ? approvedContractByReqId.get(req.id) : null)
+              || (row.projectId ? approvedContractByProjId.get(row.projectId) : null)
+              || (req.id ? anyContractByReqId.get(req.id) : null)
+              || (row.projectId ? anyContractByProjId.get(row.projectId) : null)
+              || null;
+
+            if (matchedContract) {
+              allowedDays = convertContractDurationToDays(matchedContract.duration, matchedContract.durationUnit);
+            } else {
+              allowedDays = slaMap.get("execution") || 90;
+            }
           }
         }
 
         if (allowedDays <= 0) continue;
 
-        const stageEntryDate = req.currentStage === "submitted"
-          ? new Date(req.submittedAt || req.createdAt)
-          : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
-             latestTransitionByReqStage.get(`${req.id}_${normalizedStage}`) ||
-             new Date(req.updatedAt || req.createdAt));
+        if (!stageEntryDate) {
+          stageEntryDate = req.currentStage === "submitted"
+            ? new Date(req.submittedAt || req.createdAt)
+            : (latestTransitionByReqStage.get(`${req.id}_${req.currentStage}`) || 
+               latestTransitionByReqStage.get(`${req.id}_${normalizedStage}`) ||
+               new Date(req.updatedAt || req.createdAt));
+        }
 
         const diffMs = now.getTime() - stageEntryDate.getTime();
         const allowedMs = allowedDays * 24 * 60 * 60 * 1000;
@@ -808,6 +961,15 @@ export const escalationRouter = router({
             delayHoursOnly,
             totalDelayHours,
             severity,
+            isDonation,
+            disbursementInfo: linkedDisbursement ? {
+              id: linkedDisbursement.id,
+              requestNumber: linkedDisbursement.requestNumber,
+              requestedAt: linkedDisbursement.requestedAt,
+              amount: linkedDisbursement.amount,
+              status: linkedDisbursement.status,
+              orderStatus: linkedDisbursement.orderStatus,
+            } : null,
             contractInfo: matchedContract ? {
               id: matchedContract.id,
               contractNumber: matchedContract.contractNumber,

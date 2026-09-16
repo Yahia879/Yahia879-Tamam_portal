@@ -749,8 +749,14 @@ export const disbursementsRouter = router({
         .from(disbursementRequests)
         .leftJoin(disbursementOrders, eq(disbursementRequests.id, disbursementOrders.disbursementRequestId));
 
-      const matchingApprovedRequest = requests.find(req => {
-        if (!req.attachmentsJson) return false;
+      let hasDisbursementRequest = false;
+      let hasApprovedDisbursement = false;
+      let hasExecutedDisbursement = false;
+      let orderStatus: string | null = null;
+      let disbursementRequestId: number | null = null;
+
+      for (const req of requests) {
+        if (!req.attachmentsJson) continue;
         try {
           const attachments = typeof req.attachmentsJson === 'string' 
             ? JSON.parse(req.attachmentsJson) 
@@ -760,18 +766,30 @@ export const disbursementsRouter = router({
             if (metadataObj && metadataObj.url) {
               const meta = JSON.parse(metadataObj.url);
               if (meta.mosqueRequestId === input.requestId) {
-                return req.orderStatus === 'approved' || req.orderStatus === 'executed';
+                hasDisbursementRequest = true;
+                disbursementRequestId = req.id;
+                orderStatus = req.orderStatus || null;
+                if (req.orderStatus === 'approved' || req.orderStatus === 'executed') {
+                  hasApprovedDisbursement = true;
+                }
+                if (req.orderStatus === 'executed') {
+                  hasExecutedDisbursement = true;
+                }
+                break;
               }
             }
           }
         } catch (e) {
           console.error("Error parsing attachmentsJson:", e);
         }
-        return false;
-      });
+      }
 
       return {
-        hasApprovedDisbursement: !!matchingApprovedRequest,
+        hasDisbursementRequest,
+        hasApprovedDisbursement,
+        hasExecutedDisbursement,
+        orderStatus,
+        disbursementRequestId,
       };
     }),
 

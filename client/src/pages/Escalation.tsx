@@ -301,31 +301,31 @@ export default function EscalationPage() {
     <DashboardLayout>
       <div className="space-y-6 max-w-full overflow-x-hidden text-right" dir="rtl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-bold text-foreground pb-1 leading-normal">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg md:text-xl font-bold text-foreground pb-0.5 leading-normal">
                 التصعيد الإداري
               </h1>
-              <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs px-2.5 py-0.5 font-medium">
+              <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-2xs px-2 py-0.5 font-medium">
                 متابعة التأخير
               </Badge>
             </div>
-            <p className="text-xs md:text-sm text-muted-foreground mt-1 break-words">
+            <p className="text-xs text-muted-foreground mt-0.5 break-words">
               عرض ومتابعة الطلبات المتأخرة حسب المراحل وطلبات المستفيدين المعلقة
             </p>
           </div>
         </div>
 
         {/* Stats Row - 3 كروت إحصائية رئيسية مطابقة للمطلوب */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4" dir="rtl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-3.5" dir="rtl">
           {[
             {
               id: "requests",
               label: "الطلبات المتأخرة",
               hint: "طلبات تجاوزت مهلة المرحلة",
               value: stats?.totalDelayedRequests || 0,
-              icon: <Clock className="w-5 h-5" />,
+              icon: <Clock className="w-4 h-4" />,
               iconBg: "bg-amber-100 dark:bg-amber-950/40 text-amber-600",
               borderHover: "hover:border-amber-300 dark:hover:border-amber-800",
               onClick: () => {
@@ -337,7 +337,7 @@ export default function EscalationPage() {
               label: "المستفيدون المتأخرون بالاعتماد",
               hint: "بانتظار قبول طلب التسجيل",
               value: stats?.totalDelayedBeneficiaries || 0,
-              icon: <Users className="w-5 h-5" />,
+              icon: <Users className="w-4 h-4" />,
               iconBg: "bg-teal-100 dark:bg-teal-950/40 text-teal-600",
               borderHover: "hover:border-teal-300 dark:hover:border-teal-800",
               onClick: () => {
@@ -349,7 +349,7 @@ export default function EscalationPage() {
               label: "إجمالي التأخير",
               hint: "مجموع الطلبات والمستفيدين",
               value: stats?.totalDelayedItems || 0,
-              icon: <FileText className="w-5 h-5" />,
+              icon: <FileText className="w-4 h-4" />,
               iconBg: "bg-primary/10 text-primary",
               borderHover: "hover:border-primary/40",
               onClick: () => {
@@ -364,16 +364,16 @@ export default function EscalationPage() {
               className={`border border-border/60 shadow-xs overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 text-right ${stat.borderHover}`}
               dir="rtl"
             >
-              <CardContent className="p-4 md:p-5">
+              <CardContent className="p-3.5 md:p-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 text-right">
-                    <p className="text-xs md:text-sm text-muted-foreground font-semibold truncate">{stat.label}</p>
-                    <p className="text-2xl md:text-3xl font-extrabold text-foreground truncate mt-1 font-mono tabular-nums">
-                      {isLoadingStats ? <Loader2 className="w-5 h-5 animate-spin inline-block text-muted-foreground" /> : stat.value}
+                    <p className="text-xs text-muted-foreground font-medium truncate">{stat.label}</p>
+                    <p className="text-xl md:text-2xl font-bold text-foreground truncate mt-0.5 font-mono tabular-nums">
+                      {isLoadingStats ? <Loader2 className="w-4 h-4 animate-spin inline-block text-muted-foreground" /> : stat.value}
                     </p>
-                    <p className="text-2xs text-muted-foreground mt-1 truncate">{stat.hint}</p>
+                    <p className="text-2xs text-muted-foreground mt-0.5 truncate">{stat.hint}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
                     {stat.icon}
                   </div>
                 </div>
@@ -382,20 +382,20 @@ export default function EscalationPage() {
           ))}
         </div>
 
-        {/* التبويبات الرئيسية - تصميم مطور وتجربة مستخدم عصرية */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" dir="rtl">
-          <div className="flex items-center justify-start pb-1" dir="rtl">
-            <TabsList className="bg-muted/70 dark:bg-muted/30 p-1.5 rounded-2xl inline-flex w-full sm:w-auto justify-start gap-1.5 h-auto border border-border/70 shadow-2xs backdrop-blur-xs" dir="rtl">
+        {/* التبويبات الرئيسية */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3.5" dir="rtl">
+          <div className="flex items-center justify-start pb-0.5" dir="rtl">
+            <TabsList className="bg-muted/70 dark:bg-muted/30 p-1 rounded-xl inline-flex w-full sm:w-auto justify-start gap-1 h-auto border border-border/70 shadow-2xs backdrop-blur-xs" dir="rtl">
               {/* تبويب 1: الطلبات المتأخرة */}
               <TabsTrigger 
                 value="delayed-requests" 
-                className="flex-1 sm:flex-initial gap-2.5 px-4 py-2.5 text-xs md:text-sm rounded-xl font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
+                className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-lg bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                  <FileText className="w-3.5 h-3.5" />
+                <div className="w-5 h-5 rounded-md bg-amber-100/80 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                  <FileText className="w-3 h-3" />
                 </div>
-                <span className="whitespace-nowrap font-bold">الطلبات المتأخرة</span>
-                <span className="inline-flex items-center justify-center min-w-6 h-5 px-2 rounded-full text-xs font-bold font-mono tabular-nums bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-700/60 shadow-2xs">
+                <span className="whitespace-nowrap font-semibold">الطلبات المتأخرة</span>
+                <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/70 dark:border-amber-700/60 shadow-2xs">
                   {requestsResult ? requestsResult.total : (stats?.totalDelayedRequests || 0)}
                 </span>
               </TabsTrigger>
@@ -403,41 +403,26 @@ export default function EscalationPage() {
               {/* تبويب 2: المستفيدون المعلقون */}
               <TabsTrigger 
                 value="delayed-beneficiaries" 
-                className="flex-1 sm:flex-initial gap-2.5 px-4 py-2.5 text-xs md:text-sm rounded-xl font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
+                className="flex-1 sm:flex-initial gap-2 px-3.5 py-2 text-xs rounded-lg font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
               >
-                <div className="w-6 h-6 rounded-lg bg-teal-100/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                  <Users className="w-3.5 h-3.5" />
+                <div className="w-5 h-5 rounded-md bg-teal-100/80 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
+                  <Users className="w-3 h-3" />
                 </div>
-                <span className="whitespace-nowrap font-bold">المستفيدون المعلقون</span>
-                <span className="inline-flex items-center justify-center min-w-6 h-5 px-2 rounded-full text-xs font-bold font-mono tabular-nums bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300/70 dark:border-teal-700/60 shadow-2xs">
+                <span className="whitespace-nowrap font-semibold">المستفيدون المعلقون</span>
+                <span className="inline-flex items-center justify-center min-w-5 h-4.5 px-1.5 rounded-full text-2xs font-bold font-mono tabular-nums bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-300/70 dark:border-teal-700/60 shadow-2xs">
                   {beneficiariesResult ? beneficiariesResult.total : (stats?.totalDelayedBeneficiaries || 0)}
-                </span>
-              </TabsTrigger>
-
-              {/* تبويب 3: خريطة المراحل */}
-              <TabsTrigger 
-                value="sla-overview" 
-                className="flex-1 sm:flex-initial gap-2.5 px-4 py-2.5 text-xs md:text-sm rounded-xl font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/80 text-muted-foreground hover:text-foreground group cursor-pointer"
-              >
-                <div className="w-6 h-6 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                </div>
-                <span className="whitespace-nowrap font-bold">خريطة المراحل</span>
-                <span className="inline-flex items-center justify-center px-2 h-5 rounded-full text-3xs font-semibold bg-muted text-muted-foreground border border-border/80 font-mono">
-                  SLA
                 </span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* شريط الفلاتر والبحث - RTL منسق ومتقن */}
-          {activeTab !== "sla-overview" && (
-            <Card className="border-0 shadow-xs">
-            <CardContent className="p-4 md:p-5">
+          <Card className="border-0 shadow-xs">
+            <CardContent className="p-3.5 md:p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
                 {/* 1. حقل البحث المشترك */}
                 <div className={activeTab === "delayed-requests" ? "lg:col-span-3 relative" : "lg:col-span-6 relative"}>
-                  <label className="text-xs font-semibold text-muted-foreground mb-1.5 flex items-center justify-between text-right">
+                  <label className="text-2xs font-semibold text-muted-foreground mb-1 flex items-center justify-between text-right">
                     <span className="flex items-center gap-1.5">
                       <Search className="w-3.5 h-3.5" />
                       <span>البحث</span>
@@ -450,19 +435,19 @@ export default function EscalationPage() {
                     )}
                   </label>
                   <div className="relative">
-                    <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder={activeTab === "delayed-beneficiaries" ? "الاسم، الجوال، الهوية، المدينة..." : "رقم الطلب، المسجد، المدينة، طالب الخدمة..."}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      className="h-10 w-full pr-10 pl-8 text-xs md:text-sm text-right"
+                      className="h-9 w-full pr-9 pl-8 text-xs text-right"
                     />
                     {search && (
                       <button
                         onClick={() => setSearch("")}
                         className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3 h-3" />
                       </button>
                     )}
                   </div>
@@ -472,9 +457,9 @@ export default function EscalationPage() {
                   <>
                     {/* 2. البرنامج (2 أعمدة) */}
                     <div className="lg:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">البرنامج</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">البرنامج</label>
                       <Select value={programFilter} onValueChange={setProgramFilter} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="جميع البرامج" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -488,9 +473,9 @@ export default function EscalationPage() {
 
                     {/* 3. المرحلة (3 أعمدة) */}
                     <div className="lg:col-span-3">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">المرحلة</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">المرحلة</label>
                       <Select value={stageFilter} onValueChange={setStageFilter} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="جميع المراحل" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -506,9 +491,9 @@ export default function EscalationPage() {
 
                     {/* 4. التأخير (2 أعمدة) */}
                     <div className="lg:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">التأخير</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">التأخير</label>
                       <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="الكل" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -522,9 +507,9 @@ export default function EscalationPage() {
 
                     {/* 5. الترتيب (2 أعمدة) */}
                     <div className="lg:col-span-2">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">الترتيب</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">الترتيب</label>
                       <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="الأكثر تأخيراً" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -540,9 +525,9 @@ export default function EscalationPage() {
                     {/* فلاتر المستفيدين: التأخير والترتيب */}
                     {/* التأخير (3 أعمدة) */}
                     <div className="lg:col-span-3">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">التأخير</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">التأخير</label>
                       <Select value={severityFilter} onValueChange={(v: any) => setSeverityFilter(v)} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="الكل" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -556,9 +541,9 @@ export default function EscalationPage() {
 
                     {/* الترتيب (3 أعمدة) */}
                     <div className="lg:col-span-3">
-                      <label className="text-xs font-semibold text-muted-foreground mb-1.5 block text-right">الترتيب</label>
+                      <label className="text-2xs font-semibold text-muted-foreground mb-1 block text-right">الترتيب</label>
                       <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)} dir="rtl">
-                        <SelectTrigger className="w-full h-10 text-xs md:text-sm text-right">
+                        <SelectTrigger className="w-full h-9 text-xs text-right">
                           <SelectValue placeholder="الأكثر تأخيراً" />
                         </SelectTrigger>
                         <SelectContent dir="rtl" align="end" className="text-right">
@@ -594,7 +579,6 @@ export default function EscalationPage() {
               )}
             </CardContent>
           </Card>
-          )}
 
           {/* تبويب 1: قائمة الطلبات المتأخرة */}
           <TabsContent value="delayed-requests" className="space-y-4">
@@ -607,7 +591,7 @@ export default function EscalationPage() {
               ) : sortedRequests.length > 0 ? (
                 <div>
                   {/* Table Header (Desktop Only) */}
-                  <div className="hidden md:grid grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-4 px-5 py-3.5 bg-muted/40 border-b text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
+                  <div className="hidden md:grid grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-4 px-4 py-2.5 bg-muted/40 border-b text-2xs font-semibold text-muted-foreground uppercase tracking-wider text-right">
                     <div className="w-8"></div>
                     <div className="text-right">الطلب</div>
                     <div className="text-right">المسجد</div>
@@ -626,14 +610,14 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={req.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.1fr_1.2fr_auto] gap-3 md:gap-4 px-4 py-3 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
                           onClick={() => navigate(`/requests/${req.id}`)}
                         >
                           {/* Desktop: Program Icon */}
                           <div className="hidden md:flex w-8 justify-center shrink-0">
                             {req.isMultiMosque ? (
                               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs" title="مشروع مباشر لعدة مساجد">
-                                <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                <MultiMosquesIcon className="w-4 h-4" />
                               </div>
                             ) : (
                               <ProgramIcon program={req.programType} size="md" />
@@ -642,11 +626,11 @@ export default function EscalationPage() {
 
                           {/* Request Info */}
                           <div className="flex items-start justify-between md:block gap-3 min-w-0">
-                            <div className="flex items-center gap-3 md:block min-w-0">
+                            <div className="flex items-center gap-2.5 md:block min-w-0">
                               <div className="md:hidden shrink-0">
                                 {req.isMultiMosque ? (
                                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs">
-                                    <MultiMosquesIcon className="w-4.5 h-4.5" />
+                                    <MultiMosquesIcon className="w-4 h-4" />
                                   </div>
                                 ) : (
                                   <ProgramIcon program={req.programType} size="md" />
@@ -654,7 +638,7 @@ export default function EscalationPage() {
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="font-bold text-foreground text-sm truncate">
+                                  <p className="font-semibold text-foreground text-xs md:text-[13px] truncate">
                                     {req.isMultiMosque
                                       ? (req.projectName || req.descriptiveName || "مشروع لعدة مساجد")
                                       : req.programType === "bunyan" 
@@ -664,12 +648,12 @@ export default function EscalationPage() {
                                             : (req.descriptiveName || `طلب ${req.requester?.name || req.requestNumber}`))}
                                   </p>
                                   {req.descriptiveName && (!req.isMultiMosque || req.descriptiveName !== req.projectName) && (
-                                    <span className="text-2xs px-2 py-0.5 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 rounded border border-purple-200/60 font-medium truncate max-w-[150px]" title={req.descriptiveName}>
+                                    <span className="text-2xs px-1.5 py-0.2 bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 rounded border border-purple-200/60 font-medium truncate max-w-[150px]" title={req.descriptiveName}>
                                       {req.descriptiveName}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                <p className="text-2xs text-muted-foreground mt-0.5 truncate">
                                   {req.isMultiMosque
                                     ? `مشروع مباشر لعدة مساجد (${req.requestNumber})`
                                     : `${req.programName || progName} (${req.requestNumber})`}
@@ -677,18 +661,18 @@ export default function EscalationPage() {
                               </div>
                             </div>
                             <div className="md:hidden shrink-0 text-left">
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
+                              <span className={`inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                                 {severity.icon}
-                                <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
+                                <span>متأخر <strong className="font-mono tabular-nums font-bold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
                               </span>
                             </div>
                           </div>
 
                           {/* Mosque (Desktop) */}
                           <div className="hidden md:flex items-center gap-2 min-w-0 text-right">
-                            <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-sm text-foreground truncate" title={req.multiMosqueNames || req.mosque?.name || "—"}>
+                              <p className="text-xs md:text-[13px] font-medium text-foreground truncate" title={req.multiMosqueNames || req.mosque?.name || "—"}>
                                 {req.multiMosqueNames || req.mosque?.name || "—"}
                               </p>
                               {req.mosque?.city && (
@@ -698,24 +682,24 @@ export default function EscalationPage() {
                           </div>
 
                           {/* Stage (Desktop) */}
-                          <div className="hidden md:block min-w-0 text-right">
-                            <Badge variant="outline" className="text-xs font-medium py-0.5">
+                          <div className="hidden md:flex flex-col gap-1 min-w-0 text-right">
+                            <Badge variant="outline" className="text-2xs font-medium py-0.5 px-2 w-fit">
                               {stageLabel}
                             </Badge>
                           </div>
 
                           {/* Delay Status Badge (Desktop) */}
                           <div className="hidden md:block shrink-0 text-right">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
+                            <span className={`inline-flex items-center gap-1.5 text-2xs font-semibold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                               {severity.icon}
-                              <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
+                              <span>متأخر <strong className="font-mono tabular-nums font-bold">{formatDelayText(req.delayDaysOnly, req.delayHoursOnly, req.delayDays)}</strong></span>
                             </span>
                           </div>
 
                           {/* Action Button */}
                           <div className="hidden md:flex justify-center w-20" onClick={(e) => e.stopPropagation()}>
                             <Link href={`/requests/${req.id}`}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
                                 <ChevronLeft className="w-4 h-4" />
                               </Button>
                             </Link>
@@ -729,7 +713,7 @@ export default function EscalationPage() {
                             </div>
                             <div className="flex items-center justify-between text-muted-foreground">
                               <span>المنقضي في المرحلة: <strong className="text-rose-600 font-mono tabular-nums font-bold">{req.elapsedDaysOnly ? `${req.elapsedDaysOnly} يوم و ${req.elapsedHoursOnly || 0} س` : `${req.elapsedDays} يوم`}</strong></span>
-                              <span>المسموح: <strong className="font-mono tabular-nums font-bold text-foreground">{req.allowedDays}</strong> يوم</span>
+                              <span>المسموح: <strong className="font-mono tabular-nums font-bold text-foreground">{req.allowedDays}</strong> يوم {req.isDonation ? "(من تاريخ طلب الصرف)" : ""}</span>
                             </div>
                           </div>
                         </div>
@@ -837,7 +821,7 @@ export default function EscalationPage() {
                       return (
                         <div
                           key={ben.id}
-                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-3 md:gap-4 px-5 py-4 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
+                          className="grid grid-cols-1 md:grid-cols-[auto_1.6fr_1.3fr_1.3fr_1.2fr_auto] gap-3 md:gap-4 px-4 py-3 hover:bg-muted/30 transition-colors items-center cursor-pointer text-right"
                           onClick={() => navigate(`/requester-approvals/${ben.id}`)}
                         >
                           {/* User Avatar */}
@@ -850,38 +834,38 @@ export default function EscalationPage() {
                           {/* Beneficiary Name */}
                           <div className="flex items-start justify-between md:block gap-3 min-w-0">
                             <div className="min-w-0 text-right">
-                              <p className="font-bold text-foreground text-sm truncate">{ben.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">{ben.email || "بدون بريد"}</p>
+                              <p className="font-semibold text-foreground text-xs md:text-[13px] truncate">{ben.name}</p>
+                              <p className="text-2xs text-muted-foreground truncate">{ben.email || "بدون بريد"}</p>
                             </div>
                             <div className="md:hidden shrink-0 text-left">
-                              <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
+                              <span className={`inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                                 {severity.icon}
-                                <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
+                                <span>متأخر <strong className="font-mono tabular-nums font-bold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
                               </span>
                             </div>
                           </div>
 
                           {/* Role & City */}
                           <div className="hidden md:block min-w-0 text-right">
-                            <Badge variant="outline" className="text-xs bg-teal-50/50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200">
+                            <Badge variant="outline" className="text-2xs bg-teal-50/50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300 border-teal-200">
                               {REQUESTER_TYPE_LABELS[ben.requesterType || ""] || ben.requesterType || "طالب خدمة"}
                             </Badge>
-                            <p className="text-xs text-muted-foreground mt-1 truncate">{ben.city || "—"}</p>
+                            <p className="text-2xs text-muted-foreground mt-0.5 truncate">{ben.city || "—"}</p>
                           </div>
 
                           {/* Contacts: الهوية والجوال بارزة بوضوح وبأرقام واضحة */}
-                          <div className="hidden md:flex flex-col gap-1.5 min-w-0 text-xs text-right">
+                          <div className="hidden md:flex flex-col gap-1 min-w-0 text-2xs text-right">
                             {/* رقم الجوال */}
                             <div className="flex items-center gap-1.5" title="رقم الجوال">
-                              <Phone className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                              <span className="font-mono font-bold text-foreground text-xs md:text-sm tabular-nums tracking-wide" dir="ltr">
+                              <Phone className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
+                              <span className="font-mono font-medium text-foreground text-xs tabular-nums tracking-wide" dir="ltr">
                                 {ben.phone || "—"}
                               </span>
                             </div>
                             {/* رقم الهوية الوطنية */}
                             <div className="flex items-center gap-1.5" title="رقم الهوية الوطنية">
-                              <CreditCard className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="font-mono font-bold text-foreground text-xs tabular-nums bg-muted/80 dark:bg-muted/50 px-2 py-0.5 rounded-md border border-border/80 tracking-wider shadow-2xs" dir="ltr">
+                              <CreditCard className="w-3 h-3 text-muted-foreground shrink-0" />
+                              <span className="font-mono font-medium text-foreground text-2xs tabular-nums bg-muted/80 dark:bg-muted/50 px-1.5 py-0.2 rounded border border-border/80 tracking-wider shadow-2xs" dir="ltr">
                                 {ben.nationalId || "—"}
                               </span>
                             </div>
@@ -889,16 +873,16 @@ export default function EscalationPage() {
 
                           {/* Delay Status Badge */}
                           <div className="hidden md:block shrink-0 text-right">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
+                            <span className={`inline-flex items-center gap-1.5 text-2xs font-semibold px-2.5 py-1 rounded-full border ${severity.bg} ${severity.color} shadow-2xs`}>
                               {severity.icon}
-                              <span>متأخر <strong className="font-mono tabular-nums font-extrabold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
+                              <span>متأخر <strong className="font-mono tabular-nums font-bold">{formatDelayText(ben.delayDaysOnly, ben.delayHoursOnly, ben.delayDays)}</strong></span>
                             </span>
                           </div>
 
                           {/* Action Button */}
                           <div className="hidden md:flex justify-center w-20">
                             <Link href={`/requester-approvals/${ben.id}`} onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
                                 <ChevronLeft className="w-4 h-4" />
                               </Button>
                             </Link>
@@ -1014,94 +998,6 @@ export default function EscalationPage() {
                   </p>
                 </div>
               )}
-            </Card>
-          </TabsContent>
-
-          {/* تبويب 3: خريطة مدد المراحل والتصعيد الإداري (SLA) */}
-          <TabsContent value="sla-overview" className="space-y-4" dir="rtl">
-            <Card className="border-0 shadow-xs">
-              <CardContent className="p-5 md:p-6 space-y-4 text-right">
-                <div className="border-b border-border pb-3.5 text-right">
-                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-primary" />
-                    <span>المدد المعتمدة للتأخير (SLA)</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    المهل الزمنية المحددة لكل مرحلة من مراحل الطلب واعتماد المستفيدين قبل احتساب التأخير والدخول في مسار التصعيد الإداري
-                  </p>
-                </div>
-
-                <div className="space-y-2.5">
-                  {/* مهلة قبول تسجيل المستفيدين */}
-                  <div className="p-3.5 bg-teal-50/50 dark:bg-teal-950/20 hover:bg-teal-50/80 dark:hover:bg-teal-950/30 rounded-xl border border-teal-200/70 dark:border-teal-800/50 flex items-center justify-between gap-4 transition-colors">
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0 shadow-2xs">
-                        <Users className="w-4.5 h-4.5" />
-                      </div>
-                      <div className="min-w-0 text-right">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground text-sm">
-                            {slaSettingsData?.beneficiarySLA?.stageName || "قبول تسجيل المستفيد"}
-                          </span>
-                          <Badge variant="outline" className="text-2xs bg-teal-100/70 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300 dark:border-teal-800">
-                            طالبو الخدمة
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {slaSettingsData?.beneficiarySLA?.description || "مراجعة وتدقيق بيانات المستفيد الجديد واعتماد حسابه بعد التسجيل"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="shrink-0 text-left">
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-600 text-white dark:bg-teal-500 font-bold text-xs md:text-sm shadow-xs font-mono tabular-nums">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{slaSettingsData?.beneficiarySLA?.durationDays || 3}</span>
-                        <span>
-                          {(slaSettingsData?.beneficiarySLA?.durationDays || 3) === 1 ? "يوم" : (slaSettingsData?.beneficiarySLA?.durationDays || 3) === 2 ? "يومان" : (slaSettingsData?.beneficiarySLA?.durationDays || 3) <= 10 ? "أيام" : "يوماً"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* مراحل الطلبات (1 إلى 10) */}
-                  {slaSettingsData?.stages?.map((stg) => {
-                    const duration = stg.durationDays;
-                    const unit = duration === 1 ? "يوم" : duration === 2 ? "يومان" : duration <= 10 ? "أيام" : "يوماً";
-
-                    return (
-                      <div 
-                        key={stg.stageCode} 
-                        className="p-3.5 bg-card hover:bg-muted/40 rounded-xl border border-border/70 flex items-center justify-between gap-4 transition-colors shadow-2xs"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-extrabold text-xs shrink-0 font-mono shadow-2xs border border-primary/20">
-                            {stg.stageOrder}
-                          </span>
-                          <div className="min-w-0 text-right">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-foreground text-sm">{stg.stageName}</span>
-                              <Badge variant="outline" className="text-2xs bg-muted/60 text-muted-foreground">
-                                مرحلة طلب
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                              {stg.description || "معالجة متطلبات المرحلة ومتابعة الإجراءات اللازمة"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-left">
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/25 font-bold text-xs md:text-sm font-mono tabular-nums shadow-2xs">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span className="font-extrabold">{duration}</span>
-                            <span>{unit}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

@@ -679,7 +679,8 @@ export default function RequestDetailsNew() {
     { requestId },
     { enabled: !!requestId && request?.currentStage === 'execution' && request?.technicalEvalDecision === 'convert_to_donation' }
   );
-  const isDonationDisbursementApproved = !!disbursementStatus?.hasApprovedDisbursement;
+  const isDonationDisbursementExecuted = !!disbursementStatus?.hasExecutedDisbursement;
+  const isDonationDisbursementApproved = isDonationDisbursementExecuted;
 
   // Mutations
   const updateStageMutation = trpc.requests.updateStage.useMutation({
@@ -943,9 +944,15 @@ export default function RequestDetailsNew() {
   } else if (activeAction && request.currentStage === 'execution' && request.technicalEvalDecision === 'convert_to_donation') {
     activeAction = {
       ...activeAction,
-      title: "بانتظار صرف المبلغ للمستفيد",
-      description: "يرجى متابعة صرف المبلغ المستهدف للمستفيد من خلال طلبات الصرف المرتبطة بفرصة التبرع. بعد إتمام كامل الصرف، يمكنك الانتقال إلى مرحلة الاستلام والإغلاق.",
-      actionButton: undefined,
+      title: isDonationDisbursementExecuted ? "أمر الصرف منفذ - جاهز للإغلاق" : "بانتظار تنفيذ أمر الصرف",
+      description: isDonationDisbursementExecuted
+        ? "تم تنفيذ أمر الصرف المرتبط بفرصة التبرع بنجاح. يمكنك الآن الانتقال إلى مرحلة إغلاق الطلب."
+        : "يرجى متابعة صرف المبلغ للمستفيد من خلال أوامر الصرف. لا يمكن إغلاق الطلب إلا بعد أن تصبح حالة أمر الصرف 'منفذ'.",
+      actionButton: isDonationDisbursementExecuted ? {
+        label: "إغلاق الطلب",
+        onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
+      } as any : undefined,
+      canPerformAction: isDonationDisbursementExecuted,
     };
   } else if (activeAction && ['technical_eval', 'execution'].includes(request.currentStage) && request.status === 'suspended' && isManagementUser) {
     activeAction = null;
@@ -1785,9 +1792,9 @@ export default function RequestDetailsNew() {
                                     label: "إغلاق الطلب",
                                     onClick: () => updateStageMutation.mutate({ requestId, newStage: 'closed' as any }),
                                     variant: 'default' as const,
-                                    disabled: !isDonationDisbursementApproved,
-                                    title: !isDonationDisbursementApproved
-                                      ? "لا يمكن إغلاق الطلب: يجب إنشاء طلب صرف مرتبط واعتماده في صفحة أوامر الصرف أولاً"
+                                    disabled: !isDonationDisbursementExecuted,
+                                    title: !isDonationDisbursementExecuted
+                                      ? "لا يمكن إغلاق الطلب: يجب أن يكون أمر الصرف المرتبط بفرصة التبرع بحالة 'منفذ' أولاً"
                                       : undefined,
                                   }
                                 : {
