@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { 
@@ -28,6 +28,9 @@ import {
   AlertCircle,
   RotateCcw,
   BellRing,
+  ShieldCheck,
+  MessageSquarePlus,
+  Reply,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -68,12 +71,38 @@ import { PROGRAM_LABELS } from "@shared/constants";
 
 export default function BeneficiarySatisfaction({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
+
+  // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين
+  const userPerms = (user?.permissions as string[]) || [];
+  const isSuperAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(user?.role || "");
+  const hasPerm = (p: string) => isSuperAdmin || userPerms.includes(p) || userPerms.includes("beneficiary_evaluations");
+
+  const canViewPage = isSuperAdmin || hasPerm("beneficiary_evaluations.view");
+  const canViewEvaluationsLog = isSuperAdmin || hasPerm("beneficiary_evaluations.evaluations_log");
+  const canViewDispatchLogs = isSuperAdmin || hasPerm("beneficiary_evaluations.dispatch_log");
+  const canViewContacts = isSuperAdmin || hasPerm("beneficiary_evaluations.contacts");
+  const canReply = isSuperAdmin || hasPerm("beneficiary_evaluations.reply");
+
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRating, setSelectedRating] = useState<string>("all");
   const [selectedProgram, setSelectedProgram] = useState<string>("all");
   const [selectedEval, setSelectedEval] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // حالة الرد على التقييم
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [replyTargetEval, setReplyTargetEval] = useState<any | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  // مزامنة التبويب النشط وفق الصلاحيات المتاحة للمستخدم
+  useEffect(() => {
+    if (canViewEvaluationsLog) {
+      setActiveTab("evaluations");
+    } else if (canViewDispatchLogs || canViewContacts) {
+      setActiveTab("logs");
+    }
+  }, [canViewEvaluationsLog, canViewDispatchLogs, canViewContacts]);
 
   // حالات بحث وفلترة سجلات الاستبيانات
   const [logSearchQuery, setLogSearchQuery] = useState("");
@@ -82,14 +111,48 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const [logPage, setLogPage] = useState(1);
   const [sendingReminderId, setSendingReminderId] = useState<number | null>(null);
 
+  // حالات العرض الفرعي في تبويب السجلات
+  const [logsSubView, setLogsSubView] = useState<"requests" | "contacts">("requests");
+
+  useEffect(() => {
+    if (canViewDispatchLogs) {
+      setLogsSubView("requests");
+    } else if (canViewContacts) {
+      setLogsSubView("contacts");
+    }
+  }, [canViewDispatchLogs, canViewContacts]);
+
+  const [contactSearchQuery, setContactSearchQuery] = useState("");
+  const [contactCategoryFilter, setContactCategoryFilter] = useState<"all" | "approved_beneficiary" | "donor" | "inquiry">("all");
+  const [contactPage, setContactPage] = useState(1);
+  const [sendingSurveyKey, setSendingSurveyKey] = useState<string | null>(null);
+
   // استعلام سجلات إرسال الاستبيانات
-  const { data: logsData, isLoading: isLoadingLogs, refetch: refetchLogs } = trpc.requests.getBeneficiarySurveyLogs.useQuery({
-    search: logSearchQuery.trim() ? logSearchQuery.trim() : undefined,
-    statusFilter: logStatusFilter,
-    programType: logProgramFilter !== "all" ? logProgramFilter : undefined,
-    page: logPage,
-    limit: 15,
-  });
+  const { data: logsData, isLoading: isLoadingLogs, refetch: refetchLogs } = trpc.requests.getBeneficiarySurveyLogs.useQuery(
+    {
+      search: logSearchQuery.trim() ? logSearchQuery.trim() : undefined,
+      statusFilter: logStatusFilter,
+      programType: logProgramFilter !== "all" ? logProgramFilter : undefined,
+      page: logPage,
+      limit: 15,
+    },
+    {
+      enabled: canViewDispatchLogs,
+    }
+  );
+
+  // استعلام جهات الاتصال (مستفيدون معتمدون، متبرعون، أصحاب استفسارات)
+  const { data: contactsData, isLoading: isLoadingContacts, refetch: refetchContacts } = trpc.requests.getApprovedBeneficiariesAndContacts.useQuery(
+    {
+      search: contactSearchQuery.trim() ? contactSearchQuery.trim() : undefined,
+      category: contactCategoryFilter,
+      page: contactPage,
+      limit: 15,
+    },
+    {
+      enabled: canViewContacts,
+    }
+  );
 
   // طفرة إرسال البريد التذكيري للمستفيد
   const sendReminderMutation = trpc.requests.sendBeneficiarySurveyReminder.useMutation({
@@ -114,15 +177,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     if (!dateVal) return "—";
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("en-CA"); // بصيغة 2026-09-03 بأرقام إنجليزية 0-9
+    return d.toLocaleDateString("en-CA");
   };
-
-  // حالات العرض الفرعي في تبويب السجلات (استبيانات الطلبات المغلقة أو دليل المستفيدين والمتبرعين)
-  const [logsSubView, setLogsSubView] = useState<"requests" | "contacts">("requests");
-  const [contactSearchQuery, setContactSearchQuery] = useState("");
-  const [contactCategoryFilter, setContactCategoryFilter] = useState<"all" | "approved_beneficiary" | "donor" | "inquiry">("all");
-  const [contactPage, setContactPage] = useState(1);
-  const [sendingSurveyKey, setSendingSurveyKey] = useState<string | null>(null);
 
   // حوار إرسال استبيان مخصص أو إدخال بريد
   const [isCustomSurveyOpen, setIsCustomSurveyOpen] = useState(false);
@@ -139,14 +195,6 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     phone: "",
     category: "approved_beneficiary",
     customMessage: "",
-  });
-
-  // استعلام جهات الاتصال (مستفيدون معتمدون، متبرعون، أصحاب استفسارات)
-  const { data: contactsData, isLoading: isLoadingContacts, refetch: refetchContacts } = trpc.requests.getApprovedBeneficiariesAndContacts.useQuery({
-    search: contactSearchQuery.trim() ? contactSearchQuery.trim() : undefined,
-    category: contactCategoryFilter,
-    page: contactPage,
-    limit: 15,
   });
 
   // طفرة إرسال استبيان رضا عام
