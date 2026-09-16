@@ -7,19 +7,49 @@ import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
 
-// توليد رقم مشروع بمنهجية سنوية
-async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
+// توليد رقم مشروع بمنهجية سنوية فريدة وآمنة تمنع أي تكرار
+export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
   const currentYear = new Date().getFullYear();
+  const prefix = `PRJ-${currentYear}-`;
+
+  // 1. جلب آخر تسلسل مسجل في جدول التسلسل السنوي
   const [existing] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
-  let sequence: number;
-  if (existing) {
-    sequence = existing.lastSequence + 1;
-    await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
-  } else {
-    sequence = 1;
-    await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
+  let lastSeq = existing ? existing.lastSequence : 0;
+
+  // 2. فحص أرقام المشاريع الموجودة بالفعل في جدول projects لنفس السنة لضمان عدم وجود أي تعارض
+  const existingProjects = await db
+    .select({ projectNumber: projects.projectNumber })
+    .from(projects)
+    .where(like(projects.projectNumber, `${prefix}%`));
+
+  const existingNumbers = new Set(existingProjects.map(p => p.projectNumber));
+
+  let maxActualSeq = 0;
+  for (const p of existingProjects) {
+    const numPart = p.projectNumber.substring(prefix.length);
+    const parsed = parseInt(numPart, 10);
+    if (!isNaN(parsed) && parsed > maxActualSeq) {
+      maxActualSeq = parsed;
+    }
   }
-  return `PRJ-${currentYear}-${String(sequence).padStart(4, "0")}`;
+
+  // الرقم التالي يجب أن يكون أكبر من التسلسل المسجل وأكبر من أي رقم موجود بالفعل
+  let nextSeq = Math.max(lastSeq, maxActualSeq) + 1;
+  let candidateNumber = `${prefix}${String(nextSeq).padStart(4, "0")}`;
+
+  while (existingNumbers.has(candidateNumber)) {
+    nextSeq++;
+    candidateNumber = `${prefix}${String(nextSeq).padStart(4, "0")}`;
+  }
+
+  // تحديث أو إنشاء سجل التسلسل
+  if (existing) {
+    await db.update(projectNumberSequence).set({ lastSequence: nextSeq }).where(eq(projectNumberSequence.year, currentYear));
+  } else {
+    await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: nextSeq });
+  }
+
+  return candidateNumber;
 }
 
 // دالة إنشاء رقم طلب فريد للمشروع المباشر

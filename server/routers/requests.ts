@@ -54,6 +54,7 @@ import {
   type PrerequisiteType,
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
+import { generateProjectNumber } from "./projects";
 
 export function getSurveyBaseUrl(_req?: any): string {
   // الرابط الرسمي للمنصة لإرسال استبيانات رضا المستفيدين للمواطنين والمستفيدين
@@ -3195,18 +3196,8 @@ export const requestsRouter = router({
           // إنشاء المشروع تلقائياً مع اسم المشروع المدخل
           const existingProject = await db.select().from(projects).where(eq(projects.requestId, input.requestId)).limit(1);
           if (existingProject.length === 0) {
-            // توليد رقم مشروع جديد
-            const currentYear = new Date().getFullYear();
-            const [existingSeq] = await db.select().from(projectNumberSequence).where(eq(projectNumberSequence.year, currentYear));
-            let sequence: number;
-            if (existingSeq) {
-              sequence = existingSeq.lastSequence + 1;
-              await db.update(projectNumberSequence).set({ lastSequence: sequence }).where(eq(projectNumberSequence.year, currentYear));
-            } else {
-              sequence = 1;
-              await db.insert(projectNumberSequence).values({ year: currentYear, lastSequence: sequence });
-            }
-            const projectNumber = `PRJ-${currentYear}-${String(sequence).padStart(4, '0')}`;
+            // توليد رقم مشروع جديد فريد وآمن
+            const projectNumber = await generateProjectNumber(db);
             let defaultProjectName = "";
             const requestWithNames = await db.select({
               programType: mosqueRequests.programType,
