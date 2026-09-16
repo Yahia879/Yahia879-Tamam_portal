@@ -31,6 +31,7 @@ import {
   ShieldCheck,
   MessageSquarePlus,
   Reply,
+  EyeOff,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -74,14 +75,14 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين
   const userPerms = (user?.permissions as string[]) || [];
-  const isSuperAdmin = ["super_admin", "system_admin", "general_manager", "executive_director"].includes(user?.role || "");
-  const hasPerm = (p: string) => isSuperAdmin || userPerms.includes(p) || userPerms.includes("beneficiary_evaluations");
+  const isSuperAdminFallback = userPerms.length === 0 && (user?.role === "super_admin" || user?.role === "system_admin");
 
-  const canViewPage = isSuperAdmin || hasPerm("beneficiary_evaluations.view");
-  const canViewEvaluationsLog = isSuperAdmin || hasPerm("beneficiary_evaluations.evaluations_log");
-  const canViewDispatchLogs = isSuperAdmin || hasPerm("beneficiary_evaluations.dispatch_log");
-  const canViewContacts = isSuperAdmin || hasPerm("beneficiary_evaluations.contacts");
-  const canReply = isSuperAdmin || hasPerm("beneficiary_evaluations.reply");
+  const canViewPage = userPerms.includes("beneficiary_evaluations.view") || userPerms.includes("beneficiary_evaluations") || userPerms.includes("beneficiary_satisfaction") || isSuperAdminFallback;
+  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || isSuperAdminFallback;
+  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") || isSuperAdminFallback;
+  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") || isSuperAdminFallback;
+  const canReply = userPerms.includes("beneficiary_evaluations.reply") || isSuperAdminFallback;
+  const canHide = userPerms.includes("beneficiary_evaluations.hide") || isSuperAdminFallback;
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,6 +95,10 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const [replyDialogOpen, setReplyDialogOpen] = useState(false);
   const [replyTargetEval, setReplyTargetEval] = useState<any | null>(null);
   const [replyText, setReplyText] = useState("");
+
+  // حالة عرض وإدارة التقييمات المخفية
+  const [isHiddenEvaluationsModalOpen, setIsHiddenEvaluationsModalOpen] = useState(false);
+  const [togglingEvalId, setTogglingEvalId] = useState<number | null>(null);
 
   // مزامنة التبويب النشط وفق الصلاحيات المتاحة للمستخدم
   useEffect(() => {
@@ -294,6 +299,34 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
     },
   });
 
+  // طفرة تبديل حالة إخفاء/إظهار التقييم
+  const toggleVisibilityMutation = trpc.requests.toggleBeneficiaryEvaluationVisibility.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message);
+      setTogglingEvalId(null);
+      refetchEvaluations();
+      if (selectedEval && selectedEval.id === res.evalId) {
+        setSelectedEval((prev: any) => ({
+          ...prev,
+          isHidden: res.isHidden,
+          hiddenBy: res.hiddenBy,
+        }));
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "فشل تغيير حالة إخفاء التقييم");
+      setTogglingEvalId(null);
+    },
+  });
+
+  const handleToggleHide = (evalId: number, currentHidden: boolean) => {
+    setTogglingEvalId(evalId);
+    toggleVisibilityMutation.mutate({
+      evalId,
+      isHidden: !currentHidden,
+    });
+  };
+
   const handleOpenReplyDialog = (evalItem: any) => {
     setReplyTargetEval(evalItem);
     setReplyText(evalItem.reply?.text || "");
@@ -340,6 +373,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   };
 
   const filteredItems = data?.items || [];
+  const activeItems = useMemo(() => filteredItems.filter((i: any) => !i.isHidden), [filteredItems]);
+  const hiddenItems = useMemo(() => filteredItems.filter((i: any) => i.isHidden), [filteredItems]);
+
   const stats = data?.stats || {
     totalEvaluations: 0,
     avgRating: 0,
@@ -468,19 +504,8 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
           </Card>
         </div>
 
-        {/* في حال عدم توفر أي صلاحية لعرض الجداول والسجلات، يظهر تنبيه أن الصلاحية الحالية هي عرض الإحصائيات فقط */}
-        {!hasAnyLogsAccess ? (
-          <Card className="rounded-2xl border border-border/80 bg-card p-8 text-center space-y-3" dir="rtl">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto border border-blue-500/20">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-sm sm:text-base font-bold text-foreground">عرض إحصائيات ومؤشرات رضا المستفيدين</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
-              تتيح لك صلاحيتك الحالية الاطلاع على المؤشرات والإحصائيات العامة لقياس رضا المستفيدين. لعرض سجل استبيانات التقييم، سجل الإرسال، أو المستفيدين المعتمدين وإضافة الردود، يرجى طلب الصلاحيات المخصصة من إدارة النظام.
-            </p>
-          </Card>
-        ) : (
-          /* Tabs Control */
+        {/* في حال توفر صلاحية لعرض الجداول أو السجلات تظهر التبويبات */}
+        {hasAnyLogsAccess && (
           <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl" className="w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-start gap-3 mb-2">
               <TabsList dir="rtl" className="w-full sm:w-auto p-1 h-12 bg-muted/80 rounded-2xl border border-border/70 shadow-xs flex items-center justify-start gap-1">
@@ -572,15 +597,32 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                 {/* Evaluations List Table */}
                 <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
-                  <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-row items-center justify-between">
+                  <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <CardTitle className="text-base font-bold text-foreground">
                         سجل استبيانات التقييم
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        عرض {filteredItems.length} من أصل {stats.totalEvaluations} تقييم
+                        عرض {activeItems.length} من أصل {stats.totalEvaluations} تقييم نشط
                       </CardDescription>
                     </div>
+
+                    {canHide && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsHiddenEvaluationsModalOpen(true)}
+                        className="h-9 px-3.5 text-xs font-bold gap-2 rounded-xl text-amber-800 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 self-start sm:self-auto shadow-xs"
+                      >
+                        <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        <span>عرض التقييمات المخفية</span>
+                        {hiddenItems.length > 0 && (
+                          <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[11px] font-bold bg-amber-600 text-white dark:bg-amber-500 dark:text-gray-950 mr-1">
+                            {hiddenItems.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    )}
                   </CardHeader>
 
                   <CardContent className="p-0">
@@ -588,13 +630,15 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       <div className="p-12 text-center text-muted-foreground text-xs">
                         جاري تحميل تقييمات رضا المستفيدين...
                       </div>
-                    ) : filteredItems.length === 0 ? (
+                    ) : activeItems.length === 0 ? (
                       <div className="p-12 text-center space-y-2">
                         <HeartHandshake className="w-12 h-12 mx-auto text-muted-foreground/40" />
-                        <p className="text-sm font-bold text-foreground">لا توجد تقييمات مطابقة</p>
+                        <p className="text-sm font-bold text-foreground">لا توجد تقييمات نشطة مطابقة</p>
                         <p className="text-xs text-muted-foreground">
                           {stats.totalEvaluations === 0 
                             ? "لم يتم تسجيل أي استبيان تقييم بعد. ستظهر التقييمات هنا فور قيام المستفيدين بإرسال استبياناتهم." 
+                            : hiddenItems.length > 0
+                            ? `تم إخفاء ${hiddenItems.length} تقييم. يمكنك الاطلاع عليها عبر زر "عرض التقييمات المخفية" أعلاه.`
                             : "لم يتم العثور على أي استبيان تقييم وفق معايير البحث والفلترة المحددة."}
                         </p>
                       </div>
@@ -613,7 +657,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
-                            {filteredItems.map((item) => {
+                            {activeItems.map((item) => {
                               const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
                               return (
                                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
@@ -716,6 +760,23 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                         >
                                           <MessageSquarePlus className="w-3.5 h-3.5" />
                                           <span>{item.reply ? "تعديل الرد" : "إضافة رد"}</span>
+                                        </Button>
+                                      )}
+                                      {canHide && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={togglingEvalId === item.id}
+                                          onClick={() => handleToggleHide(item.id, false)}
+                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
+                                          title="إخفاء التقييم عن باقي المستخدمين"
+                                        >
+                                          {togglingEvalId === item.id ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                          ) : (
+                                            <EyeOff className="w-3.5 h-3.5" />
+                                          )}
+                                          <span>إخفاء</span>
                                         </Button>
                                       )}
                                     </div>
@@ -1530,6 +1591,34 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                 {/* 2. العنوان والتفاصيل */}
                 <div className="p-6 sm:p-8 space-y-6 max-h-[75vh] overflow-y-auto">
+                  {/* تنبيه إذا كان التقييم مخفياً */}
+                  {selectedEval.isHidden && (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-800 dark:text-rose-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <EyeOff className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                        <div>
+                          <strong className="font-bold text-xs sm:text-sm block">هذا التقييم مخفي عن باقي المستخدمين</strong>
+                          {selectedEval.hiddenBy && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              تم الإخفاء بواسطة {selectedEval.hiddenBy.userName || "الإدارة"} في {formatDateEn(selectedEval.hiddenBy.hiddenAt)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {canHide && (
+                        <Button
+                          size="sm"
+                          disabled={togglingEvalId === selectedEval.id}
+                          onClick={() => handleToggleHide(selectedEval.id, true)}
+                          className="text-xs h-8 px-3 font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shrink-0 self-start sm:self-auto"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>إلغاء الإخفاء وإظهار التقييم</span>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="text-center space-y-2">
                     <h2 className="text-xl sm:text-2xl font-bold text-foreground">
                       {evalFormConfig?.title || "قياس رضا المستفيدين من خدمات الجمعية"}
@@ -1692,17 +1781,31 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 </div>
 
                 <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-between items-center flex-row">
-                  {canReply && selectedEval.reply && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenReplyDialog(selectedEval)}
-                      className="text-xs font-bold rounded-xl px-4 gap-1.5 text-teal-700 dark:text-teal-300 border-teal-500/30 hover:bg-teal-500/10"
-                    >
-                      <MessageSquarePlus className="w-3.5 h-3.5" />
-                      <span>تعديل الرد الرسمي</span>
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {canReply && selectedEval.reply && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenReplyDialog(selectedEval)}
+                        className="text-xs font-bold rounded-xl px-4 gap-1.5 text-teal-700 dark:text-teal-300 border-teal-500/30 hover:bg-teal-500/10"
+                      >
+                        <MessageSquarePlus className="w-3.5 h-3.5" />
+                        <span>تعديل الرد الرسمي</span>
+                      </Button>
+                    )}
+                    {canHide && !selectedEval.isHidden && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={togglingEvalId === selectedEval.id}
+                        onClick={() => handleToggleHide(selectedEval.id, false)}
+                        className="text-xs font-bold rounded-xl px-4 gap-1.5 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
+                      >
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span>إخفاء التقييم</span>
+                      </Button>
+                    )}
+                  </div>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -1714,6 +1817,148 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 </DialogFooter>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* حوار عرض وإدارة التقييمات المخفية */}
+        <Dialog open={isHiddenEvaluationsModalOpen} onOpenChange={setIsHiddenEvaluationsModalOpen}>
+          <DialogContent className="max-w-4xl w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
+            <DialogHeader className="p-5 sm:p-6 bg-muted/40 border-b border-border text-right space-y-1">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                    <EyeOff className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base sm:text-lg font-bold text-foreground text-right flex items-center gap-2">
+                      <span>التقييمات المخفية</span>
+                      <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold">
+                        {hiddenItems.length} تقييم
+                      </Badge>
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-right text-muted-foreground mt-0.5">
+                      قائمة التقييمات التي تم إخفاؤها من العرض العام ولا تظهر إلا لمن يمتلك الصلاحية. يمكنك إعادة إظهار أي تقييم في أي وقت.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+              {hiddenItems.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <Eye className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                  <p className="text-sm font-bold text-foreground">لا توجد أي تقييمات مخفية حالياً</p>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    جميع التقييمات معروضة بشكل نشط للجميع وفق الصلاحيات المعينة. عند قيامك بإخفاء أي تقييم من جدول التقييمات، سينتقل إلى هذه القائمة.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {hiddenItems.map((item: any) => {
+                    const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-4 rounded-2xl bg-card border border-border/80 hover:border-amber-500/30 transition-all shadow-xs space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <span className="font-mono font-bold text-xs bg-muted px-2.5 py-1 rounded-lg border border-border">
+                              {item.requestNumber}
+                            </span>
+                            <span className="font-bold text-xs text-foreground">
+                              {item.requesterName}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              ({getArabicLabel(item.serviceName || item.programType)})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-auto">
+                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold text-xs">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                              <span>{ratingVal} / 5</span>
+                            </div>
+                            <span className="text-[11px] text-muted-foreground font-mono">
+                              {formatDateEn(item.evaluatedAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* التعليق والرد ومعلومات الإخفاء */}
+                        <div className="space-y-2 text-right">
+                          {item.comments ? (
+                            <p className="text-xs text-foreground italic bg-muted/30 p-2.5 rounded-xl border border-border/50 leading-relaxed">
+                              "{item.comments}"
+                            </p>
+                          ) : (
+                            <span className="text-muted-foreground/60 text-[11px]">لا توجد ملاحظات مكتوبة</span>
+                          )}
+
+                          {item.reply && (
+                            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs space-y-1">
+                              <span className="font-bold text-teal-700 dark:text-teal-300 text-[10px]">
+                                رد الجمعية المسجل:
+                              </span>
+                              <p className="text-[11px] text-foreground leading-snug">
+                                {item.reply.text}
+                              </p>
+                            </div>
+                          )}
+
+                          {item.hiddenBy && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-rose-700 dark:text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded-lg border border-rose-500/15">
+                              <EyeOff className="w-3.5 h-3.5 shrink-0" />
+                              <span>
+                                تم الإخفاء بواسطة: <strong>{item.hiddenBy.userName || "الإدارة"}</strong> ({formatDateEn(item.hiddenBy.hiddenAt)})
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* أزرار الإجراءات للتقييم المخفي */}
+                        <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenDetails(item)}
+                            className="h-8 px-3 text-xs font-bold gap-1 rounded-xl hover:bg-muted"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>عرض التفاصيل الكاملة</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={togglingEvalId === item.id}
+                            onClick={() => handleToggleHide(item.id, true)}
+                            className="h-8 px-3.5 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                          >
+                            {togglingEvalId === item.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
+                            <span>إلغاء الإخفاء وإظهار التقييم</span>
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsHiddenEvaluationsModalOpen(false)}
+                className="text-xs font-bold rounded-xl px-6"
+              >
+                إغلاق
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
