@@ -73,16 +73,19 @@ import { PROGRAM_LABELS } from "@shared/constants";
 export default function BeneficiarySatisfaction({ embedded = false }: { embedded?: boolean }) {
   const { user } = useAuth();
 
-  // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين
+  // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين (مطابقة تماماً لآلية صفحة الطلبات Requests.tsx)
   const userPerms = (user?.permissions as string[]) || [];
-  const isSuperAdmin = user?.role === "super_admin" || user?.role === "system_admin";
 
-  const canViewPage = isSuperAdmin || userPerms.includes("beneficiary_evaluations.view") || userPerms.includes("beneficiary_evaluations") || userPerms.includes("beneficiary_satisfaction");
-  const canViewEvaluationsLog = isSuperAdmin || userPerms.includes("beneficiary_evaluations.evaluations_log") || userPerms.includes("beneficiary_evaluations");
-  const canViewDispatchLogs = isSuperAdmin || userPerms.includes("beneficiary_evaluations.dispatch_log") || userPerms.includes("beneficiary_evaluations");
-  const canViewContacts = isSuperAdmin || userPerms.includes("beneficiary_evaluations.contacts") || userPerms.includes("beneficiary_evaluations");
-  const canReply = isSuperAdmin || userPerms.includes("beneficiary_evaluations.reply") || userPerms.includes("beneficiary_evaluations");
-  const canHide = isSuperAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
+  const canViewPage = userPerms.includes("beneficiary_evaluations.view") || 
+                      userPerms.includes("beneficiary_evaluations") || 
+                      userPerms.includes("beneficiary_satisfaction");
+
+  // تظهر فقط إذا كانت الصلاحية المحددة مفعلة، وإذا لم تكن مفعلة لا تظهر أبداً
+  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
+  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
+  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
+  const canReply = userPerms.includes("beneficiary_evaluations.reply");
+  const canHide = userPerms.includes("beneficiary_evaluations.hide");
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
