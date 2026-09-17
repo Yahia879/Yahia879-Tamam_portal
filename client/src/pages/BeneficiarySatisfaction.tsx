@@ -75,14 +75,22 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   // فحص الصلاحيات الدقيقة لقسم رضا المستفيدين
   const userPerms = (user?.permissions as string[]) || [];
-  const isSuperAdminFallback = userPerms.length === 0 && (user?.role === "super_admin" || user?.role === "system_admin");
+  const hasWildcard = userPerms.includes("*");
 
-  const canViewPage = userPerms.includes("beneficiary_evaluations.view") || userPerms.includes("beneficiary_evaluations") || userPerms.includes("beneficiary_satisfaction") || isSuperAdminFallback;
-  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || isSuperAdminFallback;
-  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") || isSuperAdminFallback;
-  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") || isSuperAdminFallback;
-  const canReply = userPerms.includes("beneficiary_evaluations.reply") || isSuperAdminFallback;
-  const canHide = userPerms.includes("beneficiary_evaluations.hide") || isSuperAdminFallback;
+  const canViewPage =
+    hasWildcard ||
+    userPerms.includes("beneficiary_evaluations.view") ||
+    userPerms.includes("beneficiary_evaluations") ||
+    userPerms.includes("beneficiary_satisfaction") ||
+    userPerms.includes("beneficiary_evaluations.evaluations_log") ||
+    userPerms.includes("beneficiary_evaluations.dispatch_log") ||
+    userPerms.includes("beneficiary_evaluations.contacts");
+
+  const canViewEvaluationsLog = hasWildcard || userPerms.includes("beneficiary_evaluations.evaluations_log");
+  const canViewDispatchLogs = hasWildcard || userPerms.includes("beneficiary_evaluations.dispatch_log");
+  const canViewContacts = hasWildcard || userPerms.includes("beneficiary_evaluations.contacts");
+  const canReply = hasWildcard || userPerms.includes("beneficiary_evaluations.reply");
+  const canHide = hasWildcard || userPerms.includes("beneficiary_evaluations.hide");
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
@@ -2243,6 +2251,22 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </AlertDialog>
       </div>
     );
+
+  if (!canViewPage) {
+    const deniedContent = (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6" dir="rtl">
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4 border border-destructive/20 shadow-xs">
+          <HeartHandshake className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground mb-2">ليس لديك صلاحية للوصول إلى هذا القسم</h2>
+        <p className="text-sm text-muted-foreground max-w-md">
+          لا تملك الصلاحيات الكافية للاطلاع على قسم رضا المستفيدين. يرجى التواصل مع إدارة النظام لمنحك الصلاحية المطلوبة.
+        </p>
+      </div>
+    );
+    if (embedded) return deniedContent;
+    return <DashboardLayout>{deniedContent}</DashboardLayout>;
+  }
 
   if (embedded) {
     return content;
