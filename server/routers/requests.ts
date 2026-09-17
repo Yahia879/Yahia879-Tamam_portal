@@ -4986,9 +4986,8 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
-      const canViewEvaluationsLog = isSuperAdmin || userPerms.includes("beneficiary_evaluations.evaluations_log") || userPerms.includes("beneficiary_evaluations");
-      const canHide = isSuperAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
+      const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
+      const canHide = userPerms.includes("beneficiary_evaluations.hide");
 
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       let items = allEvaluations.map((e) => {
@@ -5133,8 +5132,7 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
-      const canViewDispatchLogs = isSuperAdmin || userPerms.includes("beneficiary_evaluations.dispatch_log") || userPerms.includes("beneficiary_evaluations");
+      const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
       if (!canViewDispatchLogs) {
         return {
           items: [],
@@ -5620,8 +5618,7 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
-      const canReply = isSuperAdmin || userPerms.includes("beneficiary_evaluations.reply") || userPerms.includes("beneficiary_evaluations");
+      const canReply = userPerms.includes("beneficiary_evaluations.reply");
       if (!canReply) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
       }
@@ -5680,8 +5677,7 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
-      const canHide = isSuperAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
+      const canHide = userPerms.includes("beneficiary_evaluations.hide");
       if (!canHide) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إخفاء أو إظهار تقييمات المستفيدين" });
       }
@@ -5755,8 +5751,7 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
-      const canViewContacts = isSuperAdmin || userPerms.includes("beneficiary_evaluations.contacts") || userPerms.includes("beneficiary_evaluations");
+      const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
       if (!canViewContacts) {
         return {
           items: [],
