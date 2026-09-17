@@ -4986,9 +4986,9 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canViewEvaluationsLog = hasWildcard || userPerms.includes("beneficiary_evaluations.evaluations_log");
-      const canHide = hasWildcard || userPerms.includes("beneficiary_evaluations.hide");
+      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
+      const canViewEvaluationsLog = isSuperAdmin || userPerms.includes("beneficiary_evaluations.evaluations_log") || userPerms.includes("beneficiary_evaluations");
+      const canHide = isSuperAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
 
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       let items = allEvaluations.map((e) => {
@@ -5133,8 +5133,8 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canViewDispatchLogs = hasWildcard || userPerms.includes("beneficiary_evaluations.dispatch_log");
+      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
+      const canViewDispatchLogs = isSuperAdmin || userPerms.includes("beneficiary_evaluations.dispatch_log") || userPerms.includes("beneficiary_evaluations");
       if (!canViewDispatchLogs) {
         return {
           items: [],
@@ -5513,12 +5513,11 @@ export const requestsRouter = router({
         });
       }
 
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canSendReminder = hasWildcard || userPerms.includes("beneficiary_evaluations.dispatch_log");
-      if (!canSendReminder) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال التذكيرات بالاستبيان" });
+      if (!beneficiary.email) {
+        throw new TRPCError({ 
+          code: "BAD_REQUEST", 
+          message: `المستفيد (${beneficiary.name || 'العميل'}) ليس لديه بريد إلكتروني مسجل بالنظام لإرسال التذكير.` 
+        });
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
@@ -5621,8 +5620,8 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canReply = hasWildcard || userPerms.includes("beneficiary_evaluations.reply");
+      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
+      const canReply = isSuperAdmin || userPerms.includes("beneficiary_evaluations.reply") || userPerms.includes("beneficiary_evaluations");
       if (!canReply) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
       }
@@ -5681,8 +5680,8 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canHide = hasWildcard || userPerms.includes("beneficiary_evaluations.hide");
+      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
+      const canHide = isSuperAdmin || userPerms.includes("beneficiary_evaluations.hide") || userPerms.includes("beneficiary_evaluations");
       if (!canHide) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إخفاء أو إظهار تقييمات المستفيدين" });
       }
@@ -5756,8 +5755,8 @@ export const requestsRouter = router({
 
       const { calculateUserPermissions } = await import("../permissions");
       const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canViewContacts = hasWildcard || userPerms.includes("beneficiary_evaluations.contacts");
+      const isSuperAdmin = ctx.user.role === "super_admin" || ctx.user.role === "system_admin";
+      const canViewContacts = isSuperAdmin || userPerms.includes("beneficiary_evaluations.contacts") || userPerms.includes("beneficiary_evaluations");
       if (!canViewContacts) {
         return {
           items: [],
@@ -6021,14 +6020,6 @@ export const requestsRouter = router({
       const isStaff = ctx.user.role !== "service_requester";
       if (!isStaff) {
         throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
-      }
-
-      const { calculateUserPermissions } = await import("../permissions");
-      const userPerms = await calculateUserPermissions(ctx.user.id);
-      const hasWildcard = userPerms.includes("*");
-      const canSendSurvey = hasWildcard || userPerms.includes("beneficiary_evaluations.contacts");
-      if (!canSendSurvey) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال استبيانات رضا المستفيدين" });
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
