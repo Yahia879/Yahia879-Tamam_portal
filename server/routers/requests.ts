@@ -4984,10 +4984,11 @@ export const requestsRouter = router({
         mosqueList.forEach((m) => mosqueMap.set(m.id, m.name));
       }
 
-      const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
-      const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || isSuperAdminFallback;
-      const canHide = userPerms.includes("beneficiary_evaluations.hide") || isSuperAdminFallback;
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canViewEvaluationsLog = hasWildcard || userPerms.includes("beneficiary_evaluations.evaluations_log");
+      const canHide = hasWildcard || userPerms.includes("beneficiary_evaluations.hide");
 
       // تحضير العناصر مع تحليل الـ notes وحساب متوسط كافة حقول التقييم
       let items = allEvaluations.map((e) => {
@@ -5130,9 +5131,10 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "هذا القسم متاح للموظفين والإدارة فقط." });
       }
 
-      const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
-      const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") || isSuperAdminFallback;
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canViewDispatchLogs = hasWildcard || userPerms.includes("beneficiary_evaluations.dispatch_log");
       if (!canViewDispatchLogs) {
         return {
           items: [],
@@ -5511,11 +5513,12 @@ export const requestsRouter = router({
         });
       }
 
-      if (!beneficiary.email) {
-        throw new TRPCError({ 
-          code: "BAD_REQUEST", 
-          message: `المستفيد (${beneficiary.name || 'العميل'}) ليس لديه بريد إلكتروني مسجل بالنظام لإرسال التذكير.` 
-        });
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canSendReminder = hasWildcard || userPerms.includes("beneficiary_evaluations.dispatch_log");
+      if (!canSendReminder) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال التذكيرات بالاستبيان" });
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
@@ -5616,9 +5619,11 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
-      if (!userPerms.includes("beneficiary_evaluations.reply") && !isSuperAdminFallback) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canReply = hasWildcard || userPerms.includes("beneficiary_evaluations.reply");
+      if (!canReply) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية الرد على تقييمات المستفيدين" });
       }
 
@@ -5674,9 +5679,11 @@ export const requestsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
-      if (!userPerms.includes("beneficiary_evaluations.hide") && !isSuperAdminFallback) {
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canHide = hasWildcard || userPerms.includes("beneficiary_evaluations.hide");
+      if (!canHide) {
         throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إخفاء أو إظهار تقييمات المستفيدين" });
       }
 
@@ -5747,9 +5754,10 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
       }
 
-      const userPerms = ((ctx.user as any).permissions as string[]) || [];
-      const isSuperAdminFallback = userPerms.length === 0 && (ctx.user.role === "super_admin" || ctx.user.role === "system_admin");
-      const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") || isSuperAdminFallback;
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canViewContacts = hasWildcard || userPerms.includes("beneficiary_evaluations.contacts");
       if (!canViewContacts) {
         return {
           items: [],
@@ -6013,6 +6021,14 @@ export const requestsRouter = router({
       const isStaff = ctx.user.role !== "service_requester";
       if (!isStaff) {
         throw new TRPCError({ code: "FORBIDDEN", message: "هذه الصلاحية متاحة للمسؤولين فقط." });
+      }
+
+      const { calculateUserPermissions } = await import("../permissions");
+      const userPerms = await calculateUserPermissions(ctx.user.id);
+      const hasWildcard = userPerms.includes("*");
+      const canSendSurvey = hasWildcard || userPerms.includes("beneficiary_evaluations.contacts");
+      if (!canSendSurvey) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "ليس لديك صلاحية إرسال استبيانات رضا المستفيدين" });
       }
 
       const appBaseUrl = getSurveyBaseUrl(ctx.req);
