@@ -195,7 +195,7 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       view: "عرض قسم التصعيد الإداري"
     },
     beneficiary_evaluations: {
-      view: "عرض قسم رضا المستفيدين",
+      view: "عرض إحصائيات رضا المستفيدين",
       evaluations_log: "سجل استبيانات التقييم",
       dispatch_log: "سجل الإرسال",
       contacts: "المستفيدين المعتمدين والاستفسارات",
