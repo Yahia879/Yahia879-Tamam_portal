@@ -78,14 +78,43 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   const canViewPage = userPerms.includes("beneficiary_evaluations.view") || 
                       userPerms.includes("beneficiary_evaluations") || 
-                      userPerms.includes("beneficiary_satisfaction");
+                      userPerms.includes("beneficiary_satisfaction") ||
+                      userPerms.includes("beneficiary_evaluations.evaluations_log") ||
+                      userPerms.includes("beneficiary_evaluations.dispatch_log") ||
+                      userPerms.includes("beneficiary_evaluations.contacts") ||
+                      userPerms.includes("beneficiary_evaluations.view_details") ||
+                      userPerms.includes("beneficiary_evaluations.view_logs") ||
+                      userPerms.includes("beneficiary_evaluations.send_survey");
 
-  // تظهر فقط إذا كانت الصلاحية المحددة مفعلة، وإذا لم تكن مفعلة لا تظهر أبداً
-  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
-  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
-  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
-  const canReply = userPerms.includes("beneficiary_evaluations.reply");
-  const canHide = userPerms.includes("beneficiary_evaluations.hide");
+  // سجل استبيانات التقييم (جدول وقائمة التقييمات)
+  // يظهر فقط عند تفعيل صلاحية سجل استبيانات التقييم
+  // أما عند تفعيل "عرض إحصائيات رضا المستفيدين" وحدها، فيظهر فقط الـ 4 كاردات الإحصائية
+  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || 
+                                userPerms.includes("beneficiary_evaluations.view_details");
+
+  // سجل الإرسال
+  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") ||
+                              userPerms.includes("beneficiary_evaluations.view_logs") ||
+                              userPerms.includes("beneficiary_evaluations.send_reminder") ||
+                              userPerms.includes("beneficiary_evaluations") ||
+                              userPerms.includes("beneficiary_satisfaction");
+
+  // المستفيدين المعتمدين والاستفسارات
+  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") ||
+                          userPerms.includes("beneficiary_evaluations.send_survey") ||
+                          userPerms.includes("beneficiary_evaluations") ||
+                          userPerms.includes("beneficiary_satisfaction");
+
+  // إضافة رد على التقييم
+  const canReply = userPerms.includes("beneficiary_evaluations.reply") ||
+                   userPerms.includes("beneficiary_evaluations") ||
+                   userPerms.includes("beneficiary_satisfaction");
+
+  // إخفاء وإظهار التقييمات
+  const canHide = userPerms.includes("beneficiary_evaluations.hide") ||
+                  userPerms.includes("beneficiary_evaluations.delete") ||
+                  userPerms.includes("beneficiary_evaluations") ||
+                  userPerms.includes("beneficiary_satisfaction");
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
