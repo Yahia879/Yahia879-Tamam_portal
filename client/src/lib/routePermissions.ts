@@ -186,14 +186,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/pending-reports": ["pending_reports.view"],
   "/beneficiary-satisfaction": [
     "beneficiary_evaluations.view",
-    "beneficiary_evaluations",
-    "beneficiary_satisfaction",
     "beneficiary_evaluations.evaluations_log",
     "beneficiary_evaluations.dispatch_log",
     "beneficiary_evaluations.contacts",
-    "beneficiary_evaluations.view_details",
-    "beneficiary_evaluations.view_logs",
-    "beneficiary_evaluations.send_survey",
   ],
   "/financial-report": "financial_report",
 
