@@ -1203,20 +1203,11 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("beneficiary_evaluations.hide")
   ) {
     allPermissions.add("beneficiary_evaluations");
-    allPermissions.add("beneficiary_evaluations.view");
     allPermissions.add("beneficiary_satisfaction");
   } else {
     allPermissions.delete("beneficiary_evaluations");
     allPermissions.delete("beneficiary_evaluations.view");
     allPermissions.delete("beneficiary_satisfaction");
-  }
-
-  if (allPermissions.has("beneficiary_evaluations")) {
-    if (!revokedPermissions.has("beneficiary_evaluations.evaluations_log")) allPermissions.add("beneficiary_evaluations.evaluations_log");
-    if (!revokedPermissions.has("beneficiary_evaluations.dispatch_log")) allPermissions.add("beneficiary_evaluations.dispatch_log");
-    if (!revokedPermissions.has("beneficiary_evaluations.contacts")) allPermissions.add("beneficiary_evaluations.contacts");
-    if (!revokedPermissions.has("beneficiary_evaluations.reply")) allPermissions.add("beneficiary_evaluations.reply");
-    if (!revokedPermissions.has("beneficiary_evaluations.hide")) allPermissions.add("beneficiary_evaluations.hide");
   }
 
 
