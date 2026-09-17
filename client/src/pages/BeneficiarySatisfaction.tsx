@@ -77,44 +77,26 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const userPerms = (user?.permissions as string[]) || [];
 
   const canViewPage = userPerms.includes("beneficiary_evaluations.view") || 
-                      userPerms.includes("beneficiary_evaluations") || 
-                      userPerms.includes("beneficiary_satisfaction") ||
                       userPerms.includes("beneficiary_evaluations.evaluations_log") ||
                       userPerms.includes("beneficiary_evaluations.dispatch_log") ||
-                      userPerms.includes("beneficiary_evaluations.contacts") ||
-                      userPerms.includes("beneficiary_evaluations.view_details") ||
-                      userPerms.includes("beneficiary_evaluations.view_logs") ||
-                      userPerms.includes("beneficiary_evaluations.send_survey");
+                      userPerms.includes("beneficiary_evaluations.contacts");
 
   // سجل استبيانات التقييم (جدول وقائمة التقييمات)
   // يظهر فقط عند تفعيل صلاحية سجل استبيانات التقييم
   // أما عند تفعيل "عرض إحصائيات رضا المستفيدين" وحدها، فيظهر فقط الـ 4 كاردات الإحصائية
-  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log") || 
-                                userPerms.includes("beneficiary_evaluations.view_details");
+  const canViewEvaluationsLog = userPerms.includes("beneficiary_evaluations.evaluations_log");
 
   // سجل الإرسال
-  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log") ||
-                              userPerms.includes("beneficiary_evaluations.view_logs") ||
-                              userPerms.includes("beneficiary_evaluations.send_reminder") ||
-                              userPerms.includes("beneficiary_evaluations") ||
-                              userPerms.includes("beneficiary_satisfaction");
+  const canViewDispatchLogs = userPerms.includes("beneficiary_evaluations.dispatch_log");
 
   // المستفيدين المعتمدين والاستفسارات
-  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts") ||
-                          userPerms.includes("beneficiary_evaluations.send_survey") ||
-                          userPerms.includes("beneficiary_evaluations") ||
-                          userPerms.includes("beneficiary_satisfaction");
+  const canViewContacts = userPerms.includes("beneficiary_evaluations.contacts");
 
   // إضافة رد على التقييم
-  const canReply = userPerms.includes("beneficiary_evaluations.reply") ||
-                   userPerms.includes("beneficiary_evaluations") ||
-                   userPerms.includes("beneficiary_satisfaction");
+  const canReply = userPerms.includes("beneficiary_evaluations.reply");
 
   // إخفاء وإظهار التقييمات
-  const canHide = userPerms.includes("beneficiary_evaluations.hide") ||
-                  userPerms.includes("beneficiary_evaluations.delete") ||
-                  userPerms.includes("beneficiary_evaluations") ||
-                  userPerms.includes("beneficiary_satisfaction");
+  const canHide = userPerms.includes("beneficiary_evaluations.hide");
 
   const [activeTab, setActiveTab] = useState<string>("evaluations");
   const [searchQuery, setSearchQuery] = useState("");
@@ -552,11 +534,23 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 )}
                 {(canViewDispatchLogs || canViewContacts) && (
                   <TabsTrigger value="logs" className="gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-xl data-[state=active]:shadow-sm">
-                    <Send className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                    السجلات (الاستبيانات المرسلة)
-                    <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">
-                      {logsData?.stats.totalDispatched || 0}
-                    </Badge>
+                    {canViewDispatchLogs ? (
+                      <>
+                        <Send className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <span>{canViewContacts ? "السجلات ودليل المستفيدين" : "السجلات (الاستبيانات المرسلة)"}</span>
+                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                          {logsData?.stats?.totalDispatched || 0}
+                        </Badge>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <span>المستفيدين المعتمدين والاستفسارات</span>
+                        <Badge variant="secondary" className="mr-1 text-[11px] px-1.5 py-0 h-5 font-bold bg-teal-500/15 text-teal-700 dark:text-teal-300">
+                          {contactsData?.total || 0}
+                        </Badge>
+                      </>
+                    )}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -2275,6 +2269,28 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
         </AlertDialog>
       </div>
     );
+
+  if (!canViewPage) {
+    const deniedContent = (
+      <div className="container py-24 flex flex-col items-center justify-center text-center" dir="rtl">
+        <div className="w-16 h-16 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+          <HeartHandshake className="w-8 h-8" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">ليس لديك صلاحية للوصول إلى هذه الصفحة</h2>
+        <p className="text-muted-foreground mt-2">يرجى مراجعة إدارة النظام لمنحك صلاحيات رضا المستفيدين</p>
+      </div>
+    );
+
+    if (embedded) {
+      return deniedContent;
+    }
+
+    return (
+      <DashboardLayout>
+        {deniedContent}
+      </DashboardLayout>
+    );
+  }
 
   if (embedded) {
     return content;
