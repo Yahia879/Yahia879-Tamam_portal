@@ -23,6 +23,14 @@ import { z } from "zod";
 const PERMISSION_EXPANSION: Record<string, string[]> = {
   Create_Ticket: ["Create_Ticket"],
   View_Tickets: ["View_Tickets"],
+  beneficiary_evaluations: ["beneficiary_evaluations.view"],
+  "beneficiary_evaluations.view": ["beneficiary_evaluations.view"],
+  "beneficiary_evaluations.evaluations_log": ["beneficiary_evaluations.evaluations_log"],
+  "beneficiary_evaluations.dispatch_log": ["beneficiary_evaluations.dispatch_log"],
+  "beneficiary_evaluations.contacts": ["beneficiary_evaluations.contacts"],
+  "beneficiary_evaluations.reply": ["beneficiary_evaluations.reply"],
+  "beneficiary_evaluations.hide": ["beneficiary_evaluations.hide"],
+  beneficiary_satisfaction: ["beneficiary_evaluations.view"],
   staff_management: [
     "permissions.view", "permissions.create", "permissions.edit", "permissions.delete",
     "users.view", "users.edit", "users.create", "users.delete",
@@ -387,6 +395,19 @@ async function ensureRequestsPermissionsExist(db: any) {
         nameEn: "Hide & Show Evaluations"
       }
     ];
+
+    // التأكد من وجود وحدة رضا المستفيدين أولاً في جدول الوحدات
+    const [existingEvalMod] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "beneficiary_evaluations")).limit(1);
+    if (!existingEvalMod) {
+      await db.insert(modules).values({
+        id: "beneficiary_evaluations",
+        nameAr: "رضا المستفيدين",
+        nameEn: "Beneficiary Satisfaction",
+        icon: "HeartHandshake",
+        displayOrder: 4,
+        isActive: true
+      }).catch(() => {});
+    }
 
     // 1. إدخال أو تحديث الصلاحيات في جدول الصلاحيات
     let isFirstTime = false;
@@ -1167,7 +1188,6 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.has("beneficiary_evaluations.reply") ||
     allPermissions.has("beneficiary_evaluations.hide")
   ) {
-    allPermissions.add("beneficiary_evaluations");
     allPermissions.add("beneficiary_evaluations.view");
     allPermissions.add("beneficiary_satisfaction");
   } else {
