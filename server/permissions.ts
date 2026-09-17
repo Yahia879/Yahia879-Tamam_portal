@@ -30,61 +30,13 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
     "beneficiary_evaluations.contacts",
     "beneficiary_evaluations.reply",
     "beneficiary_evaluations.hide",
-    "beneficiary_evaluations.view_details",
-    "beneficiary_evaluations.view_logs",
-    "beneficiary_evaluations.send_survey",
-    "beneficiary_evaluations.send_reminder",
-    "beneficiary_evaluations.export",
-    "beneficiary_evaluations.delete",
   ],
-  "beneficiary_evaluations.view": [
-    "beneficiary_evaluations.view",
-  ],
-  "beneficiary_evaluations.evaluations_log": [
-    "beneficiary_evaluations.evaluations_log",
-    "beneficiary_evaluations.view_details",
-  ],
-  "beneficiary_evaluations.view_details": [
-    "beneficiary_evaluations.evaluations_log",
-    "beneficiary_evaluations.view_details",
-  ],
-  "beneficiary_evaluations.dispatch_log": [
-    "beneficiary_evaluations.dispatch_log",
-    "beneficiary_evaluations.view_logs",
-    "beneficiary_evaluations.send_reminder",
-  ],
-  "beneficiary_evaluations.view_logs": [
-    "beneficiary_evaluations.dispatch_log",
-    "beneficiary_evaluations.view_logs",
-    "beneficiary_evaluations.send_reminder",
-  ],
-  "beneficiary_evaluations.send_reminder": [
-    "beneficiary_evaluations.dispatch_log",
-    "beneficiary_evaluations.view_logs",
-    "beneficiary_evaluations.send_reminder",
-  ],
-  "beneficiary_evaluations.contacts": [
-    "beneficiary_evaluations.contacts",
-    "beneficiary_evaluations.send_survey",
-  ],
-  "beneficiary_evaluations.send_survey": [
-    "beneficiary_evaluations.contacts",
-    "beneficiary_evaluations.send_survey",
-  ],
-  "beneficiary_evaluations.reply": [
-    "beneficiary_evaluations.reply",
-  ],
-  "beneficiary_evaluations.hide": [
-    "beneficiary_evaluations.hide",
-    "beneficiary_evaluations.delete",
-  ],
-  "beneficiary_evaluations.delete": [
-    "beneficiary_evaluations.hide",
-    "beneficiary_evaluations.delete",
-  ],
-  "beneficiary_evaluations.export": [
-    "beneficiary_evaluations.export",
-  ],
+  "beneficiary_evaluations.view": ["beneficiary_evaluations.view"],
+  "beneficiary_evaluations.evaluations_log": ["beneficiary_evaluations.evaluations_log"],
+  "beneficiary_evaluations.dispatch_log": ["beneficiary_evaluations.dispatch_log"],
+  "beneficiary_evaluations.contacts": ["beneficiary_evaluations.contacts"],
+  "beneficiary_evaluations.reply": ["beneficiary_evaluations.reply"],
+  "beneficiary_evaluations.hide": ["beneficiary_evaluations.hide"],
   beneficiary_satisfaction: [
     "beneficiary_evaluations.view",
     "beneficiary_evaluations.evaluations_log",
@@ -790,6 +742,22 @@ async function ensureAllCustomPermissionsExist(db: any) {
     try {
       await db.delete(rolePermissions).where(eq(rolePermissions.permissionId, "analytics_hub.project_reports"));
       await db.delete(permissions).where(eq(permissions.id, "analytics_hub.project_reports"));
+      await db.delete(rolePermissions).where(inArray(rolePermissions.permissionId, [
+        "beneficiary_evaluations.view_details",
+        "beneficiary_evaluations.view_logs",
+        "beneficiary_evaluations.send_survey",
+        "beneficiary_evaluations.send_reminder",
+        "beneficiary_evaluations.export",
+        "beneficiary_evaluations.delete"
+      ]));
+      await db.delete(permissions).where(inArray(permissions.id, [
+        "beneficiary_evaluations.view_details",
+        "beneficiary_evaluations.view_logs",
+        "beneficiary_evaluations.send_survey",
+        "beneficiary_evaluations.send_reminder",
+        "beneficiary_evaluations.export",
+        "beneficiary_evaluations.delete"
+      ]));
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "عرض قسم إدارة المستفيدين" }).where(eq(permissions.id, "requesters.view"));
       await db.update(permissions).set({ moduleId: "requesters", nameAr: "اعتماد ورفض المستفيدين" }).where(eq(permissions.id, "requesters.approve"));
       await db.update(permissions).set({ moduleId: "beneficiary_evaluations", nameAr: "عرض إحصائيات رضا المستفيدين" }).where(eq(permissions.id, "beneficiary_evaluations.view"));
