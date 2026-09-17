@@ -254,14 +254,9 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("appointments_calendar"))        mosqueItems.push({ icon: Clock,         label: "تقويم المواعيد",        path: "/field-visits/calendar" });
   if (
     has("beneficiary_evaluations.view") || 
-    has("beneficiary_evaluations") || 
-    has("beneficiary_satisfaction") ||
     has("beneficiary_evaluations.evaluations_log") ||
     has("beneficiary_evaluations.dispatch_log") ||
-    has("beneficiary_evaluations.contacts") ||
-    has("beneficiary_evaluations.view_details") ||
-    has("beneficiary_evaluations.view_logs") ||
-    has("beneficiary_evaluations.send_survey")
+    has("beneficiary_evaluations.contacts")
   ) {
     mosqueItems.push({ icon: HeartHandshake, label: isEn ? "Beneficiary Satisfaction" : "رضا المستفيدين", path: "/beneficiary-satisfaction" });
   }
