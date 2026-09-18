@@ -145,22 +145,30 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     }
     return null;
   });
+  const isSedana = selectedService === 'sedana';
   const [currentStep, setCurrentStep] = useState<Step>(() => {
     if (typeof window !== 'undefined') {
       const s = new URLSearchParams(window.location.search).get('service');
-      if (s) return 'terms';
+      if (s === 'sedana') return 'terms';
     }
     return 'service-selection';
   });
-  const isSedana = selectedService === 'sedana';
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // خطوات النموذج الديناميكية
+  // خطوات النموذج الديناميكية (بالنسبة لسدانة تبدأ من الشروط والأحكام كخطوة أولى 1 من 4)
   const activeSteps = useMemo(() => {
+    if (isSedana) {
+      return [
+        { key: 'terms' as Step, label: 'الشروط والأحكام', order: 1 },
+        { key: 'requester-info' as Step, label: 'بيانات مقدم الطلب', order: 2 },
+        { key: 'details' as Step, label: 'تفاصيل الطلب', order: 3 },
+        { key: 'review' as Step, label: 'المراجعة والإرسال', order: 4 },
+      ];
+    }
     return [
       { key: 'service-selection' as Step, label: 'اختيار الخدمة', order: 1 },
       { key: 'terms' as Step, label: 'الشروط والأحكام', order: 2 },
@@ -168,7 +176,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       { key: 'details' as Step, label: 'تفاصيل الطلب', order: 4 },
       { key: 'review' as Step, label: 'المراجعة والإرسال', order: 5 },
     ];
-  }, []);
+  }, [isSedana]);
 
   // الفحص التلقائي لمحدد الخدمة في الرابط (مثل ?service=sedana)
   useEffect(() => {
@@ -176,9 +184,18 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     const serviceParam = params.get('service');
     if (serviceParam) {
       setSelectedService(serviceParam);
-      setCurrentStep('terms');
+      if (serviceParam === 'sedana' && currentStep === 'service-selection') {
+        setCurrentStep('terms');
+      }
     }
   }, []);
+
+  // أمان إضافي: التأكد من أن الخطوة الحالية تنتمي دائماً للخطوات النشطة
+  useEffect(() => {
+    if (activeSteps.length > 0 && !activeSteps.some((s) => s.key === currentStep)) {
+      setCurrentStep(activeSteps[0].key);
+    }
+  }, [activeSteps, currentStep]);
 
   // حالة معاينة المستندات والصور (Lightbox) تماماً كما في صفحة الموردين
   const [previewDoc, setPreviewDoc] = useState<{ title: string; contentType?: string } | null>(null);
@@ -427,21 +444,24 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   // معالج الخطوة التالية
   const handleNextStep = () => {
+    // 1. التحقق من صحة بيانات الخطوة الحالية
     if (currentStep === 'service-selection') {
-      if (!selectedService) { alert('يرجى اختيار خدمة'); return; }
-      setCurrentStep('terms');
+      if (!selectedService) {
+        alert('يرجى اختيار خدمة للمتابعة');
+        return;
+      }
     } else if (currentStep === 'terms') {
-      if (!agreedToTerms) { alert('يرجى الموافقة على الشروط والأحكام'); return; }
-      setCurrentStep('requester-info');
-    } else if (currentStep === 'requester-info') {
-      setCurrentStep('details');
+      if (!agreedToTerms) {
+        alert('يرجى الموافقة على الشروط والأحكام للمتابعة');
+        return;
+      }
     } else if (currentStep === 'details') {
       if (isCurrentMosqueUnapproved) {
         alert(`عذراً، المسجد المختار (${currentMosque?.name}) غير معتمد بعد. لا يمكن تقديم طلب خدمة إلا للمساجد المعتمدة.`);
         return;
       }
 
-      if (selectedService === 'sedana') {
+      if (isSedana) {
         if (!formData.mosqueId) {
           setErrors({ mosqueId: 'يرجى اختيار المسجد' });
           alert('يرجى اختيار المسجد للمتابعة');
@@ -460,12 +480,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           alert(`كمية (${invalidItem.name}) أقل من الحد الأدنى المطلوب (${minLimit} ${invalidItem.unit})`);
           return;
         }
-
-        setCurrentStep('review');
-        return;
-      }
-
-      if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
+      } else if (customFormConfig && customFormConfig.fields && customFormConfig.fields.length > 0) {
         const customErrors: Record<string, string> = {};
         for (const field of visibleFields) {
           const val = formData[field.name];
@@ -489,14 +504,23 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           return;
         }
       }
-      setCurrentStep('review');
+    }
+
+    // 2. الانتقال المباشر والآمن للخطوة التالية بحسب تسلسل activeSteps
+    const currentIndex = activeSteps.findIndex((s) => s.key === currentStep);
+    if (currentIndex !== -1 && currentIndex < activeSteps.length - 1) {
+      setCurrentStep(activeSteps[currentIndex + 1].key);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   // معالج الخطوة السابقة
   const handlePreviousStep = () => {
     const currentIndex = activeSteps.findIndex((s) => s.key === currentStep);
-    if (currentIndex > 0) setCurrentStep(activeSteps[currentIndex - 1].key);
+    if (currentIndex > 0) {
+      setCurrentStep(activeSteps[currentIndex - 1].key);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // الحصول على بيانات المستخدم الحالي
@@ -1326,9 +1350,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <div className="bg-background p-4 sm:p-5 rounded-2xl border border-border/70 shadow-xs">
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 uppercase tracking-wider font-bold">نوع الخدمة والبرنامج</p>
                 <div className="flex items-center gap-3.5">
-                  {selectedProgramConfig && (
+                  {selectedProgramConfig ? (
                     <>
-                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${selectedProgramConfig.color || 'bg-primary'} text-white flex items-center justify-center shadow-md shrink-0`}>
+                      <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl ${isSedana ? 'bg-cyan-600' : (selectedProgramConfig.color || 'bg-primary')} text-white flex items-center justify-center shadow-md shrink-0`}>
                         {React.createElement(ICON_MAP[selectedProgramConfig.icon || 'Package'] || Package, { className: "w-6 h-6" })}
                       </div>
                       <div>
@@ -1336,7 +1360,17 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                         <p className="text-xs text-muted-foreground mt-0.5">{selectedProgramConfig.description}</p>
                       </div>
                     </>
-                  )}
+                  ) : isSedana ? (
+                    <>
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shadow-md shrink-0">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-foreground text-sm sm:text-base">خدمات التشغيل (سدانة)</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)</p>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -1446,7 +1480,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
         {/* أزرار التنقل */}
         <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/60">
-          {currentStep !== 'service-selection' ? (
+          {currentStep !== activeSteps[0]?.key ? (
             <Button
               variant="outline"
               size="lg"
