@@ -316,7 +316,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       <div className="flex items-center justify-between pb-2 border-b border-border/60">
         <div>
           <h3 className="font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-teal-600" />
+            <Sparkles className="w-4 h-4 text-cyan-600" />
             <span>جدول دراسة وتدقيق الاحتياج السنوي (سدانة)</span>
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -562,12 +562,12 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                           min="0"
                           value={approvedVal}
                           onChange={(e) => handleApprovedQuantityChange(item.id, Number(e.target.value))}
-                          className="h-8 text-xs text-center w-20 mx-auto font-bold text-blue-600 bg-background border-border/80"
+                          className="h-8 text-xs text-center w-20 mx-auto font-bold text-cyan-600 bg-background border-border/80"
                         />
                         <span className="text-[10px] text-muted-foreground font-normal shrink-0">{item.unit}</span>
                       </div>
                     ) : (
-                      <strong className="font-bold text-blue-600">
+                      <strong className="font-bold text-cyan-600">
                         {approvedVal} {item.unit}
                       </strong>
                     )}
@@ -659,7 +659,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             type="button"
             onClick={handleApproveAnnualNeed}
             disabled={approveMutation.isPending}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 px-5 text-xs gap-1.5 shadow-xs cursor-pointer"
+            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 text-white font-bold h-9 px-5 text-xs gap-1.5 shadow-xs cursor-pointer"
           >
             {approveMutation.isPending ? (
               <>
@@ -677,8 +677,8 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       )}
 
       {isAlreadyApproved && (
-        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 font-medium flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+        <div className="p-3 rounded-xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-800 dark:text-cyan-300 font-medium flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-cyan-600 shrink-0" />
           <span>تم اعتماد الاحتياج السنوي ونقل الطلب لمرحلة جدول الكميات (BOQ) بنجاح.</span>
         </div>
       )}
