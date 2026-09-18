@@ -117,7 +117,7 @@ export function getActiveAction(
     allowedRoles = allowedQRRoles;
   }
 
-  // تخصيص لبرنامج سدانة: دراسة وتدقيق الاحتياج السنوي في أول مرحلة
+  // تخصيص لبرنامج سدانة: دراسة وتدقيق الاحتياج والمرحلة الرابعة (تأمين الطلب والتعاقد)
   if (requestData?.programType === 'sedana') {
     if (['submitted', 'initial_review', 'technical_eval'].includes(currentStage)) {
       title = "دراسة وتدقيق الاحتياج السنوي (سدانة)";
@@ -125,6 +125,15 @@ export function getActiveAction(
       actionButton = {
         label: "الانتقال لجدول الكميات",
         nextStage: "boq_preparation",
+      };
+    } else if (currentStage === 'contracting') {
+      title = "تأمين الطلب والتعاقد (سدانة)";
+      description = "اختر مسار تأمين بنود المشروع مع إمكانية التجزئة: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
+      icon = "FileSignature";
+      iconColor = "text-cyan-600";
+      actionButton = {
+        label: "تأمين الطلب والتعاقد",
+        redirectUrl: "/requests/:requestId/procurement",
       };
     }
   }
