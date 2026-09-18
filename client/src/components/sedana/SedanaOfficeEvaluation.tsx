@@ -562,12 +562,12 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                           min="0"
                           value={approvedVal}
                           onChange={(e) => handleApprovedQuantityChange(item.id, Number(e.target.value))}
-                          className="h-8 text-xs text-center w-20 mx-auto font-bold text-emerald-600 bg-background border-border/80"
+                          className="h-8 text-xs text-center w-20 mx-auto font-bold text-blue-600 bg-background border-border/80"
                         />
                         <span className="text-[10px] text-muted-foreground font-normal shrink-0">{item.unit}</span>
                       </div>
                     ) : (
-                      <strong className="font-bold text-emerald-600">
+                      <strong className="font-bold text-blue-600">
                         {approvedVal} {item.unit}
                       </strong>
                     )}
@@ -659,7 +659,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
             type="button"
             onClick={handleApproveAnnualNeed}
             disabled={approveMutation.isPending}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 px-5 text-xs gap-1.5 shadow-xs cursor-pointer"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold h-9 px-5 text-xs gap-1.5 shadow-xs cursor-pointer"
           >
             {approveMutation.isPending ? (
               <>
@@ -677,8 +677,8 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       )}
 
       {isAlreadyApproved && (
-        <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 font-medium flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
           <span>تم اعتماد الاحتياج السنوي ونقل الطلب لمرحلة جدول الكميات (BOQ) بنجاح.</span>
         </div>
       )}
