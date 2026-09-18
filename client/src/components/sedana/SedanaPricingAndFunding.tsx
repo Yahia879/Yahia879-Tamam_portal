@@ -160,7 +160,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
             </span>
             <h3 className="font-bold text-base text-foreground">الهندسة المالية وحاسبة الأجور (نموذج 25/30)</h3>
           </div>
-          <div className="text-xs font-black text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950 px-3.5 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 flex items-center gap-2 self-start sm:self-center">
+          <div className="text-xs font-black text-blue-800 dark:text-blue-300 bg-blue-100 dark:bg-blue-950 px-3.5 py-1.5 rounded-xl border border-blue-300 dark:border-blue-800 flex items-center gap-2 self-start sm:self-center">
             <span>سعر الفرصة المحمل بالأجور:</span>
             <span className="font-mono text-sm">{targetOpportunityValue.toLocaleString()} ر.س</span>
           </div>
@@ -170,7 +170,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
         <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
           <div className="space-y-1">
             <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <Calculator className="w-4 h-4 text-emerald-600" />
+              <Calculator className="w-4 h-4 text-blue-600" />
               التكلفة الفعلية الشاملة للمسجد (Base Cost):
             </span>
             <p className="text-[11px] text-muted-foreground">
@@ -187,7 +187,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
               value={totalActualCost || ''}
               onChange={(e) => setActualCostOverride(Number(e.target.value))}
               disabled={!canEdit}
-              className="w-36 text-xs font-bold font-mono h-9 text-center bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400"
+              className="w-36 text-xs font-bold font-mono h-9 text-center bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400"
             />
             <span className="font-bold text-slate-600 dark:text-slate-400">ر.س</span>
             {boqTotal > 0 && actualCostOverride !== null && (
@@ -245,7 +245,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
             <span className="text-[10px] text-muted-foreground block text-center mt-1 font-mono">({Number(supervisionFeeFixed || 0).toLocaleString()} ر.س)</span>
           </div>
 
-          <div className="flex flex-col justify-center items-center p-2.5 rounded-xl bg-emerald-600 text-white font-bold text-center">
+          <div className="flex flex-col justify-center items-center p-2.5 rounded-xl bg-blue-600 text-white font-bold text-center">
             <span className="text-[10px] opacity-90 block font-normal">إجمالي أجور الجمعية والمنصات</span>
             <span className="text-base font-mono mt-0.5">+{totalAdminFees.toLocaleString()} ر.س</span>
           </div>
@@ -270,16 +270,16 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
               onClick={() => canEdit && setFundingPath('direct_purchase')}
               className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                 fundingPath === 'direct_purchase'
-                  ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30'
-                  : 'border-border/60 bg-card hover:border-emerald-300'
+                  ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30'
+                  : 'border-border/60 bg-card hover:border-blue-300'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-foreground flex items-center gap-2 text-xs">
-                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <UserCheck className="w-4 h-4 text-blue-600" />
                   خيار أ: إسناد لمتبرع مباشر (كفالة فردية)
                 </span>
-                {fundingPath === 'direct_purchase' && <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />}
+                {fundingPath === 'direct_purchase' && <CheckCircle2 className="w-4.5 h-4.5 text-blue-600" />}
               </div>
             </div>
 
@@ -288,16 +288,16 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
               onClick={() => canEdit && setFundingPath('crowdfunding')}
               className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                 fundingPath === 'crowdfunding'
-                  ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30'
-                  : 'border-border/60 bg-card hover:border-emerald-300'
+                  ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/30'
+                  : 'border-border/60 bg-card hover:border-blue-300'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-foreground flex items-center gap-2 text-xs">
-                  <Share2 className="w-4 h-4 text-emerald-600" />
+                  <Share2 className="w-4 h-4 text-blue-600" />
                   خيار ب: فرصة تبرع رقمية (تمويل جماعي)
                 </span>
-                {fundingPath === 'crowdfunding' && <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />}
+                {fundingPath === 'crowdfunding' && <CheckCircle2 className="w-4.5 h-4.5 text-blue-600" />}
               </div>
             </div>
           </div>
@@ -305,7 +305,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 
         {/* بيانات المتبرع المباشر */}
         {fundingPath === 'direct_purchase' && (
-          <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/20 dark:border-emerald-900/60 space-y-3">
+          <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900/60 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[11px] font-medium text-slate-700 dark:text-slate-300 block mb-1">اسم المتبرع المباشر *</label>
@@ -361,7 +361,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
                   href={directDonorInfo.receiptFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-bold hover:underline mt-1"
+                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 font-bold hover:underline mt-1"
                 >
                   <Paperclip className="w-3.5 h-3.5" />
                   معاينة إيصال سند القبض
@@ -373,8 +373,8 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
 
         {/* بيانات التمويل الجماعي */}
         {fundingPath === 'crowdfunding' && (
-          <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/20 dark:border-emerald-900/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <span className="font-bold text-emerald-900 dark:text-emerald-300">
+          <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900/60 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span className="font-bold text-blue-900 dark:text-blue-300">
               هدف الفرصة ({targetOpportunityValue.toLocaleString()} ر.س) - توزيع أسهم التبرع:
             </span>
             <div className="flex flex-wrap items-center gap-2">
@@ -388,7 +388,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
         {/* 2. صور التأمين (صور التنفيذ وأمر الشراء) */}
         <div className="pt-2 space-y-2 border-t border-border/50">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <ShieldCheck className="w-4 h-4 text-blue-600" />
             صور التأمين وإصدار أمر الشراء (المحطة 05):
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -404,8 +404,8 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
                 onClick={() => canEdit && setProcurementMode(mode.id as any)}
                 className={`py-2 px-3 rounded-lg border text-center font-medium transition-all ${
                   procurementMode === mode.id
-                    ? 'border-emerald-600 bg-emerald-600 text-white font-bold'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-emerald-300'
+                    ? 'border-blue-600 bg-blue-600 text-white font-bold'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-blue-300'
                 }`}
               >
                 {mode.label}
@@ -422,7 +422,7 @@ export const SedanaPricingAndFunding: React.FC<SedanaPricingAndFundingProps> = (
             type="button"
             onClick={() => handleSaveAll(true)}
             disabled={isSaving || totalActualCost <= 0}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-11 px-7 gap-2 font-bold shadow-md rounded-xl"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs h-11 px-7 gap-2 font-bold shadow-md rounded-xl"
           >
             {isSaving ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <CheckCircle2 className="w-4.5 h-4.5" />}
             اعتماد الهندسة المالية وإصدار أمر الشراء
