@@ -661,7 +661,7 @@ export default function RequestEvaluation() {
       <footer className="py-6 border-t bg-white/50 dark:bg-card/50">
         <div className="container mx-auto px-4 text-center">
           <p className="text-xs sm:text-sm text-muted-foreground">
-            جمعية عمارة المساجد بمنطقة عسير (منارة) - بوابة تمام للعناية بالمساجد
+            {orgSettings?.organizationName ? `${orgSettings.organizationName}${orgSettings.organizationNameShort ? ` - ${orgSettings.organizationNameShort}` : ''}` : "جمعية عمارة المساجد بمنطقة عسير (منارة) - بوابة تمام للعناية بالمساجد"}
           </p>
         </div>
       </footer>
