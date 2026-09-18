@@ -520,7 +520,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
             variant="outline"
             size="sm"
             onClick={handleAddNewRow}
-            className="h-8 text-xs font-medium gap-1.5 text-primary border-primary/30 hover:bg-primary/5"
+            className="h-8 text-xs font-medium gap-1.5 text-cyan-700 border-cyan-500/40 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>إضافة بند جديد</span>
@@ -553,9 +553,9 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         />
 
         {selectedFile ? (
-          <div className="p-3 rounded-lg border border-blue-500/40 bg-blue-50/40 dark:bg-blue-950/20 flex items-center justify-between">
+          <div className="p-3 rounded-lg border border-cyan-500/40 bg-cyan-50/40 dark:bg-cyan-950/20 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/15 text-cyan-600 flex items-center justify-center shrink-0">
                 <Check className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -580,7 +580,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         ) : (
           <div
             onClick={() => document.getElementById('sedana-warehouse-photo')?.click()}
-            className="p-5 border-2 border-dashed border-border/70 hover:border-primary/50 hover:bg-primary/5 transition-all rounded-xl cursor-pointer text-center"
+            className="p-5 border-2 border-dashed border-border/70 hover:border-cyan-500/50 hover:bg-cyan-50/20 dark:hover:bg-cyan-950/20 transition-all rounded-xl cursor-pointer text-center"
           >
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1.5" />
             <p className="font-bold text-xs text-foreground">
