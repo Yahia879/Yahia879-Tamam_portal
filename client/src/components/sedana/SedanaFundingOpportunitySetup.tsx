@@ -129,10 +129,10 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Header Card */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-blue-900/10 via-sky-900/10 to-cyan-900/10 border border-blue-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-900/10 via-teal-900/10 to-cyan-900/10 border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <h3 className="font-bold text-base text-foreground">
               المحطة 4: الهندسة المالية وتحديد مسار التمويل
             </h3>
@@ -141,7 +141,7 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
             اختر طريقة تغطية تكلفة الفرصة: إما عبر متبرع مباشر يتكفل بكامل المبلغ أو طرح الفرصة للتمويل الجماعي بالمنصة.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 shrink-0">
+        <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shrink-0">
           <span>التكلفة الإجمالية للفرصة:</span>
           <span className="font-bold text-sm inline-flex items-center gap-1 font-sans">
             {(fundingModel === 'direct_donor' ? donorData.donatedAmount : totalCalculatedOpportunity).toLocaleString('en-US')}{' '}
@@ -156,8 +156,8 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
         <label
           className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all ${
             fundingModel === 'direct_donor'
-              ? 'border-cyan-600 bg-cyan-50/50 dark:bg-cyan-950/20 shadow-md ring-2 ring-cyan-500/20'
-              : 'border-border bg-card hover:border-cyan-300 dark:hover:border-cyan-800'
+              ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-md ring-2 ring-emerald-500/20'
+              : 'border-border bg-card hover:border-emerald-300 dark:hover:border-emerald-800'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -169,10 +169,10 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                 checked={fundingModel === 'direct_donor'}
                 onChange={() => setFundingModel('direct_donor')}
                 disabled={isReadOnly}
-                className="w-4 h-4 text-cyan-600 focus:ring-cyan-500 border-gray-300"
+                className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
               />
-              <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/60 flex items-center justify-center shrink-0">
-                <UserCheck className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center shrink-0">
+                <UserCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <h4 className="font-bold text-sm text-foreground">متبرع مباشر</h4>
@@ -182,12 +182,12 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
               </div>
             </div>
             {fundingModel === 'direct_donor' && (
-              <Badge className="bg-cyan-600 text-white text-[10px] px-2 py-0.5">محدد</Badge>
+              <Badge className="bg-emerald-600 text-white text-[10px] px-2 py-0.5">محدد</Badge>
             )}
           </div>
-          <div className="mt-3 text-[11px] text-muted-foreground border-t border-cyan-200/60 dark:border-cyan-800/40 pt-2 flex items-center justify-between">
+          <div className="mt-3 text-[11px] text-muted-foreground border-t border-emerald-200/60 dark:border-emerald-800/40 pt-2 flex items-center justify-between">
             <span>إدخال بيانات المتبرع + سند القبض</span>
-            <Receipt className="w-3.5 h-3.5 text-cyan-600" />
+            <Receipt className="w-3.5 h-3.5 text-emerald-600" />
           </div>
         </label>
 
@@ -195,8 +195,8 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
         <label
           className={`relative flex flex-col p-4 rounded-xl border-2 cursor-pointer transition-all ${
             fundingModel === 'crowdfunding'
-              ? 'border-cyan-600 bg-cyan-50/50 dark:bg-cyan-950/20 shadow-md ring-2 ring-cyan-500/20'
-              : 'border-border bg-card hover:border-cyan-300 dark:hover:border-cyan-800'
+              ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 shadow-md ring-2 ring-blue-500/20'
+              : 'border-border bg-card hover:border-blue-300 dark:hover:border-blue-800'
           }`}
         >
           <div className="flex items-start justify-between">
@@ -208,10 +208,10 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                 checked={fundingModel === 'crowdfunding'}
                 onChange={() => setFundingModel('crowdfunding')}
                 disabled={isReadOnly}
-                className="w-4 h-4 text-cyan-600 focus:ring-cyan-500 border-gray-300"
+                className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
               />
-              <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/60 flex items-center justify-center shrink-0">
-                <Share2 className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center shrink-0">
+                <Share2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h4 className="font-bold text-sm text-foreground">طرح فرصة تمويل جماعي بالمنصة</h4>
@@ -221,28 +221,28 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
               </div>
             </div>
             {fundingModel === 'crowdfunding' && (
-              <Badge className="bg-cyan-600 text-white text-[10px] px-2 py-0.5">محدد</Badge>
+              <Badge className="bg-blue-600 text-white text-[10px] px-2 py-0.5">محدد</Badge>
             )}
           </div>
-          <div className="mt-3 text-[11px] text-muted-foreground border-t border-cyan-200/60 dark:border-cyan-800/40 pt-2 flex items-center justify-between">
+          <div className="mt-3 text-[11px] text-muted-foreground border-t border-blue-200/60 dark:border-blue-800/40 pt-2 flex items-center justify-between">
             <span>نموذج التكلفة (25,000 / 30,000 ريال)</span>
-            <Calculator className="w-3.5 h-3.5 text-cyan-600" />
+            <Calculator className="w-3.5 h-3.5 text-blue-600" />
           </div>
         </label>
       </div>
 
       {/* Dynamic Content Panel based on selected Radio option */}
       {fundingModel === 'direct_donor' ? (
-        <Card className="border-cyan-200 dark:border-cyan-900 shadow-sm">
+        <Card className="border-emerald-200 dark:border-emerald-900 shadow-sm">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-cyan-600" />
+                <Receipt className="w-4 h-4 text-emerald-600" />
                 <CardTitle className="text-sm font-bold text-foreground">
                   بيانات المتبرع المباشر وسند القبض
                 </CardTitle>
               </div>
-              <Badge variant="outline" className="text-xs border-cyan-300 text-cyan-700 dark:text-cyan-300">
+              <Badge variant="outline" className="text-xs border-emerald-300 text-emerald-700 dark:text-emerald-300">
                 كفالة مباشرة
               </Badge>
             </div>
@@ -286,7 +286,7 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                     setDonorData({ ...donorData, donatedAmount: Number(e.target.value) || 0 })
                   }
                   disabled={isReadOnly}
-                  className="h-9 text-xs font-bold text-cyan-700 dark:text-cyan-400 font-sans"
+                  className="h-9 text-xs font-bold text-emerald-700 dark:text-emerald-400 font-sans"
                 />
               </div>
             </div>
@@ -319,7 +319,7 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-9 text-xs gap-1.5 border-dashed border-cyan-400 text-cyan-700 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
+                  className="h-9 text-xs gap-1.5 border-dashed border-emerald-400 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
                   onClick={() => toast.info('يمكنك ربط أو رفع نسخة سند القبض المالي من صفحة سندات القبض')}
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -342,16 +342,16 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-cyan-200 dark:border-cyan-900 shadow-sm">
+        <Card className="border-blue-200 dark:border-blue-900 shadow-sm">
           <CardHeader className="pb-3 border-b border-border/60">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-cyan-600" />
+                <Share2 className="w-4 h-4 text-blue-600" />
                 <CardTitle className="text-sm font-bold text-foreground">
                   تفاصيل الهندسة المالية وطرح الفرصة للتبرع (نموذج 25/30)
                 </CardTitle>
               </div>
-              <Badge variant="outline" className="text-xs border-cyan-300 text-cyan-700 dark:text-cyan-300">
+              <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 dark:text-blue-300">
                 تمويل جماعي
               </Badge>
             </div>
@@ -392,13 +392,13 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300 dark:border-cyan-800">
-                <span className="text-[11px] text-cyan-800 dark:text-cyan-300 font-bold block mb-1">سعر الفرصة النهائي للمتبرع</span>
+              <div className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800">
+                <span className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold block mb-1">سعر الفرصة النهائي للمتبرع</span>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-extrabold text-cyan-700 dark:text-cyan-400 font-sans">
+                  <span className="text-lg font-extrabold text-emerald-700 dark:text-emerald-400 font-sans">
                     {totalCalculatedOpportunity.toLocaleString('en-US')}
                   </span>
-                  <SaudiRiyal className="w-4 h-4 text-cyan-600" />
+                  <SaudiRiyal className="w-4 h-4 text-emerald-600" />
                 </div>
               </div>
             </div>
@@ -435,7 +435,7 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
                   checked={isPublished}
                   onChange={(e) => setIsPublished(e.target.checked)}
                   disabled={isReadOnly}
-                  className="w-4 h-4 text-cyan-600 rounded border-gray-300 focus:ring-cyan-500"
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
                 <label htmlFor="publish_immediately" className="text-xs text-foreground font-medium cursor-pointer">
                   نشر الفرصة فوراً على متجر التبرعات الإلكتروني بالمنصة عند الحفظ
@@ -443,8 +443,8 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
               </div>
             </div>
 
-            <Alert className="border-cyan-200 bg-cyan-50/60 dark:bg-cyan-950/20 text-cyan-900 dark:text-cyan-200 py-2 px-3">
-              <Info className="w-4 h-4 text-cyan-600" />
+            <Alert className="border-blue-200 bg-blue-50/60 dark:bg-blue-950/20 text-blue-900 dark:text-blue-200 py-2 px-3">
+              <Info className="w-4 h-4 text-blue-600" />
               <AlertDescription className="text-xs">
                 سيتم فك البنود وتوزيعها تلقائياً على الموردين وتخصيص حصة التبرع لكل سهم أو مساهمة عبر متجر المنصة.
               </AlertDescription>
@@ -459,7 +459,7 @@ export const SedanaFundingOpportunitySetup: React.FC<SedanaFundingOpportunitySet
           <Button
             type="button"
             onClick={handleSave}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium h-9 px-5 text-xs gap-1.5 shadow-sm"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium h-9 px-5 text-xs gap-1.5 shadow-sm"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>حفظ اعتماد خيار التمويل</span>
