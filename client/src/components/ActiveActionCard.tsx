@@ -48,6 +48,7 @@ interface ActiveActionCardProps {
     total: number;
     percentage: number;
   };
+  programType?: string;
 }
 
 export function ActiveActionCard({
@@ -55,6 +56,7 @@ export function ActiveActionCard({
   description,
   icon: Icon,
   iconColor = "text-primary",
+  programType,
   actionButton,
   secondaryButton,
   detailsButton,
@@ -63,6 +65,7 @@ export function ActiveActionCard({
   additionalActions,
   progress,
 }: ActiveActionCardProps) {
+  const isCyan = programType === 'sedana';
   return (
     <div className="flex justify-center w-full">
       <motion.div
@@ -84,7 +87,7 @@ export function ActiveActionCard({
             transition={{ delay: 0.1, duration: 0.3 }}
           >
             <motion.div 
-              className={`p-2 sm:p-3 rounded-lg bg-primary/10 ${iconColor} shrink-0`}
+              className={`p-2 sm:p-3 rounded-lg ${isCyan ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600' : `bg-primary/10 ${iconColor}`} shrink-0`}
               whileHover={{ scale: 1.05, rotate: 5 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
@@ -110,7 +113,7 @@ export function ActiveActionCard({
             >
               <div className="w-full bg-secondary rounded-full h-1.5 sm:h-2 overflow-hidden">
                 <motion.div
-                  className="bg-primary h-full rounded-full"
+                  className={`${isCyan ? 'bg-cyan-600' : 'bg-primary'} h-full rounded-full`}
                   initial={{ width: 0 }}
                   animate={{ width: `${progress.percentage}%` }}
                   transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
@@ -146,7 +149,7 @@ export function ActiveActionCard({
                   variant={detailsButton.variant || "outline"}
                   onClick={detailsButton.onClick}
                   disabled={detailsButton.disabled}
-                  className="w-full text-base sm:text-lg py-5 sm:py-6 flex items-center justify-center gap-2 border-teal-600 text-teal-700 dark:text-teal-400 dark:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-950/30 font-bold shadow-xs cursor-pointer"
+                  className="w-full text-base sm:text-lg py-5 sm:py-6 flex items-center justify-center gap-2 border-cyan-600 text-cyan-700 dark:text-cyan-400 dark:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-950/30 font-bold shadow-xs cursor-pointer"
                 >
                   <Eye className="w-5 h-5 shrink-0" />
                   {detailsButton.label}
@@ -200,7 +203,11 @@ export function ActiveActionCard({
                   variant={actionButton.variant || "default"}
                   onClick={actionButton.onClick}
                   disabled={actionButton.disabled}
-                  className="w-full text-base sm:text-lg py-5 sm:py-6"
+                  className={`w-full text-base sm:text-lg py-5 sm:py-6 ${
+                    isCyan && (!actionButton.variant || actionButton.variant === 'default')
+                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md cursor-pointer'
+                      : ''
+                  }`}
                 >
                   {actionButton.label}
                 </Button>
@@ -218,7 +225,11 @@ export function ActiveActionCard({
                   onClick={secondaryButton.onClick}
                   disabled={secondaryButton.disabled}
                   title={secondaryButton.title}
-                  className="w-full h-11 sm:h-12 text-sm sm:text-base"
+                  className={`w-full h-11 sm:h-12 text-sm sm:text-base ${
+                    isCyan && secondaryButton.variant === 'default'
+                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-sm cursor-pointer'
+                      : ''
+                  }`}
                 >
                   {secondaryButton.label}
                 </Button>
