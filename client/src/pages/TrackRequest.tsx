@@ -44,6 +44,8 @@ export default function TrackRequest() {
     { enabled: !!searchedNumber }
   );
 
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (requestNumber.trim()) {
@@ -62,12 +64,20 @@ export default function TrackRequest() {
           <div className="flex items-center justify-between">
             <Link href="/">
               <div className="flex items-center gap-2 sm:gap-3 cursor-pointer">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center">
-                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
+                {orgSettings?.logoUrl ? (
+                  <img src={orgSettings.logoUrl} alt="الشعار" className="w-8 h-8 sm:w-10 sm:h-10 object-contain rounded-lg" />
+                ) : (
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-primary flex items-center justify-center">
+                    <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                )}
                 <div>
-                  <h1 className="font-bold text-base sm:text-lg text-foreground">بوابة تمام</h1>
-                  <p className="hidden sm:block text-xs text-muted-foreground">للعناية بالمساجد</p>
+                  <h1 className="font-bold text-base sm:text-lg text-foreground">
+                    {orgSettings?.metaTitle || orgSettings?.organizationName || "البوابة الإلكترونية"}
+                  </h1>
+                  {orgSettings?.organizationNameShort && (
+                    <p className="hidden sm:block text-xs text-muted-foreground">{orgSettings.organizationNameShort}</p>
+                  )}
                 </div>
               </div>
             </Link>
