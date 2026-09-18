@@ -32,7 +32,7 @@ const programColors: Record<string, string> = {
   enaya: '#059669',
   emdad: '#D97706',
   ethraa: '#DC2626',
-  sedana: '#2563EB',
+  sedana: '#0891B2',
   taqa: '#F59E0B',
   miyah: '#0284C7',
   suqya: '#06B6D4',
