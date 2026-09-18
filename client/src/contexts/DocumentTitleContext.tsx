@@ -195,9 +195,9 @@ export function DocumentTitleProvider({ children }: { children: React.ReactNode 
   // قراءة الاسم المخزن مؤقتاً في localStorage لمنع أي وميض أو تأخير عند تحميل الصفحة
   const [cachedSiteTitle, setCachedSiteTitle] = useState<string>(() => {
     try {
-      return localStorage.getItem("app_meta_title") || "بوابة تمام للعناية بالمساجد";
+      return localStorage.getItem("app_meta_title") || "";
     } catch {
-      return "بوابة تمام للعناية بالمساجد";
+      return "";
     }
   });
 
@@ -209,7 +209,7 @@ export function DocumentTitleProvider({ children }: { children: React.ReactNode 
     if (orgSettings?.organizationName && orgSettings.organizationName.trim()) {
       return orgSettings.organizationName.trim();
     }
-    return cachedSiteTitle || "بوابة تمام للعناية بالمساجد";
+    return cachedSiteTitle || "البوابة الإلكترونية";
   }, [orgSettings?.metaTitle, orgSettings?.organizationName, cachedSiteTitle]);
 
   // حفظ اسم الموقع المحدث في localStorage للمستقبل
@@ -227,23 +227,52 @@ export function DocumentTitleProvider({ children }: { children: React.ReactNode 
     setCustomTitle(null);
   }, [location]);
 
-  // تحديث document.title عند تغير المسار أو اسم الموقع أو العنوان المخصص
+  // تحديث document.title ووسوم Open Graph للمشاركة عند تغير المسار أو اسم الموقع أو العنوان المخصص
   useEffect(() => {
     const cleanLocation = location.split("?")[0].split("#")[0] || "/";
+    let fullTitle = siteTitle;
 
     if (cleanLocation === "/") {
       // في الصفحة الرئيسية فقط يظهر اسم الموقع المكتوب في "عنوان تبويب المتصفح"
-      document.title = siteTitle;
+      fullTitle = siteTitle;
     } else {
       // في صفحات الموقع الأخرى يظهر: اسم الصفحة - اسم الموقع
       const pageName = customTitle || getRouteTitle(cleanLocation);
       if (pageName && pageName.trim()) {
-        document.title = `${pageName.trim()} - ${siteTitle}`;
+        fullTitle = `${pageName.trim()} - ${siteTitle}`;
       } else {
-        document.title = siteTitle;
+        fullTitle = siteTitle;
       }
     }
-  }, [location, siteTitle, customTitle]);
+
+    document.title = fullTitle;
+
+    // تحديث وسوم Open Graph للمشاركة على منصات التواصل (Social Media Sharing)
+    try {
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute("content", fullTitle);
+
+      const ogSiteName = document.querySelector('meta[property="og:site_name"]');
+      if (ogSiteName) ogSiteName.setAttribute("content", siteTitle);
+
+      const twTitle = document.querySelector('meta[name="twitter:title"]');
+      if (twTitle) twTitle.setAttribute("content", fullTitle);
+
+      if (orgSettings?.aboutOrganization) {
+        const ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.setAttribute("content", orgSettings.aboutOrganization);
+        const twDesc = document.querySelector('meta[name="twitter:description"]');
+        if (twDesc) twDesc.setAttribute("content", orgSettings.aboutOrganization);
+      }
+
+      if (orgSettings?.logoUrl) {
+        const ogImg = document.querySelector('meta[property="og:image"]');
+        if (ogImg) ogImg.setAttribute("content", orgSettings.logoUrl);
+        const twImg = document.querySelector('meta[name="twitter:image"]');
+        if (twImg) twImg.setAttribute("content", orgSettings.logoUrl);
+      }
+    } catch {}
+  }, [location, siteTitle, customTitle, orgSettings]);
 
   return (
     <DocumentTitleContext.Provider value={{ setCustomTitle, siteTitle }}>
