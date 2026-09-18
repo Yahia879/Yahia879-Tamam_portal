@@ -2838,6 +2838,89 @@ export const requestsRouter = router({
       };
     }),
 
+  saveSedanaProcurement: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      procurementData: z.object({
+        itemsAllocation: z.record(z.string()).optional(),
+        purchaseOrders: z.array(z.any()).optional(),
+        csrLetters: z.array(z.any()).optional(),
+        activePurchaseOrder: z.any().optional(),
+        activeCsrLetter: z.any().optional(),
+        notes: z.string().optional(),
+      }),
+      advanceToExecution: z.boolean().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const request = await db.query.mosqueRequests.findFirst({
+        where: eq(mosqueRequests.id, input.requestId),
+        with: {
+          mosque: true,
+        },
+      });
+
+      if (!request) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      let currentProgramData: Record<string, any> = {};
+      try {
+        let pData = request.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (pData && typeof pData === "object" && !Array.isArray(pData)) {
+          currentProgramData = { ...pData };
+        }
+      } catch (e) {
+        currentProgramData = {};
+      }
+
+      const procurementRecord = {
+        ...input.procurementData,
+        updatedAt: new Date().toISOString(),
+        updatedBy: ctx.user.id,
+        updatedByName: ctx.user.name,
+      };
+
+      currentProgramData.sedanaProcurement = procurementRecord;
+
+      const updateData: any = {
+        programData: currentProgramData,
+      };
+
+      if (input.advanceToExecution && request.currentStage === 'contracting') {
+        updateData.currentStage = 'execution';
+      }
+
+      await db.update(mosqueRequests).set(updateData).where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: request.currentStage,
+          toStage: updateData.currentStage || request.currentStage,
+          fromStatus: request.status,
+          toStatus: request.status,
+          action: 'update_sedana_procurement',
+          notes: input.procurementData.notes || (input.advanceToExecution ? "تم اعتماد مسار تأمين الاحتياج والانتقال لمرحلة التنفيذ" : "تم حفظ بيانات وتجزئة تأمين طلب سدانة"),
+        });
+      } catch (logErr) {
+        console.error("Procurement log error:", logErr);
+      }
+
+      return {
+        success: true,
+        message: input.advanceToExecution ? "تم حفظ بيانات التأمين والانتقال لمرحلة التنفيذ بنجاح" : "تم حفظ بيانات تأمين الطلب بنجاح",
+        procurement: procurementRecord,
+      };
+    }),
+
   // حفظ تسعير الفرصة وتحديد مسار التمويل (المرحلة السادسة - سدانة)
   saveSedanaFundingChoice: protectedProcedure
     .input(z.object({
