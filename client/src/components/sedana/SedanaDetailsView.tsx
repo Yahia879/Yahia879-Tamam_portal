@@ -62,8 +62,8 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
               بنود سلة الاحتياجات السنوية المعتمدة ({basketItems.length} صنف)
             </p>
             {hasApprovedPlan && (
-              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span className="text-[10px] font-bold text-blue-700 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-blue-600" />
                 معتمد وفق التقييم المكتبي
               </span>
             )}
@@ -97,7 +97,7 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
                         {item.quantity} <span className="text-[10px] text-muted-foreground font-normal">{item.unit}</span>
                       </td>
                       {hasApprovedPlan && (
-                        <td className="p-2.5 text-center font-bold text-emerald-600">
+                        <td className="p-2.5 text-center font-bold text-blue-600">
                           {approvedVal !== undefined ? `${approvedVal} ${item.unit}` : '-'}
                         </td>
                       )}
@@ -128,7 +128,7 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${
               funding.fundingPath === 'crowdfunding'
                 ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900 dark:text-indigo-200'
-                : 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-200'
+                : 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-200'
             }`}>
               {funding.fundingPath === 'crowdfunding' ? 'طرح للتمويل الجماعي' : 'متبرع مباشر (شراء مباشر)'}
             </span>
@@ -160,9 +160,9 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
 
           {/* تفاصيل المتبرع المباشر إن وجد */}
           {funding.fundingPath === 'direct_purchase' && funding.directDonorInfo && (
-            <div className="p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-xs space-y-1.5">
-              <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-bold">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
+            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-xs space-y-1.5">
+              <div className="flex items-center gap-1.5 text-blue-800 dark:text-blue-300 font-bold">
+                <UserCheck className="w-4 h-4 text-blue-600" />
                 <span>بيانات المتبرع المباشر والكفيل:</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-700 dark:text-slate-300">
@@ -174,7 +174,7 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
                       href={funding.directDonorInfo.receiptFileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
+                      className="text-blue-700 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-1"
                     >
                       <Paperclip className="w-3 h-3" />
                       إيصال سند القبض
@@ -202,7 +202,7 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
           {funding.procurementMode && (
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
               <span className="font-semibold text-slate-700 dark:text-slate-300">صورة التأمين وأمر الشراء (المحطة 05):</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 rounded-md">
+              <span className="font-bold text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-950 px-2.5 py-0.5 rounded-md">
                 {funding.procurementMode === 'supplier_contract' && 'عقد مع مورد'}
                 {funding.procurementMode === 'direct_purchase' && 'شراء مباشر'}
                 {funding.procurementMode === 'official_commission' && 'تعميد جهة'}
