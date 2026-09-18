@@ -1303,6 +1303,10 @@ export default function RequestDetailsNew() {
                       <span className="text-xs font-semibold text-indigo-800 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/60 dark:border-indigo-800/60 px-2.5 py-0.5 rounded-md">
                         مشروع مباشر لعدة مساجد
                       </span>
+                    ) : request.programType === 'sedana' ? (
+                      <span className="text-xs font-semibold text-cyan-800 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/60 dark:border-cyan-800/60 px-2.5 py-0.5 rounded-md">
+                        {translateProgram(request.programType)}
+                      </span>
                     ) : (
                       <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/60 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-md">
                         {translateProgram(request.programType)}
@@ -1516,6 +1520,7 @@ export default function RequestDetailsNew() {
               steps={workflow.map((s) => ({ ...s, label: translateStage(s.id, request.requestTrack || undefined, request.programType || undefined) }))}
               currentStep={request.currentStage}
               completedSteps={completedSteps}
+              programType={request.programType}
             />
 
         {/* Active Action Card */}
@@ -1734,6 +1739,7 @@ export default function RequestDetailsNew() {
                       description={translatedAction.description}
                       icon={translatedAction.icon as any}
                       iconColor={translatedAction.iconColor}
+                      programType={request.programType}
                       progress={{
                         current: workflow.findIndex((s) => s.id === request.currentStage) + 1,
                         total: workflow.length,
