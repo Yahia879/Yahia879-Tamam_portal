@@ -11,13 +11,16 @@ interface ProgressStepperProps {
   steps: Step[];
   currentStep: string;
   completedSteps: string[];
+  programType?: string;
 }
 
 export function ProgressStepper({
   steps,
   currentStep,
   completedSteps,
+  programType,
 }: ProgressStepperProps) {
+  const isCyan = programType === 'sedana';
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
   const totalSteps = steps.length;
   const progress = ((currentStepIndex + 0.5) / (totalSteps - 1 + 1)) * 100; // Adjusted for better visual alignment
@@ -25,12 +28,12 @@ export function ProgressStepper({
   return (
     <div className="w-full mb-6 sm:mb-8">
       {/* Container for horizontal scroll on small screens */}
-      <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin scrollbar-thumb-primary/20">
+      <div className={`overflow-x-auto pb-4 -mx-4 px-4 scrollbar-thin ${isCyan ? 'scrollbar-thumb-cyan-500/20' : 'scrollbar-thumb-primary/20'}`}>
         <div className="relative min-w-[750px] lg:min-w-0 pt-2 pb-2">
           {/* Progress Bar Line */}
           <div className="absolute top-[1.625rem] sm:top-[2.125rem] left-0 right-0 h-0.5 sm:h-1 bg-secondary rounded-full overflow-hidden mx-[40px]">
             <motion.div
-              className="h-full bg-primary"
+              className={`h-full ${isCyan ? 'bg-cyan-600' : 'bg-primary'}`}
               initial={{ width: 0 }}
               animate={{ width: `${(currentStepIndex / (totalSteps - 1)) * 100}%` }}
               transition={{ duration: 0.8, ease: "easeInOut" }}
@@ -59,9 +62,13 @@ export function ProgressStepper({
                       border-2 z-10 transition-colors duration-300
                       ${
                         isCurrent
-                          ? "bg-primary border-primary text-primary-foreground shadow-md ring-4 ring-primary/20"
+                          ? isCyan
+                            ? "bg-cyan-600 border-cyan-600 text-white shadow-md ring-4 ring-cyan-500/20"
+                            : "bg-primary border-primary text-primary-foreground shadow-md ring-4 ring-primary/20"
                           : isCompleted || isPast
-                          ? "bg-primary border-primary text-primary-foreground"
+                          ? isCyan
+                            ? "bg-cyan-600 border-cyan-600 text-white"
+                            : "bg-primary border-primary text-primary-foreground"
                           : "bg-background border-border text-muted-foreground"
                       }
                     `}
@@ -98,7 +105,9 @@ export function ProgressStepper({
                       mt-2.5 sm:mt-3 text-[10px] sm:text-xs text-center px-1 leading-tight font-medium
                       ${
                         isCurrent
-                          ? "text-foreground font-bold"
+                          ? isCyan
+                            ? "text-cyan-700 dark:text-cyan-400 font-bold"
+                            : "text-foreground font-bold"
                           : isCompleted || isPast
                           ? "text-muted-foreground"
                           : "text-muted-foreground/50"
