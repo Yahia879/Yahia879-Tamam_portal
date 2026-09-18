@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SEDANA_CATEGORIES } from "@/components/sedana/sedanaTypes";
 
 interface Category {
   id: number;
@@ -52,8 +51,6 @@ export default function CategoriesManagement() {
   const [isEditValueOpen, setIsEditValueOpen] = useState(false);
   const [editingValue, setEditingValue] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCustomCategoryAdd, setIsCustomCategoryAdd] = useState(false);
-  const [isCustomCategoryEdit, setIsCustomCategoryEdit] = useState(false);
 
   const [valueForm, setValueForm] = useState({
     name: "",
@@ -61,7 +58,7 @@ export default function CategoriesManagement() {
   });
 
   const [sedanaForm, setSedanaForm] = useState({
-    category: "العمالة",
+    category: "",
     monthlyLimit: 0,
     quarterlyLimit: 0,
     semiAnnualLimit: 0,
@@ -286,36 +283,21 @@ export default function CategoriesManagement() {
     }
   };
 
-  // تصنيفات سدانة المتاحة (التصنيفات القياسية + تصنيفات جداول الكميات + التصنيفات السابقة)
-  const availableSedanaCategories = useMemo(() => {
-    const set = new Set<string>();
-    // 1. التصنيفات القياسية لسدانة
-    SEDANA_CATEGORIES.forEach((c) => set.add(c));
-    // 2. تصنيفات جداول الكميات المعرفة في النظام
-    (allCategories || [])
+  // تصنيفات جداول الكميات المعرفة في النظام فقط (ديناميكياً من إدارة التصنيفات بدون أي ثوابت)
+  const boqCategories = useMemo(() => {
+    return (allCategories || [])
       .filter((c: any) => c.type === "boq_category")
-      .forEach((c: any) => {
-        const name = (c.nameAr || c.name || "").trim();
-        if (name) set.add(name);
-      });
-    // 3. أي تصنيف مسجل مسبقاً في أصناف سدانة
-    (allCategories || [])
-      .filter((c: any) => c.type === "sedana_items" && c.metadata?.category)
-      .forEach((c: any) => {
-        const name = String(c.metadata.category).trim();
-        if (name) set.add(name);
-      });
-    return Array.from(set);
+      .map((c: any) => (c.nameAr || c.name || "").trim())
+      .filter(Boolean);
   }, [allCategories]);
 
   const openAddValue = () => {
-    setIsCustomCategoryAdd(false);
     setValueForm({
       name: "",
       nameAr: "",
     });
     setSedanaForm({
-      category: "العمالة",
+      category: boqCategories[0] || "",
       monthlyLimit: 0,
       quarterlyLimit: 0,
       semiAnnualLimit: 0,
@@ -333,10 +315,8 @@ export default function CategoriesManagement() {
     });
     const meta = value.metadata || {};
     const limits = meta.limits || {};
-    const currentCategory = meta.category || "العمالة";
-    setIsCustomCategoryEdit(!availableSedanaCategories.includes(currentCategory));
     setSedanaForm({
-      category: currentCategory,
+      category: meta.category || boqCategories[0] || "",
       monthlyLimit: limits['شهري'] ?? (meta.monthlyLimit || 0),
       quarterlyLimit: limits['ربع سنوي'] ?? (meta.quarterlyLimit || 0),
       semiAnnualLimit: limits['نصف سنوي'] ?? (meta.semiAnnualLimit || 0),
@@ -519,43 +499,20 @@ export default function CategoriesManagement() {
                                 <div>
                                   <label className="block text-sm font-medium mb-1 text-right">التصنيف *</label>
                                   <Select
-                                    value={
-                                      isCustomCategoryAdd
-                                        ? "__custom__"
-                                        : (availableSedanaCategories.includes(sedanaForm.category) ? sedanaForm.category : (sedanaForm.category ? "__custom__" : "العمالة"))
-                                    }
-                                    onValueChange={(val) => {
-                                      if (val === "__custom__") {
-                                        setIsCustomCategoryAdd(true);
-                                        setSedanaForm({ ...sedanaForm, category: "" });
-                                      } else {
-                                        setIsCustomCategoryAdd(false);
-                                        setSedanaForm({ ...sedanaForm, category: val });
-                                      }
-                                    }}
+                                    value={sedanaForm.category}
+                                    onValueChange={(val) => setSedanaForm({ ...sedanaForm, category: val })}
                                   >
                                     <SelectTrigger className="h-9 text-right text-xs" dir="rtl">
                                       <SelectValue placeholder="اختر التصنيف..." />
                                     </SelectTrigger>
                                     <SelectContent dir="rtl">
-                                      {availableSedanaCategories.map((cat) => (
+                                      {boqCategories.map((cat) => (
                                         <SelectItem key={cat} value={cat}>
                                           {cat}
                                         </SelectItem>
                                       ))}
-                                      <SelectItem value="__custom__">+ تصنيف مخصص / آخر...</SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {isCustomCategoryAdd && (
-                                    <Input
-                                      placeholder="اكتب اسم التصنيف الجديد..."
-                                      value={sedanaForm.category}
-                                      onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                                      className="h-9 text-right text-xs mt-2"
-                                      dir="rtl"
-                                      autoFocus
-                                    />
-                                  )}
                                 </div>
 
                                 <div>
@@ -699,7 +656,7 @@ export default function CategoriesManagement() {
                                   <>
                                     <TableCell className="text-center py-3.5">
                                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/60">
-                                        {value.metadata?.category || "أدوات المسجد العامة"}
+                                        {value.metadata?.category || "—"}
                                       </span>
                                     </TableCell>
                                     <TableCell className="text-center py-3.5 text-xs font-medium text-foreground">{value.metadata?.unit || "قطعة"}</TableCell>
@@ -820,7 +777,7 @@ export default function CategoriesManagement() {
                                 <div className="flex items-center justify-between">
                                   <span className="text-muted-foreground text-[10px]">التصنيف:</span>
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/60">
-                                    {value.metadata?.category || "أدوات المسجد العامة"}
+                                    {value.metadata?.category || "—"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -902,43 +859,25 @@ export default function CategoriesManagement() {
                   <div>
                     <label className="block text-sm font-medium mb-1 text-right">التصنيف *</label>
                     <Select
-                      value={
-                        isCustomCategoryEdit
-                          ? "__custom__"
-                          : (availableSedanaCategories.includes(sedanaForm.category) ? sedanaForm.category : (sedanaForm.category ? "__custom__" : "العمالة"))
-                      }
-                      onValueChange={(val) => {
-                        if (val === "__custom__") {
-                          setIsCustomCategoryEdit(true);
-                          setSedanaForm({ ...sedanaForm, category: "" });
-                        } else {
-                          setIsCustomCategoryEdit(false);
-                          setSedanaForm({ ...sedanaForm, category: val });
-                        }
-                      }}
+                      value={sedanaForm.category}
+                      onValueChange={(val) => setSedanaForm({ ...sedanaForm, category: val })}
                     >
                       <SelectTrigger className="h-9 text-right text-xs" dir="rtl">
                         <SelectValue placeholder="اختر التصنيف..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
-                        {availableSedanaCategories.map((cat) => (
+                        {sedanaForm.category && !boqCategories.includes(sedanaForm.category) && (
+                          <SelectItem value={sedanaForm.category}>
+                            {sedanaForm.category}
+                          </SelectItem>
+                        )}
+                        {boqCategories.map((cat) => (
                           <SelectItem key={cat} value={cat}>
                             {cat}
                           </SelectItem>
                         ))}
-                        <SelectItem value="__custom__">+ تصنيف مخصص / آخر...</SelectItem>
                       </SelectContent>
                     </Select>
-                    {isCustomCategoryEdit && (
-                      <Input
-                        placeholder="اكتب اسم التصنيف..."
-                        value={sedanaForm.category}
-                        onChange={(e) => setSedanaForm({ ...sedanaForm, category: e.target.value })}
-                        className="h-9 text-right text-xs mt-2"
-                        dir="rtl"
-                        autoFocus
-                      />
-                    )}
                   </div>
 
                   <div>
