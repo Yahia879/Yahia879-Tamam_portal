@@ -156,10 +156,10 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
                 dir="rtl"
               />
             </div>
-            <Button type="button" onClick={handleSearch} disabled={isSearching}>
+            <Button type="button" onClick={handleSearch} disabled={isSearching} className="shrink-0 px-3 sm:px-4 text-xs sm:text-sm">
               {isSearching ? "جاري البحث..." : "بحث"}
             </Button>
-            <Button type="button" variant="outline" onClick={getCurrentLocation} title="موقعي الحالي">
+            <Button type="button" variant="outline" onClick={getCurrentLocation} title="موقعي الحالي" className="shrink-0 px-2.5 sm:px-3">
               <Crosshair className="w-4 h-4" />
             </Button>
           </div>
@@ -167,7 +167,7 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
           {/* الخريطة */}
           <div className="relative rounded-lg overflow-hidden border">
             <MapView
-              className="h-[400px]"
+              className="h-[280px] sm:h-[350px] md:h-[400px]"
               initialCenter={value || { lat: 18.2164, lng: 42.5053 }}
               initialZoom={value ? 15 : 6}
               onMapReady={handleMapReady}
@@ -192,7 +192,7 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
 
           {/* عرض الإحداثيات والعنوان */}
           {currentLocation && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg" dir="rtl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-lg" dir="rtl">
               <div className="text-right">
                 <Label className="text-xs text-muted-foreground">خط العرض</Label>
                 <p className="font-mono text-sm">{currentLocation.lat.toFixed(6)}</p>
@@ -201,7 +201,7 @@ export function LocationPicker({ value, onChange, className }: LocationPickerPro
                 <Label className="text-xs text-muted-foreground">خط الطول</Label>
                 <p className="font-mono text-sm">{currentLocation.lng.toFixed(6)}</p>
               </div>
-              <div className="md:col-span-1 text-right">
+              <div className="sm:col-span-1 text-right">
                 <Label className="text-xs text-muted-foreground">العنوان</Label>
                 <p className="text-sm truncate" title={address}>{address || "جاري التحميل..."}</p>
               </div>
