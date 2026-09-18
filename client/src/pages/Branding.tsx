@@ -42,7 +42,7 @@ export default function Branding() {
   const [colorSecondary3, setColorSecondary3] = useState("#ef4444");
   const [colorSecondary4, setColorSecondary4] = useState("#8b5cf6");
   const [colorSecondary5, setColorSecondary5] = useState("#10b981");
-  const [metaTitle, setMetaTitle] = useState("بوابة تمام للعناية بالمساجد");
+  const [metaTitle, setMetaTitle] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   // حالات الشعارات
@@ -97,7 +97,7 @@ export default function Branding() {
     setIsSaving(true);
     try {
       await updateSettingsMutation.mutateAsync({
-        organizationName: orgSettings.organizationName || "بوابة تمام",
+        organizationName: orgSettings.organizationName || "الجمعية",
         // الحفاظ على الشعارات الموجودة عند حفظ الألوان
         logoUrl: mainLogo || orgSettings.logoUrl || undefined,
         secondaryLogoUrl: whiteLogo || orgSettings.secondaryLogoUrl || undefined,
