@@ -36,7 +36,7 @@ export default function SedanaEvaluationPage() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6" dir="rtl">
         <div className="bg-card p-8 rounded-2xl border shadow-lg flex flex-col items-center gap-4 text-center max-w-sm">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+          <Loader2 className="w-10 h-10 animate-spin text-cyan-600" />
           <h3 className="font-bold text-lg text-foreground">جاري تحميل تفاصيل دراسة الاحتياج...</h3>
           <p className="text-xs text-muted-foreground">يتم استرجاع بيانات المسجد وبنود سدانة المسجلة</p>
         </div>
@@ -94,7 +94,7 @@ export default function SedanaEvaluationPage() {
               variant="outline"
               size="sm"
               onClick={() => setLocation(`/requests/${requestId}`)}
-              className="gap-2 text-xs font-semibold cursor-pointer border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-800 dark:text-blue-300"
+              className="gap-2 text-xs font-semibold cursor-pointer border-cyan-200 dark:border-cyan-900 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300"
             >
               <ArrowRight className="w-4 h-4" />
               <span>العودة إلى تفاصيل الطلب</span>
@@ -102,7 +102,7 @@ export default function SedanaEvaluationPage() {
             <div className="h-5 w-px bg-border/80 hidden sm:block" />
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 <h1 className="text-lg sm:text-xl font-bold text-foreground">
                   تفاصيل طلب سدانة وإحصائيات المسجد
                 </h1>
@@ -114,7 +114,7 @@ export default function SedanaEvaluationPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-mono text-xs px-2.5 py-1">
+            <Badge variant="outline" className="bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-300 font-mono text-xs px-2.5 py-1">
               {request.requestNumber || `#${request.id}`}
             </Badge>
             <Badge variant="secondary" className="text-xs px-2.5 py-1">
@@ -127,15 +127,15 @@ export default function SedanaEvaluationPage() {
       {/* Main Full-Screen Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* 1. بطاقة كافة معلومات المسجد المسجلة */}
-        <div className="rounded-2xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/20 dark:bg-blue-950/15 p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-blue-200/60 dark:border-blue-900/40">
-            <h2 className="font-bold text-base sm:text-lg text-blue-950 dark:text-blue-100 flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+        <div className="rounded-2xl border border-cyan-200/80 dark:border-cyan-900/60 bg-cyan-50/20 dark:bg-cyan-950/15 p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-cyan-200/60 dark:border-cyan-900/40">
+            <h2 className="font-bold text-base sm:text-lg text-cyan-950 dark:text-cyan-100 flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300">
                 <Building2 className="w-5 h-5" />
               </div>
               <span>معلومات وبيانات المسجد المسجلة</span>
             </h2>
-            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/60 text-cyan-800 dark:text-cyan-300">
               {request.requestNumber || `#${request.id}`}
             </span>
           </div>
@@ -158,7 +158,7 @@ export default function SedanaEvaluationPage() {
             {/* مساحة المسجد */}
             <div className="bg-card p-3 rounded-xl border border-border/70 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block mb-1 flex items-center gap-1">
-                <Ruler className="w-3.5 h-3.5 text-teal-600" />
+                <Ruler className="w-3.5 h-3.5 text-cyan-600" />
                 <span>مساحة المسجد</span>
               </span>
               <strong className="text-foreground font-bold text-sm font-mono">{mosqueArea} م²</strong>
@@ -167,7 +167,7 @@ export default function SedanaEvaluationPage() {
             {/* سعة المصلين */}
             <div className="bg-card p-3 rounded-xl border border-border/70 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block mb-1 flex items-center gap-1">
-                <Users className="w-3.5 h-3.5 text-teal-600" />
+                <Users className="w-3.5 h-3.5 text-cyan-600" />
                 <span>سعة المصلين التقديرية</span>
               </span>
               <strong className="text-foreground font-bold text-sm font-mono">{worshippers} مصلٍ</strong>
