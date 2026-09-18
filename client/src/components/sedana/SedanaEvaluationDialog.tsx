@@ -82,19 +82,19 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
       open={open}
       onOpenChange={onOpenChange}
       title="تفاصيل طلب سدانة وإحصائيات المسجد"
-      color="teal"
+      color="cyan"
       wide={true}
-      icon={<Sparkles className="w-6 h-6 text-teal-600" />}
+      icon={<Sparkles className="w-6 h-6 text-cyan-600" />}
     >
       <div className="space-y-5 text-right p-1" dir="rtl">
         {/* 1. بطاقة كافة معلومات المسجد المسجلة */}
-        <div className="rounded-xl border border-teal-200/80 dark:border-teal-900/60 bg-teal-50/30 dark:bg-teal-950/20 p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-teal-200/60 dark:border-teal-900/40">
-            <h4 className="font-bold text-sm sm:text-base text-teal-950 dark:text-teal-100 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+        <div className="rounded-xl border border-cyan-200/80 dark:border-cyan-900/60 bg-cyan-50/30 dark:bg-cyan-950/20 p-4 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-cyan-200/60 dark:border-cyan-900/40">
+            <h4 className="font-bold text-sm sm:text-base text-cyan-950 dark:text-cyan-100 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
               <span>كافة معلومات وبيانات المسجد المسجلة</span>
             </h4>
-            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300">
+            <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/60 text-cyan-800 dark:text-cyan-300">
               {request?.requestNumber || `#${request?.id}`}
             </span>
           </div>
@@ -117,7 +117,7 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
             {/* مساحة المسجد */}
             <div className="bg-white/80 dark:bg-slate-900/70 p-2.5 rounded-lg border border-border/60 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block mb-0.5 flex items-center gap-1">
-                <Ruler className="w-3 h-3 text-teal-600" />
+                <Ruler className="w-3 h-3 text-cyan-600" />
                 <span>مساحة المسجد</span>
               </span>
               <strong className="text-foreground font-bold font-mono">{mosqueArea} م²</strong>
@@ -126,7 +126,7 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
             {/* سعة المصلين */}
             <div className="bg-white/80 dark:bg-slate-900/70 p-2.5 rounded-lg border border-border/60 shadow-2xs">
               <span className="text-[11px] text-muted-foreground block mb-0.5 flex items-center gap-1">
-                <Users className="w-3 h-3 text-teal-600" />
+                <Users className="w-3 h-3 text-cyan-600" />
                 <span>سعة المصلين التقديرية</span>
               </span>
               <strong className="text-foreground font-bold font-mono">{worshippers} مصلٍ</strong>
@@ -147,9 +147,9 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
 
           {/* بيانات مقدم الطلب إن وجدت */}
           {requesterName && (
-            <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center gap-3 border-t border-teal-200/40 dark:border-teal-900/30">
+            <div className="pt-2 text-[11px] text-muted-foreground flex flex-wrap items-center gap-3 border-t border-cyan-200/40 dark:border-cyan-900/30">
               <span className="flex items-center gap-1">
-                <User className="w-3 h-3 text-teal-600" />
+                <User className="w-3 h-3 text-cyan-600" />
                 <span>مقدم الطلب:</span>
                 <strong className="text-foreground font-semibold">{requesterName}</strong>
               </span>
@@ -165,7 +165,7 @@ export const SedanaEvaluationDialog: React.FC<SedanaEvaluationDialogProps> = ({
         {/* 2. جدول الإحصائيات ودراسة وتدقيق الاحتياج السنوي */}
         <div className="space-y-3">
           <div className="flex items-center gap-2 pb-1 border-b border-border/60">
-            <FileSpreadsheet className="w-4 h-4 text-teal-600" />
+            <FileSpreadsheet className="w-4 h-4 text-cyan-600" />
             <h4 className="font-bold text-sm sm:text-base text-foreground">
               جدول إحصائيات دراسة وتدقيق الاحتياج السنوي
             </h4>
