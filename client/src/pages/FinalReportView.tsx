@@ -46,6 +46,8 @@ export default function FinalReportView() {
     { enabled: reportId > 0 }
   );
 
+  const { data: orgSettings } = trpc.organization.getSettings.useQuery();
+
   const handlePrint = () => {
     window.print();
   };
@@ -380,7 +382,7 @@ export default function FinalReportView() {
 
         {/* تذييل الطباعة */}
         <div className="hidden print:block text-center text-gray-400 text-sm mt-8 pt-4 border-t border-gray-200">
-          <p>بوابة تمام للعناية بالمساجد — تقرير ختامي رسمي</p>
+          <p>{orgSettings?.metaTitle || (orgSettings?.organizationName ? `${orgSettings.organizationName} — تقرير ختامي رسمي` : "بوابة تمام للعناية بالمساجد — تقرير ختامي رسمي")}</p>
           <p>تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")}</p>
         </div>
       </div>
