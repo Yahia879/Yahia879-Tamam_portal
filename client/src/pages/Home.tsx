@@ -242,7 +242,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center text-white">
             <h2 className="text-3xl lg:text-4xl font-bold mb-6">
-              ابدأ رحلتك مع بوابة تمام
+              ابدأ رحلتك مع {orgName}
             </h2>
             <p className="text-lg opacity-90 mb-8">
               انضم إلى آلاف المستفيدين واحصل على أفضل الخدمات لمسجدك
@@ -263,10 +263,10 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img src="/logo-white.svg" alt="شعار بوابة تمام" className="w-10 h-10" />
+                <img src={orgSettings?.secondaryLogoUrl || orgSettings?.logoUrl || "/logo-white.svg"} alt="الشعار" className="w-10 h-10 object-contain" />
                 <div>
-                  <h3 className="font-bold text-lg">بوابة تمام</h3>
-                  <p className="text-xs opacity-70">للعناية بالمساجد</p>
+                  <h3 className="font-bold text-lg">{orgSettings?.metaTitle || orgName}</h3>
+                  {orgNameShort && <p className="text-xs opacity-70">{orgNameShort}</p>}
                 </div>
               </div>
               <p className="text-sm opacity-70">
@@ -298,15 +298,15 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">تواصل معنا</h4>
               <ul className="space-y-2 text-sm opacity-70">
-                <li>البريد: info@tamam.sa</li>
-                <li>الهاتف: 920000000</li>
-                <li>العنوان: المملكة العربية السعودية</li>
+                <li>البريد: {orgSettings?.email || "info@tamam.sa"}</li>
+                <li>الهاتف: {orgSettings?.phone || "920000000"}</li>
+                <li>العنوان: {orgSettings?.address || orgSettings?.city || "المملكة العربية السعودية"}</li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-white/10 mt-8 pt-8 text-center text-sm opacity-70">
-            <p>جميع الحقوق محفوظة © {new Date().getFullYear()} بوابة تمام للعناية بالمساجد</p>
+            <p>جميع الحقوق محفوظة © {new Date().getFullYear()} {orgSettings?.metaTitle || orgName}</p>
           </div>
         </div>
       </footer>
