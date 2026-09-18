@@ -8,7 +8,7 @@ interface ColoredDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   children: ReactNode;
-  color: "blue" | "green" | "orange" | "purple" | "teal" | "indigo" | "red";
+  color: "blue" | "green" | "orange" | "purple" | "teal" | "indigo" | "red" | "cyan";
   icon?: ReactNode;
   wide?: boolean; // نافذة عريضة لجداول الكميات
   fullScreen?: boolean; // نافذة بملء الشاشة تقريباً
@@ -17,6 +17,13 @@ interface ColoredDialogProps {
 }
 
 const colorClasses = {
+  cyan: {
+    bg: "bg-cyan-50 dark:bg-cyan-950/20",
+    border: "border-cyan-200 dark:border-cyan-800",
+    header: "bg-cyan-100 dark:bg-cyan-900/30",
+    text: "text-cyan-900 dark:text-cyan-100",
+    accent: "text-cyan-600 dark:text-cyan-400",
+  },
   blue: {
     bg: "bg-blue-50 dark:bg-blue-950/20",
     border: "border-blue-200 dark:border-blue-800",
