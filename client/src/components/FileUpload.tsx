@@ -342,7 +342,7 @@ export function FileUpload({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all",
+            "border-2 border-dashed rounded-lg p-3.5 sm:p-6 text-center cursor-pointer transition-all",
             isDragging
               ? "border-primary bg-primary/5"
               : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
@@ -359,17 +359,17 @@ export function FileUpload({
             disabled={disabled}
           />
           
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-1.5 sm:gap-2">
             {isProcessing ? (
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <Loader2 className="w-6 h-6 sm:w-10 sm:h-10 text-primary animate-spin" />
             ) : (
-              <Upload className="w-10 h-10 text-muted-foreground" />
+              <Upload className="w-6 h-6 sm:w-10 sm:h-10 text-muted-foreground" />
             )}
             <div>
-              <p className="font-medium text-foreground">{label}</p>
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-xs sm:text-base font-semibold text-foreground">{label}</p>
+              <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5">{description}</p>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               {limitLabel || `الحد الأقصى: ${maxFiles} ملفات، ${maxSizeMB} ميجابايت لكل ملف`}
             </p>
           </div>
