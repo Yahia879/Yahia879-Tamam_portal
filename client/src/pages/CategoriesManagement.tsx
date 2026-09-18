@@ -517,7 +517,7 @@ export default function CategoriesManagement() {
                             {selectedType === "sedana_items" && (
                               <>
                                 <div>
-                                  <label className="block text-sm font-medium mb-1 text-right">التصنيف (تصنيف جدول الكميات) *</label>
+                                  <label className="block text-sm font-medium mb-1 text-right">التصنيف *</label>
                                   <Select
                                     value={
                                       isCustomCategoryAdd
@@ -665,7 +665,7 @@ export default function CategoriesManagement() {
                               )}
                               {selectedType === "sedana_items" && (
                                 <>
-                                  <TableHead className="text-center py-3.5 font-bold text-xs w-36">التصنيف (جدول الكميات)</TableHead>
+                                  <TableHead className="text-center py-3.5 font-bold text-xs w-36">التصنيف</TableHead>
                                   <TableHead className="text-center py-3.5 font-bold text-xs w-28">وحدة القياس</TableHead>
                                   <TableHead className="text-center py-3.5 font-bold text-xs min-w-[260px]">حدود التوريد</TableHead>
                                 </>
@@ -818,7 +818,7 @@ export default function CategoriesManagement() {
                             {selectedType === "sedana_items" && (
                               <div className="text-xs pt-2.5 mt-2 border-t border-dashed border-border/60 space-y-1.5">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-muted-foreground text-[10px]">التصنيف (جدول الكميات):</span>
+                                  <span className="text-muted-foreground text-[10px]">التصنيف:</span>
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-950/40 text-cyan-800 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800/60">
                                     {value.metadata?.category || "أدوات المسجد العامة"}
                                   </span>
@@ -900,7 +900,7 @@ export default function CategoriesManagement() {
               {selectedType === "sedana_items" && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium mb-1 text-right">التصنيف (تصنيف جدول الكميات) *</label>
+                    <label className="block text-sm font-medium mb-1 text-right">التصنيف *</label>
                     <Select
                       value={
                         isCustomCategoryEdit
