@@ -139,8 +139,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     return true;
   }, [user, myRequests, exceptionStatus]);
 
-  const [currentStep, setCurrentStep] = useState<Step>('service-selection');
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('service');
+    }
+    return null;
+  });
+  const [currentStep, setCurrentStep] = useState<Step>(() => {
+    if (typeof window !== 'undefined') {
+      const s = new URLSearchParams(window.location.search).get('service');
+      if (s) return 'terms';
+    }
+    return 'service-selection';
+  });
+  const isSedana = selectedService === 'sedana';
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -729,20 +741,24 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <div
                   className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-sm transition-all duration-300 ${
                     index < currentStepIndex
-                      ? 'bg-primary text-primary-foreground'
+                      ? isSedana
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-primary text-primary-foreground'
                       : index === currentStepIndex
-                      ? 'bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20 scale-105 sm:scale-110'
+                      ? isSedana
+                        ? 'bg-cyan-600 text-white ring-2 sm:ring-4 ring-cyan-500/20 scale-105 sm:scale-110'
+                        : 'bg-primary text-primary-foreground ring-2 sm:ring-4 ring-primary/20 scale-105 sm:scale-110'
                       : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {index < currentStepIndex ? '✓' : step.order}
                 </div>
-                <p className={`text-[9px] sm:text-xs mt-1 text-center max-w-[55px] sm:max-w-[80px] leading-tight ${index === currentStepIndex ? 'text-primary font-bold' : 'text-muted-foreground font-medium'}`}>
+                <p className={`text-[9px] sm:text-xs mt-1 text-center max-w-[55px] sm:max-w-[80px] leading-tight ${index === currentStepIndex ? (isSedana ? 'text-cyan-700 dark:text-cyan-400 font-bold' : 'text-primary font-bold') : 'text-muted-foreground font-medium'}`}>
                   {step.label}
                 </p>
               </div>
               {index < activeSteps.length - 1 && (
-                <div className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 rounded-full transition-colors duration-300 ${index < currentStepIndex ? 'bg-primary' : 'bg-muted'}`} />
+                <div className={`flex-1 h-0.5 sm:h-1 mx-1 sm:mx-2 rounded-full transition-colors duration-300 ${index < currentStepIndex ? (isSedana ? 'bg-cyan-600' : 'bg-primary') : 'bg-muted'}`} />
               )}
             </React.Fragment>
           ))}
@@ -778,7 +794,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-blue-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-cyan-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">
@@ -801,8 +817,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">الشروط والأحكام</h2>
             </div>
-            <Alert className="bg-primary/5 border-primary/20">
-              <AlertCircle className="h-4 w-4 text-primary" />
+            <Alert className={isSedana ? "bg-cyan-50/80 border-cyan-200 text-cyan-900 dark:bg-cyan-950/30 dark:border-cyan-800 dark:text-cyan-200" : "bg-primary/5 border-primary/20"}>
+              <AlertCircle className={`h-4 w-4 ${isSedana ? "text-cyan-600 dark:text-cyan-400" : "text-primary"}`} />
               <AlertDescription className="text-xs sm:text-sm">يرجى قراءة الشروط والأحكام بعناية قبل المتابعة</AlertDescription>
             </Alert>
             <div className="bg-muted/40 p-4 sm:p-6 rounded-xl max-h-72 sm:max-h-96 overflow-y-auto space-y-3 sm:space-y-4 border border-border" dir="rtl">
@@ -814,7 +830,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                     <div className="space-y-3">
                       {conds.filter(Boolean).map((condition, index) => (
                         <div key={index} className="text-xs sm:text-sm text-muted-foreground flex items-start gap-2 leading-relaxed">
-                          <span className="text-primary font-bold">•</span>
+                          <span className={`${isSedana ? "text-cyan-600 dark:text-cyan-400" : "text-primary"} font-bold`}>•</span>
                           <span>{condition}</span>
                         </div>
                       ))}
@@ -829,6 +845,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 id="terms"
                 checked={agreedToTerms}
                 onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                className={isSedana ? "data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600" : ""}
               />
               <label htmlFor="terms" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer">
                 أوافق على الشروط والأحكام
@@ -1286,15 +1303,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 type="button"
                 variant="outline"
                 onClick={handlePrint}
-                className="gap-2 font-bold rounded-2xl h-11 px-5 border-primary/30 text-primary hover:bg-primary/5 shadow-xs self-start sm:self-center"
+                className={`gap-2 font-bold rounded-2xl h-11 px-5 shadow-xs self-start sm:self-center ${
+                  isSedana
+                    ? 'border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40'
+                    : 'border-primary/30 text-primary hover:bg-primary/5'
+                }`}
               >
                 <Printer className="w-4 h-4" />
                 <span>طباعة مسودة الطلب</span>
               </Button>
             </div>
 
-            <Alert className="bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200 p-4 rounded-2xl">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <Alert className={`${isSedana ? 'bg-cyan-50/80 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-900 text-cyan-900 dark:text-cyan-200' : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'} p-4 rounded-2xl`}>
+              <CheckCircle2 className={`h-4 w-4 ${isSedana ? 'text-cyan-600 dark:text-cyan-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
               <AlertDescription className="text-xs sm:text-sm font-medium">
                 جميع البيانات صحيحة ومكتملة. يمكنك طباعة مسودة للطلب أو المتابعة لإرساله مباشرة.
               </AlertDescription>
@@ -1444,7 +1465,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               size="lg"
               onClick={handleNextStep}
               disabled={Boolean(currentStep === 'details' && isCurrentMosqueUnapproved)}
-              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isSedana ? 'bg-cyan-600 hover:bg-cyan-700 cursor-pointer' : 'gradient-primary hover:opacity-95'
+              }`}
             >
               <span>التالي</span>
               <ChevronLeft className="w-4 h-4" />
@@ -1454,7 +1477,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending}
-              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm gradient-primary text-white shadow-md hover:opacity-95 transition-all"
+              className={`rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-5 sm:px-8 gap-1.5 sm:gap-2 text-xs sm:text-sm text-white shadow-md transition-all ${
+                isSedana ? 'bg-cyan-600 hover:bg-cyan-700 cursor-pointer' : 'gradient-primary hover:opacity-95'
+              }`}
             >
               {isSubmitting || createRequestMutation.isPending || uploadAttachmentMutation.isPending ? (
                 <>
