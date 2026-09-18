@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { organizationSettings, signatories, users, userPermissions, permissions, userRoleAssignments, roles } from "../../drizzle/schema";
 import { eq, and, ne, sql, inArray, isNull, or } from "drizzle-orm";
 import { calculateUserPermissions } from "../permissions";
+import { invalidateSeoCache } from "../seoHelper";
 
 async function ensureSignatoriesUserIdColumn(db: any) {
   try {
@@ -253,6 +254,7 @@ export const organizationRouter = router({
         }
       }
 
+      invalidateSeoCache();
       return { success: true, message: "تم حفظ إعدادات الجمعية بنجاح" };
     }),
 
@@ -350,6 +352,7 @@ export const organizationRouter = router({
           .where(eq(organizationSettings.id, existingSettings[0].id));
       }
 
+      invalidateSeoCache();
       return { success: true, url };
     }),
 
