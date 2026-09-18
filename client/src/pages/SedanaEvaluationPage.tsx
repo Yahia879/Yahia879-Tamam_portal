@@ -36,7 +36,7 @@ export default function SedanaEvaluationPage() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6" dir="rtl">
         <div className="bg-card p-8 rounded-2xl border shadow-lg flex flex-col items-center gap-4 text-center max-w-sm">
-          <Loader2 className="w-10 h-10 animate-spin text-teal-600" />
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
           <h3 className="font-bold text-lg text-foreground">جاري تحميل تفاصيل دراسة الاحتياج...</h3>
           <p className="text-xs text-muted-foreground">يتم استرجاع بيانات المسجد وبنود سدانة المسجلة</p>
         </div>
@@ -94,7 +94,7 @@ export default function SedanaEvaluationPage() {
               variant="outline"
               size="sm"
               onClick={() => setLocation(`/requests/${requestId}`)}
-              className="gap-2 text-xs font-semibold cursor-pointer border-teal-200 dark:border-teal-900 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-800 dark:text-teal-300"
+              className="gap-2 text-xs font-semibold cursor-pointer border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-blue-800 dark:text-blue-300"
             >
               <ArrowRight className="w-4 h-4" />
               <span>العودة إلى تفاصيل الطلب</span>
@@ -102,7 +102,7 @@ export default function SedanaEvaluationPage() {
             <div className="h-5 w-px bg-border/80 hidden sm:block" />
             <div>
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <h1 className="text-lg sm:text-xl font-bold text-foreground">
                   تفاصيل طلب سدانة وإحصائيات المسجد
                 </h1>
@@ -114,11 +114,11 @@ export default function SedanaEvaluationPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-teal-800 dark:text-teal-300 font-mono text-xs px-2.5 py-1">
+            <Badge variant="outline" className="bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 font-mono text-xs px-2.5 py-1">
               {request.requestNumber || `#${request.id}`}
             </Badge>
             <Badge variant="secondary" className="text-xs px-2.5 py-1">
-              سدانة (التشغيل السنوي)
+              خدمات التشغيل (سدانة)
             </Badge>
           </div>
         </div>
@@ -127,15 +127,15 @@ export default function SedanaEvaluationPage() {
       {/* Main Full-Screen Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* 1. بطاقة كافة معلومات المسجد المسجلة */}
-        <div className="rounded-2xl border border-teal-200/80 dark:border-teal-900/60 bg-teal-50/20 dark:bg-teal-950/15 p-5 sm:p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-teal-200/60 dark:border-teal-900/40">
-            <h2 className="font-bold text-base sm:text-lg text-teal-950 dark:text-teal-100 flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300">
+        <div className="rounded-2xl border border-blue-200/80 dark:border-blue-900/60 bg-blue-50/20 dark:bg-blue-950/15 p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-blue-200/60 dark:border-blue-900/40">
+            <h2 className="font-bold text-base sm:text-lg text-blue-950 dark:text-blue-100 flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                 <Building2 className="w-5 h-5" />
               </div>
               <span>معلومات وبيانات المسجد المسجلة</span>
             </h2>
-            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-teal-100 dark:bg-teal-900/60 text-teal-800 dark:text-teal-300">
+            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
               {request.requestNumber || `#${request.id}`}
             </span>
           </div>
