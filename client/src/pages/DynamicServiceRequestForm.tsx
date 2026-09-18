@@ -778,11 +778,11 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                       }`}
                       onClick={() => setSelectedService(program.id)}
                     >
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-emerald-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg ${isSedana ? 'bg-blue-600' : (program.color || 'bg-indigo-600')} flex items-center justify-center mb-2 sm:mb-3 shadow-sm flex-shrink-0`}>
                         <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <h3 className="font-bold text-foreground text-xs sm:text-sm leading-tight break-words">
-                        {isSedana ? 'الخدمات السنوية (سدانة)' : program.name}
+                        {isSedana ? 'خدمات التشغيل (سدانة)' : program.name}
                       </h3>
                       <p className="text-[9px] sm:text-xs text-muted-foreground mt-1 line-clamp-2 sm:line-clamp-3 leading-relaxed break-words">
                         {isSedana ? 'رعاية وتشغيل المسجد سنوياً (عمالة، نظافة، مياه، معطرات)' : program.description}
