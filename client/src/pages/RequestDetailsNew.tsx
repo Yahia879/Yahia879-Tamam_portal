@@ -1759,11 +1759,6 @@ export default function RequestDetailsNew() {
                               label: 'عرض التفاصيل',
                               onClick: () => setLocation(`/requests/${requestId}/sedana-evaluation`),
                             }
-                          : (request.programType === 'sedana' && request.currentStage === 'contracting')
-                          ? {
-                              label: 'تأمين الاحتياج وتجزئة البنود',
-                              onClick: () => setLocation(`/requests/${requestId}/procurement`),
-                            }
                           : undefined
                       }
                       fieldReportButton={
@@ -1878,70 +1873,7 @@ export default function RequestDetailsNew() {
                   );
                 })()}
 
-              {/* بطاقة مسارات تأمين الطلب وتجزئة البنود لبرنامج سدانة حصراً */}
-              {request.currentStage === 'contracting' && request.programType === 'sedana' && (
-                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-blue-200/80 dark:border-blue-900/60 shadow-xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-100 dark:border-blue-900/40">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 flex items-center justify-center shrink-0">
-                        <Layers className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-base text-foreground flex items-center gap-2">
-                          مسارات تأمين الطلب وقابلية التجزئة (سدانة)
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">المرحلة الرابعة</Badge>
-                        </h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          المشروع قابل للتجزئة: يمكنك تأمين بنود المسجد عبر 3 مسارات متكاملة (عقد توريد، أمر شراء داخلي، أو خطاب مسؤولية مجتمعية).
-                        </p>
-                      </div>
-                    </div>
 
-                    <Button
-                      onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 gap-1.5 shadow-xs shrink-0"
-                    >
-                      <Layers className="w-4 h-4" />
-                      فتح شاشة تأمين الطلب والتجزئة
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div 
-                      onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-                      className="p-3 bg-blue-50/40 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-800/60 cursor-pointer hover:border-blue-400 hover:shadow-xs transition-all space-y-1"
-                    >
-                      <span className="font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                        <FileSignature className="w-4 h-4 text-blue-600" />
-                        1. عقد توريد وخدمات
-                      </span>
-                      <p className="text-[11px] text-muted-foreground">العقد المعتمد مع المورد الفائز</p>
-                    </div>
-
-                    <div 
-                      onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-                      className="p-3 bg-sky-50/40 dark:bg-sky-950/20 rounded-xl border border-sky-200 dark:border-sky-800/60 cursor-pointer hover:border-sky-400 hover:shadow-xs transition-all space-y-1"
-                    >
-                      <span className="font-bold text-sky-900 dark:text-sky-300 flex items-center gap-1.5">
-                        <ShoppingCart className="w-4 h-4 text-sky-600" />
-                        2. أمر الشراء الداخلي
-                      </span>
-                      <p className="text-[11px] text-muted-foreground">موجه لإدارة المشتريات (بدون أسعار وبنموذج رسمي)</p>
-                    </div>
-
-                    <div 
-                      onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-                      className="p-3 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-xl border border-indigo-200 dark:border-indigo-800/60 cursor-pointer hover:border-indigo-400 hover:shadow-xs transition-all space-y-1"
-                    >
-                      <span className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                        <HeartHandshake className="w-4 h-4 text-indigo-600" />
-                        3. خطاب المسؤولية المجتمعية
-                      </span>
-                      <p className="text-[11px] text-muted-foreground">موجه للجهات والشركات الخارجية</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* قسم المراجعة الأولية لباقي البرامج */}
               {request.currentStage === 'initial_review' && request.programType !== 'sedana' && (isManagementUser || (activeAction && activeAction.canPerformAction)) && user?.role !== 'service_requester' && (
