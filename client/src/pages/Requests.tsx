@@ -256,8 +256,8 @@ export default function Requests({
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-center">
               <PermissionGuard permission="requests.create">
                 <Link href="/service-request?service=sedana">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm font-bold border-0 transition-all">
-                    <Sparkles className="w-4 h-4 text-blue-200" />
+                  <Button className="bg-cyan-600 hover:bg-cyan-700 text-white gap-2 w-full sm:w-auto h-10 shadow-sm font-bold border-0 transition-all">
+                    <Sparkles className="w-4 h-4 text-cyan-200" />
                     <span>{isEn ? "Operation Services (Sedana)" : "خدمات التشغيل (سدانة)"}</span>
                   </Button>
                 </Link>
