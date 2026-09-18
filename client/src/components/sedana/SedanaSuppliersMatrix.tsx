@@ -161,11 +161,11 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/70 gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
               المحطة 3
             </span>
             <h4 className="font-bold text-lg text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-600" />
+              <FileText className="w-5 h-5 text-blue-600" />
               تجزئة الشراء وتعدد الموردين (مصفوفة عروض الأسعار)
             </h4>
           </div>
@@ -174,8 +174,8 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
           </p>
         </div>
         {isAlreadySaved && (
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800 self-start sm:self-center flex items-center gap-1.5 shrink-0">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span className="text-xs font-bold text-blue-700 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 self-start sm:self-center flex items-center gap-1.5 shrink-0">
+            <CheckCircle2 className="w-4 h-4 text-blue-600" />
             التكلفة الفعلية المعتمدة: {totalActualCost.toLocaleString()} ريال
           </span>
         )}
@@ -184,7 +184,7 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
       {/* التفكيك الآلي لبنود سدانة */}
       <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-          <ShoppingBag className="w-4 h-4 text-emerald-600" />
+          <ShoppingBag className="w-4 h-4 text-blue-600" />
           <span>التفكيك التلقائي لبنود التشغيل المقترحة:</span>
         </div>
         <p className="text-[11px] text-slate-600 dark:text-slate-400">
@@ -484,10 +484,10 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
       </div>
 
       {/* بطاقة ملخص التكلفة الفعلية للمسجد */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 via-sky-500/10 to-blue-500/10 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <span className="text-xs text-muted-foreground font-semibold block">إجمالي التكلفة الفعلية الشاملة للمسجد (Base Cost):</span>
-          <span className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400 font-mono tracking-tight">
+          <span className="text-3xl font-extrabold text-blue-700 dark:text-blue-400 font-mono tracking-tight">
             {totalActualCost.toLocaleString()} <span className="text-sm font-normal text-slate-600 dark:text-slate-300">ريال سعودي</span>
           </span>
         </div>
@@ -495,7 +495,7 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
           <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
             هذه التكلفة الناتجة عن تجميع عروض أسعار الموردين المتخصصين لمجموع البنود الثلاثة.
           </p>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold block">
+          <span className="text-[11px] text-blue-700 dark:text-blue-400 font-bold block">
             ستُستخدم هذه التكلفة كأساس في الهندسة المالية (المحطة 4).
           </span>
         </div>
@@ -532,7 +532,7 @@ export const SedanaSuppliersMatrix: React.FC<SedanaSuppliersMatrixProps> = ({
             type="button"
             onClick={() => handleSave(true)}
             disabled={saveMatrixMutation.isPending || totalActualCost <= 0}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-10 px-5 gap-2 font-bold shadow-xs"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-xs h-10 px-5 gap-2 font-bold shadow-xs"
           >
             {saveMatrixMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin ml-1.5" />
