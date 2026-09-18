@@ -277,45 +277,45 @@ export default function ModernSupplierRegistration() {
 
   // ==================== الصفحة الرئيسية (نموذج مباشر بسيط وعصري) ====================
   return (
-    <div className="min-h-screen bg-slate-50/70 py-6 sm:py-10" dir="rtl">
+    <div className="min-h-screen bg-slate-50/70 py-4 sm:py-10" dir="rtl">
       <div className="container max-w-4xl mx-auto px-3 sm:px-6">
         
         {/* الترويسة والشعار العصرية */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-sm mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-3.5 sm:p-6 shadow-sm mb-5 sm:mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 flex-1">
             <Link href="/">
               <Button
                 variant="outline"
                 size="icon"
                 type="button"
-                className="shrink-0 h-10 w-10 rounded-xl hover:bg-slate-100 border-slate-200 cursor-pointer text-slate-700"
+                className="shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-xl hover:bg-slate-100 border-slate-200 cursor-pointer text-slate-700"
                 title="العودة للصفحة الرئيسية"
               >
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </Link>
             <img
               src={orgSettings?.logoUrl || "/logo.svg"}
               alt={`شعار ${orgName}`}
-              className="h-11 sm:h-12 w-auto object-contain shrink-0"
+              className="h-10 sm:h-12 w-auto object-contain shrink-0"
             />
-            <div className="text-right min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">
+            <div className="text-right min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h1 className="text-base sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                   تسجيل مورد جديد
                 </h1>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0">
+                <span className="text-[10px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 shrink-0">
                   بوابة الموردين
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5 leading-snug sm:leading-normal">
                 انضمام إلى قائمة الموردين والمقاولين المعتمدين لدى {orgName}
               </p>
             </div>
           </div>
 
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="text-xs text-slate-600 hover:text-slate-900 rounded-xl cursor-pointer self-end sm:self-center">
+          <Link href="/" className="hidden sm:inline-flex shrink-0">
+            <Button variant="ghost" size="sm" className="text-xs text-slate-600 hover:text-slate-900 rounded-xl cursor-pointer">
               العودة للرئيسية ←
             </Button>
           </Link>
@@ -326,7 +326,7 @@ export default function ModernSupplierRegistration() {
           {/* ═══════════════ قسم 1: معلومات الكيان ═══════════════ */}
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden transition-all hover:shadow-sm">
             {/* عنوان القسم */}
-            <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-emerald-50/40 to-white flex items-center gap-3.5">
+            <div className="p-3.5 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-emerald-50/40 to-white flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-emerald-100/80 text-emerald-700 flex items-center justify-center shrink-0 shadow-xs">
                 <Building2 className="w-5 h-5" />
               </div>
@@ -336,7 +336,7 @@ export default function ModernSupplierRegistration() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="p-3.5 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="entityName" className="text-xs sm:text-sm font-semibold text-slate-800">
@@ -379,7 +379,7 @@ export default function ModernSupplierRegistration() {
                     value={commercialRegister}
                     onChange={(e) => setCommercialRegister(e.target.value)}
                     placeholder="أدخل رقم السجل التجاري"
-                    className="h-11 rounded-xl border-slate-200 text-sm font-mono text-left focus-visible:ring-emerald-500"
+                    className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm font-mono text-left focus-visible:ring-emerald-500"
                     dir="ltr"
                   />
                 </div>
@@ -423,7 +423,7 @@ export default function ModernSupplierRegistration() {
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 p-3.5 sm:p-4 border border-slate-200/90 rounded-2xl bg-slate-50/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5 p-3 sm:p-4 border border-slate-200/90 rounded-2xl bg-slate-50/50">
                   {WORK_FIELDS.map((field) => {
                     const isChecked = workFields.includes(field.key);
                     return (
@@ -439,7 +439,7 @@ export default function ModernSupplierRegistration() {
                             toggleWorkField(field.key);
                           }
                         }}
-                        className={`flex items-center space-x-2 space-x-reverse p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                        className={`flex items-center space-x-2 space-x-reverse p-2.5 rounded-xl border transition-all cursor-pointer select-none min-h-[44px] ${
                           isChecked
                             ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-semibold shadow-2xs ring-1 ring-emerald-500/20"
                             : "bg-white hover:bg-slate-100/70 border-slate-200 text-slate-700"
@@ -449,10 +449,10 @@ export default function ModernSupplierRegistration() {
                           id={field.key}
                           checked={isChecked}
                           tabIndex={-1}
-                          className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md pointer-events-none"
+                          className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-md pointer-events-none shrink-0"
                         />
                         <span
-                          className="text-xs sm:text-sm leading-tight truncate pr-1 select-none flex-1"
+                          className="text-xs sm:text-sm leading-snug break-words pr-1 select-none flex-1"
                         >
                           {field.label}
                         </span>
@@ -482,7 +482,7 @@ export default function ModernSupplierRegistration() {
 
           {/* ═══════════════ قسم 2: معلومات التواصل ═══════════════ */}
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden transition-all hover:shadow-sm">
-            <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-blue-50/40 to-white flex items-center gap-3.5">
+            <div className="p-3.5 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-blue-50/40 to-white flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-blue-100/80 text-blue-700 flex items-center justify-center shrink-0 shadow-xs">
                 <Phone className="w-5 h-5" />
               </div>
@@ -492,7 +492,7 @@ export default function ModernSupplierRegistration() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="p-3.5 sm:p-6 space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="address" className="text-xs sm:text-sm font-semibold text-slate-800">
                   عنوان الكيان *
@@ -551,7 +551,7 @@ export default function ModernSupplierRegistration() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@company.com"
-                    className="h-11 rounded-xl border-slate-200 text-sm text-left focus-visible:ring-blue-500"
+                    className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm text-left focus-visible:ring-blue-500"
                     dir="ltr"
                   />
                 </div>
@@ -564,7 +564,7 @@ export default function ModernSupplierRegistration() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="05XXXXXXXX"
-                    className="h-11 rounded-xl border-slate-200 text-sm font-mono text-left focus-visible:ring-blue-500"
+                    className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm font-mono text-left focus-visible:ring-blue-500"
                     dir="ltr"
                   />
                 </div>
@@ -579,7 +579,7 @@ export default function ModernSupplierRegistration() {
                   value={phoneSecondary}
                   onChange={(e) => setPhoneSecondary(e.target.value)}
                   placeholder="رقم هاتف إضافي (اختياري)"
-                  className="h-11 rounded-xl border-slate-200 text-sm font-mono text-left focus-visible:ring-blue-500"
+                  className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm font-mono text-left focus-visible:ring-blue-500"
                   dir="ltr"
                 />
               </div>
@@ -615,7 +615,7 @@ export default function ModernSupplierRegistration() {
 
           {/* ═══════════════ قسم 3: معلومات الحساب البنكي ═══════════════ */}
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden transition-all hover:shadow-sm">
-            <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-purple-50/40 to-white flex items-center gap-3.5">
+            <div className="p-3.5 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-purple-50/40 to-white flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-purple-100/80 text-purple-700 flex items-center justify-center shrink-0 shadow-xs">
                 <CreditCard className="w-5 h-5" />
               </div>
@@ -625,7 +625,7 @@ export default function ModernSupplierRegistration() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="p-3.5 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="bankAccountName" className="text-xs sm:text-sm font-semibold text-slate-800">
@@ -675,7 +675,7 @@ export default function ModernSupplierRegistration() {
                     value={iban}
                     onChange={(e) => setIban(e.target.value.toUpperCase())}
                     placeholder="SA0000000000000000000000"
-                    className="h-11 rounded-xl border-slate-200 text-sm font-mono text-left tracking-wide focus-visible:ring-purple-500"
+                    className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm font-mono text-left tracking-normal sm:tracking-wide focus-visible:ring-purple-500"
                     dir="ltr"
                     maxLength={24}
                   />
@@ -690,7 +690,7 @@ export default function ModernSupplierRegistration() {
                     value={taxNumber}
                     onChange={(e) => setTaxNumber(e.target.value)}
                     placeholder="أدخل الرقم الضريبي (15 رقماً)"
-                    className="h-11 rounded-xl border-slate-200 text-sm font-mono text-left focus-visible:ring-purple-500"
+                    className="h-11 rounded-xl border-slate-200 text-xs sm:text-sm font-mono text-left focus-visible:ring-purple-500"
                     dir="ltr"
                   />
                 </div>
@@ -700,7 +700,7 @@ export default function ModernSupplierRegistration() {
 
           {/* ═══════════════ قسم 4: المرفقات الرسمية ═══════════════ */}
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden transition-all hover:shadow-sm">
-            <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-amber-50/40 to-white flex items-center gap-3.5">
+            <div className="p-3.5 sm:p-6 border-b border-slate-100 bg-gradient-to-l from-amber-50/40 to-white flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-amber-100/80 text-amber-700 flex items-center justify-center shrink-0 shadow-xs">
                 <FileText className="w-5 h-5" />
               </div>
@@ -712,10 +712,10 @@ export default function ModernSupplierRegistration() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-4">
+            <div className="p-3.5 sm:p-6 space-y-4">
               {/* بطاقات الرفع الأربعة */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${commercialRegisterDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                <div className={`p-3.5 sm:p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${commercialRegisterDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-xs sm:text-sm font-bold text-slate-800">السجل التجاري *</Label>
                     {commercialRegisterDoc && (
@@ -735,7 +735,7 @@ export default function ModernSupplierRegistration() {
                   />
                 </div>
 
-                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${vatCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                <div className={`p-3.5 sm:p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${vatCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-xs sm:text-sm font-bold text-slate-800">شهادة الضريبة *</Label>
                     {vatCertificateDoc && (
@@ -755,7 +755,7 @@ export default function ModernSupplierRegistration() {
                   />
                 </div>
 
-                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${nationalAddressDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                <div className={`p-3.5 sm:p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${nationalAddressDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-xs sm:text-sm font-bold text-slate-800">العنوان الوطني *</Label>
                     {nationalAddressDoc && (
@@ -775,7 +775,7 @@ export default function ModernSupplierRegistration() {
                   />
                 </div>
 
-                <div className={`p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${bankCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
+                <div className={`p-3.5 sm:p-4 rounded-2xl border transition-all min-w-0 overflow-hidden ${bankCertificateDoc ? "border-emerald-300 bg-emerald-50/30" : "border-slate-200/90 bg-slate-50/40"}`}>
                   <div className="flex items-center justify-between mb-2">
                     <Label className="text-xs sm:text-sm font-bold text-slate-800">الشهادة البنكية *</Label>
                     {bankCertificateDoc && (
@@ -817,8 +817,8 @@ export default function ModernSupplierRegistration() {
                 
                 <div className="space-y-3">
                   {otherAttachments.map((attr, index) => (
-                    <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60 items-start sm:items-center">
-                      <div className="md:col-span-5 space-y-1">
+                    <div key={index} className="flex flex-col sm:grid sm:grid-cols-12 gap-3 p-3 sm:p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60 items-stretch sm:items-center">
+                      <div className="sm:col-span-5 space-y-1">
                         <Label className="text-xs font-semibold text-slate-700">اسم المرفق</Label>
                         <Input
                           value={attr.name}
@@ -831,7 +831,7 @@ export default function ModernSupplierRegistration() {
                           className="h-10 rounded-xl border-slate-200 text-xs focus-visible:ring-emerald-500"
                         />
                       </div>
-                      <div className="md:col-span-6 space-y-1">
+                      <div className="sm:col-span-6 space-y-1">
                         <Label className="text-xs font-semibold text-slate-700">الملف</Label>
                         <FileUpload
                           onFilesSelected={(files) => {
@@ -846,7 +846,7 @@ export default function ModernSupplierRegistration() {
                         />
                         {attr.fileData && <p className="text-[10px] text-emerald-600 font-medium">✓ تم رفع الملف</p>}
                       </div>
-                      <div className="md:col-span-1 flex justify-end sm:justify-center">
+                      <div className="sm:col-span-1 flex justify-end sm:justify-center pt-1 sm:pt-0">
                         <Button
                           type="button"
                           variant="ghost"
@@ -876,7 +876,7 @@ export default function ModernSupplierRegistration() {
               size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || registerMutation.isPending}
-              className="w-full sm:w-auto min-w-[260px] px-10 py-6 text-base font-bold gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 cursor-pointer transition-all hover:scale-[1.01]"
+              className="w-full sm:w-auto min-w-0 sm:min-w-[260px] px-6 sm:px-10 py-5 sm:py-6 text-sm sm:text-base font-bold gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20 cursor-pointer transition-all hover:scale-[1.01]"
             >
               {isSubmitting || registerMutation.isPending ? (
                 <>
