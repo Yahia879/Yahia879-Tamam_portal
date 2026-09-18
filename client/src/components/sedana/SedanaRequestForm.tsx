@@ -553,9 +553,9 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
         />
 
         {selectedFile ? (
-          <div className="p-3 rounded-lg border border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between">
+          <div className="p-3 rounded-lg border border-blue-500/40 bg-blue-50/40 dark:bg-blue-950/20 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0">
                 <Check className="w-4 h-4" />
               </div>
               <div className="min-w-0">
