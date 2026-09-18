@@ -28,7 +28,7 @@ const services = [
   { key: "enaya", name: "عناية", description: "الصيانة والترميم", icon: Wrench, color: "bg-orange-500" },
   { key: "emdad", name: "إمداد", description: "توفير تجهيزات المساجد", icon: Package, color: "bg-purple-500" },
   { key: "ethraa", name: "إثراء", description: "سداد فواتير الخدمات", icon: Receipt, color: "bg-pink-500" },
-  { key: "sedana", name: "الخدمات السنوية (سدانة)", description: "خدمات التشغيل والنظافة", icon: Sparkles, color: "bg-emerald-600" },
+  { key: "sedana", name: "خدمات التشغيل (سدانة)", description: "خدمات التشغيل والنظافة", icon: Sparkles, color: "bg-blue-600" },
   { key: "taqa", name: "طاقة", description: "الطاقة الشمسية", icon: Sun, color: "bg-yellow-500" },
   { key: "miyah", name: "مياه", description: "أنظمة المياه", icon: Droplets, color: "bg-sky-500" },
   { key: "suqya", name: "سقيا", description: "توفير ماء الشرب", icon: GlassWater, color: "bg-teal-500" },
