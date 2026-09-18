@@ -284,19 +284,19 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
             onClick={() => canEdit && setFundingPath('direct_purchase')}
             className={`p-4.5 rounded-xl border-2 cursor-pointer transition-all ${
               fundingPath === 'direct_purchase'
-                ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/30 shadow-xs'
-                : 'border-border/60 bg-card hover:border-emerald-300'
+                ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/30 shadow-xs'
+                : 'border-border/60 bg-card hover:border-cyan-300'
             }`}
           >
             <div className="flex items-start gap-3">
-              <div className={`p-2.5 rounded-xl shrink-0 ${fundingPath === 'direct_purchase' ? 'bg-emerald-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+              <div className={`p-2.5 rounded-xl shrink-0 ${fundingPath === 'direct_purchase' ? 'bg-cyan-600 text-white' : 'bg-muted text-muted-foreground'}`}>
                 <UserCheck className="w-5 h-5" />
               </div>
               <div className="space-y-1 w-full">
                 <div className="flex items-center justify-between">
                   <h5 className="font-bold text-sm text-foreground">1. متبرع مباشر (كفالة مسجد كاملة)</h5>
                   {fundingPath === 'direct_purchase' && (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <CheckCircle2 className="w-5 h-5 text-cyan-600" />
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -337,9 +337,9 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
 
       {/* تفاصيل مسار المتبرع المباشر عند اختياره */}
       {fundingPath === 'direct_purchase' && (
-        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40 dark:bg-emerald-950/20 dark:border-emerald-900 space-y-3 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold text-xs pb-1 border-b border-emerald-200 dark:border-emerald-800">
-            <Building2 className="w-4 h-4 text-emerald-600" />
+        <div className="p-4 rounded-xl border border-cyan-200 bg-cyan-50/40 dark:bg-cyan-950/20 dark:border-cyan-900 space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-cyan-800 dark:text-cyan-300 font-bold text-xs pb-1 border-b border-cyan-200 dark:border-cyan-800">
+            <Building2 className="w-4 h-4 text-cyan-600" />
             <span>بيانات المتبرع المباشر وسند القبض:</span>
           </div>
 
@@ -395,16 +395,16 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
               />
             ) : null}
             {directDonorInfo.receiptFileUrl && (
-              <div className="mt-1.5 flex items-center justify-between p-2 rounded bg-emerald-100/60 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-[11px]">
-                <span className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-medium truncate">
-                  <Paperclip className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <div className="mt-1.5 flex items-center justify-between p-2 rounded bg-cyan-100/60 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 text-[11px]">
+                <span className="flex items-center gap-1.5 text-cyan-800 dark:text-cyan-300 font-medium truncate">
+                  <Paperclip className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
                   سند القبض مرفق بنجاح
                 </span>
                 <a
                   href={directDonorInfo.receiptFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-emerald-700 dark:text-emerald-400 font-bold hover:underline underline-offset-2 shrink-0"
+                  className="text-cyan-700 dark:text-cyan-400 font-bold hover:underline underline-offset-2 shrink-0"
                 >
                   معاينة
                 </a>
@@ -482,7 +482,7 @@ export const SedanaFundingAndOpportunity: React.FC<SedanaFundingAndOpportunityPr
             className={`w-full sm:w-auto text-xs h-10 px-6 gap-2 font-bold shadow-xs ${
               fundingPath === 'crowdfunding'
                 ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-cyan-600 hover:bg-cyan-700 text-white'
             }`}
           >
             {saveFundingMutation.isPending ? (
