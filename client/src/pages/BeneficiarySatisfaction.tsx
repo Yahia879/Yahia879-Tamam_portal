@@ -801,38 +801,15 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     </div>
                                   </td>
 
-                                  {/* الآراء والملاحظات وزر عرض الرد */}
-                                  <td className="p-3.5 px-4 max-w-sm">
-                                    <div className="space-y-2 text-right">
-                                      {item.comments ? (
-                                        <p className="text-muted-foreground italic text-xs leading-relaxed">
-                                          "{item.comments}"
-                                        </p>
-                                      ) : (
-                                        <span className="text-muted-foreground/50 text-[11px]">لا توجد ملاحظات</span>
-                                      )}
-
-                                      {/* زر عرض الرد الرسمي إن وجد (دون إدراج النص كاملاً داخل الجدول) */}
-                                      {item.reply && (
-                                        <div className="pt-0.5 flex items-center gap-2">
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleOpenViewReplyModal(item)}
-                                            className="h-7 px-2.5 text-[11px] font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30 transition-all shadow-2xs cursor-pointer"
-                                          >
-                                            <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                                            <span>عرض الرد</span>
-                                          </Button>
-                                          {item.reply.repliedAt && (
-                                            <span className="text-[10px] text-muted-foreground font-mono">
-                                              {formatDateEn(item.reply.repliedAt)}
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
+                                  {/* الآراء والملاحظات */}
+                                  <td className="p-3.5 px-4 max-w-sm text-right">
+                                    {item.comments ? (
+                                      <p className="text-muted-foreground italic text-xs leading-relaxed text-right">
+                                        "{item.comments}"
+                                      </p>
+                                    ) : (
+                                      <span className="text-muted-foreground/50 text-[11px] block text-right">لا توجد ملاحظات</span>
+                                    )}
                                   </td>
 
                                   {/* التاريخ */}
