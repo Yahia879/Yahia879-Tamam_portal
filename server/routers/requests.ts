@@ -2898,7 +2898,7 @@ export const requestsRouter = router({
         programData: currentProgramData,
       };
 
-      if (input.advanceToExecution && request.currentStage === 'contracting') {
+      if (input.advanceToExecution) {
         updateData.currentStage = 'execution';
       }
 
@@ -2917,6 +2917,19 @@ export const requestsRouter = router({
         });
       } catch (logErr) {
         console.error("Procurement log error:", logErr);
+      }
+
+      if (input.advanceToExecution) {
+        try {
+          await db.insert(requestStageTracking).values({
+            requestId: input.requestId,
+            stageCode: 'execution',
+            startedAt: new Date(),
+            assignedTo: ctx.user.id,
+          });
+        } catch (trackErr) {
+          // ignore tracking error
+        }
       }
 
       return {
