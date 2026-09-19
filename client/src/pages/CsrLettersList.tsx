@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -44,7 +44,7 @@ import {
   Package,
   FileText,
   Loader2,
-  Edit,
+  X,
   Landmark,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -83,6 +83,19 @@ export default function CsrLettersList() {
 
   // الخطاب المحدد لعرض تفاصيل أصنافه
   const [selectedLetterForItems, setSelectedLetterForItems] = useState<any | null>(null);
+
+  // إغلاق المعاينة عند الضغط على زر Esc
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedLetterForPreview(null);
+      }
+    };
+    if (selectedLetterForPreview) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedLetterForPreview]);
 
   // استعلام خطابات المسؤولية المجتمعية
   const {
@@ -335,7 +348,7 @@ export default function CsrLettersList() {
                       <th className="p-3 font-bold">المفوض بالتوقيع</th>
                       <th className="p-3 font-bold text-center">الأصناف المطلوبة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
-                      <th className="p-3 font-bold text-center w-32">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-24">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -409,29 +422,16 @@ export default function CsrLettersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setSelectedLetterForPreview(letter)}
-                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800"
-                                title="معاينة وطباعة الخطاب الرسمي"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>معاينة</span>
-                              </Button>
-
-                              <Link href={`/requests/${letter.requestId}/procurement`}>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                  title="تعديل وتخصيص التأمين"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </Button>
-                              </Link>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedLetterForPreview(letter)}
+                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800"
+                              title="معاينة وطباعة الخطاب الرسمي"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>معاينة</span>
+                            </Button>
                           </td>
                         </TableRow>
                       );
@@ -519,14 +519,21 @@ export default function CsrLettersList() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة المعاينة والطباعة الفورية الرسمية A4 */}
-        <Dialog open={!!selectedLetterForPreview} onOpenChange={() => setSelectedLetterForPreview(null)}>
-          <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans border-0" dir="rtl">
-            <div className="p-3 bg-white dark:bg-slate-900 border-b flex items-center justify-between gap-2 sticky top-0 z-20">
-              <div className="flex items-center gap-2">
-                <HeartHandshake className="w-4 h-4 text-sky-600" />
-                <span className="font-bold text-sm text-foreground">معاينة الخطاب الرسمي للمسؤولية المجتمعية A4</span>
-                <Badge variant="outline" className="text-xs font-mono">{selectedLetterForPreview?.letterNumber}</Badge>
+        {/* شاشة المعاينة والطباعة الفورية الرسمية A4 كاملة الشاشة */}
+        {selectedLetterForPreview && (
+          <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden" dir="rtl">
+            <div className="print:hidden p-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-border flex items-center justify-between gap-3 shadow-xs shrink-0 sticky top-0 z-20">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 flex items-center justify-center text-sky-600 border border-sky-200 dark:border-sky-800">
+                  <HeartHandshake className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm sm:text-base text-foreground">معاينة الخطاب الرسمي للمسؤولية المجتمعية A4</span>
+                    <Badge variant="outline" className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800">{selectedLetterForPreview.letterNumber}</Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{selectedLetterForPreview.salutation} / {selectedLetterForPreview.recipientName} • جامع {selectedLetterForPreview.mosqueName}</p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -542,17 +549,18 @@ export default function CsrLettersList() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedLetterForPreview(null)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
                 >
+                  <X className="w-3.5 h-3.5" />
                   إغلاق
                 </Button>
               </div>
             </div>
 
-            {/* ورقة A4 الرسمية الفاخرة للخطاب */}
-            <div className="p-4 sm:p-6 overflow-y-auto max-h-[80vh] flex justify-center">
-              <div className="w-full max-w-[210mm] bg-white text-slate-900 shadow-xl p-6 sm:p-10 min-h-[297mm] flex flex-col justify-between border-[2px] border-[#0284c7] rounded-lg relative leading-relaxed">
-                <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
+            {/* ورقة A4 الرسمية الفاخرة للخطاب كاملة الشاشة */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-200/70 dark:bg-slate-950 print:p-0 print:bg-white print:overflow-visible">
+              <div className="w-full max-w-[210mm] bg-white text-slate-900 shadow-2xl p-6 sm:p-10 min-h-[297mm] flex flex-col justify-between border-[2px] border-[#0284c7] rounded-lg relative leading-relaxed print:shadow-none print:border-none print:m-0 print:p-6 print:rounded-none">
+                <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none print:hidden" />
 
                 <div className="relative z-10 space-y-6 flex-1">
                   {/* ترويسة الخطاب الرسمية */}
@@ -572,25 +580,25 @@ export default function CsrLettersList() {
                     </div>
 
                     <div className="text-xs space-y-1 text-left font-mono">
-                      <div><span className="text-slate-500">الرقم: </span><strong>{selectedLetterForPreview?.letterNumber}</strong></div>
-                      <div><span className="text-slate-500">التاريخ: </span><strong>{selectedLetterForPreview?.letterDate}</strong></div>
+                      <div><span className="text-slate-500">الرقم: </span><strong>{selectedLetterForPreview.letterNumber}</strong></div>
+                      <div><span className="text-slate-500">التاريخ: </span><strong>{selectedLetterForPreview.letterDate}</strong></div>
                     </div>
                   </div>
 
                   {/* المخاطبة: السادة / ... المحترمون (بدون أصحاب السعادة) */}
                   <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
-                    <span>{selectedLetterForPreview?.salutation} / </span>
+                    <span>{selectedLetterForPreview.salutation} / </span>
                     <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900">
-                      {selectedLetterForPreview?.recipientName}
+                      {selectedLetterForPreview.recipientName}
                     </span>
-                    <span className="mr-3">{selectedLetterForPreview?.honorific}</span>
+                    <span className="mr-3">{selectedLetterForPreview.honorific}</span>
                   </div>
 
                   {/* الديباجة الحرفية المعتمدة */}
                   <div className="text-xs sm:text-sm text-slate-800 leading-loose space-y-2">
                     <p className="font-bold text-slate-900">السلام عليكم ورحمة الله وبركاته،،،</p>
                     <p>
-                      تجدون برفقه البنود المراد تأمينها لمشروع <strong>({selectedLetterForPreview?.projectName || `مشروع جامع ${selectedLetterForPreview?.mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
+                      تجدون برفقه البنود المراد تأمينها لمشروع <strong>({selectedLetterForPreview.projectName || `مشروع جامع ${selectedLetterForPreview.mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
                     </p>
                   </div>
 
@@ -607,7 +615,7 @@ export default function CsrLettersList() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-300">
-                        {selectedLetterForPreview?.items && selectedLetterForPreview.items.length > 0 ? (
+                        {selectedLetterForPreview.items && selectedLetterForPreview.items.length > 0 ? (
                           selectedLetterForPreview.items.map((it: any, idx: number) => (
                             <tr key={idx} className="h-9">
                               <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
@@ -642,7 +650,7 @@ export default function CsrLettersList() {
                         <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
                       </div>
                       <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
-                        {selectedLetterForPreview?.recipientName || "الجهة المانحة / الشريك المجتمعي"}
+                        {selectedLetterForPreview.recipientName || "الجهة المانحة / الشريك المجتمعي"}
                       </p>
                       <p className="text-[11px] text-slate-500 font-medium">التوقيع والختم الرسمي</p>
                     </div>
@@ -650,13 +658,13 @@ export default function CsrLettersList() {
                     {/* الطرف الثاني: المدير التنفيذي */}
                     <div className="text-center space-y-2 p-3 sm:p-4 rounded-lg bg-slate-50/70 border border-slate-200">
                       <p className="font-bold text-xs sm:text-sm text-slate-800">
-                        {selectedLetterForPreview?.signatoryTitle || "المدير التنفيذي"}
+                        {selectedLetterForPreview.signatoryTitle || "المدير التنفيذي"}
                       </p>
                       <div className="h-14 flex items-center justify-center">
                         <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
                       </div>
                       <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
-                        {selectedLetterForPreview?.signatoryName || "المهندس المفوض بالتوقيع"}
+                        {selectedLetterForPreview.signatoryName || "المهندس المفوض بالتوقيع"}
                       </p>
                       <p className="text-[11px] text-slate-500 font-medium">الجمعية / إدارة المشاريع</p>
                     </div>
@@ -665,12 +673,12 @@ export default function CsrLettersList() {
 
                 <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
                   <span>{orgName} - سدانة</span>
-                  <span>الرمز المرجعي: #{selectedLetterForPreview?.requestNumber} • صفحة 1 من 1</span>
+                  <span>الرمز المرجعي: #{selectedLetterForPreview.requestNumber} • صفحة 1 من 1</span>
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

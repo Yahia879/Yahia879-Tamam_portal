@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -343,7 +343,7 @@ export default function PurchaseOrdersList() {
                       <th className="p-3 font-bold">طالب الشراء / الاعتماد</th>
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
-                      <th className="p-3 font-bold text-center w-32">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-24">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -415,29 +415,16 @@ export default function PurchaseOrdersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setSelectedOrderForPreview(order)}
-                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800"
-                                title="معاينة وطباعة أمر الشراء"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>معاينة</span>
-                              </Button>
-
-                              <Link href={`/requests/${order.requestId}/procurement`}>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                  title="تعديل وتخصيص التأمين"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </Button>
-                              </Link>
-                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedOrderForPreview(order)}
+                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800"
+                              title="معاينة وطباعة أمر الشراء"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>معاينة</span>
+                            </Button>
                           </td>
                         </TableRow>
                       );
@@ -525,14 +512,21 @@ export default function PurchaseOrdersList() {
           </DialogContent>
         </Dialog>
 
-        {/* نافذة المعاينة والطباعة الفورية الرسمية A4 */}
-        <Dialog open={!!selectedOrderForPreview} onOpenChange={() => setSelectedOrderForPreview(null)}>
-          <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-100 dark:bg-slate-950 font-sans border-0" dir="rtl">
-            <div className="p-3 bg-white dark:bg-slate-900 border-b flex items-center justify-between gap-2 sticky top-0 z-20">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-sky-600" />
-                <span className="font-bold text-sm text-foreground">معاينة أمر الشراء الداخلي A4</span>
-                <Badge variant="outline" className="text-xs font-mono">{selectedOrderForPreview?.orderNumber}</Badge>
+        {/* شاشة المعاينة والطباعة الفورية الرسمية A4 كاملة الشاشة */}
+        {selectedOrderForPreview && (
+          <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden" dir="rtl">
+            <div className="print:hidden p-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-border flex items-center justify-between gap-3 shadow-xs shrink-0 sticky top-0 z-20">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 flex items-center justify-center text-sky-600 border border-sky-200 dark:border-sky-800">
+                  <ShoppingCart className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm sm:text-base text-foreground">معاينة أمر الشراء الداخلي A4</span>
+                    <Badge variant="outline" className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800">{selectedOrderForPreview.orderNumber}</Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">جامع {selectedOrderForPreview.mosqueName} • {selectedOrderForPreview.directedTo}</p>
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
@@ -548,17 +542,18 @@ export default function PurchaseOrdersList() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedOrderForPreview(null)}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
                 >
+                  <X className="w-3.5 h-3.5" />
                   إغلاق
                 </Button>
               </div>
             </div>
 
-            {/* ورقة A4 الرسمية الفاخرة */}
-            <div className="p-4 sm:p-6 overflow-y-auto max-h-[80vh] flex justify-center">
-              <div className="w-full max-w-[210mm] bg-white text-slate-900 shadow-xl p-6 sm:p-10 min-h-[297mm] flex flex-col justify-between border-[2px] border-[#0284c7] rounded-lg relative leading-relaxed">
-                <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
+            {/* ورقة A4 الرسمية الفاخرة كاملة الشاشة */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-200/70 dark:bg-slate-950 print:p-0 print:bg-white print:overflow-visible">
+              <div className="w-full max-w-[210mm] bg-white text-slate-900 shadow-2xl p-6 sm:p-10 min-h-[297mm] flex flex-col justify-between border-[2px] border-[#0284c7] rounded-lg relative leading-relaxed print:shadow-none print:border-none print:m-0 print:p-6 print:rounded-none">
+                <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none print:hidden" />
 
                 <div className="relative z-10 space-y-6 flex-1">
                   {/* ترويسة التقرير الرسمية */}
@@ -578,9 +573,9 @@ export default function PurchaseOrdersList() {
                     </div>
 
                     <div className="text-xs space-y-1 text-left font-mono">
-                      <div><span className="text-slate-500">رقم الأمر: </span><strong>{selectedOrderForPreview?.orderNumber}</strong></div>
-                      <div><span className="text-slate-500">التاريخ: </span><strong>{selectedOrderForPreview?.orderDate}</strong></div>
-                      <div><span className="text-slate-500">رقم الطلب: </span><strong>#{selectedOrderForPreview?.requestNumber}</strong></div>
+                      <div><span className="text-slate-500">رقم الأمر: </span><strong>{selectedOrderForPreview.orderNumber}</strong></div>
+                      <div><span className="text-slate-500">التاريخ: </span><strong>{selectedOrderForPreview.orderDate}</strong></div>
+                      <div><span className="text-slate-500">رقم الطلب: </span><strong>#{selectedOrderForPreview.requestNumber}</strong></div>
                     </div>
                   </div>
 
@@ -593,11 +588,11 @@ export default function PurchaseOrdersList() {
                   <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
                     <div>
                       <span className="text-slate-500">موجه إلى: </span>
-                      <strong className="text-slate-900">{selectedOrderForPreview?.directedTo}</strong>
+                      <strong className="text-slate-900">{selectedOrderForPreview.directedTo}</strong>
                     </div>
                     <div>
                       <span className="text-slate-500">المشروع / المسجد: </span>
-                      <strong className="text-slate-900">{selectedOrderForPreview?.mosqueName} {selectedOrderForPreview?.mosqueCity ? `(${selectedOrderForPreview.mosqueCity})` : ""}</strong>
+                      <strong className="text-slate-900">{selectedOrderForPreview.mosqueName} {selectedOrderForPreview.mosqueCity ? `(${selectedOrderForPreview.mosqueCity})` : ""}</strong>
                     </div>
                   </div>
 
@@ -618,7 +613,7 @@ export default function PurchaseOrdersList() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-300">
-                        {selectedOrderForPreview?.items && selectedOrderForPreview.items.length > 0 ? (
+                        {selectedOrderForPreview.items && selectedOrderForPreview.items.length > 0 ? (
                           selectedOrderForPreview.items.map((it: any, idx: number) => (
                             <tr key={idx} className="h-9">
                               <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
@@ -652,24 +647,24 @@ export default function PurchaseOrdersList() {
                         <tr className="border-b border-slate-300 h-14">
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المورد / متعهد التوريد</td>
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-900">
-                            {selectedOrderForPreview?.directedTo?.replace(/^إلى\s*/, "") || selectedOrderForPreview?.poSupplierName || "المورد المعتمد"}
+                            {selectedOrderForPreview.directedTo?.replace(/^إلى\s*/, "") || selectedOrderForPreview.poSupplierName || "المورد المعتمد"}
                           </td>
                           <td className="p-2 border-l border-slate-300">
                             <div className="h-7 border-b border-dashed border-gray-300 mx-auto w-24"></div>
                           </td>
-                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview?.orderDate}</td>
+                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
                         </tr>
                         <tr className="h-14">
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview?.approverRole || "المدير التنفيذي"}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview?.approverName || "المدير التنفيذي"}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview.approverRole || "المدير التنفيذي"}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview.approverName || "المدير التنفيذي"}</td>
                           <td className="p-2 border-l border-slate-300">
-                            {selectedOrderForPreview?.approverSignatureUrl ? (
+                            {selectedOrderForPreview.approverSignatureUrl ? (
                               <img src={selectedOrderForPreview.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
                             ) : (
                               <div className="h-7 border-b border-dashed border-gray-300 mx-auto w-24"></div>
                             )}
                           </td>
-                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview?.orderDate}</td>
+                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -678,12 +673,12 @@ export default function PurchaseOrdersList() {
 
                 <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
                   <span>{orgName} - سدانة</span>
-                  <span>الرمز المرجعي: #{selectedOrderForPreview?.requestNumber} • صفحة 1 من 1</span>
+                  <span>الرمز المرجعي: #{selectedOrderForPreview.requestNumber} • صفحة 1 من 1</span>
                 </div>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
