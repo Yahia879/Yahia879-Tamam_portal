@@ -802,11 +802,17 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                   </td>
 
                                   {/* الآراء والملاحظات */}
-                                  <td className="p-3.5 px-4 max-w-sm text-right">
+                                  <td className="p-3.5 px-4 max-w-[280px] text-right" title={item.comments || ""}>
                                     {item.comments ? (
-                                      <p className="text-muted-foreground italic text-xs leading-relaxed text-right">
-                                        "{item.comments}"
-                                      </p>
+                                      <div
+                                        onClick={() => handleOpenDetails(item)}
+                                        className="cursor-pointer group"
+                                        title={item.comments}
+                                      >
+                                        <p className="text-muted-foreground group-hover:text-foreground transition-colors italic text-xs leading-relaxed text-right line-clamp-2 break-words">
+                                          "{item.comments}"
+                                        </p>
+                                      </div>
                                     ) : (
                                       <span className="text-muted-foreground/50 text-[11px] block text-right">لا توجد ملاحظات</span>
                                     )}
@@ -2010,6 +2016,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                     <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-card/90 dark:bg-card/70 p-4 rounded-xl border border-teal-500/20 shadow-2xs font-normal">
                       {viewReplyEval.reply?.text || "لا يوجد نص رد متاح."}
                     </p>
+
+                    {viewReplyEval.reply?.smsSent && (
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>تم إرسال إشعار الرد عبر SMS إلى جوال المستفيد {viewReplyEval.reply?.smsPhone ? `(${viewReplyEval.reply.smsPhone})` : ""}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2058,6 +2071,17 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                       "{replyTargetEval.comments}"
                     </p>
                   )}
+                </div>
+
+                {/* تنبيه إرسال رسالة SMS للمستفيد */}
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-900 dark:text-teal-200">
+                  <Phone className="w-4 h-4 text-teal-600 shrink-0" />
+                  <span>
+                    سيتم إرسال الرد تلقائياً في رسالة نصية (SMS) إلى جوال المستفيد:{" "}
+                    <strong dir="ltr" className="font-mono text-teal-700 dark:text-teal-300">
+                      {replyTargetEval.requesterPhone || "غير مسجل"}
+                    </strong>
+                  </span>
                 </div>
 
                 {/* حقل نص الرد */}

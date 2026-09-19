@@ -5706,7 +5706,7 @@ export const requestsRouter = router({
       };
     }),
 
-  // إضافة أو تحديث الرد على تقييم رضا المستفيد
+  // إضافة أو تحديث الرد على تقييم رضا المستفيد وإرسال إشعار SMS للمستفيد
   saveBeneficiaryEvaluationReply: protectedProcedure
     .input(
       z.object({
@@ -5744,11 +5744,104 @@ export const requestsRouter = router({
         parsedNotes = { comments: evalRecord.notes };
       }
 
+      // البحث عن رقم جوال المستفيد واسمه ورقم طلبه
+      let beneficiaryPhone = 
+        parsedNotes.beneficiaryPhone || 
+        parsedNotes.requesterPhone || 
+        parsedNotes.phone || 
+        parsedNotes.answers?.beneficiaryPhone || 
+        null;
+      let beneficiaryName = 
+        parsedNotes.beneficiaryName || 
+        parsedNotes.requesterName || 
+        parsedNotes.answers?.beneficiaryName || 
+        null;
+      let requestNumber: string | null = null;
+      let targetUserId = evalRecord.userId;
+
+      if (evalRecord.requestId) {
+        const [req] = await db
+          .select({
+            id: mosqueRequests.id,
+            requestNumber: mosqueRequests.requestNumber,
+            userId: mosqueRequests.userId,
+            fieldVisitContactPhone: mosqueRequests.fieldVisitContactPhone,
+            fieldVisitContactName: mosqueRequests.fieldVisitContactName,
+          })
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, evalRecord.requestId))
+          .limit(1);
+
+        if (req) {
+          requestNumber = req.requestNumber;
+          if (!targetUserId && req.userId) targetUserId = req.userId;
+          if (!beneficiaryPhone && req.fieldVisitContactPhone) beneficiaryPhone = req.fieldVisitContactPhone;
+          if (!beneficiaryName && req.fieldVisitContactName) beneficiaryName = req.fieldVisitContactName;
+        }
+      }
+
+      if (targetUserId && (!beneficiaryPhone || !beneficiaryName)) {
+        const [u] = await db
+          .select({ name: users.name, phone: users.phone })
+          .from(users)
+          .where(eq(users.id, targetUserId))
+          .limit(1);
+
+        if (u) {
+          if (!beneficiaryPhone && u.phone) beneficiaryPhone = u.phone;
+          if (!beneficiaryName && u.name) beneficiaryName = u.name;
+        }
+      }
+
+      // إرسال إشعار SMS للمستفيد عبر خدمة 4jawaly
+      let smsResult: { success: boolean; messageId?: string; error?: string; phone?: string } | null = null;
+      if (beneficiaryPhone) {
+        try {
+          const { sendSms } = await import("../services/sms");
+          const namePart = beneficiaryName ? ` ${beneficiaryName.trim()}` : "";
+          const reqPart = requestNumber ? ` على تقييم الطلب (${requestNumber})` : " على تقييمكم واستبيان الخدمة";
+          const smsText = `عزيزنا المستفيد${namePart}،\nبخصوص ملاحظاتكم الكريمة${reqPart}:\n"${input.replyText.trim()}"\n\nجمعية عمارة المساجد (منارة)`;
+          
+          smsResult = await sendSms(beneficiaryPhone, smsText);
+          if (smsResult.success) {
+            console.log(`[Beneficiary Reply SMS] تم إرسال رسالة SMS للمستفيد بنجاح إلى (${smsResult.phone || beneficiaryPhone})`);
+          } else {
+            console.warn(`[Beneficiary Reply SMS] فشل إرسال رسالة SMS للمستفيد (${beneficiaryPhone}):`, smsResult.error);
+          }
+        } catch (smsErr: any) {
+          console.error("[Beneficiary Reply SMS Exception]:", smsErr);
+          smsResult = { success: false, error: smsErr?.message || String(smsErr) };
+        }
+      } else {
+        console.warn(`[Beneficiary Reply SMS] لم يتوفر رقم جوال للمستفيد في التقييم #${input.evalId}`);
+      }
+
+      // إرسال إشعار نظام داخلي إذا كان للمستفيد حساب في المنصة
+      if (targetUserId) {
+        try {
+          const { createNotification } = await import("./notifications");
+          await createNotification({
+            userId: targetUserId,
+            title: requestNumber ? `رد الجمعية على ملاحظاتكم بخصوص الطلب (${requestNumber})` : "رد الجمعية على ملاحظاتكم الكريمة",
+            message: input.replyText.trim(),
+            type: "info",
+            relatedType: "request_evaluation",
+            relatedId: evalRecord.requestId || input.evalId,
+          });
+        } catch (notifErr) {
+          console.warn("[Beneficiary Reply Notification Error]:", notifErr);
+        }
+      }
+
       parsedNotes.reply = {
         text: input.replyText.trim(),
         userId: ctx.user.id,
         userName: ctx.user.name || "إدارة الجمعية",
         repliedAt: new Date().toISOString(),
+        smsSent: smsResult?.success || false,
+        smsPhone: smsResult?.phone || beneficiaryPhone || null,
+        smsMessageId: smsResult?.messageId || null,
+        smsError: smsResult?.success ? null : (smsResult?.error || (beneficiaryPhone ? null : "رقم الجوال غير متوفر")),
       };
 
       await db
@@ -5758,10 +5851,20 @@ export const requestsRouter = router({
         })
         .where(eq(requestEvaluations.id, input.evalId));
 
+      let message = "تم حفظ الرد على التقييم بنجاح";
+      if (smsResult?.success) {
+        message = `تم حفظ الرد وإرسال رسالة SMS للمستفيد بنجاح على الرقم (${smsResult.phone || beneficiaryPhone})`;
+      } else if (beneficiaryPhone) {
+        message = `تم حفظ الرد بنجاح (ملاحظة: تعذر إرسال SMS: ${smsResult?.error || "خطأ في الإرسال"})`;
+      } else {
+        message = "تم حفظ الرد بنجاح (ملاحظة: لم يتوفر رقم جوال للمستفيد لإرسال SMS)";
+      }
+
       return {
         success: true,
-        message: "تم حفظ الرد على التقييم بنجاح",
+        message,
         reply: parsedNotes.reply,
+        smsSent: smsResult?.success || false,
       };
     }),
 
