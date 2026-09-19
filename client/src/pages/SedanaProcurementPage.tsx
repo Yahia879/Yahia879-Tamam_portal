@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   ArrowRight,
   Printer,
@@ -28,8 +35,11 @@ import {
   Plus,
   Loader2,
   Eye,
-  PenTool,
-  Settings2
+  Settings2,
+  AlertTriangle,
+  AlertCircle,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -47,8 +57,11 @@ export default function SedanaProcurementPage() {
   // وضع العرض كامل الشاشة: إما القائمة الرئيسية "none" أو معاينة أمر الشراء "po" أو معاينة الخطاب "csr"
   const [fullScreenView, setFullScreenView] = useState<"none" | "po" | "csr">("none");
 
-  // التحكم بإظهار شريط تعديل البيانات في المعاينة كاملة الشاشة
+  // التحكم بإظهار لوحة تعديل البيانات في المعاينة كاملة الشاشة
   const [showEditControls, setShowEditControls] = useState(false);
+
+  // التحكم في نافذة تأكيد الاعتماد والانتقال للتنفيذ
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // جلب تفاصيل الطلب
   const {
@@ -74,7 +87,7 @@ export default function SedanaProcurementPage() {
     { enabled: !!requestId && requestId > 0 }
   );
 
-  // جلب العقود المسجلة
+  // جلب العقود المسجلة للطلب
   const { data: contractsList = [] } = trpc.contracts.getAllByRequestId.useQuery(
     { requestId },
     { enabled: !!requestId && requestId > 0 }
@@ -86,6 +99,7 @@ export default function SedanaProcurementPage() {
       toast.success(res.message || "تم حفظ البيانات بنجاح");
       refetchRequest();
       if (vars.advanceToExecution) {
+        setShowConfirmModal(false);
         setLocation(`/requests/${requestId}`);
       }
     },
@@ -243,7 +257,7 @@ export default function SedanaProcurementPage() {
     }
   }, [allItems]);
 
-  // البنود المخصصة لكل طريقة
+  // البنود المخصصة لكل طريقة بدقة
   const contractItems = useMemo(() => {
     return allItems.filter(it => (itemsAllocation[it.id] || "contract") === "contract");
   }, [allItems, itemsAllocation]);
@@ -264,8 +278,6 @@ export default function SedanaProcurementPage() {
     }));
   };
 
-
-
   // حفظ التجزئة والبيانات
   const handleSaveProcurement = (advanceStage: boolean = false) => {
     saveProcurementMutation.mutate({
@@ -278,6 +290,12 @@ export default function SedanaProcurementPage() {
       },
       advanceToExecution: advanceStage,
     });
+  };
+
+  // الانتقال لإنشاء عقد مع حفظ التخصيص الحالي تلقائياً
+  const handleCreateContract = () => {
+    handleSaveProcurement(false);
+    setLocation(`/contracts/new?requestId=${requestId}`);
   };
 
   // طباعة المستند
@@ -293,19 +311,19 @@ export default function SedanaProcurementPage() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6" dir="rtl">
         <div className="bg-card p-6 rounded-xl border border-border shadow-xs flex flex-col items-center gap-3 text-center max-w-sm">
           <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-          <p className="text-sm font-bold text-foreground">جاري تحميل بنود الطلب...</p>
+          <p className="text-sm font-bold text-foreground">جاري تحميل بيانات الطلب والبنود...</p>
         </div>
       </div>
     );
   }
 
   // =========================================================================
-  // 1. شاشة المعاينة كاملة الشاشة لأمر الشراء الداخلي (مطابقة تماماً لأمر الصرف)
+  // 1. شاشة المعاينة كاملة الشاشة لأمر الشراء الداخلي
   // =========================================================================
   if (fullScreenView === "po") {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
-        {/* شريط التحكم العلوي المقاوم للطباعة (Floating Control Bar) */}
+        {/* شريط التحكم العلوي المقاوم للطباعة */}
         <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
           <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
             <Button
@@ -315,7 +333,7 @@ export default function SedanaProcurementPage() {
               className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
             >
               <ArrowRight className="h-4 w-4" />
-              <span>رجوع إلى جدول البنود</span>
+              <span>رجوع إلى جدول التأمين</span>
             </Button>
 
             <Button
@@ -327,6 +345,17 @@ export default function SedanaProcurementPage() {
             >
               <Settings2 className="h-4 w-4 text-sky-600" />
               <span>{showEditControls ? "إخفاء التعديل" : "تعديل البيانات"}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleSaveProcurement(false)}
+              disabled={saveProcurementMutation.isPending}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
+            >
+              <Save className="h-4 w-4 text-sky-600" />
+              <span>حفظ البيانات</span>
             </Button>
 
             <Button
@@ -407,34 +436,33 @@ export default function SedanaProcurementPage() {
           </div>
         )}
 
-        {/* ورقة الطباعة الرسمية A4 المتموضعة في منتصف الشاشة تماماً مثل أمر الصرف */}
-        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-4 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          {/* الإطار المزدوج الفاخر المطابق لقالب العقود وأمر الصرف باللون السماوي الرسمي */}
-          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-4 sm:p-6 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm]">
-            {/* خط داخلي رفيع */}
+        {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
+          {/* الإطار المزدوج الرسمي لبرنامج سدانة */}
+          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
             <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
 
-            <div className="relative z-10 space-y-4 flex-1">
-              {/* الترويسة الرسمية */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-3">
+            <div className="relative z-10 space-y-6 flex-1">
+              {/* الترويسة العلوية الرسمية */}
+              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
                 <div className="flex items-center gap-3">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16 w-auto object-contain" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
                   ) : (
-                    <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
                       سدانة
                     </div>
                   )}
                   <div>
-                    <h3 className="font-bold text-sm sm:text-base text-sky-900">{orgName}</h3>
-                    <p className="text-[11px] text-slate-500 font-medium">إدارة المشتريات والمستودعات • برنامج سدانة</p>
+                    <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
+                    <p className="text-xs text-slate-500 font-medium">إدارة المشاريع والمشتريات • برنامج سدانة</p>
                   </div>
                 </div>
 
-                <div className="text-[11px] space-y-1 text-left">
-                  <div><span className="text-slate-500">رقم أمر الشراء: </span><strong className="font-mono">{poData.orderNumber}</strong></div>
+                <div className="text-xs space-y-1 text-left font-mono">
+                  <div><span className="text-slate-500">رقم الأمر: </span><strong>{poData.orderNumber}</strong></div>
                   <div><span className="text-slate-500">التاريخ: </span><strong>{poData.orderDate}</strong></div>
-                  <div><span className="text-slate-500">رقم الطلب: </span><strong className="font-mono">#{request?.requestNumber || requestId}</strong></div>
+                  <div><span className="text-slate-500">رقم الطلب: </span><strong>#{request?.requestNumber || requestId}</strong></div>
                 </div>
               </div>
 
@@ -455,7 +483,7 @@ export default function SedanaProcurementPage() {
                 </div>
               </div>
 
-              {/* جدول الأصناف (خالٍ تماماً وبشكل قاطع من أي أسعار) */}
+              {/* جدول الأصناف (خالٍ تماماً من أي أسعار - يظهر فقط البنود المخصصة لأمر الشراء) */}
               <div className="space-y-1">
                 <p className="text-[11px] font-bold text-slate-700">
                   نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
@@ -472,15 +500,23 @@ export default function SedanaProcurementPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-300">
-                    {(poItems.length > 0 ? poItems : allItems).map((it, idx) => (
-                      <tr key={it.id} className="h-9">
-                        <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                        <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                        <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                        <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                        <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                    {poItems.length > 0 ? (
+                      poItems.map((it, idx) => (
+                        <tr key={it.id} className="h-9">
+                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                          <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
+                          لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التأمين وتحديد البنود المطلوبة.
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -525,10 +561,10 @@ export default function SedanaProcurementPage() {
               </div>
             </div>
 
-            {/* تذييل أمر الشراء الفاخر */}
-            <div className="mt-6 pt-3 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-              <span>تم إنشاء هذا المستند آلياً من نظام إدارة المساجد - سدانة</span>
-              <span>تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} • صفحة 1 من 1</span>
+            {/* تذييل أمر الشراء */}
+            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+              <span>{orgName} - سدانة</span>
+              <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
             </div>
           </div>
         </div>
@@ -537,7 +573,7 @@ export default function SedanaProcurementPage() {
   }
 
   // =========================================================================
-  // 2. شاشة المعاينة كاملة الشاشة لخطاب المسؤولية المجتمعية (Full-Screen CSR Letter)
+  // 2. شاشة المعاينة كاملة الشاشة لخطاب المسؤولية المجتمعية
   // =========================================================================
   if (fullScreenView === "csr") {
     return (
@@ -552,7 +588,7 @@ export default function SedanaProcurementPage() {
               className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
             >
               <ArrowRight className="h-4 w-4" />
-              <span>رجوع إلى جدول البنود</span>
+              <span>رجوع إلى جدول التأمين</span>
             </Button>
 
             <Button
@@ -563,7 +599,18 @@ export default function SedanaProcurementPage() {
               className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
             >
               <Settings2 className="h-4 w-4 text-sky-600" />
-              <span>{showEditControls ? "إخفاء التعديل" : "تعديل المخاطبة والبيانات"}</span>
+              <span>{showEditControls ? "إخفاء التعديل" : "تعديل البيانات"}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleSaveProcurement(false)}
+              disabled={saveProcurementMutation.isPending}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
+            >
+              <Save className="h-4 w-4 text-sky-600" />
+              <span>حفظ البيانات</span>
             </Button>
 
             <Button
@@ -577,17 +624,17 @@ export default function SedanaProcurementPage() {
           </div>
         </div>
 
-        {/* لوحة تعديل بيانات المخاطبة السريعة */}
+        {/* لوحة التعديل السريع للخطاب الرسمي */}
         {showEditControls && (
           <div className="max-w-4xl mx-auto px-4 mb-4 print:hidden animate-in fade-in-50 duration-200">
             <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-border shadow-md space-y-3">
               <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Edit className="w-3.5 h-3.5 text-sky-600" />
-                تعديل بيانات ومخاطبة خطاب المسؤولية المجتمعية
+                تعديل بيانات خطاب المسؤولية المجتمعية
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">صيغة النداء *</Label>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">صيغة المخاطبة</Label>
                   <Select
                     value={csrData.salutation}
                     onValueChange={(val) => setCsrData(prev => ({ ...prev, salutation: val }))}
@@ -603,18 +650,18 @@ export default function SedanaProcurementPage() {
                   </Select>
                 </div>
 
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الجهة / الشركة الموجه إليها *</Label>
+                <div className="sm:col-span-2">
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الجهة أو الشركة الموجه إليها الخطاب</Label>
                   <Input
+                    placeholder="مثال: شركة الراجحي المصرفية للاستثمار"
                     value={csrData.recipientName}
                     onChange={(e) => setCsrData(prev => ({ ...prev, recipientName: e.target.value }))}
-                    placeholder="مثال: شركة المراعي / مؤسسة الراجحي..."
-                    className="h-8 text-xs"
+                    className="h-8 text-xs font-medium"
                   />
                 </div>
 
                 <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">عبارة التفخيم واللقب *</Label>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اللقب التقديري</Label>
                   <Select
                     value={csrData.honorific}
                     onValueChange={(val) => setCsrData(prev => ({ ...prev, honorific: val }))}
@@ -721,7 +768,7 @@ export default function SedanaProcurementPage() {
                 </p>
               </div>
 
-              {/* جدول الأصناف المرفقة (خالٍ تماماً من أي أسعار) */}
+              {/* جدول الأصناف المرفقة (خالٍ تماماً من أي أسعار - يظهر فقط البنود المخصصة للمسؤولية المجتمعية) */}
               <div>
                 <table className="w-full border-collapse border border-slate-300 text-xs text-right">
                   <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
@@ -734,15 +781,23 @@ export default function SedanaProcurementPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-300">
-                    {(csrItems.length > 0 ? csrItems : allItems).map((it, idx) => (
-                      <tr key={it.id} className="h-9">
-                        <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                        <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                        <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                        <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                        <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                    {csrItems.length > 0 ? (
+                      csrItems.map((it, idx) => (
+                        <tr key={it.id} className="h-9">
+                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                          <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
+                          لم يتم تخصيص أي بنود للمسؤولية المجتمعية حتى الآن. يرجى الرجوع لجدول التأمين وتحديد البنود المطلوبة.
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -821,37 +876,76 @@ export default function SedanaProcurementPage() {
               حفظ
             </Button>
 
-            {request?.currentStage === "contracting" && (
-              <Button
-                size="sm"
-                onClick={() => handleSaveProcurement(true)}
-                disabled={saveProcurementMutation.isPending}
-                className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                اعتماد التأمين والانتقال للتنفيذ
-              </Button>
-            )}
+            <Button
+              size="sm"
+              onClick={() => setShowConfirmModal(true)}
+              disabled={saveProcurementMutation.isPending}
+              className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              اعتماد التأمين والانتقال للتنفيذ
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* المحتوى الرئيسي المباشر */}
+      {/* المحتوى الرئيسي */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6 print:hidden">
 
+        {/* شريط الإحصائيات السريع لتوزيع البنود */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white dark:bg-card p-3 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-muted-foreground">إجمالي بنود المسجد</p>
+              <p className="text-lg font-bold text-foreground mt-0.5">{allItems.length}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <Building2 className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-card p-3 rounded-xl border border-sky-100 dark:border-sky-900/40 shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-sky-700 dark:text-sky-400">عقود التوريد</p>
+              <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">{contractItems.length} <span className="text-xs font-normal">بنود</span></p>
+            </div>
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600">
+              <FileSignature className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-card p-3 rounded-xl border border-border shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-slate-700 dark:text-slate-300">أوامر الشراء الداخلية</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">{poItems.length} <span className="text-xs font-normal">بنود</span></p>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              <ShoppingCart className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-card p-3 rounded-xl border border-sky-100 dark:border-sky-900/40 shadow-2xs flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-sky-700 dark:text-sky-400">المسؤولية المجتمعية</p>
+              <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">{csrItems.length} <span className="text-xs font-normal">بنود</span></p>
+            </div>
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600">
+              <HeartHandshake className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
         {/* 1. جدول تحديد طريقة التأمين لكل بند من البنود */}
-        <Card className="border border-border shadow-xs">
-          <CardHeader className="p-4 sm:p-5 pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20">
+        <Card className="border border-border shadow-xs bg-white dark:bg-card">
+          <CardHeader className="p-4 sm:p-5 pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/10">
             <div>
               <CardTitle className="text-base font-bold text-foreground">
-                حدد طريقة التأمين لكل بند من بنود المسجد
+                تحديد مسار التأمين لكل بند من بنود المسجد
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                يمكن تجزئة المشروع: اختر لكل بند إما التعاقد مع مورد، أو أمر شراء داخلي، أو مسؤولية مجتمعية
+                اختر لكل صنف الطريقة المناسبة لتأمينه (عقد مع مورد، أمر شراء داخلي، أو خطاب مسؤولية مجتمعية).
               </CardDescription>
             </div>
-
-
           </CardHeader>
 
           <CardContent className="p-0">
@@ -870,9 +964,20 @@ export default function SedanaProcurementPage() {
                   {allItems.map((item, idx) => {
                     const currentMethod = itemsAllocation[item.id] || "contract";
                     return (
-                      <tr key={item.id} className="hover:bg-muted/10 transition-colors">
+                      <tr
+                        key={item.id}
+                        className={`transition-colors ${
+                          currentMethod === "contract"
+                            ? "hover:bg-sky-50/40 dark:hover:bg-sky-950/20"
+                            : currentMethod === "purchase_order"
+                            ? "hover:bg-slate-50 dark:hover:bg-slate-900/30"
+                            : "hover:bg-sky-50/60 dark:hover:bg-sky-950/30"
+                        }`}
+                      >
                         <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
-                        <td className="p-3 font-bold text-foreground">{item.itemName}</td>
+                        <td className="p-3 font-bold text-foreground">
+                          {item.itemName}
+                        </td>
                         <td className="p-3 text-muted-foreground max-w-xs truncate">{item.description || "-"}</td>
                         <td className="p-3 text-center font-bold text-foreground">
                           {item.quantity} <span className="text-[11px] text-muted-foreground font-normal">{item.unit}</span>
@@ -909,116 +1014,228 @@ export default function SedanaProcurementPage() {
 
         {/* 2. بطاقات التنفيذ والإصدار الثلاثة المباشرة */}
         <div>
-          <h3 className="text-sm font-bold text-foreground mb-3">
-            نماذج وإجراءات التأمين للبنود المحددة:
-          </h3>
+          <div className="mb-3">
+            <h3 className="text-sm font-bold text-foreground">
+              نماذج وإجراءات التنفيذ المباشرة للبنود المحددة:
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              لكل مسار من المسارات الثلاثة، تظهر البنود المخصصة له مع إمكانية تحرير أو إصدار النموذج الرسمي فوراً
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-            {/* البطاقة 1: عقد توريد وخدمات */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between">
+            {/* البطاقة 1: مسار عقود التوريد والخدمات */}
+            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="p-2 rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                     <FileSignature className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
                     {contractItems.length} بنود مخصصة
                   </Badge>
                 </div>
                 <div>
                   <CardTitle className="text-sm font-bold text-foreground">عقد توريد وخدمات</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    إنشاء وإدارة عقود التوريد والتشغيل مع الموردين الفائزين بالبنود المحددة.
+                    إبرام وتوثيق عقود التوريد والتشغيل مع الموردين الفائزين بالبنود المحددة.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
-                <Link href={`/contracts/new?requestId=${requestId}`}>
-                  <Button size="sm" className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs">
-                    <Plus className="w-3.5 h-3.5" />
-                    إنشاء عقد
-                  </Button>
-                </Link>
-
-                {contractsList.length > 0 && (
-                  <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1">
-                    <span>يوجد {contractsList.length} عقود مسجلة</span>
-                    <Link href={`/contracts/${contractsList[0].id}/edit`} className="text-sky-600 font-medium hover:underline">
-                      عرض العقد
-                    </Link>
+              {/* قائمة البنود المخصصة لهذا المسار */}
+              <div className="px-4 py-2 flex-1">
+                {contractItems.length > 0 ? (
+                  <div className="bg-muted/30 p-2.5 rounded-lg border border-border/60 text-xs space-y-1.5 max-h-36 overflow-y-auto">
+                    <p className="font-bold text-foreground text-[11px] flex items-center gap-1">
+                      <FileSignature className="w-3 h-3 text-sky-600" />
+                      البنود المشمولة بالعقد:
+                    </p>
+                    <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
+                      {contractItems.map(it => (
+                        <li key={it.id}>
+                          <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-muted/20 p-3 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
+                    لا توجد بنود مخصصة للعقد حالياً
                   </div>
                 )}
+
+                {/* العقود المنشأة مسبقاً إن وجدت */}
+                {contractsList.length > 0 && (
+                  <div className="mt-2.5 space-y-1.5 pt-2 border-t border-border/60">
+                    <p className="text-[11px] font-bold text-foreground flex items-center justify-between">
+                      <span>العقود المسجلة:</span>
+                      <Badge variant="outline" className="text-[10px] h-5">{contractsList.length}</Badge>
+                    </p>
+                    {contractsList.slice(0, 2).map((c: any) => (
+                      <div key={c.id} className="flex items-center justify-between p-1.5 rounded bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-800/40 text-xs">
+                        <span className="font-semibold text-sky-900 dark:text-sky-200 truncate max-w-[120px]">
+                          عقد #{c.contractNumber || c.id}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Link href={`/contracts/${c.id}/preview`}>
+                            <Button size="sm" variant="ghost" className="h-6 text-[11px] px-1.5 text-sky-700">معاينة</Button>
+                          </Link>
+                          <Link href={`/contracts/${c.id}/edit`}>
+                            <Button size="sm" variant="outline" className="h-6 text-[11px] px-1.5">تعديل</Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleCreateContract}
+                  disabled={contractItems.length === 0}
+                  className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {contractsList.length > 0 ? "إضافة عقد آخر" : "إنشاء عقد"}
+                </Button>
+                <span className="text-[11px] text-muted-foreground text-center">
+                  {contractItems.length > 0 ? "حفظ التخصيص والانتقال لنموذج تحرير العقد" : "حدد بنوداً للعقد لتتمكن من إنشائه"}
+                </span>
               </CardContent>
             </Card>
 
-            {/* البطاقة 2: أمر الشراء الداخلي */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between">
+            {/* البطاقة 2: مسار أمر الشراء الداخلي */}
+            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="p-2 rounded-lg bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
                     <ShoppingCart className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 text-xs">
+                  <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 text-xs font-bold">
                     {poItems.length} بنود مخصصة
                   </Badge>
                 </div>
                 <div>
                   <CardTitle className="text-sm font-bold text-foreground">أمر شراء داخلي</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    نموذج رسمي موجه لإدارة المشتريات (بدون أي أسعار، مع جدول توقيعات مطابق لأمر الصرف).
+                    نموذج رسمي موجه لإدارة المشتريات بالبنود المحددة (بدون أسعار، مع جدول توقيعات معتمد).
                   </CardDescription>
                 </div>
               </CardHeader>
+
+              {/* قائمة البنود المخصصة لأمر الشراء */}
+              <div className="px-4 py-2 flex-1">
+                {poItems.length > 0 ? (
+                  <div className="bg-muted/30 p-2.5 rounded-lg border border-border/60 text-xs space-y-1.5 max-h-36 overflow-y-auto">
+                    <p className="font-bold text-foreground text-[11px] flex items-center gap-1">
+                      <ShoppingCart className="w-3 h-3 text-slate-700 dark:text-slate-300" />
+                      البنود المشمولة بأمر الشراء:
+                    </p>
+                    <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
+                      {poItems.map(it => (
+                        <li key={it.id}>
+                          <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-muted/20 p-3 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
+                    لا توجد بنود مخصصة لأمر الشراء حالياً
+                  </div>
+                )}
+
+                {poItems.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-0.5 font-mono">
+                    <p>رقم الأمر: <strong className="text-foreground">{poData.orderNumber}</strong></p>
+                    <p>الموجه إليه: <strong className="text-foreground">{poData.directedTo}</strong></p>
+                  </div>
+                )}
+              </div>
 
               <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setFullScreenView("po")}
+                  disabled={poItems.length === 0}
                   className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted"
                 >
                   <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة أمر الشراء
                 </Button>
                 <span className="text-[11px] text-muted-foreground text-center">
-                  عرض فول سكرين وجاهز للطباعة A4
+                  {poItems.length > 0 ? "عرض فول سكرين وجاهز للطباعة A4" : "حدد بنوداً لأمر الشراء لتتمكن من إصداره"}
                 </span>
               </CardContent>
             </Card>
 
-            {/* البطاقة 3: خطاب المسؤولية المجتمعية */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between">
+            {/* البطاقة 3: مسار خطاب المسؤولية المجتمعية */}
+            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="p-2 rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                     <HeartHandshake className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
                     {csrItems.length} بنود مخصصة
                   </Badge>
                 </div>
                 <div>
                   <CardTitle className="text-sm font-bold text-foreground">خطاب مسؤولية مجتمعية</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    خطاب رسمي موجه للجهات والشركات الداعمة بالديباجة الحرفية (بدون أصحاب السعادة وبدون أسعار).
+                    خطاب رسمي موجه للجهات والشركات الداعمة بالديباجة المعتمدة (بدون أصحاب السعادة وبدون أسعار).
                   </CardDescription>
                 </div>
               </CardHeader>
+
+              {/* قائمة البنود المخصصة للمسؤولية المجتمعية */}
+              <div className="px-4 py-2 flex-1">
+                {csrItems.length > 0 ? (
+                  <div className="bg-muted/30 p-2.5 rounded-lg border border-border/60 text-xs space-y-1.5 max-h-36 overflow-y-auto">
+                    <p className="font-bold text-foreground text-[11px] flex items-center gap-1">
+                      <HeartHandshake className="w-3 h-3 text-sky-600" />
+                      البنود المشمولة بالخطاب:
+                    </p>
+                    <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
+                      {csrItems.map(it => (
+                        <li key={it.id}>
+                          <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="bg-muted/20 p-3 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
+                    لا توجد بنود مخصصة للمسؤولية المجتمعية حالياً
+                  </div>
+                )}
+
+                {csrItems.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-0.5">
+                    <p>الموجه إليه: <strong className="text-foreground">{csrData.salutation} / {csrData.recipientName || "لم تحدد الجهة بعد"}</strong></p>
+                    <p>رقم الخطاب: <strong className="text-foreground font-mono">{csrData.letterNumber}</strong></p>
+                  </div>
+                )}
+              </div>
 
               <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setFullScreenView("csr")}
+                  disabled={csrItems.length === 0}
                   className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted"
                 >
                   <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة الخطاب الرسمي
                 </Button>
                 <span className="text-[11px] text-muted-foreground text-center">
-                  عرض فول سكرين بديباجة رسمية معتمدة A4
+                  {csrItems.length > 0 ? "عرض فول سكرين بديباجة معتمدة A4" : "حدد بنوداً للمسؤولية المجتمعية لتتمكن من إصداره"}
                 </span>
               </CardContent>
             </Card>
@@ -1027,6 +1244,72 @@ export default function SedanaProcurementPage() {
         </div>
 
       </main>
+
+      {/* نافذة تأكيد الاعتماد والانتقال للتنفيذ */}
+      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogHeader className="text-right sm:text-right pb-2 border-b">
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+              <CheckCircle2 className="w-5 h-5 text-sky-600" />
+              تأكيد اعتماد التأمين والانتقال للتنفيذ
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground text-right sm:text-right">
+              سيتم حفظ خطة توزيع البنود واعتماد مسارات التأمين ونقل الطلب للمرحلة الخامسة (مرحلة التنفيذ).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 bg-muted/40 rounded-xl space-y-2 border border-border">
+              <p className="font-bold text-foreground">ملخص توزيع بنود المسجد ({allItems.length} بند):</p>
+              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                <div className="bg-sky-50 dark:bg-sky-950/40 p-2 rounded border border-sky-200 dark:border-sky-800">
+                  <span className="block text-sky-700 dark:text-sky-300 font-bold">{contractItems.length}</span>
+                  <span className="text-muted-foreground text-[10px]">عقود توريد</span>
+                </div>
+                <div className="bg-slate-100 dark:bg-slate-800/60 p-2 rounded border border-slate-200 dark:border-slate-700">
+                  <span className="block text-slate-800 dark:text-slate-200 font-bold">{poItems.length}</span>
+                  <span className="text-muted-foreground text-[10px]">أوامر شراء</span>
+                </div>
+                <div className="bg-sky-50 dark:bg-sky-950/40 p-2 rounded border border-sky-200 dark:border-sky-800">
+                  <span className="block text-sky-700 dark:text-sky-300 font-bold">{csrItems.length}</span>
+                  <span className="text-muted-foreground text-[10px]">مسؤولية مجتمعية</span>
+                </div>
+              </div>
+            </div>
+
+            {contractItems.length > 0 && contractsList.length === 0 && (
+              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-[11px] flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>ملاحظة: قمت بتخصيص {contractItems.length} بنود للعقود ولكن لم تقم بإنشاء العقد بعد. يمكنك المتابعة الآن وتحرير العقد في مرحلة التنفيذ.</span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-2 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConfirmModal(false)}
+              className="text-xs font-semibold"
+            >
+              مراجعة وتعديل
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleSaveProcurement(true)}
+              disabled={saveProcurementMutation.isPending}
+              className="text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white gap-1.5 shadow-xs"
+            >
+              {saveProcurementMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              تأكيد والبدء بالتنفيذ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
