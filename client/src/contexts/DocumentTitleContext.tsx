@@ -108,6 +108,8 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/contract-templates\/?$/, title: "نماذج العقود" },
   { pattern: /^\/contract-templates\/[^/]+\/preview\/?$/, title: "معاينة نموذج العقد" },
   { pattern: /^\/contract-templates\/[^/]+\/print\/?$/, title: "طباعة نموذج العقد" },
+  { pattern: /^\/purchase-orders\/?$/, title: "أوامر الشراء الداخلية" },
+  { pattern: /^\/csr-letters\/?$/, title: "خطابات المسؤولية المجتمعية" },
 
   // الشؤون المالية وجداول الكميات
   { pattern: /^\/boq-preparations\/?$/, title: "إعداد جداول الكميات" },
