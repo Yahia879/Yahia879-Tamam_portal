@@ -123,9 +123,29 @@ export const procurementRouter = router({
           }));
         }
 
+        const suppliersAlloc = sedanaProc?.suppliersAllocation || {};
+        const itemSuppMap = sedanaProc?.itemSupplierMap || {};
+
+        let poSupplierName = "";
+        for (const itemId of allocatedItemIds) {
+          if (itemSuppMap[itemId]?.supplierName) {
+            poSupplierName = itemSuppMap[itemId].supplierName;
+            break;
+          }
+        }
+        if (!poSupplierName) {
+          for (const sKey of Object.keys(suppliersAlloc)) {
+            if (suppliersAlloc[sKey]?.method === "purchase_order" && suppliersAlloc[sKey]?.supplierName) {
+              poSupplierName = suppliersAlloc[sKey].supplierName;
+              break;
+            }
+          }
+        }
+
         const poNumber = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
         const poDate = activePO?.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
         const status = activePO?.status || (activePO?.approverName && itemsForPO.length > 0 ? "approved" : "draft");
+        const directedTo = activePO?.directedTo || (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات");
 
         orders.push({
           id: req.id,
@@ -138,7 +158,7 @@ export const procurementRouter = router({
           mosqueRegion: mosque?.region || "",
           orderNumber: poNumber,
           orderDate: poDate,
-          directedTo: activePO?.directedTo || "إلى إدارة المشتريات",
+          directedTo,
           requesterName: activePO?.requesterName || "طالب الشراء",
           requesterRole: activePO?.requesterRole || "طالب الشراء / إدارة المشاريع",
           approverName: activePO?.approverName || "المدير التنفيذي",
@@ -305,9 +325,29 @@ export const procurementRouter = router({
           }));
         }
 
+        const suppliersAlloc = sedanaProc?.suppliersAllocation || {};
+        const itemSuppMap = sedanaProc?.itemSupplierMap || {};
+
+        let csrSupplierName = "";
+        for (const itemId of allocatedItemIds) {
+          if (itemSuppMap[itemId]?.supplierName) {
+            csrSupplierName = itemSuppMap[itemId].supplierName;
+            break;
+          }
+        }
+        if (!csrSupplierName) {
+          for (const sKey of Object.keys(suppliersAlloc)) {
+            if (suppliersAlloc[sKey]?.method === "csr_letter" && suppliersAlloc[sKey]?.supplierName) {
+              csrSupplierName = suppliersAlloc[sKey].supplierName;
+              break;
+            }
+          }
+        }
+
         const letterNumber = activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
         const letterDate = activeCSR?.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
         const status = activeCSR?.status || (activeCSR?.recipientName ? "approved" : "draft");
+        const recipientName = activeCSR?.recipientName || csrSupplierName || "الجهة المانحة / الشريك المجتمعي";
 
         letters.push({
           id: req.id,
@@ -320,7 +360,7 @@ export const procurementRouter = router({
           letterNumber,
           letterDate,
           salutation: activeCSR?.salutation || "السادة",
-          recipientName: activeCSR?.recipientName || "الجهة المانحة / الشريك المجتمعي",
+          recipientName,
           honorific: activeCSR?.honorific || "المحترمون",
           projectName: activeCSR?.projectName || `مشروع جامع ${mosque?.name || "المسجد"}`,
           signatoryTitle: activeCSR?.signatoryTitle || "المدير التنفيذي",
