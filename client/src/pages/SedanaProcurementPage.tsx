@@ -1148,13 +1148,6 @@ export default function SedanaProcurementPage() {
                     لا توجد بنود مخصصة لأمر الشراء حالياً
                   </div>
                 )}
-
-                {poItems.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-0.5 font-mono">
-                    <p>رقم الأمر: <strong className="text-foreground">{poData.orderNumber}</strong></p>
-                    <p>الموجه إليه: <strong className="text-foreground">{poData.directedTo}</strong></p>
-                  </div>
-                )}
               </div>
 
               <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
@@ -1212,13 +1205,6 @@ export default function SedanaProcurementPage() {
                 ) : (
                   <div className="bg-muted/20 p-3 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
                     لا توجد بنود مخصصة للمسؤولية المجتمعية حالياً
-                  </div>
-                )}
-
-                {csrItems.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-0.5">
-                    <p>الموجه إليه: <strong className="text-foreground">{csrData.salutation} / {csrData.recipientName || "لم تحدد الجهة بعد"}</strong></p>
-                    <p>رقم الخطاب: <strong className="text-foreground font-mono">{csrData.letterNumber}</strong></p>
                   </div>
                 )}
               </div>
