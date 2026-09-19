@@ -2843,8 +2843,6 @@ export const requestsRouter = router({
       requestId: z.number(),
       procurementData: z.object({
         itemsAllocation: z.record(z.string(), z.string()).optional(),
-        itemSupplierMap: z.record(z.string(), z.any()).optional(),
-        suppliersAllocation: z.record(z.string(), z.any()).optional(),
         purchaseOrders: z.array(z.any()).optional(),
         csrLetters: z.array(z.any()).optional(),
         activePurchaseOrder: z.any().optional(),

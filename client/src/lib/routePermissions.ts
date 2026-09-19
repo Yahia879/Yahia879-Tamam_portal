@@ -152,11 +152,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/financial-approval": ["financial_approval.view", "financial_approval.approve"],
   "/boq-preparations": ["quotations", "requests.view_details", "requests.view", "boq", "boq.add", "boq.edit", "boq.delete"],
 
-  // ── العقود وأوامر الشراء والمسؤولية المجتمعية ──
+  // ── العقود ──
   "/contracts": "contracts",
   "/contracts/new": "contracts",
-  "/purchase-orders": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
-  "/csr-letters": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
 
   // ── طلبات وأوامر الصرف وسندات القبض ──
   "/financial-dashboard": ["disbursement_requests", "financial_report"],

@@ -36,8 +36,6 @@ import Requests from "./pages/Requests";
 import RequestDetails from "./pages/RequestDetailsNew";
 import SedanaEvaluationPage from "./pages/SedanaEvaluationPage";
 import SedanaProcurementPage from "./pages/SedanaProcurementPage";
-import PurchaseOrdersList from "./pages/PurchaseOrdersList";
-import CsrLettersList from "./pages/CsrLettersList";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
@@ -372,10 +370,6 @@ function Router() {
       <Route path="/contract-templates">{() => <AdminRoute component={ContractTemplates} />}</Route>
       <Route path="/contract-templates/:id/preview">{() => <AdminRoute component={TemplatePreview} />}</Route>
       <Route path="/contract-templates/:id/print">{() => <AdminRoute component={TemplatePrint} />}</Route>
-      
-      {/* أوامر الشراء والمسؤولية المجتمعية */}
-      <Route path="/purchase-orders">{() => <AdminRoute component={PurchaseOrdersList} />}</Route>
-      <Route path="/csr-letters">{() => <AdminRoute component={CsrLettersList} />}</Route>
       
       {/* التقييم المالي - إدارية */}
       <Route path="/boq-preparations">{() => <AdminRoute component={BOQ} />}</Route>
