@@ -155,7 +155,7 @@ export const procurementRouter = router({
           mosqueId: mosque?.id || null,
           mosqueName: mosque?.name || "المسجد",
           mosqueCity: mosque?.city || "",
-          mosqueRegion: mosque?.region || "",
+          mosqueRegion: mosque?.governorate || "",
           orderNumber: poNumber,
           orderDate: poDate,
           directedTo,
