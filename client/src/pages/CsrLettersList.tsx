@@ -631,14 +631,34 @@ export default function CsrLettersList() {
                     <p>وتقبلوا وافر التحية والتقدير،،،</p>
                   </div>
 
-                  {/* خانة التوقيع والاعتماد الرسمي */}
-                  <div className="pt-8 flex justify-end">
-                    <div className="w-60 text-center space-y-2">
-                      <p className="font-bold text-xs sm:text-sm text-slate-800">{selectedLetterForPreview?.signatoryTitle || "المدير التنفيذي"}</p>
+                  {/* خانة التوقيع والاعتماد الرسمي: توقيع المورد وتوقيع المدير التنفيذي */}
+                  <div className="pt-8 grid grid-cols-2 gap-6 sm:gap-10 items-start break-inside-avoid">
+                    {/* الطرف الأول: المورد / الشريك المجتمعي */}
+                    <div className="text-center space-y-2 p-3 sm:p-4 rounded-lg bg-slate-50/70 border border-slate-200">
+                      <p className="font-bold text-xs sm:text-sm text-slate-800">
+                        المورد / ممثل الجهة والشريك المجتمعي
+                      </p>
                       <div className="h-14 flex items-center justify-center">
-                        <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
+                        <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
                       </div>
-                      <p className="font-bold text-xs sm:text-sm text-slate-900">{selectedLetterForPreview?.signatoryName || "المهندس المفوض بالتوقيع"}</p>
+                      <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
+                        {selectedLetterForPreview?.recipientName || "الجهة المانحة / الشريك المجتمعي"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium">التوقيع والختم الرسمي</p>
+                    </div>
+
+                    {/* الطرف الثاني: المدير التنفيذي */}
+                    <div className="text-center space-y-2 p-3 sm:p-4 rounded-lg bg-slate-50/70 border border-slate-200">
+                      <p className="font-bold text-xs sm:text-sm text-slate-800">
+                        {selectedLetterForPreview?.signatoryTitle || "المدير التنفيذي"}
+                      </p>
+                      <div className="h-14 flex items-center justify-center">
+                        <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
+                      </div>
+                      <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
+                        {selectedLetterForPreview?.signatoryName || "المهندس المفوض بالتوقيع"}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium">الجمعية / إدارة المشاريع</p>
                     </div>
                   </div>
                 </div>
