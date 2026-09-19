@@ -2842,7 +2842,7 @@ export const requestsRouter = router({
     .input(z.object({
       requestId: z.number(),
       procurementData: z.object({
-        itemsAllocation: z.record(z.string()).optional(),
+        itemsAllocation: z.record(z.string(), z.string()).optional(),
         purchaseOrders: z.array(z.any()).optional(),
         csrLetters: z.array(z.any()).optional(),
         activePurchaseOrder: z.any().optional(),
