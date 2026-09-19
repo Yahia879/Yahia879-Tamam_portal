@@ -110,9 +110,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const [replyTargetEval, setReplyTargetEval] = useState<any | null>(null);
   const [replyText, setReplyText] = useState("");
 
-  // حالة عرض وإدارة التقييمات المخفية
-  const [isHiddenEvaluationsModalOpen, setIsHiddenEvaluationsModalOpen] = useState(false);
+  // حالة فلتر عرض التقييمات المخفية (تبديل تشغيل/إيقاف)
+  const [showOnlyHidden, setShowOnlyHidden] = useState(false);
   const [togglingEvalId, setTogglingEvalId] = useState<number | null>(null);
+
+  // حالة نافذة عرض الرد الرسمي للاطلاع
+  const [viewReplyEval, setViewReplyEval] = useState<any | null>(null);
+  const [isViewReplyModalOpen, setIsViewReplyModalOpen] = useState(false);
 
   // مزامنة التبويب النشط وفق الصلاحيات المتاحة للمستخدم
   useEffect(() => {
@@ -343,8 +347,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
   const handleOpenReplyDialog = (evalItem: any) => {
     setReplyTargetEval(evalItem);
-    setReplyText(evalItem.reply?.text || "");
+    setReplyText("");
     setReplyDialogOpen(true);
+  };
+
+  const handleOpenViewReplyModal = (evalItem: any) => {
+    setViewReplyEval(evalItem);
+    setIsViewReplyModalOpen(true);
   };
 
   const mainLogoSrc = orgSettings?.logoUrl || '/logo.svg';
@@ -389,6 +398,7 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
   const filteredItems = data?.items || [];
   const activeItems = useMemo(() => filteredItems.filter((i: any) => !i.isHidden), [filteredItems]);
   const hiddenItems = useMemo(() => filteredItems.filter((i: any) => i.isHidden), [filteredItems]);
+  const displayedItems = useMemo(() => (showOnlyHidden ? hiddenItems : activeItems), [showOnlyHidden, hiddenItems, activeItems]);
 
   const stats = data?.stats || {
     totalEvaluations: 0,
@@ -625,49 +635,115 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                 <Card className="rounded-2xl border border-border/80 shadow-xs bg-card overflow-hidden">
                   <CardHeader className="p-4 sm:p-5 border-b border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <CardTitle className="text-base font-bold text-foreground">
-                        سجل استبيانات التقييم
+                      <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                        {showOnlyHidden ? (
+                          <>
+                            <EyeOff className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <span>سجل التقييمات المخفية</span>
+                            <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold font-mono">
+                              {hiddenItems.length} مخفي
+                            </Badge>
+                          </>
+                        ) : (
+                          <span>سجل استبيانات التقييم</span>
+                        )}
                       </CardTitle>
-                      <CardDescription className="text-xs">
-                        عرض {activeItems.length} من أصل {stats.totalEvaluations} تقييم نشط
+                      <CardDescription className="text-xs mt-0.5">
+                        {showOnlyHidden
+                          ? `عرض ${hiddenItems.length} تقييم مخفي من العرض العام`
+                          : `عرض ${activeItems.length} من أصل ${stats.totalEvaluations} تقييم نشط`}
                       </CardDescription>
                     </div>
 
                     {canHide && (
                       <Button
-                        variant="outline"
+                        variant={showOnlyHidden ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setIsHiddenEvaluationsModalOpen(true)}
-                        className="h-9 px-3.5 text-xs font-bold gap-2 rounded-xl text-amber-800 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 self-start sm:self-auto shadow-xs"
+                        onClick={() => setShowOnlyHidden((prev) => !prev)}
+                        className={`h-9 px-4 text-xs font-bold gap-2 rounded-xl transition-all shadow-xs self-start sm:self-auto cursor-pointer ${
+                          showOnlyHidden
+                            ? "bg-amber-600 hover:bg-amber-700 text-white border-amber-600 shadow-amber-500/20"
+                            : "text-amber-800 dark:text-amber-300 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+                        }`}
                       >
-                        <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        <span>عرض التقييمات المخفية</span>
-                        {hiddenItems.length > 0 && (
-                          <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[11px] font-bold bg-amber-600 text-white dark:bg-amber-500 dark:text-gray-950 mr-1">
-                            {hiddenItems.length}
-                          </Badge>
+                        {showOnlyHidden ? (
+                          <>
+                            <Eye className="w-4 h-4" />
+                            <span>عرض التقييمات النشطة</span>
+                            <span className="bg-white/20 text-white text-[11px] px-1.5 py-0.5 rounded-full font-mono font-bold">
+                              {activeItems.length}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                            <span>عرض التقييمات المخفية</span>
+                            {hiddenItems.length > 0 && (
+                              <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[11px] font-bold bg-amber-600 text-white dark:bg-amber-500 dark:text-gray-950 mr-1 font-mono">
+                                {hiddenItems.length}
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </Button>
                     )}
                   </CardHeader>
+
+                  {/* تنبيه واضح عند تفعيل فلتر التقييمات المخفية */}
+                  {showOnlyHidden && (
+                    <div className="mx-4 sm:mx-5 mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
+                      <div className="flex items-center gap-2">
+                        <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="font-semibold">
+                          أنت تشاهد حالياً التقييمات المخفية فقط ({hiddenItems.length} تقييم). يمكنك النقر على زر "إظهار" بجانب أي تقييم لإعادته للقائمة العامة.
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowOnlyHidden(false)}
+                        className="h-7 px-2.5 text-xs font-bold rounded-lg text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 shrink-0"
+                      >
+                        إلغاء الفلتر
+                      </Button>
+                    </div>
+                  )}
 
                   <CardContent className="p-0">
                     {isLoading ? (
                       <div className="p-12 text-center text-muted-foreground text-xs">
                         جاري تحميل تقييمات رضا المستفيدين...
                       </div>
-                    ) : activeItems.length === 0 ? (
-                      <div className="p-12 text-center space-y-2">
-                        <HeartHandshake className="w-12 h-12 mx-auto text-muted-foreground/40" />
-                        <p className="text-sm font-bold text-foreground">لا توجد تقييمات نشطة مطابقة</p>
-                        <p className="text-xs text-muted-foreground">
-                          {stats.totalEvaluations === 0 
-                            ? "لم يتم تسجيل أي استبيان تقييم بعد. ستظهر التقييمات هنا فور قيام المستفيدين بإرسال استبياناتهم." 
-                            : hiddenItems.length > 0
-                            ? `تم إخفاء ${hiddenItems.length} تقييم. يمكنك الاطلاع عليها عبر زر "عرض التقييمات المخفية" أعلاه.`
-                            : "لم يتم العثور على أي استبيان تقييم وفق معايير البحث والفلترة المحددة."}
-                        </p>
-                      </div>
+                    ) : displayedItems.length === 0 ? (
+                      showOnlyHidden ? (
+                        <div className="p-12 text-center space-y-3">
+                          <Eye className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                          <p className="text-sm font-bold text-foreground">لا توجد أي تقييمات مخفية حالياً</p>
+                          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                            جميع التقييمات معروضة بالقائمة النشطة ولا توجد تقييمات مخفية مطابقة للبحث.
+                          </p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowOnlyHidden(false)}
+                            className="h-8 px-3 text-xs font-bold rounded-xl"
+                          >
+                            الرجوع إلى التقييمات النشطة
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="p-12 text-center space-y-2">
+                          <HeartHandshake className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                          <p className="text-sm font-bold text-foreground">لا توجد تقييمات نشطة مطابقة</p>
+                          <p className="text-xs text-muted-foreground">
+                            {stats.totalEvaluations === 0 
+                              ? "لم يتم تسجيل أي استبيان تقييم بعد. ستظهر التقييمات هنا فور قيام المستفيدين بإرسال استبياناتهم." 
+                              : hiddenItems.length > 0
+                              ? `يوجد ${hiddenItems.length} تقييم مخفي. يمكنك الاطلاع عليها عبر النقر على زر "عرض التقييمات المخفية" أعلاه.`
+                              : "لم يتم العثور على أي استبيان تقييم وفق معايير البحث والفلترة المحددة."}
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <div className="overflow-x-auto" dir="rtl">
                         <table className="w-full text-right text-xs" dir="rtl">
@@ -677,13 +753,13 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                               <th className="p-3.5 px-4 text-right">المستفيد</th>
                               <th className="p-3.5 px-4 text-right">الخدمة / البرنامج</th>
                               <th className="p-3.5 px-4 text-center">التقييم</th>
-                              <th className="p-3.5 px-4 text-right">الآراء والملاحظات والردود</th>
+                              <th className="p-3.5 px-4 text-right">الآراء والملاحظات</th>
                               <th className="p-3.5 px-4 text-right">تاريخ التقييم</th>
                               <th className="p-3.5 px-4 text-center">الإجراءات</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/60">
-                            {activeItems.map((item) => {
+                            {displayedItems.map((item) => {
                               const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
                               return (
                                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
@@ -725,9 +801,9 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                     </div>
                                   </td>
 
-                                  {/* الآراء والملاحظات والرد الرسمي */}
+                                  {/* الآراء والملاحظات وزر عرض الرد */}
                                   <td className="p-3.5 px-4 max-w-sm">
-                                    <div className="space-y-1.5 text-right">
+                                    <div className="space-y-2 text-right">
                                       {item.comments ? (
                                         <p className="text-muted-foreground italic text-xs leading-relaxed">
                                           "{item.comments}"
@@ -736,21 +812,24 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                         <span className="text-muted-foreground/50 text-[11px]">لا توجد ملاحظات</span>
                                       )}
 
-                                      {/* عرض الرد الرسمي إن وجد */}
+                                      {/* زر عرض الرد الرسمي إن وجد (دون إدراج النص كاملاً داخل الجدول) */}
                                       {item.reply && (
-                                        <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs space-y-1 text-right mt-1.5">
-                                          <div className="flex items-center justify-between gap-1 text-[10px] font-bold text-teal-700 dark:text-teal-300">
-                                            <div className="flex items-center gap-1">
-                                              <ShieldCheck className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-                                              <span>رد الجمعية:</span>
-                                            </div>
-                                            <span className="text-muted-foreground font-mono font-normal text-[9px]">
+                                        <div className="pt-0.5 flex items-center gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleOpenViewReplyModal(item)}
+                                            className="h-7 px-2.5 text-[11px] font-bold gap-1.5 rounded-lg text-teal-700 dark:text-teal-300 bg-teal-500/10 hover:bg-teal-500/20 border-teal-500/30 transition-all shadow-2xs cursor-pointer"
+                                          >
+                                            <ShieldCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                                            <span>عرض الرد</span>
+                                          </Button>
+                                          {item.reply.repliedAt && (
+                                            <span className="text-[10px] text-muted-foreground font-mono">
                                               {formatDateEn(item.reply.repliedAt)}
                                             </span>
-                                          </div>
-                                          <p className="text-[11px] text-foreground leading-snug line-clamp-2">
-                                            {item.reply.text}
-                                          </p>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -758,7 +837,12 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                                   {/* التاريخ */}
                                   <td className="p-3.5 px-4 text-muted-foreground text-[11px] whitespace-nowrap text-right font-mono">
-                                    {formatDateEn(item.evaluatedAt)}
+                                    <div>{formatDateEn(item.evaluatedAt)}</div>
+                                    {item.isHidden && item.hiddenBy && (
+                                      <div className="text-[10px] text-rose-600 dark:text-rose-400 mt-0.5 font-sans">
+                                        مخفي بواسطة: {item.hiddenBy.userName || "الإدارة"}
+                                      </div>
+                                    )}
                                   </td>
 
                                   {/* الإجراءات */}
@@ -773,37 +857,67 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
                                         <Eye className="w-3.5 h-3.5" />
                                         <span>عرض</span>
                                       </Button>
-                                      {canReply && (
+
+                                      {/* زر الرد: إذا وجد رد يظهر زر عرض الرد، وإذا لم يوجد رد يظهر إضافة رد فقط (دون تعديل) */}
+                                      {item.reply ? (
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          onClick={() => handleOpenReplyDialog(item)}
-                                          className={`h-8 px-2.5 text-xs font-bold gap-1 rounded-lg ${
-                                            item.reply
-                                              ? "text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
-                                              : "text-blue-700 dark:text-blue-300 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15"
-                                          }`}
+                                          onClick={() => handleOpenViewReplyModal(item)}
+                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-teal-700 dark:text-teal-300 border-teal-500/30 bg-teal-500/5 hover:bg-teal-500/15"
                                         >
-                                          <MessageSquarePlus className="w-3.5 h-3.5" />
-                                          <span>{item.reply ? "تعديل الرد" : "إضافة رد"}</span>
+                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <span>عرض الرد</span>
                                         </Button>
+                                      ) : (
+                                        canReply && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleOpenReplyDialog(item)}
+                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-blue-700 dark:text-blue-300 border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/15"
+                                          >
+                                            <MessageSquarePlus className="w-3.5 h-3.5" />
+                                            <span>إضافة رد</span>
+                                          </Button>
+                                        )
                                       )}
+
+                                      {/* زر الإخفاء أو الإظهار بحسب حالة العرض */}
                                       {canHide && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          disabled={togglingEvalId === item.id}
-                                          onClick={() => handleToggleHide(item.id, false)}
-                                          className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
-                                          title="إخفاء التقييم عن باقي المستخدمين"
-                                        >
-                                          {togglingEvalId === item.id ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                          ) : (
-                                            <EyeOff className="w-3.5 h-3.5" />
-                                          )}
-                                          <span>إخفاء</span>
-                                        </Button>
+                                        showOnlyHidden ? (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={togglingEvalId === item.id}
+                                            onClick={() => handleToggleHide(item.id, true)}
+                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                            title="إظهار التقييم وإعادته للقائمة النشطة"
+                                          >
+                                            {togglingEvalId === item.id ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                              <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                            )}
+                                            <span>إظهار</span>
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={togglingEvalId === item.id}
+                                            onClick={() => handleToggleHide(item.id, false)}
+                                            className="h-8 px-2.5 text-xs font-bold gap-1 rounded-lg text-rose-700 dark:text-rose-300 border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15"
+                                            title="إخفاء التقييم عن باقي المستخدمين"
+                                          >
+                                            {togglingEvalId === item.id ? (
+                                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                              <EyeOff className="w-3.5 h-3.5" />
+                                            )}
+                                            <span>إخفاء</span>
+                                          </Button>
+                                        )
                                       )}
                                     </div>
                                   </td>
@@ -1808,28 +1922,30 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
 
                 <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-between items-center flex-row">
                   <div className="flex items-center gap-2">
-                    {canReply && selectedEval.reply && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleOpenReplyDialog(selectedEval)}
-                        className="text-xs font-bold rounded-xl px-4 gap-1.5 text-teal-700 dark:text-teal-300 border-teal-500/30 hover:bg-teal-500/10"
-                      >
-                        <MessageSquarePlus className="w-3.5 h-3.5" />
-                        <span>تعديل الرد الرسمي</span>
-                      </Button>
-                    )}
-                    {canHide && !selectedEval.isHidden && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={togglingEvalId === selectedEval.id}
-                        onClick={() => handleToggleHide(selectedEval.id, false)}
-                        className="text-xs font-bold rounded-xl px-4 gap-1.5 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
-                      >
-                        <EyeOff className="w-3.5 h-3.5" />
-                        <span>إخفاء التقييم</span>
-                      </Button>
+                    {canHide && (
+                      selectedEval.isHidden ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={togglingEvalId === selectedEval.id}
+                          onClick={() => handleToggleHide(selectedEval.id, true)}
+                          className="text-xs font-bold rounded-xl px-4 gap-1.5 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>إظهار التقييم</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={togglingEvalId === selectedEval.id}
+                          onClick={() => handleToggleHide(selectedEval.id, false)}
+                          className="text-xs font-bold rounded-xl px-4 gap-1.5 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/10"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          <span>إخفاء التقييم</span>
+                        </Button>
+                      )
                     )}
                   </div>
                   <Button
@@ -1846,155 +1962,102 @@ export default function BeneficiarySatisfaction({ embedded = false }: { embedded
           </DialogContent>
         </Dialog>
 
-        {/* حوار عرض وإدارة التقييمات المخفية */}
-        <Dialog open={isHiddenEvaluationsModalOpen} onOpenChange={setIsHiddenEvaluationsModalOpen}>
-          <DialogContent className="max-w-4xl w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
-            <DialogHeader className="p-5 sm:p-6 bg-muted/40 border-b border-border text-right space-y-1">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
-                    <EyeOff className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base sm:text-lg font-bold text-foreground text-right flex items-center gap-2">
-                      <span>التقييمات المخفية</span>
-                      <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold">
-                        {hiddenItems.length} تقييم
-                      </Badge>
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-right text-muted-foreground mt-0.5">
-                      قائمة التقييمات التي تم إخفاؤها من العرض العام ولا تظهر إلا لمن يمتلك الصلاحية. يمكنك إعادة إظهار أي تقييم في أي وقت.
-                    </DialogDescription>
+        {/* نافذة عرض الرد الرسمي للاطلاع */}
+        <Dialog open={isViewReplyModalOpen} onOpenChange={setIsViewReplyModalOpen}>
+          <DialogContent className="max-w-lg w-[95vw] p-0 overflow-hidden rounded-2xl border border-border shadow-2xl" dir="rtl">
+            {viewReplyEval && (
+              <div>
+                <div className="p-5 sm:p-6 bg-gradient-to-br from-teal-500/10 via-card to-background border-b border-border/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-teal-500/15 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0 border border-teal-500/30 shadow-xs">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-base sm:text-lg font-black text-foreground text-right">
+                        الرد الرسمي على التقييم
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-right text-muted-foreground mt-0.5">
+                        الرد الموثق الصادر عن الجمعية على تقييم المستفيد
+                      </DialogDescription>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </DialogHeader>
 
-            <div className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
-              {hiddenItems.length === 0 ? (
-                <div className="p-12 text-center space-y-3">
-                  <Eye className="w-12 h-12 mx-auto text-muted-foreground/40" />
-                  <p className="text-sm font-bold text-foreground">لا توجد أي تقييمات مخفية حالياً</p>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    جميع التقييمات معروضة بشكل نشط للجميع وفق الصلاحيات المعينة. عند قيامك بإخفاء أي تقييم من جدول التقييمات، سينتقل إلى هذه القائمة.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {hiddenItems.map((item: any) => {
-                    const ratingVal = typeof item.rating === "number" && item.rating > 0 ? item.rating : 5;
-                    return (
-                      <div
-                        key={item.id}
-                        className="p-4 rounded-2xl bg-card border border-border/80 hover:border-amber-500/30 transition-all shadow-xs space-y-3"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/60 pb-3">
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <span className="font-mono font-bold text-xs bg-muted px-2.5 py-1 rounded-lg border border-border">
-                              {item.requestNumber}
-                            </span>
-                            <span className="font-bold text-xs text-foreground">
-                              {item.requesterName}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              ({getArabicLabel(item.serviceName || item.programType)})
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 self-start sm:self-auto">
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 font-bold text-xs">
-                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                              <span>{ratingVal} / 5</span>
-                            </div>
-                            <span className="text-[11px] text-muted-foreground font-mono">
-                              {formatDateEn(item.evaluatedAt)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* التعليق والرد ومعلومات الإخفاء */}
-                        <div className="space-y-2 text-right">
-                          {item.comments ? (
-                            <p className="text-xs text-foreground italic bg-muted/30 p-2.5 rounded-xl border border-border/50 leading-relaxed">
-                              "{item.comments}"
-                            </p>
-                          ) : (
-                            <span className="text-muted-foreground/60 text-[11px]">لا توجد ملاحظات مكتوبة</span>
-                          )}
-
-                          {item.reply && (
-                            <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs space-y-1">
-                              <span className="font-bold text-teal-700 dark:text-teal-300 text-[10px]">
-                                رد الجمعية المسجل:
-                              </span>
-                              <p className="text-[11px] text-foreground leading-snug">
-                                {item.reply.text}
-                              </p>
-                            </div>
-                          )}
-
-                          {item.hiddenBy && (
-                            <div className="flex items-center gap-1.5 text-[11px] text-rose-700 dark:text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded-lg border border-rose-500/15">
-                              <EyeOff className="w-3.5 h-3.5 shrink-0" />
-                              <span>
-                                تم الإخفاء بواسطة: <strong>{item.hiddenBy.userName || "الإدارة"}</strong> ({formatDateEn(item.hiddenBy.hiddenAt)})
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* أزرار الإجراءات للتقييم المخفي */}
-                        <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenDetails(item)}
-                            className="h-8 px-3 text-xs font-bold gap-1 rounded-xl hover:bg-muted"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>عرض التفاصيل الكاملة</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={togglingEvalId === item.id}
-                            onClick={() => handleToggleHide(item.id, true)}
-                            className="h-8 px-3.5 text-xs font-bold gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-                          >
-                            {togglingEvalId === item.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Eye className="w-3.5 h-3.5" />
-                            )}
-                            <span>إلغاء الإخفاء وإظهار التقييم</span>
-                          </Button>
-                        </div>
+                <div className="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                  {/* بطاقة معلومات التقييم والمستفيد */}
+                  <div className="bg-muted/40 p-4 rounded-2xl border border-border/70 space-y-2.5 text-xs text-right">
+                    <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-border/60">
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] text-muted-foreground block">المستفيد:</span>
+                        <span className="font-bold text-sm text-foreground block">{viewReplyEval.requesterName}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                      <div className="space-y-0.5 text-left font-mono">
+                        <span className="text-[11px] text-muted-foreground block font-sans">رقم الطلب:</span>
+                        <span className="font-bold text-xs text-foreground block bg-card px-2 py-0.5 rounded border border-border">{viewReplyEval.requestNumber}</span>
+                      </div>
+                    </div>
 
-            <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsHiddenEvaluationsModalOpen(false)}
-                className="text-xs font-bold rounded-xl px-6"
-              >
-                إغلاق
-              </Button>
-            </DialogFooter>
+                    <div className="flex items-center justify-between flex-wrap gap-2 pt-1 text-muted-foreground">
+                      <span>الخدمة: <strong className="text-foreground">{getArabicLabel(viewReplyEval.serviceName || viewReplyEval.programType)}</strong></span>
+                      <div className="flex items-center gap-1 text-amber-500 font-bold">
+                        <Star className="w-3.5 h-3.5 fill-amber-500" />
+                        <span>{typeof viewReplyEval.rating === "number" && viewReplyEval.rating > 0 ? viewReplyEval.rating : 5} / 5</span>
+                      </div>
+                    </div>
+
+                    {viewReplyEval.comments && (
+                      <div className="pt-2">
+                        <span className="text-[11px] text-muted-foreground block mb-1">ملاحظات المستفيد:</span>
+                        <p className="text-xs italic bg-card/80 p-2.5 rounded-xl border border-border/60 text-foreground leading-relaxed">
+                          "{viewReplyEval.comments}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* نص الرد الرسمي */}
+                  <div className="bg-teal-500/10 dark:bg-teal-950/30 border border-teal-500/25 rounded-2xl p-4 sm:p-5 space-y-3 text-right">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-teal-800 dark:text-teal-300">
+                        <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                        <span>رد إدارة الجمعية:</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                        {viewReplyEval.reply?.userName && (
+                          <span>{viewReplyEval.reply.userName} • </span>
+                        )}
+                        <span>{formatDateEn(viewReplyEval.reply?.repliedAt)}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed bg-card/90 dark:bg-card/70 p-4 rounded-xl border border-teal-500/20 shadow-2xs font-normal">
+                      {viewReplyEval.reply?.text || "لا يوجد نص رد متاح."}
+                    </p>
+                  </div>
+                </div>
+
+                <DialogFooter className="p-4 bg-muted/20 border-t border-border flex justify-end">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setIsViewReplyModalOpen(false)}
+                    className="text-xs font-bold rounded-xl px-6"
+                  >
+                    إغلاق
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
-        {/* حوار إضافة / تعديل الرد الرسمي على التقييم */}
+        {/* حوار إضافة الرد الرسمي على التقييم */}
         <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
           <DialogContent className="max-w-lg w-[95vw] p-6 rounded-2xl border border-border shadow-2xl" dir="rtl">
             <DialogHeader className="text-right space-y-1">
               <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-right">
                 <MessageSquarePlus className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-                <span>{replyTargetEval?.reply ? "تعديل الرد الرسمي على التقييم" : "إضافة رد رسمي على التقييم"}</span>
+                <span>إضافة رد رسمي على التقييم</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-right">
                 توثيق الرد الرسمي لجمعية عمارة المساجد على تقييم المستفيد وملاحظاته.
