@@ -150,13 +150,13 @@ export function MultiVendorContractingCard({
       {/* شريط الإجراءات لمرحلة التعاقد وزر تأمين الطلب والتعاقد */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-border shadow-xs">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg ${isSedanaProgram ? 'bg-blue-600' : 'bg-emerald-600'} text-white flex items-center justify-center shadow-xs`}>
+          <div className={`w-9 h-9 rounded-lg ${isSedanaProgram ? 'bg-sky-600' : 'bg-emerald-600'} text-white flex items-center justify-center shadow-xs`}>
             <FileSignature className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               {isSedanaProgram ? "مرحلة تأمين الطلب والتعاقد" : "مرحلة التعاقد"}
-              <Badge variant="outline" className={`${isSedanaProgram ? 'bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300'} font-bold text-[11px]`}>
+              <Badge variant="outline" className={`${isSedanaProgram ? 'bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-200' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300'} font-bold text-[11px]`}>
                 {contractsList.length} عقود صادرة
               </Badge>
             </h3>
@@ -174,7 +174,7 @@ export function MultiVendorContractingCard({
               setShowSupplierModal(true);
             }
           }}
-          className={`${isSedanaProgram ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white font-bold text-xs h-9 px-4 gap-1.5 shadow-sm`}
+          className={`${isSedanaProgram ? 'bg-sky-600 hover:bg-sky-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white font-bold text-xs h-9 px-4 gap-1.5 shadow-sm`}
         >
           {isSedanaProgram ? (
             <>
