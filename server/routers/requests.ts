@@ -2857,12 +2857,11 @@ export const requestsRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
       }
 
-      const request = await db.query.mosqueRequests.findFirst({
-        where: eq(mosqueRequests.id, input.requestId),
-        with: {
-          mosque: true,
-        },
-      });
+      const [request] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
 
       if (!request) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
