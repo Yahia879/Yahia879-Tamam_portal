@@ -154,10 +154,9 @@ export default function PurchaseOrdersList() {
       ]);
 
       await exportStyledExcel({
-        title: "سجل أوامر الشراء الداخلية - برنامج سدانة",
-        subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString("ar-SA")}`,
+        sheetName: "أوامر الشراء الداخلية",
         columns,
-        data: rows,
+        rows,
         fileName: `Purchase_Orders_${new Date().toISOString().split("T")[0]}.xlsx`,
       });
 
