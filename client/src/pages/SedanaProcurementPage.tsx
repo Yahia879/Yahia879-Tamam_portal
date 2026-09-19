@@ -16,13 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   ArrowRight,
   Printer,
   FileSignature,
@@ -34,12 +27,12 @@ import {
   Edit,
   Plus,
   Loader2,
-  ExternalLink,
-  Eye
+  Eye,
+  PenTool,
+  Settings2
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
-import { SaudiRiyal } from "@/components/SaudiRiyal";
 
 type ProcurementMethod = "contract" | "purchase_order" | "csr_letter";
 
@@ -51,9 +44,11 @@ export default function SedanaProcurementPage() {
 
   useDocumentTitle(`تأمين بنود الطلب والتعاقد #${requestId} - سدانة`);
 
-  // حالات فتح النوافذ المنبثقة لمعاينة وطباعة المستندات
-  const [showPoModal, setShowPoModal] = useState(false);
-  const [showCsrModal, setShowCsrModal] = useState(false);
+  // وضع العرض كامل الشاشة: إما القائمة الرئيسية "none" أو معاينة أمر الشراء "po" أو معاينة الخطاب "csr"
+  const [fullScreenView, setFullScreenView] = useState<"none" | "po" | "csr">("none");
+
+  // التحكم بإظهار شريط تعديل البيانات في المعاينة كاملة الشاشة
+  const [showEditControls, setShowEditControls] = useState(false);
 
   // جلب تفاصيل الطلب
   const {
@@ -79,12 +74,6 @@ export default function SedanaProcurementPage() {
     { enabled: !!requestId && requestId > 0 }
   );
 
-  // جلب عروض الأسعار المسجلة
-  const { data: allQuotations = [] } = trpc.quotations.getAllByRequestId.useQuery(
-    { requestId },
-    { enabled: !!requestId && requestId > 0 }
-  );
-
   // جلب العقود المسجلة
   const { data: contractsList = [] } = trpc.contracts.getAllByRequestId.useQuery(
     { requestId },
@@ -93,9 +82,12 @@ export default function SedanaProcurementPage() {
 
   // حفظ بيانات التأمين
   const saveProcurementMutation = trpc.requests.saveSedanaProcurement.useMutation({
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       toast.success(res.message || "تم حفظ البيانات بنجاح");
       refetchRequest();
+      if (vars.advanceToExecution) {
+        setLocation(`/requests/${requestId}`);
+      }
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء الحفظ");
@@ -143,10 +135,10 @@ export default function SedanaProcurementPage() {
     ];
   }, [boqResult, request]);
 
-  // حالة تجزئة البنود: كل بند له طريقة من الـ 3 (عقد / أمر شراء / مسؤولية مجتمعية)
+  // حالة تجزئة البنود: كل بند له طريقة من الـ 3
   const [itemsAllocation, setItemsAllocation] = useState<Record<string, ProcurementMethod>>({});
 
-  // بيانات أمر الشراء الداخلي (الخيار الثاني)
+  // بيانات أمر الشراء الداخلي
   const [poData, setPoData] = useState({
     orderNumber: `PO-${requestId}-${new Date().getFullYear()}`,
     orderDate: new Date().toISOString().split("T")[0],
@@ -159,11 +151,11 @@ export default function SedanaProcurementPage() {
     notes: "",
   });
 
-  // بيانات خطاب المسؤولية المجتمعية (الخيار الثالث)
+  // بيانات خطاب المسؤولية المجتمعية
   const [csrData, setCsrData] = useState({
     letterNumber: `CSR-${requestId}-${new Date().getFullYear()}`,
     letterDate: new Date().toISOString().split("T")[0],
-    salutation: "السادة", // السادة / السيد / السيدة (بدون أصحاب السعادة)
+    salutation: "السادة", // السادة / السيد / السيدة (ممنوع منعاً باتاً أصحاب السعادة)
     recipientName: "",
     honorific: "المحترمون", // المحترمون / المحترم / الموقر
     projectName: "",
@@ -240,7 +232,7 @@ export default function SedanaProcurementPage() {
     }
   }, [request, user, signatoriesData]);
 
-  // تهيئة تخصيص البنود تلقائياً (الافتراضي هو العقد، ويعدل المستخدم مباشرة)
+  // تهيئة تخصيص البنود تلقائياً
   useEffect(() => {
     if (allItems.length > 0 && Object.keys(itemsAllocation).length === 0) {
       const initialAlloc: Record<string, ProcurementMethod> = {};
@@ -251,7 +243,7 @@ export default function SedanaProcurementPage() {
     }
   }, [allItems]);
 
-  // البنود المخصصة لكل خيار من الخيارات الثلاثة
+  // البنود المخصصة لكل طريقة
   const contractItems = useMemo(() => {
     return allItems.filter(it => (itemsAllocation[it.id] || "contract") === "contract");
   }, [allItems, itemsAllocation]);
@@ -272,18 +264,7 @@ export default function SedanaProcurementPage() {
     }));
   };
 
-  // تعيين كافة البنود لطريقة معينة بنقرة واحدة
-  const handleSetAllTo = (method: ProcurementMethod) => {
-    const updated: Record<string, ProcurementMethod> = {};
-    allItems.forEach(it => {
-      updated[it.id] = method;
-    });
-    setItemsAllocation(updated);
-    toast.success(`تم تعيين كافة البنود لـ: ${
-      method === "contract" ? "عقد توريد وخدمات" :
-      method === "purchase_order" ? "أمر شراء داخلي" : "خطاب مسؤولية مجتمعية"
-    }`);
-  };
+
 
   // حفظ التجزئة والبيانات
   const handleSaveProcurement = (advanceStage: boolean = false) => {
@@ -299,7 +280,7 @@ export default function SedanaProcurementPage() {
     });
   };
 
-  // طباعة المستند المفتوح
+  // طباعة المستند
   const handlePrint = () => {
     window.print();
   };
@@ -310,17 +291,496 @@ export default function SedanaProcurementPage() {
   if (isRequestLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6" dir="rtl">
-        <div className="bg-card p-6 rounded-xl border border-border shadow-sm flex flex-col items-center gap-3 text-center max-w-sm">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="bg-card p-6 rounded-xl border border-border shadow-xs flex flex-col items-center gap-3 text-center max-w-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
           <p className="text-sm font-bold text-foreground">جاري تحميل بنود الطلب...</p>
         </div>
       </div>
     );
   }
 
+  // =========================================================================
+  // 1. شاشة المعاينة كاملة الشاشة لأمر الشراء الداخلي (مطابقة تماماً لأمر الصرف)
+  // =========================================================================
+  if (fullScreenView === "po") {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
+        {/* شريط التحكم العلوي المقاوم للطباعة (Floating Control Bar) */}
+        <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFullScreenView("none")}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع إلى جدول البنود</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowEditControls(!showEditControls)}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
+            >
+              <Settings2 className="h-4 w-4 text-sky-600" />
+              <span>{showEditControls ? "إخفاء التعديل" : "تعديل البيانات"}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+            >
+              <Printer className="h-4 w-4" />
+              <span>تنزيل PDF / طباعة</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* لوحة التعديل السريع (تظهر عند الضغط على زر تعديل البيانات) */}
+        {showEditControls && (
+          <div className="max-w-4xl mx-auto px-4 mb-4 print:hidden animate-in fade-in-50 duration-200">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-border shadow-md space-y-3">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Edit className="w-3.5 h-3.5 text-sky-600" />
+                تعديل بيانات أمر الشراء الداخلي
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">رقم أمر الشراء</Label>
+                  <Input
+                    value={poData.orderNumber}
+                    onChange={(e) => setPoData(prev => ({ ...prev, orderNumber: e.target.value }))}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">تاريخ الأمر</Label>
+                  <Input
+                    type="date"
+                    value={poData.orderDate}
+                    onChange={(e) => setPoData(prev => ({ ...prev, orderDate: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">الموجه إليه</Label>
+                  <Input
+                    value={poData.directedTo}
+                    onChange={(e) => setPoData(prev => ({ ...prev, directedTo: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم طالب الشراء</Label>
+                  <Input
+                    value={poData.requesterName}
+                    onChange={(e) => setPoData(prev => ({ ...prev, requesterName: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم صاحب الصلاحية (الاعتماد)</Label>
+                  <Input
+                    value={poData.approverName}
+                    onChange={(e) => setPoData(prev => ({ ...prev, approverName: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSaveProcurement(false);
+                      setShowEditControls(false);
+                    }}
+                    className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white w-full"
+                  >
+                    حفظ التعديلات
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ورقة الطباعة الرسمية A4 المتموضعة في منتصف الشاشة تماماً مثل أمر الصرف */}
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-4 sm:p-8 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
+          {/* الإطار المزدوج الفاخر المطابق لقالب العقود وأمر الصرف باللون السماوي الرسمي */}
+          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-4 sm:p-6 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm]">
+            {/* خط داخلي رفيع */}
+            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
+
+            <div className="relative z-10 space-y-4 flex-1">
+              {/* الترويسة الرسمية */}
+              <div className="flex justify-between items-start border-b border-slate-300 pb-3">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16 w-auto object-contain" />
+                  ) : (
+                    <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                      سدانة
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-base text-sky-900">{orgName}</h3>
+                    <p className="text-[11px] text-slate-500 font-medium">إدارة المشتريات والمستودعات • برنامج سدانة</p>
+                  </div>
+                </div>
+
+                <div className="text-[11px] space-y-1 text-left">
+                  <div><span className="text-slate-500">رقم أمر الشراء: </span><strong className="font-mono">{poData.orderNumber}</strong></div>
+                  <div><span className="text-slate-500">التاريخ: </span><strong>{poData.orderDate}</strong></div>
+                  <div><span className="text-slate-500">رقم الطلب: </span><strong className="font-mono">#{request?.requestNumber || requestId}</strong></div>
+                </div>
+              </div>
+
+              {/* شريط العنوان السماوي */}
+              <div className="bg-[#0284c7] text-white font-bold text-center py-2 px-4 rounded text-sm sm:text-base shadow-2xs">
+                أمر شراء داخلي (نموذج طلب شراء)
+              </div>
+
+              {/* سطر الموجه إليه والمسجد */}
+              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
+                <div>
+                  <span className="text-slate-500">موجه إلى: </span>
+                  <strong className="text-slate-900">{poData.directedTo}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500">المشروع / المسجد: </span>
+                  <strong className="text-slate-900">{mosqueName} {request?.mosque?.city ? `(${request.mosque.city})` : ""}</strong>
+                </div>
+              </div>
+
+              {/* جدول الأصناف (خالٍ تماماً وبشكل قاطع من أي أسعار) */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold text-slate-700">
+                  نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
+                </p>
+
+                <table className="w-full border-collapse border border-slate-300 text-xs text-right">
+                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                    <tr>
+                      <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
+                      <th className="p-2 border-l border-slate-300 w-1/3">الصنف المطلوب</th>
+                      <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
+                      <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
+                      <th className="p-2 text-center w-20">الوحدة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300">
+                    {(poItems.length > 0 ? poItems : allItems).map((it, idx) => (
+                      <tr key={it.id} className="h-9">
+                        <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                        <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                        <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                        <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                        <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* جدول التوقيعات والاعتماد المطابق تماماً لأمر الصرف */}
+              <div className="pt-4 break-inside-avoid">
+                <table className="w-full border-collapse border border-slate-300 text-xs text-center">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
+                      <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">الاسم</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">التوقيع</th>
+                      <th className="p-2 w-1/4">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* طالب الشراء */}
+                    <tr className="border-b border-slate-300 h-14 sm:h-16">
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.requesterRole}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.requesterName || "طالب الشراء"}</td>
+                      <td className="p-2 border-l border-slate-300">
+                        <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                      </td>
+                      <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
+                    </tr>
+
+                    {/* صاحب الصلاحية (المدير التنفيذي) */}
+                    <tr className="h-14 sm:h-16">
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</td>
+                      <td className="p-2 border-l border-slate-300">
+                        {poData.approverSignatureUrl ? (
+                          <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-11 mx-auto object-contain" />
+                        ) : (
+                          <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                        )}
+                      </td>
+                      <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* تذييل أمر الشراء الفاخر */}
+            <div className="mt-6 pt-3 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+              <span>تم إنشاء هذا المستند آلياً من نظام إدارة المساجد - سدانة</span>
+              <span>تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")} • صفحة 1 من 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 2. شاشة المعاينة كاملة الشاشة لخطاب المسؤولية المجتمعية (Full-Screen CSR Letter)
+  // =========================================================================
+  if (fullScreenView === "csr") {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
+        {/* شريط التحكم العلوي المقاوم للطباعة */}
+        <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFullScreenView("none")}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع إلى جدول البنود</span>
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setShowEditControls(!showEditControls)}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
+            >
+              <Settings2 className="h-4 w-4 text-sky-600" />
+              <span>{showEditControls ? "إخفاء التعديل" : "تعديل المخاطبة والبيانات"}</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={handlePrint}
+              className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+            >
+              <Printer className="h-4 w-4" />
+              <span>تنزيل PDF / طباعة</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* لوحة تعديل بيانات المخاطبة السريعة */}
+        {showEditControls && (
+          <div className="max-w-4xl mx-auto px-4 mb-4 print:hidden animate-in fade-in-50 duration-200">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-border shadow-md space-y-3">
+              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Edit className="w-3.5 h-3.5 text-sky-600" />
+                تعديل بيانات ومخاطبة خطاب المسؤولية المجتمعية
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">صيغة النداء *</Label>
+                  <Select
+                    value={csrData.salutation}
+                    onValueChange={(val) => setCsrData(prev => ({ ...prev, salutation: val }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="السادة">السادة</SelectItem>
+                      <SelectItem value="السيد">السيد</SelectItem>
+                      <SelectItem value="السيدة">السيدة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الجهة / الشركة الموجه إليها *</Label>
+                  <Input
+                    value={csrData.recipientName}
+                    onChange={(e) => setCsrData(prev => ({ ...prev, recipientName: e.target.value }))}
+                    placeholder="مثال: شركة المراعي / مؤسسة الراجحي..."
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">عبارة التفخيم واللقب *</Label>
+                  <Select
+                    value={csrData.honorific}
+                    onValueChange={(val) => setCsrData(prev => ({ ...prev, honorific: val }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs bg-background">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="المحترمون">المحترمون</SelectItem>
+                      <SelectItem value="المحترم">المحترم</SelectItem>
+                      <SelectItem value="الموقر">الموقر</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">رقم الخطاب</Label>
+                  <Input
+                    value={csrData.letterNumber}
+                    onChange={(e) => setCsrData(prev => ({ ...prev, letterNumber: e.target.value }))}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">تاريخ الخطاب</Label>
+                  <Input
+                    type="date"
+                    value={csrData.letterDate}
+                    onChange={(e) => setCsrData(prev => ({ ...prev, letterDate: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المفوض بالتوقيع</Label>
+                  <Input
+                    value={csrData.signatoryName}
+                    onChange={(e) => setCsrData(prev => ({ ...prev, signatoryName: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="sm:col-span-3 flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      handleSaveProcurement(false);
+                      setShowEditControls(false);
+                    }}
+                    className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6"
+                  >
+                    حفظ التعديلات
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
+          {/* الإطار المزدوج الفاخر */}
+          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
+            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
+
+            <div className="relative z-10 space-y-6 flex-1">
+              {/* ترويسة الخطاب الرسمية */}
+              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
+                  ) : (
+                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                      سدانة
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
+                    <p className="text-xs text-slate-500 font-medium">إدارة المسؤولية المجتمعية والشراكات • برنامج سدانة</p>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-1 text-left font-mono">
+                  <div><span className="text-slate-500">الرقم: </span><strong>{csrData.letterNumber}</strong></div>
+                  <div><span className="text-slate-500">التاريخ: </span><strong>{csrData.letterDate}</strong></div>
+                </div>
+              </div>
+
+              {/* المخاطبة: السادة / ... المحترمون (بدون أصحاب السعادة) */}
+              <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
+                <span>{csrData.salutation} / </span>
+                <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900">
+                  {csrData.recipientName || "الجهة المانحة / الشريك المجتمعي"}
+                </span>
+                <span className="mr-3">{csrData.honorific}</span>
+              </div>
+
+              {/* الديباجة الحرفية المعتمدة */}
+              <div className="text-xs sm:text-sm text-slate-800 leading-loose space-y-2">
+                <p className="font-bold text-slate-900">السلام عليكم ورحمة الله وبركاته،،،</p>
+                <p>
+                  تجدون برفقه البنود المراد تأمينها لمشروع <strong>({csrData.projectName || `مشروع جامع ${mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
+                </p>
+              </div>
+
+              {/* جدول الأصناف المرفقة (خالٍ تماماً من أي أسعار) */}
+              <div>
+                <table className="w-full border-collapse border border-slate-300 text-xs text-right">
+                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                    <tr>
+                      <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
+                      <th className="p-2 border-l border-slate-300">الصنف والبيان</th>
+                      <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
+                      <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
+                      <th className="p-2 text-center w-20">الوحدة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300">
+                    {(csrItems.length > 0 ? csrItems : allItems).map((it, idx) => (
+                      <tr key={it.id} className="h-9">
+                        <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                        <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                        <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                        <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                        <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* عبارة الختام الحرفية */}
+              <div className="pt-3 text-xs sm:text-sm font-bold text-slate-900">
+                <p>وتقبلوا وافر التحية والتقدير،،،</p>
+              </div>
+
+              {/* خانة التوقيع والاعتماد الرسمي */}
+              <div className="pt-8 flex justify-end">
+                <div className="w-60 text-center space-y-2">
+                  <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
+                  <div className="h-14 flex items-center justify-center">
+                    <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
+                  </div>
+                  <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* تذييل الخطاب الفاخر */}
+            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+              <span>{orgName} - سدانة</span>
+              <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 3. الشاشة الرئيسية لتخصيص البنود (الجدول والبطاقات الثلاثة)
+  // =========================================================================
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-background text-right pb-16 font-sans" dir="rtl">
-      {/* الشريط العلوي البسيط والنظيف */}
+      {/* الشريط العلوي البسيط والنظيف - بهوية سدانة السماوية */}
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border shadow-2xs print:hidden">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -337,9 +797,9 @@ export default function SedanaProcurementPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-foreground">
-                  تأمين بنود الطلب والتعاقد (سدانة)
+                  تأمين الطلب والتعاقد
                 </h1>
-                <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200 text-xs">
+                <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                   طلب #{request?.requestNumber || requestId}
                 </Badge>
               </div>
@@ -355,7 +815,7 @@ export default function SedanaProcurementPage() {
               size="sm"
               onClick={() => handleSaveProcurement(false)}
               disabled={saveProcurementMutation.isPending}
-              className="h-8 gap-1.5 text-xs font-semibold"
+              className="h-8 gap-1.5 text-xs font-semibold border-border hover:bg-muted"
             >
               <Save className="w-3.5 h-3.5" />
               حفظ
@@ -366,7 +826,7 @@ export default function SedanaProcurementPage() {
                 size="sm"
                 onClick={() => handleSaveProcurement(true)}
                 disabled={saveProcurementMutation.isPending}
-                className="h-8 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 اعتماد التأمين والانتقال للتنفيذ
@@ -391,37 +851,7 @@ export default function SedanaProcurementPage() {
               </CardDescription>
             </div>
 
-            {/* أزرار التعيين السريع للكل */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-muted-foreground ml-1">تعيين الكل:</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleSetAllTo("contract")}
-                className="h-7 px-2.5 text-xs font-medium border-border hover:bg-muted"
-              >
-                عقد توريد ({allItems.length})
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleSetAllTo("purchase_order")}
-                className="h-7 px-2.5 text-xs font-medium border-border hover:bg-muted"
-              >
-                أمر شراء ({allItems.length})
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleSetAllTo("csr_letter")}
-                className="h-7 px-2.5 text-xs font-medium border-border hover:bg-muted"
-              >
-                مسؤولية مجتمعية ({allItems.length})
-              </Button>
-            </div>
+
           </CardHeader>
 
           <CardContent className="p-0">
@@ -456,14 +886,14 @@ export default function SedanaProcurementPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent dir="rtl">
-                              <SelectItem value="contract" className="text-xs font-medium text-blue-700">
-                                1. عقد توريد وخدمات
+                              <SelectItem value="contract" className="text-xs font-medium text-sky-700">
+                                عقد توريد وخدمات
                               </SelectItem>
                               <SelectItem value="purchase_order" className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                                2. أمر شراء داخلي
+                                أمر شراء داخلي
                               </SelectItem>
-                              <SelectItem value="csr_letter" className="text-xs font-medium text-blue-900 dark:text-blue-300">
-                                3. خطاب مسؤولية مجتمعية
+                              <SelectItem value="csr_letter" className="text-xs font-medium text-sky-800 dark:text-sky-300">
+                                خطاب مسؤولية مجتمعية
                               </SelectItem>
                             </SelectContent>
                           </Select>
@@ -477,10 +907,10 @@ export default function SedanaProcurementPage() {
           </CardContent>
         </Card>
 
-        {/* 2. بطاقات التنفيذ والإصدار الثلاثة المباشرة ("وبساوين") */}
+        {/* 2. بطاقات التنفيذ والإصدار الثلاثة المباشرة */}
         <div>
           <h3 className="text-sm font-bold text-foreground mb-3">
-            إجراءات ومستندات التأمين المعتمدة بناءً على البنود المحددة أعلاه:
+            نماذج وإجراءات التأمين للبنود المحددة:
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -489,33 +919,33 @@ export default function SedanaProcurementPage() {
             <Card className="border border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  <div className="p-2 rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                     <FileSignature className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="text-blue-700 bg-blue-50 border-blue-200 text-xs">
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                     {contractItems.length} بنود مخصصة
                   </Badge>
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold text-foreground">1. عقد توريد وخدمات (سدانة)</CardTitle>
+                  <CardTitle className="text-sm font-bold text-foreground">عقد توريد وخدمات</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    تحرير العقد القديم المعتمد لبرنامج سدانة مع المورد الفائز بالبنود المخصصة.
+                    إنشاء وإدارة عقود التوريد والتشغيل مع الموردين الفائزين بالبنود المحددة.
                   </CardDescription>
                 </div>
               </CardHeader>
 
               <CardContent className="p-4 pt-2 border-t mt-2 flex flex-col gap-2">
                 <Link href={`/contracts/new?requestId=${requestId}`}>
-                  <Button size="sm" className="w-full h-8 text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button size="sm" className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs">
                     <Plus className="w-3.5 h-3.5" />
-                    تحرير / إنشاء العقد القديم
+                    إنشاء عقد
                   </Button>
                 </Link>
 
                 {contractsList.length > 0 && (
                   <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1">
                     <span>يوجد {contractsList.length} عقود مسجلة</span>
-                    <Link href={`/contracts/${contractsList[0].id}/edit`} className="text-blue-600 font-medium hover:underline">
+                    <Link href={`/contracts/${contractsList[0].id}/edit`} className="text-sky-600 font-medium hover:underline">
                       عرض العقد
                     </Link>
                   </div>
@@ -535,7 +965,7 @@ export default function SedanaProcurementPage() {
                   </Badge>
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold text-foreground">2. أمر الشراء الداخلي</CardTitle>
+                  <CardTitle className="text-sm font-bold text-foreground">أمر شراء داخلي</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     نموذج رسمي موجه لإدارة المشتريات (بدون أي أسعار، مع جدول توقيعات مطابق لأمر الصرف).
                   </CardDescription>
@@ -546,14 +976,14 @@ export default function SedanaProcurementPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowPoModal(true)}
+                  onClick={() => setFullScreenView("po")}
                   className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted"
                 >
-                  <Eye className="w-3.5 h-3.5 text-blue-600" />
+                  <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة أمر الشراء
                 </Button>
                 <span className="text-[11px] text-muted-foreground text-center">
-                  جاهز للطباعة الفورية A4
+                  عرض فول سكرين وجاهز للطباعة A4
                 </span>
               </CardContent>
             </Card>
@@ -562,15 +992,15 @@ export default function SedanaProcurementPage() {
             <Card className="border border-border shadow-xs flex flex-col justify-between">
               <CardHeader className="p-4 pb-2 space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  <div className="p-2 rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
                     <HeartHandshake className="w-5 h-5" />
                   </div>
-                  <Badge variant="outline" className="text-blue-800 bg-blue-50 border-blue-200 text-xs">
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                     {csrItems.length} بنود مخصصة
                   </Badge>
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-bold text-foreground">3. خطاب المسؤولية المجتمعية</CardTitle>
+                  <CardTitle className="text-sm font-bold text-foreground">خطاب مسؤولية مجتمعية</CardTitle>
                   <CardDescription className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     خطاب رسمي موجه للجهات والشركات الداعمة بالديباجة الحرفية (بدون أصحاب السعادة وبدون أسعار).
                   </CardDescription>
@@ -581,14 +1011,14 @@ export default function SedanaProcurementPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setShowCsrModal(true)}
+                  onClick={() => setFullScreenView("csr")}
                   className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted"
                 >
-                  <Eye className="w-3.5 h-3.5 text-blue-600" />
+                  <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة الخطاب الرسمي
                 </Button>
                 <span className="text-[11px] text-muted-foreground text-center">
-                  ديباجة رسمية معتمدة A4
+                  عرض فول سكرين بديباجة رسمية معتمدة A4
                 </span>
               </CardContent>
             </Card>
@@ -597,350 +1027,6 @@ export default function SedanaProcurementPage() {
         </div>
 
       </main>
-
-      {/* ------------------------------------------------------------- */}
-      {/* نافذة معاينة وطباعة أمر الشراء الداخلي (Dialog Modal) */}
-      {/* ------------------------------------------------------------- */}
-      <Dialog open={showPoModal} onOpenChange={setShowPoModal}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto" dir="rtl">
-          <DialogHeader className="text-right sm:text-right pb-3 border-b print:hidden">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-base font-bold flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-blue-600" />
-                  أمر شراء داخلي - نموذج رسمي
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  نموذج أمر الشراء الموجه لإدارة المشتريات (خالٍ تماماً من أي أسعار)
-                </DialogDescription>
-              </div>
-
-              <Button
-                size="sm"
-                onClick={handlePrint}
-                className="h-8 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                طباعة أمر الشراء (A4)
-              </Button>
-            </div>
-          </DialogHeader>
-
-          {/* حقول التعديل السريع في رأس النافذة */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-muted/20 border border-border text-xs print:hidden">
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">رقم أمر الشراء</Label>
-              <Input
-                value={poData.orderNumber}
-                onChange={(e) => setPoData(prev => ({ ...prev, orderNumber: e.target.value }))}
-                className="h-8 text-xs font-mono"
-              />
-            </div>
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">تاريخ الأمر</Label>
-              <Input
-                type="date"
-                value={poData.orderDate}
-                onChange={(e) => setPoData(prev => ({ ...prev, orderDate: e.target.value }))}
-                className="h-8 text-xs"
-              />
-            </div>
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">الموجه إليه</Label>
-              <Input
-                value={poData.directedTo}
-                onChange={(e) => setPoData(prev => ({ ...prev, directedTo: e.target.value }))}
-                className="h-8 text-xs"
-              />
-            </div>
-          </div>
-
-          {/* صفحة الطباعة الرسمية A4 */}
-          <div className="bg-white text-slate-900 p-6 rounded-lg border border-slate-300 shadow-xs space-y-4 print:p-0 print:border-none print:shadow-none">
-            {/* الترويسة الرسمية */}
-            <div className="flex justify-between items-start border-b border-slate-300 pb-3">
-              <div className="flex items-center gap-3">
-                {orgSettings?.logoUrl ? (
-                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 w-auto object-contain" />
-                ) : (
-                  <div className="w-12 h-12 bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-700 font-bold">
-                    سدانة
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base text-blue-900">{orgName}</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">إدارة المشتريات والمستودعات • برنامج سدانة</p>
-                </div>
-              </div>
-
-              <div className="text-[11px] space-y-1 text-left">
-                <div><span className="text-slate-500">رقم الأمر: </span><strong className="font-mono">{poData.orderNumber}</strong></div>
-                <div><span className="text-slate-500">التاريخ: </span><strong>{poData.orderDate}</strong></div>
-                <div><span className="text-slate-500">رقم الطلب: </span><strong className="font-mono">#{request?.requestNumber || requestId}</strong></div>
-              </div>
-            </div>
-
-            {/* شريط العنوان */}
-            <div className="bg-blue-900 text-white font-bold text-center py-1.5 px-4 rounded text-sm">
-              أمر شراء داخلي (نموذج طلب شراء)
-            </div>
-
-            {/* سطر الموجه إليه والمسجد */}
-            <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
-              <div>
-                <span className="text-slate-500">موجه إلى: </span>
-                <strong className="text-slate-900">{poData.directedTo}</strong>
-              </div>
-              <div>
-                <span className="text-slate-500">المشروع / المسجد: </span>
-                <strong className="text-slate-900">{mosqueName} {request?.mosque?.city ? `(${request.mosque.city})` : ""}</strong>
-              </div>
-            </div>
-
-            {/* جدول الأصناف (خالٍ تماماً وبشكل قاطع من أي أسعار) */}
-            <div className="space-y-1">
-              <p className="text-[11px] font-bold text-slate-700">
-                نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
-              </p>
-
-              <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                  <tr>
-                    <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                    <th className="p-2 border-l border-slate-300 w-1/3">الصنف المطلوب</th>
-                    <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                    <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                    <th className="p-2 text-center w-20">الوحدة</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-300">
-                  {(poItems.length > 0 ? poItems : allItems).map((it, idx) => (
-                    <tr key={it.id} className="h-8">
-                      <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                      <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                      <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                      <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* جدول التوقيعات والاعتماد المطابق تماماً لأمر الصرف */}
-            <div className="pt-3">
-              <table className="w-full border-collapse border border-slate-300 text-xs text-center">
-                <thead>
-                  <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
-                    <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
-                    <th className="p-2 border-l border-slate-300 w-1/4">الاسم</th>
-                    <th className="p-2 border-l border-slate-300 w-1/4">التوقيع</th>
-                    <th className="p-2 w-1/4">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* طالب الشراء */}
-                  <tr className="border-b border-slate-300 h-14">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.requesterRole}</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.requesterName || "طالب الشراء"}</td>
-                    <td className="p-2 border-l border-slate-300">
-                      <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24"></div>
-                    </td>
-                    <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
-                  </tr>
-
-                  {/* صاحب الصلاحية */}
-                  <tr className="h-14">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole}</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</td>
-                    <td className="p-2 border-l border-slate-300">
-                      {poData.approverSignatureUrl ? (
-                        <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
-                      ) : (
-                        <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24"></div>
-                      )}
-                    </td>
-                    <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* تذييل أمر الشراء */}
-            <div className="pt-2 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-              <span>تم إنشاء هذا المستند آلياً من نظام إدارة المساجد - سدانة</span>
-              <span>تاريخ الطباعة: {new Date().toLocaleDateString("ar-SA")}</span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ------------------------------------------------------------- */}
-      {/* نافذة معاينة وطباعة خطاب المسؤولية المجتمعية (Dialog Modal) */}
-      {/* ------------------------------------------------------------- */}
-      <Dialog open={showCsrModal} onOpenChange={setShowCsrModal}>
-        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto" dir="rtl">
-          <DialogHeader className="text-right sm:text-right pb-3 border-b print:hidden">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-base font-bold flex items-center gap-2">
-                  <HeartHandshake className="w-4 h-4 text-blue-600" />
-                  خطاب المسؤولية المجتمعية
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  خطاب رسمي موجه للجهات والشركات الداعمة لتأمين البنود
-                </DialogDescription>
-              </div>
-
-              <Button
-                size="sm"
-                onClick={handlePrint}
-                className="h-8 gap-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                طباعة الخطاب (A4)
-              </Button>
-            </div>
-          </DialogHeader>
-
-          {/* حقول التعديل السريع في رأس النافذة */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg bg-muted/20 border border-border text-xs print:hidden">
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">صيغة النداء *</Label>
-              <Select
-                value={csrData.salutation}
-                onValueChange={(val) => setCsrData(prev => ({ ...prev, salutation: val }))}
-              >
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  <SelectItem value="السادة">السادة</SelectItem>
-                  <SelectItem value="السيد">السيد</SelectItem>
-                  <SelectItem value="السيدة">السيدة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الجهة / الشركة *</Label>
-              <Input
-                value={csrData.recipientName}
-                onChange={(e) => setCsrData(prev => ({ ...prev, recipientName: e.target.value }))}
-                placeholder="مثال: شركة المراعي / مؤسسة الراجحي..."
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div>
-              <Label className="text-[11px] mb-1 block text-muted-foreground">عبارة التفخيم واللقب *</Label>
-              <Select
-                value={csrData.honorific}
-                onValueChange={(val) => setCsrData(prev => ({ ...prev, honorific: val }))}
-              >
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent dir="rtl">
-                  <SelectItem value="المحترمون">المحترمون</SelectItem>
-                  <SelectItem value="المحترم">المحترم</SelectItem>
-                  <SelectItem value="الموقر">الموقر</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* صفحة الخطاب الرسمي A4 */}
-          <div className="bg-white text-slate-900 p-8 rounded-lg border border-slate-300 shadow-xs space-y-6 print:p-0 print:border-none print:shadow-none leading-relaxed">
-            {/* ترويسة الخطاب */}
-            <div className="flex justify-between items-start border-b border-slate-300 pb-4">
-              <div className="flex items-center gap-3">
-                {orgSettings?.logoUrl ? (
-                  <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto object-contain" />
-                ) : (
-                  <div className="w-14 h-14 bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-700 font-bold text-lg">
-                    سدانة
-                  </div>
-                )}
-                <div>
-                  <h3 className="font-bold text-base text-blue-900">{orgName}</h3>
-                  <p className="text-xs text-slate-500 font-medium">إدارة المسؤولية المجتمعية والشراكات</p>
-                </div>
-              </div>
-
-              <div className="text-xs space-y-1 text-left font-mono">
-                <div><span className="text-slate-500">الرقم: </span><strong>{csrData.letterNumber}</strong></div>
-                <div><span className="text-slate-500">التاريخ: </span><strong>{csrData.letterDate}</strong></div>
-              </div>
-            </div>
-
-            {/* المخاطبة: السادة / ... المحترمون */}
-            <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
-              <span>{csrData.salutation} / </span>
-              <span className="border-b-2 border-dotted border-slate-400 px-2 text-blue-900">
-                {csrData.recipientName || "الجهة المانحة / الشريك المجتمعي"}
-              </span>
-              <span className="mr-3">{csrData.honorific}</span>
-            </div>
-
-            {/* الديباجة الحرفية المعتمدة */}
-            <div className="text-xs sm:text-sm text-slate-800 leading-loose space-y-2">
-              <p className="font-bold text-slate-900">السلام عليكم ورحمة الله وبركاته،،،</p>
-              <p>
-                تجدون برفقه البنود المراد تأمينها لمشروع <strong>({csrData.projectName || `مشروع جامع ${mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
-              </p>
-            </div>
-
-            {/* جدول الأصناف المرفقة (بدون أسعار نهائياً) */}
-            <div>
-              <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                  <tr>
-                    <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                    <th className="p-2 border-l border-slate-300">الصنف والبيان</th>
-                    <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                    <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                    <th className="p-2 text-center w-20">الوحدة</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-300">
-                  {(csrItems.length > 0 ? csrItems : allItems).map((it, idx) => (
-                    <tr key={it.id} className="h-8">
-                      <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                      <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                      <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                      <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* عبارة الختام الحرفية */}
-            <div className="pt-3 text-xs sm:text-sm font-bold text-slate-900">
-              <p>وتقبلوا وافر التحية والتقدير،،،</p>
-            </div>
-
-            {/* خانة التوقيع والاعتماد */}
-            <div className="pt-6 flex justify-end">
-              <div className="w-56 text-center space-y-2">
-                <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
-                <div className="h-12 flex items-center justify-center">
-                  <div className="border-b border-dashed border-slate-400 w-36 mx-auto" />
-                </div>
-                <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
-              </div>
-            </div>
-
-            {/* تذييل الخطاب */}
-            <div className="pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-              <span>{orgName} - سدانة</span>
-              <span>الرمز المرجعي: #{request?.requestNumber || requestId}</span>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
