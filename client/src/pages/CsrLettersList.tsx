@@ -146,10 +146,9 @@ export default function CsrLettersList() {
       ]);
 
       await exportStyledExcel({
-        title: "سجل خطابات المسؤولية المجتمعية والشراكات - برنامج سدانة",
-        subtitle: `تاريخ التصدير: ${new Date().toLocaleDateString("ar-SA")}`,
+        sheetName: "خطابات المسؤولية المجتمعية",
         columns,
-        data: rows,
+        rows,
         fileName: `CSR_Letters_${new Date().toISOString().split("T")[0]}.xlsx`,
       });
 
