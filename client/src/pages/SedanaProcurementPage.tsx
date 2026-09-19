@@ -50,6 +50,14 @@ import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 type ProcurementMethod = "contract" | "purchase_order" | "csr_letter";
 
+interface BoqItem {
+  id: string;
+  itemName: string;
+  description: string;
+  quantity: number;
+  unit: string;
+}
+
 export default function SedanaProcurementPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
