@@ -10,6 +10,7 @@ import { storageRouter } from "./routers/storage";
 import { projectsRouter } from "./routers/projects";
 import { suppliersRouter } from "./routers/suppliers";
 import { contractsRouter } from "./routers/contracts";
+import { procurementRouter } from "./routers/procurement";
 import { categoriesRouter } from "./routers/categories";
 import { organizationRouter } from "./routers/organization";
 import { disbursementsRouter } from "./routers/disbursements";
@@ -75,6 +76,9 @@ export const appRouter = router({
   
   // إدارة العقود
   contracts: contractsRouter,
+  
+  // أوامر الشراء والمسؤولية المجتمعية (سدانة وتأمين الطلبات)
+  procurement: procurementRouter,
   
   // إدارة التصنيفات
   categories: categoriesRouter,
