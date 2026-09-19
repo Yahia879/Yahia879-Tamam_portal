@@ -1161,9 +1161,12 @@ export default function SedanaProcurementPage() {
                   <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة أمر الشراء
                 </Button>
-                <span className="text-[11px] text-muted-foreground text-center">
-                  {poItems.length > 0 ? "عرض فول سكرين وجاهز للطباعة A4" : "حدد بنوداً لأمر الشراء لتتمكن من إصداره"}
-                </span>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                  <span>{poItems.length > 0 ? "جاهز للطباعة" : "حدد بنوداً أولاً"}</span>
+                  <Link href="/purchase-orders" className="text-sky-600 hover:underline font-medium">
+                    سجل أوامر الشراء
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 
@@ -1220,9 +1223,12 @@ export default function SedanaProcurementPage() {
                   <Eye className="w-3.5 h-3.5 text-sky-600" />
                   معاينة وطباعة الخطاب الرسمي
                 </Button>
-                <span className="text-[11px] text-muted-foreground text-center">
-                  {csrItems.length > 0 ? "عرض فول سكرين بديباجة معتمدة A4" : "حدد بنوداً للمسؤولية المجتمعية لتتمكن من إصداره"}
-                </span>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                  <span>{csrItems.length > 0 ? "جاهز للطباعة" : "حدد بنوداً أولاً"}</span>
+                  <Link href="/csr-letters" className="text-sky-600 hover:underline font-medium">
+                    سجل الخطابات
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 
