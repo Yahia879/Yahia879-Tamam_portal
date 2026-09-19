@@ -132,9 +132,9 @@ export default function SedanaProcurementPage() {
   });
 
   // استخراج بنود المسجد / الطلب
-  const allItems = useMemo(() => {
+  const allItems: BoqItem[] = useMemo(() => {
     if (boqResult?.items && boqResult.items.length > 0) {
-      return boqResult.items.map((it: any, idx: number) => ({
+      return boqResult.items.map((it: any, idx: number): BoqItem => ({
         id: String(it.id || idx + 1),
         itemName: it.itemName || it.name || `بند رقم ${idx + 1}`,
         description: it.description || "",
@@ -194,6 +194,8 @@ export default function SedanaProcurementPage() {
     orderNumber: `PO-${requestId}-${new Date().getFullYear()}`,
     orderDate: new Date().toISOString().split("T")[0],
     directedTo: "إلى إدارة المشتريات (متعهد صيانة المحطة)",
+    supplierName: "",
+    supplierRole: "المورد / متعهد التوريد",
     requesterName: "",
     requesterRole: "طالب الشراء / إدارة المشاريع",
     approverName: "",
@@ -210,6 +212,7 @@ export default function SedanaProcurementPage() {
     recipientName: "الجهة المانحة / الشريك المجتمعي",
     honorific: "المحترمون", // المحترمون / المحترم / الموقر
     projectName: "",
+    supplierRole: "المورد / الشريك المجتمعي",
     signatoryTitle: "المدير التنفيذي",
     signatoryName: "",
     additionalNotes: "",
@@ -295,7 +298,7 @@ export default function SedanaProcurementPage() {
       const quotes = quotationsData?.quotations || [];
       const acceptedQuotes = quotes.filter((q: any) => q.status === "accepted" || q.status === "approved");
 
-      allItems.forEach((it) => {
+      allItems.forEach((it: BoqItem) => {
         const name = (it.itemName || "").toLowerCase();
 
         // 1. التخصيص الدقيق للبنود المطلوبة
@@ -305,7 +308,7 @@ export default function SedanaProcurementPage() {
         } else if (name.includes("عبوات مياه")) {
           initialAlloc[it.id] = "contract";
           initialSupp[it.id] = { supplierId: 6, supplierName: "مؤسسة التوريد والخدمات (test)" };
-        } else if (name === "لا" || name.includes("لا")) {
+        } else if (name.trim() === "لا" || (name.trim().startsWith("لا") && name.trim().length <= 4)) {
           initialAlloc[it.id] = "csr_letter";
           initialSupp[it.id] = { supplierName: "الجهة المانحة / الشريك المجتمعي" };
         } else if (name.includes("صهاريج") || name.includes("صهريج")) {
@@ -368,12 +371,12 @@ export default function SedanaProcurementPage() {
     const map = new Map<string, {
       supplierName: string;
       supplierId?: number;
-      items: typeof allItems;
+      items: BoqItem[];
       dominantMethod: ProcurementMethod;
       isHomogeneous: boolean;
     }>();
 
-    allItems.forEach((it) => {
+    allItems.forEach((it: BoqItem) => {
       const sInfo = itemSuppliers[it.id] || { supplierName: "مؤسسة التوريد والخدمات (test)" };
       const sName = sInfo.supplierName || "مؤسسة التوريد والخدمات (test)";
       const sId = sInfo.supplierId;
@@ -390,8 +393,8 @@ export default function SedanaProcurementPage() {
       map.get(sName)!.items.push(it);
     });
 
-    return Array.from(map.values()).map(grp => {
-      const methods = grp.items.map(it => itemsAllocation[it.id] || "contract");
+    return Array.from(map.values()).map((grp) => {
+      const methods = grp.items.map((it: BoqItem) => itemsAllocation[it.id] || "contract");
       const counts = {
         contract: methods.filter(m => m === "contract").length,
         purchase_order: methods.filter(m => m === "purchase_order").length,
@@ -412,7 +415,7 @@ export default function SedanaProcurementPage() {
       return {
         ...grp,
         dominantMethod: dominant,
-        isHomogeneous: grp.items.every(it => (itemsAllocation[it.id] || "contract") === dominant),
+        isHomogeneous: grp.items.every((it: BoqItem) => (itemsAllocation[it.id] || "contract") === dominant),
       };
     });
   }, [allItems, itemSuppliers, itemsAllocation]);
@@ -443,7 +446,7 @@ export default function SedanaProcurementPage() {
     });
 
     // 4. موردون مضافون يدوياً
-    customSuppliers.forEach(c => add(c.name, c.id));
+    customSuppliers.forEach((c: { id?: number; name: string }) => add(c.name, c.id));
 
     // 5. الخيارات الافتراضية
     add("مؤسسة التوريد والخدمات (test)", 6);
@@ -455,22 +458,43 @@ export default function SedanaProcurementPage() {
 
   // البنود المخصصة لكل طريقة بدقة
   const contractItems = useMemo(() => {
-    return allItems.filter(it => (itemsAllocation[it.id] || "contract") === "contract");
+    return allItems.filter((it: BoqItem) => (itemsAllocation[it.id] || "contract") === "contract");
   }, [allItems, itemsAllocation]);
 
   const poItems = useMemo(() => {
-    return allItems.filter(it => itemsAllocation[it.id] === "purchase_order");
+    return allItems.filter((it: BoqItem) => itemsAllocation[it.id] === "purchase_order");
   }, [allItems, itemsAllocation]);
 
   const csrItems = useMemo(() => {
-    return allItems.filter(it => itemsAllocation[it.id] === "csr_letter");
+    return allItems.filter((it: BoqItem) => itemsAllocation[it.id] === "csr_letter");
   }, [allItems, itemsAllocation]);
+
+  // استخراج اسم المورد المعتمد لأمر الشراء الداخلي
+  const poSupplierName = useMemo(() => {
+    if (poData.supplierName) return poData.supplierName;
+    for (const it of poItems) {
+      if (itemSuppliers[it.id]?.supplierName) {
+        return itemSuppliers[it.id].supplierName;
+      }
+    }
+    return poData.directedTo ? poData.directedTo.replace(/^إلى\s*/, "") : "إدارة المشتريات / متعهد صيانة المحطة";
+  }, [poItems, itemSuppliers, poData.supplierName, poData.directedTo]);
+
+  // استخراج اسم الجهة أو المورد لخطاب المسؤولية المجتمعية
+  const csrSupplierName = useMemo(() => {
+    for (const it of csrItems) {
+      if (itemSuppliers[it.id]?.supplierName) {
+        return itemSuppliers[it.id].supplierName;
+      }
+    }
+    return csrData.recipientName || "الجهة المانحة / الشريك المجتمعي";
+  }, [csrItems, itemSuppliers, csrData.recipientName]);
 
   // تغيير طريقة التأمين لجميع بنود مورد معين دفعة واحدة
   const handleSupplierMethodChange = (supplierName: string, newMethod: ProcurementMethod) => {
     const targetItemIds = allItems
-      .filter(it => (itemSuppliers[it.id]?.supplierName || "مؤسسة التوريد والخدمات (test)") === supplierName)
-      .map(it => it.id);
+      .filter((it: BoqItem) => (itemSuppliers[it.id]?.supplierName || "مؤسسة التوريد والخدمات (test)") === supplierName)
+      .map((it: BoqItem) => it.id);
 
     setItemsAllocation(prev => {
       const next = { ...prev };
@@ -551,7 +575,7 @@ export default function SedanaProcurementPage() {
         supplierName: grp.supplierName,
         supplierId: grp.supplierId,
         method: grp.dominantMethod,
-        itemIds: grp.items.map(it => it.id),
+        itemIds: grp.items.map((it: BoqItem) => it.id),
       };
     });
 
@@ -690,19 +714,19 @@ export default function SedanaProcurementPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم طالب الشراء</Label>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المورد / متعهد التوريد</Label>
                   <Input
-                    value={poData.requesterName}
-                    onChange={(e) => setPoData(prev => ({ ...prev, requesterName: e.target.value }))}
-                    className="h-8 text-xs"
+                    value={poData.supplierName || poSupplierName}
+                    onChange={(e) => setPoData(prev => ({ ...prev, supplierName: e.target.value }))}
+                    className="h-8 text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم صاحب الصلاحية (الاعتماد)</Label>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم صاحب الصلاحية (المدير التنفيذي)</Label>
                   <Input
                     value={poData.approverName}
                     onChange={(e) => setPoData(prev => ({ ...prev, approverName: e.target.value }))}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs font-semibold"
                   />
                 </div>
                 <div className="flex items-end">
@@ -787,7 +811,7 @@ export default function SedanaProcurementPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-300">
                     {poItems.length > 0 ? (
-                      poItems.map((it, idx) => (
+                      poItems.map((it: BoqItem, idx: number) => (
                         <tr key={it.id} className="h-9">
                           <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
@@ -807,31 +831,31 @@ export default function SedanaProcurementPage() {
                 </table>
               </div>
 
-              {/* جدول التوقيعات والاعتماد المطابق تماماً لأمر الصرف */}
+              {/* جدول التوقيعات والاعتماد: التوقيع من المورد ومن المدير التنفيذي */}
               <div className="pt-4 break-inside-avoid">
                 <table className="w-full border-collapse border border-slate-300 text-xs text-center">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
-                      <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
-                      <th className="p-2 border-l border-slate-300 w-1/4">الاسم</th>
-                      <th className="p-2 border-l border-slate-300 w-1/4">التوقيع</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">الصفة / الطرف</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">الاسم والجهة</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">التوقيع والختم</th>
                       <th className="p-2 w-1/4">التاريخ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* طالب الشراء */}
+                    {/* الطرف الأول: المورد */}
                     <tr className="border-b border-slate-300 h-14 sm:h-16">
-                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.requesterRole}</td>
-                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.requesterName || "طالب الشراء"}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المورد / متعهد التوريد</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poSupplierName}</td>
                       <td className="p-2 border-l border-slate-300">
                         <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
                       </td>
                       <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
                     </tr>
 
-                    {/* صاحب الصلاحية (المدير التنفيذي) */}
+                    {/* الطرف الثاني: المدير التنفيذي */}
                     <tr className="h-14 sm:h-16">
-                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole || "المدير التنفيذي"}</td>
                       <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</td>
                       <td className="p-2 border-l border-slate-300">
                         {poData.approverSignatureUrl ? (
@@ -983,11 +1007,20 @@ export default function SedanaProcurementPage() {
                 </div>
 
                 <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المفوض بالتوقيع</Label>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المورد / الشريك المجتمعي</Label>
+                  <Input
+                    value={csrData.recipientName}
+                    onChange={(e) => setCsrData(prev => ({ ...prev, recipientName: e.target.value }))}
+                    className="h-8 text-xs font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المدير التنفيذي (الاعتماد)</Label>
                   <Input
                     value={csrData.signatoryName}
                     onChange={(e) => setCsrData(prev => ({ ...prev, signatoryName: e.target.value }))}
-                    className="h-8 text-xs"
+                    className="h-8 text-xs font-semibold"
                   />
                 </div>
 
@@ -1068,7 +1101,7 @@ export default function SedanaProcurementPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-300">
                     {csrItems.length > 0 ? (
-                      csrItems.map((it, idx) => (
+                      csrItems.map((it: BoqItem, idx: number) => (
                         <tr key={it.id} className="h-9">
                           <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
@@ -1093,14 +1126,34 @@ export default function SedanaProcurementPage() {
                 <p>وتقبلوا وافر التحية والتقدير،،،</p>
               </div>
 
-              {/* خانة التوقيع والاعتماد الرسمي */}
-              <div className="pt-8 flex justify-end">
-                <div className="w-60 text-center space-y-2">
-                  <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
+              {/* خانة التوقيع والاعتماد الرسمي: توقيع المورد وتوقيع المدير التنفيذي */}
+              <div className="pt-8 grid grid-cols-2 gap-6 sm:gap-10 items-start break-inside-avoid">
+                {/* الطرف الأول: المورد / الشريك المجتمعي */}
+                <div className="text-center space-y-2 p-3 sm:p-4 rounded-lg bg-slate-50/70 border border-slate-200">
+                  <p className="font-bold text-xs sm:text-sm text-slate-800">
+                    المورد / ممثل الجهة والشريك المجتمعي
+                  </p>
                   <div className="h-14 flex items-center justify-center">
-                    <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
+                    <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
                   </div>
-                  <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
+                  <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
+                    {csrSupplierName}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium">التوقيع والختم الرسمي</p>
+                </div>
+
+                {/* الطرف الثاني: المدير التنفيذي */}
+                <div className="text-center space-y-2 p-3 sm:p-4 rounded-lg bg-slate-50/70 border border-slate-200">
+                  <p className="font-bold text-xs sm:text-sm text-slate-800">
+                    {csrData.signatoryTitle || "المدير التنفيذي"}
+                  </p>
+                  <div className="h-14 flex items-center justify-center">
+                    <div className="border-b border-dashed border-slate-400 w-36 sm:w-44 mx-auto" />
+                  </div>
+                  <p className="font-bold text-xs sm:text-sm text-slate-900 truncate px-2">
+                    {csrData.signatoryName || "المهندس المفوض بالتوقيع"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium">الجمعية / إدارة المشاريع</p>
                 </div>
               </div>
             </div>
@@ -1400,7 +1453,7 @@ export default function SedanaProcurementPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border">
-                            {group.items.map((item, idx) => {
+                            {group.items.map((item: BoqItem, idx: number) => {
                               const currentMethod = itemsAllocation[item.id] || "contract";
                               return (
                                 <tr key={item.id} className="hover:bg-muted/20 transition-colors">
@@ -1443,7 +1496,7 @@ export default function SedanaProcurementPage() {
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent dir="rtl">
-                                        {allAvailableSuppliers.map((s) => (
+                                        {allAvailableSuppliers.map((s: { id?: number; name: string }) => (
                                           <SelectItem key={s.name} value={s.name} className="text-xs">
                                             {s.name}
                                           </SelectItem>
@@ -1479,7 +1532,7 @@ export default function SedanaProcurementPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {allItems.map((item, idx) => {
+                      {allItems.map((item: BoqItem, idx: number) => {
                         const currentMethod = itemsAllocation[item.id] || "contract";
                         const currentSupplier = itemSuppliers[item.id]?.supplierName || "مؤسسة التوريد والخدمات (test)";
                         return (
@@ -1502,7 +1555,7 @@ export default function SedanaProcurementPage() {
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent dir="rtl">
-                                  {allAvailableSuppliers.map((s) => (
+                                  {allAvailableSuppliers.map((s: { id?: number; name: string }) => (
                                     <SelectItem key={s.name} value={s.name} className="text-xs">
                                       {s.name}
                                     </SelectItem>
@@ -1583,7 +1636,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بالعقد:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {contractItems.map(it => (
+                      {contractItems.map((it: BoqItem) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
@@ -1666,7 +1719,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بأمر الشراء:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {poItems.map(it => (
+                      {poItems.map((it: BoqItem) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
@@ -1728,7 +1781,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بالخطاب:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {csrItems.map(it => (
+                      {csrItems.map((it: BoqItem) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
