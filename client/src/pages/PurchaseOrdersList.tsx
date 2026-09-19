@@ -637,21 +637,23 @@ export default function PurchaseOrdersList() {
                     </table>
                   </div>
 
-                  {/* جدول التوقيعات المطابق لأمر الصرف */}
+                  {/* جدول التوقيعات: المورد والمدير التنفيذي */}
                   <div className="pt-6">
                     <table className="w-full border-collapse border border-slate-300 text-xs text-center">
                       <thead>
                         <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
-                          <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
-                          <th className="p-2 border-l border-slate-300 w-1/4">الاسم</th>
-                          <th className="p-2 border-l border-slate-300 w-1/4">التوقيع</th>
+                          <th className="p-2 border-l border-slate-300 w-1/4">الصفة / الطرف</th>
+                          <th className="p-2 border-l border-slate-300 w-1/4">الاسم والجهة</th>
+                          <th className="p-2 border-l border-slate-300 w-1/4">التوقيع والختم</th>
                           <th className="p-2 w-1/4">التاريخ</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr className="border-b border-slate-300 h-14">
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview?.requesterRole || "طالب الشراء"}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview?.requesterName}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المورد / متعهد التوريد</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">
+                            {selectedOrderForPreview?.directedTo?.replace(/^إلى\s*/, "") || selectedOrderForPreview?.poSupplierName || "المورد المعتمد"}
+                          </td>
                           <td className="p-2 border-l border-slate-300">
                             <div className="h-7 border-b border-dashed border-gray-300 mx-auto w-24"></div>
                           </td>
@@ -659,7 +661,7 @@ export default function PurchaseOrdersList() {
                         </tr>
                         <tr className="h-14">
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview?.approverRole || "المدير التنفيذي"}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview?.approverName}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview?.approverName || "المدير التنفيذي"}</td>
                           <td className="p-2 border-l border-slate-300">
                             {selectedOrderForPreview?.approverSignatureUrl ? (
                               <img src={selectedOrderForPreview.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
