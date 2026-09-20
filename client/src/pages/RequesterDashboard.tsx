@@ -14,6 +14,7 @@ import {
   Eye,
   XCircle,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
@@ -73,6 +74,10 @@ export default function RequesterDashboard() {
     : (Array.isArray(myMosquesData?.mosques) ? myMosquesData.mosques : []);
   // جلب الإشعارات
   const { data: notificationsData } = trpc.notifications.getMyNotifications.useQuery({ limit: 5 });
+  // جلب استفسار سدانة الأخير إن وجد
+  const { data: sedanaInquiry } = trpc.sedanaInquiries.getMyInquiryStatus.useQuery(undefined, {
+    enabled: !!user,
+  });
 
   const myRequests = Array.isArray(myRequestsData)
     ? myRequestsData
@@ -130,6 +135,91 @@ export default function RequesterDashboard() {
               </AlertDescription>
             </div>
           </Alert>
+        </div>
+      )}
+
+      {/* بطاقة متابعة استفسار وتأهيل برنامج سدانة */}
+      {sedanaInquiry && !sedanaInquiry.completedRequestId && (
+        <div className="mb-6 sm:mb-8 dir-rtl">
+          {sedanaInquiry.status === "pending" && (
+            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-cyan-950/20 via-sky-900/10 to-transparent border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      قيد التواصل والتحقق
+                    </span>
+                    <h3 className="font-bold text-sm sm:text-base text-foreground">
+                      طلب استفسار وتأهيل برنامج "سدانة" ({sedanaInquiry.mosqueName})
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    تم استلام إجابات الاستبيان بنجاح، وسيتواصل معك فريق الجمعية هاتفياً لمناقشة جاهزية المسجد وتأهيل الطلب.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {sedanaInquiry.status === "approved" && (
+            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-emerald-950/30 via-emerald-900/15 to-transparent border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      مؤهل ومُعتمد للتقديم 🎉
+                    </span>
+                    <h3 className="font-bold text-sm sm:text-base text-foreground">
+                      تم تأهيل مسجد ({sedanaInquiry.mosqueName}) لبرنامج سدانة!
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    {sedanaInquiry.actionNotes || "تم التحقق من جاهزية المسجد، يمكنك الآن توقيع الاتفاقية وتقديم طلبك النهائي."}
+                  </p>
+                </div>
+              </div>
+              <Link href={`/request-form-dynamic?program=sedana&mosqueId=${sedanaInquiry.mosqueId}`}>
+                <Button className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 cursor-pointer">
+                  <span>إكمال وتوقيع طلب سدانة</span>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {sedanaInquiry.status === "rejected" && (
+            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-rose-950/20 via-slate-900/20 to-transparent border border-rose-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {sedanaInquiry.actionType === "redirect_alternative" ? "توجيه لبديل آخر" : "اعتذار عن البرنامج"}
+                    </span>
+                    <h3 className="font-bold text-sm sm:text-base text-foreground">
+                      ملاحظة بشأن برنامج سدانة ({sedanaInquiry.mosqueName})
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    {sedanaInquiry.actionNotes}
+                  </p>
+                  {sedanaInquiry.redirectProgram && (
+                    <p className="text-xs font-bold text-amber-500 mt-1">
+                      البرنامج البديل الموصى به: {sedanaInquiry.redirectProgram}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
