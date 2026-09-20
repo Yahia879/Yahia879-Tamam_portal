@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -38,7 +38,6 @@ import {
   Printer,
   Download,
   Building2,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Package,
@@ -72,11 +71,23 @@ export default function CsrLettersList() {
   const [, navigate] = useLocation();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 
   const [isExporting, setIsExporting] = useState(false);
+
+  // Debounce للبحث
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const utils = trpc.useUtils();
 
   // الخطاب المحدد للمعاينة والطباعة الفورية A4
   const [selectedLetterForPreview, setSelectedLetterForPreview] = useState<any | null>(null);
@@ -103,7 +114,7 @@ export default function CsrLettersList() {
     isLoading,
     refetch,
   } = trpc.procurement.listCsrLetters.useQuery({
-    search: searchTerm || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     page: currentPage,
     limit,
@@ -129,7 +140,14 @@ export default function CsrLettersList() {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
-      if (letters.length === 0) {
+      const allMatching = await utils.procurement.listCsrLetters.fetch({
+        search: debouncedSearch || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        page: 1,
+        limit: 10000,
+      });
+      const exportLetters = allMatching?.letters || letters;
+      if (exportLetters.length === 0) {
         toast.info("لا توجد بيانات لتصديرها");
         return;
       }
@@ -146,7 +164,7 @@ export default function CsrLettersList() {
         { header: "الحالة", align: "center" as const, minWidth: 18 },
       ];
 
-      const rows = letters.map((l) => [
+      const rows = exportLetters.map((l) => [
         l.letterNumber || "",
         `#${l.requestNumber}`,
         l.mosqueName || "",
@@ -285,14 +303,23 @@ export default function CsrLettersList() {
               <div className="relative flex-1 w-full">
                 <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="البحث برقم الخطاب، اسم الجهة أو الشركة، اسم المسجد، المدينة، رقم الطلب..."
+                  placeholder="البحث برقم الخطاب، اسم الجهة أو الشركة، التسمية التوضيحية، رقم الطلب، المسجد..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setCurrentPage(1);
                   }}
-                  className="pr-9 h-9 text-xs"
+                  className="pr-9 pl-9 h-9 text-xs"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+                    title="مسح البحث"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="w-full sm:w-56">
@@ -342,12 +369,12 @@ export default function CsrLettersList() {
                     <TableRow className="hover:bg-transparent border-b">
                       <th className="p-3 w-12 text-center font-bold">#</th>
                       <th className="p-3 font-bold">رقم الخطاب</th>
-                      <th className="p-3 font-bold">الطلب والمسجد المستفيد</th>
-                      <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
+                      <th className="p-3 font-bold">الطلب</th>
                       <th className="p-3 font-bold">الجهة الموجه إليها الخطاب</th>
                       <th className="p-3 font-bold">المفوض بالتوقيع</th>
                       <th className="p-3 font-bold text-center">الأصناف المطلوبة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
+                      <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
                       <th className="p-3 font-bold text-center w-24">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
@@ -367,22 +394,18 @@ export default function CsrLettersList() {
                             </span>
                           </td>
 
-                          {/* الطلب والمسجد المستفيد */}
+                          {/* الطلب */}
                           <td className="p-3">
                             <div className="space-y-0.5">
-                              <Link href={`/requests/${letter.requestId}`} className="font-bold text-foreground hover:text-sky-600 transition-colors flex items-center gap-1.5">
-                                <span>جامع {letter.mosqueName}</span>
-                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                              </Link>
-                              <p className="text-[11px] text-muted-foreground">
-                                طلب #{letter.requestNumber} {letter.mosqueCity ? `• ${letter.mosqueCity}` : ""}
+                              <p className="font-bold text-foreground">
+                                {letter.descriptiveName || `طلب #${letter.requestNumber}`}
                               </p>
+                              {letter.descriptiveName && (
+                                <p className="text-[11px] text-muted-foreground font-mono">
+                                  طلب #{letter.requestNumber}
+                                </p>
+                              )}
                             </div>
-                          </td>
-
-                          {/* تاريخ الخطاب */}
-                          <td className="p-3 text-center font-mono text-muted-foreground">
-                            {letter.letterDate || "-"}
                           </td>
 
                           {/* الجهة الموجه إليها الخطاب */}
@@ -418,6 +441,11 @@ export default function CsrLettersList() {
                             <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
                               {statusInfo.label}
                             </Badge>
+                          </td>
+
+                          {/* تاريخ الخطاب */}
+                          <td className="p-3 text-center font-mono text-muted-foreground">
+                            {letter.letterDate || "-"}
                           </td>
 
                           {/* الإجراءات */}
