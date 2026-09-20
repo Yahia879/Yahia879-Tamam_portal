@@ -44,6 +44,7 @@ import {
   Layers,
   Sparkles,
   UserCheck,
+  ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -263,6 +264,9 @@ export default function SedanaProcurementPage() {
   // حالة طريقة التأمين لكل بند: itemId -> ProcurementMethod
   const [itemsAllocation, setItemsAllocation] = useState<Record<string, ProcurementMethod>>({});
 
+  // حالة طريقة التأمين لكل مورد: supplierKey -> ProcurementMethod
+  const [suppliersAllocation, setSuppliersAllocation] = useState<Record<string, ProcurementMethod>>({});
+
   // خيارات الضبط السريع للطلب ككل
   const [selectedGlobalSupplier, setSelectedGlobalSupplier] = useState<string>("");
 
@@ -395,7 +399,12 @@ export default function SedanaProcurementPage() {
         setItemsAllocation(initialAlloc);
       }
 
-      // 3. استرجاع بيانات النماذج
+      // 3. استرجاع تخصيص الموردين
+      if (savedProc?.suppliersAllocation && Object.keys(savedProc.suppliersAllocation).length > 0) {
+        setSuppliersAllocation(savedProc.suppliersAllocation);
+      }
+
+      // 4. استرجاع بيانات النماذج
       if (savedProc?.activePurchaseOrder) {
         setPoData(prev => ({ ...prev, ...savedProc.activePurchaseOrder }));
       }
@@ -444,6 +453,75 @@ export default function SedanaProcurementPage() {
     }
   }, [request, user, signatoriesData]);
 
+  // تجميع البنود تحت كل مورد لعرض "الموردين مع البنود لكل مورد ونحدد النوع"
+  const supplierGroups = useMemo(() => {
+    const groupsMap = new Map<string, {
+      key: string;
+      supplierId?: number;
+      supplierName: string;
+      quotationId?: number;
+      quotationNumber?: string;
+      method: ProcurementMethod;
+      items: Array<{
+        id: string;
+        itemName: string;
+        description: string;
+        quantity: number;
+        unit: string;
+        unitPrice?: number;
+        totalPrice?: number;
+      }>;
+      totalAmount: number;
+      isUnassigned?: boolean;
+    }>();
+
+    allItems.forEach((it: any) => {
+      const sup = itemSupplierMap[it.id];
+      const itemMethod = itemsAllocation[it.id] || "contract";
+
+      let key = "unassigned";
+      let supName = "أصناف بانتظار تحديد المورد";
+      let supId: number | undefined;
+      let quoId: number | undefined;
+      let isUnassigned = true;
+
+      if (sup?.supplierName && sup.supplierName !== "لم يحدد بعد" && sup.supplierName !== "غير محدد") {
+        key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
+        supName = sup.supplierName;
+        supId = sup.supplierId;
+        quoId = sup.quotationId;
+        isUnassigned = false;
+      }
+
+      if (!groupsMap.has(key)) {
+        const quo = (quotationsResult?.quotations || []).find((q: any) => q.id === quoId || (supId && q.supplierId === supId));
+        groupsMap.set(key, {
+          key,
+          supplierId: supId,
+          supplierName: supName,
+          quotationId: quoId,
+          quotationNumber: quo?.quotationNumber,
+          method: suppliersAllocation[key] || itemMethod || (isUnassigned ? "csr_letter" : "contract"),
+          items: [],
+          totalAmount: 0,
+          isUnassigned,
+        });
+      }
+
+      const grp = groupsMap.get(key)!;
+      const unitPrice = sup?.unitPrice || 0;
+      const totalPrice = sup?.totalPrice || (unitPrice > 0 ? unitPrice * it.quantity : 0);
+      grp.items.push({
+        ...it,
+        unitPrice,
+        totalPrice,
+      });
+      grp.totalAmount += totalPrice;
+    });
+
+    return Array.from(groupsMap.values());
+  }, [allItems, itemSupplierMap, itemsAllocation, suppliersAllocation, quotationsResult]);
+
   // البنود المخصصة لكل طريقة
   const contractItems = useMemo(() => {
     return allItems.filter((it: any) => (itemsAllocation[it.id] || "contract") === "contract");
@@ -459,82 +537,64 @@ export default function SedanaProcurementPage() {
 
   // الموردون المخصصون لكل مسار
   const contractSuppliers = useMemo(() => {
-    const map = new Map<string, { supplierId?: number; supplierName: string; items: any[] }>();
-    contractItems.forEach((it: any) => {
-      const sup = itemSupplierMap[it.id] || { supplierName: "لم يحدد بعد" };
-      const key = sup.supplierId ? `id_${sup.supplierId}` : `name_${sup.supplierName}`;
-      if (!map.has(key)) {
-        map.set(key, { supplierId: sup.supplierId, supplierName: sup.supplierName, items: [] });
-      }
-      map.get(key)!.items.push(it);
-    });
-    return Array.from(map.values());
-  }, [contractItems, itemSupplierMap]);
+    return supplierGroups.filter(g => !g.isUnassigned && (suppliersAllocation[g.key] || g.method || "contract") === "contract");
+  }, [supplierGroups, suppliersAllocation]);
 
   const poSuppliers = useMemo(() => {
-    const map = new Map<string, { supplierId?: number; supplierName: string; items: any[] }>();
-    poItems.forEach((it: any) => {
-      const sup = itemSupplierMap[it.id] || { supplierName: "لم يحدد بعد" };
-      const key = sup.supplierId ? `id_${sup.supplierId}` : `name_${sup.supplierName}`;
-      if (!map.has(key)) {
-        map.set(key, { supplierId: sup.supplierId, supplierName: sup.supplierName, items: [] });
-      }
-      map.get(key)!.items.push(it);
-    });
-    return Array.from(map.values());
-  }, [poItems, itemSupplierMap]);
+    return supplierGroups.filter(g => !g.isUnassigned && (suppliersAllocation[g.key] || g.method) === "purchase_order");
+  }, [supplierGroups, suppliersAllocation]);
 
   const csrSuppliers = useMemo(() => {
-    const map = new Map<string, { supplierId?: number; supplierName: string; items: any[] }>();
-    csrItems.forEach((it: any) => {
-      const sup = itemSupplierMap[it.id] || { supplierName: "لم يحدد بعد" };
-      const key = sup.supplierId ? `id_${sup.supplierId}` : `name_${sup.supplierName}`;
-      if (!map.has(key)) {
-        map.set(key, { supplierId: sup.supplierId, supplierName: sup.supplierName, items: [] });
-      }
-      map.get(key)!.items.push(it);
-    });
-    return Array.from(map.values());
-  }, [csrItems, itemSupplierMap]);
+    return supplierGroups.filter(g => (suppliersAllocation[g.key] || g.method) === "csr_letter");
+  }, [supplierGroups, suppliersAllocation]);
 
-  // الموردون النشطون بشكل عام
-  const allActiveSuppliersCount = useMemo(() => {
-    const names = new Set<string>();
-    Object.values(itemSupplierMap).forEach(s => {
-      if (s?.supplierName && s.supplierName !== "لم يحدد بعد") {
-        names.add(s.supplierName);
-      }
-    });
-    return names.size;
-  }, [itemSupplierMap]);
+  // الموردون النشطون
+  const activeSuppliersList = useMemo(() => {
+    return supplierGroups.filter(g => !g.isUnassigned);
+  }, [supplierGroups]);
 
-  // تخصيص المورد لبند معين
-  const handleSetItemSupplier = (itemId: string, supplierName: string) => {
-    if (supplierName === "__ADD_NEW__") {
+  // تغيير نوع/طريقة التأمين لمورد بالكامل (يطبق على المورد وكافة بنوده)
+  const handleSupplierMethodChange = (supplierKey: string, method: ProcurementMethod) => {
+    setSuppliersAllocation(prev => ({
+      ...prev,
+      [supplierKey]: method,
+    }));
+
+    const grp = supplierGroups.find(g => g.key === supplierKey);
+    if (grp) {
+      setItemsAllocation(prev => {
+        const updated = { ...prev };
+        grp.items.forEach((it: any) => {
+          updated[it.id] = method;
+        });
+        return updated;
+      });
+    }
+
+    const label = method === "contract" ? "عقد توريد وخدمات" : method === "purchase_order" ? "أمر شراء داخلي" : "خطاب مسؤولية مجتمعية";
+    toast.success(`تم تحديد نوع "${label}" للمورد`);
+  };
+
+  // نقل بند معين إلى مورد آخر
+  const handleReassignItemSupplier = (itemId: string, newSupplierName: string) => {
+    if (newSupplierName === "__ADD_NEW__") {
       setAddSupplierTargetItemId(itemId);
       setShowAddSupplierModal(true);
       return;
     }
-    const supObj = availableSuppliers.find(s => s.name === supplierName);
+    const supObj = availableSuppliers.find(s => s.name === newSupplierName);
     setItemSupplierMap(prev => ({
       ...prev,
       [itemId]: {
         supplierId: supObj?.id,
-        supplierName,
+        supplierName: newSupplierName,
         quotationId: supObj?.quotationId,
       },
     }));
+    toast.success(`تم نقل البند للمورد "${newSupplierName}"`);
   };
 
-  // تغيير طريقة التأمين لبند معين
-  const handleSetItemMethod = (itemId: string, method: ProcurementMethod) => {
-    setItemsAllocation(prev => ({
-      ...prev,
-      [itemId]: method,
-    }));
-  };
-
-  // تطبيق المورد العام على كافة البنود
+  // تطبيق مورد على كافة البنود دفعة واحدة
   const handleApplyGlobalSupplier = () => {
     if (!selectedGlobalSupplier) {
       toast.error("يرجى اختيار المورد أولاً");
@@ -552,20 +612,7 @@ export default function SedanaProcurementPage() {
       });
       return updated;
     });
-    toast.success(`تم تعيين المورد "${selectedGlobalSupplier}" لكافة البنود (${allItems.length} بند)`);
-  };
-
-  // تطبيق طريقة التأمين على كافة البنود
-  const handleApplyGlobalMethod = (method: ProcurementMethod) => {
-    setItemsAllocation(prev => {
-      const updated = { ...prev };
-      allItems.forEach((it: any) => {
-        updated[it.id] = method;
-      });
-      return updated;
-    });
-    const label = method === "contract" ? "عقد توريد وخدمات" : method === "purchase_order" ? "أمر شراء داخلي" : "خطاب مسؤولية مجتمعية";
-    toast.success(`تم تطبيق مسار "${label}" على كافة البنود (${allItems.length} بند)`);
+    toast.success(`تم إسناد كافة البنود للمورد "${selectedGlobalSupplier}"`);
   };
 
   // إضافة مورد مخصص جديد
@@ -579,8 +626,7 @@ export default function SedanaProcurementPage() {
       setCustomSuppliers(prev => [...prev, trimmed]);
     }
     if (addSupplierTargetItemId) {
-      handleSetItemSupplier(addSupplierTargetItemId, trimmed);
-      toast.success(`تم تعيين المورد "${trimmed}" للبند`);
+      handleReassignItemSupplier(addSupplierTargetItemId, trimmed);
     } else {
       setSelectedGlobalSupplier(trimmed);
       setItemSupplierMap(prev => {
@@ -601,15 +647,6 @@ export default function SedanaProcurementPage() {
 
   // حفظ التجزئة والبيانات
   const handleSaveProcurement = (advanceStage: boolean = false) => {
-    // إعداد suppliersAllocation للتوافق مع السيرفر
-    const suppliersAllocation: Record<string, ProcurementMethod> = {};
-    Object.entries(itemSupplierMap).forEach(([itemId, sup]) => {
-      if (sup?.supplierName) {
-        const key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
-        suppliersAllocation[key] = itemsAllocation[itemId] || "contract";
-      }
-    });
-
     saveProcurementMutation.mutate({
       requestId,
       procurementData: {
@@ -955,7 +992,7 @@ export default function SedanaProcurementPage() {
   }
 
   // =========================================================================
-  // 3. الشاشة الرئيسية: تحديد المورد وتحديد الطريقة وجدول البنود والبطاقات
+  // 3. الشاشة الرئيسية: الموردين مع البنود لكل مورد وتحديد النوع
   // =========================================================================
   return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-background text-right pb-16 font-sans" dir="rtl">
@@ -976,7 +1013,7 @@ export default function SedanaProcurementPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-foreground">
-                  تأمين الطلب والتعاقد
+                  تأمين بنود الطلب والتعاقد
                 </h1>
                 <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                   طلب #{request?.requestNumber || requestId}
@@ -1020,13 +1057,13 @@ export default function SedanaProcurementPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white dark:bg-card p-3 rounded-xl border border-border shadow-2xs flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-muted-foreground">إجمالي بنود الاحتياج</p>
+              <p className="text-[11px] text-muted-foreground">الموردون المعتمدون</p>
               <p className="text-lg font-bold text-foreground mt-0.5">
-                {allItems.length} <span className="text-xs font-normal text-muted-foreground">بنود ({allActiveSuppliersCount} موردين)</span>
+                {activeSuppliersList.length} <span className="text-xs font-normal text-muted-foreground">موردين ({allItems.length} بند)</span>
               </p>
             </div>
             <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              <Layers className="w-4 h-4" />
+              <Building2 className="w-4 h-4" />
             </div>
           </div>
 
@@ -1034,7 +1071,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-sky-700 dark:text-sky-400">عقود التوريد والخدمات</p>
               <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">
-                {contractItems.length} <span className="text-xs font-normal">أصناف</span> ({contractSuppliers.length} موردين)
+                {contractSuppliers.length} <span className="text-xs font-normal">موردين</span> ({contractItems.length} صنف)
               </p>
             </div>
             <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600">
@@ -1046,7 +1083,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-slate-700 dark:text-slate-300">أوامر الشراء الداخلية</p>
               <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">
-                {poItems.length} <span className="text-xs font-normal">أصناف</span> ({poSuppliers.length} موردين)
+                {poSuppliers.length} <span className="text-xs font-normal">موردين</span> ({poItems.length} صنف)
               </p>
             </div>
             <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -1058,7 +1095,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-teal-700 dark:text-teal-400">المسؤولية المجتمعية</p>
               <p className="text-lg font-bold text-teal-800 dark:text-teal-200 mt-0.5">
-                {csrItems.length} <span className="text-xs font-normal">أصناف</span> ({csrSuppliers.length} شركاء)
+                {csrSuppliers.length} <span className="text-xs font-normal">موردين/جهات</span> ({csrItems.length} صنف)
               </p>
             </div>
             <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600">
@@ -1067,270 +1104,267 @@ export default function SedanaProcurementPage() {
           </div>
         </div>
 
-        {/* القسم الرئيسي: تحديد المورد وطريقة التأمين */}
-        <Card className="border border-border shadow-xs bg-white dark:bg-card overflow-hidden">
-          <CardHeader className="p-4 sm:p-5 pb-3 border-b bg-muted/15 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-sky-600" />
-                  <CardTitle className="text-base font-bold text-foreground">
-                    تحديد المورد وطريقة التأمين لبنود الطلب
-                  </CardTitle>
-                </div>
-                <CardDescription className="text-xs text-muted-foreground mt-1">
-                  حدد المورد المسؤول وطريقة التأمين (عقد توريد وخدمات، أمر شراء داخلي، أو خطاب مسؤولية مجتمعية) لكل بند بسهولة.
-                </CardDescription>
-              </div>
+        {/* لوحة التحكم السريع وإضافة الموردين */}
+        <div className="bg-white dark:bg-card p-4 rounded-xl border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-sky-600 shrink-0" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">توزيع بنود الطلب وتحديد المورد</h3>
+              <p className="text-xs text-muted-foreground">يمكنك إسناد البنود بالكامل لمورد محدد، أو توزيع البنود بين عدة موردين وتحديد نوع التأمين لكل مورد أدناه.</p>
+            </div>
+          </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setAddSupplierTargetItemId(null);
-                  setShowAddSupplierModal(true);
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-56">
+              <Select
+                value={selectedGlobalSupplier}
+                onValueChange={(val) => {
+                  if (val === "__ADD_NEW__") {
+                    setAddSupplierTargetItemId(null);
+                    setShowAddSupplierModal(true);
+                  } else {
+                    setSelectedGlobalSupplier(val);
+                  }
                 }}
-                className="text-xs font-semibold gap-1.5 border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-300"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>إضافة مورد جديد</span>
-              </Button>
+                <SelectTrigger className="h-8 text-xs font-semibold bg-background border-border">
+                  <SelectValue placeholder="اختر المورد للكل..." />
+                </SelectTrigger>
+                <SelectContent dir="rtl" className="max-h-64">
+                  {availableSuppliers.map((sup, sIdx) => (
+                    <SelectItem key={`global_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="font-semibold">{sup.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                          sup.source === "quotation"
+                            ? "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+                            : sup.source === "registered"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
+                          {sup.sourceLabel}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ إضافة اسم مورد جديد...</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* شريط التحكم السريع: تعيين المورد والطريقة للكل بنقرة واحدة */}
-            <div className="bg-sky-50/70 dark:bg-sky-950/30 p-3.5 rounded-xl border border-sky-200/70 dark:border-sky-800/50 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-900 dark:text-sky-200">
-                <Sparkles className="w-4 h-4 text-sky-600" />
-                <span>تحكم سريع (تطبيق على كافة البنود دفعة واحدة):</span>
-              </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleApplyGlobalSupplier}
+              disabled={!selectedGlobalSupplier}
+              className="h-8 text-xs font-bold gap-1 bg-sky-600 hover:bg-sky-700 text-white shrink-0 shadow-2xs"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>إسناد للكل</span>
+            </Button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
-                {/* تعيين المورد للكل */}
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <Select
-                      value={selectedGlobalSupplier}
-                      onValueChange={(val) => {
-                        if (val === "__ADD_NEW__") {
-                          setAddSupplierTargetItemId(null);
-                          setShowAddSupplierModal(true);
-                        } else {
-                          setSelectedGlobalSupplier(val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs font-semibold bg-white dark:bg-slate-900 border-border">
-                        <SelectValue placeholder="اختر المورد لتعيينه للكل..." />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl" className="max-h-64">
-                        {availableSuppliers.map((sup, sIdx) => (
-                          <SelectItem key={`global_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
-                            <div className="flex items-center justify-between gap-2 w-full">
-                              <span className="font-semibold">{sup.name}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                sup.source === "quotation"
-                                  ? "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                                  : sup.source === "registered"
-                                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                  : "bg-muted text-muted-foreground"
-                              }`}>
-                                {sup.sourceLabel}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
-                          <div className="flex items-center gap-1.5">
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>+ إضافة اسم مورد جديد...</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setAddSupplierTargetItemId(null);
+                setShowAddSupplierModal(true);
+              }}
+              className="h-8 text-xs font-semibold gap-1 border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-300"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>مورد جديد</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* القسم الرئيسي: عرض الموردين مع البنود لكل مورد وتحديد النوع */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-sky-600" />
+              <span>الموردون وبنود كل مورد وتحديد النوع ({supplierGroups.length} مجموعات):</span>
+            </h2>
+          </div>
+
+          {/* بطاقات الموردين مع بنود كل مورد */}
+          {supplierGroups.map((grp) => {
+            const currentMethod = suppliersAllocation[grp.key] || grp.method || "contract";
+
+            return (
+              <Card
+                key={grp.key}
+                className={`border shadow-xs overflow-hidden transition-all ${
+                  grp.isUnassigned
+                    ? "border-amber-200 dark:border-amber-800/60 bg-amber-50/10 dark:bg-amber-950/10"
+                    : currentMethod === "contract"
+                    ? "border-sky-200 dark:border-sky-800/60 bg-white dark:bg-card"
+                    : currentMethod === "purchase_order"
+                    ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-card"
+                    : "border-teal-200 dark:border-teal-800/60 bg-white dark:bg-card"
+                }`}
+              >
+                {/* ترويسة بطاقة المورد وتحديد النوع */}
+                <CardHeader className="p-4 sm:p-5 pb-3 border-b bg-muted/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {/* معلومات المورد */}
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className={`p-2.5 rounded-xl shrink-0 ${
+                      grp.isUnassigned
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                        : currentMethod === "contract"
+                        ? "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                        : currentMethod === "purchase_order"
+                        ? "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                        : "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300"
+                    }`}>
+                      {grp.isUnassigned ? <AlertCircle className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-base text-foreground">
+                          {grp.supplierName}
+                        </span>
+                        <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5">
+                          {grp.items.length} أصناف
+                        </Badge>
+                        {grp.quotationNumber && (
+                          <Badge variant="secondary" className="text-[11px] font-mono">
+                            عرض سعر #{grp.quotationNumber}
+                          </Badge>
+                        )}
+                        {grp.totalAmount > 0 && (
+                          <Badge variant="outline" className="text-xs font-mono font-bold text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200">
+                            {formatCurrency(grp.totalAmount)} ر.س
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {grp.isUnassigned
+                          ? "هذه البنود لم تُسند لمورد بعد، يرجى اختيار مورد لها أدناه أو نقلها لمورد محدد"
+                          : "الأصناف الموكلة لهذا المورد ونوع التأمين المعتمد له"}
+                      </p>
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleApplyGlobalSupplier}
-                    disabled={!selectedGlobalSupplier}
-                    className="h-8 text-xs font-bold gap-1 bg-sky-600 hover:bg-sky-700 text-white shrink-0 shadow-2xs"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>تعيين المورد للكل</span>
-                  </Button>
-                </div>
 
-                {/* تطبيق الطريقة على الكل */}
-                <div className="flex items-center gap-1.5 justify-start md:justify-end">
-                  <span className="text-[11px] font-semibold text-muted-foreground ml-1">تطبيق الطريقة:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyGlobalMethod("contract")}
-                    className="h-8 px-2.5 text-xs font-bold rounded-lg border border-sky-300 dark:border-sky-800 bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 hover:bg-sky-50 transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <FileSignature className="w-3.5 h-3.5" />
-                    <span>عقد للكل</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyGlobalMethod("purchase_order")}
-                    className="h-8 px-2.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-100 transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>أمر شراء للكل</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyGlobalMethod("csr_letter")}
-                    className="h-8 px-2.5 text-xs font-bold rounded-lg border border-teal-300 dark:border-teal-800 bg-white dark:bg-slate-900 text-teal-800 dark:text-teal-300 hover:bg-teal-50 transition-all flex items-center gap-1 shadow-2xs cursor-pointer"
-                  >
-                    <HeartHandshake className="w-3.5 h-3.5" />
-                    <span>مسؤولية للكل</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-right">
-                <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold">
-                  <tr>
-                    <th className="p-3 w-10 text-center">#</th>
-                    <th className="p-3 w-1/3">بند الاحتياج والمواصفات</th>
-                    <th className="p-3 text-center w-24">الكمية</th>
-                    <th className="p-3 w-56">المورد المحدد</th>
-                    <th className="p-3 text-center w-72">طريقة التأمين (اختر الطريقة)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {allItems.map((it: any, idx: number) => {
-                    const currentMethod = itemsAllocation[it.id] || "contract";
-                    const currentSupplier = itemSupplierMap[it.id];
-
-                    return (
-                      <tr
-                        key={it.id}
-                        className={`transition-colors ${
+                  {/* تحديد النوع (طريقة التأمين للمورد بنقرة واحدة) */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
+                    <span className="text-xs font-bold text-foreground">تحديد النوع:</span>
+                    <div className="inline-flex rounded-xl border border-border p-1 bg-background/90 shadow-2xs gap-1">
+                      {/* 1. عقد توريد وخدمات */}
+                      <button
+                        type="button"
+                        onClick={() => handleSupplierMethodChange(grp.key, "contract")}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                           currentMethod === "contract"
-                            ? "hover:bg-sky-50/30 dark:hover:bg-sky-950/20"
-                            : currentMethod === "purchase_order"
-                            ? "hover:bg-slate-50 dark:hover:bg-slate-900/30"
-                            : "hover:bg-teal-50/40 dark:hover:bg-teal-950/20"
+                            ? "bg-sky-600 text-white shadow-xs"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         }`}
                       >
-                        {/* رقم البند */}
-                        <td className="p-3 text-center font-mono text-muted-foreground">
-                          {idx + 1}
-                        </td>
+                        <FileSignature className="w-4 h-4" />
+                        <span>عقد توريد وخدمات</span>
+                      </button>
 
-                        {/* اسم البند والوصف */}
-                        <td className="p-3">
-                          <p className="font-bold text-foreground text-sm">{it.itemName}</p>
-                          {it.description && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{it.description}</p>
-                          )}
-                        </td>
+                      {/* 2. أمر شراء داخلي */}
+                      <button
+                        type="button"
+                        onClick={() => handleSupplierMethodChange(grp.key, "purchase_order")}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                          currentMethod === "purchase_order"
+                            ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>أمر شراء داخلي</span>
+                      </button>
 
-                        {/* الكمية والوحدة */}
-                        <td className="p-3 text-center">
-                          <Badge variant="secondary" className="font-mono text-xs font-semibold px-2 py-0.5">
-                            {it.quantity} {it.unit}
-                          </Badge>
-                        </td>
+                      {/* 3. خطاب مسؤولية مجتمعية */}
+                      <button
+                        type="button"
+                        onClick={() => handleSupplierMethodChange(grp.key, "csr_letter")}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                          currentMethod === "csr_letter"
+                            ? "bg-teal-600 text-white shadow-xs"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        <HeartHandshake className="w-4 h-4" />
+                        <span>مسؤولية مجتمعية</span>
+                      </button>
+                    </div>
+                  </div>
+                </CardHeader>
 
-                        {/* اختيار المورد لهذا البند */}
-                        <td className="p-3">
-                          <Select
-                            value={currentSupplier?.supplierName || "لم يحدد بعد"}
-                            onValueChange={(val) => handleSetItemSupplier(it.id, val)}
-                          >
-                            <SelectTrigger className="h-8 text-xs font-semibold bg-background border-border">
-                              <SelectValue placeholder="اختر المورد..." />
-                            </SelectTrigger>
-                            <SelectContent dir="rtl" className="max-h-64">
-                              {availableSuppliers.map((sup, sIdx) => (
-                                <SelectItem key={`${it.id}_sup_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
-                                  <div className="flex items-center justify-between gap-2 w-full">
-                                    <span className="font-semibold">{sup.name}</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                      sup.source === "quotation"
-                                        ? "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                                        : sup.source === "registered"
-                                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                        : "bg-muted text-muted-foreground"
-                                    }`}>
-                                      {sup.sourceLabel}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                              <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
-                                <div className="flex items-center gap-1.5">
-                                  <Plus className="w-3.5 h-3.5" />
-                                  <span>+ إضافة اسم مورد جديد...</span>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </td>
-
-                        {/* أزرار اختيار الطريقة المباشرة (3 أزرار واضحة وسهلة بنقرة واحدة) */}
-                        <td className="p-3 text-center">
-                          <div className="inline-flex rounded-lg border border-border p-0.5 bg-muted/30 gap-1 shadow-2xs">
-                            {/* 1. عقد توريد */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetItemMethod(it.id, "contract")}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
-                                currentMethod === "contract"
-                                  ? "bg-sky-600 text-white shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              <FileSignature className="w-3.5 h-3.5" />
-                              <span>عقد توريد</span>
-                            </button>
-
-                            {/* 2. أمر شراء */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetItemMethod(it.id, "purchase_order")}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
-                                currentMethod === "purchase_order"
-                                  ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              <ShoppingCart className="w-3.5 h-3.5" />
-                              <span>أمر شراء</span>
-                            </button>
-
-                            {/* 3. مسؤولية مجتمعية */}
-                            <button
-                              type="button"
-                              onClick={() => handleSetItemMethod(it.id, "csr_letter")}
-                              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
-                                currentMethod === "csr_letter"
-                                  ? "bg-teal-600 text-white shadow-xs"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              <HeartHandshake className="w-3.5 h-3.5" />
-                              <span>مسؤولية</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                {/* جدول البنود التابعة لهذا المورد */}
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-right">
+                      <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold">
+                        <tr>
+                          <th className="p-3 w-10 text-center">#</th>
+                          <th className="p-3">اسم الصنف والمواصفات</th>
+                          <th className="p-3 text-center w-28">الكمية والوحدة</th>
+                          {grp.totalAmount > 0 && <th className="p-3 text-center w-32">السعر التقديري</th>}
+                          <th className="p-3 w-52 text-center">نقل لمورد آخر</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {grp.items.map((it: any, iIdx: number) => (
+                          <tr key={it.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="p-3 text-center font-mono text-muted-foreground">{iIdx + 1}</td>
+                            <td className="p-3">
+                              <p className="font-bold text-foreground text-sm">{it.itemName}</p>
+                              {it.description && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5">{it.description}</p>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="secondary" className="font-mono text-xs font-semibold px-2 py-0.5">
+                                {it.quantity} {it.unit}
+                              </Badge>
+                            </td>
+                            {grp.totalAmount > 0 && (
+                              <td className="p-3 text-center font-mono font-semibold">
+                                {it.totalPrice ? `${formatCurrency(it.totalPrice)} ر.س` : "-"}
+                              </td>
+                            )}
+                            <td className="p-3 text-center">
+                              <Select
+                                value={grp.supplierName}
+                                onValueChange={(val) => handleReassignItemSupplier(it.id, val)}
+                              >
+                                <SelectTrigger className="h-7 text-[11px] font-semibold bg-background border-border">
+                                  <SelectValue placeholder="نقل لمورد..." />
+                                </SelectTrigger>
+                                <SelectContent dir="rtl" className="max-h-64">
+                                  {availableSuppliers.map((sup, sIdx) => (
+                                    <SelectItem key={`${it.id}_reassign_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
+                                      <span className="font-semibold">{sup.name}</span>
+                                    </SelectItem>
+                                  ))}
+                                  <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
+                                    + إضافة مورد جديد...
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
         {/* بطاقات المخرجات والإجراءات الثلاثة */}
         <div>
@@ -1350,7 +1384,7 @@ export default function SedanaProcurementPage() {
                     <FileSignature className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
-                    {contractItems.length} أصناف ({contractSuppliers.length} موردين)
+                    {contractSuppliers.length} موردين ({contractItems.length} صنف)
                   </Badge>
                 </div>
                 <div>
@@ -1418,7 +1452,7 @@ export default function SedanaProcurementPage() {
                 <Button
                   size="sm"
                   onClick={() => handleCreateContract(contractSuppliers[0]?.supplierId)}
-                  disabled={contractItems.length === 0}
+                  disabled={contractSuppliers.length === 0}
                   className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1435,7 +1469,7 @@ export default function SedanaProcurementPage() {
                     <ShoppingCart className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 text-xs font-bold">
-                    {poItems.length} أصناف ({poSuppliers.length} موردين)
+                    {poSuppliers.length} موردين ({poItems.length} صنف)
                   </Badge>
                 </div>
                 <div>
@@ -1485,7 +1519,7 @@ export default function SedanaProcurementPage() {
                     <HeartHandshake className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-teal-700 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-xs font-bold">
-                    {csrItems.length} أصناف ({csrSuppliers.length} شركاء)
+                    {csrSuppliers.length} موردين/جهات ({csrItems.length} صنف)
                   </Badge>
                 </div>
                 <div>
@@ -1558,7 +1592,7 @@ export default function SedanaProcurementPage() {
                   <span className="text-muted-foreground text-[10px]">{poItems.length} بنود بأمر شراء</span>
                 </div>
                 <div className="bg-teal-50 dark:bg-teal-950/40 p-2 rounded border border-teal-200 dark:border-teal-800">
-                  <span className="block text-teal-700 dark:text-teal-300 font-bold">{csrSuppliers.length} شركاء</span>
+                  <span className="block text-teal-700 dark:text-teal-300 font-bold">{csrSuppliers.length} موردين/جهات</span>
                   <span className="text-muted-foreground text-[10px]">{csrItems.length} أصناف مجتمعية</span>
                 </div>
               </div>
