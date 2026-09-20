@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowRight,
-  Printer,
   FileSignature,
   ShoppingCart,
   HeartHandshake,
@@ -720,10 +719,6 @@ export default function SedanaProcurementPage() {
     setLocation(`/contracts/new?${query}`);
   };
 
-  // طباعة المستند
-  const handlePrint = () => {
-    window.print();
-  };
 
   // فتح تقرير خطاب المسؤولية المجتمعية في صفحة منفصلة
   const handleOpenCsrLetter = () => {
@@ -802,16 +797,6 @@ export default function SedanaProcurementPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              className="h-8 gap-1.5 text-xs font-semibold border-border hover:bg-muted cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              طباعة التقرير
-            </Button>
-
             <Button
               variant="outline"
               size="sm"
