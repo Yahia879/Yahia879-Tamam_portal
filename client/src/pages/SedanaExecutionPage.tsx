@@ -108,6 +108,11 @@ export default function SedanaExecutionPage() {
   const [inwardItems, setInwardItems] = useState<Record<string, number>>({});
   const [inwardNotes, setInwardNotes] = useState("");
   const [inwardReceivedBy, setInwardReceivedBy] = useState("");
+  // الربط بالمستند المرجعي لأمر الإدخال (أمر شراء، خطاب مسؤولية مجتمعية، عقد مورد)
+  const [inwardRefType, setInwardRefType] = useState<string>("purchase_order");
+  const [inwardRefNumber, setInwardRefNumber] = useState<string>("");
+  const [inwardSupplierInvoice, setInwardSupplierInvoice] = useState<string>("");
+  const [inwardSupplierName, setInwardSupplierName] = useState<string>("");
 
   const [outboundItems, setOutboundItems] = useState<Record<string, number>>({});
   const [outboundDate, setOutboundDate] = useState(new Date().toISOString().split("T")[0]);
@@ -129,10 +134,11 @@ export default function SedanaExecutionPage() {
   // الطفرات
   const createInwardMutation = trpc.sedanaExecution.createInwardOrder.useMutation({
     onSuccess: () => {
-      toast.success("تم تسجيل أمر الإدخال في المستودع الافتراضي بنجاح");
+      toast.success("تم تسجيل أمر الإدخال في المستودع الافتراضي وتوثيق المستند المرجعي بنجاح");
       setIsInwardModalOpen(false);
       setInwardItems({});
       setInwardNotes("");
+      setInwardSupplierInvoice("");
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
     },
     onError: (err) => toast.error(err.message || "حدث خطأ أثناء حفظ أمر الإدخال"),
@@ -143,10 +149,9 @@ export default function SedanaExecutionPage() {
       toast.success("تم إنشاء أمر الإخراج المجدول وإصدار مسوغ الصرف بنجاح");
       setIsOutboundModalOpen(false);
       setOutboundItems({});
-      setOutboundNotes("");
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
     },
-    onError: (err) => toast.error(err.message || "حدث خطأ أثناء إنشاء أمر الإخراج"),
+    onError: (err) => toast.error(err.message || "حدث خطأ أثناء جدولة أمر الإخراج"),
   });
 
   const createDeliveryMutation = trpc.sedanaExecution.createDeliveryOrder.useMutation({
@@ -184,6 +189,7 @@ export default function SedanaExecutionPage() {
   const req = data?.request;
   const mosque = data?.mosque;
   const inventoryItems = data?.inventoryItems || [];
+  const availableReferences = (data as any)?.availableReferences || [];
   const inwardOrders = data?.inwardOrders || [];
   const outboundOrders = data?.outboundOrders || [];
   const deliveryOrders = data?.deliveryOrders || [];
@@ -210,9 +216,13 @@ export default function SedanaExecutionPage() {
       return;
     }
 
+    const firstRef = availableReferences[0];
     createInwardMutation.mutate({
       requestId,
       receivedBy: user?.name || "أمين المستودع",
+      referenceType: firstRef?.type || "purchase_order",
+      referenceNumber: firstRef?.documentNumber || `PO-${requestId}`,
+      supplierName: firstRef?.partnerOrSupplier || "",
       notes: "إدخال كامل الكميات المعتمدة وفق أمر الشراء والتوريد",
       items: itemsToInward,
     });
@@ -452,6 +462,18 @@ export default function SedanaExecutionPage() {
                         if (i.pendingInward > 0) initial[i.id] = i.pendingInward;
                       });
                       setInwardItems(initial);
+                      // تعيين المستند المرجعي الافتراضي
+                      const firstRef = availableReferences[0];
+                      if (firstRef) {
+                        setInwardRefType(firstRef.type);
+                        setInwardRefNumber(firstRef.documentNumber);
+                        setInwardSupplierName(firstRef.partnerOrSupplier || "");
+                      } else {
+                        setInwardRefType("purchase_order");
+                        setInwardRefNumber(requestId > 0 ? `PO-${requestId}` : "");
+                        setInwardSupplierName("");
+                      }
+                      setInwardSupplierInvoice("");
                       setIsInwardModalOpen(true);
                     }}
                     className="text-xs font-bold gap-1 bg-primary text-primary-foreground"
@@ -518,27 +540,52 @@ export default function SedanaExecutionPage() {
               </CardContent>
             </Card>
 
-            {/* سجل أوامر الإدخال السابقة */}
+            {/* سجل أوامر الإدخال السابقة والمستندات المرجعية */}
             {inwardOrders.length > 0 && (
               <Card className="border border-border/80 shadow-2xs">
                 <CardHeader className="p-4 border-b">
                   <CardTitle className="text-xs font-bold text-foreground">
-                    سجل أوامر الإدخال المستودعي السابقة ({inwardOrders.length})
+                    سجل أوامر الإدخال المستودعي والمستندات المرجعية المرتبطة ({inwardOrders.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y divide-border">
                     {inwardOrders.map((inOrder: any) => (
-                      <div key={inOrder.id} className="p-3 flex items-center justify-between text-xs">
-                        <div className="space-y-0.5">
-                          <span className="font-mono font-bold bg-muted px-2 py-0.5 rounded mr-2">
-                            {inOrder.orderNumber}
-                          </span>
-                          <span className="text-muted-foreground">بتاريخ {inOrder.orderDate}</span>
-                          <span className="text-muted-foreground mr-3">المستلم: {inOrder.receivedBy}</span>
-                          {inOrder.notes && <p className="text-[11px] text-muted-foreground mt-1">{inOrder.notes}</p>}
+                      <div key={inOrder.id} className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-bold bg-muted px-2 py-0.5 rounded">
+                              {inOrder.orderNumber}
+                            </span>
+                            {inOrder.referenceNumber && (
+                              <Badge variant="outline" className="font-mono text-[10px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                                {inOrder.referenceType === "purchase_order" && "أمر شراء: "}
+                                {inOrder.referenceType === "csr_letter" && "خطاب CSR: "}
+                                {inOrder.referenceType === "supplier_contract" && "عقد: "}
+                                {inOrder.referenceType === "direct_purchase" && "شراء مباشر: "}
+                                {inOrder.referenceType === "in_kind_donation" && "تبرع عيني: "}
+                                {inOrder.referenceNumber}
+                              </Badge>
+                            )}
+                            {inOrder.supplierInvoiceNumber && (
+                              <Badge variant="outline" className="font-mono text-[10px] bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700">
+                                فاتورة: #{inOrder.supplierInvoiceNumber}
+                              </Badge>
+                            )}
+                            {inOrder.supplierName && (
+                              <span className="text-muted-foreground text-[11px]">
+                                ({inOrder.supplierName})
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-3">
+                            <span>بتاريخ {inOrder.orderDate}</span>
+                            <span>•</span>
+                            <span>المستلم: {inOrder.receivedBy}</span>
+                          </div>
+                          {inOrder.notes && <p className="text-[11px] text-muted-foreground mt-0.5">{inOrder.notes}</p>}
                         </div>
-                        <div className="text-left font-mono font-bold text-emerald-700">
+                        <div className="text-left font-mono font-bold text-emerald-700 shrink-0">
                           {inOrder.items?.length || 0} أصناف مدخلة
                         </div>
                       </div>
@@ -831,17 +878,87 @@ export default function SedanaExecutionPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Modal: أمر إدخال جديد */}
+        {/* Modal: أمر إدخال جديد مع الربط بالمستند المرجعي للتأمين */}
         <Dialog open={isInwardModalOpen} onOpenChange={setIsInwardModalOpen}>
-          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+          <DialogContent className="max-w-lg text-right font-sans" dir="rtl">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold">إصدار أمر إدخال مستودعي</DialogTitle>
+              <DialogTitle className="text-base font-bold flex items-center gap-2">
+                <Boxes className="w-5 h-5 text-emerald-600" />
+                <span>إصدار أمر إدخال مستودعي والربط بالمستند المرجعي</span>
+              </DialogTitle>
               <DialogDescription className="text-xs">
-                تسجيل الكميات الموردة من المورد أو التبرع العيني في المستودع الافتراضي
+                تسجيل الكميات الموردة وربطها بأمر الشراء أو عقد المورد أو خطاب المسؤولية المجتمعية وفاتورة التوريد
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-2 text-xs max-h-[60vh] overflow-y-auto">
+            <div className="space-y-3 py-2 text-xs max-h-[65vh] overflow-y-auto pr-1">
+              {/* اختيار وتوثيق المستند المرجعي للتأمين والتعاقد */}
+              <div className="p-3 bg-muted/40 rounded-xl border border-border/80 space-y-2.5">
+                <div className="flex items-center gap-1.5 font-bold text-foreground">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>المستند المرجعي للتأمين / التعاقد:</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[11px] font-semibold text-muted-foreground">نوع مستند التأمين</Label>
+                    <Select
+                      value={inwardRefType}
+                      onValueChange={(val) => {
+                        setInwardRefType(val);
+                        const found = availableReferences.find((r: any) => r.type === val);
+                        if (found) {
+                          setInwardRefNumber(found.documentNumber);
+                          if (found.partnerOrSupplier) setInwardSupplierName(found.partnerOrSupplier);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs mt-1 bg-background">
+                        <SelectValue placeholder="اختر نوع المستند..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {availableReferences.map((ref: any) => (
+                          <SelectItem key={ref.type} value={ref.type} className="text-xs">
+                            {ref.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-[11px] font-semibold text-muted-foreground">رقم المستند المرجعي</Label>
+                    <Input
+                      value={inwardRefNumber}
+                      onChange={(e) => setInwardRefNumber(e.target.value)}
+                      placeholder="مثال: PO-87-2026 أو CSR-87"
+                      className="h-8 text-xs font-mono mt-1 bg-background"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/60">
+                  <div>
+                    <Label className="text-[11px] font-semibold text-muted-foreground">اسم المورد / الشريك المانح</Label>
+                    <Input
+                      value={inwardSupplierName}
+                      onChange={(e) => setInwardSupplierName(e.target.value)}
+                      placeholder="اسم المورد أو الجهة المانحة..."
+                      className="h-8 text-xs mt-1 bg-background"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[11px] font-semibold text-muted-foreground">رقم فاتورة المورد / بوليصة الشحن</Label>
+                    <Input
+                      value={inwardSupplierInvoice}
+                      onChange={(e) => setInwardSupplierInvoice(e.target.value)}
+                      placeholder="رقم الفاتورة أو البوليصة..."
+                      className="h-8 text-xs font-mono mt-1 bg-background"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label className="text-xs font-bold">اسم المستلم (أمين المستودع / المنسق)</Label>
                 <Input
@@ -856,7 +973,12 @@ export default function SedanaExecutionPage() {
                 <Label className="text-xs font-bold">الكميات الموردة لكل صنف:</Label>
                 {inventoryItems.map((it) => (
                   <div key={it.id} className="flex items-center justify-between gap-2 border-b pb-1">
-                    <span className="font-medium text-foreground">{it.name} ({it.unit}):</span>
+                    <div>
+                      <span className="font-medium text-foreground">{it.name} ({it.unit}):</span>
+                      <span className="text-[10px] text-muted-foreground mr-2 font-mono">
+                        (المتبقي: {it.pendingInward})
+                      </span>
+                    </div>
                     <Input
                       type="number"
                       step="any"
@@ -879,7 +1001,7 @@ export default function SedanaExecutionPage() {
                 <Textarea
                   value={inwardNotes}
                   onChange={(e) => setInwardNotes(e.target.value)}
-                  placeholder="ملاحظات أو رقم بوليصة التوريد..."
+                  placeholder="ملاحظات حول حالة المواد أو مطابقتها للمواصفات..."
                   className="text-xs mt-1"
                   rows={2}
                 />
@@ -918,14 +1040,18 @@ export default function SedanaExecutionPage() {
                   createInwardMutation.mutate({
                     requestId,
                     receivedBy: inwardReceivedBy || user?.name || "أمين المستودع",
+                    referenceType: inwardRefType,
+                    referenceNumber: inwardRefNumber,
+                    supplierInvoiceNumber: inwardSupplierInvoice,
+                    supplierName: inwardSupplierName,
                     notes: inwardNotes,
                     items,
                   });
                 }}
                 disabled={createInwardMutation.isPending}
-                className="text-xs font-bold"
+                className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
               >
-                {createInwardMutation.isPending ? "جاري الحفظ..." : "تأكيد أمر الإدخال"}
+                {createInwardMutation.isPending ? "جاري الحفظ..." : "تأكيد وتوثيق أمر الإدخال"}
               </Button>
             </DialogFooter>
           </DialogContent>

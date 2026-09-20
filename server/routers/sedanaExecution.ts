@@ -189,6 +189,65 @@ export const sedanaExecutionRouter = router({
         };
       });
 
+      // المستندات المرجعية المتاحة للربط مع أمر الإدخال
+      const activePO = sedanaProc.activePurchaseOrder || null;
+      const activeCSR = sedanaProc.activeCsrLetter || null;
+      const availableReferences: {
+        type: string;
+        label: string;
+        documentNumber: string;
+        partnerOrSupplier?: string;
+      }[] = [];
+
+      // 1. أمر شراء داخلي
+      const hasPO = Object.values(allocations).includes("purchase_order") || !!activePO;
+      if (hasPO) {
+        availableReferences.push({
+          type: "purchase_order",
+          label: "أمر شراء داخلي معتمد",
+          documentNumber: activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`,
+          partnerOrSupplier: activePO?.directedTo || "إدارة المشتريات",
+        });
+      }
+
+      // 2. خطاب مسؤولية مجتمعية (CSR)
+      const hasCSR = Object.values(allocations).includes("csr_letter") || !!activeCSR;
+      if (hasCSR) {
+        availableReferences.push({
+          type: "csr_letter",
+          label: "خطاب مسؤولية مجتمعية (CSR)",
+          documentNumber: activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`,
+          partnerOrSupplier: activeCSR?.recipientName || "الجهة المانحة / الشريك المجتمعي",
+        });
+      }
+
+      // 3. عقد مورد سنوي
+      const hasContract = Object.values(allocations).includes("supplier_contract");
+      if (hasContract) {
+        availableReferences.push({
+          type: "supplier_contract",
+          label: "عقد مورد معتمد",
+          documentNumber: `CNT-${req.id}-${new Date().getFullYear()}`,
+          partnerOrSupplier: "المورد المعتمد",
+        });
+      }
+
+      // 4. خيارات إضافية دائماً متاحة للتوريد المباشر أو التبرع العيني
+      availableReferences.push(
+        {
+          type: "direct_purchase",
+          label: "شراء وتوريد مباشر",
+          documentNumber: `DIR-${req.id}`,
+          partnerOrSupplier: "شراء مباشر من السوق",
+        },
+        {
+          type: "in_kind_donation",
+          label: "تبرع عيني",
+          documentNumber: `DON-${req.id}`,
+          partnerOrSupplier: "فاعل خير / متبرع عيني",
+        }
+      );
+
       return {
         request: {
           id: req.id,
@@ -200,6 +259,7 @@ export const sedanaExecutionRouter = router({
         },
         mosque,
         inventoryItems,
+        availableReferences,
         inwardOrders: executionData.inwardOrders || [],
         outboundOrders: executionData.outboundOrders || [],
         deliveryOrders: executionData.deliveryOrders || [],
@@ -215,6 +275,10 @@ export const sedanaExecutionRouter = router({
       orderNumber: z.string().optional(),
       orderDate: z.string().optional(),
       receivedBy: z.string().optional(),
+      referenceType: z.string().optional(),
+      referenceNumber: z.string().optional(),
+      supplierInvoiceNumber: z.string().optional(),
+      supplierName: z.string().optional(),
       notes: z.string().optional(),
       items: z.array(z.object({
         id: z.string(),
@@ -255,6 +319,10 @@ export const sedanaExecutionRouter = router({
         orderNumber,
         orderDate: input.orderDate || new Date().toISOString().split("T")[0],
         receivedBy: input.receivedBy || ctx.user.name || "أمين المستودع",
+        referenceType: input.referenceType || "purchase_order",
+        referenceNumber: input.referenceNumber || "",
+        supplierInvoiceNumber: input.supplierInvoiceNumber || "",
+        supplierName: input.supplierName || "",
         notes: input.notes || "",
         items: input.items,
         createdBy: ctx.user.id,
