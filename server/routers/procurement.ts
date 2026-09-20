@@ -642,15 +642,21 @@ export const procurementRouter = router({
           }));
         }
 
-        // تحديد البنود المخصصة لأمر الشراء
-        const poItemIds = new Set<string>();
-        Object.keys(itemsAlloc).forEach((k) => {
-          if (itemsAlloc[k] === "purchase_order") {
-            poItemIds.add(k);
-          }
-        });
+        // فحص طريقة التأمين المعتمدة للمورد في صفحة procurement
+        const getSupplierMethod = (sId?: number | null, sName?: string | null): string | null => {
+          const k1 = sId ? `sup_${sId}` : "";
+          const k2 = sName ? `name_${sName.trim()}` : "";
+          const k3 = sId ? String(sId) : "";
+          const k4 = sName ? sName.trim() : "";
 
-        // تجميع الموردين المعتمدين على أوامر الشراء لهذا الطلب
+          return (k1 && suppliersAlloc[k1]) ||
+                 (k2 && suppliersAlloc[k2]) ||
+                 (k3 && suppliersAlloc[k3]) ||
+                 (k4 && suppliersAlloc[k4]) ||
+                 null;
+        };
+
+        // تجميع الموردين المعتمدين على أمر الشراء الداخلي حصراً
         const supplierGroups = new Map<string, {
           supplierId?: number | null;
           supplierName: string;
@@ -658,100 +664,106 @@ export const procurementRouter = router({
         }>();
 
         baseItems.forEach((it) => {
-          // هل هذا البند مخصص لأمر الشراء؟
-          const isPo = poItemIds.has(it.id) || (poItemIds.size === 0 && Object.keys(itemsAlloc).length === 0);
-          if (!isPo) return;
-
-          // البحث عن المورد المعتمد لهذا البند
           const mapEntry = itemSuppMap[it.id];
-          let sName = mapEntry?.supplierName;
-          let sId = mapEntry?.supplierId;
+          const sName = mapEntry?.supplierName?.trim().replace(/\s+/g, " ");
+          const sId = mapEntry?.supplierId ? Number(mapEntry.supplierId) : null;
 
-          if (!sName || sName === "لم يحدد بعد") {
-            // فحص suppliersAlloc
-            for (const k of Object.keys(suppliersAlloc)) {
-              const sObj = suppliersAlloc[k];
-              if (sObj?.method === "purchase_order" && sObj?.supplierName) {
-                sName = sObj.supplierName;
-                sId = sObj.supplierId;
-                break;
-              }
-            }
-          }
-
-          if (!sName || sName === "لم يحدد بعد") {
-            if (activePO?.supplierName) {
-              sName = activePO.supplierName;
-            } else if (activePO?.directedTo && activePO.directedTo !== "إلى إدارة المشتريات") {
-              sName = activePO.directedTo.replace(/^إلى\s*إدارة\s*المشتريات\s*\(?/, "").replace(/\)?$/, "").trim();
-            }
-          }
-
-          // إذا لم يوجد مورد محدد، لا يتم اعتباره مورداً معتمداً
-          if (!sName || sName === "لم يحدد بعد" || sName.trim() === "") {
+          if (!sName || sName === "لم يحدد بعد" || sName === "غير محدد") {
             return;
           }
 
-          const groupKey = sName.trim();
-          const currentGroup: { supplierId?: number | null; supplierName: string; items: any[] } = supplierGroups.get(groupKey) || {
-            supplierId: sId || null,
+          const supMethod = getSupplierMethod(sId, sName);
+
+          // إذا تم تحديد المورد كعقد توريد أو مسؤولية مجتمعية، يتم استبعاده فوراً من أمر الشراء
+          if (supMethod === "contract" || supMethod === "csr_letter") {
+            return;
+          }
+
+          // يعتبر المورد والبنود تابعة لأمر الشراء فقط إذا حُدد المورد أو البند كـ purchase_order
+          const itemMethod = itemsAlloc[it.id];
+          const isPo = supMethod === "purchase_order" || itemMethod === "purchase_order";
+
+          if (!isPo) {
+            return;
+          }
+
+          const groupKey = sName;
+          const currentGroup = supplierGroups.get(groupKey) || {
+            supplierId: sId,
             supplierName: groupKey,
-            items: [],
+            items: [] as any[],
           };
 
-          currentGroup.items.push({
-            id: it.id,
-            itemName: it.itemName,
-            description: it.description || "",
-            quantity: it.quantity,
-            unit: it.unit,
-            unitPrice: mapEntry?.unitPrice || 0,
-            totalPrice: mapEntry?.totalPrice || (it.quantity * (mapEntry?.unitPrice || 0)),
-          });
+          if (!currentGroup.items.some((item) => item.id === it.id)) {
+            currentGroup.items.push({
+              id: it.id,
+              itemName: it.itemName,
+              description: it.description || "",
+              quantity: it.quantity,
+              unit: it.unit,
+              unitPrice: mapEntry?.unitPrice || 0,
+              totalPrice: mapEntry?.totalPrice || (it.quantity * (mapEntry?.unitPrice || 0)),
+            });
+          }
 
           supplierGroups.set(groupKey, currentGroup);
         });
 
-        // إذا لم تكن هناك مجموعات موردين محددة مسبقاً، لكن الطلب يشتمل على بنود
-        if (supplierGroups.size === 0 && baseItems.length > 0) {
-          const defaultSuppliersList = registeredSuppliers.slice(0, 10).map((s) => ({
-            id: s.id,
-            supplierId: s.id,
-            supplierName: s.name,
-            commercialRegister: s.commercialRegister || "",
-            phone: s.phone || "",
-            email: s.email || "",
-            city: s.city || mosque?.city || "",
-            contactPerson: s.contactPerson || "",
-            bankName: s.bankName || "مصرف الراجحي",
-            iban: s.iban || "",
-            itemsCount: baseItems.length,
-            items: baseItems,
-          }));
+        // فحص الموردين المحددين في suppliersAlloc كـ purchase_order مباشرة إن لم تُضف بنودهم أعلاه
+        Object.keys(suppliersAlloc).forEach((k) => {
+          if (suppliersAlloc[k] === "purchase_order") {
+            let matchedSupName = "";
+            let matchedSupId: number | null = null;
+            if (k.startsWith("name_")) {
+              matchedSupName = k.replace(/^name_/, "").trim().replace(/\s+/g, " ");
+            } else if (k.startsWith("sup_")) {
+              const idNum = parseInt(k.replace(/^sup_/, ""), 10);
+              const reg = supplierMapById.get(idNum);
+              if (reg) {
+                matchedSupId = reg.id;
+                matchedSupName = reg.name.trim().replace(/\s+/g, " ");
+              }
+            } else if (!isNaN(Number(k))) {
+              const idNum = parseInt(k, 10);
+              const reg = supplierMapById.get(idNum);
+              if (reg) {
+                matchedSupId = reg.id;
+                matchedSupName = reg.name.trim().replace(/\s+/g, " ");
+              }
+            } else {
+              matchedSupName = k.trim().replace(/\s+/g, " ");
+            }
 
-          if (defaultSuppliersList.length > 0) {
-            result.push({
-              id: req.id,
-              requestNumber: req.requestNumber,
-              descriptiveName: req.descriptiveName,
-              currentStage: req.currentStage,
-              status: req.status,
-              mosqueName: mosque?.name || "المسجد",
-              mosqueCity: mosque?.city || "",
-              mosqueDistrict: mosque?.district || "",
-              suppliers: defaultSuppliersList,
-              activePO,
-            });
-            continue;
+            if (matchedSupName && !supplierGroups.has(matchedSupName)) {
+              const supItems = baseItems.filter(
+                (it) => itemSuppMap[it.id]?.supplierName?.trim() === matchedSupName ||
+                        (matchedSupId && itemSuppMap[it.id]?.supplierId === matchedSupId)
+              );
+              if (supItems.length > 0) {
+                supplierGroups.set(matchedSupName, {
+                  supplierId: matchedSupId,
+                  supplierName: matchedSupName,
+                  items: supItems.map((it) => ({
+                    id: it.id,
+                    itemName: it.itemName,
+                    description: it.description || "",
+                    quantity: it.quantity,
+                    unit: it.unit,
+                    unitPrice: itemSuppMap[it.id]?.unitPrice || 0,
+                    totalPrice: itemSuppMap[it.id]?.totalPrice || (it.quantity * (itemSuppMap[it.id]?.unitPrice || 0)),
+                  })),
+                });
+              }
+            }
           }
-        }
+        });
 
-        // استبعاد أي طلب لا يحوي موردين معتمدين لأمر الشراء!
+        // استبعاد أي طلب لا يحوي موردين معتمدين لأمر الشراء الداخلي
         if (supplierGroups.size === 0) {
           continue;
         }
 
-        // بناء قائمة الموردين المعتمدين مع تفاصيلهم الرسمية
+        // بناء قائمة الموردين المعتمدين فقط
         const approvedSuppliers: any[] = [];
         supplierGroups.forEach((group, sName) => {
           const reg = (group.supplierId ? supplierMapById.get(group.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
@@ -770,50 +782,6 @@ export const procurementRouter = router({
             itemsCount: group.items.length,
             items: group.items,
           });
-        });
-
-        // إضافة أي موردين من أوامر الشراء السابقة إن لم يكونوا مسجلين بالمجموعة
-        if (Array.isArray(sedanaProc.purchaseOrders)) {
-          sedanaProc.purchaseOrders.forEach((po: any) => {
-            if (po.supplierName && !approvedSuppliers.some(s => s.supplierName?.toLowerCase() === po.supplierName.trim().toLowerCase())) {
-              const sName = po.supplierName.trim();
-              const reg = (po.supplierId ? supplierMapById.get(po.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
-              approvedSuppliers.push({
-                id: po.supplierId || sName,
-                supplierId: po.supplierId || reg?.id || null,
-                supplierName: sName,
-                commercialRegister: po.supplierCommercialRegister || reg?.commercialRegister || "",
-                phone: po.supplierPhone || reg?.phone || "",
-                email: reg?.email || "",
-                city: reg?.city || mosque?.city || "",
-                contactPerson: reg?.contactPerson || "",
-                bankName: reg?.bankName || "",
-                iban: reg?.iban || "",
-                itemsCount: po.items?.length || baseItems.length,
-                items: po.items && po.items.length > 0 ? po.items : baseItems,
-              });
-            }
-          });
-        }
-
-        // إضافة الموردين المسجلين كخيارات إضافية تتيح تجزئة أوامر الشراء على موردين متعددين لنفس الطلب
-        registeredSuppliers.slice(0, 15).forEach((reg) => {
-          if (!approvedSuppliers.some(s => s.supplierName?.toLowerCase() === reg.name?.trim().toLowerCase() || (reg.id && s.supplierId === reg.id))) {
-            approvedSuppliers.push({
-              id: reg.id,
-              supplierId: reg.id,
-              supplierName: reg.name,
-              commercialRegister: reg.commercialRegister || "",
-              phone: reg.phone || "",
-              email: reg.email || "",
-              city: reg.city || mosque?.city || "",
-              contactPerson: reg.contactPerson || "",
-              bankName: reg.bankName || "مصرف الراجحي",
-              iban: reg.iban || "",
-              itemsCount: baseItems.length,
-              items: baseItems,
-            });
-          }
         });
 
         result.push({
