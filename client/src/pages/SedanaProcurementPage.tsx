@@ -127,35 +127,81 @@ export default function SedanaProcurementPage() {
     },
   });
 
-  // استخراج بنود المسجد / الطلب
+  // استخراج بنود المسجد / الطلب مع عكس الوصف والمواصفات المحددة في الطلب
   const allItems = useMemo(() => {
+    const pData = request?.programData as any;
+    const bItems: any[] = Array.isArray(pData?.basketItems) ? pData.basketItems : [];
+    const evalItems: any[] = Array.isArray(pData?.evaluation?.items) ? pData.evaluation.items : [];
+
     if (boqResult?.items && boqResult.items.length > 0) {
-      return boqResult.items.map((it: any, idx: number) => ({
-        id: String(it.id || idx + 1),
-        itemName: it.itemName || it.name || `بند رقم ${idx + 1}`,
-        description: it.description || "",
-        quantity: parseFloat(it.quantity || "1"),
-        unit: it.unit || "وحدة",
-      }));
+      return boqResult.items.map((it: any, idx: number) => {
+        let desc = it.itemDescription || it.description || it.spec || "";
+
+        // إذا لم يكن هناك وصف مباشر في جدول الكميات، نبحث عنه في سلة الطلب أو التقييم
+        if (!desc || desc.trim() === "") {
+          const matchBasket = bItems.find((b: any) => 
+            String(b.id) === String(it.id) || 
+            (b.name && it.itemName && b.name.trim().toLowerCase() === it.itemName.trim().toLowerCase())
+          );
+          if (matchBasket) {
+            const parts: string[] = [];
+            if (matchBasket.description) parts.push(matchBasket.description);
+            if (matchBasket.spec) parts.push(matchBasket.spec);
+            if (matchBasket.notes) parts.push(matchBasket.notes);
+            if (matchBasket.frequency) parts.push(`دورية التوريد: ${matchBasket.frequency}`);
+            if (matchBasket.category && parts.length === 0) parts.push(matchBasket.category);
+            
+            // تفاصيل العمالة إن وجدت
+            if ((matchBasket.category === "العمالة" || it.itemName?.includes("عامل")) && pData?.workforce) {
+              if (pData.workforce.cleanerSalary) {
+                parts.push(`مكافأة شهرية: ${pData.workforce.cleanerSalary} ر.س`);
+              }
+              if (pData.workforce.cleanerNotes) {
+                parts.push(pData.workforce.cleanerNotes);
+              }
+            }
+            if (parts.length > 0) {
+              desc = parts.join(" • ");
+            }
+          }
+        }
+
+        if (!desc || desc.trim() === "") {
+          const matchEval = evalItems.find((e: any) => 
+            String(e.key) === String(it.id) || 
+            (e.name && it.itemName && e.name.trim().toLowerCase() === it.itemName.trim().toLowerCase())
+          );
+          if (matchEval) {
+            desc = matchEval.description || matchEval.spec || matchEval.notes || "";
+          }
+        }
+
+        return {
+          id: String(it.id || idx + 1),
+          itemName: it.itemName || it.name || `بند رقم ${idx + 1}`,
+          description: desc,
+          quantity: parseFloat(it.quantity || "1"),
+          unit: it.unit || "وحدة",
+        };
+      });
     }
 
     // fallback from sedana programData evaluation
-    const pData = request?.programData as any;
-    if (pData?.evaluation?.items && Array.isArray(pData.evaluation.items)) {
-      return pData.evaluation.items.map((it: any, idx: number) => ({
+    if (evalItems.length > 0) {
+      return evalItems.map((it: any, idx: number) => ({
         id: String(it.key || idx + 1),
         itemName: it.name || it.itemName || `بند ${idx + 1}`,
-        description: it.description || it.spec || "",
+        description: it.description || it.itemDescription || it.spec || it.notes || "",
         quantity: parseFloat(it.approvedQty || it.requestedQty || "1"),
         unit: it.unit || "وحدة",
       }));
     }
 
-    if (pData?.basketItems && Array.isArray(pData.basketItems)) {
-      return pData.basketItems.map((it: any, idx: number) => ({
+    if (bItems.length > 0) {
+      return bItems.map((it: any, idx: number) => ({
         id: String(it.id || idx + 1),
         itemName: it.name || `بند ${idx + 1}`,
-        description: it.description || it.category || "",
+        description: it.description || it.itemDescription || it.spec || it.notes || (it.frequency ? `دورية التوريد: ${it.frequency}` : "") || it.category || "",
         quantity: parseFloat(it.quantity || "1"),
         unit: it.unit || "وحدة",
       }));
@@ -272,9 +318,9 @@ export default function SedanaProcurementPage() {
 
   // بيانات أمر الشراء الداخلي
   const [poData, setPoData] = useState({
-    orderNumber: `PO-${requestId}-${new Date().getFullYear()}`,
+    orderNumber: `PO-1-${new Date().getFullYear()}`,
     orderDate: new Date().toISOString().split("T")[0],
-    directedTo: "إلى إدارة المشتريات",
+    directedTo: "",
     requesterName: "",
     requesterRole: "طالب الشراء / إدارة المشاريع",
     approverName: "",
@@ -406,7 +452,15 @@ export default function SedanaProcurementPage() {
 
       // 4. استرجاع بيانات النماذج
       if (savedProc?.activePurchaseOrder) {
-        setPoData(prev => ({ ...prev, ...savedProc.activePurchaseOrder }));
+        let loadedOrderNumber = savedProc.activePurchaseOrder.orderNumber;
+        if (loadedOrderNumber && (loadedOrderNumber.startsWith(`PO-${requestId}-`) || loadedOrderNumber === `PO-87-2026`)) {
+          loadedOrderNumber = `PO-1-${new Date().getFullYear()}`;
+        }
+        setPoData(prev => ({
+          ...prev,
+          ...savedProc.activePurchaseOrder,
+          orderNumber: loadedOrderNumber || `PO-1-${new Date().getFullYear()}`,
+        }));
       }
       if (savedProc?.activeCsrLetter) {
         setCsrData(prev => ({ ...prev, ...savedProc.activeCsrLetter }));
@@ -543,6 +597,14 @@ export default function SedanaProcurementPage() {
   const poSuppliers = useMemo(() => {
     return supplierGroups.filter(g => !g.isUnassigned && (suppliersAllocation[g.key] || g.method) === "purchase_order");
   }, [supplierGroups, suppliersAllocation]);
+
+  // اسم المورد الموجه إليه أمر الشراء
+  const poSupplierName = useMemo(() => {
+    if (poSuppliers.length > 0) {
+      return poSuppliers.map(s => s.supplierName).filter(Boolean).join("، ");
+    }
+    return poData.directedTo || "المورد المعتمد";
+  }, [poSuppliers, poData.directedTo]);
 
   const csrSuppliers = useMemo(() => {
     return supplierGroups.filter(g => (suppliersAllocation[g.key] || g.method) === "csr_letter");
@@ -719,10 +781,7 @@ export default function SedanaProcurementPage() {
 
         {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
         <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          {/* الإطار المزدوج الرسمي لبرنامج سدانة */}
-          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
-            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
-
+          <div className="print-inner p-4 sm:p-8 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
             <div className="relative z-10 space-y-6 flex-1">
               {/* الترويسة العلوية الرسمية */}
               <div className="flex justify-between items-start border-b border-slate-300 pb-4">
@@ -756,7 +815,7 @@ export default function SedanaProcurementPage() {
               <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
                 <div>
                   <span className="text-slate-500">موجه إلى: </span>
-                  <strong className="text-slate-900">{poData.directedTo}</strong>
+                  <strong className="text-slate-900">{poSupplierName}</strong>
                 </div>
                 <div>
                   <span className="text-slate-500">المشروع / المسجد: </span>
@@ -885,10 +944,7 @@ export default function SedanaProcurementPage() {
 
         {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
         <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          {/* الإطار المزدوج الفاخر */}
-          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
-            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
-
+          <div className="print-inner p-4 sm:p-8 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
             <div className="relative z-10 space-y-6 flex-1">
               {/* ترويسة الخطاب الرسمية */}
               <div className="flex justify-between items-start border-b border-slate-300 pb-4">
