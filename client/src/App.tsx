@@ -38,6 +38,9 @@ import SedanaEvaluationPage from "./pages/SedanaEvaluationPage";
 import SedanaProcurementPage from "./pages/SedanaProcurementPage";
 import SedanaCsrLetterPrint from "./pages/SedanaCsrLetterPrint";
 import SedanaPurchaseOrderPrint from "./pages/SedanaPurchaseOrderPrint";
+import SedanaExecutionPage from "./pages/SedanaExecutionPage";
+import SedanaDeliveryOrderPrint from "./pages/SedanaDeliveryOrderPrint";
+import SedanaBulkPurchasingPage from "./pages/SedanaBulkPurchasingPage";
 import PurchaseOrdersList from "./pages/PurchaseOrdersList";
 import CsrLettersList from "./pages/CsrLettersList";
 import RequestForm from "./pages/RequestForm";
@@ -302,6 +305,13 @@ function Router() {
       <Route path="/requests/:id/purchase-order" component={SedanaPurchaseOrderPrint} />
       <Route path="/requester/requests/:id/sedana-po" component={SedanaPurchaseOrderPrint} />
       <Route path="/requester/requests/:id/purchase-order" component={SedanaPurchaseOrderPrint} />
+      {/* المستودع الافتراضي والتنفيذ وأوامر التسليم لبرنامج سدانة */}
+      <Route path="/requests/:id/sedana-execution" component={SedanaExecutionPage} />
+      <Route path="/requester/requests/:id/sedana-execution" component={SedanaExecutionPage} />
+      <Route path="/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
+      <Route path="/requests/:id/delivery-order" component={SedanaDeliveryOrderPrint} />
+      <Route path="/requester/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
+      <Route path="/sedana-bulk-purchasing" component={SedanaBulkPurchasingPage} />
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>

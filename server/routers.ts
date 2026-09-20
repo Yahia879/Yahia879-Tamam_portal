@@ -32,6 +32,7 @@ import { publicSubmissionsRouter } from "./routers/publicSubmissions";
 import { calendarRouter } from "./routers/calendar";
 import { escalationRouter } from "./routers/escalation";
 import { sedanaInquiriesRouter } from "./routers/sedanaInquiries";
+import { sedanaExecutionRouter } from "./routers/sedanaExecution";
 
 export const appRouter = router({
   system: systemRouter,
@@ -83,6 +84,9 @@ export const appRouter = router({
   
   // أوامر الشراء والمسؤولية المجتمعية (سدانة وتأمين الطلبات)
   procurement: procurementRouter,
+  
+  // التنفيذ والمستودع الافتراضي وأوامر التسليم لبرنامج سدانة
+  sedanaExecution: sedanaExecutionRouter,
   
   // إدارة التصنيفات
   categories: categoriesRouter,

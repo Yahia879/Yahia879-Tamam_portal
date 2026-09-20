@@ -1,6 +1,7 @@
 import React from 'react';
 import { SedanaBasketItem } from './sedanaTypes';
-import { Droplets, Package, Users, Coins, UserCheck, Share2, Paperclip, CheckCircle2, Building2 } from 'lucide-react';
+import { Droplets, Package, Users, Coins, UserCheck, Share2, Paperclip, CheckCircle2, Building2, Boxes, Truck, TrendingUp, ExternalLink } from 'lucide-react';
+import { Link } from 'wouter';
 
 interface SedanaDetailsViewProps {
   programData: any;
@@ -10,10 +11,12 @@ interface SedanaDetailsViewProps {
     capacity?: number | null;
     area?: number | string | null;
   } | null;
+  requestId?: number;
 }
 
 export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
   programData: rawProgramData,
+  requestId,
 }) => {
   const data = React.useMemo(() => {
     try {
@@ -210,6 +213,51 @@ export const SedanaDetailsView: React.FC<SedanaDetailsViewProps> = ({
               </span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* المحطة 06 و 07 و 08: المستودع الافتراضي وأوامر الإخراج والتسليم */}
+      {requestId && (
+        <div className="bg-gradient-to-br from-emerald-50/70 to-teal-50/50 dark:from-emerald-950/30 dark:to-teal-950/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-900 space-y-3">
+          <div className="flex items-center justify-between border-b pb-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                المحطات 06 - 08
+              </span>
+              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                <Boxes className="w-4 h-4 text-emerald-600" />
+                المستودع الافتراضي، أوامر الإخراج، والتسليم الميداني
+              </span>
+            </div>
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-100 text-emerald-800 border-emerald-300">
+              التشغيل والتنفيذ المجدول
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+            تشمل دورة التنفيذ إدخال الكميات الموردة كأرصدة في المستودع الافتراضي، إصدار أوامر خروج دورية كمسوغات صرف محاسبية، وطباعة نماذج أوامر التسليم الميداني مع إثبات وتوثيق الاستلام الرقمي من قبل الإمام.
+          </p>
+
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <Link href={`/requests/${requestId}/sedana-execution`}>
+              <button className="h-8 px-3 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <Boxes className="w-3.5 h-3.5" />
+                <span>إدارة المستودع الافتراضي والتنفيذ</span>
+              </button>
+            </Link>
+            <Link href={`/requests/${requestId}/sedana-delivery`}>
+              <button className="h-8 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-emerald-300 hover:bg-emerald-50 text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5 cursor-pointer">
+                <Truck className="w-3.5 h-3.5" />
+                <span>نموذج أمر التسليم (A4)</span>
+              </button>
+            </Link>
+            <Link href="/sedana-bulk-purchasing">
+              <button className="h-8 px-3 rounded-lg text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-300 hover:bg-muted text-slate-700 dark:text-slate-300 flex items-center gap-1.5 cursor-pointer mr-auto">
+                <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                <span>القوة التفاوضية والشراء المجمع</span>
+              </button>
+            </Link>
+          </div>
         </div>
       )}
     </div>

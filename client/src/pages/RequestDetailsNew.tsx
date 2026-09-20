@@ -1787,15 +1787,19 @@ export default function RequestDetailsNew() {
                           ? {
                               label: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                 ? "الانتقال لجدول الكميات"
-                                : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                  ? "تأمين الطلب والتعاقد"
-                                  : translatedAction.actionButton.label),
-                              onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
-                                ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
-                                : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                  ? () => setLocation(`/requests/${requestId}/procurement`)
-                                  : (translatedAction.actionButton as any).onClick || handleStageTransition),
-                              disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted),
+                                 : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                   ? "المستودع الافتراضي والتنفيذ المجدول"
+                                   : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                     ? "تأمين الطلب والتعاقد"
+                                     : translatedAction.actionButton.label)),
+                               onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
+                                 ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
+                                 : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
+                                   ? () => setLocation(`/requests/${requestId}/sedana-execution`)
+                                   : (request.programType === 'sedana' && request.currentStage === 'contracting'
+                                     ? () => setLocation(`/requests/${requestId}/procurement`)
+                                     : (translatedAction.actionButton as any).onClick || handleStageTransition)),
+                               disabled: !translatedAction.canPerformAction || updateStageMutation.isPending || (request.currentStage === 'initial_review' && request.programType !== 'sedana' && !request.reviewCompleted),
                             }
                           : undefined
                       }
@@ -2114,7 +2118,7 @@ export default function RequestDetailsNew() {
                   {/* معلومات الحقول الديناميكية والمخصصة للبرنامج */}
                   {request.programType === 'sedana' ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                      <SedanaDetailsView programData={request.programData} mosque={request.mosque} />
+                      <SedanaDetailsView programData={request.programData} mosque={request.mosque} requestId={request.id} />
                     </div>
                   ) : (() => {
                     let programData: Record<string, any> = {};
