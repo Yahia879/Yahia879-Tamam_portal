@@ -269,6 +269,11 @@ export const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
                   <label
                     key={option.value}
                     htmlFor={`${field.name}-${option.value}`}
+                    onClick={() => {
+                      if (!disabled) {
+                        onChange(option.value);
+                      }
+                    }}
                     className={`relative flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-200 select-none ${
                       isSelected
                         ? isYes
