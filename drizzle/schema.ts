@@ -2050,6 +2050,31 @@ export const requestExceptions = mysqlTable("request_exceptions", {
 export type RequestException = typeof requestExceptions.$inferSelect;
 export type InsertRequestException = typeof requestExceptions.$inferInsert;
 
+// ==================== استبيانات وتأهيل طلبات برنامج سدانة ====================
+export const sedanaInquiries = mysqlTable("sedana_inquiries", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("userId").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  mosqueId: int("mosqueId").references(() => mosques.id, { onDelete: "cascade" }).notNull(),
+  specificNeeds: text("specificNeeds").notNull(),
+  hasCleaningWarehouse: varchar("hasCleaningWarehouse", { length: 20 }).default("yes").notNull(),
+  warehouseDetails: text("warehouseDetails"),
+  hasOperationalPlan: varchar("hasOperationalPlan", { length: 20 }).default("yes").notNull(),
+  operationalPlanDetails: text("operationalPlanDetails"),
+  additionalNotes: text("additionalNotes"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  actionType: varchar("actionType", { length: 50 }),
+  actionNotes: text("actionNotes"),
+  redirectProgram: varchar("redirectProgram", { length: 50 }),
+  reviewedBy: int("reviewedBy").references(() => users.id),
+  reviewedAt: timestamp("reviewedAt"),
+  completedRequestId: int("completedRequestId").references(() => mosqueRequests.id),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SedanaInquiry = typeof sedanaInquiries.$inferSelect;
+export type InsertSedanaInquiry = typeof sedanaInquiries.$inferInsert;
+
 // ==================== طلبات الدعم الفني ====================
 export const supportTickets = mysqlTable("support_tickets", {
   id: int("id").primaryKey().autoincrement(),
