@@ -110,6 +110,8 @@ const ROUTE_TITLE_MAP: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/contract-templates\/[^/]+\/print\/?$/, title: "طباعة نموذج العقد" },
   { pattern: /^\/purchase-orders\/?$/, title: "أوامر الشراء الداخلية" },
   { pattern: /^\/csr-letters\/?$/, title: "خطابات المسؤولية المجتمعية" },
+  { pattern: /^\/sedana-warehouse\/?$/, title: "المستودع الافتراضي - سدانة" },
+  { pattern: /^\/sedana-execution\/?$/, title: "المستودع الافتراضي والتنفيذ" },
 
   // الشؤون المالية وجداول الكميات
   { pattern: /^\/boq-preparations\/?$/, title: "إعداد جداول الكميات" },

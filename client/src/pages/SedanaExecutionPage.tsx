@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -10,6 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -52,23 +59,34 @@ import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 export default function SedanaExecutionPage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const requestId = parseInt(params.id || "0");
 
-  useDocumentTitle(`المستودع الافتراضي والتنفيذ #${requestId} - سدانة`);
+  // جلب قائمة كافة طلبات سدانة لاختيار الطلب
+  const { data: sedanaRequests = [], isLoading: isRequestsLoading } = trpc.sedanaExecution.listSedanaRequests.useQuery();
+
+  const activeRequestId = useMemo(() => {
+    const fromParam = parseInt(params.id || "0");
+    if (fromParam > 0) return fromParam;
+    if (sedanaRequests.length > 0) return sedanaRequests[0].id;
+    return 0;
+  }, [params.id, sedanaRequests]);
+
+  const requestId = activeRequestId;
+
+  useDocumentTitle(requestId > 0 ? `المستودع الافتراضي #${requestId} - سدانة` : "المستودع الافتراضي - سدانة");
 
   const utils = trpc.useUtils();
 
-  // جلب بيانات المستودع الافتراضي والتنفيذ
+  // جلب بيانات المستودع الافتراضي والتنفيذ للطلب المحدد
   const {
     data,
     isLoading,
     refetch,
   } = trpc.sedanaExecution.getVirtualInventory.useQuery(
     { requestId },
-    { enabled: !!requestId && requestId > 0 }
+    { enabled: requestId > 0 }
   );
 
   // جلب سجل تنقلات الإمام والذاكرة المؤسسية للمسجد
@@ -232,51 +250,99 @@ export default function SedanaExecutionPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 text-right font-sans" dir="rtl">
-        {/* الترويسة العلوية */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation(`/requests/${requestId}`)}
-                className="h-8 px-2 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowRight className="w-4 h-4" />
-                <span>العودة للطلب</span>
-              </Button>
-              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                <Boxes className="w-5 h-5" />
+        {/* الترويسة العلوية مع شريط اختيار طلب سدانة */}
+        <div className="flex flex-col gap-4 border-b pb-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocation(requestId > 0 ? `/requests/${requestId}` : "/requests")}
+                  className="h-8 px-2 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  <span>العودة للطلب</span>
+                </Button>
+                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                  المستودع الافتراضي والتنفيذ المجدول
+                </h1>
+                <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs">
+                  برنامج سدانة
+                </Badge>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                المستودع الافتراضي والتنفيذ المجدول
-              </h1>
-              <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs">
-                برنامج سدانة
-              </Badge>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
+              </p>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> (#{req?.requestNumber || requestId})
-            </p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {requestId > 0 && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setLocation(`/requests/${requestId}/procurement`)}
+                    className="text-xs font-semibold"
+                  >
+                    تأمين الطلب والتعاقد
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                    className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    نموذج أمر التسليم (A4)
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-              className="text-xs font-semibold"
-            >
-              تأمين الطلب والتعاقد
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-              className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              نموذج أمر التسليم (A4)
-            </Button>
+          {/* شريط اختيار طلب سدانة */}
+          <div className="bg-muted/40 p-3 rounded-xl border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Label className="text-xs font-bold whitespace-nowrap text-foreground flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-emerald-600" />
+                <span>اختر طلب سدانة لعرض مستودعه:</span>
+              </Label>
+              <Select
+                value={String(requestId)}
+                onValueChange={(val) => setLocation(`/requests/${val}/sedana-execution`)}
+              >
+                <SelectTrigger className="h-9 w-full sm:w-[320px] text-xs font-semibold bg-background">
+                  <SelectValue placeholder="اختر طلب سدانة..." />
+                </SelectTrigger>
+                <SelectContent dir="rtl" className="max-h-[320px]">
+                  {sedanaRequests.map((r) => (
+                    <SelectItem key={r.id} value={String(r.id)} className="text-xs">
+                      <div className="flex items-center justify-between gap-2 w-full">
+                        <span className="font-bold">
+                          #{r.requestNumber} - {r.mosqueName}
+                        </span>
+                        {r.descriptiveName && (
+                          <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
+                            ({r.descriptiveName})
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {req && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mr-auto sm:mr-0">
+                <span>المدينة: <strong className="text-foreground">{mosque?.city || "-"}</strong></span>
+                <span>•</span>
+                <span>المرحلة: <Badge variant="outline" className="text-[10px]">{req.currentStage}</Badge></span>
+              </div>
+            )}
           </div>
         </div>
 

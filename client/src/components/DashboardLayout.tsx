@@ -59,6 +59,7 @@ import {
   PieChart,
   HeartHandshake,
   ShoppingCart,
+  Boxes,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -150,6 +151,7 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: FileText, label: "العقود", path: "/contracts" },
       { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
       { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
+      { icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
@@ -304,6 +306,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
     finItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
     finItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
+    finItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
   }
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });

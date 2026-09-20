@@ -7,6 +7,58 @@ import { TRPCError } from "@trpc/server";
 
 export const sedanaExecutionRouter = router({
   // ==========================================
+  // 0. قائمة بجميع طلبات برنامج سدانة لاختيار الطلب
+  // ==========================================
+  listSedanaRequests: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const rows = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(isNotNull(mosqueRequests.programData))
+        .orderBy(desc(mosqueRequests.createdAt));
+
+      const sedanaList: any[] = [];
+      for (const row of rows) {
+        const req = row.request;
+        const mosque = row.mosque;
+
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (!pData || typeof pData !== "object") continue;
+
+        const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems;
+        if (!isSedana) continue;
+
+        sedanaList.push({
+          id: req.id,
+          requestNumber: req.requestNumber || String(req.id),
+          descriptiveName: req.descriptiveName || null,
+          currentStage: req.currentStage,
+          status: req.status,
+          mosqueId: mosque?.id || null,
+          mosqueName: mosque?.name || "المسجد",
+          mosqueCity: mosque?.city || "",
+          createdAt: req.createdAt,
+        });
+      }
+
+      return sedanaList;
+    }),
+
+  // ==========================================
   // 1. جلب بيانات المستودع الافتراضي للطلب
   // ==========================================
   getVirtualInventory: protectedProcedure
