@@ -31,9 +31,13 @@ import { formsRouter } from "./routers/forms";
 import { publicSubmissionsRouter } from "./routers/publicSubmissions";
 import { calendarRouter } from "./routers/calendar";
 import { escalationRouter } from "./routers/escalation";
+import { sedanaInquiriesRouter } from "./routers/sedanaInquiries";
 
 export const appRouter = router({
   system: systemRouter,
+
+  // استبيانات وتأهيل طلبات برنامج سدانة
+  sedanaInquiries: sedanaInquiriesRouter,
 
   // التقويم الموحد والأحداث المخصصة
   calendar: calendarRouter,
