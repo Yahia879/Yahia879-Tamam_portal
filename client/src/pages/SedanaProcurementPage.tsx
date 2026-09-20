@@ -35,7 +35,6 @@ import {
   Plus,
   Loader2,
   Eye,
-  Settings2,
   AlertTriangle,
   AlertCircle,
   Check,
@@ -60,8 +59,6 @@ export default function SedanaProcurementPage() {
   // وضع العرض كامل الشاشة: إما القائمة الرئيسية "none" أو معاينة أمر الشراء "po" أو معاينة الخطاب "csr"
   const [fullScreenView, setFullScreenView] = useState<"none" | "po" | "csr">("none");
 
-  // التحكم بإظهار لوحة تعديل البيانات في المعاينة كاملة الشاشة
-  const [showEditControls, setShowEditControls] = useState(false);
 
   // التحكم في نافذة تأكيد الاعتماد والانتقال للتنفيذ
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -465,7 +462,7 @@ export default function SedanaProcurementPage() {
   }, [approvedSuppliers, suppliersAllocation]);
 
   const csrSuppliers = useMemo(() => {
-    return approvedSuppliers.filter(s => suppliersAllocation[s.key] === "csr_letter");
+    return approvedSuppliers.filter(s => (suppliersAllocation[s.key] || (s.isUnassigned ? "csr_letter" : "contract")) === "csr_letter");
   }, [approvedSuppliers, suppliersAllocation]);
 
   // تغيير طريقة التأمين لمورد معين
@@ -574,28 +571,6 @@ export default function SedanaProcurementPage() {
             </Button>
 
             <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setShowEditControls(!showEditControls)}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
-            >
-              <Settings2 className="h-4 w-4 text-sky-600" />
-              <span>{showEditControls ? "إخفاء التعديل" : "تعديل البيانات"}</span>
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleSaveProcurement(false)}
-              disabled={saveProcurementMutation.isPending}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
-            >
-              <Save className="h-4 w-4 text-sky-600" />
-              <span>حفظ البيانات</span>
-            </Button>
-
-            <Button
               size="sm"
               onClick={handlePrint}
               className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
@@ -605,73 +580,6 @@ export default function SedanaProcurementPage() {
             </Button>
           </div>
         </div>
-
-        {/* لوحة التعديل السريع (تظهر عند الضغط على زر تعديل البيانات) */}
-        {showEditControls && (
-          <div className="max-w-4xl mx-auto px-4 mb-4 print:hidden animate-in fade-in-50 duration-200">
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-border shadow-md space-y-3">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Edit className="w-3.5 h-3.5 text-sky-600" />
-                تعديل بيانات أمر الشراء الداخلي
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">رقم أمر الشراء</Label>
-                  <Input
-                    value={poData.orderNumber}
-                    onChange={(e) => setPoData(prev => ({ ...prev, orderNumber: e.target.value }))}
-                    className="h-8 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">تاريخ الأمر</Label>
-                  <Input
-                    type="date"
-                    value={poData.orderDate}
-                    onChange={(e) => setPoData(prev => ({ ...prev, orderDate: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">الموجه إليه</Label>
-                  <Input
-                    value={poData.directedTo}
-                    onChange={(e) => setPoData(prev => ({ ...prev, directedTo: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم طالب الشراء</Label>
-                  <Input
-                    value={poData.requesterName}
-                    onChange={(e) => setPoData(prev => ({ ...prev, requesterName: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم صاحب الصلاحية (الاعتماد)</Label>
-                  <Input
-                    value={poData.approverName}
-                    onChange={(e) => setPoData(prev => ({ ...prev, approverName: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      handleSaveProcurement(false);
-                      setShowEditControls(false);
-                    }}
-                    className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white w-full"
-                  >
-                    حفظ التعديلات
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
         <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
@@ -829,28 +737,6 @@ export default function SedanaProcurementPage() {
             </Button>
 
             <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => setShowEditControls(!showEditControls)}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
-            >
-              <Settings2 className="h-4 w-4 text-sky-600" />
-              <span>{showEditControls ? "إخفاء التعديل" : "تعديل البيانات"}</span>
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleSaveProcurement(false)}
-              disabled={saveProcurementMutation.isPending}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs text-xs font-bold gap-1.5"
-            >
-              <Save className="h-4 w-4 text-sky-600" />
-              <span>حفظ البيانات</span>
-            </Button>
-
-            <Button
               size="sm"
               onClick={handlePrint}
               className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
@@ -860,104 +746,6 @@ export default function SedanaProcurementPage() {
             </Button>
           </div>
         </div>
-
-        {/* لوحة التعديل السريع للخطاب الرسمي */}
-        {showEditControls && (
-          <div className="max-w-4xl mx-auto px-4 mb-4 print:hidden animate-in fade-in-50 duration-200">
-            <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-border shadow-md space-y-3">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Edit className="w-3.5 h-3.5 text-sky-600" />
-                تعديل بيانات خطاب المسؤولية المجتمعية
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">صيغة المخاطبة</Label>
-                  <Select
-                    value={csrData.salutation}
-                    onValueChange={(val) => setCsrData(prev => ({ ...prev, salutation: val }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="السادة">السادة</SelectItem>
-                      <SelectItem value="السيد">السيد</SelectItem>
-                      <SelectItem value="السيدة">السيدة</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم الجهة أو الشركة الموجه إليها الخطاب</Label>
-                  <Input
-                    placeholder="مثال: شركة الراجحي المصرفية للاستثمار"
-                    value={csrData.recipientName}
-                    onChange={(e) => setCsrData(prev => ({ ...prev, recipientName: e.target.value }))}
-                    className="h-8 text-xs font-medium"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اللقب التقديري</Label>
-                  <Select
-                    value={csrData.honorific}
-                    onValueChange={(val) => setCsrData(prev => ({ ...prev, honorific: val }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="المحترمون">المحترمون</SelectItem>
-                      <SelectItem value="المحترم">المحترم</SelectItem>
-                      <SelectItem value="الموقر">الموقر</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">رقم الخطاب</Label>
-                  <Input
-                    value={csrData.letterNumber}
-                    onChange={(e) => setCsrData(prev => ({ ...prev, letterNumber: e.target.value }))}
-                    className="h-8 text-xs font-mono"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">تاريخ الخطاب</Label>
-                  <Input
-                    type="date"
-                    value={csrData.letterDate}
-                    onChange={(e) => setCsrData(prev => ({ ...prev, letterDate: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-[11px] mb-1 block text-muted-foreground">اسم المفوض بالتوقيع</Label>
-                  <Input
-                    value={csrData.signatoryName}
-                    onChange={(e) => setCsrData(prev => ({ ...prev, signatoryName: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-
-                <div className="sm:col-span-3 flex justify-end">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      handleSaveProcurement(false);
-                      setShowEditControls(false);
-                    }}
-                    className="h-8 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-6"
-                  >
-                    حفظ التعديلات
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
         <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
@@ -1170,7 +958,7 @@ export default function SedanaProcurementPage() {
           <div className="bg-white dark:bg-card p-3 rounded-xl border border-sky-100 dark:border-sky-900/40 shadow-2xs flex items-center justify-between">
             <div>
               <p className="text-[11px] text-sky-700 dark:text-sky-400">المسؤولية المجتمعية</p>
-              <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">{csrItems.length} <span className="text-xs font-normal">أصناف</span></p>
+              <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">{csrSuppliers.length} <span className="text-xs font-normal">موردين</span> ({csrItems.length} صنف)</p>
             </div>
             <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600">
               <HeartHandshake className="w-4 h-4" />
@@ -1498,7 +1286,7 @@ export default function SedanaProcurementPage() {
                     <HeartHandshake className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
-                    {csrItems.length} أصناف
+                    {csrSuppliers.length} موردين ({csrItems.length} صنف)
                   </Badge>
                 </div>
                 <div>
@@ -1509,20 +1297,20 @@ export default function SedanaProcurementPage() {
                 </div>
               </CardHeader>
 
-              {/* بطاقة المسؤولية المجتمعية - أصناف فقط بدون ذكر أي موردين */}
-              <div className="px-4 py-2 flex-1 flex flex-col justify-center">
-                {csrItems.length > 0 ? (
-                  <div className="bg-sky-50/50 dark:bg-sky-950/30 p-3 rounded-lg border border-sky-100 dark:border-sky-900/40 text-center space-y-1">
-                    <p className="text-xs font-bold text-sky-900 dark:text-sky-200">
-                      تم تخصيص {csrItems.length} صنف للمسؤولية المجتمعية
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      جاهزة للتضمين بالخطاب الرسمي بدون أي أسعار أو أسماء موردين
-                    </p>
+              {/* قائمة الموردين للمسؤولية المجتمعية مثل العقد وأمر الشراء */}
+              <div className="px-4 py-2 flex-1 space-y-2">
+                {csrSuppliers.length > 0 ? (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {csrSuppliers.map((sup: any) => (
+                      <div key={sup.key} className="p-2 rounded-lg bg-muted/20 border border-border/70 flex items-center justify-between text-xs">
+                        <span className="font-bold text-foreground truncate">{sup.supplierName}</span>
+                        <Badge variant="secondary" className="text-[10px] font-normal">{sup.items.length} أصناف</Badge>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="bg-muted/20 p-4 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
-                    لا توجد أصناف مخصصة للمسؤولية المجتمعية حالياً
+                    لا يوجد موردون مخصصون للمسؤولية المجتمعية حالياً
                   </div>
                 )}
               </div>
@@ -1572,8 +1360,8 @@ export default function SedanaProcurementPage() {
                   <span className="text-muted-foreground text-[10px]">{poItems.length} بنود بأمر شراء</span>
                 </div>
                 <div className="bg-sky-50 dark:bg-sky-950/40 p-2 rounded border border-sky-200 dark:border-sky-800">
-                  <span className="block text-sky-700 dark:text-sky-300 font-bold">{csrItems.length} أصناف</span>
-                  <span className="text-muted-foreground text-[10px]">مسؤولية مجتمعية</span>
+                  <span className="block text-sky-700 dark:text-sky-300 font-bold">{csrSuppliers.length} موردين</span>
+                  <span className="text-muted-foreground text-[10px]">{csrItems.length} أصناف مجتمعية</span>
                 </div>
               </div>
             </div>
