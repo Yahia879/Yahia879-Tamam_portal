@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, quantitySchedules } from "../../drizzle/schema";
+import { mosqueRequests, mosques, quantitySchedules, suppliers } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -144,38 +144,80 @@ export const procurementRouter = router({
           }
         }
 
-        const poNumber = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
-        const poDate = activePO?.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) أو تم اعتماده مسبقاً تكون الحالة معتمد
-        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
-        const status = (activePO?.status === "approved" || isExecutionOrBeyond) ? "approved" : "draft";
-        const directedTo = activePO?.directedTo || (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات");
+        const poList = Array.isArray(sedanaProc?.purchaseOrders) && sedanaProc.purchaseOrders.length > 0
+          ? sedanaProc.purchaseOrders
+          : (activePO ? [activePO] : []);
 
-        orders.push({
-          id: req.id,
-          requestId: req.id,
-          requestNumber: req.requestNumber || String(req.id),
-          descriptiveName: req.descriptiveName || null,
-          currentStage: req.currentStage,
-          mosqueId: mosque?.id || null,
-          mosqueName: mosque?.name || "المسجد",
-          mosqueCity: mosque?.city || "",
-          mosqueRegion: mosque?.governorate || "",
-          orderNumber: poNumber,
-          orderDate: poDate,
-          directedTo,
-          requesterName: activePO?.requesterName || "طالب الشراء",
-          requesterRole: activePO?.requesterRole || "طالب الشراء / إدارة المشاريع",
-          approverName: activePO?.approverName || "المدير التنفيذي",
-          approverRole: activePO?.approverRole || "المدير التنفيذي",
-          approverSignatureUrl: activePO?.approverSignatureUrl || "",
-          notes: activePO?.notes || "",
-          status,
-          items: itemsForPO,
-          itemsCount: itemsForPO.length,
-          createdAt: req.createdAt,
-          updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
-        });
+        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
+
+        if (poList.length > 0) {
+          poList.forEach((po: any, pIdx: number) => {
+            const poNumber = po.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+            const poDate = po.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
+            const status = (po.status === "approved" || isExecutionOrBeyond) ? "approved" : "draft";
+            const poItems = (po.items && Array.isArray(po.items) && po.items.length > 0) ? po.items : itemsForPO;
+            const directedTo = po.directedTo || (po.supplierName ? `إلى إدارة المشتريات (${po.supplierName})` : (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات"));
+
+            orders.push({
+              id: `${req.id}-${pIdx}`,
+              requestId: req.id,
+              requestNumber: req.requestNumber || String(req.id),
+              descriptiveName: req.descriptiveName || null,
+              currentStage: req.currentStage,
+              mosqueId: mosque?.id || null,
+              mosqueName: mosque?.name || "المسجد",
+              mosqueCity: mosque?.city || "",
+              mosqueRegion: mosque?.governorate || "",
+              orderNumber: poNumber,
+              orderDate: poDate,
+              directedTo,
+              supplierName: po.supplierName || poSupplierName || "",
+              requesterName: po.requesterName || activePO?.requesterName || "طالب الشراء",
+              requesterRole: po.requesterRole || activePO?.requesterRole || "طالب الشراء / إدارة المشاريع",
+              approverName: po.approverName || activePO?.approverName || "المدير التنفيذي",
+              approverRole: po.approverRole || activePO?.approverRole || "المدير التنفيذي",
+              approverSignatureUrl: po.approverSignatureUrl || activePO?.approverSignatureUrl || "",
+              notes: po.notes || activePO?.notes || "",
+              status,
+              items: poItems,
+              itemsCount: poItems.length,
+              createdAt: req.createdAt,
+              updatedAt: po.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
+            });
+          });
+        } else {
+          const poNumber = `PO-${req.id}-${new Date().getFullYear()}`;
+          const poDate = req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "";
+          const status = isExecutionOrBeyond ? "approved" : "draft";
+          const directedTo = poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات";
+
+          orders.push({
+            id: req.id,
+            requestId: req.id,
+            requestNumber: req.requestNumber || String(req.id),
+            descriptiveName: req.descriptiveName || null,
+            currentStage: req.currentStage,
+            mosqueId: mosque?.id || null,
+            mosqueName: mosque?.name || "المسجد",
+            mosqueCity: mosque?.city || "",
+            mosqueRegion: mosque?.governorate || "",
+            orderNumber: poNumber,
+            orderDate: poDate,
+            directedTo,
+            supplierName: poSupplierName || "",
+            requesterName: "طالب الشراء",
+            requesterRole: "طالب الشراء / إدارة المشاريع",
+            approverName: "المدير التنفيذي",
+            approverRole: "المدير التنفيذي",
+            approverSignatureUrl: "",
+            notes: "",
+            status,
+            items: itemsForPO,
+            itemsCount: itemsForPO.length,
+            createdAt: req.createdAt,
+            updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
+          });
+        }
       }
 
       // التصفية بالبحث
@@ -444,7 +486,7 @@ export const procurementRouter = router({
     }),
 
   // ===============================================
-  // 3. جلب قائمة الطلبات المتاحة لإنشاء أمر شراء
+  // 3. جلب قائمة طلبات سدانة التي تحوي موردين معتمدين لأوامر الشراء
   // ===============================================
   getAvailableRequestsForPO: protectedProcedure
     .query(async () => {
@@ -453,6 +495,16 @@ export const procurementRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
+      // جلب جميع الموردين المسجلين في النظام لمطابقة معلوماتهم
+      const registeredSuppliers = await db.select().from(suppliers);
+      const supplierMapByName = new Map<string, any>();
+      const supplierMapById = new Map<number, any>();
+      registeredSuppliers.forEach((s) => {
+        if (s.name) supplierMapByName.set(s.name.trim().toLowerCase(), s);
+        supplierMapById.set(s.id, s);
+      });
+
+      // جلب طلبات المساجد
       const requests = await db
         .select({
           request: mosqueRequests,
@@ -460,6 +512,7 @@ export const procurementRouter = router({
         })
         .from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(isNotNull(mosqueRequests.programData))
         .orderBy(desc(mosqueRequests.createdAt));
 
       const allBoq = await db
@@ -488,14 +541,24 @@ export const procurementRouter = router({
             break;
           }
         }
-        pData = pData && typeof pData === "object" ? pData : {};
+        if (!pData || typeof pData !== "object") continue;
 
-        // جمع البنود المعتمدة للطلب
+        // التحقق من أنه طلب سدانة حصراً
+        const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems;
+        if (!isSedana) continue;
+
+        const sedanaProc = pData.sedanaProcurement || {};
+        const itemsAlloc = sedanaProc.itemsAllocation || {};
+        const itemSuppMap = sedanaProc.itemSupplierMap || {};
+        const suppliersAlloc = sedanaProc.suppliersAllocation || {};
+        const activePO = sedanaProc.activePurchaseOrder || null;
+
+        // جمع جميع بنود الطلب المعتمدة
         const boqItems = boqMap.get(req.id) || [];
-        let items: any[] = [];
+        let baseItems: any[] = [];
 
         if (boqItems.length > 0) {
-          items = boqItems.map((b) => ({
+          baseItems = boqItems.map((b) => ({
             id: String(b.id),
             itemName: b.itemName,
             description: b.itemDescription || "",
@@ -503,7 +566,7 @@ export const procurementRouter = router({
             unit: b.unit || "وحدة",
           }));
         } else if (pData.evaluation?.items && Array.isArray(pData.evaluation.items)) {
-          items = pData.evaluation.items.map((it: any, idx: number) => ({
+          baseItems = pData.evaluation.items.map((it: any, idx: number) => ({
             id: String(it.key || it.id || idx + 1),
             itemName: it.name || it.itemName || `بند ${idx + 1}`,
             description: it.description || it.spec || "",
@@ -511,7 +574,7 @@ export const procurementRouter = router({
             unit: it.unit || "وحدة",
           }));
         } else if (pData.basketItems && Array.isArray(pData.basketItems)) {
-          items = pData.basketItems.map((b: any, idx: number) => ({
+          baseItems = pData.basketItems.map((b: any, idx: number) => ({
             id: String(b.id || idx + 1),
             itemName: b.name,
             description: b.description || b.category || "",
@@ -520,7 +583,101 @@ export const procurementRouter = router({
           }));
         }
 
-        const activePO = pData.sedanaProcurement?.activePurchaseOrder || null;
+        // تحديد البنود المخصصة لأمر الشراء
+        const poItemIds = new Set<string>();
+        Object.keys(itemsAlloc).forEach((k) => {
+          if (itemsAlloc[k] === "purchase_order") {
+            poItemIds.add(k);
+          }
+        });
+
+        // تجميع الموردين المعتمدين على أوامر الشراء لهذا الطلب
+        const supplierGroups = new Map<string, {
+          supplierId?: number | null;
+          supplierName: string;
+          items: any[];
+        }>();
+
+        baseItems.forEach((it) => {
+          // هل هذا البند مخصص لأمر الشراء؟
+          const isPo = poItemIds.has(it.id) || (poItemIds.size === 0 && Object.keys(itemsAlloc).length === 0);
+          if (!isPo) return;
+
+          // البحث عن المورد المعتمد لهذا البند
+          const mapEntry = itemSuppMap[it.id];
+          let sName = mapEntry?.supplierName;
+          let sId = mapEntry?.supplierId;
+
+          if (!sName || sName === "لم يحدد بعد") {
+            // فحص suppliersAlloc
+            for (const k of Object.keys(suppliersAlloc)) {
+              const sObj = suppliersAlloc[k];
+              if (sObj?.method === "purchase_order" && sObj?.supplierName) {
+                sName = sObj.supplierName;
+                sId = sObj.supplierId;
+                break;
+              }
+            }
+          }
+
+          if (!sName || sName === "لم يحدد بعد") {
+            if (activePO?.supplierName) {
+              sName = activePO.supplierName;
+            } else if (activePO?.directedTo && activePO.directedTo !== "إلى إدارة المشتريات") {
+              sName = activePO.directedTo.replace(/^إلى\s*إدارة\s*المشتريات\s*\(?/, "").replace(/\)?$/, "").trim();
+            }
+          }
+
+          // إذا لم يوجد مورد محدد، لا يتم اعتباره مورداً معتمداً
+          if (!sName || sName === "لم يحدد بعد" || sName.trim() === "") {
+            return;
+          }
+
+          const groupKey = sName.trim();
+          const currentGroup: { supplierId?: number | null; supplierName: string; items: any[] } = supplierGroups.get(groupKey) || {
+            supplierId: sId || null,
+            supplierName: groupKey,
+            items: [],
+          };
+
+          currentGroup.items.push({
+            id: it.id,
+            itemName: it.itemName,
+            description: it.description || "",
+            quantity: it.quantity,
+            unit: it.unit,
+            unitPrice: mapEntry?.unitPrice || 0,
+            totalPrice: mapEntry?.totalPrice || (it.quantity * (mapEntry?.unitPrice || 0)),
+          });
+
+          supplierGroups.set(groupKey, currentGroup);
+        });
+
+        // استبعاد أي طلب لا يحوي موردين معتمدين لأمر الشراء!
+        if (supplierGroups.size === 0) {
+          continue;
+        }
+
+        // بناء قائمة الموردين المعتمدين مع تفاصيلهم الرسمية
+        const approvedSuppliers: any[] = [];
+        supplierGroups.forEach((group, sName) => {
+          const reg = (group.supplierId ? supplierMapById.get(group.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
+
+          approvedSuppliers.push({
+            id: group.supplierId || sName,
+            supplierId: group.supplierId || reg?.id || null,
+            supplierName: sName,
+            commercialRegister: reg?.commercialRegister || "",
+            phone: reg?.phone || "",
+            email: reg?.email || "",
+            city: reg?.city || "",
+            contactPerson: reg?.contactPerson || "",
+            bankName: reg?.bankName || "",
+            iban: reg?.iban || "",
+            itemsCount: group.items.length,
+            items: group.items,
+          });
+        });
 
         result.push({
           id: req.id,
@@ -530,7 +687,8 @@ export const procurementRouter = router({
           status: req.status,
           mosqueName: mosque?.name || "المسجد",
           mosqueCity: mosque?.city || "",
-          items,
+          mosqueDistrict: mosque?.district || "",
+          suppliers: approvedSuppliers,
           activePO,
         });
       }
@@ -539,11 +697,15 @@ export const procurementRouter = router({
     }),
 
   // ===============================================
-  // 4. إنشاء أو تحديث أمر شراء مع تحديد البنود والكميات
+  // 4. إنشاء أو تحديث أمر شراء مع تحديد البنود والكميات والمورد
   // ===============================================
   createOrUpdatePurchaseOrder: protectedProcedure
     .input(z.object({
       requestId: z.number(),
+      supplierName: z.string().optional(),
+      supplierId: z.number().optional().nullable(),
+      supplierPhone: z.string().optional(),
+      supplierCommercialRegister: z.string().optional(),
       orderNumber: z.string().optional(),
       orderDate: z.string().optional(),
       directedTo: z.string().optional(),
@@ -559,6 +721,8 @@ export const procurementRouter = router({
         description: z.string().optional(),
         quantity: z.number().min(0.01),
         unit: z.string(),
+        unitPrice: z.number().optional(),
+        totalPrice: z.number().optional(),
       })),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -588,6 +752,7 @@ export const procurementRouter = router({
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaProcurement = pData.sedanaProcurement || {};
       pData.sedanaProcurement.itemsAllocation = pData.sedanaProcurement.itemsAllocation || {};
+      pData.sedanaProcurement.purchaseOrders = pData.sedanaProcurement.purchaseOrders || [];
 
       // تخصيص هذه البنود لأمر الشراء
       input.items.forEach((it) => {
@@ -595,10 +760,16 @@ export const procurementRouter = router({
       });
 
       const orderNumber = input.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
-      const activePO = {
+      const directedTo = input.directedTo || (input.supplierName ? `إلى إدارة المشتريات (${input.supplierName})` : "إلى إدارة المشتريات");
+
+      const newPO = {
         orderNumber,
         orderDate: input.orderDate || new Date().toISOString().split("T")[0],
-        directedTo: input.directedTo || "إلى إدارة المشتريات",
+        directedTo,
+        supplierName: input.supplierName || "",
+        supplierId: input.supplierId || null,
+        supplierPhone: input.supplierPhone || "",
+        supplierCommercialRegister: input.supplierCommercialRegister || "",
         requesterName: input.requesterName || ctx.user.name || "طالب الشراء",
         requesterRole: input.requesterRole || "طالب الشراء / إدارة المشاريع",
         approverName: input.approverName || "المدير التنفيذي",
@@ -610,7 +781,18 @@ export const procurementRouter = router({
         updatedAt: new Date().toISOString(),
       };
 
-      pData.sedanaProcurement.activePurchaseOrder = activePO;
+      pData.sedanaProcurement.activePurchaseOrder = newPO;
+
+      // تحديث أو إضافة أمر الشراء في قائمة purchaseOrders الخاصة بالطلب
+      const existingIdx = pData.sedanaProcurement.purchaseOrders.findIndex(
+        (p: any) => p.orderNumber === orderNumber || (input.supplierName && p.supplierName === input.supplierName)
+      );
+
+      if (existingIdx >= 0) {
+        pData.sedanaProcurement.purchaseOrders[existingIdx] = newPO;
+      } else {
+        pData.sedanaProcurement.purchaseOrders.push(newPO);
+      }
 
       const updateData: any = {
         programData: pData,

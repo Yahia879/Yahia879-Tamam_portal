@@ -42,6 +42,7 @@ import SedanaExecutionPage from "./pages/SedanaExecutionPage";
 import SedanaDeliveryOrderPrint from "./pages/SedanaDeliveryOrderPrint";
 import SedanaBulkPurchasingPage from "./pages/SedanaBulkPurchasingPage";
 import PurchaseOrdersList from "./pages/PurchaseOrdersList";
+import CreatePurchaseOrderPage from "./pages/CreatePurchaseOrderPage";
 import CsrLettersList from "./pages/CsrLettersList";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
@@ -396,6 +397,8 @@ function Router() {
       <Route path="/contract-templates/:id/print">{() => <AdminRoute component={TemplatePrint} />}</Route>
       
       {/* أوامر الشراء والمسؤولية المجتمعية */}
+      <Route path="/purchase-orders/new">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
+      <Route path="/requests/:id/new-purchase-order">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
       <Route path="/purchase-orders">{() => <AdminRoute component={PurchaseOrdersList} />}</Route>
       <Route path="/csr-letters">{() => <AdminRoute component={CsrLettersList} />}</Route>
       
