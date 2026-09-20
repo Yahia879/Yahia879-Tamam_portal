@@ -99,6 +99,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
     return initialEval.items.map((item) => ({
       id: item.key,
       name: item.label,
+      description: (item as any).description || '',
       category: (item.category as SedanaCategory) || 'أدوات المسجد العامة',
       quantity: item.requestedQty,
       unit: item.unit,
@@ -210,6 +211,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
       dbCategoryId: availableOption.id,
       category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
       name: availableOption.valueAr || availableOption.value,
+      description: '',
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
@@ -438,7 +440,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                   }`}
                 >
                   {/* 1. اسم الصنف مع إمكانية تغييره مباشرة من القائمة أو نص للبند المخصص */}
-                  <td className="p-3 font-medium text-foreground align-middle">
+                  <td className="p-3 font-medium text-foreground align-top pt-3 space-y-1.5 min-w-[220px]">
                     {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 || !canEvaluate || isAlreadyApproved ? (
                       <div>
                         {item.isCustom && canEvaluate && !isAlreadyApproved ? (
@@ -479,20 +481,32 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                         </SelectContent>
                       </Select>
                     )}
-                    {item.description && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
+                    {canEvaluate && !isAlreadyApproved ? (
+                      <Textarea
+                        value={item.description || ''}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { description: e.target.value })
+                        }
+                        placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                        rows={1}
+                        className="text-xs min-h-[36px] max-h-[90px] resize-y bg-muted/20 focus:bg-background border-input/80 py-1.5 px-2.5 leading-relaxed rounded-md transition-colors mt-1.5"
+                      />
+                    ) : (
+                      item.description && (
+                        <p className="text-[11px] text-muted-foreground mt-1">{item.description}</p>
+                      )
                     )}
                   </td>
 
                   {/* 2. التصنيف الفرعي */}
-                  <td className="p-3 text-center align-middle">
+                  <td className="p-3 text-center align-top pt-3.5">
                     <span className="px-2 py-0.5 rounded-md bg-muted/60 text-foreground font-medium text-[10px]">
                       {item.category || 'عام'}
                     </span>
                   </td>
 
                   {/* 3. دورية التوريد */}
-                  <td className="p-3 text-center align-middle">
+                  <td className="p-3 text-center align-top pt-3">
                     {canEvaluate && !isAlreadyApproved ? (
                       <Select
                         value={item.frequency}
@@ -519,7 +533,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                   </td>
 
                   {/* 4. الكمية المطلوبة - قابلة للتعديل مباشرة في الجدول */}
-                  <td className="p-3 text-center align-middle">
+                  <td className="p-3 text-center align-top pt-3">
                     {canEvaluate && !isAlreadyApproved ? (
                       <div className="flex items-center justify-center gap-1">
                         <Input
@@ -542,7 +556,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                   </td>
 
                   {/* 5. المعيار القياسي */}
-                  <td className="p-3 text-center align-middle text-muted-foreground">
+                  <td className="p-3 text-center align-top pt-3.5 text-muted-foreground">
                     {evalItem ? (
                       <>
                         <span className="font-medium">{evalItem.standardQty}</span>{' '}
@@ -554,7 +568,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
                   </td>
 
                   {/* 6. الكمية المعتمدة - قابلة للتعديل مباشرة في الجدول */}
-                  <td className="p-3 text-center align-middle">
+                  <td className="p-3 text-center align-top pt-3">
                     {canEvaluate && !isAlreadyApproved ? (
                       <div className="flex items-center justify-center gap-1">
                         <Input
@@ -575,7 +589,7 @@ export const SedanaOfficeEvaluation: React.FC<SedanaOfficeEvaluationProps> = ({
 
                   {/* 7. إجراء الحذف فقط (تمت إزالة زر القلم كما طُلب) */}
                   {canEvaluate && !isAlreadyApproved && (
-                    <td className="p-3 text-center align-middle">
+                    <td className="p-3 text-center align-top pt-3">
                       <Button
                         type="button"
                         variant="ghost"
