@@ -76,7 +76,8 @@ import {
   Layers,
   Sparkles,
   Truck,
-  FileCheck
+  FileCheck,
+  RefreshCw,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -167,9 +168,47 @@ export default function RequesterApprovals() {
     action: "active" | "suspended";
   } | null>(null);
 
-  // التبويبات: حسابات | استثناءات | تبرعات غير مالية | استفسارات عامة
-  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions' | 'donations' | 'inquiries'>('requests');
+  // التبويبات: حسابات | استثناءات | تبرعات غير مالية | استفسارات عامة | استفسارات سدانة
+  const [activeTab, setActiveTab] = useState<'requests' | 'exceptions' | 'donations' | 'inquiries' | 'sedana_inquiries'>('requests');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // استفسارات وتأهيل سدانة
+  const [sedanaStatusFilter, setSedanaStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [sedanaSearch, setSedanaSearch] = useState<string>("");
+  const [selectedInquiryForAction, setSelectedInquiryForAction] = useState<any | null>(null);
+  const [actionDecision, setActionDecision] = useState<"approved" | "rejected">("approved");
+  const [actionType, setActionType] = useState<"enable_sedana" | "redirect_alternative" | "reject">("enable_sedana");
+  const [actionNotes, setActionNotes] = useState<string>("");
+  const [redirectProgram, setRedirectProgram] = useState<string>("");
+
+  const { data: sedanaStats = { total: 0, pending: 0, approved: 0, rejected: 0 } } = trpc.sedanaInquiries.getInquiriesStats.useQuery(undefined, {
+    enabled: hasViewPermission || hasApprovePermission,
+  });
+
+  const { data: sedanaInquiriesList = [], isLoading: isLoadingSedanaInquiries, refetch: refetchSedanaInquiries } = trpc.sedanaInquiries.getAllInquiries.useQuery(
+    { status: sedanaStatusFilter, search: sedanaSearch },
+    { enabled: (hasViewPermission || hasApprovePermission) && activeTab === 'sedana_inquiries' }
+  );
+
+  const reviewSedanaInquiryMutation = trpc.sedanaInquiries.reviewInquiry.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم حفظ الإجراء بنجاح");
+      setSelectedInquiryForAction(null);
+      refetchSedanaInquiries();
+      utils.sedanaInquiries.getInquiriesStats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ الإجراء");
+    }
+  });
+
+  const handleOpenSedanaAction = (item: any) => {
+    setSelectedInquiryForAction(item);
+    setActionDecision(item.inquiry.status === "rejected" ? "rejected" : "approved");
+    setActionType(item.inquiry.actionType || (item.inquiry.status === "rejected" ? "reject" : "enable_sedana"));
+    setActionNotes(item.inquiry.actionNotes || "");
+    setRedirectProgram(item.inquiry.redirectProgram || "");
+  };
 
   // فلاتر التبرعات والاستفسارات
   const [donationTypeFilter, setDonationTypeFilter] = useState<string>("all");
@@ -548,6 +587,19 @@ export default function RequesterApprovals() {
                 {pendingInquiriesCount > 0 && (
                   <span className="bg-sky-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
                     {pendingInquiriesCount}
+                  </span>
+                )}
+              </TabsTrigger>
+
+              <TabsTrigger 
+                value="sedana_inquiries" 
+                className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
+              >
+                <Sparkles className="h-4 w-4 text-cyan-600" />
+                <span>استفسارات وتأهيل سدانة</span>
+                {sedanaStats.pending > 0 && (
+                  <span className="bg-cyan-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
+                    {sedanaStats.pending}
                   </span>
                 )}
               </TabsTrigger>
@@ -1646,6 +1698,247 @@ export default function RequesterApprovals() {
             </CardContent>
           </Card>
         )}
+
+        {/* 5. تبويب استفسارات وتأهيل سدانة */}
+        {activeTab === 'sedana_inquiries' && (
+          <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between">
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-cyan-600" />
+                    استفسارات وتأهيل طلبات برنامج سدانة
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm mt-0.5">
+                    مراجعة استبيانات الأئمة الأولية والتواصل الهاتفي لاتخاذ إجراء القبول والتمكين أو التوجيه لبديل
+                  </CardDescription>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="بحث بالاسم، المسجد، أو الجوال..."
+                      value={sedanaSearch}
+                      onChange={(e) => setSedanaSearch(e.target.value)}
+                      className="pr-8 h-9 text-xs rounded-xl border-border/70"
+                    />
+                  </div>
+
+                  <Select value={sedanaStatusFilter} onValueChange={(val: any) => setSedanaStatusFilter(val)}>
+                    <SelectTrigger className="h-9 text-xs font-bold w-44 rounded-xl">
+                      <SelectValue placeholder="الحالة" />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      <SelectItem value="all">كافة الحالات ({sedanaStats.total})</SelectItem>
+                      <SelectItem value="pending">قيد التواصل والمراجعة ({sedanaStats.pending})</SelectItem>
+                      <SelectItem value="approved">معتمد ومؤهل للتقديم ({sedanaStats.approved})</SelectItem>
+                      <SelectItem value="rejected">مرفوض أو موجه ({sedanaStats.rejected})</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetchSedanaInquiries()}
+                    className="h-9 px-2.5 rounded-xl border-border/70 hover:bg-muted cursor-pointer"
+                    title="تحديث البيانات"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSedanaInquiries ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {isLoadingSedanaInquiries ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-cyan-600 mb-2" />
+                  <p className="text-xs font-bold text-muted-foreground">جاري تحميل استفسارات سدانة...</p>
+                </div>
+              ) : sedanaInquiriesList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-12 text-center space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 flex items-center justify-center mb-1">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">لا توجد استفسارات مطابقة</p>
+                  <p className="text-xs text-muted-foreground max-w-sm">
+                    {sedanaStatusFilter !== 'all' || sedanaSearch ? 'جرّب تغيير خيارات البحث والفلترة لعرض نتائج أخرى.' : 'لم يتم تقديم أي استبيان تأهيل لبرنامج سدانة حتى الآن.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* عرض الجدول للشاشات الكبيرة */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader className="bg-muted/40">
+                        <TableRow>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground w-12">#</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">تاريخ الإرسال</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">المسجد المستهدف</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">الإمام (طالب الخدمة)</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">الاحتياج المحدد</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">جاهزية المستودع</TableHead>
+                          <TableHead className="text-right text-[11px] font-bold text-muted-foreground">الحالة</TableHead>
+                          <TableHead className="text-left text-[11px] font-bold text-muted-foreground pl-6">الإجراء</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y">
+                        {sedanaInquiriesList.map((item: any, idx: number) => {
+                          const inq = item.inquiry;
+                          const rawPhone = item.userPhone || "";
+                          const waPhone = rawPhone.replace(/\D/g, "");
+                          const isPending = inq.status === 'pending';
+                          const isApproved = inq.status === 'approved';
+
+                          return (
+                            <TableRow key={inq.id} className="hover:bg-muted/30 transition-colors">
+                              <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
+                              <TableCell className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                {new Date(inq.createdAt).toLocaleDateString('ar-SA')}
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                                    <Building2 className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                                    <span>{item.mosqueName}</span>
+                                  </p>
+                                  {(item.mosqueCity || item.mosqueDistrict) && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {item.mosqueCity} {item.mosqueDistrict ? `- ${item.mosqueDistrict}` : ''}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-xs text-foreground">{item.userName}</p>
+                                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                    <span dir="ltr">{item.userPhone}</span>
+                                    {waPhone && (
+                                      <a
+                                        href={`https://wa.me/${waPhone}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-emerald-600 hover:text-emerald-700"
+                                        title="محادثة واتساب"
+                                      >
+                                        <MessageCircle className="w-3.5 h-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-[200px]">
+                                <p className="text-xs text-foreground font-medium truncate" title={inq.specificNeeds}>
+                                  {inq.specificNeeds}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-[10px] font-bold ${
+                                  inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                                  inq.hasCleaningWarehouse === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                                  'bg-slate-100 text-slate-700 border-slate-300'
+                                }`}>
+                                  {inq.hasCleaningWarehouse === 'yes' ? 'مستودع متوفر' :
+                                   inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً' : 'غير متوفر'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                  isPending ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300' :
+                                  isApproved ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
+                                  'bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300'
+                                }`}>
+                                  {isPending && <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" />}
+                                  {isApproved && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                                  {!isPending && !isApproved && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
+                                  <span>{isPending ? 'قيد التواصل' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه'}</span>
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-left pl-6">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleOpenSedanaAction(item)}
+                                  className={`h-8 text-xs font-bold gap-1.5 rounded-xl shadow-xs cursor-pointer ${
+                                    isPending
+                                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                                      : 'bg-muted hover:bg-muted/80 text-foreground border border-border'
+                                  }`}
+                                >
+                                  <PhoneCall className="w-3.5 h-3.5" />
+                                  <span>{isPending ? 'التواصل واتخاذ الإجراء' : 'تفاصيل الإجراء'}</span>
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* عرض بطاقات الموبايل */}
+                  <div className="md:hidden divide-y">
+                    {sedanaInquiriesList.map((item: any) => {
+                      const inq = item.inquiry;
+                      const isPending = inq.status === 'pending';
+                      const isApproved = inq.status === 'approved';
+                      const rawPhone = item.userPhone || "";
+                      const waPhone = rawPhone.replace(/\D/g, "");
+
+                      return (
+                        <div key={inq.id} className="p-4 space-y-3 bg-card">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                <Building2 className="w-4 h-4 text-cyan-600" />
+                                {item.mosqueName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{item.userName} • {item.userPhone}</p>
+                            </div>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              isPending ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                              isApproved ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                              'bg-rose-100 text-rose-900 border border-rose-300'
+                            }`}>
+                              {isPending ? 'قيد التواصل' : isApproved ? 'معتمد' : 'مرفوض/موجه'}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground line-clamp-2 bg-muted/30 p-2 rounded-lg">
+                            <strong>الاحتياج: </strong>{inq.specificNeeds}
+                          </p>
+
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenSedanaAction(item)}
+                              className="flex-1 h-8 text-xs font-bold gap-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white"
+                            >
+                              <PhoneCall className="w-3.5 h-3.5" />
+                              <span>{isPending ? 'التواصل واتخاذ الإجراء' : 'تفاصيل الإجراء'}</span>
+                            </Button>
+                            {waPhone && (
+                              <a
+                                href={`https://wa.me/${waPhone}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-2 rounded-xl text-emerald-600 bg-emerald-50 border border-emerald-200"
+                                title="محادثة واتساب"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* نافذة عرض ومراجعة تفاصيل التبرع / الاستفسار الكاملة */}
@@ -1851,6 +2144,372 @@ export default function RequesterApprovals() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* نافذة تفاصيل ومراجعة استفسار وتأهيل سدانة */}
+      <Dialog open={!!selectedInquiryForAction} onOpenChange={(open) => !open && setSelectedInquiryForAction(null)}>
+        {selectedInquiryForAction && (() => {
+          const inq = selectedInquiryForAction.inquiry;
+          const rawPhone = selectedInquiryForAction.userPhone || "";
+          const waPhone = rawPhone.replace(/\D/g, "");
+          const isPending = inq.status === 'pending';
+          const isApproved = inq.status === 'approved';
+
+          return (
+            <DialogContent className="max-w-3xl sm:max-w-3xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
+              {/* رأس النافذة */}
+              <div className="flex items-center justify-between pb-4 border-b border-border/60">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-lg sm:text-xl font-black text-foreground">
+                      مراجعة استبيان تأهيل برنامج سدانة
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                      {selectedInquiryForAction.mosqueName} • تاريخ التقديم: {new Date(inq.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" })}
+                    </DialogDescription>
+                  </div>
+                </div>
+
+                <Badge variant="outline" className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  isPending ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                  isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
+                  'bg-rose-50 text-rose-800 border-rose-300'
+                }`}>
+                  {isPending ? 'قيد التواصل والمراجعة' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه لبديل'}
+                </Badge>
+              </div>
+
+              <div className="space-y-5 py-4">
+                {/* بطاقة معلومات الإمام وبيانات التواصل */}
+                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-xs">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-foreground flex items-center gap-2">
+                          {selectedInquiryForAction.userName}
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {getRequesterTypeLabel(selectedInquiryForAction.requesterType)}
+                          </Badge>
+                        </p>
+                        <p className="text-xs text-muted-foreground">{selectedInquiryForAction.mosqueName} {selectedInquiryForAction.mosqueCity ? `(${selectedInquiryForAction.mosqueCity})` : ''}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {selectedInquiryForAction.userPhone && (
+                        <a
+                          href={`tel:${selectedInquiryForAction.userPhone}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition-colors shadow-xs"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          <span>اتصال بالإمام</span>
+                        </a>
+                      )}
+                      {waPhone && (
+                        <a
+                          href={`https://wa.me/${waPhone}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>واتساب</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="text-foreground font-semibold" dir="ltr">{selectedInquiryForAction.userPhone || "غير مسجل"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="text-foreground font-semibold truncate">{selectedInquiryForAction.userEmail || "غير مسجل"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* إجابات الاستبيان الأولي */}
+                <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-4">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <FileCheck className="w-4 h-4 text-cyan-600" />
+                    إجابات استبيان الجاهزية والاحتياج
+                  </h4>
+
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                      <p className="text-xs text-muted-foreground font-semibold mb-1">
+                        1. ما الذي تحتاجونه تحديداً في المسجد من البرنامج؟
+                      </p>
+                      <p className="text-sm font-bold text-foreground whitespace-pre-wrap">
+                        {inq.specificNeeds || "لم يتم التحديد"}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                        <p className="text-xs text-muted-foreground font-semibold mb-1">
+                          2. هل لديكم مستودع لأدوات النظافة؟
+                        </p>
+                        <Badge variant="outline" className={`text-xs font-bold mb-1.5 ${
+                          inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                          inq.hasCleaningWarehouse === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                          'bg-rose-50 text-rose-700 border-rose-300'
+                        }`}>
+                          {inq.hasCleaningWarehouse === 'yes' ? 'نعم - متوفر مستودع مخصص' :
+                           inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً (مكان صغير)' : 'لا يوجد مستودع'}
+                        </Badge>
+                        {inq.warehouseDetails && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {inq.warehouseDetails}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                        <p className="text-xs text-muted-foreground font-semibold mb-1">
+                          3. هل توجد خطة تشغيلية للمسجد؟
+                        </p>
+                        <Badge variant="outline" className={`text-xs font-bold mb-1.5 ${
+                          inq.hasOperationalPlan === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                          'bg-slate-100 text-slate-700 border-slate-300'
+                        }`}>
+                          {inq.hasOperationalPlan === 'yes' ? 'نعم - توجد خطة تشغيلية' : 'لا توجد خطة حالياً'}
+                        </Badge>
+                        {inq.operationalPlanDetails && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {inq.operationalPlanDetails}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {inq.additionalNotes && (
+                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
+                        <p className="text-xs text-muted-foreground font-semibold mb-1">
+                          ملاحظات إضافية من الإمام:
+                        </p>
+                        <p className="text-xs text-foreground">
+                          {inq.additionalNotes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* سجل المراجعة السابق إذا كان موجود */}
+                {selectedInquiryForAction.reviewerName && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+                    <div>
+                      <span className="text-muted-foreground">آخر مراجعة بواسطة: </span>
+                      <strong className="text-foreground">{selectedInquiryForAction.reviewerName}</strong>
+                      {inq.reviewedAt && (
+                        <span className="text-muted-foreground mr-2">
+                          بتاريخ {new Date(inq.reviewedAt).toLocaleDateString("ar-SA")}
+                        </span>
+                      )}
+                    </div>
+                    {inq.completedRequestId && (
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300">
+                        تم رفع الطلب الفعلي رقم #{inq.completedRequestId}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
+                {/* قسم اتخاذ القرار والمكالمة */}
+                <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <PhoneCall className="w-4 h-4 text-cyan-600" />
+                    <h4 className="text-sm font-bold text-foreground">
+                      اتخاذ الإجراء بعد التواصل الهاتفي
+                    </h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    بناءً على المكالمة الهاتفية مع الإمام والتأكد من الاحتياج الفعلي وجاهزية المسجد، حدد القرار المناسب:
+                  </p>
+
+                  {/* بطاقات خيارات القرار */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* خيار 1: القبول والتمكين */}
+                    <div
+                      onClick={() => {
+                        setActionDecision("approved");
+                        setActionType("enable_sedana");
+                      }}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                        actionDecision === "approved"
+                          ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/50 shadow-sm"
+                          : "border-border bg-card hover:border-emerald-300"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                          actionDecision === "approved" ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300"
+                        }`}>
+                          {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs sm:text-sm text-foreground">
+                            القبول والتمكين (مؤهل للبرنامج)
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            فتح صلاحية التقديم ليظهر للإمام زر توقيع الاتفاقية ورفع الطلب الكامل
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* خيار 2: الرفض أو التوجيه لبديل */}
+                    <div
+                      onClick={() => {
+                        setActionDecision("rejected");
+                        if (actionType === "enable_sedana") setActionType("redirect_alternative");
+                      }}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                        actionDecision === "rejected"
+                          ? "border-rose-600 bg-rose-50/70 dark:bg-rose-950/50 shadow-sm"
+                          : "border-border bg-card hover:border-rose-300"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                          actionDecision === "rejected" ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300"
+                        }`}>
+                          {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-xs sm:text-sm text-foreground">
+                            الرفض أو التوجيه لبديل
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            المسجد غير محتاج للبرنامج السنوي، أو توجيهه لدعم بديل (تأمين لمرة واحدة مثلاً)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* في حالة الرفض أو التوجيه */}
+                  {actionDecision === "rejected" && (
+                    <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-3">
+                      <Label className="text-xs font-bold text-foreground">نوع الإجراء البديل:</Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={actionType === "redirect_alternative" ? "default" : "outline"}
+                          className={`text-xs h-7 rounded-lg ${actionType === "redirect_alternative" ? "bg-amber-600 hover:bg-amber-700 text-white" : ""}`}
+                          onClick={() => setActionType("redirect_alternative")}
+                        >
+                          توجيه لبديل آخر (مثل تأمين مادة محددة لمرة واحدة)
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={actionType === "reject" ? "destructive" : "outline"}
+                          className="text-xs h-7 rounded-lg"
+                          onClick={() => setActionType("reject")}
+                        >
+                          عدم ملاءمة واعتذار تام
+                        </Button>
+                      </div>
+
+                      {actionType === "redirect_alternative" && (
+                        <div className="space-y-1.5 pt-1">
+                          <Label className="text-xs font-bold text-foreground">
+                            البرنامج أو الخدمة البديلة المقترحة للإمام:
+                          </Label>
+                          <Input
+                            placeholder="مثال: تأمين كراتين منظفات لمرة واحدة / إحالة لقسم الصيانة الطارئة"
+                            value={redirectProgram}
+                            onChange={(e) => setRedirectProgram(e.target.value)}
+                            className="text-xs h-9"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* حقل تسجيل الملاحظات وتفاصيل المكالمة */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-foreground">
+                        ملخص المكالمة ومبررات القرار <span className="text-rose-500">*</span>
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground">تظهر الملاحظات للإمام ولأعضاء الفريق</span>
+                    </div>
+                    <Textarea
+                      rows={3}
+                      placeholder="سجل ما تم الاتفاق عليه هاتفياً مع الإمام (مثلاً: تم التواصل وتم التأكد من توافر المستودع والحاجة الماسة للبرنامج، مؤهل للتقديم)..."
+                      value={actionNotes}
+                      onChange={(e) => setActionNotes(e.target.value)}
+                      className="text-xs resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* أسفل النافذة والأزرار */}
+              <DialogFooter className="flex-row items-center justify-between gap-2 pt-3 border-t border-border/60">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedInquiryForAction(null)}
+                  disabled={reviewSedanaInquiryMutation.isPending}
+                  className="text-xs cursor-pointer"
+                >
+                  إلغاء
+                </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={reviewSedanaInquiryMutation.isPending || !actionNotes.trim()}
+                  onClick={() => {
+                    if (!actionNotes.trim()) {
+                      toast.error("يرجى كتابة ملخص المكالمة ومبررات القرار");
+                      return;
+                    }
+                    reviewSedanaInquiryMutation.mutate({
+                      id: inq.id,
+                      status: actionDecision,
+                      actionType,
+                      actionNotes: actionNotes.trim(),
+                      redirectProgram: actionDecision === "rejected" && actionType === "redirect_alternative" ? redirectProgram.trim() : null,
+                    });
+                  }}
+                  className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
+                    actionDecision === "approved"
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-rose-600 hover:bg-rose-700 text-white"
+                  }`}
+                >
+                  {reviewSedanaInquiryMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>جاري الحفظ...</span>
+                    </>
+                  ) : (
+                    <>
+                      {actionDecision === "approved" ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      <span>{actionDecision === "approved" ? "اعتماد وقبول الطلب" : "تأكيد الرفض / التوجيه"}</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          );
+        })()}
+      </Dialog>
 
       {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) */}
       {previewUrl && (() => {
