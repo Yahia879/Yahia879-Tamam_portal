@@ -636,26 +636,39 @@ export default function SedanaProcurementPage() {
     return supplierGroups.filter(g => !g.isUnassigned);
   }, [supplierGroups]);
 
-  // تغيير نوع/طريقة التأمين لمورد بالكامل (يطبق على المورد وكافة بنوده)
+  // تغيير نوع/طريقة التأمين لمورد بالكامل (يطبق على المورد وكافة بنوده) مع الحفظ التلقائي
   const handleSupplierMethodChange = (supplierKey: string, method: ProcurementMethod) => {
-    setSuppliersAllocation(prev => ({
-      ...prev,
+    const nextSuppliersAlloc = {
+      ...suppliersAllocation,
       [supplierKey]: method,
-    }));
+    };
+    setSuppliersAllocation(nextSuppliersAlloc);
 
+    const nextItemsAlloc = { ...itemsAllocation };
     const grp = supplierGroups.find(g => g.key === supplierKey);
     if (grp) {
-      setItemsAllocation(prev => {
-        const updated = { ...prev };
-        grp.items.forEach((it: any) => {
-          updated[it.id] = method;
-        });
-        return updated;
+      grp.items.forEach((it: any) => {
+        nextItemsAlloc[it.id] = method;
       });
+      setItemsAllocation(nextItemsAlloc);
     }
 
+    // الحفظ التلقائي الفوري لتخصيص المورد وبنوده
+    saveProcurementMutation.mutate({
+      requestId,
+      procurementData: {
+        itemsAllocation: nextItemsAlloc,
+        itemSupplierMap,
+        suppliersAllocation: nextSuppliersAlloc,
+        activePurchaseOrder: poData,
+        activeCsrLetter: csrData,
+        notes: `تحديد طرق التأمين والموردين`,
+      },
+      advanceToExecution: false,
+    });
+
     const label = method === "contract" ? "عقد توريد وخدمات" : method === "purchase_order" ? "أمر شراء داخلي" : "خطاب مسؤولية مجتمعية";
-    toast.success(`تم تحديد نوع "${label}" للمورد`);
+    toast.success(`تم تحديد نوع "${label}" للمورد وحفظ التخصيص`);
   };
 
   // نقل بند معين إلى مورد آخر
@@ -830,21 +843,10 @@ export default function SedanaProcurementPage() {
 
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleSaveProcurement(false)}
-              disabled={saveProcurementMutation.isPending}
-              className="h-8 gap-1.5 text-xs font-semibold border-border hover:bg-muted"
-            >
-              <Save className="w-3.5 h-3.5" />
-              حفظ التخصيص
-            </Button>
-
-            <Button
               size="sm"
               onClick={() => setShowConfirmModal(true)}
               disabled={saveProcurementMutation.isPending}
-              className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
+              className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               اعتماد التأمين والانتقال للتنفيذ
@@ -1081,269 +1083,6 @@ export default function SedanaProcurementPage() {
               </Card>
             );
           })}
-        </div>
-
-        {/* بطاقات المخرجات والإجراءات الثلاثة */}
-        <div>
-          <div className="mb-3">
-            <h3 className="text-sm font-bold text-foreground">
-              إجراءات ونماذج التأمين:
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-            {/* البطاقة 1: مسار عقود التوريد والخدمات */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
-              <CardHeader className="p-4 pb-2 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
-                    <FileSignature className="w-5 h-5" />
-                  </div>
-                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
-                    {contractSuppliers.length} موردين
-                  </Badge>
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-bold text-foreground">عقد توريد وخدمات</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    توثيق العقود مع الموردين المعتمدين لهذا المسار
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              {/* قائمة الموردين المعتمدين للعقود */}
-              <div className="px-4 py-2 flex-1 space-y-2">
-                {contractSuppliers.length > 0 ? (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {contractSuppliers.map((sup: any, sIdx: number) => (
-                      <div key={`c_sup_${sIdx}`} className="p-2 rounded-lg bg-muted/20 border border-border/70 flex items-center justify-between gap-2 shadow-2xs">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-foreground text-xs truncate">{sup.supplierName}</p>
-                          <p className="text-[10px] text-muted-foreground">{sup.items.length} أصناف معتمدة</p>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleCreateContract(sup.supplierId)}
-                          className="h-6 text-[11px] px-2 text-sky-700 border-sky-200 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-300 shrink-0 font-semibold cursor-pointer"
-                        >
-                          إنشاء عقد
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-muted/20 p-4 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
-                    لا يوجد موردون مخصصون للعقد حالياً
-                  </div>
-                )}
-
-                {/* العقود المنشأة مسبقاً إن وجدت */}
-                {contractsList.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
-                    <p className="text-[11px] font-bold text-foreground flex items-center justify-between">
-                      <span>العقود المسجلة:</span>
-                      <Badge variant="outline" className="text-[10px] h-5">{contractsList.length}</Badge>
-                    </p>
-                    {contractsList.slice(0, 2).map((c: any) => (
-                      <div key={c.id} className="flex items-center justify-between p-1.5 rounded bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-800/40 text-xs">
-                        <span className="font-semibold text-sky-900 dark:text-sky-200 truncate max-w-[120px]">
-                          عقد #{c.contractNumber || c.id}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Link href={`/contracts/${c.id}/preview`}>
-                            <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1.5 text-sky-700">معاينة</Button>
-                          </Link>
-                          <Link href={`/contracts/${c.id}/edit`}>
-                            <Button size="sm" variant="outline" className="h-5 text-[10px] px-1.5">تعديل</Button>
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <CardContent className="p-4 pt-2 border-t mt-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleCreateContract(contractSuppliers[0]?.supplierId)}
-                  disabled={contractSuppliers.length === 0}
-                  className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {contractsList.length > 0 ? "إضافة عقد جديد" : "إنشاء عقد"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* البطاقة 2: مسار أمر الشراء الداخلي */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
-              <CardHeader className="p-4 pb-2 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-                    <ShoppingCart className="w-5 h-5" />
-                  </div>
-                  <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 text-xs font-bold">
-                    {poSuppliers.length} موردين
-                  </Badge>
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-bold text-foreground">أمر شراء داخلي</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    نموذج رسمي موجه لإدارة المشتريات بالبنود المعتمدة
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              <div className="px-4 py-2 flex-1 space-y-2">
-                {poSuppliers.length > 0 ? (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {poSuppliers.map((sup: any, sIdx: number) => (
-                      <div key={`po_sup_${sIdx}`} className="p-2 rounded-lg bg-muted/20 border border-border/70 flex items-center justify-between text-xs">
-                        <span className="font-bold text-foreground truncate">{sup.supplierName}</span>
-                        <Badge variant="secondary" className="text-[10px] font-normal">{sup.items.length} أصناف</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-muted/20 p-4 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
-                    لا يوجد موردون مخصصون لأمر الشراء حالياً
-                  </div>
-                )}
-                {/* أوامر الشراء المنشأة مسبقاً للطلب إن وجدت */}
-                {savedPurchaseOrders.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
-                    <p className="text-[11px] font-bold text-foreground flex items-center justify-between">
-                      <span>أوامر الشراء المسجلة:</span>
-                      <Badge variant="outline" className="text-[10px] h-5">{savedPurchaseOrders.length}</Badge>
-                    </p>
-                    {savedPurchaseOrders.map((po: any, idx: number) => {
-                      const isApproved = po.status === "approved";
-                      return (
-                        <div key={`saved_po_${idx}`} className="flex items-center justify-between p-1.5 rounded bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-800/40 text-xs">
-                          <div className="flex items-center gap-1.5 truncate max-w-[140px]">
-                            <span className="font-semibold text-sky-900 dark:text-sky-200 font-mono text-[11px]">
-                              {po.orderNumber}
-                            </span>
-                            <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 font-bold ${isApproved ? "border-emerald-300 text-emerald-700 bg-emerald-50" : "border-amber-300 text-amber-700 bg-amber-50"}`}>
-                              {isApproved ? "معتمد" : "مسودة"}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                handleSaveProcurement(false);
-                                setLocation(`/requests/${requestId}/purchase-order?orderNumber=${encodeURIComponent(po.orderNumber)}`);
-                              }}
-                              className="h-5 text-[10px] px-1.5 text-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/40"
-                              title="معاينة وطباعة أمر الشراء"
-                            >
-                              معاينة
-                            </Button>
-                            {!isApproved && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  approveOrderMutation.mutate({ requestId, orderNumber: po.orderNumber });
-                                }}
-                                disabled={approveOrderMutation.isPending}
-                                className="h-5 text-[10px] px-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                                title="اعتماد فوري لأمر الشراء"
-                              >
-                                {approveOrderMutation.isPending ? "..." : "اعتماد"}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <CardContent className="p-4 pt-2 border-t mt-2 space-y-1.5">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    handleSaveProcurement(false);
-                    setLocation(`/purchase-orders/new?id=${requestId}`);
-                  }}
-                  disabled={poItems.length === 0}
-                  className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{savedPurchaseOrders.length > 0 ? "إضافة أمر شراء جديد" : "إصدار أمر شراء معتمد"}</span>
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleOpenPurchaseOrder}
-                  disabled={poItems.length === 0}
-                  className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5 text-sky-600" />
-                  <span>معاينة وطباعة أمر الشراء</span>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* البطاقة 3: مسار خطاب المسؤولية المجتمعية */}
-            <Card className="border border-border shadow-xs flex flex-col justify-between bg-white dark:bg-card">
-              <CardHeader className="p-4 pb-2 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-lg bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
-                    <HeartHandshake className="w-5 h-5" />
-                  </div>
-                  <Badge variant="outline" className="text-teal-700 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-xs font-bold">
-                    {csrSuppliers.length} موردين/جهات
-                  </Badge>
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-bold text-foreground">خطاب مسؤولية مجتمعية</CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                    خطاب رسمي موجه للجهات والشركات الداعمة لتأمين الأصناف
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              <div className="px-4 py-2 flex-1 space-y-2">
-                {csrSuppliers.length > 0 ? (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                    {csrSuppliers.map((sup: any, sIdx: number) => (
-                      <div key={`csr_sup_${sIdx}`} className="p-2 rounded-lg bg-muted/20 border border-border/70 flex items-center justify-between text-xs">
-                        <span className="font-bold text-foreground truncate">{sup.supplierName}</span>
-                        <Badge variant="secondary" className="text-[10px] font-normal">{sup.items.length} أصناف</Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-muted/20 p-4 rounded-lg border border-dashed text-center text-xs text-muted-foreground">
-                    لا يوجد موردون مخصصون للمسؤولية المجتمعية حالياً
-                  </div>
-                )}
-              </div>
-
-              <CardContent className="p-4 pt-2 border-t mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleOpenCsrLetter}
-                  disabled={csrItems.length === 0}
-                  className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5 text-teal-600" />
-                  معاينة وطباعة الخطاب الرسمي
-                </Button>
-              </CardContent>
-            </Card>
-
-          </div>
         </div>
 
       </main>
