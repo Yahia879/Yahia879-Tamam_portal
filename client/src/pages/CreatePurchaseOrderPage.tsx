@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import {
 import {
   ShoppingCart,
   ArrowRight,
+  ArrowLeft,
   Building2,
   Package,
   CheckCircle,
@@ -33,6 +34,8 @@ import {
   Loader2,
   AlertCircle,
   Store,
+  Layers,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -44,6 +47,9 @@ export default function CreatePurchaseOrderPage() {
   const params = useParams<{ id?: string }>();
   const initialRequestId = params.id ? parseInt(params.id, 10) : null;
 
+  // الخطوة الحالية في المعالج (1 أو 2 أو 3)
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
   // جلب طلبات سدانة التي تحوي موردين معتمدين لأوامر الشراء
   const {
     data: sedanaRequests = [],
@@ -53,6 +59,7 @@ export default function CreatePurchaseOrderPage() {
   // الحالة للطلب المختار والمورد المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
   const [selectedSupplierKey, setSelectedSupplierKey] = useState<string>("");
+  const [requestSearch, setRequestSearch] = useState("");
 
   // تفاصيل أمر الشراء
   const [orderNumber, setOrderNumber] = useState("");
@@ -70,7 +77,7 @@ export default function CreatePurchaseOrderPage() {
 
   // استخراج الطلب المحدد
   const currentRequest = useMemo(() => {
-    return sedanaRequests.find((r) => r.id === selectedRequestId) || null;
+    return sedanaRequests.find((r: any) => r.id === selectedRequestId) || null;
   }, [sedanaRequests, selectedRequestId]);
 
   // قائمة الموردين المعتمدين للطلب المختار
@@ -82,15 +89,31 @@ export default function CreatePurchaseOrderPage() {
   const currentSupplier = useMemo(() => {
     if (!availableSuppliers.length) return null;
     if (selectedSupplierKey) {
-      return availableSuppliers.find((s: any) => String(s.id) === selectedSupplierKey || s.supplierName === selectedSupplierKey) || availableSuppliers[0];
+      return (
+        availableSuppliers.find(
+          (s: any) => String(s.id) === selectedSupplierKey || s.supplierName === selectedSupplierKey
+        ) || availableSuppliers[0]
+      );
     }
     return availableSuppliers[0];
   }, [availableSuppliers, selectedSupplierKey]);
 
+  // فلترة الطلبات بالبحث
+  const filteredRequests = useMemo(() => {
+    if (!requestSearch.trim()) return sedanaRequests;
+    const q = requestSearch.toLowerCase();
+    return sedanaRequests.filter((r: any) =>
+      r.requestNumber?.toLowerCase().includes(q) ||
+      r.mosqueName?.toLowerCase().includes(q) ||
+      r.mosqueCity?.toLowerCase().includes(q) ||
+      r.suppliers?.some((s: any) => s.supplierName?.toLowerCase().includes(q))
+    );
+  }, [sedanaRequests, requestSearch]);
+
   // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
   useEffect(() => {
     if (!selectedRequestId && sedanaRequests.length > 0) {
-      if (initialRequestId && sedanaRequests.some((r) => r.id === initialRequestId)) {
+      if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
         handleSelectRequest(initialRequestId);
       } else {
         handleSelectRequest(sedanaRequests[0].id);
@@ -101,10 +124,10 @@ export default function CreatePurchaseOrderPage() {
   // التعامل مع اختيار الطلب
   const handleSelectRequest = (reqId: number) => {
     setSelectedRequestId(reqId);
-    const req = sedanaRequests.find((r) => r.id === reqId);
+    const req = sedanaRequests.find((r: any) => r.id === reqId);
     if (!req) return;
 
-    const firstSupplier = req.suppliers[0];
+    const firstSupplier = req.suppliers?.[0];
     if (firstSupplier) {
       handleSelectSupplier(firstSupplier, req);
     } else {
@@ -157,11 +180,13 @@ export default function CreatePurchaseOrderPage() {
   const handleSubmit = (status: "approved" | "draft") => {
     if (!selectedRequestId || !currentRequest) {
       toast.error("يرجى اختيار طلب سدانة أولاً");
+      setStep(1);
       return;
     }
 
     if (!currentSupplier) {
       toast.error("يرجى اختيار المورد المعتمد");
+      setStep(2);
       return;
     }
 
@@ -178,7 +203,7 @@ export default function CreatePurchaseOrderPage() {
       }));
 
     if (itemsToSubmit.length === 0) {
-      toast.error("يرجى تضمين بند واحد على الأقل وتحديد كميته");
+      toast.error("يرجى تضمين صنف واحد على الأقل وتحديد كميته");
       return;
     }
 
@@ -203,73 +228,120 @@ export default function CreatePurchaseOrderPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 text-right font-sans" dir="rtl">
-        {/* الترويسة وأزرار التنقل */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-4">
-          <div>
-            <div className="flex items-center gap-2">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0 text-right font-sans" dir="rtl">
+        {/* Header and Visual Step Timeline (تماثل طلب الصرف المرتبط) */}
+        <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
+          <div className="flex items-center justify-between pb-2">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/purchase-orders")}
-                className="h-8 px-2 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigate("/purchase-orders");
+                  }
+                }}
+                className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0 cursor-pointer"
               >
-                <ArrowRight className="w-4 h-4" />
-                <span>العودة لأوامر الشراء</span>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300">
-                <ShoppingCart className="w-5 h-5" />
+              <div className="text-right">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
+                    إصدار وتوثيق أمر شراء معتمد
+                  </h1>
+                  <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-xs">
+                    برنامج سدانة
+                  </Badge>
+                </div>
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
+                  إنشاء وتوثيق أمر شراء لطلبات سدانة وتحديد كميات بنود المورد المعتمد مع إمكانية الاعتماد الفوري
+                </p>
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                إصدار وتوثيق أمر شراء داخلي
-              </h1>
-              <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-xs">
-                برنامج سدانة
-              </Badge>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              اختر طلب سدانة، ثم اختر المورد المعتمد وحدد كميات بنوده المطلوبة مع إمكانية الاعتماد الفوري
-            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/purchase-orders")}
-              className="text-xs font-semibold cursor-pointer"
-            >
-              إلغاء
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={createOrderMutation.isPending || !currentSupplier}
-              onClick={() => handleSubmit("draft")}
-              className="text-xs font-bold cursor-pointer"
-            >
-              {createOrderMutation.isPending ? "جاري الحفظ..." : "حفظ كمسودة"}
-            </Button>
-            <Button
-              size="sm"
-              disabled={createOrderMutation.isPending || !currentSupplier}
-              onClick={() => handleSubmit("approved")}
-              className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer shadow-xs"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span>{createOrderMutation.isPending ? "جاري الاعتماد..." : "إنشاء واعتماد أمر الشراء"}</span>
-            </Button>
+          {/* 3-Step Timeline Header */}
+          <div className="max-w-xl mx-auto w-full px-2 sm:px-4 py-2" dir="rtl">
+            <div className="relative flex items-center justify-between">
+              {/* Connecting Line background */}
+              <div className="absolute right-0 left-0 top-1/2 -translate-y-1/2 h-0.5 bg-border rounded-full z-0" />
+              {/* Connecting Active Line progress */}
+              <div
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 bg-primary rounded-full z-0 transition-all duration-500"
+                style={{ width: step === 1 ? "0%" : step === 2 ? "50%" : "100%" }}
+              />
+
+              {/* Step 1 Node */}
+              <div
+                className="flex flex-col items-center gap-1.5 z-10 cursor-pointer"
+                onClick={() => setStep(1)}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                    step >= 1
+                      ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                      : "bg-background border-border text-muted-foreground"
+                  }`}
+                >
+                  {step > 1 ? <Check className="w-4 h-4" /> : "١"}
+                </div>
+                <span className={`text-xs font-semibold ${step >= 1 ? "text-primary" : "text-muted-foreground"}`}>
+                  اختيار طلب سدانة
+                </span>
+              </div>
+
+              {/* Step 2 Node */}
+              <div
+                className="flex flex-col items-center gap-1.5 z-10 cursor-pointer"
+                onClick={() => selectedRequestId && setStep(2)}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                    step >= 2
+                      ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                      : "bg-background border-border text-muted-foreground"
+                  }`}
+                >
+                  {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
+                </div>
+                <span className={`text-xs font-semibold ${step >= 2 ? "text-primary" : "text-muted-foreground"}`}>
+                  المورد وبياناته
+                </span>
+              </div>
+
+              {/* Step 3 Node */}
+              <div
+                className="flex flex-col items-center gap-1.5 z-10 cursor-pointer"
+                onClick={() => selectedRequestId && currentSupplier && setStep(3)}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
+                    step === 3
+                      ? "bg-primary border-primary text-primary-foreground shadow-sm"
+                      : "bg-background border-border text-muted-foreground"
+                  }`}
+                >
+                  ٣
+                </div>
+                <span className={`text-xs font-semibold ${step === 3 ? "text-primary" : "text-muted-foreground"}`}>
+                  البنود والاعتماد
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* فحص حالة التحميل */}
+        {/* فحص حالة التحميل أو عدم وجود طلبات */}
         {isLoadingRequests ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3 text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <p className="text-xs text-muted-foreground">جاري جلب طلبات سدانة والموردين المعتمدين...</p>
           </div>
         ) : sedanaRequests.length === 0 ? (
-          <Card className="border-dashed p-10 text-center space-y-3">
+          <Card className="border-dashed p-10 text-center space-y-3 bg-white dark:bg-slate-900 rounded-xl">
             <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
             <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة بانتظار أوامر شراء</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
@@ -280,382 +352,576 @@ export default function CreatePurchaseOrderPage() {
               size="sm"
               variant="outline"
               onClick={() => navigate("/requests")}
-              className="text-xs font-bold"
+              className="text-xs font-bold rounded-xl h-10"
             >
               الذهاب إلى قائمة الطلبات
             </Button>
           </Card>
         ) : (
-          <div className="space-y-6">
-            {/* الخطوة 1: اختيار طلب سدانة المعتمد */}
-            <Card className="border border-border/80 shadow-2xs">
-              <CardHeader className="p-4 border-b">
-                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold">1</span>
-                  <span>اختر طلب سدانة:</span>
-                </CardTitle>
-                <CardDescription className="text-xs mt-0.5">
-                  يتم عرض طلبات برنامج سدانة التي تحتوي على موردين معتمدين لأوامر الشراء
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {sedanaRequests.map((req) => {
-                    const isSelected = req.id === selectedRequestId;
-                    return (
-                      <div
-                        key={req.id}
-                        onClick={() => handleSelectRequest(req.id)}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer text-xs space-y-2 ${
-                          isSelected
-                            ? "border-sky-600 bg-sky-50/50 dark:bg-sky-950/30 ring-2 ring-sky-500/20"
-                            : "border-border hover:border-sky-300 hover:bg-muted/30"
-                        }`}
+          <>
+            {/* ======================= الخطوة 1: اختيار طلب سدانة ======================= */}
+            {step === 1 && (
+              <div className="space-y-6">
+                <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
+                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                      <Building2 className="h-4.5 w-4.5 text-primary" />
+                      الخطوة 1: اختيار طلب سدانة المعتمد
+                    </CardTitle>
+                    <CardDescription className="text-right text-xs text-muted-foreground">
+                      يتم هنا استعراض طلبات سدانة التي تشتمل على موردين معتمدين لأمر الشراء فقط
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                    {/* اختيار الطلب عبر Select منسق h-11 rounded-xl */}
+                    <div className="space-y-2 text-right pb-4 border-b border-border/40">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                        اختر طلب سدانة *
+                      </Label>
+                      <Select
+                        value={selectedRequestId ? String(selectedRequestId) : ""}
+                        onValueChange={(val) => handleSelectRequest(Number(val))}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-foreground bg-background px-2 py-0.5 rounded border">
-                            #{req.requestNumber}
-                          </span>
-                          <Badge variant="outline" className="text-[10px]">
-                            {req.suppliers.length} موردين معتمدين
-                          </Badge>
-                        </div>
-                        <div>
-                          <p className="font-bold text-foreground truncate">{req.mosqueName}</p>
-                          <p className="text-[11px] text-muted-foreground">{req.mosqueCity} {req.mosqueDistrict ? `• ${req.mosqueDistrict}` : ""}</p>
-                        </div>
-                        {req.descriptiveName && (
-                          <p className="text-[11px] text-muted-foreground truncate border-t pt-1.5">
-                            {req.descriptiveName}
-                          </p>
+                        <SelectTrigger
+                          className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm"
+                          dir="rtl"
+                        >
+                          <SelectValue placeholder="اختر طلب سدانة من القائمة..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl" className="max-h-[300px]">
+                          {sedanaRequests.map((req: any) => (
+                            <SelectItem key={req.id} value={String(req.id)} className="text-right text-xs py-2">
+                              #{req.requestNumber} - مسجد {req.mosqueName} ({req.mosqueCity}) - {req.suppliers?.length || 0} موردين معتمدين
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* بحث وتصفح بطاقات الطلبات */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                          أو اختر مباشرة من بطاقات طلبات سدانة المعتمدة:
+                        </Label>
+                        {sedanaRequests.length > 3 && (
+                          <div className="relative w-48 sm:w-60">
+                            <Search className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="بحث برقم الطلب أو المسجد..."
+                              value={requestSearch}
+                              onChange={(e) => setRequestSearch(e.target.value)}
+                              className="h-8 text-[11px] pr-8 pl-2 rounded-lg bg-background"
+                            />
+                          </div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* الخطوة 2: اختيار المورد في حال تعدد الموردين */}
-            {currentRequest && (
-              <Card className="border border-border/80 shadow-2xs">
-                <CardHeader className="p-4 border-b">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold">2</span>
-                        <span>اختيار المورد المعتمد لأمر الشراء:</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs mt-0.5">
-                        {availableSuppliers.length > 1
-                          ? `يوجد ${availableSuppliers.length} موردين معتمدين على أمر الشراء لهذا الطلب. اختر المورد لإصدار أمر الشراء الخاص به.`
-                          : "تم تحديد المورد المعتمد الوحيد لهذا الطلب تلقائياً."}
-                      </CardDescription>
-                    </div>
-                    {availableSuppliers.length > 1 && (
-                      <Badge variant="secondary" className="text-xs font-bold">
-                        تعدد الموردين ({availableSuppliers.length})
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {availableSuppliers.map((supp: any) => {
-                      const isSelected = currentSupplier?.supplierName === supp.supplierName;
-                      return (
-                        <div
-                          key={supp.id || supp.supplierName}
-                          onClick={() => handleSelectSupplier(supp)}
-                          className={`p-4 rounded-xl border transition-all cursor-pointer text-xs space-y-2.5 ${
-                            isSelected
-                              ? "border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
-                              : "border-border hover:border-emerald-300 hover:bg-muted/30"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                                <Store className="w-4 h-4" />
-                              </div>
-                              <span className="font-bold text-foreground text-sm">{supp.supplierName}</span>
-                            </div>
-                            {isSelected && (
-                              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                            )}
-                          </div>
-
-                          <div className="space-y-1 text-muted-foreground text-[11px] border-t pt-2">
-                            {supp.commercialRegister && (
-                              <p>السجل التجاري: <strong className="text-foreground font-mono">{supp.commercialRegister}</strong></p>
-                            )}
-                            {supp.phone && (
-                              <p>الجوال: <strong className="text-foreground font-mono">{supp.phone}</strong></p>
-                            )}
-                            <p>البنود المخصصة: <strong className="text-foreground">{supp.itemsCount} أصناف</strong></p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* الخطوة 3: معلومات المورد المعتمد */}
-            {currentSupplier && (
-              <Card className="border border-border/80 shadow-2xs bg-muted/10">
-                <CardHeader className="p-4 border-b">
-                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xs font-bold">3</span>
-                    <span>معلومات المورد المعتمد (بيانات التعميد):</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                    <div className="space-y-1">
-                      <span className="text-muted-foreground">اسم المورد / الشركة:</span>
-                      <p className="font-bold text-foreground text-sm">{currentSupplier.supplierName}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-muted-foreground">رقم السجل التجاري:</span>
-                      <p className="font-bold font-mono text-foreground">{currentSupplier.commercialRegister || "مسجل بالنظام"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-muted-foreground">رقم التواصل / الجوال:</span>
-                      <p className="font-bold font-mono text-foreground">{currentSupplier.phone || "-"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-muted-foreground">المدينة / المقر:</span>
-                      <p className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</p>
-                    </div>
-                    {currentSupplier.bankName && (
-                      <div className="space-y-1">
-                        <span className="text-muted-foreground">البنك المعتمد:</span>
-                        <p className="font-bold text-foreground">{currentSupplier.bankName}</p>
-                      </div>
-                    )}
-                    {currentSupplier.iban && (
-                      <div className="space-y-1 sm:col-span-2">
-                        <span className="text-muted-foreground">رقم الآيبان (IBAN):</span>
-                        <p className="font-bold font-mono text-foreground">{currentSupplier.iban}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* الخطوة 4: جدول بنود المورد وتحديد الكميات */}
-            {currentSupplier && (
-              <Card className="border border-border/80 shadow-2xs">
-                <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold">4</span>
-                      <span>أصناف وبنود المورد وتحديد الكمية لكل بند:</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-0.5">
-                      حدد الأصناف والكمية المطلوبة بدقة لإصدار أمر الشراء بها لهذا المورد
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedItemIds((currentSupplier.items || []).map((it: any) => it.id))}
-                      className="h-7 text-xs text-sky-700 hover:bg-sky-50 px-2 cursor-pointer"
-                    >
-                      تحديد الكل
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedItemIds([])}
-                      className="h-7 text-xs text-muted-foreground hover:bg-muted px-2 cursor-pointer"
-                    >
-                      إلغاء التحديد
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-right border-collapse">
-                      <thead className="bg-muted/40 font-bold border-b border-border">
-                        <tr>
-                          <th className="p-3 w-12 text-center">تضمين</th>
-                          <th className="p-3 w-10 text-center font-mono">#</th>
-                          <th className="p-3">الصنف والبيان</th>
-                          <th className="p-3">المواصفات والوصف</th>
-                          <th className="p-3 text-center w-36">الكمية بأمر الشراء</th>
-                          <th className="p-3 text-center w-24">الوحدة</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {(currentSupplier.items || []).map((it: any, idx: number) => {
-                          const isChecked = selectedItemIds.includes(it.id);
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        {filteredRequests.map((req: any) => {
+                          const isSelected = req.id === selectedRequestId;
                           return (
-                            <tr
-                              key={it.id}
-                              className={`transition-colors ${
-                                isChecked ? "bg-sky-50/30 dark:bg-sky-950/20" : "opacity-50 bg-muted/10"
+                            <button
+                              type="button"
+                              key={req.id}
+                              onClick={() => handleSelectRequest(req.id)}
+                              className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                                isSelected
+                                  ? "bg-sky-50/80 dark:bg-sky-950/30 border-sky-500/80 dark:border-sky-500/60 shadow-xs ring-2 ring-sky-500/20"
+                                  : "bg-background border-border hover:border-sky-300 dark:hover:border-sky-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
                               }`}
                             >
-                              <td className="p-3 text-center">
-                                <Checkbox
-                                  checked={isChecked}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedItemIds((prev) => [...prev, it.id]);
-                                    } else {
-                                      setSelectedItemIds((prev) => prev.filter((id) => id !== it.id));
-                                    }
-                                  }}
-                                />
-                              </td>
-                              <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
-                              <td className="p-3 font-bold text-foreground">
-                                <div>{it.itemName}</div>
-                              </td>
-                              <td className="p-3 text-muted-foreground max-w-xs">
-                                {it.description || "-"}
-                              </td>
-                              <td className="p-3 text-center">
-                                <Input
-                                  type="number"
-                                  min="0.01"
-                                  step="any"
-                                  disabled={!isChecked}
-                                  value={itemsQuantities[it.id] ?? it.quantity ?? 1}
-                                  onChange={(e) => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    setItemsQuantities((prev) => ({
-                                      ...prev,
-                                      [it.id]: val,
-                                    }));
-                                  }}
-                                  className="h-8 text-xs text-center font-mono w-28 mx-auto font-bold"
-                                />
-                              </td>
-                              <td className="p-3 text-center font-mono text-muted-foreground">
-                                {it.unit || "وحدة"}
-                              </td>
-                            </tr>
+                              <div
+                                className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                                  isSelected
+                                    ? "bg-sky-600 text-white"
+                                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 group-hover:bg-sky-200"
+                                }`}
+                              >
+                                <Building2 className="w-5 h-5" />
+                              </div>
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold block truncate ${
+                                      isSelected ? "text-sky-900 dark:text-sky-200" : "text-foreground"
+                                    }`}
+                                  >
+                                    #{req.requestNumber} - {req.mosqueName}
+                                  </span>
+                                  {isSelected && (
+                                    <span className="w-2.5 h-2.5 rounded-full bg-sky-600 animate-pulse shrink-0" />
+                                  )}
+                                </div>
+                                <p
+                                  className={`text-[11px] leading-relaxed truncate ${
+                                    isSelected ? "text-sky-750 dark:text-sky-300" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {req.mosqueCity} {req.mosqueDistrict ? `• ${req.mosqueDistrict}` : ""}
+                                </p>
+                                <div className="flex items-center gap-2 pt-1 border-t border-border/40 mt-1">
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
+                                    {req.suppliers?.length || 0} موردين معتمدين
+                                  </Badge>
+                                </div>
+                              </div>
+                            </button>
                           );
                         })}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+                      </div>
+                    </div>
+
+                    {/* ملخص الطلب المختار */}
+                    {currentRequest && (
+                      <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800/40 mt-4 space-y-2 text-right animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                            <CheckCircle className="w-4 h-4 text-emerald-600" />
+                            الطلب المحدد حالياً:
+                          </span>
+                          <span className="font-mono font-bold text-primary">#{currentRequest.requestNumber}</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs pt-2 border-t border-border/40">
+                          <div>
+                            <span className="text-muted-foreground text-[11px] block">اسم المسجد</span>
+                            <span className="font-bold text-foreground">{currentRequest.mosqueName}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[11px] block">المدينة والحي</span>
+                            <span className="font-bold text-foreground">{currentRequest.mosqueCity}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[11px] block">الموردين المعتمدين</span>
+                            <span className="font-bold text-foreground">{currentRequest.suppliers?.length || 0} موردين</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground text-[11px] block">حالة التعميد</span>
+                            <span className="font-bold text-emerald-600">جاهز لإصدار أمر الشراء</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate("/purchase-orders")}
+                      className="font-bold px-5 h-11 rounded-xl text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                    >
+                      إلغاء والعودة
+                    </Button>
+                    <Button
+                      onClick={() => setStep(2)}
+                      disabled={!selectedRequestId}
+                      className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <span>التالي: المورد المعتمد</span>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
             )}
 
-            {/* الخطوة 5: بيانات وتوجيه أمر الشراء */}
-            {currentSupplier && (
-              <Card className="border border-border/80 shadow-2xs">
-                <CardHeader className="p-4 border-b">
-                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs font-bold">5</span>
-                    <span>بيانات وتوجيه أمر الشراء والاعتماد:</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">رقم أمر الشراء</Label>
-                      <Input
-                        value={orderNumber}
-                        onChange={(e) => setOrderNumber(e.target.value)}
-                        className="h-8 text-xs font-mono mt-1 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">تاريخ أمر الشراء</Label>
-                      <Input
-                        type="date"
-                        value={orderDate}
-                        onChange={(e) => setOrderDate(e.target.value)}
-                        className="h-8 text-xs mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">الموجه إليه في الأمر</Label>
-                      <Input
-                        value={directedTo}
-                        onChange={(e) => setDirectedTo(e.target.value)}
-                        className="h-8 text-xs mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">طالب الشراء</Label>
-                      <Input
-                        value={requesterName}
-                        onChange={(e) => setRequesterName(e.target.value)}
-                        className="h-8 text-xs mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">صفة طالب الشراء</Label>
-                      <Input
-                        value={requesterRole}
-                        onChange={(e) => setRequesterRole(e.target.value)}
-                        className="h-8 text-xs mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs font-semibold text-muted-foreground">اسم المعتمِد</Label>
-                      <Input
-                        value={approverName}
-                        onChange={(e) => setApproverName(e.target.value)}
-                        className="h-8 text-xs mt-1"
-                      />
-                    </div>
-                    <div className="sm:col-span-3">
-                      <Label className="text-xs font-semibold text-muted-foreground">ملاحظات وشروط التوريد</Label>
-                      <Textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="أي شروط خاصة بالتوريد أو موقع التسليم..."
-                        className="text-xs mt-1"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
+            {/* ======================= الخطوة 2: اختيار المورد وبياناته ======================= */}
+            {step === 2 && (
+              <div className="space-y-6">
+                <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
+                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                      <Store className="h-4.5 w-4.5 text-primary" />
+                      الخطوة 2: اختيار المورد المعتمد واستعراض بياناته
+                    </CardTitle>
+                    <CardDescription className="text-right text-xs text-muted-foreground">
+                      {availableSuppliers.length > 1
+                        ? `يوجد ${availableSuppliers.length} موردين معتمدين على أمر الشراء لهذا الطلب. اختر المورد لإصدار أمر الشراء له.`
+                        : "تم تحديد المورد المعتمد الوحيد لهذا الطلب تلقائياً وتوثيق بياناته الرسمية."}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                    {/* اختيار المورد */}
+                    <div className="space-y-3 pb-4 border-b border-border/40">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Store className="w-4 h-4 text-primary" />
+                          المورد المعتمد على أمر الشراء *
+                        </Label>
+                        {availableSuppliers.length > 1 && (
+                          <Badge variant="secondary" className="text-xs font-bold">
+                            تعدد الموردين ({availableSuppliers.length})
+                          </Badge>
+                        )}
+                      </div>
 
-                  {/* شريط الإجراءات والاعتماد */}
-                  <div className="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      <span>عند اختيار "إنشاء واعتماد"، يتم اعتماد أمر الشراء فورياً ونقل الطلب لمرحلة التشغيل والتنفيذ.</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        {availableSuppliers.map((supp: any) => {
+                          const isSelected = currentSupplier?.supplierName === supp.supplierName;
+                          return (
+                            <button
+                              type="button"
+                              key={supp.id || supp.supplierName}
+                              onClick={() => handleSelectSupplier(supp)}
+                              className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
+                                isSelected
+                                  ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500/80 dark:border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/20"
+                                  : "bg-background border-border hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
+                              }`}
+                            >
+                              <div
+                                className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                                  isSelected
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:bg-emerald-200"
+                                }`}
+                              >
+                                <Store className="w-5 h-5" />
+                              </div>
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center justify-between">
+                                  <span
+                                    className={`text-xs sm:text-sm font-bold block truncate ${
+                                      isSelected ? "text-emerald-900 dark:text-emerald-200" : "text-foreground"
+                                    }`}
+                                  >
+                                    {supp.supplierName}
+                                  </span>
+                                  {isSelected && (
+                                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  )}
+                                </div>
+                                <p
+                                  className={`text-[11px] leading-relaxed ${
+                                    isSelected ? "text-emerald-750 dark:text-emerald-300" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  السجل: <span className="font-mono font-bold">{supp.commercialRegister || "مسجل"}</span> • الجوال: <span className="font-mono">{supp.phone || "-"}</span>
+                                </p>
+                                <div className="pt-1 border-t border-border/40 mt-1">
+                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">
+                                    {supp.itemsCount || supp.items?.length || 0} أصناف مخصصة
+                                  </Badge>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* بطاقة بيانات المورد الرسمية (بيانات التعميد) */}
+                    {currentSupplier && (
+                      <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4 text-right animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                          <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary" />
+                            بيانات التعميد والحساب البنكي للمورد:
+                          </span>
+                          <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-xs">
+                            مورد معتمد
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">اسم الشركة / المؤسسة:</span>
+                            <span className="font-bold text-foreground text-sm">{currentSupplier.supplierName}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">رقم السجل التجاري:</span>
+                            <span className="font-mono font-bold text-foreground">{currentSupplier.commercialRegister || "مسجل بالنظام"}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">رقم التواصل / الجوال:</span>
+                            <span className="font-mono font-bold text-foreground">{currentSupplier.phone || "-"}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">المدينة / المقر:</span>
+                            <span className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">البنك المعتمد:</span>
+                            <span className="font-bold text-foreground">{currentSupplier.bankName || "مصرف الراجحي"}</span>
+                          </div>
+                          <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+                            <span className="text-muted-foreground text-[11px] block">رقم الآيبان (IBAN):</span>
+                            <span className="font-mono font-bold text-foreground text-xs sm:text-sm tracking-wider">
+                              {currentSupplier.iban || "SA0000000000000000000000"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep(1)}
+                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      <span>السابق</span>
+                    </Button>
+                    <Button
+                      onClick={() => setStep(3)}
+                      disabled={!currentSupplier}
+                      className="gradient-primary text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <span>التالي: تحديد البنود والاعتماد</span>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
+
+            {/* ======================= الخطوة 3: تحديد البنود والاعتماد ======================= */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
+                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                      <Package className="h-4.5 w-4.5 text-primary" />
+                      الخطوة 3: تحديد بنود وكميات أمر الشراء للمورد ({currentSupplier?.supplierName})
+                    </CardTitle>
+                    <CardDescription className="text-right text-xs text-muted-foreground">
+                      حدد الأصناف المطلوبة والكمية لكل صنف مع استكمال بيانات التوجيه والاعتماد
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                    {/* جدول بنود المورد */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-primary" />
+                          أصناف المورد وتحديد الكميات *
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedItemIds((currentSupplier?.items || []).map((it: any) => it.id))}
+                            className="h-8 text-xs text-primary hover:bg-primary/10 px-2.5 rounded-lg cursor-pointer font-bold"
+                          >
+                            تحديد الكل
+                          </Button>
+                          <span className="text-muted-foreground text-xs">•</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedItemIds([])}
+                            className="h-8 text-xs text-muted-foreground hover:bg-muted px-2.5 rounded-lg cursor-pointer"
+                          >
+                            إلغاء التحديد
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                        <table className="w-full text-xs text-right divide-y divide-border/60">
+                          <thead className="bg-muted/40 font-bold text-muted-foreground">
+                            <tr>
+                              <th className="p-3 w-12 text-center">تضمين</th>
+                              <th className="p-3">الصنف والبيان والمواصفات</th>
+                              <th className="p-3 text-center w-36">الكمية المطلوبة *</th>
+                              <th className="p-3 text-center w-20">الوحدة</th>
+                              <th className="p-3 text-left w-28">السعر التقديري</th>
+                              <th className="p-3 text-left w-32">الإجمالي</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/40">
+                            {(currentSupplier?.items || []).map((it: any) => {
+                              const isChecked = selectedItemIds.includes(it.id);
+                              const currentQty = itemsQuantities[it.id] ?? it.quantity ?? 1;
+                              const price = it.unitPrice || 0;
+                              const itemTotal = currentQty * price;
+
+                              return (
+                                <tr
+                                  key={it.id}
+                                  className={`transition-colors ${
+                                    isChecked ? "bg-sky-50/40 dark:bg-sky-950/20" : "opacity-50"
+                                  }`}
+                                >
+                                  <td className="p-3 text-center">
+                                    <Checkbox
+                                      checked={isChecked}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          setSelectedItemIds((prev) => [...prev, it.id]);
+                                        } else {
+                                          setSelectedItemIds((prev) => prev.filter((id) => id !== it.id));
+                                        }
+                                      }}
+                                      className="rounded-[4px]"
+                                    />
+                                  </td>
+                                  <td className="p-3">
+                                    <span className="font-bold text-foreground text-xs sm:text-sm block">
+                                      {it.itemName}
+                                    </span>
+                                    {it.description && (
+                                      <span className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5 block">
+                                        {it.description}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Input
+                                      type="number"
+                                      min="0.01"
+                                      step="any"
+                                      disabled={!isChecked}
+                                      value={currentQty}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setItemsQuantities((prev) => ({
+                                          ...prev,
+                                          [it.id]: val,
+                                        }));
+                                      }}
+                                      className="h-10 text-xs text-center font-mono w-32 mx-auto rounded-xl border-border bg-background focus:ring-primary"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-center text-muted-foreground font-mono">
+                                    {it.unit || "وحدة"}
+                                  </td>
+                                  <td className="p-3 text-left font-mono text-muted-foreground">
+                                    {price > 0 ? `${price.toLocaleString()} ر.س` : "-"}
+                                  </td>
+                                  <td className="p-3 text-left font-mono font-bold text-foreground">
+                                    {itemTotal > 0 ? `${itemTotal.toLocaleString()} ر.س` : "-"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* بيانات التوجيه وتوثيق أمر الشراء */}
+                    <div className="space-y-4 pt-4 border-t border-border/40">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-primary" />
+                        بيانات وتوجيه أمر الشراء *
+                      </Label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            رقم أمر الشراء *
+                          </Label>
+                          <Input
+                            value={orderNumber}
+                            onChange={(e) => setOrderNumber(e.target.value)}
+                            placeholder="PO-..."
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            تاريخ أمر الشراء *
+                          </Label>
+                          <Input
+                            type="date"
+                            value={orderDate}
+                            onChange={(e) => setOrderDate(e.target.value)}
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            الموجه إليه *
+                          </Label>
+                          <Input
+                            value={directedTo}
+                            onChange={(e) => setDirectedTo(e.target.value)}
+                            placeholder="إلى إدارة المشتريات..."
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            طالب الشراء
+                          </Label>
+                          <Input
+                            value={requesterName}
+                            onChange={(e) => setRequesterName(e.target.value)}
+                            placeholder="اسم طالب الشراء..."
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            المعتمِد (المدير التنفيذي)
+                          </Label>
+                          <Input
+                            value={approverName}
+                            onChange={(e) => setApproverName(e.target.value)}
+                            placeholder="المدير التنفيذي..."
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            ملاحظات وشروط التوريد
+                          </Label>
+                          <Textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="أي اشتراطات خاصة بالتوريد، مكان التسليم، أو الضمان..."
+                            rows={2}
+                            className="text-right border-border focus:ring-primary rounded-xl bg-background text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="border-t border-border/40 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 px-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep(2)}
+                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      <span>السابق</span>
+                    </Button>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
                       <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={createOrderMutation.isPending}
+                        variant="outline"
+                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
                         onClick={() => handleSubmit("draft")}
-                        className="text-xs font-bold flex-1 sm:flex-none cursor-pointer"
+                        className="font-bold px-5 h-11 rounded-xl text-xs cursor-pointer border-border hover:bg-muted"
                       >
                         {createOrderMutation.isPending ? "جاري الحفظ..." : "حفظ كمسودة"}
                       </Button>
+
                       <Button
-                        type="button"
-                        disabled={createOrderMutation.isPending}
+                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
                         onClick={() => handleSubmit("approved")}
-                        className="text-xs font-bold gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white flex-1 sm:flex-none cursor-pointer shadow-xs"
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>{createOrderMutation.isPending ? "جاري الاعتماد..." : "إنشاء واعتماد أمر الشراء الآن"}</span>
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardFooter>
+                </Card>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </DashboardLayout>
