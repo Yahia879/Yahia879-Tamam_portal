@@ -306,12 +306,14 @@ function Router() {
       <Route path="/requester/requests/:id/sedana-po" component={SedanaPurchaseOrderPrint} />
       <Route path="/requester/requests/:id/purchase-order" component={SedanaPurchaseOrderPrint} />
       {/* المستودع الافتراضي والتنفيذ وأوامر التسليم لبرنامج سدانة */}
+      <Route path="/sedana-warehouse">{() => <AdminRoute component={SedanaExecutionPage} />}</Route>
+      <Route path="/sedana-execution">{() => <AdminRoute component={SedanaExecutionPage} />}</Route>
       <Route path="/requests/:id/sedana-execution" component={SedanaExecutionPage} />
       <Route path="/requester/requests/:id/sedana-execution" component={SedanaExecutionPage} />
       <Route path="/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
       <Route path="/requests/:id/delivery-order" component={SedanaDeliveryOrderPrint} />
       <Route path="/requester/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
-      <Route path="/sedana-bulk-purchasing" component={SedanaBulkPurchasingPage} />
+      <Route path="/sedana-bulk-purchasing">{() => <AdminRoute component={SedanaBulkPurchasingPage} />}</Route>
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
