@@ -507,8 +507,6 @@ export default function CsrLettersList() {
                       <th className="p-3 w-12 text-center font-bold">#</th>
                       <th className="p-3 font-bold">رقم الخطاب</th>
                       <th className="p-3 font-bold">الطلب</th>
-                      <th className="p-3 font-bold">الجهة الموجه إليها الخطاب</th>
-                      <th className="p-3 font-bold">المفوض بالتوقيع</th>
                       <th className="p-3 font-bold text-center">الأصناف المطلوبة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
@@ -542,21 +540,6 @@ export default function CsrLettersList() {
                                   #{letter.requestNumber}
                                 </p>
                               )}
-                            </div>
-                          </td>
-
-                          {/* الجهة الموجه إليها الخطاب */}
-                          <td className="p-3 font-semibold text-foreground">
-                            <span>{letter.salutation} / </span>
-                            <span className="text-sky-900 dark:text-sky-200">{letter.recipientName}</span>
-                            <span className="text-muted-foreground mr-1">({letter.honorific})</span>
-                          </td>
-
-                          {/* المفوض بالتوقيع */}
-                          <td className="p-3">
-                            <div className="text-[11px] space-y-0.5">
-                              <p className="text-foreground font-semibold">{letter.signatoryName}</p>
-                              <p className="text-muted-foreground">{letter.signatoryTitle}</p>
                             </div>
                           </td>
 
