@@ -394,11 +394,11 @@ export default function PurchaseOrdersList() {
                           <td className="p-3">
                             <div className="space-y-0.5">
                               <p className="font-bold text-foreground">
-                                {order.descriptiveName || `طلب #${order.requestNumber}`}
+                                {order.descriptiveName || `#${order.requestNumber}`}
                               </p>
                               {order.descriptiveName && (
                                 <p className="text-[11px] text-muted-foreground font-mono">
-                                  طلب #{order.requestNumber}
+                                  #{order.requestNumber}
                                 </p>
                               )}
                             </div>
