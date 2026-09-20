@@ -2161,39 +2161,38 @@ export default function RequesterApprovals() {
             : (redirectProgram ? "__custom__" : "");
 
           return (
-            <DialogContent className="max-w-2xl sm:max-w-2xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
+            <DialogContent className="max-w-xl sm:max-w-xl w-[95vw] sm:w-full rounded-2xl p-5 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
               {/* رأس النافذة */}
-              <div className="flex items-center justify-between pb-4 border-b border-border/60">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
-                    <Sparkles className="w-5 h-5" />
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
-                    <DialogTitle className="text-base sm:text-lg font-black text-foreground">
-                      مراجعة استبيان تأهيل برنامج سدانة
+                    <DialogTitle className="text-base font-bold text-foreground">
+                      تأهيل برنامج سدانة
                     </DialogTitle>
-                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                      {selectedInquiryForAction.mosqueName} • تاريخ التقديم: {new Date(inq.createdAt).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" })}
+                    <DialogDescription className="text-xs text-muted-foreground">
+                      {selectedInquiryForAction.mosqueName} • {new Date(inq.createdAt).toLocaleDateString("ar-SA")}
                     </DialogDescription>
                   </div>
                 </div>
 
-                <Badge variant="outline" className={`px-3 py-1 rounded-full text-xs font-bold ${
+                <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                   isPending ? 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/70 dark:text-cyan-300' :
                   isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300' :
                   'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                 }`}>
-                  {isPending ? 'قيد التواصل والمراجعة' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه لبديل'}
+                  {isPending ? 'قيد المراجعة' : isApproved ? 'معتمد' : 'مرفوض / موجه'}
                 </Badge>
               </div>
 
-              <div className="space-y-4 py-3">
-                {/* بطاقة معلومات الإمام وبيانات التواصل بشكل واضح ومرتب وبدون تحويل لتطبيقات خارجية */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 space-y-3">
-                  {/* صف الاسم والمسجد والصفة */}
+              <div className="space-y-3.5 py-2">
+                {/* بطاقة معلومات الإمام والمسجد */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0 border border-cyan-200 dark:border-cyan-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0">
                         <User className="w-4 h-4" />
                       </div>
                       <div>
@@ -2201,35 +2200,29 @@ export default function RequesterApprovals() {
                           <p className="font-bold text-sm text-foreground">
                             {selectedInquiryForAction.userName}
                           </p>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-md font-semibold">
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded font-medium">
                             {getRequesterTypeLabel(selectedInquiryForAction.requesterType)}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <Building2 className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Building2 className="w-3 h-3 text-cyan-600 shrink-0" />
                           <span>{selectedInquiryForAction.mosqueName}</span>
                           {selectedInquiryForAction.mosqueCity && (
-                            <span className="text-muted-foreground/80">• {selectedInquiryForAction.mosqueCity}</span>
-                          )}
-                          {selectedInquiryForAction.mosqueDistrict && (
-                            <span className="text-muted-foreground/80">- {selectedInquiryForAction.mosqueDistrict}</span>
+                            <span>• {selectedInquiryForAction.mosqueCity}</span>
                           )}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* تفاصيل الاتصال: رقم الجوال البارز مع زر النسخ + البريد الإلكتروني */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 border-t border-slate-200/80 dark:border-slate-800">
-                    {/* رقم الجوال مع زر نسخ سريع */}
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+                  {/* رقم الجوال والبريد */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800 text-xs">
+                    {/* رقم الجوال */}
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
-                          <Phone className="w-3.5 h-3.5" />
-                        </div>
+                        <Phone className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
                         <div>
-                          <p className="text-[10px] text-muted-foreground font-medium leading-none mb-1">رقم الجوال للتواصل</p>
-                          <span className="text-xs sm:text-sm font-bold font-mono tracking-wider text-foreground select-all" dir="ltr">
+                          <span className="text-xs font-bold font-mono tracking-wide text-foreground select-all" dir="ltr">
                             {selectedInquiryForAction.userPhone || "غير مسجل"}
                           </span>
                         </div>
@@ -2242,101 +2235,93 @@ export default function RequesterApprovals() {
                           onClick={() => {
                             navigator.clipboard.writeText(selectedInquiryForAction.userPhone);
                             setCopiedPhone(true);
-                            toast.success("تم نسخ رقم الجوال بنجاح");
+                            toast.success("تم نسخ الرقم");
                             setTimeout(() => setCopiedPhone(false), 2000);
                           }}
-                          className="h-7 px-2.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/80 rounded-lg gap-1 border border-cyan-200/60 dark:border-cyan-800/60 cursor-pointer shadow-2xs"
+                          className="h-6 px-2 text-[10px] font-medium text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/80 rounded gap-1 cursor-pointer"
                         >
-                          {copiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedPhone ? "تم النسخ" : "نسخ"}</span>
+                          {copiedPhone ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedPhone ? "تم" : "نسخ"}</span>
                         </Button>
                       )}
                     </div>
 
-                    {/* البريد الإلكتروني */}
-                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                        <Mail className="w-3.5 h-3.5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] text-muted-foreground font-medium leading-none mb-1">البريد الإلكتروني</p>
-                        <p className="text-xs font-semibold text-foreground truncate select-all" title={selectedInquiryForAction.userEmail || "غير مسجل"}>
-                          {selectedInquiryForAction.userEmail || "غير مسجل"}
-                        </p>
-                      </div>
+                    {/* البريد */}
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+                      <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <p className="text-xs font-semibold text-foreground truncate select-all" title={selectedInquiryForAction.userEmail || "غير مسجل"}>
+                        {selectedInquiryForAction.userEmail || "غير مسجل"}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* إجابات الاستبيان الأولي */}
-                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
-                      <FileCheck className="w-4 h-4 text-cyan-600" />
-                      <span>إجابات استبيان الجاهزية والاحتياج</span>
-                    </h4>
-                    <span className="text-[11px] text-muted-foreground font-medium">مقدم من الإمام</span>
-                  </div>
+                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xs space-y-2.5">
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <FileCheck className="w-3.5 h-3.5 text-cyan-600" />
+                    <span>إجابات الاستبيان</span>
+                  </h4>
 
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {/* السؤال الأول */}
-                    <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
-                      <p className="text-[11px] font-bold text-muted-foreground mb-1.5">
-                        ١. ما الذي تحتاجونه تحديداً في المسجد من البرنامج؟
+                    <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
+                      <p className="text-[11px] font-bold text-muted-foreground mb-1">
+                        ١. الاحتياج من البرنامج:
                       </p>
-                      <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap leading-relaxed">
+                      <p className="text-xs font-semibold text-foreground whitespace-pre-wrap leading-relaxed">
                         {inq.specificNeeds || "لم يتم التحديد"}
                       </p>
                     </div>
 
                     {/* السؤال الثاني والثالث */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1">
                         <p className="text-[11px] font-bold text-muted-foreground">
-                          ٢. هل لديكم مستودع لأدوات النظافة؟
+                          ٢. مستودع النظافة:
                         </p>
                         <div>
-                          <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                          <Badge variant="outline" className={`text-[11px] font-bold px-2 py-0.5 rounded ${
                             inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
                             inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300' :
                             'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                           }`}>
-                            {inq.hasCleaningWarehouse === 'yes' ? '✓ نعم - متوفر مستودع مخصص' :
-                             inq.hasCleaningWarehouse === 'partial' ? '◐ متوفر جزئياً (مكان صغير)' : '✕ لا يوجد مستودع'}
+                            {inq.hasCleaningWarehouse === 'yes' ? 'متوفر مستودع' :
+                             inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً' : 'غير متوفر'}
                           </Badge>
                         </div>
                         {inq.warehouseDetails && (
-                          <p className="text-[11px] text-muted-foreground bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-border/40 mt-1">
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
                             {inq.warehouseDetails}
                           </p>
                         )}
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1.5">
+                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1">
                         <p className="text-[11px] font-bold text-muted-foreground">
-                          ٣. هل توجد خطة تشغيلية للمسجد؟
+                          ٣. الخطة التشغيلية:
                         </p>
                         <div>
-                          <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                          <Badge variant="outline" className={`text-[11px] font-bold px-2 py-0.5 rounded ${
                             inq.hasOperationalPlan === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
                             'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                           }`}>
-                            {inq.hasOperationalPlan === 'yes' ? '✓ نعم - توجد خطة تشغيلية' : '✕ لا توجد خطة حالياً'}
+                            {inq.hasOperationalPlan === 'yes' ? 'توجد خطة' : 'لا توجد خطة'}
                           </Badge>
                         </div>
                         {inq.operationalPlanDetails && (
-                          <p className="text-[11px] text-muted-foreground bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-border/40 mt-1">
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
                             {inq.operationalPlanDetails}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {/* ملاحظات إضافية إن وجدت */}
+                    {/* ملاحظات إضافية */}
                     {inq.additionalNotes && (
-                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
-                        <p className="text-[11px] font-bold text-muted-foreground mb-1">
-                          ملاحظات إضافية مسجلة من الإمام:
+                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
+                        <p className="text-[11px] font-bold text-muted-foreground mb-0.5">
+                          ملاحظات الإمام:
                         </p>
                         <p className="text-xs text-foreground font-medium leading-relaxed">
                           {inq.additionalNotes}
@@ -2346,64 +2331,61 @@ export default function RequesterApprovals() {
                   </div>
                 </div>
 
-                {/* سجل المراجعة السابق إذا كان موجود */}
+                {/* سجل مراجعة سابقة إن وجد */}
                 {selectedInquiryForAction.reviewerName && (
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
                     <div>
-                      <span className="text-muted-foreground">آخر مراجعة بواسطة: </span>
+                      <span className="text-muted-foreground">راجعها: </span>
                       <strong className="text-foreground">{selectedInquiryForAction.reviewerName}</strong>
                       {inq.reviewedAt && (
-                        <span className="text-muted-foreground mr-2">
-                          بتاريخ {new Date(inq.reviewedAt).toLocaleDateString("ar-SA")}
+                        <span className="text-muted-foreground mr-1.5">
+                          • {new Date(inq.reviewedAt).toLocaleDateString("ar-SA")}
                         </span>
                       )}
                     </div>
                     {inq.completedRequestId && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300">
-                        تم رفع الطلب الفعلي رقم #{inq.completedRequestId}
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px]">
+                        طلب #{inq.completedRequestId}
                       </Badge>
                     )}
                   </div>
                 )}
 
-                {/* قسم اتخاذ القرار والتوجيه بعد المكالمة */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <PhoneCall className="w-4 h-4 text-cyan-600" />
-                    <h4 className="text-sm font-bold text-foreground">
-                      اتخاذ الإجراء بعد التواصل الهاتفي
+                {/* قسم اتخاذ القرار */}
+                <div className="p-3.5 rounded-xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <PhoneCall className="w-3.5 h-3.5 text-cyan-600" />
+                    <h4 className="text-xs font-bold text-foreground">
+                      قرار التأهيل
                     </h4>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    بناءً على دراسة الاحتياج والتواصل الهاتفي مع الإمام، حدد القرار والتوجيه المناسب:
-                  </p>
 
-                  {/* بطاقات خيارات القرار */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* بطاقات القرار */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {/* خيار 1: القبول والتمكين */}
                     <div
                       onClick={() => {
                         setActionDecision("approved");
                         setActionType("enable_sedana");
                       }}
-                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         actionDecision === "approved"
                           ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs"
                           : "border-border bg-card hover:border-cyan-300"
                       }`}
                     >
-                      <div className="flex items-start gap-2.5">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                      <div className="flex items-start gap-2">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
                           actionDecision === "approved" ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300"
                         }`}>
-                          {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {actionDecision === "approved" && <CheckCircle2 className="w-3 h-3" />}
                         </div>
                         <div>
-                          <p className="font-bold text-xs sm:text-sm text-foreground">
-                            القبول والتمكين (مؤهل للبرنامج)
+                          <p className="font-bold text-xs text-foreground">
+                            قبول وتأهيل للبرنامج
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            فتح صلاحية التقديم ليظهر للإمام زر توقيع الاتفاقية ورفع الطلب الكامل
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            إتاحة توقيع الاتفاقية ورفع الطلب
                           </p>
                         </div>
                       </div>
@@ -2415,24 +2397,24 @@ export default function RequesterApprovals() {
                         setActionDecision("rejected");
                         if (actionType === "enable_sedana") setActionType("redirect_alternative");
                       }}
-                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         actionDecision === "rejected"
                           ? "border-slate-600 bg-slate-100/80 dark:bg-slate-800/60 shadow-xs"
                           : "border-border bg-card hover:border-slate-400"
                       }`}
                     >
-                      <div className="flex items-start gap-2.5">
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                      <div className="flex items-start gap-2">
+                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
                           actionDecision === "rejected" ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300"
                         }`}>
-                          {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
+                          {actionDecision === "rejected" && <XCircle className="w-3 h-3" />}
                         </div>
                         <div>
-                          <p className="font-bold text-xs sm:text-sm text-foreground">
-                            الرفض أو التوجيه لبديل
+                          <p className="font-bold text-xs text-foreground">
+                            توجيه لبديل أو اعتذار
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                            المسجد غير محتاج للبرنامج السنوي، أو توجيهه لدعم بديل (تأمين لمرة واحدة مثلاً)
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            اقتراح خدمة أخرى أو عدم الملاءمة
                           </p>
                         </div>
                       </div>
@@ -2441,8 +2423,7 @@ export default function RequesterApprovals() {
 
                   {/* في حالة الرفض أو التوجيه */}
                   {actionDecision === "rejected" && (
-                    <div className="p-3.5 rounded-xl bg-card border border-border/80 space-y-3">
-                      <Label className="text-xs font-bold text-foreground">نوع الإجراء البديل:</Label>
+                    <div className="p-3 rounded-lg bg-card border border-border/80 space-y-2.5">
                       <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
@@ -2451,7 +2432,7 @@ export default function RequesterApprovals() {
                           className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
                           onClick={() => setActionType("redirect_alternative")}
                         >
-                          توجيه لبديل آخر (مثل برنامج أو خدمة أخرى)
+                          اقتراح خدمة بديلة
                         </Button>
                         <Button
                           type="button"
@@ -2460,16 +2441,15 @@ export default function RequesterApprovals() {
                           className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
                           onClick={() => setActionType("reject")}
                         >
-                          عدم ملاءمة واعتذار تام
+                          اعتذار وعدم ملاءمة
                         </Button>
                       </div>
 
                       {/* سلكت قائمة البرامج والخدمات البديلة */}
                       {actionType === "redirect_alternative" && (
-                        <div className="space-y-2 pt-2">
-                          <Label className="text-xs font-bold text-foreground flex items-center justify-between">
-                            <span>البرنامج أو الخدمة البديلة المقترحة للإمام:</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">من قائمة برامج وخدمات المنصة</span>
+                        <div className="space-y-1.5 pt-1">
+                          <Label className="text-xs font-bold text-foreground">
+                            الخدمة البديلة المقترحة:
                           </Label>
 
                           <Select
@@ -2482,39 +2462,38 @@ export default function RequesterApprovals() {
                               }
                             }}
                           >
-                            <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border shadow-2xs font-semibold">
-                              <SelectValue placeholder="-- اختر البرنامج أو الخدمة البديلة --" />
+                            <SelectTrigger className="h-8 text-xs rounded-lg bg-background border-border shadow-2xs font-semibold">
+                              <SelectValue placeholder="-- اختر الخدمة أو البرنامج --" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-64 font-['Cairo',sans-serif]">
+                            <SelectContent className="max-h-60 font-['Cairo',sans-serif]">
                               {alternativePrograms.map((prog: any) => (
-                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-2 cursor-pointer">
-                                  <div className="flex items-center gap-2">
+                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-1.5 cursor-pointer">
+                                  <div className="flex items-center gap-1.5">
                                     <span className="font-bold text-foreground">{prog.name}</span>
                                     {prog.description && (
-                                      <span className="text-muted-foreground text-[11px]">- {prog.description}</span>
+                                      <span className="text-muted-foreground text-[10px]">- {prog.description}</span>
                                     )}
                                   </div>
                                 </SelectItem>
                               ))}
-                              <SelectItem value="__custom__" className="text-xs py-2 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-1">
-                                + خدمة أخرى / كتابة مخصصة...
+                              <SelectItem value="__custom__" className="text-xs py-1.5 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-0.5">
+                                + خدمة أخرى...
                               </SelectItem>
                             </SelectContent>
                           </Select>
 
-                          {/* حقل الإدخال اليدوي إذا تم اختيار خدمة مخصصة أو كتابة إضافية */}
+                          {/* حقل الإدخال اليدوي عند اختيار خدمة أخرى */}
                           {(currentSelectValue === "__custom__" || (!isStandardProgram && redirectProgram !== "")) && (
-                            <div className="pt-1 space-y-1">
+                            <div className="pt-1">
                               <Input
-                                placeholder="اكتب اسم الخدمة أو البرنامج البديل (مثال: تأمين كراتين معطرات لمرة واحدة)..."
+                                placeholder="اكتب اسم الخدمة البديلة..."
                                 value={redirectProgram}
                                 onChange={(e) => {
                                   setCustomRedirectProgram(e.target.value);
                                   setRedirectProgram(e.target.value);
                                 }}
-                                className="text-xs h-9 rounded-xl bg-background"
+                                className="text-xs h-8 rounded-lg bg-background"
                               />
-                              <p className="text-[10px] text-muted-foreground">سيظهر هذا المسمى البديل للإمام في لوحة التحكم وتنبيهات النظام</p>
                             </div>
                           )}
                         </div>
@@ -2522,34 +2501,31 @@ export default function RequesterApprovals() {
                     </div>
                   )}
 
-                  {/* حقل تسجيل الملاحظات وتفاصيل المكالمة */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-foreground">
-                        ملخص المكالمة ومبررات القرار <span className="text-cyan-600">*</span>
-                      </Label>
-                      <span className="text-[10px] text-muted-foreground">تظهر الملاحظات للإمام ولأعضاء الفريق</span>
-                    </div>
+                  {/* حقل تسجيل الملاحظات */}
+                  <div className="space-y-1">
+                    <Label className="text-xs font-bold text-foreground">
+                      الملاحظات والمبررات <span className="text-cyan-600">*</span>
+                    </Label>
                     <Textarea
-                      rows={3}
-                      placeholder="سجل ما تم الاتفاق عليه هاتفياً مع الإمام (مثلاً: تم التواصل والتأكد من توافر المستودع، مؤهل للتقديم)..."
+                      rows={2}
+                      placeholder="أسباب القرار أو ما تم الاتفاق عليه مع الإمام..."
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
-                      className="text-xs resize-none"
+                      className="text-xs resize-none rounded-lg"
                     />
                   </div>
                 </div>
               </div>
 
               {/* أسفل النافذة والأزرار */}
-              <DialogFooter className="flex-row items-center justify-between gap-2 pt-3 border-t border-border/60">
+              <DialogFooter className="flex-row items-center justify-between gap-2 pt-2.5 border-t border-border/60">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedInquiryForAction(null)}
                   disabled={reviewSedanaInquiryMutation.isPending}
-                  className="text-xs cursor-pointer"
+                  className="text-xs cursor-pointer h-8"
                 >
                   إلغاء
                 </Button>
@@ -2560,7 +2536,7 @@ export default function RequesterApprovals() {
                   disabled={reviewSedanaInquiryMutation.isPending || !actionNotes.trim()}
                   onClick={() => {
                     if (!actionNotes.trim()) {
-                      toast.error("يرجى كتابة ملخص المكالمة ومبررات القرار");
+                      toast.error("يرجى كتابة الملاحظات ومبررات القرار");
                       return;
                     }
                     reviewSedanaInquiryMutation.mutate({
@@ -2571,7 +2547,7 @@ export default function RequesterApprovals() {
                       redirectProgram: actionDecision === "rejected" && actionType === "redirect_alternative" ? redirectProgram.trim() : null,
                     });
                   }}
-                  className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
+                  className={`text-xs font-bold px-5 h-8 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
                     actionDecision === "approved"
                       ? "bg-cyan-600 hover:bg-cyan-700 text-white"
                       : "bg-slate-700 hover:bg-slate-800 text-white"
@@ -2584,8 +2560,8 @@ export default function RequesterApprovals() {
                     </>
                   ) : (
                     <>
-                      {actionDecision === "approved" ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      <span>{actionDecision === "approved" ? "اعتماد وقبول الطلب" : "تأكيد الرفض / التوجيه"}</span>
+                      {actionDecision === "approved" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                      <span>{actionDecision === "approved" ? "اعتماد التأهيل" : "تأكيد الإجراء"}</span>
                     </>
                   )}
                 </Button>
