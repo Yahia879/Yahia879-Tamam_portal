@@ -924,7 +924,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
               <Alert className="bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200 shadow-xs mb-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <AlertDescription className="text-xs sm:text-sm font-semibold">
-                  تم اعتماد تأهيل مسجدكم ({currentMosque?.name || ''}) لبرنامج سدانة بنجاح. يرجى قراءة الشروط وتوقيع الاتفاقية والمتابعة لتحديد سلة الاحتياجات السنوية.
+                  تم اعتماد تأهيل مسجدكم ({currentMosque?.name || ''}) لبرنامج سدانة بنجاح. يرجى قراءة الشروط والمتابعة لتحديد الاحتياجات.
                 </AlertDescription>
               </Alert>
             )}
