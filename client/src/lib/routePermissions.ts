@@ -156,7 +156,9 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/contracts": "contracts",
   "/contracts/new": "contracts",
   "/purchase-orders": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
+  "/purchase-orders/new": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/csr-letters": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
+  "/csr-letters/new": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/sedana-warehouse": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/sedana-execution": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
 

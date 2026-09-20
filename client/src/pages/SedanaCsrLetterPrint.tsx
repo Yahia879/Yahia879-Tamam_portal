@@ -116,8 +116,25 @@ export default function SedanaCsrLetterPrint() {
     return [];
   }, [boqResult, programData]);
 
+  // البحث عن الخطاب المحدد برقم الخطاب إن وجد
+  const searchParams = new URLSearchParams(window.location.search);
+  const targetLetterNumber = searchParams.get("letterNumber");
+
+  const targetCsr = useMemo(() => {
+    const list: any[] = Array.isArray(savedProc?.csrLetters) ? savedProc.csrLetters : [];
+    if (targetLetterNumber && list.length > 0) {
+      const match = list.find((c: any) => c.letterNumber === targetLetterNumber);
+      if (match) return match;
+    }
+    return savedProc?.activeCsrLetter || (list.length > 0 ? list[0] : {});
+  }, [savedProc, targetLetterNumber]);
+
   // استخراج البنود المخصصة للمسؤولية المجتمعية
   const csrItems = useMemo(() => {
+    if (targetCsr?.items && Array.isArray(targetCsr.items) && targetCsr.items.length > 0) {
+      return targetCsr.items;
+    }
+
     const itemsAllocation = savedProc?.itemsAllocation || {};
     const filtered = allItems.filter((it: any) => itemsAllocation[it.id] === "csr_letter");
     if (filtered.length > 0) return filtered;
@@ -134,26 +151,20 @@ export default function SedanaCsrLetterPrint() {
 
     // في حال لم يتم التوزيع بعد، عرض البنود المسجلة
     return allItems;
-  }, [allItems, savedProc]);
+  }, [allItems, savedProc, targetCsr]);
 
   // إعداد بيانات الخطاب
   const execSignatory = signatoriesData.find((s: any) => s.roleTitle?.includes("تنفيذي") || s.roleTitle?.includes("مدير")) || signatoriesData[0];
-  const activeCsr = savedProc?.activeCsrLetter || {};
-
-  let letterNum = activeCsr.letterNumber;
-  if (!letterNum || letterNum.startsWith(`CSR-${requestId}-`) || letterNum === `CSR-87-2026`) {
-    letterNum = `CSR-1-${new Date().getFullYear()}`;
-  }
 
   const csrData = {
-    letterNumber: letterNum,
-    letterDate: activeCsr.letterDate || new Date().toISOString().split("T")[0],
-    salutation: activeCsr.salutation || "السادة",
-    recipientName: activeCsr.recipientName || "الجهة المانحة / الشريك المجتمعية",
-    honorific: activeCsr.honorific || "المحترمون",
-    projectName: activeCsr.projectName || `مشروع جامع ${mosqueName}`,
-    signatoryTitle: activeCsr.signatoryTitle || "المدير التنفيذي",
-    signatoryName: activeCsr.signatoryName || execSignatory?.name || "م. عبدالهادي آل فائق",
+    letterNumber: targetCsr.letterNumber || `CSR-${requestId}-${new Date().getFullYear()}`,
+    letterDate: targetCsr.letterDate || new Date().toISOString().split("T")[0],
+    salutation: targetCsr.salutation || "السادة",
+    recipientName: targetCsr.recipientName || "الجهة المانحة / الشريك المجتمعي",
+    honorific: targetCsr.honorific || "المحترمون",
+    projectName: targetCsr.projectName || `مشروع جامع ${mosqueName}`,
+    signatoryTitle: targetCsr.signatoryTitle || "المدير التنفيذي",
+    signatoryName: targetCsr.signatoryName || execSignatory?.name || "م. عبدالهادي آل فائق",
   };
 
   const handlePrint = () => {

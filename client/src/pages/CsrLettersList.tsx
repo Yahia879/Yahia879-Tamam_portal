@@ -46,6 +46,8 @@ import {
   X,
   Landmark,
   ArrowRight,
+  Plus,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -91,16 +93,30 @@ export default function CsrLettersList() {
   const utils = trpc.useUtils();
 
   // الخطاب المحدد لعرض تفاصيل أصنافه
-  const [selectedLetterForItems, setSelectedLetterForItems] = useState<any | null>(null);  // استعلام خطابات المسؤولية المجتمعية
+  const [selectedLetterForItems, setSelectedLetterForItems] = useState<any | null>(null);
+
+  // استعلام خطابات المسؤولية المجتمعية
   const {
     data: lettersData,
     isLoading,
+    isFetching,
     refetch,
   } = trpc.procurement.listCsrLetters.useQuery({
     search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     page: currentPage,
     limit,
+  });
+
+  // اعتماد سريع لخطاب المسؤولية المجتمعية
+  const approveLetterMutation = trpc.procurement.approveCsrLetter.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد خطاب المسؤولية المجتمعية بنجاح");
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد الخطاب");
+    },
   });
 
   // جلب إعدادات الجمعية
@@ -199,6 +215,27 @@ export default function CsrLettersList() {
             </p>
           </div>
 
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
+              title="تحديث البيانات"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
+              <span>تحديث</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/csr-letters/new")}
+              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
+            </Button>
+          </div>
         </div>
 
         {/* بطاقات الإحصائيات العلوية الـ 5 الأنيقة */}
@@ -406,16 +443,35 @@ export default function CsrLettersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/requests/${letter.requestId}/csr-letter`)}
-                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer"
-                              title="معاينة وطباعة الخطاب الرسمي"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>معاينة</span>
-                            </Button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              {letter.status === "draft" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    approveLetterMutation.mutate({
+                                      requestId: letter.requestId,
+                                      letterNumber: letter.letterNumber,
+                                    });
+                                  }}
+                                  disabled={approveLetterMutation.isPending}
+                                  className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer px-2"
+                                  title="اعتماد خطاب المسؤولية المجتمعية فورياً"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>اعتماد</span>
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
+                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer"
+                                title="معاينة وطباعة الخطاب الرسمي"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>معاينة</span>
+                              </Button>
+                            </div>
                           </td>
                         </TableRow>
                       );

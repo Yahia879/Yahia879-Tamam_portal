@@ -238,6 +238,7 @@ export const procurementRouter = router({
           o.orderNumber?.toLowerCase().includes(q) ||
           o.descriptiveName?.toLowerCase().includes(q) ||
           o.directedTo?.toLowerCase().includes(q) ||
+          o.supplierName?.toLowerCase().includes(q) ||
           o.mosqueName?.toLowerCase().includes(q) ||
           o.mosqueCity?.toLowerCase().includes(q) ||
           o.mosqueRegion?.toLowerCase().includes(q) ||
@@ -346,12 +347,13 @@ export const procurementRouter = router({
         const sedanaProc = pData.sedanaProcurement;
         const allocations = sedanaProc?.itemsAllocation || {};
         const activeCSR = sedanaProc?.activeCsrLetter || null;
+        const savedCsrs: any[] = Array.isArray(sedanaProc?.csrLetters) ? sedanaProc.csrLetters : [];
 
         const allocatedItemIds = Object.keys(allocations).filter(
           (k) => allocations[k] === "csr_letter"
         );
 
-        if (allocatedItemIds.length === 0 && !activeCSR) {
+        if (allocatedItemIds.length === 0 && !activeCSR && savedCsrs.length === 0) {
           continue;
         }
 
@@ -412,38 +414,86 @@ export const procurementRouter = router({
           }
         }
 
-        const letterNumber = activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
-        const letterDate = activeCSR?.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) تكون الحالة معتمد، وعدا ذلك مسودة
-        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
-        const status = isExecutionOrBeyond ? "approved" : "draft";
-        const recipientName = activeCSR?.recipientName || csrSupplierName || "الجهة المانحة / الشريك المجتمعي";
+        const csrList: any[] = [...savedCsrs];
+        if (activeCSR && !csrList.some((c: any) => c.letterNumber === activeCSR.letterNumber)) {
+          csrList.push(activeCSR);
+        }
 
-        letters.push({
-          id: req.id,
-          requestId: req.id,
-          requestNumber: req.requestNumber || String(req.id),
-          descriptiveName: req.descriptiveName || null,
-          currentStage: req.currentStage,
-          mosqueId: mosque?.id || null,
-          mosqueName: mosque?.name || "المسجد",
-          mosqueCity: mosque?.city || "",
-          letterNumber,
-          letterDate,
-          salutation: activeCSR?.salutation || "السادة",
-          recipientName,
-          honorific: activeCSR?.honorific || "المحترمون",
-          projectName: activeCSR?.projectName || `مشروع جامع ${mosque?.name || "المسجد"}`,
-          signatoryTitle: activeCSR?.signatoryTitle || "المدير التنفيذي",
-          signatoryName: activeCSR?.signatoryName || "المهندس المفوض بالتوقيع",
-          notes: activeCSR?.additionalNotes || "",
-          status,
-          items: itemsForCSR,
-          itemsCount: itemsForCSR.length,
-          createdAt: req.createdAt,
-          updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
-        });
+        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
+
+        if (csrList.length > 0) {
+          csrList.forEach((csr: any, cIdx: number) => {
+            const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
+            const letterDate = csr.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
+            const status = csr.status || (isExecutionOrBeyond ? "approved" : "draft");
+            const finalItems = (csr.items && Array.isArray(csr.items) && csr.items.length > 0) ? csr.items : itemsForCSR;
+
+            letters.push({
+              id: `${req.id}-${cIdx}`,
+              requestId: req.id,
+              requestNumber: req.requestNumber || String(req.id),
+              descriptiveName: req.descriptiveName || null,
+              currentStage: req.currentStage,
+              mosqueId: mosque?.id || null,
+              mosqueName: mosque?.name || "المسجد",
+              mosqueCity: mosque?.city || "",
+              mosqueRegion: mosque?.governorate || "",
+              letterNumber,
+              letterDate,
+              salutation: csr.salutation || "السادة",
+              recipientName: csr.recipientName || csrSupplierName || "الجهة المانحة / الشريك المجتمعي",
+              honorific: csr.honorific || "المحترمون",
+              projectName: csr.projectName || `مشروع جامع ${mosque?.name || "المسجد"}`,
+              signatoryTitle: csr.signatoryTitle || "المدير التنفيذي",
+              signatoryName: csr.signatoryName || "المهندس المفوض بالتوقيع",
+              notes: csr.notes || csr.additionalNotes || "",
+              status,
+              items: finalItems,
+              itemsCount: finalItems.length,
+              createdAt: req.createdAt,
+              updatedAt: csr.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
+            });
+          });
+        } else {
+          const letterNumber = `CSR-${req.id}-${new Date().getFullYear()}`;
+          const letterDate = req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "";
+          const status = isExecutionOrBeyond ? "approved" : "draft";
+          const recipientName = csrSupplierName || "الجهة المانحة / الشريك المجتمعي";
+
+          letters.push({
+            id: req.id,
+            requestId: req.id,
+            requestNumber: req.requestNumber || String(req.id),
+            descriptiveName: req.descriptiveName || null,
+            currentStage: req.currentStage,
+            mosqueId: mosque?.id || null,
+            mosqueName: mosque?.name || "المسجد",
+            mosqueCity: mosque?.city || "",
+            mosqueRegion: mosque?.governorate || "",
+            letterNumber,
+            letterDate,
+            salutation: "السادة",
+            recipientName,
+            honorific: "المحترمون",
+            projectName: `مشروع جامع ${mosque?.name || "المسجد"}`,
+            signatoryTitle: "المدير التنفيذي",
+            signatoryName: "المهندس المفوض بالتوقيع",
+            notes: "",
+            status,
+            items: itemsForCSR,
+            itemsCount: itemsForCSR.length,
+            createdAt: req.createdAt,
+            updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
+          });
+        }
       }
+
+      // فرز الخطابات بحيث تظهر الأحدث في المقدمة دائماً
+      letters.sort((a, b) => {
+        const timeA = new Date(a.updatedAt || a.letterDate || a.createdAt || 0).getTime();
+        const timeB = new Date(b.updatedAt || b.letterDate || b.createdAt || 0).getTime();
+        return timeB - timeA;
+      });
 
       let filtered = letters;
       if (input.search && input.search.trim()) {
@@ -1019,6 +1069,460 @@ export const procurementRouter = router({
       return {
         success: true,
         message: "تم اعتماد أمر الشراء بنجاح",
+      };
+    }),
+
+  // ===============================================
+  // 6. جلب قائمة طلبات سدانة المتاحة لإنشاء خطابات مسؤولية مجتمعية
+  // ===============================================
+  getAvailableRequestsForCSR: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      // جلب الموردين والشركاء المسجلين في النظام لاستخدامهم كجهات مانحة
+      const registeredSuppliers = await db.select().from(suppliers);
+
+      // جلب طلبات المساجد
+      const requests = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(isNotNull(mosqueRequests.programData))
+        .orderBy(desc(mosqueRequests.createdAt));
+
+      const allBoq = await db
+        .select()
+        .from(quantitySchedules);
+
+      const boqMap = new Map<number, any[]>();
+      allBoq.forEach((b) => {
+        if (!b.requestId) return;
+        const list = boqMap.get(b.requestId) || [];
+        list.push(b);
+        boqMap.set(b.requestId, list);
+      });
+
+      const result: any[] = [];
+
+      // قائمة افتراضية للشركاء والجهات المانحة المعروفة للمسؤولية المجتمعية
+      const defaultDonors = [
+        {
+          id: "partner-stc",
+          recipientName: "شركة الاتصالات السعودية (STC) - المسؤولية المجتمعية",
+          recipientContactPerson: "إدارة الاستدامة والمسؤولية المجتمعية",
+          phone: "0118001000",
+          email: "csr@stc.com.sa",
+          city: "الرياض",
+        },
+        {
+          id: "partner-rajhi",
+          recipientName: "مؤسسة الراجحي الإنسانية",
+          recipientContactPerson: "أمانة المنح ودعم المساجد",
+          phone: "0112111111",
+          email: "grants@alrajhifoundation.org",
+          city: "الرياض",
+        },
+        {
+          id: "partner-awidah",
+          recipientName: "أوقاف الشيخ فهد العويضة الخيرية",
+          recipientContactPerson: "لجنة عمارة وصيانة بيوت الله",
+          phone: "0114777777",
+          email: "info@awidah-awqaf.org",
+          city: "الرياض",
+        },
+        {
+          id: "partner-aramco",
+          recipientName: "أرامكو السعودية - برنامج المواطنة والمسؤولية المجتمعية",
+          recipientContactPerson: "إدارة شؤون المجتمع",
+          phone: "0138720115",
+          email: "citizenship@aramco.com",
+          city: "الظهران",
+        },
+        {
+          id: "partner-sabic",
+          recipientName: "الشركة السعودية للصناعات الأساسية (سابك) - قطاع المسؤولية المجتمعية",
+          recipientContactPerson: "إدارة المسؤولية الاجتماعية",
+          phone: "0112258000",
+          email: "csr@sabic.com",
+          city: "الرياض",
+        },
+      ];
+
+      for (const row of requests) {
+        const req = row.request;
+        const mosque = row.mosque;
+
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (!pData || typeof pData !== "object") continue;
+
+        const boqItems = boqMap.get(req.id) || [];
+        const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems || boqItems.length > 0;
+        if (!isSedana) continue;
+
+        const sedanaProc = pData.sedanaProcurement || {};
+        const itemsAlloc = sedanaProc.itemsAllocation || {};
+        const activeCSR = sedanaProc.activeCsrLetter || null;
+        const existingCsrs: any[] = Array.isArray(sedanaProc.csrLetters) ? sedanaProc.csrLetters : [];
+
+        // جمع كافة بنود الطلب
+        let baseItems: any[] = [];
+        if (boqItems.length > 0) {
+          baseItems = boqItems.map((b) => ({
+            id: String(b.id),
+            itemName: b.itemName,
+            description: b.itemDescription || "",
+            quantity: parseFloat(b.quantity || "1"),
+            unit: b.unit || "وحدة",
+          }));
+        } else if (pData.evaluation?.items && Array.isArray(pData.evaluation.items)) {
+          baseItems = pData.evaluation.items.map((it: any, idx: number) => ({
+            id: String(it.key || it.id || idx + 1),
+            itemName: it.name || it.itemName || `بند ${idx + 1}`,
+            description: it.description || it.spec || "",
+            quantity: parseFloat(it.approvedQty || it.requestedQty || "1"),
+            unit: it.unit || "وحدة",
+          }));
+        } else if (pData.basketItems && Array.isArray(pData.basketItems)) {
+          baseItems = pData.basketItems.map((b: any, idx: number) => ({
+            id: String(b.id || idx + 1),
+            itemName: b.name,
+            description: b.description || b.category || "",
+            quantity: parseFloat(b.quantity || "1"),
+            unit: b.unit || "وحدة",
+          }));
+        }
+
+        if (baseItems.length === 0) continue;
+
+        // إتاحة كافة بنود الطلب دون استثناء ليتمكن المستخدم من اختيار أي صنف وتحديد كميته
+        const eligibleItems = baseItems;
+
+        // تجميع الشركاء والجهات المانحة المتاحة لهذا الطلب
+        const partnersMap = new Map<string, any>();
+
+        // 1. إضافة الشركاء من الخطابات السابقة
+        existingCsrs.forEach((c) => {
+          if (c.recipientName) {
+            partnersMap.set(c.recipientName.trim().toLowerCase(), {
+              id: c.letterNumber || c.recipientName,
+              recipientName: c.recipientName.trim(),
+              recipientContactPerson: c.recipientContactPerson || "إدارة المسؤولية المجتمعية",
+              phone: c.recipientPhone || "",
+              email: c.recipientEmail || "",
+              city: c.recipientCity || mosque?.city || "",
+              itemsCount: (c.items && c.items.length > 0) ? c.items.length : eligibleItems.length,
+              items: (c.items && c.items.length > 0) ? c.items : eligibleItems,
+            });
+          }
+        });
+
+        if (activeCSR?.recipientName && !partnersMap.has(activeCSR.recipientName.trim().toLowerCase())) {
+          partnersMap.set(activeCSR.recipientName.trim().toLowerCase(), {
+            id: activeCSR.letterNumber || activeCSR.recipientName,
+            recipientName: activeCSR.recipientName.trim(),
+            recipientContactPerson: activeCSR.recipientContactPerson || "إدارة المسؤولية المجتمعية",
+            phone: activeCSR.recipientPhone || "",
+            email: activeCSR.recipientEmail || "",
+            city: activeCSR.recipientCity || mosque?.city || "",
+            itemsCount: (activeCSR.items && activeCSR.items.length > 0) ? activeCSR.items.length : eligibleItems.length,
+            items: (activeCSR.items && activeCSR.items.length > 0) ? activeCSR.items : eligibleItems,
+          });
+        }
+
+        // 2. إضافة الشركاء والجهات المانحة الافتراضية
+        defaultDonors.forEach((donor) => {
+          const key = donor.recipientName.trim().toLowerCase();
+          if (!partnersMap.has(key)) {
+            partnersMap.set(key, {
+              ...donor,
+              itemsCount: eligibleItems.length,
+              items: eligibleItems,
+            });
+          }
+        });
+
+        // 3. إضافة الشركات المسجلة كموردين والتي يمكن أن تكون جهات مانحة أو داعمة
+        registeredSuppliers.slice(0, 10).forEach((s) => {
+          const key = (s.name || "").trim().toLowerCase();
+          if (s.name && !partnersMap.has(key)) {
+            partnersMap.set(key, {
+              id: `supplier-${s.id}`,
+              recipientName: s.name,
+              recipientContactPerson: s.contactPerson || "إدارة الشراكات المجتمعية",
+              phone: s.phone || "",
+              email: s.email || "",
+              city: s.city || mosque?.city || "",
+              itemsCount: eligibleItems.length,
+              items: eligibleItems,
+            });
+          }
+        });
+
+        const partnersList = Array.from(partnersMap.values());
+
+        result.push({
+          id: req.id,
+          requestNumber: req.requestNumber,
+          descriptiveName: req.descriptiveName,
+          currentStage: req.currentStage,
+          status: req.status,
+          mosqueName: mosque?.name || "المسجد",
+          mosqueCity: mosque?.city || "",
+          mosqueDistrict: mosque?.district || "",
+          partners: partnersList,
+          activeCSR,
+          csrLetters: existingCsrs,
+          eligibleItems,
+        });
+      }
+
+      return result;
+    }),
+
+  // ===============================================
+  // 7. إنشاء أو تحديث خطاب مسؤولية مجتمعية (حفظ كمسودة)
+  // ===============================================
+  createOrUpdateCsrLetter: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      recipientName: z.string(),
+      recipientContactPerson: z.string().optional(),
+      recipientPhone: z.string().optional(),
+      recipientEmail: z.string().optional(),
+      recipientCity: z.string().optional(),
+      letterNumber: z.string().optional(),
+      letterDate: z.string().optional(),
+      salutation: z.string().optional().default("السادة"),
+      honorific: z.string().optional().default("المحترمون"),
+      projectName: z.string().optional(),
+      signatoryTitle: z.string().optional().default("المدير التنفيذي"),
+      signatoryName: z.string().optional(),
+      notes: z.string().optional(),
+      status: z.enum(["approved", "draft"]).default("draft"),
+      isEdit: z.boolean().optional().default(false),
+      items: z.array(z.object({
+        id: z.string(),
+        itemName: z.string(),
+        description: z.string().optional(),
+        quantity: z.number().min(0.01),
+        unit: z.string(),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaProcurement = pData.sedanaProcurement || {};
+      pData.sedanaProcurement.itemsAllocation = pData.sedanaProcurement.itemsAllocation || {};
+      pData.sedanaProcurement.csrLetters = Array.isArray(pData.sedanaProcurement.csrLetters)
+        ? pData.sedanaProcurement.csrLetters
+        : [];
+
+      // تخصيص هذه البنود للمسؤولية المجتمعية
+      input.items.forEach((it) => {
+        pData.sedanaProcurement.itemsAllocation[it.id] = "csr_letter";
+      });
+
+      const isApproved = input.status === "approved";
+      const nowIso = new Date().toISOString();
+
+      const existingCSRs: any[] = pData.sedanaProcurement.csrLetters;
+      const usedNumbers = new Set<string>();
+      existingCSRs.forEach((c: any) => {
+        if (c.letterNumber) usedNumbers.add(c.letterNumber.trim());
+      });
+      if (pData.sedanaProcurement.activeCsrLetter?.letterNumber) {
+        usedNumbers.add(pData.sedanaProcurement.activeCsrLetter.letterNumber.trim());
+      }
+
+      // توليد رقم فريد ذكي عند إنشاء خطاب جديد يمنع التكرار والاستبدال
+      let letterNumber = input.letterNumber?.trim();
+      const basePrefix = `CSR-${req.id}-${new Date().getFullYear()}`;
+
+      if (!letterNumber || (usedNumbers.has(letterNumber) && !input.isEdit)) {
+        if (!usedNumbers.has(basePrefix)) {
+          letterNumber = basePrefix;
+        } else {
+          let seq = usedNumbers.size + 1;
+          let candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+          while (usedNumbers.has(candidate)) {
+            seq++;
+            candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+          }
+          letterNumber = candidate;
+        }
+      }
+
+      const newCSR = {
+        letterNumber,
+        letterDate: input.letterDate || nowIso.split("T")[0],
+        salutation: input.salutation || "السادة",
+        recipientName: input.recipientName,
+        recipientContactPerson: input.recipientContactPerson || "",
+        recipientPhone: input.recipientPhone || "",
+        recipientEmail: input.recipientEmail || "",
+        recipientCity: input.recipientCity || "",
+        honorific: input.honorific || "المحترمون",
+        projectName: input.projectName || `مشروع جامع ${req.descriptiveName || `طلب #${req.id}`}`,
+        signatoryTitle: input.signatoryTitle || "المدير التنفيذي",
+        signatoryName: input.signatoryName || ctx.user.name || "المهندس المفوض بالتوقيع",
+        signatorySignatureUrl: isApproved ? "digital_signature_approved" : "",
+        approvedAt: isApproved ? nowIso : undefined,
+        notes: input.notes || "",
+        status: input.status,
+        items: input.items,
+        updatedAt: nowIso,
+      };
+
+      pData.sedanaProcurement.activeCsrLetter = newCSR;
+      pData.sedanaProcurement.updatedAt = nowIso;
+
+      // إضافة الخطاب الجديد أو تحديث الحالي في وضع التعديل
+      const existingIdx = pData.sedanaProcurement.csrLetters.findIndex(
+        (c: any) => c.letterNumber === letterNumber
+      );
+
+      if (existingIdx >= 0 && input.isEdit) {
+        pData.sedanaProcurement.csrLetters[existingIdx] = newCSR;
+      } else {
+        pData.sedanaProcurement.csrLetters.unshift(newCSR);
+      }
+
+      const updateData: any = {
+        programData: pData,
+        updatedAt: new Date(),
+      };
+
+      if (isApproved && (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval")) {
+        updateData.currentStage = "execution";
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set(updateData)
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return {
+        success: true,
+        letterNumber,
+        status: input.status,
+        message: isApproved ? "تم حفظ واعتماد خطاب المسؤولية المجتمعية بنجاح" : "تم حفظ خطاب المسؤولية المجتمعية كمسودة بنجاح",
+      };
+    }),
+
+  // ===============================================
+  // 8. اعتماد خطاب المسؤولية المجتمعية فورياً
+  // ===============================================
+  approveCsrLetter: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      letterNumber: z.string().optional(),
+      signatoryName: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaProcurement = pData.sedanaProcurement || {};
+      const activeCsr = pData.sedanaProcurement.activeCsrLetter || {};
+      const targetLetterNumber = input.letterNumber || activeCsr.letterNumber;
+      const nowIso = new Date().toISOString();
+
+      activeCsr.status = "approved";
+      activeCsr.signatoryName = input.signatoryName || activeCsr.signatoryName || ctx.user.name || "المدير التنفيذي";
+      activeCsr.signatorySignatureUrl = "digital_signature_approved";
+      activeCsr.approvedAt = nowIso;
+      pData.sedanaProcurement.activeCsrLetter = activeCsr;
+      pData.sedanaProcurement.updatedAt = nowIso;
+
+      if (Array.isArray(pData.sedanaProcurement.csrLetters)) {
+        pData.sedanaProcurement.csrLetters = pData.sedanaProcurement.csrLetters.map((c: any) => {
+          if (!targetLetterNumber || c.letterNumber === targetLetterNumber || c.letterNumber === activeCsr.letterNumber) {
+            return {
+              ...c,
+              status: "approved",
+              signatoryName: activeCsr.signatoryName,
+              signatorySignatureUrl: "digital_signature_approved",
+              approvedAt: nowIso,
+              updatedAt: nowIso,
+            };
+          }
+          return c;
+        });
+      }
+
+      const updateData: any = {
+        programData: pData,
+        updatedAt: new Date(),
+      };
+
+      if (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval") {
+        updateData.currentStage = "execution";
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set(updateData)
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return {
+        success: true,
+        message: "تم اعتماد خطاب المسؤولية المجتمعية بنجاح",
       };
     }),
 });

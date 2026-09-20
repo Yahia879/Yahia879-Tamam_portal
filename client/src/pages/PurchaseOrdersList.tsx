@@ -53,6 +53,7 @@ import {
   ArrowRight,
   Plus,
   RotateCcw,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -241,13 +242,13 @@ export default function PurchaseOrdersList() {
               className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
               title="تحديث البيانات"
             >
-              <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-primary" : ""}`} />
+              <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
               <span>تحديث</span>
             </Button>
             <Button
               size="sm"
               onClick={() => navigate("/purchase-orders/new")}
-              className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
+              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة أمر شراء جديد</span>
@@ -396,7 +397,8 @@ export default function PurchaseOrdersList() {
                     <TableRow className="hover:bg-transparent border-b">
                       <th className="p-3 w-12 text-center font-bold">#</th>
                       <th className="p-3 font-bold">رقم أمر الشراء</th>
-                      <th className="p-3 font-bold">الطلب</th>
+                      <th className="p-3 font-bold">المسجد والطلب</th>
+                      <th className="p-3 font-bold">المورد المعتمد</th>
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">تاريخ الأمر</th>
@@ -419,18 +421,31 @@ export default function PurchaseOrdersList() {
                             </span>
                           </td>
 
-                          {/* الطلب */}
+                          {/* المسجد والطلب */}
                           <td className="p-3">
                             <div className="space-y-0.5">
-                              <p className="font-bold text-foreground">
-                                {order.descriptiveName || `#${order.requestNumber}`}
+                              <p className="font-bold text-foreground flex items-center gap-1.5">
+                                <Building2 className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                                <span>{order.mosqueName || order.descriptiveName || `طلب #${order.requestNumber}`}</span>
                               </p>
-                              {order.descriptiveName && (
-                                <p className="text-[11px] text-muted-foreground font-mono">
-                                  #{order.requestNumber}
-                                </p>
-                              )}
+                              <p className="text-[11px] text-muted-foreground font-mono">
+                                طلب #{order.requestNumber} {order.mosqueCity ? `• ${order.mosqueCity}` : ""}
+                              </p>
                             </div>
+                          </td>
+
+                          {/* المورد المعتمد */}
+                          <td className="p-3">
+                            {order.supplierName || order.directedTo ? (
+                              <div className="flex items-center gap-1.5">
+                                <Truck className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                <span className="font-medium text-foreground text-xs line-clamp-1">
+                                  {order.supplierName || order.directedTo}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-[11px]">-</span>
+                            )}
                           </td>
 
                           {/* البنود المشمولة */}

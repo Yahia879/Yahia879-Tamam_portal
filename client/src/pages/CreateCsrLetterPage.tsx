@@ -18,30 +18,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ShoppingCart,
+  HeartHandshake,
   ArrowRight,
   ArrowLeft,
   Building2,
   Package,
   CheckCircle,
-  Clock,
-  Phone,
   FileText,
-  CreditCard,
-  Calendar,
   User,
   Check,
   Loader2,
   AlertCircle,
-  Store,
-  Layers,
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
-export default function CreatePurchaseOrderPage() {
-  useDocumentTitle("إنشاء أمر شراء معتمد - سدانة");
+export default function CreateCsrLetterPage() {
+  useDocumentTitle("إنشاء خطاب مسؤولية مجتمعية - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const params = useParams<{ id?: string }>();
@@ -50,24 +44,31 @@ export default function CreatePurchaseOrderPage() {
   // الخطوة الحالية في المعالج (1 أو 2 أو 3)
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
-  // جلب طلبات سدانة التي تحوي موردين معتمدين لأوامر الشراء
+  // جلب طلبات سدانة المتاحة لخطابات المسؤولية المجتمعية
   const {
     data: sedanaRequests = [],
     isLoading: isLoadingRequests,
-  } = trpc.procurement.getAvailableRequestsForPO.useQuery();
+  } = trpc.procurement.getAvailableRequestsForCSR.useQuery();
 
-  // الحالة للطلب المختار والمورد المختار
+  // جلب المفوضين بالتوقيع
+  const { data: signatoriesData = [] } = trpc.organization.getSignatories.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+  });
+
+  // الحالة للطلب المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
-  const [selectedSupplierKey, setSelectedSupplierKey] = useState<string>("");
 
-  // تفاصيل أمر الشراء
-  const [orderNumber, setOrderNumber] = useState("");
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
-  const [directedTo, setDirectedTo] = useState("");
-  const [requesterName] = useState(user?.name || "طالب الشراء");
-  const [requesterRole] = useState("طالب الشراء / إدارة المشاريع");
-  const [approverName] = useState("المدير التنفيذي");
-  const [approverRole] = useState("المدير التنفيذي");
+  // اسم الجهة المانحة (فارغة افتراضياً)
+  const [recipientName, setRecipientName] = useState("");
+
+  // تفاصيل الخطاب الرسمي
+  const [letterNumber, setLetterNumber] = useState("");
+  const [letterDate, setLetterDate] = useState(new Date().toISOString().split("T")[0]);
+  const [salutation, setSalutation] = useState("السادة");
+  const [honorific, setHonorific] = useState("المحترمون");
+  const [projectName, setProjectName] = useState("");
+  const [signatoryTitle, setSignatoryTitle] = useState("المدير التنفيذي");
+  const [signatoryName, setSignatoryName] = useState("");
   const [notes, setNotes] = useState("");
 
   // الكميات والبنود المحددة
@@ -79,23 +80,19 @@ export default function CreatePurchaseOrderPage() {
     return sedanaRequests.find((r: any) => r.id === selectedRequestId) || null;
   }, [sedanaRequests, selectedRequestId]);
 
-  // قائمة الموردين المعتمدين للطلب المختار
-  const availableSuppliers = useMemo(() => {
-    return currentRequest?.suppliers || [];
-  }, [currentRequest]);
-
-  // استخراج المورد المختار
-  const currentSupplier = useMemo(() => {
-    if (!availableSuppliers.length) return null;
-    if (selectedSupplierKey) {
-      return (
-        availableSuppliers.find(
-          (s: any) => String(s.id) === selectedSupplierKey || s.supplierName === selectedSupplierKey
-        ) || availableSuppliers[0]
-      );
+  // تهيئة المفوض بالتوقيع الافتراضي
+  useEffect(() => {
+    if (!signatoryName) {
+      const execSignatory = signatoriesData.find(
+        (s: any) => s.roleTitle?.includes("تنفيذي") || s.roleTitle?.includes("مدير")
+      ) || signatoriesData[0];
+      if (execSignatory?.name) {
+        setSignatoryName(execSignatory.name);
+      } else if (user?.name) {
+        setSignatoryName(user.name);
+      }
     }
-    return availableSuppliers[0];
-  }, [availableSuppliers, selectedSupplierKey]);
+  }, [signatoriesData, user, signatoryName]);
 
   // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
   useEffect(() => {
@@ -114,40 +111,26 @@ export default function CreatePurchaseOrderPage() {
     const req = sedanaRequests.find((r: any) => r.id === reqId);
     if (!req) return;
 
-    const firstSupplier = req.suppliers?.[0];
-    if (firstSupplier) {
-      handleSelectSupplier(firstSupplier, req);
-    } else {
-      setSelectedSupplierKey("");
-      setSelectedItemIds([]);
-      setItemsQuantities({});
-      setDirectedTo("");
-    }
-  };
-
-  // التعامل مع اختيار المورد
-  const handleSelectSupplier = (supplier: any, req?: any) => {
-    const parentReq = req || currentRequest;
-    setSelectedSupplierKey(String(supplier.id || supplier.supplierName));
-    setDirectedTo(supplier.supplierName);
+    setProjectName(`مشروع جامع ${req.mosqueName || req.descriptiveName || `طلب #${req.id}`}`);
+    setRecipientName(""); // فارغة دائماً حسب طلب المستخدم
 
     const year = new Date().getFullYear();
-    const existingPOs: any[] = Array.isArray(parentReq?.purchaseOrders) ? parentReq.purchaseOrders : [];
-    
-    // جمع كافة أرقام أوامر الشراء المسجلة مسبقاً لهذا الطلب
+    const existingCSRs: any[] = Array.isArray(req?.csrLetters) ? req.csrLetters : [];
+
+    // جمع كافة أرقام الخطابات المسجلة مسبقاً لهذا الطلب
     const usedNumbers = new Set<string>();
-    existingPOs.forEach((p: any) => {
-      if (p.orderNumber) usedNumbers.add(p.orderNumber.trim());
+    existingCSRs.forEach((c: any) => {
+      if (c.letterNumber) usedNumbers.add(c.letterNumber.trim());
     });
-    if (parentReq?.activePO?.orderNumber) {
-      usedNumbers.add(parentReq.activePO.orderNumber.trim());
+    if (req?.activeCSR?.letterNumber) {
+      usedNumbers.add(req.activeCSR.letterNumber.trim());
     }
 
-    // توليد رقم تسلسلي جديد فريد تماماً يضمن إنشاء أمر شراء جديد ومستقل
-    const basePrefix = `PO-${parentReq?.id || 1}-${year}`;
-    let poNum = "";
+    // توليد رقم تسلسلي جديد فريد تماماً يضمن إنشاء خطاب جديد ومستقل
+    const basePrefix = `CSR-${req?.id || 1}-${year}`;
+    let csrNum = "";
     if (!usedNumbers.has(basePrefix)) {
-      poNum = basePrefix;
+      csrNum = basePrefix;
     } else {
       let seq = usedNumbers.size + 1;
       let candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
@@ -155,16 +138,17 @@ export default function CreatePurchaseOrderPage() {
         seq++;
         candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
       }
-      poNum = candidate;
+      csrNum = candidate;
     }
 
-    setOrderNumber(poNum);
+    setLetterNumber(csrNum);
 
-    // تهيئة البنود والكميات الخاصة بهذا المورد
+    // تهيئة البنود والكميات المتاحة
     const initialQtys: Record<string, number> = {};
     const itemIds: string[] = [];
 
-    (supplier.items || []).forEach((it: any) => {
+    const items = req.eligibleItems || [];
+    items.forEach((it: any) => {
       itemIds.push(it.id);
       initialQtys[it.id] = Number(it.quantity || 1);
     });
@@ -173,37 +157,37 @@ export default function CreatePurchaseOrderPage() {
     setSelectedItemIds(itemIds);
   };
 
-  // Mutation: إنشاء أو اعتماد أمر الشراء
+  // Mutation: إنشاء خطاب المسؤولية المجتمعية
   const utils = trpc.useUtils();
-  const createOrderMutation = trpc.procurement.createOrUpdatePurchaseOrder.useMutation({
-    onSuccess: (res, vars) => {
-      toast.success(res.message || "تم حفظ أمر الشراء بنجاح");
-      utils.procurement.listPurchaseOrders.invalidate();
-      utils.procurement.getAvailableRequestsForPO.invalidate();
-      utils.sedanaExecution.getVirtualInventory.invalidate({ requestId: vars.requestId });
+  const createCsrMutation = trpc.procurement.createOrUpdateCsrLetter.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم حفظ خطاب المسؤولية المجتمعية بنجاح");
+      utils.procurement.listCsrLetters.invalidate();
+      utils.procurement.getAvailableRequestsForCSR.invalidate();
 
-      // الانتقال إلى قائمة أوامر الشراء ليظهر الأمر المنشأ فوراً
-      navigate("/purchase-orders");
+      // الانتقال إلى قائمة خطابات المسؤولية المجتمعية
+      navigate("/csr-letters");
     },
     onError: (err) => {
-      toast.error(err.message || "حدث خطأ أثناء حفظ أمر الشراء");
+      toast.error(err.message || "حدث خطأ أثناء حفظ خطاب المسؤولية المجتمعية");
     },
   });
 
-  const handleSubmit = (overrideStatus?: "approved" | "draft") => {
+  const handleSubmit = () => {
     if (!selectedRequestId || !currentRequest) {
       toast.error("يرجى اختيار طلب سدانة أولاً");
       setStep(1);
       return;
     }
 
-    if (!currentSupplier) {
-      toast.error("يرجى اختيار المورد المعتمد");
+    if (!recipientName.trim()) {
+      toast.error("يرجى تحديد أو إدخال اسم الجهة المانحة أو الشريك المجتمعي");
       setStep(2);
       return;
     }
 
-    const supplierItems = (currentSupplier.items || [])
+    const eligibleItems = currentRequest?.eligibleItems || [];
+    const itemsToSubmit = eligibleItems
       .filter((it: any) => selectedItemIds.includes(it.id))
       .map((it: any) => ({
         id: it.id,
@@ -211,32 +195,25 @@ export default function CreatePurchaseOrderPage() {
         description: it.description || "",
         quantity: itemsQuantities[it.id] ?? it.quantity ?? 1,
         unit: it.unit || "وحدة",
-        unitPrice: it.unitPrice || 0,
-        totalPrice: (itemsQuantities[it.id] ?? it.quantity ?? 1) * (it.unitPrice || 0),
       }));
-
-    const itemsToSubmit = supplierItems;
 
     if (itemsToSubmit.length === 0) {
       toast.error("يرجى تضمين صنف واحد على الأقل وتحديد كميته");
       return;
     }
 
-    createOrderMutation.mutate({
+    createCsrMutation.mutate({
       requestId: selectedRequestId,
-      supplierName: currentSupplier.supplierName,
-      supplierId: currentSupplier.supplierId || null,
-      supplierPhone: currentSupplier.phone || "",
-      supplierCommercialRegister: currentSupplier.commercialRegister || "",
-      orderNumber: orderNumber || `PO-${selectedRequestId}-${new Date().getFullYear()}`,
-      orderDate,
-      directedTo: directedTo || currentSupplier.supplierName,
-      requesterName,
-      requesterRole,
-      approverName,
-      approverRole,
+      recipientName: recipientName.trim(),
+      letterNumber: letterNumber || `CSR-${selectedRequestId}-${new Date().getFullYear()}`,
+      letterDate,
+      salutation,
+      honorific,
+      projectName: projectName || `مشروع جامع ${currentRequest.mosqueName}`,
+      signatoryTitle: signatoryTitle || "المدير التنفيذي",
+      signatoryName: signatoryName || user?.name || "المهندس المفوض بالتوقيع",
       notes,
-      status: overrideStatus || "draft",
+      status: "draft",
       items: itemsToSubmit,
     });
   };
@@ -255,7 +232,7 @@ export default function CreatePurchaseOrderPage() {
                   if (window.history.length > 1) {
                     window.history.back();
                   } else {
-                    navigate("/purchase-orders");
+                    navigate("/csr-letters");
                   }
                 }}
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0 cursor-pointer"
@@ -265,14 +242,14 @@ export default function CreatePurchaseOrderPage() {
               <div className="text-right">
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
-                    إصدار أمر شراء جديد
+                    إصدار خطاب مسؤولية مجتمعية جديد
                   </h1>
                   <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-xs">
                     برنامج سدانة
                   </Badge>
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
-                  إنشاء أمر شراء لطلبات سدانة وتحديد كميات بنود المورد المعتمد
+                  إنشاء خطاب مسؤولية مجتمعية رسمي وتحديد الأصناف والكميات الموجهة للجهة المانحة
                 </p>
               </div>
             </div>
@@ -323,14 +300,14 @@ export default function CreatePurchaseOrderPage() {
                   {step > 2 ? <Check className="w-4 h-4" /> : "٢"}
                 </div>
                 <span className={`text-xs font-semibold ${step >= 2 ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground"}`}>
-                  المورد وبياناته
+                  الجهة وتحديد الكميات
                 </span>
               </div>
 
               {/* Step 3 Node */}
               <div
                 className="flex flex-col items-center gap-1.5 z-10 cursor-pointer"
-                onClick={() => selectedRequestId && currentSupplier && setStep(3)}
+                onClick={() => selectedRequestId && recipientName && selectedItemIds.length > 0 && setStep(3)}
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border ${
@@ -342,7 +319,7 @@ export default function CreatePurchaseOrderPage() {
                   ٣
                 </div>
                 <span className={`text-xs font-semibold ${step === 3 ? "text-sky-600 dark:text-sky-400" : "text-muted-foreground"}`}>
-                  البنود والاعتماد
+                  مراجعة وتأكيد الخطاب
                 </span>
               </div>
             </div>
@@ -353,15 +330,14 @@ export default function CreatePurchaseOrderPage() {
         {isLoadingRequests ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-            <p className="text-xs text-muted-foreground">جاري جلب طلبات سدانة والموردين المعتمدين...</p>
+            <p className="text-xs text-muted-foreground">جاري جلب طلبات سدانة والشركاء المعتمدين...</p>
           </div>
         ) : sedanaRequests.length === 0 ? (
           <Card className="border-dashed p-10 text-center space-y-3 bg-white dark:bg-slate-900 rounded-xl">
             <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-            <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة بانتظار أوامر شراء</h3>
+            <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة متاحة</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              تظهر هنا فقط طلبات برنامج سدانة التي تم اعتماد موردين لها على مسار "أمر شراء داخلي".
-              يمكنك اعتماد الموردين وتوزيع البنود من صفحة تأمين الطلب والتعاقد.
+              تظهر هنا طلبات برنامج سدانة التي تشتمل على بنود وجداول كميات معتمدة.
             </p>
             <Button
               size="sm"
@@ -381,10 +357,10 @@ export default function CreatePurchaseOrderPage() {
                   <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                     <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                       <Building2 className="h-4.5 w-4.5 text-sky-600" />
-                      الخطوة 1: اختيار طلب سدانة المعتمد
+                      الخطوة 1: اختيار طلب سدانة
                     </CardTitle>
                     <CardDescription className="text-right text-xs text-muted-foreground">
-                      يتم هنا استعراض طلبات سدانة التي تشتمل على موردين معتمدين لأمر الشراء فقط
+                      اختر طلب سدانة المعتمد لتوجيه خطاب مسؤولية مجتمعية للجهة المانحة
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
@@ -406,7 +382,7 @@ export default function CreatePurchaseOrderPage() {
                         <SelectContent dir="rtl" className="max-h-[300px]">
                           {sedanaRequests.map((req: any) => (
                             <SelectItem key={req.id} value={String(req.id)} className="text-right text-xs py-2">
-                              #{req.requestNumber} - مسجد {req.mosqueName} ({req.mosqueCity}) - {req.suppliers?.length || 0} موردين معتمدين
+                              #{req.requestNumber} - مسجد {req.mosqueName} ({req.mosqueCity}) - {req.eligibleItems?.length || 0} أصناف
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -433,13 +409,13 @@ export default function CreatePurchaseOrderPage() {
                             <span className="font-bold text-foreground">{currentRequest.mosqueCity}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[11px] block">الموردين المتاحين</span>
-                            <span className="font-bold text-foreground">{currentRequest.suppliers?.length || 0} موردين</span>
+                            <span className="text-muted-foreground text-[11px] block">الأصناف المتاحة</span>
+                            <span className="font-bold text-foreground">{currentRequest.eligibleItems?.length || 0} أصناف</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[11px] block">أوامر الشراء الحالية</span>
+                            <span className="text-muted-foreground text-[11px] block">خطابات CSR الحالية</span>
                             <span className="font-bold text-sky-700 dark:text-sky-300">
-                              {currentRequest.purchaseOrders?.length || 0} أمر شراء مسجل
+                              {currentRequest.csrLetters?.length || 0} خطاب مسجل
                             </span>
                           </div>
                         </div>
@@ -450,17 +426,18 @@ export default function CreatePurchaseOrderPage() {
                   <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
                     <Button
                       variant="outline"
-                      onClick={() => navigate("/purchase-orders")}
-                      className="font-bold px-5 h-11 rounded-xl text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                      onClick={() => navigate("/csr-letters")}
+                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
                     >
-                      إلغاء والعودة
+                      <ArrowRight className="h-4 w-4" />
+                      <span>إلغاء والعودة</span>
                     </Button>
                     <Button
                       onClick={() => setStep(2)}
                       disabled={!selectedRequestId}
                       className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <span>التالي: المورد المعتمد</span>
+                      <span>التالي: تحديد الجهة والكميات</span>
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
                   </CardFooter>
@@ -468,159 +445,47 @@ export default function CreatePurchaseOrderPage() {
               </div>
             )}
 
-            {/* ======================= الخطوة 2: اختيار المورد وبياناته ======================= */}
+            {/* ======================= الخطوة 2: تحديد الشريك المجتمعي وتحديد الكميات ======================= */}
             {step === 2 && (
               <div className="space-y-6">
                 <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                   <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                     <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                      <Store className="h-4.5 w-4.5 text-sky-600" />
-                      الخطوة 2: اختيار المورد المعتمد واستعراض بياناته
+                      <HeartHandshake className="h-4.5 w-4.5 text-sky-600" />
+                      الخطوة 2: تحديد الشريك المجتمعي وتحديد الكميات
                     </CardTitle>
                     <CardDescription className="text-right text-xs text-muted-foreground">
-                      {availableSuppliers.length > 1
-                        ? `يوجد ${availableSuppliers.length} موردين معتمدين على أمر الشراء لهذا الطلب. اختر المورد لإصدار أمر الشراء له.`
-                        : "تم تحديد المورد المعتمد لهذا الطلب وتوثيق بياناته الرسمية."}
+                      أدخل اسم الجهة أو المؤسسة المانحة وحدد الأصناف والكميات المطلوب تضمينها في الخطاب
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
-                    {/* اختيار المورد المعتمد عبر Select */}
-                    <div className="space-y-2 text-right pb-4 border-b border-border/40">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                          <Store className="w-4 h-4 text-sky-600" />
-                          المورد المعتمد على أمر الشراء *
-                        </Label>
-                        {availableSuppliers.length > 1 && (
-                          <Badge variant="secondary" className="text-xs font-bold">
-                            تعدد الموردين ({availableSuppliers.length})
-                          </Badge>
-                        )}
-                      </div>
-
-                      <Select
-                        value={selectedSupplierKey}
-                        onValueChange={(val) => {
-                          const supp = availableSuppliers.find(
-                            (s: any) => String(s.id) === val || s.supplierName === val
-                          );
-                          if (supp) handleSelectSupplier(supp);
-                        }}
-                      >
-                        <SelectTrigger
-                          className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background w-full text-xs sm:text-sm"
-                          dir="rtl"
-                        >
-                          <SelectValue placeholder="اختر المورد المعتمد..." />
-                        </SelectTrigger>
-                        <SelectContent dir="rtl">
-                          {availableSuppliers.map((supp: any) => (
-                            <SelectItem
-                              key={supp.id || supp.supplierName}
-                              value={String(supp.id || supp.supplierName)}
-                              className="text-right text-xs py-2"
-                            >
-                              {supp.supplierName} (السجل: {supp.commercialRegister || "مسجل"} • {supp.itemsCount || supp.items?.length || 0} أصناف)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    {/* حقل اسم الجهة */}
+                    <div className="space-y-2 text-right">
+                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                        اسم الجهة / الشركة / المؤسسة المانحة *
+                      </Label>
+                      <Input
+                        value={recipientName}
+                        onChange={(e) => setRecipientName(e.target.value)}
+                        placeholder="أدخل اسم الجهة أو الشركة أو المؤسسة المانحة..."
+                        className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background font-bold text-xs sm:text-sm"
+                        autoFocus
+                      />
                     </div>
 
-                    {/* بطاقة بيانات المورد الرسمية (بيانات التعميد) */}
-                    {currentSupplier && (
-                      <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4 text-right animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-3">
-                          <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-sky-600" />
-                            بيانات التعميد والحساب البنكي للمورد:
-                          </span>
-                          <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-xs">
-                            مورد معتمد
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">اسم الشركة / المؤسسة:</span>
-                            <span className="font-bold text-foreground text-sm">{currentSupplier.supplierName}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">رقم السجل التجاري:</span>
-                            <span className="font-mono font-bold text-foreground">{currentSupplier.commercialRegister || "مسجل بالنظام"}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">رقم التواصل / الجوال:</span>
-                            <span className="font-mono font-bold text-foreground">{currentSupplier.phone || "-"}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">المدينة / المقر:</span>
-                            <span className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</span>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-muted-foreground text-[11px] block">البنك المعتمد:</span>
-                            <span className="font-bold text-foreground">{currentSupplier.bankName || "مصرف الراجحي"}</span>
-                          </div>
-                          <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-                            <span className="text-muted-foreground text-[11px] block">رقم الآيبان (IBAN):</span>
-                            <span className="font-mono font-bold text-foreground text-xs sm:text-sm tracking-wider">
-                              {currentSupplier.iban || "SA0000000000000000000000"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-
-                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                      <span>السابق</span>
-                    </Button>
-                    <Button
-                      onClick={() => setStep(3)}
-                      disabled={!currentSupplier}
-                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                    >
-                      <span>التالي: تحديد البنود والاعتماد</span>
-                      <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            )}
-
-            {/* ======================= الخطوة 3: تحديد البنود والاعتماد ======================= */}
-            {step === 3 && (
-              <div className="space-y-6">
-                <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
-                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
-                      <Package className="h-4.5 w-4.5 text-sky-600" />
-                      الخطوة 3: تحديد بنود وكميات أمر الشراء للمورد ({currentSupplier?.supplierName})
-                    </CardTitle>
-                    <CardDescription className="text-right text-xs text-muted-foreground">
-                      حدد الأصناف المطلوبة والكمية لكل صنف مع استكمال بيانات التوجيه والاعتماد
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6 px-6 text-right">
-                    {/* جدول بنود المورد */}
-                    <div className="space-y-3">
+                    {/* جدول أصناف الطلب وتحديد الكميات */}
+                    <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between pb-2 border-b border-border/40">
                         <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                           <Package className="w-4 h-4 text-sky-600" />
-                          أصناف المورد وتحديد الكميات *
+                          أصناف الطلب وتحديد الكميات *
                         </Label>
                         <div className="flex items-center gap-2">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedItemIds((currentSupplier?.items || []).map((it: any) => it.id))}
+                            onClick={() => setSelectedItemIds((currentRequest?.eligibleItems || []).map((it: any) => it.id))}
                             className="h-8 text-xs text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 px-2.5 rounded-lg cursor-pointer font-bold"
                           >
                             تحديد الكل
@@ -649,7 +514,7 @@ export default function CreatePurchaseOrderPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/40">
-                            {(currentSupplier?.items || []).map((it: any) => {
+                            {(currentRequest?.eligibleItems || []).map((it: any) => {
                               const isChecked = selectedItemIds.includes(it.id);
                               const currentQty = itemsQuantities[it.id] ?? it.quantity ?? 1;
 
@@ -710,65 +575,166 @@ export default function CreatePurchaseOrderPage() {
                         </table>
                       </div>
                     </div>
+                  </CardContent>
 
-                    {/* بيانات التوجيه وتوثيق أمر الشراء */}
-                    <div className="space-y-4 pt-4 border-t border-border/40">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <FileText className="w-4 h-4 text-sky-600" />
-                        بيانات وتوجيه أمر الشراء *
-                      </Label>
+                  <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setStep(1)}
+                      className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      <span>السابق</span>
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!recipientName.trim()) {
+                          toast.error("يرجى إدخال اسم الجهة أو المؤسسة المانحة");
+                          return;
+                        }
+                        if (selectedItemIds.length === 0) {
+                          toast.error("يرجى اختيار صنف واحد على الأقل وتحديد كميته");
+                          return;
+                        }
+                        setStep(3);
+                      }}
+                      disabled={!recipientName.trim() || selectedItemIds.length === 0}
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <span>التالي: بيانات وتوثيق الخطاب</span>
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            رقم أمر الشراء *
-                          </Label>
-                          <Input
-                            value={orderNumber}
-                            onChange={(e) => setOrderNumber(e.target.value)}
-                            placeholder="PO-..."
-                            className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background font-mono"
-                          />
+            {/* ======================= الخطوة 3: تحديد البنود وتفاصيل الخطاب ======================= */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                  <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
+                    <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
+                      <FileText className="h-4.5 w-4.5 text-sky-600" />
+                      الخطوة 3: مراجعة وتأكيد بيانات الخطاب
+                    </CardTitle>
+                    <CardDescription className="text-right text-xs text-muted-foreground">
+                      مراجعة البيانات المدخلة قبل الحفظ النهائي (للعرض والمراجعة فقط)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6 pt-6 px-6 text-right">
+                    {/* بطاقة معلومات التوجيه والخطاب الرسمي - عرض فقط */}
+                    <div className="bg-slate-50/70 dark:bg-slate-800/40 rounded-xl p-5 border border-border/60 space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-border/40">
+                        <span className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-sky-600" />
+                          بيانات وتوجيه الخطاب الرسمي
+                        </span>
+                        <Badge variant="outline" className="text-[11px] font-mono font-bold text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 px-2.5 py-0.5">
+                          {letterNumber}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">الجهة الموجه إليها الخطاب</span>
+                          <p className="font-bold text-foreground text-sm">
+                            {salutation || "السادة"} / {recipientName} {honorific || "المحترمون"}
+                          </p>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            تاريخ أمر الشراء *
-                          </Label>
-                          <Input
-                            type="date"
-                            value={orderDate}
-                            onChange={(e) => setOrderDate(e.target.value)}
-                            className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background"
-                          />
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">المسجد والمشروع المستفيد</span>
+                          <p className="font-bold text-foreground">
+                            {projectName || `مسجد ${currentRequest?.mosqueName}`}
+                          </p>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            الموجه إليه *
-                          </Label>
-                          <Input
-                            value={directedTo}
-                            onChange={(e) => setDirectedTo(e.target.value)}
-                            placeholder="اسم المورد المعتمد..."
-                            className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background font-medium"
-                          />
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">رقم الطلب المرتبط والموقع</span>
+                          <p className="font-mono font-bold text-foreground">
+                            طلب #{currentRequest?.requestNumber} • {currentRequest?.mosqueCity || "الموقع المعتمد"}
+                          </p>
                         </div>
 
-                        <div className="space-y-1.5 sm:col-span-3">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            ملاحظات وشروط التوريد
-                          </Label>
-                          <Textarea
-                            value={notes}
-                            onChange={(e) => setNotes(e.target.value)}
-                            placeholder="أي اشتراطات خاصة بالتوريد، مكان التسليم، أو الضمان..."
-                            rows={2}
-                            className="text-right border-border focus:ring-sky-600 rounded-xl bg-background text-xs"
-                          />
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">تاريخ إصدار الخطاب</span>
+                          <p className="font-mono font-semibold text-foreground">
+                            {letterDate || "-"}
+                          </p>
+                        </div>
+
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">المفوض بالتوقيع والاعتماد</span>
+                          <p className="font-bold text-foreground">
+                            {signatoryName} <span className="text-xs font-normal text-muted-foreground">({signatoryTitle || "المدير التنفيذي"})</span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40">
+                          <span className="text-[11px] text-muted-foreground block font-medium">حالة الخطاب</span>
+                          <Badge variant="outline" className="text-amber-700 bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-[11px] font-bold">
+                            مسودة جاهزة للحفظ
+                          </Badge>
                         </div>
                       </div>
 
+                      {notes && (
+                        <div className="pt-3 border-t border-border/40 text-xs">
+                          <span className="text-[11px] text-muted-foreground block font-bold mb-1">ملاحظات / ديباجة خاصة:</span>
+                          <p className="text-foreground bg-white dark:bg-slate-900 p-3 rounded-lg border border-border/40 whitespace-pre-wrap">
+                            {notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* جدول الأصناف والكميات المحددة - عرض فقط */}
+                    <div className="space-y-3 pt-2">
+                      <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <Package className="w-4 h-4 text-sky-600" />
+                          الأصناف والكميات المعتمدة للخطاب ({selectedItemIds.length} صنف)
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setStep(2)}
+                          className="h-7 text-xs text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 px-2 rounded-lg cursor-pointer font-bold"
+                        >
+                          تعديل الأصناف في الخطوة السابقة
+                        </Button>
+                      </div>
+
+                      <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+                        <table className="w-full text-xs text-right divide-y divide-border/60">
+                          <thead className="bg-muted/40 font-bold text-muted-foreground">
+                            <tr>
+                              <th className="p-3 w-12 text-center">#</th>
+                              <th className="p-3">الصنف والبيان</th>
+                              <th className="p-3">الوصف والمواصفات</th>
+                              <th className="p-3 text-center w-32">الكمية المعتمدة</th>
+                              <th className="p-3 text-center w-24">الوحدة</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/40">
+                            {(currentRequest?.eligibleItems || [])
+                              .filter((it: any) => selectedItemIds.includes(it.id))
+                              .map((it: any, idx: number) => (
+                                <tr key={it.id} className="hover:bg-muted/10 transition-colors">
+                                  <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
+                                  <td className="p-3 font-bold text-foreground">{it.itemName}</td>
+                                  <td className="p-3 text-muted-foreground">{it.description || "-"}</td>
+                                  <td className="p-3 text-center font-mono font-bold text-sky-700 dark:text-sky-300 bg-sky-50/40 dark:bg-sky-950/20">
+                                    {itemsQuantities[it.id] ?? it.quantity ?? 1}
+                                  </td>
+                                  <td className="p-3 text-center text-muted-foreground">{it.unit || "وحدة"}</td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </CardContent>
 
@@ -779,35 +745,21 @@ export default function CreatePurchaseOrderPage() {
                       className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
                     >
                       <ArrowRight className="h-4 w-4" />
-                      <span>السابق</span>
+                      <span>السابق (تعديل البيانات)</span>
                     </Button>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("draft")}
-                        className="font-bold px-5 h-11 rounded-xl flex items-center gap-2 text-slate-700 border-border hover:bg-muted text-xs cursor-pointer w-full sm:w-auto"
-                      >
-                        <Clock className="w-4 h-4 text-amber-600" />
-                        <span>حفظ كمسودة</span>
-                      </Button>
-
-                      <Button
-                        type="button"
-                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("approved")}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs w-full sm:w-auto"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>
-                          {createOrderMutation.isPending
-                            ? "جاري الحفظ والاعتماد..."
-                            : "حفظ واعتماد أمر الشراء"}
-                        </span>
-                      </Button>
-                    </div>
+                    <Button
+                      disabled={createCsrMutation.isPending || selectedItemIds.length === 0}
+                      onClick={() => handleSubmit()}
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-7 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs w-full sm:w-auto"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>
+                        {createCsrMutation.isPending
+                          ? "جاري حفظ خطاب المسؤولية..."
+                          : "حفظ خطاب المسؤولية المجتمعية (مسودة)"}
+                      </span>
+                    </Button>
                   </CardFooter>
                 </Card>
               </div>

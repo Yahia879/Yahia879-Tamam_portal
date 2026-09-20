@@ -44,6 +44,7 @@ import SedanaBulkPurchasingPage from "./pages/SedanaBulkPurchasingPage";
 import PurchaseOrdersList from "./pages/PurchaseOrdersList";
 import CreatePurchaseOrderPage from "./pages/CreatePurchaseOrderPage";
 import CsrLettersList from "./pages/CsrLettersList";
+import CreateCsrLetterPage from "./pages/CreateCsrLetterPage";
 import RequestForm from "./pages/RequestForm";
 import TrackRequest from "./pages/TrackRequest";
 import MosqueServiceRequest from "./pages/MosqueServiceRequest";
@@ -400,6 +401,8 @@ function Router() {
       <Route path="/purchase-orders/new">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
       <Route path="/requests/:id/new-purchase-order">{() => <AdminRoute component={CreatePurchaseOrderPage} />}</Route>
       <Route path="/purchase-orders">{() => <AdminRoute component={PurchaseOrdersList} />}</Route>
+      <Route path="/csr-letters/new">{() => <AdminRoute component={CreateCsrLetterPage} />}</Route>
+      <Route path="/requests/:id/new-csr-letter">{() => <AdminRoute component={CreateCsrLetterPage} />}</Route>
       <Route path="/csr-letters">{() => <AdminRoute component={CsrLettersList} />}</Route>
       
       {/* التقييم المالي - إدارية */}

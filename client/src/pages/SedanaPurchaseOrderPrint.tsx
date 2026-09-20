@@ -348,10 +348,9 @@ export default function SedanaPurchaseOrderPrint() {
                 <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
                   <tr>
                     <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                    <th className="p-2 border-l border-slate-300 w-1/3">الصنف المطلوب</th>
-                    <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                    <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                    <th className="p-2 text-center w-20">الوحدة</th>
+                    <th className="p-2 border-l border-slate-300">الصنف المطلوب</th>
+                    <th className="p-2 border-l border-slate-300 text-center w-28">الكمية</th>
+                    <th className="p-2 text-center w-28">الوحدة</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-300">
@@ -360,14 +359,13 @@ export default function SedanaPurchaseOrderPrint() {
                       <tr key={it.id} className="h-9">
                         <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
                         <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                        <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
                         <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
                         <td className="p-2 text-center text-slate-700">{it.unit}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
+                      <td colSpan={4} className="p-8 text-center text-slate-500 font-medium">
                         لم يتم تخصيص أي بنود لأمر الشراء الداخلي حتى الآن. يرجى الرجوع لجدول التأمين وتحديد البنود المطلوبة.
                       </td>
                     </tr>
