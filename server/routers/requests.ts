@@ -2886,8 +2886,40 @@ export const requestsRouter = router({
         currentProgramData = {};
       }
 
+      const existingProc = currentProgramData.sedanaProcurement || {};
+      let savedPOs = Array.isArray(input.procurementData.purchaseOrders)
+        ? input.procurementData.purchaseOrders
+        : (Array.isArray(existingProc.purchaseOrders) ? [...existingProc.purchaseOrders] : []);
+
+      let savedCsrs = Array.isArray(input.procurementData.csrLetters)
+        ? input.procurementData.csrLetters
+        : (Array.isArray(existingProc.csrLetters) ? [...existingProc.csrLetters] : []);
+
+      let activePO = input.procurementData.activePurchaseOrder
+        ? { ...(existingProc.activePurchaseOrder || {}), ...input.procurementData.activePurchaseOrder }
+        : (existingProc.activePurchaseOrder || null);
+
+      // إذا تم الانتقال لمرحلة التنفيذ، يتم اعتماد أوامر الشراء تلقائياً
+      if (input.advanceToExecution) {
+        if (activePO) {
+          activePO.status = "approved";
+          activePO.approverSignatureUrl = activePO.approverSignatureUrl || "digital_signature_approved";
+          activePO.approvedAt = activePO.approvedAt || new Date().toISOString();
+        }
+        savedPOs = savedPOs.map((po: any) => ({
+          ...po,
+          status: "approved",
+          approverSignatureUrl: po.approverSignatureUrl || "digital_signature_approved",
+          approvedAt: po.approvedAt || new Date().toISOString(),
+        }));
+      }
+
       const procurementRecord = {
+        ...existingProc,
         ...input.procurementData,
+        purchaseOrders: savedPOs,
+        csrLetters: savedCsrs,
+        activePurchaseOrder: activePO,
         updatedAt: new Date().toISOString(),
         updatedBy: ctx.user.id,
         updatedByName: ctx.user.name,

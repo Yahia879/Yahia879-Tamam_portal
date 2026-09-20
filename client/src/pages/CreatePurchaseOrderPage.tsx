@@ -134,7 +134,32 @@ export default function CreatePurchaseOrderPage() {
     setDirectedTo(supplier.supplierName);
 
     const year = new Date().getFullYear();
-    const poNum = parentReq?.activePO?.orderNumber || `PO-${parentReq?.id || 1}-${year}`;
+    const existingPOs: any[] = Array.isArray(parentReq?.purchaseOrders) ? parentReq.purchaseOrders : [];
+    
+    // جمع كافة أرقام أوامر الشراء المسجلة مسبقاً لهذا الطلب
+    const usedNumbers = new Set<string>();
+    existingPOs.forEach((p: any) => {
+      if (p.orderNumber) usedNumbers.add(p.orderNumber.trim());
+    });
+    if (parentReq?.activePO?.orderNumber) {
+      usedNumbers.add(parentReq.activePO.orderNumber.trim());
+    }
+
+    // توليد رقم تسلسلي جديد فريد تماماً يضمن إنشاء أمر شراء جديد ومستقل
+    const basePrefix = `PO-${parentReq?.id || 1}-${year}`;
+    let poNum = "";
+    if (!usedNumbers.has(basePrefix)) {
+      poNum = basePrefix;
+    } else {
+      let seq = usedNumbers.size + 1;
+      let candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+      while (usedNumbers.has(candidate)) {
+        seq++;
+        candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+      }
+      poNum = candidate;
+    }
+
     setOrderNumber(poNum);
 
     // تهيئة البنود والكميات الخاصة بهذا المورد
@@ -167,7 +192,7 @@ export default function CreatePurchaseOrderPage() {
     },
   });
 
-  const handleSubmit = (status: "approved" | "draft") => {
+  const handleSubmit = (overrideStatus?: "approved" | "draft") => {
     if (!selectedRequestId || !currentRequest) {
       toast.error("يرجى اختيار طلب سدانة أولاً");
       setStep(1);
@@ -225,7 +250,7 @@ export default function CreatePurchaseOrderPage() {
       approverName,
       approverRole,
       notes,
-      status,
+      status: "draft",
       items: itemsToSubmit,
     });
   };
@@ -254,14 +279,14 @@ export default function CreatePurchaseOrderPage() {
               <div className="text-right">
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg sm:text-2xl font-bold text-foreground font-display">
-                    إصدار وتوثيق أمر شراء معتمد
+                    إصدار أمر شراء جديد
                   </h1>
                   <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-xs">
                     برنامج سدانة
                   </Badge>
                 </div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-right font-medium mt-0.5 hidden sm:block">
-                  إنشاء وتوثيق أمر شراء لطلبات سدانة وتحديد كميات بنود المورد المعتمد مع إمكانية الاعتماد الفوري
+                  إنشاء أمر شراء لطلبات سدانة وتحديد كميات بنود المورد المعتمد
                 </p>
               </div>
             </div>
@@ -422,12 +447,14 @@ export default function CreatePurchaseOrderPage() {
                             <span className="font-bold text-foreground">{currentRequest.mosqueCity}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[11px] block">الموردين المعتمدين</span>
+                            <span className="text-muted-foreground text-[11px] block">الموردين المتاحين</span>
                             <span className="font-bold text-foreground">{currentRequest.suppliers?.length || 0} موردين</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[11px] block">حالة التعميد</span>
-                            <span className="font-bold text-emerald-600">جاهز لإصدار أمر الشراء</span>
+                            <span className="text-muted-foreground text-[11px] block">أوامر الشراء الحالية</span>
+                            <span className="font-bold text-sky-700 dark:text-sky-300">
+                              {currentRequest.purchaseOrders?.length || 0} أمر شراء مسجل
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -878,6 +905,7 @@ export default function CreatePurchaseOrderPage() {
                           />
                         </div>
                       </div>
+
                     </div>
                   </CardContent>
 
@@ -891,25 +919,18 @@ export default function CreatePurchaseOrderPage() {
                       <span>السابق</span>
                     </Button>
 
-                    <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                      <Button
-                        variant="outline"
-                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("draft")}
-                        className="font-bold px-5 h-11 rounded-xl text-xs cursor-pointer border-border hover:bg-muted"
-                      >
-                        {createOrderMutation.isPending ? "جاري الحفظ..." : "حفظ كمسودة"}
-                      </Button>
-
-                      <Button
-                        disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
-                        onClick={() => handleSubmit("approved")}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>{createOrderMutation.isPending ? "جاري الاعتماد..." : "إنشاء واعتماد أمر الشراء الآن"}</span>
-                      </Button>
-                    </div>
+                    <Button
+                      disabled={createOrderMutation.isPending || selectedItemIds.length === 0}
+                      onClick={() => handleSubmit()}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-7 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer text-xs w-full sm:w-auto"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>
+                        {createOrderMutation.isPending
+                          ? "جاري حفظ أمر الشراء..."
+                          : "حفظ أمر الشراء (مسودة)"}
+                      </span>
+                    </Button>
                   </CardFooter>
                 </Card>
               </div>

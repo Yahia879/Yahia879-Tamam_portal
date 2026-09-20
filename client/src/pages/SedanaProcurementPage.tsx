@@ -112,10 +112,23 @@ export default function SedanaProcurementPage() {
   );
 
   // حفظ بيانات التأمين
+  const utils = trpc.useUtils();
+  const approveOrderMutation = trpc.procurement.approvePurchaseOrder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد أمر الشراء بنجاح");
+      refetchRequest();
+      utils.procurement.listPurchaseOrders.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الشراء");
+    },
+  });
+
   const saveProcurementMutation = trpc.requests.saveSedanaProcurement.useMutation({
     onSuccess: (res, vars) => {
       toast.success(res.message || "تم حفظ البيانات بنجاح");
       refetchRequest();
+      utils.procurement.listPurchaseOrders.invalidate();
       if (vars.advanceToExecution) {
         setShowConfirmModal(false);
         setLocation(`/requests/${requestId}`);
@@ -217,6 +230,20 @@ export default function SedanaProcurementPage() {
       try { raw = JSON.parse(raw); } catch {}
     }
     return Array.isArray(raw) ? raw : [];
+  }, [request]);
+
+  // استخراج أوامر الشراء المسجلة مسبقاً للطلب إن وجدت
+  const savedPurchaseOrders: any[] = useMemo(() => {
+    let raw = (request as any)?.programData;
+    if (typeof raw === "string") {
+      try { raw = JSON.parse(raw); } catch {}
+    }
+    const proc = raw?.sedanaProcurement;
+    const list = Array.isArray(proc?.purchaseOrders) ? [...proc.purchaseOrders] : [];
+    if (proc?.activePurchaseOrder && !list.some((p: any) => p.orderNumber === proc.activePurchaseOrder.orderNumber)) {
+      list.push(proc.activePurchaseOrder);
+    }
+    return list;
   }, [request]);
 
   // موردون مخصصون يضيفهم المستخدم يدويًا
@@ -433,25 +460,30 @@ export default function SedanaProcurementPage() {
 
       // 4. استرجاع بيانات النماذج
       if (savedProc?.activePurchaseOrder) {
-        let loadedOrderNumber = savedProc.activePurchaseOrder.orderNumber;
-        if (loadedOrderNumber && (loadedOrderNumber.startsWith(`PO-${requestId}-`) || loadedOrderNumber === `PO-87-2026`)) {
-          loadedOrderNumber = `PO-1-${new Date().getFullYear()}`;
-        }
+        const loadedOrderNumber = savedProc.activePurchaseOrder.orderNumber || `PO-${requestId}-${new Date().getFullYear()}`;
         setPoData(prev => ({
           ...prev,
           ...savedProc.activePurchaseOrder,
-          orderNumber: loadedOrderNumber || `PO-1-${new Date().getFullYear()}`,
+          orderNumber: loadedOrderNumber,
+        }));
+      } else {
+        setPoData(prev => ({
+          ...prev,
+          orderNumber: `PO-${requestId}-${new Date().getFullYear()}`,
         }));
       }
+
       if (savedProc?.activeCsrLetter) {
-        let loadedLetterNumber = savedProc.activeCsrLetter.letterNumber;
-        if (loadedLetterNumber && (loadedLetterNumber.startsWith(`CSR-${requestId}-`) || loadedLetterNumber === `CSR-87-2026`)) {
-          loadedLetterNumber = `CSR-1-${new Date().getFullYear()}`;
-        }
+        const loadedLetterNumber = savedProc.activeCsrLetter.letterNumber || `CSR-${requestId}-${new Date().getFullYear()}`;
         setCsrData(prev => ({
           ...prev,
           ...savedProc.activeCsrLetter,
-          letterNumber: loadedLetterNumber || `CSR-1-${new Date().getFullYear()}`,
+          letterNumber: loadedLetterNumber,
+        }));
+      } else {
+        setCsrData(prev => ({
+          ...prev,
+          letterNumber: `CSR-${requestId}-${new Date().getFullYear()}`,
         }));
       }
     } catch (e) {
@@ -1180,9 +1212,74 @@ export default function SedanaProcurementPage() {
                     لا يوجد موردون مخصصون لأمر الشراء حالياً
                   </div>
                 )}
+                {/* أوامر الشراء المنشأة مسبقاً للطلب إن وجدت */}
+                {savedPurchaseOrders.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+                    <p className="text-[11px] font-bold text-foreground flex items-center justify-between">
+                      <span>أوامر الشراء المسجلة:</span>
+                      <Badge variant="outline" className="text-[10px] h-5">{savedPurchaseOrders.length}</Badge>
+                    </p>
+                    {savedPurchaseOrders.map((po: any, idx: number) => {
+                      const isApproved = po.status === "approved";
+                      return (
+                        <div key={`saved_po_${idx}`} className="flex items-center justify-between p-1.5 rounded bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-800/40 text-xs">
+                          <div className="flex items-center gap-1.5 truncate max-w-[140px]">
+                            <span className="font-semibold text-sky-900 dark:text-sky-200 font-mono text-[11px]">
+                              {po.orderNumber}
+                            </span>
+                            <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 font-bold ${isApproved ? "border-emerald-300 text-emerald-700 bg-emerald-50" : "border-amber-300 text-amber-700 bg-amber-50"}`}>
+                              {isApproved ? "معتمد" : "مسودة"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                handleSaveProcurement(false);
+                                setLocation(`/requests/${requestId}/purchase-order?orderNumber=${encodeURIComponent(po.orderNumber)}`);
+                              }}
+                              className="h-5 text-[10px] px-1.5 text-sky-700 hover:bg-sky-100 dark:hover:bg-sky-900/40"
+                              title="معاينة وطباعة أمر الشراء"
+                            >
+                              معاينة
+                            </Button>
+                            {!isApproved && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  approveOrderMutation.mutate({ requestId, orderNumber: po.orderNumber });
+                                }}
+                                disabled={approveOrderMutation.isPending}
+                                className="h-5 text-[10px] px-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                title="اعتماد فوري لأمر الشراء"
+                              >
+                                {approveOrderMutation.isPending ? "..." : "اعتماد"}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              <CardContent className="p-4 pt-2 border-t mt-2">
+              <CardContent className="p-4 pt-2 border-t mt-2 space-y-1.5">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    handleSaveProcurement(false);
+                    setLocation(`/purchase-orders/new?id=${requestId}`);
+                  }}
+                  disabled={poItems.length === 0}
+                  className="w-full h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{savedPurchaseOrders.length > 0 ? "إضافة أمر شراء جديد" : "إصدار أمر شراء معتمد"}</span>
+                </Button>
+
                 <Button
                   size="sm"
                   variant="outline"
@@ -1191,7 +1288,7 @@ export default function SedanaProcurementPage() {
                   className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5 text-sky-600" />
-                  معاينة وطباعة أمر الشراء
+                  <span>معاينة وطباعة أمر الشراء</span>
                 </Button>
               </CardContent>
             </Card>

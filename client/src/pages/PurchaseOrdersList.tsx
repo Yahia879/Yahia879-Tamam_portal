@@ -52,6 +52,7 @@ import {
   Edit,
   ArrowRight,
   Plus,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -118,13 +119,20 @@ export default function PurchaseOrdersList() {
   const {
     data: ordersData,
     isLoading,
+    isFetching,
     refetch,
-  } = trpc.procurement.listPurchaseOrders.useQuery({
-    search: debouncedSearch || undefined,
-    status: statusFilter !== "all" ? statusFilter : undefined,
-    page: currentPage,
-    limit,
-  });
+  } = trpc.procurement.listPurchaseOrders.useQuery(
+    {
+      search: debouncedSearch || undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      page: currentPage,
+      limit,
+    },
+    {
+      staleTime: 0,
+      refetchOnWindowFocus: true,
+    }
+  );
 
   // جلب إعدادات الجمعية للطباعة
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
@@ -225,6 +233,17 @@ export default function PurchaseOrdersList() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
+              title="تحديث البيانات"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-primary" : ""}`} />
+              <span>تحديث</span>
+            </Button>
             <Button
               size="sm"
               onClick={() => navigate("/purchase-orders/new")}
@@ -446,7 +465,10 @@ export default function PurchaseOrdersList() {
                                 <Button
                                   size="sm"
                                   onClick={() => {
-                                    approveOrderMutation.mutate({ requestId: order.requestId });
+                                    approveOrderMutation.mutate({
+                                      requestId: order.requestId,
+                                      orderNumber: order.orderNumber,
+                                    });
                                   }}
                                   disabled={approveOrderMutation.isPending}
                                   className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer px-2"

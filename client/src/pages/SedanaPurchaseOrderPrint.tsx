@@ -3,7 +3,8 @@ import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Printer, Loader2, AlertCircle } from "lucide-react";
+import { ArrowRight, Printer, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 export default function SedanaPurchaseOrderPrint() {
@@ -14,6 +15,8 @@ export default function SedanaPurchaseOrderPrint() {
 
   useDocumentTitle(`أمر شراء داخلي #${requestId} - سدانة`);
 
+  const utils = trpc.useUtils();
+
   // 1. جلب بيانات الطلب
   const {
     data: request,
@@ -23,6 +26,18 @@ export default function SedanaPurchaseOrderPrint() {
     { id: requestId },
     { enabled: !!requestId && requestId > 0 }
   );
+
+  // اعتماد أمر الشراء فورياً
+  const approveMutation = trpc.procurement.approvePurchaseOrder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد أمر الشراء بنجاح");
+      utils.requests.getById.invalidate({ id: requestId });
+      utils.procurement.listPurchaseOrders.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الشراء");
+    },
+  });
 
   // 2. جلب إعدادات الجمعية والشعار
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
@@ -255,6 +270,18 @@ export default function SedanaPurchaseOrderPrint() {
             <ArrowRight className="h-4 w-4" />
             <span>رجوع إلى جدول التأمين</span>
           </Button>
+
+          {activePo?.status !== "approved" && (
+            <Button
+              size="sm"
+              onClick={() => approveMutation.mutate({ requestId, orderNumber: activePo?.orderNumber })}
+              disabled={approveMutation.isPending}
+              className="h-8 sm:h-9 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>{approveMutation.isPending ? "جاري الاعتماد..." : "اعتماد أمر الشراء الآن"}</span>
+            </Button>
+          )}
 
           <Button
             size="sm"

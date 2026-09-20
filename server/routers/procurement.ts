@@ -722,6 +722,50 @@ export const procurementRouter = router({
           });
         });
 
+        // إضافة أي موردين من أوامر الشراء السابقة إن لم يكونوا مسجلين بالمجموعة
+        if (Array.isArray(sedanaProc.purchaseOrders)) {
+          sedanaProc.purchaseOrders.forEach((po: any) => {
+            if (po.supplierName && !approvedSuppliers.some(s => s.supplierName?.toLowerCase() === po.supplierName.trim().toLowerCase())) {
+              const sName = po.supplierName.trim();
+              const reg = (po.supplierId ? supplierMapById.get(po.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
+              approvedSuppliers.push({
+                id: po.supplierId || sName,
+                supplierId: po.supplierId || reg?.id || null,
+                supplierName: sName,
+                commercialRegister: po.supplierCommercialRegister || reg?.commercialRegister || "",
+                phone: po.supplierPhone || reg?.phone || "",
+                email: reg?.email || "",
+                city: reg?.city || mosque?.city || "",
+                contactPerson: reg?.contactPerson || "",
+                bankName: reg?.bankName || "",
+                iban: reg?.iban || "",
+                itemsCount: po.items?.length || baseItems.length,
+                items: po.items && po.items.length > 0 ? po.items : baseItems,
+              });
+            }
+          });
+        }
+
+        // إضافة الموردين المسجلين كخيارات إضافية تتيح تجزئة أوامر الشراء على موردين متعددين لنفس الطلب
+        registeredSuppliers.slice(0, 15).forEach((reg) => {
+          if (!approvedSuppliers.some(s => s.supplierName?.toLowerCase() === reg.name?.trim().toLowerCase() || (reg.id && s.supplierId === reg.id))) {
+            approvedSuppliers.push({
+              id: reg.id,
+              supplierId: reg.id,
+              supplierName: reg.name,
+              commercialRegister: reg.commercialRegister || "",
+              phone: reg.phone || "",
+              email: reg.email || "",
+              city: reg.city || mosque?.city || "",
+              contactPerson: reg.contactPerson || "",
+              bankName: reg.bankName || "مصرف الراجحي",
+              iban: reg.iban || "",
+              itemsCount: baseItems.length,
+              items: baseItems,
+            });
+          }
+        });
+
         result.push({
           id: req.id,
           requestNumber: req.requestNumber,
@@ -733,6 +777,7 @@ export const procurementRouter = router({
           mosqueDistrict: mosque?.district || "",
           suppliers: approvedSuppliers,
           activePO,
+          purchaseOrders: Array.isArray(sedanaProc.purchaseOrders) ? sedanaProc.purchaseOrders : [],
         });
       }
 
@@ -758,6 +803,7 @@ export const procurementRouter = router({
       approverRole: z.string().optional(),
       notes: z.string().optional(),
       status: z.enum(["approved", "draft"]).default("draft"),
+      isEdit: z.boolean().optional().default(false),
       items: z.array(z.object({
         id: z.string(),
         itemName: z.string(),
@@ -795,19 +841,50 @@ export const procurementRouter = router({
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaProcurement = pData.sedanaProcurement || {};
       pData.sedanaProcurement.itemsAllocation = pData.sedanaProcurement.itemsAllocation || {};
-      pData.sedanaProcurement.purchaseOrders = pData.sedanaProcurement.purchaseOrders || [];
+      pData.sedanaProcurement.purchaseOrders = Array.isArray(pData.sedanaProcurement.purchaseOrders)
+        ? pData.sedanaProcurement.purchaseOrders
+        : [];
 
       // تخصيص هذه البنود لأمر الشراء
       input.items.forEach((it) => {
         pData.sedanaProcurement.itemsAllocation[it.id] = "purchase_order";
       });
 
-      const orderNumber = input.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+      const isApproved = input.status === "approved";
+      const nowIso = new Date().toISOString();
+
+      const existingPOs: any[] = pData.sedanaProcurement.purchaseOrders;
+      const usedNumbers = new Set<string>();
+      existingPOs.forEach((p: any) => {
+        if (p.orderNumber) usedNumbers.add(p.orderNumber.trim());
+      });
+      if (pData.sedanaProcurement.activePurchaseOrder?.orderNumber) {
+        usedNumbers.add(pData.sedanaProcurement.activePurchaseOrder.orderNumber.trim());
+      }
+
+      // توليد رقم فريد ذكي عند إنشاء أمر جديد يمنع استبدال الأوامر السابقة نهائياً
+      let orderNumber = input.orderNumber?.trim();
+      const basePrefix = `PO-${req.id}-${new Date().getFullYear()}`;
+
+      if (!orderNumber || (usedNumbers.has(orderNumber) && !input.isEdit)) {
+        if (!usedNumbers.has(basePrefix)) {
+          orderNumber = basePrefix;
+        } else {
+          let seq = usedNumbers.size + 1;
+          let candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+          while (usedNumbers.has(candidate)) {
+            seq++;
+            candidate = `${basePrefix}-${String(seq).padStart(2, "0")}`;
+          }
+          orderNumber = candidate;
+        }
+      }
+
       const directedTo = input.directedTo || (input.supplierName ? `إلى إدارة المشتريات (${input.supplierName})` : "إلى إدارة المشتريات");
 
       const newPO = {
         orderNumber,
-        orderDate: input.orderDate || new Date().toISOString().split("T")[0],
+        orderDate: input.orderDate || nowIso.split("T")[0],
         directedTo,
         supplierName: input.supplierName || "",
         supplierId: input.supplierId || null,
@@ -817,22 +894,23 @@ export const procurementRouter = router({
         requesterRole: input.requesterRole || "طالب الشراء / إدارة المشاريع",
         approverName: input.approverName || "المدير التنفيذي",
         approverRole: input.approverRole || "المدير التنفيذي",
-        approverSignatureUrl: input.status === "approved" ? "digital_signature_approved" : "",
+        approverSignatureUrl: isApproved ? "digital_signature_approved" : "",
+        approvedAt: isApproved ? nowIso : undefined,
         notes: input.notes || "",
         status: input.status,
         items: input.items,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowIso,
       };
 
       pData.sedanaProcurement.activePurchaseOrder = newPO;
-      pData.sedanaProcurement.updatedAt = new Date().toISOString();
+      pData.sedanaProcurement.updatedAt = nowIso;
 
-      // تحديث أو إضافة أمر الشراء في قائمة purchaseOrders الخاصة بالطلب
+      // إضافة أمر الشراء الجديد أو تحديث أمر حالي إذا كان في وضع التعديل الصريح فقط
       const existingIdx = pData.sedanaProcurement.purchaseOrders.findIndex(
         (p: any) => p.orderNumber === orderNumber
       );
 
-      if (existingIdx >= 0) {
+      if (existingIdx >= 0 && input.isEdit) {
         pData.sedanaProcurement.purchaseOrders[existingIdx] = newPO;
       } else {
         pData.sedanaProcurement.purchaseOrders.unshift(newPO);
@@ -844,7 +922,7 @@ export const procurementRouter = router({
       };
 
       // إذا تم الاعتماد، وكان الطلب في مرحلة التأمين والتعاقد أو ما قبلها، يتم نقله لمرحلة التشغيل والتنفيذ
-      if (input.status === "approved" && (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval")) {
+      if (isApproved && (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval")) {
         updateData.currentStage = "execution";
       }
 
@@ -857,7 +935,7 @@ export const procurementRouter = router({
         success: true,
         orderNumber,
         status: input.status,
-        message: input.status === "approved" ? "تم حفظ واعتماد أمر الشراء بنجاح" : "تم حفظ أمر الشراء كمسودة بنجاح",
+        message: isApproved ? "تم حفظ واعتماد أمر الشراء بنجاح" : "تم حفظ أمر الشراء كمسودة بنجاح",
       };
     }),
 
@@ -867,6 +945,7 @@ export const procurementRouter = router({
   approvePurchaseOrder: protectedProcedure
     .input(z.object({
       requestId: z.number(),
+      orderNumber: z.string().optional(),
       approverName: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -896,24 +975,26 @@ export const procurementRouter = router({
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaProcurement = pData.sedanaProcurement || {};
       const activePO = pData.sedanaProcurement.activePurchaseOrder || {};
+      const targetOrderNumber = input.orderNumber || activePO.orderNumber;
+      const nowIso = new Date().toISOString();
 
       activePO.status = "approved";
       activePO.approverName = input.approverName || activePO.approverName || ctx.user.name || "المدير التنفيذي";
       activePO.approverSignatureUrl = "digital_signature_approved";
-      activePO.approvedAt = new Date().toISOString();
+      activePO.approvedAt = nowIso;
       pData.sedanaProcurement.activePurchaseOrder = activePO;
-      pData.sedanaProcurement.updatedAt = new Date().toISOString();
+      pData.sedanaProcurement.updatedAt = nowIso;
 
       if (Array.isArray(pData.sedanaProcurement.purchaseOrders)) {
         pData.sedanaProcurement.purchaseOrders = pData.sedanaProcurement.purchaseOrders.map((p: any) => {
-          if (!activePO.orderNumber || p.orderNumber === activePO.orderNumber) {
+          if (!targetOrderNumber || p.orderNumber === targetOrderNumber || p.orderNumber === activePO.orderNumber) {
             return {
               ...p,
               status: "approved",
               approverName: activePO.approverName,
               approverSignatureUrl: "digital_signature_approved",
-              approvedAt: activePO.approvedAt,
-              updatedAt: new Date().toISOString(),
+              approvedAt: nowIso,
+              updatedAt: nowIso,
             };
           }
           return p;
