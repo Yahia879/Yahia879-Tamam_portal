@@ -1059,7 +1059,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-muted-foreground">الموردون المعتمدون</p>
               <p className="text-lg font-bold text-foreground mt-0.5">
-                {activeSuppliersList.length} <span className="text-xs font-normal text-muted-foreground">موردين ({allItems.length} بند)</span>
+                {activeSuppliersList.length} <span className="text-xs font-normal text-muted-foreground">موردين</span>
               </p>
             </div>
             <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -1071,7 +1071,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-sky-700 dark:text-sky-400">عقود التوريد والخدمات</p>
               <p className="text-lg font-bold text-sky-800 dark:text-sky-200 mt-0.5">
-                {contractSuppliers.length} <span className="text-xs font-normal">موردين</span> ({contractItems.length} صنف)
+                {contractSuppliers.length} <span className="text-xs font-normal">موردين</span>
               </p>
             </div>
             <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-sky-600">
@@ -1083,7 +1083,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-slate-700 dark:text-slate-300">أوامر الشراء الداخلية</p>
               <p className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-0.5">
-                {poSuppliers.length} <span className="text-xs font-normal">موردين</span> ({poItems.length} صنف)
+                {poSuppliers.length} <span className="text-xs font-normal">موردين</span>
               </p>
             </div>
             <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
@@ -1095,7 +1095,7 @@ export default function SedanaProcurementPage() {
             <div>
               <p className="text-[11px] text-teal-700 dark:text-teal-400">المسؤولية المجتمعية</p>
               <p className="text-lg font-bold text-teal-800 dark:text-teal-200 mt-0.5">
-                {csrSuppliers.length} <span className="text-xs font-normal">موردين/جهات</span> ({csrItems.length} صنف)
+                {csrSuppliers.length} <span className="text-xs font-normal">موردين/جهات</span>
               </p>
             </div>
             <div className="p-2 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600">
@@ -1104,69 +1104,13 @@ export default function SedanaProcurementPage() {
           </div>
         </div>
 
-        {/* لوحة التحكم السريع وإضافة الموردين */}
-        <div className="bg-white dark:bg-card p-4 rounded-xl border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-sky-600 shrink-0" />
-            <div>
-              <h3 className="text-sm font-bold text-foreground">توزيع بنود الطلب وتحديد المورد</h3>
-              <p className="text-xs text-muted-foreground">يمكنك إسناد البنود بالكامل لمورد محدد، أو توزيع البنود بين عدة موردين وتحديد نوع التأمين لكل مورد أدناه.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-56">
-              <Select
-                value={selectedGlobalSupplier}
-                onValueChange={(val) => {
-                  if (val === "__ADD_NEW__") {
-                    setAddSupplierTargetItemId(null);
-                    setShowAddSupplierModal(true);
-                  } else {
-                    setSelectedGlobalSupplier(val);
-                  }
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs font-semibold bg-background border-border">
-                  <SelectValue placeholder="اختر المورد للكل..." />
-                </SelectTrigger>
-                <SelectContent dir="rtl" className="max-h-64">
-                  {availableSuppliers.map((sup, sIdx) => (
-                    <SelectItem key={`global_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
-                      <div className="flex items-center justify-between gap-2 w-full">
-                        <span className="font-semibold">{sup.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          sup.source === "quotation"
-                            ? "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-                            : sup.source === "registered"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                            : "bg-muted text-muted-foreground"
-                        }`}>
-                          {sup.sourceLabel}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
-                    <div className="flex items-center gap-1.5">
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ إضافة اسم مورد جديد...</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleApplyGlobalSupplier}
-              disabled={!selectedGlobalSupplier}
-              className="h-8 text-xs font-bold gap-1 bg-sky-600 hover:bg-sky-700 text-white shrink-0 shadow-2xs"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>إسناد للكل</span>
-            </Button>
+        {/* القسم الرئيسي: عرض الموردين مع البنود لكل مورد وتحديد النوع */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-sky-600" />
+              <span>الموردون وبنود كل مورد وتحديد النوع:</span>
+            </h2>
 
             <Button
               type="button"
@@ -1181,16 +1125,6 @@ export default function SedanaProcurementPage() {
               <Plus className="w-3.5 h-3.5" />
               <span>مورد جديد</span>
             </Button>
-          </div>
-        </div>
-
-        {/* القسم الرئيسي: عرض الموردين مع البنود لكل مورد وتحديد النوع */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-sky-600" />
-              <span>الموردون وبنود كل مورد وتحديد النوع ({supplierGroups.length} مجموعات):</span>
-            </h2>
           </div>
 
           {/* بطاقات الموردين مع بنود كل مورد */}
@@ -1312,7 +1246,6 @@ export default function SedanaProcurementPage() {
                           <th className="p-3">اسم الصنف والمواصفات</th>
                           <th className="p-3 text-center w-28">الكمية والوحدة</th>
                           {grp.totalAmount > 0 && <th className="p-3 text-center w-32">السعر التقديري</th>}
-                          <th className="p-3 w-52 text-center">نقل لمورد آخر</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
@@ -1335,26 +1268,6 @@ export default function SedanaProcurementPage() {
                                 {it.totalPrice ? `${formatCurrency(it.totalPrice)} ر.س` : "-"}
                               </td>
                             )}
-                            <td className="p-3 text-center">
-                              <Select
-                                value={grp.supplierName}
-                                onValueChange={(val) => handleReassignItemSupplier(it.id, val)}
-                              >
-                                <SelectTrigger className="h-7 text-[11px] font-semibold bg-background border-border">
-                                  <SelectValue placeholder="نقل لمورد..." />
-                                </SelectTrigger>
-                                <SelectContent dir="rtl" className="max-h-64">
-                                  {availableSuppliers.map((sup, sIdx) => (
-                                    <SelectItem key={`${it.id}_reassign_${sup.name}_${sIdx}`} value={sup.name} className="text-xs">
-                                      <span className="font-semibold">{sup.name}</span>
-                                    </SelectItem>
-                                  ))}
-                                  <SelectItem value="__ADD_NEW__" className="text-xs text-sky-600 font-bold border-t border-border mt-1 pt-1">
-                                    + إضافة مورد جديد...
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1384,7 +1297,7 @@ export default function SedanaProcurementPage() {
                     <FileSignature className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs font-bold">
-                    {contractSuppliers.length} موردين ({contractItems.length} صنف)
+                    {contractSuppliers.length} موردين
                   </Badge>
                 </div>
                 <div>
@@ -1469,7 +1382,7 @@ export default function SedanaProcurementPage() {
                     <ShoppingCart className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-slate-700 bg-slate-100 border-slate-300 text-xs font-bold">
-                    {poSuppliers.length} موردين ({poItems.length} صنف)
+                    {poSuppliers.length} موردين
                   </Badge>
                 </div>
                 <div>
@@ -1519,7 +1432,7 @@ export default function SedanaProcurementPage() {
                     <HeartHandshake className="w-5 h-5" />
                   </div>
                   <Badge variant="outline" className="text-teal-700 bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800 text-xs font-bold">
-                    {csrSuppliers.length} موردين/جهات ({csrItems.length} صنف)
+                    {csrSuppliers.length} موردين/جهات
                   </Badge>
                 </div>
                 <div>
