@@ -98,6 +98,19 @@ export default function PurchaseOrdersList() {
   // أمر الشراء المحدد للمعاينة والطباعة المباشرة
   const [selectedOrderForPreview, setSelectedOrderForPreview] = useState<any | null>(null);
 
+  // إغلاق المعاينة عند الضغط على زر Esc
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedOrderForPreview(null);
+      }
+    };
+    if (selectedOrderForPreview) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedOrderForPreview]);
+
   // أمر الشراء المحدد لعرض قائمة بنوده بالتفصيل
   const [selectedOrderForItems, setSelectedOrderForItems] = useState<any | null>(null);
 
@@ -188,6 +201,170 @@ export default function PurchaseOrdersList() {
   };
 
   const orgName = orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية عمارة المساجد";
+
+  // شاشة المعاينة كاملة الشاشة لأمر الشراء الداخلي (مطابقة تماماً لمعاينة سدانة)
+  if (selectedOrderForPreview) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
+        {/* شريط التحكم العلوي المقاوم للطباعة */}
+        <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedOrderForPreview(null)}
+              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
+            >
+              <ArrowRight className="h-4 w-4" />
+              <span>رجوع إلى قائمة أوامر الشراء</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => window.print()}
+              className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
+            >
+              <Printer className="h-4 w-4" />
+              <span>تنزيل PDF / طباعة</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
+          {/* الإطار المزدوج الرسمي لبرنامج سدانة */}
+          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
+            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
+
+            <div className="relative z-10 space-y-6 flex-1">
+              {/* الترويسة العلوية الرسمية */}
+              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
+                <div className="flex items-center gap-3">
+                  {orgSettings?.logoUrl ? (
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
+                  ) : (
+                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                      سدانة
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
+                    <p className="text-xs text-slate-500 font-medium">إدارة المشاريع والمشتريات • برنامج سدانة</p>
+                  </div>
+                </div>
+
+                <div className="text-xs space-y-1 text-left font-mono">
+                  <div><span className="text-slate-500">رقم الأمر: </span><strong>{selectedOrderForPreview.orderNumber}</strong></div>
+                  <div><span className="text-slate-500">التاريخ: </span><strong>{selectedOrderForPreview.orderDate}</strong></div>
+                  <div><span className="text-slate-500">رقم الطلب: </span><strong>#{selectedOrderForPreview.requestNumber}</strong></div>
+                </div>
+              </div>
+
+              {/* شريط العنوان السماوي */}
+              <div className="bg-[#0284c7] text-white font-bold text-center py-2 px-4 rounded text-sm sm:text-base shadow-2xs">
+                أمر شراء داخلي (نموذج طلب شراء)
+              </div>
+
+              {/* سطر الموجه إليه والمسجد */}
+              <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
+                <div>
+                  <span className="text-slate-500">موجه إلى: </span>
+                  <strong className="text-slate-900">{selectedOrderForPreview.directedTo}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-500">المشروع / المسجد: </span>
+                  <strong className="text-slate-900">{selectedOrderForPreview.mosqueName} {selectedOrderForPreview.mosqueCity ? `(${selectedOrderForPreview.mosqueCity})` : ""}</strong>
+                </div>
+              </div>
+
+              {/* جدول الأصناف */}
+              <div className="space-y-1">
+                <p className="text-[11px] font-bold text-slate-700">
+                  نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
+                </p>
+
+                <table className="w-full border-collapse border border-slate-300 text-xs text-right">
+                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+                    <tr>
+                      <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
+                      <th className="p-2 border-l border-slate-300 w-1/3">الصنف المطلوب</th>
+                      <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
+                      <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
+                      <th className="p-2 text-center w-20">الوحدة</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-300">
+                    {selectedOrderForPreview.items && selectedOrderForPreview.items.length > 0 ? (
+                      selectedOrderForPreview.items.map((it: any, idx: number) => (
+                        <tr key={it.id || idx} className="h-9">
+                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                          <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
+                          لا توجد أصناف مسجلة بأمر الشراء.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* جدول التوقيعات والاعتماد المطابق تماماً لأمر الشراء في سدانة */}
+              <div className="pt-4 break-inside-avoid">
+                <table className="w-full border-collapse border border-slate-300 text-xs text-center">
+                  <thead>
+                    <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
+                      <th className="p-2 border-l border-slate-300 w-1/4">الوظيفة</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">الاسم</th>
+                      <th className="p-2 border-l border-slate-300 w-1/4">التوقيع</th>
+                      <th className="p-2 w-1/4">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* طالب الشراء */}
+                    <tr className="border-b border-slate-300 h-14 sm:h-16">
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview.requesterRole || "طالب الشراء / إدارة المشاريع"}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview.requesterName || "طالب الشراء"}</td>
+                      <td className="p-2 border-l border-slate-300">
+                        <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                      </td>
+                      <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
+                    </tr>
+
+                    {/* صاحب الصلاحية (المدير التنفيذي) */}
+                    <tr className="h-14 sm:h-16">
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview.approverRole || "المدير التنفيذي"}</td>
+                      <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview.approverName || "المدير التنفيذي"}</td>
+                      <td className="p-2 border-l border-slate-300">
+                        {selectedOrderForPreview.approverSignatureUrl ? (
+                          <img src={selectedOrderForPreview.approverSignatureUrl} alt="التوقيع" className="max-h-11 mx-auto object-contain" />
+                        ) : (
+                          <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                        )}
+                      </td>
+                      <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* تذييل أمر الشراء */}
+            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+              <span>{orgName} - سدانة</span>
+              <span>الرمز المرجعي: #{selectedOrderForPreview.requestNumber} • صفحة 1 من 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -540,174 +717,6 @@ export default function PurchaseOrdersList() {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* شاشة المعاينة والطباعة الفورية الرسمية A4 كاملة الشاشة */}
-        {selectedOrderForPreview && (
-          <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 dark:bg-slate-950 font-sans overflow-hidden" dir="rtl">
-            <div className="print:hidden p-3 sm:px-6 bg-white dark:bg-slate-900 border-b border-border flex items-center justify-between gap-3 shadow-xs shrink-0 sticky top-0 z-20">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 flex items-center justify-center text-sky-600 border border-sky-200 dark:border-sky-800">
-                  <ShoppingCart className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm sm:text-base text-foreground">معاينة أمر الشراء الداخلي A4</span>
-                    <Badge variant="outline" className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800">{selectedOrderForPreview.orderNumber}</Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">جامع {selectedOrderForPreview.mosqueName} • {selectedOrderForPreview.directedTo}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => window.print()}
-                  className="h-8 text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  طباعة A4
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedOrderForPreview(null)}
-                  className="h-8 text-xs font-semibold gap-1.5 border-border hover:bg-muted"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  إغلاق
-                </Button>
-              </div>
-            </div>
-
-            {/* ورقة A4 الرسمية الفاخرة كاملة الشاشة */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-slate-200/70 dark:bg-slate-950 print:p-0 print:bg-white print:overflow-visible">
-              <div className="w-full max-w-[210mm] bg-white text-slate-900 shadow-2xl p-6 sm:p-10 min-h-[297mm] flex flex-col justify-between border-[2px] border-[#0284c7] rounded-lg relative leading-relaxed print:shadow-none print:border-none print:m-0 print:p-6 print:rounded-none">
-                <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none print:hidden" />
-
-                <div className="relative z-10 space-y-6 flex-1">
-                  {/* ترويسة التقرير الرسمية */}
-                  <div className="flex justify-between items-start border-b border-slate-300 pb-4">
-                    <div className="flex items-center gap-3">
-                      {orgSettings?.logoUrl ? (
-                        <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 w-auto object-contain" />
-                      ) : (
-                        <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-lg">
-                          سدانة
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="font-bold text-base text-sky-900">{orgName}</h3>
-                        <p className="text-xs text-slate-500">إدارة المشاريع والمشتريات • برنامج سدانة</p>
-                      </div>
-                    </div>
-
-                    <div className="text-xs space-y-1 text-left font-mono">
-                      <div><span className="text-slate-500">رقم الأمر: </span><strong>{selectedOrderForPreview.orderNumber}</strong></div>
-                      <div><span className="text-slate-500">التاريخ: </span><strong>{selectedOrderForPreview.orderDate}</strong></div>
-                      <div><span className="text-slate-500">رقم الطلب: </span><strong>#{selectedOrderForPreview.requestNumber}</strong></div>
-                    </div>
-                  </div>
-
-                  {/* عنوان النموذج */}
-                  <div className="bg-[#0284c7] text-white font-bold text-center py-2 px-4 rounded text-sm sm:text-base shadow-2xs">
-                    أمر شراء داخلي (نموذج طلب شراء)
-                  </div>
-
-                  {/* الموجه إليه والمسجد */}
-                  <div className="bg-slate-50 border border-slate-200 p-2.5 rounded text-xs flex items-center justify-between">
-                    <div>
-                      <span className="text-slate-500">موجه إلى: </span>
-                      <strong className="text-slate-900">{selectedOrderForPreview.directedTo}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">المشروع / المسجد: </span>
-                      <strong className="text-slate-900">{selectedOrderForPreview.mosqueName} {selectedOrderForPreview.mosqueCity ? `(${selectedOrderForPreview.mosqueCity})` : ""}</strong>
-                    </div>
-                  </div>
-
-                  {/* جدول الأصناف */}
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-700">
-                      نأمل تأمين الأصناف والبنود الموضحة أدناه لصالح المشروع المذكور:
-                    </p>
-
-                    <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                      <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                        <tr>
-                          <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                          <th className="p-2 border-l border-slate-300 w-1/3">الصنف المطلوب</th>
-                          <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                          <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                          <th className="p-2 text-center w-20">الوحدة</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-300">
-                        {selectedOrderForPreview.items && selectedOrderForPreview.items.length > 0 ? (
-                          selectedOrderForPreview.items.map((it: any, idx: number) => (
-                            <tr key={idx} className="h-9">
-                              <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                              <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                              <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                              <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                              <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={5} className="p-6 text-center text-slate-500">لا توجد أصناف مسجلة</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* جدول التوقيعات: المورد والمدير التنفيذي */}
-                  <div className="pt-6">
-                    <table className="w-full border-collapse border border-slate-300 text-xs text-center">
-                      <thead>
-                        <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
-                          <th className="p-2 border-l border-slate-300 w-1/4">الصفة / الطرف</th>
-                          <th className="p-2 border-l border-slate-300 w-1/4">الاسم والجهة</th>
-                          <th className="p-2 border-l border-slate-300 w-1/4">التوقيع والختم</th>
-                          <th className="p-2 w-1/4">التاريخ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-slate-300 h-14">
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">المورد / متعهد التوريد</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">
-                            {selectedOrderForPreview.directedTo?.replace(/^إلى\s*/, "") || selectedOrderForPreview.poSupplierName || "المورد المعتمد"}
-                          </td>
-                          <td className="p-2 border-l border-slate-300">
-                            <div className="h-7 border-b border-dashed border-gray-300 mx-auto w-24"></div>
-                          </td>
-                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
-                        </tr>
-                        <tr className="h-14">
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{selectedOrderForPreview.approverRole || "المدير التنفيذي"}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{selectedOrderForPreview.approverName || "المدير التنفيذي"}</td>
-                          <td className="p-2 border-l border-slate-300">
-                            {selectedOrderForPreview.approverSignatureUrl ? (
-                              <img src={selectedOrderForPreview.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
-                            ) : (
-                              <div className="h-7 border-b border-dashed border-gray-300 mx-auto w-24"></div>
-                            )}
-                          </td>
-                          <td className="p-2 text-slate-600 font-medium text-[11px]">{selectedOrderForPreview.orderDate}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-                  <span>{orgName} - سدانة</span>
-                  <span>الرمز المرجعي: #{selectedOrderForPreview.requestNumber} • صفحة 1 من 1</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );
