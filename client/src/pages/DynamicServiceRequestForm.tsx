@@ -947,16 +947,19 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 return <p className="text-xs sm:text-sm text-muted-foreground italic">لا توجد شروط خاصة لهذا البرنامج.</p>;
               })()}
             </div>
-            <div className="flex items-center gap-3 p-3 sm:p-4 bg-muted/20 rounded-xl border border-border">
+            <div 
+              onClick={() => setAgreedToTerms(!agreedToTerms)}
+              className="flex items-center gap-3 p-3 sm:p-4 bg-muted/20 hover:bg-muted/40 rounded-xl border border-border cursor-pointer select-none transition-colors"
+            >
               <Checkbox
                 id="terms"
                 checked={agreedToTerms}
                 onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
                 className={isSedana ? "data-[state=checked]:bg-cyan-600 data-[state=checked]:border-cyan-600" : ""}
               />
-              <label htmlFor="terms" className="text-xs sm:text-sm font-medium text-foreground cursor-pointer">
+              <span className="text-xs sm:text-sm font-medium text-foreground cursor-pointer flex-1">
                 أوافق على الشروط والأحكام
-              </label>
+              </span>
             </div>
           </div>
         )}
