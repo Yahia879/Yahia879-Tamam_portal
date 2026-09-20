@@ -90,26 +90,8 @@ export default function CsrLettersList() {
 
   const utils = trpc.useUtils();
 
-  // الخطاب المحدد للمعاينة والطباعة الفورية A4
-  const [selectedLetterForPreview, setSelectedLetterForPreview] = useState<any | null>(null);
-
   // الخطاب المحدد لعرض تفاصيل أصنافه
-  const [selectedLetterForItems, setSelectedLetterForItems] = useState<any | null>(null);
-
-  // إغلاق المعاينة عند الضغط على زر Esc
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSelectedLetterForPreview(null);
-      }
-    };
-    if (selectedLetterForPreview) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedLetterForPreview]);
-
-  // استعلام خطابات المسؤولية المجتمعية
+  const [selectedLetterForItems, setSelectedLetterForItems] = useState<any | null>(null);  // استعلام خطابات المسؤولية المجتمعية
   const {
     data: lettersData,
     isLoading,
@@ -195,141 +177,7 @@ export default function CsrLettersList() {
 
   const orgName = orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية عمارة المساجد";
 
-  // شاشة المعاينة كاملة الشاشة لخطاب المسؤولية المجتمعية (مطابقة تماماً لمعاينة سدانة)
-  if (selectedLetterForPreview) {
-    return (
-      <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
-        {/* شريط التحكم العلوي المقاوم للطباعة */}
-        <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
-          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedLetterForPreview(null)}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span>رجوع إلى قائمة خطابات المسؤولية</span>
-            </Button>
 
-            <Button
-              size="sm"
-              onClick={() => window.print()}
-              className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
-            >
-              <Printer className="h-4 w-4" />
-              <span>تنزيل PDF / طباعة</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
-        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          {/* الإطار المزدوج الفاخر لبرنامج سدانة */}
-          <div className="print-inner border-[2px] sm:border-[2.5px] border-[#0284c7] p-5 sm:p-8 rounded-lg relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
-            <div className="absolute inset-1 border border-[#38bdf8]/40 rounded pointer-events-none" />
-
-            <div className="relative z-10 space-y-6 flex-1">
-              {/* ترويسة الخطاب الرسمية */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
-                <div className="flex items-center gap-3">
-                  {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
-                  ) : (
-                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
-                      سدانة
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
-                    <p className="text-xs text-slate-500 font-medium">إدارة المسؤولية المجتمعية والشراكات • برنامج سدانة</p>
-                  </div>
-                </div>
-
-                <div className="text-xs space-y-1 text-left font-mono">
-                  <div><span className="text-slate-500">الرقم: </span><strong>{selectedLetterForPreview.letterNumber}</strong></div>
-                  <div><span className="text-slate-500">التاريخ: </span><strong>{selectedLetterForPreview.letterDate}</strong></div>
-                </div>
-              </div>
-
-              {/* المخاطبة: السادة / ... المحترمون */}
-              <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
-                <span>{selectedLetterForPreview.salutation || "السادة"} / </span>
-                <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900">
-                  {selectedLetterForPreview.recipientName || "الجهة المانحة / الشريك المجتمعي"}
-                </span>
-                <span className="mr-3">{selectedLetterForPreview.honorific || "المحترمون"}</span>
-              </div>
-
-              {/* الديباجة الحرفية المعتمدة */}
-              <div className="text-xs sm:text-sm text-slate-800 leading-loose space-y-2">
-                <p className="font-bold text-slate-900">السلام عليكم ورحمة الله وبركاته،،،</p>
-                <p>
-                  تجدون برفقه البنود المراد تأمينها لمشروع <strong>({selectedLetterForPreview.projectName || `مشروع جامع ${selectedLetterForPreview.mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
-                </p>
-              </div>
-
-              {/* جدول الأصناف المرفقة (خالٍ تماماً من أي أسعار) */}
-              <div>
-                <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                    <tr>
-                      <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                      <th className="p-2 border-l border-slate-300">الصنف والبيان</th>
-                      <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                      <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                      <th className="p-2 text-center w-20">الوحدة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-300">
-                    {selectedLetterForPreview.items && selectedLetterForPreview.items.length > 0 ? (
-                      selectedLetterForPreview.items.map((it: any, idx: number) => (
-                        <tr key={it.id || idx} className="h-9">
-                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                          <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
-                          لم يتم تسجيل أي أصناف في هذا الخطاب.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* عبارة الختام الحرفية */}
-              <div className="pt-3 text-xs sm:text-sm font-bold text-slate-900">
-                <p>وتقبلوا وافر التحية والتقدير،،،</p>
-              </div>
-
-              {/* خانة التوقيع والاعتماد الرسمي للمفوض بالتوقيع */}
-              <div className="pt-8 flex justify-end break-inside-avoid">
-                <div className="w-60 text-center space-y-2">
-                  <p className="font-bold text-xs sm:text-sm text-slate-800">{selectedLetterForPreview.signatoryTitle || "المدير التنفيذي"}</p>
-                  <div className="h-14 flex items-center justify-center">
-                    <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
-                  </div>
-                  <p className="font-bold text-xs sm:text-sm text-slate-900">{selectedLetterForPreview.signatoryName || "المهندس المفوض بالتوقيع"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* تذييل الخطاب الفاخر */}
-            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-              <span>{orgName} - سدانة</span>
-              <span>الرمز المرجعي: #{selectedLetterForPreview.requestNumber} • صفحة 1 من 1</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <DashboardLayout>
@@ -351,18 +199,6 @@ export default function CsrLettersList() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportExcel}
-              disabled={isExporting || letters.length === 0}
-              className="h-9 gap-1.5 text-xs font-semibold"
-            >
-              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-sky-600" />}
-              تصدير Excel
-            </Button>
-          </div>
         </div>
 
         {/* بطاقات الإحصائيات العلوية الـ 5 الأنيقة */}
@@ -573,8 +409,8 @@ export default function CsrLettersList() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setSelectedLetterForPreview(letter)}
-                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800"
+                              onClick={() => navigate(`/requests/${letter.requestId}/csr-letter`)}
+                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer"
                               title="معاينة وطباعة الخطاب الرسمي"
                             >
                               <Eye className="w-3.5 h-3.5" />
