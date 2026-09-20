@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -38,7 +38,6 @@ import {
   Printer,
   Download,
   Building2,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Package,
@@ -78,11 +77,23 @@ export default function PurchaseOrdersList() {
   const [, navigate] = useLocation();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 
   const [isExporting, setIsExporting] = useState(false);
+
+  // Debounce للبحث
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const utils = trpc.useUtils();
 
   // أمر الشراء المحدد للمعاينة والطباعة المباشرة
   const [selectedOrderForPreview, setSelectedOrderForPreview] = useState<any | null>(null);
@@ -96,7 +107,7 @@ export default function PurchaseOrdersList() {
     isLoading,
     refetch,
   } = trpc.procurement.listPurchaseOrders.useQuery({
-    search: searchTerm || undefined,
+    search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     page: currentPage,
     limit,
@@ -122,7 +133,14 @@ export default function PurchaseOrdersList() {
   const handleExportExcel = async () => {
     try {
       setIsExporting(true);
-      if (orders.length === 0) {
+      const allMatching = await utils.procurement.listPurchaseOrders.fetch({
+        search: debouncedSearch || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        page: 1,
+        limit: 10000,
+      });
+      const exportOrders = allMatching?.orders || orders;
+      if (exportOrders.length === 0) {
         toast.info("لا توجد بيانات لتصديرها");
         return;
       }
@@ -140,7 +158,7 @@ export default function PurchaseOrdersList() {
         { header: "الحالة", align: "center" as const, minWidth: 18 },
       ];
 
-      const rows = orders.map((o) => [
+      const rows = exportOrders.map((o) => [
         o.orderNumber || "",
         `#${o.requestNumber}`,
         o.mosqueName || "",
@@ -280,14 +298,23 @@ export default function PurchaseOrdersList() {
               <div className="relative flex-1 w-full">
                 <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="البحث برقم أمر الشراء، اسم المسجد، المدينة، رقم الطلب، أو طالب الشراء..."
+                  placeholder="البحث برقم أمر الشراء، التسمية التوضيحية، رقم الطلب، المسجد، أو طالب الشراء..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
-                    setCurrentPage(1);
                   }}
-                  className="pr-9 h-9 text-xs"
+                  className="pr-9 pl-9 h-9 text-xs"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+                    title="مسح البحث"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="w-full sm:w-56">
@@ -305,6 +332,7 @@ export default function PurchaseOrdersList() {
                     <SelectItem value="all">كافة الحالات</SelectItem>
                     <SelectItem value="approved">معتمد وجاهز للطباعة</SelectItem>
                     <SelectItem value="draft">قيد الإعداد (مسودة)</SelectItem>
+                    <SelectItem value="executed">منفذ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -337,12 +365,12 @@ export default function PurchaseOrdersList() {
                     <TableRow className="hover:bg-transparent border-b">
                       <th className="p-3 w-12 text-center font-bold">#</th>
                       <th className="p-3 font-bold">رقم أمر الشراء</th>
-                      <th className="p-3 font-bold">الطلب والمسجد المستفيد</th>
-                      <th className="p-3 font-bold text-center">تاريخ الأمر</th>
+                      <th className="p-3 font-bold">الطلب</th>
                       <th className="p-3 font-bold">الموجه إليه</th>
                       <th className="p-3 font-bold">طالب الشراء / الاعتماد</th>
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
+                      <th className="p-3 font-bold text-center">تاريخ الأمر</th>
                       <th className="p-3 font-bold text-center w-24">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
@@ -362,22 +390,18 @@ export default function PurchaseOrdersList() {
                             </span>
                           </td>
 
-                          {/* الطلب والمسجد المستفيد */}
+                          {/* الطلب */}
                           <td className="p-3">
                             <div className="space-y-0.5">
-                              <Link href={`/requests/${order.requestId}`} className="font-bold text-foreground hover:text-sky-600 transition-colors flex items-center gap-1.5">
-                                <span>جامع {order.mosqueName}</span>
-                                <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                              </Link>
-                              <p className="text-[11px] text-muted-foreground">
-                                طلب #{order.requestNumber} {order.mosqueCity ? `• ${order.mosqueCity}` : ""}
+                              <p className="font-bold text-foreground">
+                                {order.descriptiveName || `طلب #${order.requestNumber}`}
                               </p>
+                              {order.descriptiveName && (
+                                <p className="text-[11px] text-muted-foreground font-mono">
+                                  طلب #{order.requestNumber}
+                                </p>
+                              )}
                             </div>
-                          </td>
-
-                          {/* تاريخ الأمر */}
-                          <td className="p-3 text-center font-mono text-muted-foreground">
-                            {order.orderDate || "-"}
                           </td>
 
                           {/* الموجه إليه */}
@@ -411,6 +435,11 @@ export default function PurchaseOrdersList() {
                             <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${statusInfo.className}`}>
                               {statusInfo.label}
                             </Badge>
+                          </td>
+
+                          {/* تاريخ الأمر */}
+                          <td className="p-3 text-center font-mono text-muted-foreground">
+                            {order.orderDate || "-"}
                           </td>
 
                           {/* الإجراءات */}
