@@ -307,12 +307,21 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     return Boolean(sedanaInquiryData?.status === 'approved' && !sedanaInquiryData?.completedRequestId);
   }, [isSedana, user?.role, sedanaInquiryData]);
 
-  // تعيين المسجد تلقائياً إذا كان للمستخدم مسجد واحد فقط
+  // حصر المساجد المعتمدة للمستخدم
+  const approvedMosques = useMemo(() => {
+    return (userMosques || []).filter((m) => m.approvalStatus === 'approved');
+  }, [userMosques]);
+
+  // تعيين المسجد تلقائياً إذا كان للمستخدم مسجد معتمد واحد فقط (لمقدم الخدمة)
   useEffect(() => {
-    if (userMosques && userMosques.length === 1 && !formData.mosqueId) {
+    if (user?.role === 'service_requester') {
+      if (approvedMosques.length === 1 && (!formData.mosqueId || !approvedMosques.some(m => m.id === Number(formData.mosqueId)))) {
+        setFormData(prev => ({ ...prev, mosqueId: approvedMosques[0].id }));
+      }
+    } else if (userMosques && userMosques.length === 1 && !formData.mosqueId) {
       setFormData(prev => ({ ...prev, mosqueId: userMosques[0].id }));
     }
-  }, [userMosques, formData.mosqueId]);
+  }, [user?.role, userMosques, approvedMosques, formData.mosqueId]);
 
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
@@ -815,7 +824,7 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       {isSedana && user?.role === 'service_requester' && !isSedanaQualified ? (
         <SedanaPreQualification
           userMosques={userMosques}
-          selectedMosqueId={Number(formData.mosqueId) || (userMosques && userMosques.length === 1 ? userMosques[0].id : undefined)}
+          selectedMosqueId={Number(formData.mosqueId) || (approvedMosques && approvedMosques.length === 1 ? approvedMosques[0].id : undefined)}
           onSelectMosque={(id) => setFormData(prev => ({ ...prev, mosqueId: id }))}
           inquiryData={sedanaInquiryData}
           isLoadingInquiry={isLoadingSedanaInquiry}

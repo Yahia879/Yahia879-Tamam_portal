@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -27,7 +28,7 @@ import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 
 interface SedanaPreQualificationProps {
-  userMosques: Array<{ id: number; name: string; city?: string; district?: string }> | undefined;
+  userMosques: Array<{ id: number; name: string; city?: string; district?: string; approvalStatus?: string }> | undefined;
   selectedMosqueId?: number;
   onSelectMosque: (id: number) => void;
   inquiryData: any;
@@ -39,7 +40,7 @@ interface SedanaPreQualificationProps {
 }
 
 export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
-  userMosques = [],
+  userMosques,
   selectedMosqueId,
   onSelectMosque,
   inquiryData,
@@ -49,6 +50,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   onBackToServices,
   userPhone,
 }) => {
+  const [, setLocation] = useLocation();
   const [specificNeeds, setSpecificNeeds] = useState('');
   const [hasCleaningWarehouse, setHasCleaningWarehouse] = useState<'yes' | 'no' | 'partial'>('yes');
   const [warehouseDetails, setWarehouseDetails] = useState('');
@@ -56,6 +58,20 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   const [operationalPlanDetails, setOperationalPlanDetails] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+
+  // حصر المساجد المعتمدة فقط
+  const approvedMosques = useMemo(() => {
+    return (userMosques || []).filter(m => m.approvalStatus === 'approved');
+  }, [userMosques]);
+
+  const hasApprovedMosque = approvedMosques.length > 0;
+
+  // اختيار المسجد المعتمد تلقائياً إذا كان هناك مسجد معتمد واحد فقط
+  useEffect(() => {
+    if (approvedMosques.length === 1 && (!selectedMosqueId || selectedMosqueId !== approvedMosques[0].id)) {
+      onSelectMosque(approvedMosques[0].id);
+    }
+  }, [approvedMosques, selectedMosqueId, onSelectMosque]);
 
   const submitMutation = trpc.sedanaInquiries.submitInquiry.useMutation({
     onSuccess: (res) => {
@@ -90,14 +106,88 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
     });
   };
 
-  const selectedMosque = userMosques.find(m => m.id === selectedMosqueId);
+  const selectedMosque = (userMosques || []).find(m => m.id === selectedMosqueId);
 
-  // إذا كانت البيانات قيد التحميل
-  if (isLoadingInquiry) {
+  // إذا كانت البيانات أو المساجد قيد التحميل
+  if (isLoadingInquiry || userMosques === undefined) {
     return (
       <div className="py-16 flex flex-col items-center justify-center gap-3 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-cyan-600" />
-        <p className="text-sm font-bold text-muted-foreground">جاري التحقق من حالة تأهيل المسجد لبرنامج سدانة...</p>
+        <p className="text-sm font-bold text-muted-foreground">جاري التحقق من بيانات المساجد وحالة التأهيل لبرنامج سدانة...</p>
+      </div>
+    );
+  }
+
+  // إذا لم يكن لدى مقدم الخدمة أي مسجد معتمد
+  if (!hasApprovedMosque) {
+    const hasPendingMosques = (userMosques || []).some(m => m.approvalStatus === 'pending');
+    return (
+      <div className="space-y-6 animate-in fade-in-50 duration-300 max-w-2xl mx-auto">
+        <Card className="border-2 border-amber-200 dark:border-amber-900/60 bg-gradient-to-br from-amber-50/70 via-orange-50/30 to-background dark:from-amber-950/20 dark:to-background shadow-md overflow-hidden rounded-2xl">
+          <CardHeader className="p-6 sm:p-8 border-b border-amber-100 dark:border-amber-900/40 text-center sm:text-right">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-xs ring-4 ring-amber-500/10">
+                <Building2 className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 text-xs font-bold px-2.5 py-0.5">
+                    تنبيه هام
+                  </Badge>
+                </div>
+                <CardTitle className="text-xl sm:text-2xl font-black text-amber-950 dark:text-amber-200">
+                  يلزم وجود مسجد معتمد للتقديم على برنامج سدانة
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm leading-relaxed text-amber-900/80 dark:text-amber-300 font-medium">
+                  {hasPendingMosques
+                    ? 'لديك مساجد مسجلة في حسابك ولكنها ما زالت قيد المراجعة والتدقيق من قِبل إدارة الجمعية.'
+                    : 'لا توجد أي مساجد معتمدة مسجلة في حسابك حالياً.'}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-6 sm:p-8 space-y-6">
+            <div className="p-4 rounded-xl bg-white/90 dark:bg-slate-900/80 border border-amber-200/80 dark:border-amber-900/50 space-y-2 text-xs sm:text-sm text-foreground leading-relaxed">
+              <p className="text-muted-foreground">
+                {hasPendingMosques
+                  ? 'يشترط أن يكون المسجد معتمداً رسمياً من قِبل الجمعية للبدء في استبيان التأهيل وتوقيع الاتفاقية. يرجى انتظار انتهاء فريق الإدارة من مراجعة واعتماد مسجدكم المسجل أو التواصل مع إدارة الجمعية.'
+                  : 'يشترط إضافة بيانات المسجد واعتماده رسمياً أولاً لتتمكن من تعبئة استبيان التأهيل الأولي والتقديم على البرنامج.'}
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={onBackToServices}
+                className="w-full sm:w-auto h-11 text-xs font-bold gap-2"
+              >
+                <ArrowRight className="w-4 h-4" />
+                <span>العودة لاختيار خدمة أخرى</span>
+              </Button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                {hasPendingMosques ? (
+                  <Button
+                    onClick={() => setLocation('/requester/mosques')}
+                    className="w-full sm:w-auto h-11 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-2 shadow-xs cursor-pointer px-6"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>متابعة حالة مساجدي</span>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setLocation('/requester/mosques/new')}
+                    className="w-full sm:w-auto h-11 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs gap-2 shadow-xs cursor-pointer px-6"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>إضافة مسجد جديد</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -393,7 +483,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               <span>المسجد المراد تقديم الطلب له *</span>
             </Label>
 
-            {userMosques.length > 1 ? (
+            {approvedMosques.length > 1 ? (
               <Select
                 value={selectedMosqueId ? String(selectedMosqueId) : ''}
                 onValueChange={(val) => onSelectMosque(Number(val))}
@@ -402,7 +492,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   <SelectValue placeholder="اختر المسجد من مساجدك المعتمدة..." />
                 </SelectTrigger>
                 <SelectContent dir="rtl">
-                  {userMosques.map((m) => (
+                  {approvedMosques.map((m) => (
                     <SelectItem key={m.id} value={String(m.id)} className="text-xs sm:text-sm cursor-pointer">
                       <span>{m.name}</span>
                       {m.city && <span className="text-muted-foreground mr-2 font-normal">({m.city} - {m.district || ''})</span>}
@@ -410,19 +500,14 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-            ) : userMosques.length === 1 ? (
+            ) : approvedMosques.length === 1 ? (
               <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between text-xs sm:text-sm">
-                <span className="font-bold text-foreground">{userMosques[0].name}</span>
+                <span className="font-bold text-foreground">{approvedMosques[0].name}</span>
                 <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[11px] font-bold">
                   المسجد المعتمد
                 </Badge>
               </div>
-            ) : (
-              <Alert className="bg-muted/40 border-border text-foreground text-xs">
-                <AlertCircle className="w-4 h-4 text-cyan-600" />
-                <AlertDescription>لا توجد مساجد مسجلة بحسابك حالياً. يرجى إضافة مسجدك أولاً للمتابعة.</AlertDescription>
-              </Alert>
-            )}
+            ) : null}
           </div>
 
           {/* السؤال 1: الاحتياج المحدد */}

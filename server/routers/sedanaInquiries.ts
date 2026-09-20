@@ -26,6 +26,22 @@ export const sedanaInquiriesRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "تعذر الاتصال بقاعدة البيانات" });
       }
 
+      // التحقق من أن المسجد معتمد إذا كان المستخدم service_requester
+      if (ctx.user.role === "service_requester") {
+        const [mosque] = await db
+          .select({ id: mosques.id, approvalStatus: mosques.approvalStatus })
+          .from(mosques)
+          .where(eq(mosques.id, input.mosqueId))
+          .limit(1);
+
+        if (!mosque || mosque.approvalStatus !== "approved") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "لا يمكن تقديم استبيان تأهيل سدانة إلا لمسجد معتمد رسمياً من قِبل الجمعية.",
+          });
+        }
+      }
+
       // التحقق من وجود استبيان معلق مسبقاً لهذا المسجد من نفس المستخدم
       const [existingPending] = await db
         .select()
