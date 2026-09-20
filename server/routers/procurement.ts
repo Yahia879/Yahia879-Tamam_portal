@@ -144,7 +144,9 @@ export const procurementRouter = router({
 
         const poNumber = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
         const poDate = activePO?.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-        const status = activePO?.status || (activePO?.approverName && itemsForPO.length > 0 ? "approved" : "draft");
+        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) تكون الحالة معتمد، وعدا ذلك مسودة
+        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
+        const status = isExecutionOrBeyond ? "approved" : "draft";
         const directedTo = activePO?.directedTo || (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات");
 
         orders.push({
@@ -196,10 +198,10 @@ export const procurementRouter = router({
 
       // التصفية بالحالة
       if (input.status && input.status !== "all") {
-        if (input.status === "approved") {
-          filtered = filtered.filter((o) => o.status === "approved" || o.status === "ready");
-        } else if (input.status === "executed") {
-          filtered = filtered.filter((o) => o.status === "executed" || o.currentStage === "execution");
+        if (input.status === "approved" || input.status === "executed") {
+          filtered = filtered.filter((o) => o.status === "approved");
+        } else if (input.status === "draft") {
+          filtered = filtered.filter((o) => o.status === "draft");
         } else {
           filtered = filtered.filter((o) => o.status === input.status);
         }
@@ -208,9 +210,9 @@ export const procurementRouter = router({
       // الإحصائيات الشاملة
       const stats = {
         totalOrders: orders.length,
-        approvedCount: orders.filter((o) => o.status === "approved" || o.status === "ready").length,
+        approvedCount: orders.filter((o) => o.status === "approved").length,
         draftCount: orders.filter((o) => o.status === "draft").length,
-        executedCount: orders.filter((o) => o.currentStage === "execution" || o.status === "executed").length,
+        executedCount: orders.filter((o) => o.status === "approved").length,
         totalItemsCount: orders.reduce((sum, o) => sum + (o.itemsCount || 0), 0),
         totalMosquesCount: new Set(orders.map((o) => o.mosqueId).filter(Boolean)).size,
       };
@@ -359,7 +361,9 @@ export const procurementRouter = router({
 
         const letterNumber = activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
         const letterDate = activeCSR?.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-        const status = activeCSR?.status || (activeCSR?.recipientName ? "approved" : "draft");
+        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) تكون الحالة معتمد، وعدا ذلك مسودة
+        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
+        const status = isExecutionOrBeyond ? "approved" : "draft";
         const recipientName = activeCSR?.recipientName || csrSupplierName || "الجهة المانحة / الشريك المجتمعي";
 
         letters.push({
@@ -410,6 +414,8 @@ export const procurementRouter = router({
       if (input.status && input.status !== "all") {
         if (input.status === "approved") {
           filtered = filtered.filter((l) => l.status === "approved" || l.status === "ready");
+        } else if (input.status === "draft") {
+          filtered = filtered.filter((l) => l.status === "draft");
         } else {
           filtered = filtered.filter((l) => l.status === input.status);
         }
@@ -417,7 +423,7 @@ export const procurementRouter = router({
 
       const stats = {
         totalLetters: letters.length,
-        approvedCount: letters.filter((l) => l.status === "approved" || l.status === "ready").length,
+        approvedCount: letters.filter((l) => l.status === "approved").length,
         draftCount: letters.filter((l) => l.status === "draft").length,
         totalRecipients: new Set(letters.map((l) => l.recipientName).filter(Boolean)).size,
         totalItemsCount: letters.reduce((sum, l) => sum + (l.itemsCount || 0), 0),

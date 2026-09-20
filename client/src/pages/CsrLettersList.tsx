@@ -53,15 +53,15 @@ import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   approved: {
-    label: "صادر وجاهز للطباعة",
-    className: "border-sky-300 text-sky-800 bg-sky-50 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
+    label: "معتمد",
+    className: "border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
   },
   ready: {
-    label: "صادر وجاهز للطباعة",
-    className: "border-sky-300 text-sky-800 bg-sky-50 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800",
+    label: "معتمد",
+    className: "border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800",
   },
   draft: {
-    label: "قيد الإعداد (مسودة)",
+    label: "مسودة",
     className: "border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800",
   },
 };
@@ -216,24 +216,24 @@ export default function CsrLettersList() {
             </CardContent>
           </Card>
 
-          {/* خطابات صادرة وجاهزة */}
+          {/* خطابات معتمدة */}
           <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground">خطابات صادرة ومعتمدة</p>
-                <p className="text-xl font-extrabold text-sky-700 dark:text-sky-300 mt-0.5">{stats.approvedCount}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">معتمدة</p>
+                <p className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{stats.approvedCount}</p>
               </div>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-100 dark:border-sky-900/50">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-100 dark:border-emerald-900/50">
                 <CheckCircle className="w-5 h-5" />
               </div>
             </CardContent>
           </Card>
 
-          {/* قيد الإعداد / مسودة */}
+          {/* مسودة */}
           <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground">قيد الإعداد (مسودة)</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">مسودة</p>
                 <p className="text-xl font-extrabold text-amber-700 dark:text-amber-400 mt-0.5">{stats.draftCount}</p>
               </div>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/30 text-amber-600 border border-amber-100 dark:border-amber-900/50">
@@ -308,8 +308,8 @@ export default function CsrLettersList() {
                   </SelectTrigger>
                   <SelectContent dir="rtl">
                     <SelectItem value="all">كافة الحالات</SelectItem>
-                    <SelectItem value="approved">صادر وجاهز للطباعة</SelectItem>
-                    <SelectItem value="draft">قيد الإعداد (مسودة)</SelectItem>
+                    <SelectItem value="approved">معتمد</SelectItem>
+                    <SelectItem value="draft">مسودة</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
