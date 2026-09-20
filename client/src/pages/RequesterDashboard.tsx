@@ -142,14 +142,14 @@ export default function RequesterDashboard() {
       {sedanaInquiry && !sedanaInquiry.completedRequestId && (
         <div className="mb-6 sm:mb-8 dir-rtl">
           {sedanaInquiry.status === "pending" && (
-            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-cyan-950/20 via-sky-900/10 to-transparent border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-2xl p-4 sm:p-5 bg-cyan-50/80 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 mt-0.5">
                   <Clock className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-900/60 dark:text-cyan-200">
                       قيد التواصل والتحقق
                     </span>
                     <h3 className="font-bold text-sm sm:text-base text-foreground">
@@ -165,15 +165,15 @@ export default function RequesterDashboard() {
           )}
 
           {sedanaInquiry.status === "approved" && (
-            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-emerald-950/30 via-emerald-900/15 to-transparent border border-emerald-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="rounded-2xl p-4 sm:p-5 bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      مؤهل ومُعتمد للتقديم 🎉
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-cyan-600 text-white">
+                      مؤهل ومُعتمد للتقديم
                     </span>
                     <h3 className="font-bold text-sm sm:text-base text-foreground">
                       تم تأهيل مسجد ({sedanaInquiry.mosqueName}) لبرنامج سدانة!
@@ -184,8 +184,8 @@ export default function RequesterDashboard() {
                   </p>
                 </div>
               </div>
-              <Link href={`/request-form-dynamic?program=sedana&mosqueId=${sedanaInquiry.mosqueId}`}>
-                <Button className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 cursor-pointer">
+              <Link href={`/request-form-dynamic?service=sedana&mosqueId=${sedanaInquiry.mosqueId}`}>
+                <Button className="w-full sm:w-auto h-9 sm:h-10 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs gap-1.5 cursor-pointer shadow-xs">
                   <span>إكمال وتوقيع طلب سدانة</span>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
@@ -194,14 +194,14 @@ export default function RequesterDashboard() {
           )}
 
           {sedanaInquiry.status === "rejected" && (
-            <div className="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-rose-950/20 via-slate-900/20 to-transparent border border-rose-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="rounded-2xl p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 mt-0.5">
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-200/80 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:text-slate-300">
                       {sedanaInquiry.actionType === "redirect_alternative" ? "توجيه لبديل آخر" : "اعتذار عن البرنامج"}
                     </span>
                     <h3 className="font-bold text-sm sm:text-base text-foreground">
@@ -212,7 +212,7 @@ export default function RequesterDashboard() {
                     {sedanaInquiry.actionNotes}
                   </p>
                   {sedanaInquiry.redirectProgram && (
-                    <p className="text-xs font-bold text-amber-500 mt-1">
+                    <p className="text-xs font-bold text-cyan-600 dark:text-cyan-400 mt-1">
                       البرنامج البديل الموصى به: {sedanaInquiry.redirectProgram}
                     </p>
                   )}
