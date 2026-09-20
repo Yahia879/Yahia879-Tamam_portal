@@ -331,7 +331,7 @@ export default function SedanaProcurementPage() {
 
   // بيانات خطاب المسؤولية المجتمعية
   const [csrData, setCsrData] = useState({
-    letterNumber: `CSR-${requestId}-${new Date().getFullYear()}`,
+    letterNumber: `CSR-1-${new Date().getFullYear()}`,
     letterDate: new Date().toISOString().split("T")[0],
     salutation: "السادة",
     recipientName: "",
@@ -463,7 +463,15 @@ export default function SedanaProcurementPage() {
         }));
       }
       if (savedProc?.activeCsrLetter) {
-        setCsrData(prev => ({ ...prev, ...savedProc.activeCsrLetter }));
+        let loadedLetterNumber = savedProc.activeCsrLetter.letterNumber;
+        if (loadedLetterNumber && (loadedLetterNumber.startsWith(`CSR-${requestId}-`) || loadedLetterNumber === `CSR-87-2026`)) {
+          loadedLetterNumber = `CSR-1-${new Date().getFullYear()}`;
+        }
+        setCsrData(prev => ({
+          ...prev,
+          ...savedProc.activeCsrLetter,
+          letterNumber: loadedLetterNumber || `CSR-1-${new Date().getFullYear()}`,
+        }));
       }
     } catch (e) {
       console.error("Error loading sedanaProcurement:", e);
@@ -904,7 +912,7 @@ export default function SedanaProcurementPage() {
             {/* تذييل أمر الشراء */}
             <div className="mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
               <span>{orgName} - سدانة</span>
-              <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
+              <span>صفحة 1 من 1</span>
             </div>
           </div>
         </div>
@@ -1019,14 +1027,15 @@ export default function SedanaProcurementPage() {
                 <div className="text-xs space-y-1 text-left font-mono">
                   <div><span className="text-slate-500">الرقم: </span><strong>{csrData.letterNumber}</strong></div>
                   <div><span className="text-slate-500">التاريخ: </span><strong>{csrData.letterDate}</strong></div>
+                  <div><span className="text-slate-500">رقم الطلب: </span><strong>#{request?.requestNumber || requestId}</strong></div>
                 </div>
               </div>
 
               {/* المخاطبة: السادة / ... المحترمون */}
               <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
                 <span>{csrData.salutation} / </span>
-                <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900">
-                  {csrData.recipientName || "الجهة المانحة / الشريك المجتمعي"}
+                <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900 font-bold">
+                  {csrData.recipientName || "الجهة المانحة / الشريك المجتمعية"}
                 </span>
                 <span className="mr-3">{csrData.honorific}</span>
               </div>
@@ -1079,8 +1088,8 @@ export default function SedanaProcurementPage() {
               </div>
 
               {/* خانة التوقيع والاعتماد الرسمي */}
-              <div className="pt-6 sm:pt-8 flex justify-end break-inside-avoid">
-                <div className="w-60 text-center space-y-2">
+              <div className="pt-6 sm:pt-8 flex justify-center break-inside-avoid">
+                <div className="w-64 text-center space-y-2">
                   <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
                   <div className="h-12 sm:h-14 flex items-center justify-center">
                     <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
@@ -1093,7 +1102,7 @@ export default function SedanaProcurementPage() {
             {/* تذييل الخطاب */}
             <div className="mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
               <span>{orgName} - سدانة</span>
-              <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
+              <span>صفحة 1 من 1</span>
             </div>
           </div>
         </div>
