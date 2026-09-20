@@ -1111,20 +1111,6 @@ export default function SedanaProcurementPage() {
               <Building2 className="w-4 h-4 text-sky-600" />
               <span>الموردون وبنود كل مورد وتحديد النوع:</span>
             </h2>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setAddSupplierTargetItemId(null);
-                setShowAddSupplierModal(true);
-              }}
-              className="h-8 text-xs font-semibold gap-1 border-sky-300 text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-300"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>مورد جديد</span>
-            </Button>
           </div>
 
           {/* بطاقات الموردين مع بنود كل مورد */}
@@ -1239,37 +1225,52 @@ export default function SedanaProcurementPage() {
                 {/* جدول البنود التابعة لهذا المورد */}
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-right">
-                      <thead className="bg-muted/40 text-muted-foreground border-b border-border font-semibold">
+                    <table className="w-full text-xs text-right border-collapse">
+                      <thead className="bg-slate-50/80 dark:bg-slate-900/60 text-muted-foreground border-b border-border font-semibold">
                         <tr>
-                          <th className="p-3 w-10 text-center">#</th>
-                          <th className="p-3">اسم الصنف والمواصفات</th>
-                          <th className="p-3 text-center w-28">الكمية والوحدة</th>
-                          {grp.totalAmount > 0 && <th className="p-3 text-center w-32">السعر التقديري</th>}
+                          <th className="py-2.5 px-3 w-12 text-center">#</th>
+                          <th className="py-2.5 px-4">اسم الصنف والمواصفات</th>
+                          <th className="py-2.5 px-4 text-center w-36">الكمية والوحدة</th>
+                          <th className="py-2.5 px-4 text-center w-36">السعر التقديري</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border">
-                        {grp.items.map((it: any, iIdx: number) => (
-                          <tr key={it.id} className="hover:bg-muted/20 transition-colors">
-                            <td className="p-3 text-center font-mono text-muted-foreground">{iIdx + 1}</td>
-                            <td className="p-3">
-                              <p className="font-bold text-foreground text-sm">{it.itemName}</p>
-                              {it.description && (
-                                <p className="text-[11px] text-muted-foreground mt-0.5">{it.description}</p>
-                              )}
-                            </td>
-                            <td className="p-3 text-center">
-                              <Badge variant="secondary" className="font-mono text-xs font-semibold px-2 py-0.5">
-                                {it.quantity} {it.unit}
-                              </Badge>
-                            </td>
-                            {grp.totalAmount > 0 && (
-                              <td className="p-3 text-center font-mono font-semibold">
-                                {it.totalPrice ? `${formatCurrency(it.totalPrice)} ر.س` : "-"}
+                      <tbody className="divide-y divide-border/60">
+                        {grp.items.map((it: any, iIdx: number) => {
+                          const itemPrice = Number(it.totalPrice || 0);
+                          return (
+                            <tr key={it.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="py-2.5 px-3 text-center font-mono text-muted-foreground font-semibold">
+                                {iIdx + 1}
                               </td>
-                            )}
-                          </tr>
-                        ))}
+                              <td className="py-2.5 px-4">
+                                <span className="font-bold text-foreground text-xs sm:text-sm block">
+                                  {it.itemName}
+                                </span>
+                                {it.description ? (
+                                  <span className="text-[11px] text-muted-foreground mt-0.5 block leading-relaxed">
+                                    {it.description}
+                                  </span>
+                                ) : null}
+                              </td>
+                              <td className="py-2.5 px-4 text-center">
+                                <span className="inline-flex items-center justify-center gap-1.5 font-bold text-foreground bg-muted/60 dark:bg-muted/30 border border-border/60 px-2.5 py-1 rounded-md text-xs font-mono">
+                                  <span>{it.quantity}</span>
+                                  <span className="text-muted-foreground font-normal text-[11px] font-sans">{it.unit}</span>
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-4 text-center">
+                                {itemPrice > 0 ? (
+                                  <span className="inline-flex items-baseline gap-1 font-mono font-bold text-foreground text-xs bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/60 dark:border-sky-800/40 px-2 py-0.5 rounded">
+                                    <span>{formatCurrency(itemPrice)}</span>
+                                    <span className="text-[10px] font-sans text-muted-foreground font-normal">ر.س</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground font-mono">-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
