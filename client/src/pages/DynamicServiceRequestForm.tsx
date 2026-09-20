@@ -833,6 +833,10 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             setCurrentStep('terms');
           }}
           onBackToServices={() => {
+            if (typeof window !== 'undefined') {
+              window.history.pushState(null, '', '/request-form-dynamic');
+            }
+            navigate('/request-form-dynamic');
             setSelectedService(null);
             setCurrentStep('service-selection');
           }}
@@ -1584,6 +1588,23 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             >
               <ChevronRight className="w-4 h-4" />
               <span>السابق</span>
+            </Button>
+          ) : isSedana ? (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.history.pushState(null, '', '/request-form-dynamic');
+                }
+                navigate('/request-form-dynamic');
+                setSelectedService(null);
+                setCurrentStep('service-selection');
+              }}
+              className="rounded-xl sm:rounded-2xl font-bold h-10 sm:h-12 px-4 sm:px-6 gap-1.5 sm:gap-2 text-xs sm:text-sm shadow-xs hover:bg-muted"
+            >
+              <ChevronRight className="w-4 h-4" />
+              <span>العودة لقائمة الخدمات</span>
             </Button>
           ) : (
             <div /> // Placeholder to keep Next button on the left (RTL)
