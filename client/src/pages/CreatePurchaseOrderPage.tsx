@@ -35,7 +35,6 @@ import {
   AlertCircle,
   Store,
   Layers,
-  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -59,16 +58,15 @@ export default function CreatePurchaseOrderPage() {
   // الحالة للطلب المختار والمورد المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
   const [selectedSupplierKey, setSelectedSupplierKey] = useState<string>("");
-  const [requestSearch, setRequestSearch] = useState("");
 
   // تفاصيل أمر الشراء
   const [orderNumber, setOrderNumber] = useState("");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [directedTo, setDirectedTo] = useState("");
-  const [requesterName, setRequesterName] = useState(user?.name || "طالب الشراء");
-  const [requesterRole, setRequesterRole] = useState("طالب الشراء / إدارة المشاريع");
-  const [approverName, setApproverName] = useState("المدير التنفيذي");
-  const [approverRole, setApproverRole] = useState("المدير التنفيذي");
+  const [requesterName] = useState(user?.name || "طالب الشراء");
+  const [requesterRole] = useState("طالب الشراء / إدارة المشاريع");
+  const [approverName] = useState("المدير التنفيذي");
+  const [approverRole] = useState("المدير التنفيذي");
   const [notes, setNotes] = useState("");
 
   // الكميات والبنود المحددة
@@ -98,18 +96,6 @@ export default function CreatePurchaseOrderPage() {
     return availableSuppliers[0];
   }, [availableSuppliers, selectedSupplierKey]);
 
-  // فلترة الطلبات بالبحث
-  const filteredRequests = useMemo(() => {
-    if (!requestSearch.trim()) return sedanaRequests;
-    const q = requestSearch.toLowerCase();
-    return sedanaRequests.filter((r: any) =>
-      r.requestNumber?.toLowerCase().includes(q) ||
-      r.mosqueName?.toLowerCase().includes(q) ||
-      r.mosqueCity?.toLowerCase().includes(q) ||
-      r.suppliers?.some((s: any) => s.supplierName?.toLowerCase().includes(q))
-    );
-  }, [sedanaRequests, requestSearch]);
-
   // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
   useEffect(() => {
     if (!selectedRequestId && sedanaRequests.length > 0) {
@@ -134,6 +120,7 @@ export default function CreatePurchaseOrderPage() {
       setSelectedSupplierKey("");
       setSelectedItemIds([]);
       setItemsQuantities({});
+      setDirectedTo("");
     }
   };
 
@@ -141,7 +128,7 @@ export default function CreatePurchaseOrderPage() {
   const handleSelectSupplier = (supplier: any, req?: any) => {
     const parentReq = req || currentRequest;
     setSelectedSupplierKey(String(supplier.id || supplier.supplierName));
-    setDirectedTo(`إلى إدارة المشتريات (${supplier.supplierName})`);
+    setDirectedTo(supplier.supplierName);
 
     const year = new Date().getFullYear();
     const poNum = parentReq?.activePO?.orderNumber || `PO-${parentReq?.id || 1}-${year}`;
@@ -215,7 +202,7 @@ export default function CreatePurchaseOrderPage() {
       supplierCommercialRegister: currentSupplier.commercialRegister || "",
       orderNumber: orderNumber || `PO-${selectedRequestId}-${new Date().getFullYear()}`,
       orderDate,
-      directedTo: directedTo || `إلى إدارة المشتريات (${currentSupplier.supplierName})`,
+      directedTo: directedTo || currentSupplier.supplierName,
       requesterName,
       requesterRole,
       approverName,
@@ -229,7 +216,7 @@ export default function CreatePurchaseOrderPage() {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-20 px-3 sm:px-4 md:px-0 text-right font-sans" dir="rtl">
-        {/* Header and Visual Step Timeline (تماثل طلب الصرف المرتبط) */}
+        {/* Header and Visual Step Timeline */}
         <div className="flex flex-col gap-6 border-b border-border/40 pb-6">
           <div className="flex items-center justify-between pb-2">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -374,7 +361,7 @@ export default function CreatePurchaseOrderPage() {
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
                     {/* اختيار الطلب عبر Select منسق h-11 rounded-xl */}
-                    <div className="space-y-2 text-right pb-4 border-b border-border/40">
+                    <div className="space-y-2 text-right">
                       <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
                         اختر طلب سدانة *
                       </Label>
@@ -396,80 +383,6 @@ export default function CreatePurchaseOrderPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    {/* بحث وتصفح بطاقات الطلبات */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                          أو اختر مباشرة من بطاقات طلبات سدانة المعتمدة:
-                        </Label>
-                        {sedanaRequests.length > 3 && (
-                          <div className="relative w-48 sm:w-60">
-                            <Search className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder="بحث برقم الطلب أو المسجد..."
-                              value={requestSearch}
-                              onChange={(e) => setRequestSearch(e.target.value)}
-                              className="h-8 text-[11px] pr-8 pl-2 rounded-lg bg-background"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                        {filteredRequests.map((req: any) => {
-                          const isSelected = req.id === selectedRequestId;
-                          return (
-                            <button
-                              type="button"
-                              key={req.id}
-                              onClick={() => handleSelectRequest(req.id)}
-                              className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                                isSelected
-                                  ? "bg-sky-50/80 dark:bg-sky-950/30 border-sky-500/80 dark:border-sky-500/60 shadow-xs ring-2 ring-sky-500/20"
-                                  : "bg-background border-border hover:border-sky-300 dark:hover:border-sky-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                              }`}
-                            >
-                              <div
-                                className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                                  isSelected
-                                    ? "bg-sky-600 text-white"
-                                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400 group-hover:bg-sky-200"
-                                }`}
-                              >
-                                <Building2 className="w-5 h-5" />
-                              </div>
-                              <div className="space-y-1 min-w-0 flex-1">
-                                <div className="flex items-center justify-between">
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold block truncate ${
-                                      isSelected ? "text-sky-900 dark:text-sky-200" : "text-foreground"
-                                    }`}
-                                  >
-                                    #{req.requestNumber} - {req.mosqueName}
-                                  </span>
-                                  {isSelected && (
-                                    <span className="w-2.5 h-2.5 rounded-full bg-sky-600 animate-pulse shrink-0" />
-                                  )}
-                                </div>
-                                <p
-                                  className={`text-[11px] leading-relaxed truncate ${
-                                    isSelected ? "text-sky-750 dark:text-sky-300" : "text-muted-foreground"
-                                  }`}
-                                >
-                                  {req.mosqueCity} {req.mosqueDistrict ? `• ${req.mosqueDistrict}` : ""}
-                                </p>
-                                <div className="flex items-center gap-2 pt-1 border-t border-border/40 mt-1">
-                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">
-                                    {req.suppliers?.length || 0} موردين معتمدين
-                                  </Badge>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
                     </div>
 
                     {/* ملخص الطلب المختار */}
@@ -537,12 +450,12 @@ export default function CreatePurchaseOrderPage() {
                     <CardDescription className="text-right text-xs text-muted-foreground">
                       {availableSuppliers.length > 1
                         ? `يوجد ${availableSuppliers.length} موردين معتمدين على أمر الشراء لهذا الطلب. اختر المورد لإصدار أمر الشراء له.`
-                        : "تم تحديد المورد المعتمد الوحيد لهذا الطلب تلقائياً وتوثيق بياناته الرسمية."}
+                        : "تم تحديد المورد المعتمد لهذا الطلب وتوثيق بياناته الرسمية."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
-                    {/* اختيار المورد */}
-                    <div className="space-y-3 pb-4 border-b border-border/40">
+                    {/* اختيار المورد المعتمد عبر Select */}
+                    <div className="space-y-2 text-right pb-4 border-b border-border/40">
                       <div className="flex items-center justify-between">
                         <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                           <Store className="w-4 h-4 text-primary" />
@@ -555,59 +468,33 @@ export default function CreatePurchaseOrderPage() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                        {availableSuppliers.map((supp: any) => {
-                          const isSelected = currentSupplier?.supplierName === supp.supplierName;
-                          return (
-                            <button
-                              type="button"
-                              key={supp.id || supp.supplierName}
-                              onClick={() => handleSelectSupplier(supp)}
-                              className={`flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all duration-200 cursor-pointer relative overflow-hidden group ${
-                                isSelected
-                                  ? "bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-500/80 dark:border-emerald-500/60 shadow-xs ring-2 ring-emerald-500/20"
-                                  : "bg-background border-border hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-slate-50/60 dark:hover:bg-slate-900/60"
-                              }`}
-                            >
-                              <div
-                                className={`p-2.5 rounded-lg shrink-0 transition-colors ${
-                                  isSelected
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 group-hover:bg-emerald-200"
-                                }`}
-                              >
-                                <Store className="w-5 h-5" />
-                              </div>
-                              <div className="space-y-1 min-w-0 flex-1">
-                                <div className="flex items-center justify-between">
-                                  <span
-                                    className={`text-xs sm:text-sm font-bold block truncate ${
-                                      isSelected ? "text-emerald-900 dark:text-emerald-200" : "text-foreground"
-                                    }`}
-                                  >
-                                    {supp.supplierName}
-                                  </span>
-                                  {isSelected && (
-                                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                                  )}
-                                </div>
-                                <p
-                                  className={`text-[11px] leading-relaxed ${
-                                    isSelected ? "text-emerald-750 dark:text-emerald-300" : "text-muted-foreground"
-                                  }`}
-                                >
-                                  السجل: <span className="font-mono font-bold">{supp.commercialRegister || "مسجل"}</span> • الجوال: <span className="font-mono">{supp.phone || "-"}</span>
-                                </p>
-                                <div className="pt-1 border-t border-border/40 mt-1">
-                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                                    {supp.itemsCount || supp.items?.length || 0} أصناف مخصصة
-                                  </Badge>
-                                </div>
-                              </div>
-                            </button>
+                      <Select
+                        value={selectedSupplierKey}
+                        onValueChange={(val) => {
+                          const supp = availableSuppliers.find(
+                            (s: any) => String(s.id) === val || s.supplierName === val
                           );
-                        })}
-                      </div>
+                          if (supp) handleSelectSupplier(supp);
+                        }}
+                      >
+                        <SelectTrigger
+                          className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full text-xs sm:text-sm"
+                          dir="rtl"
+                        >
+                          <SelectValue placeholder="اختر المورد المعتمد..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {availableSuppliers.map((supp: any) => (
+                            <SelectItem
+                              key={supp.id || supp.supplierName}
+                              value={String(supp.id || supp.supplierName)}
+                              className="text-right text-xs py-2"
+                            >
+                              {supp.supplierName} (السجل: {supp.commercialRegister || "مسجل"} • {supp.itemsCount || supp.items?.length || 0} أصناف)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* بطاقة بيانات المورد الرسمية (بيانات التعميد) */}
@@ -811,7 +698,7 @@ export default function CreatePurchaseOrderPage() {
                         بيانات وتوجيه أمر الشراء *
                       </Label>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
                             رقم أمر الشراء *
@@ -843,36 +730,12 @@ export default function CreatePurchaseOrderPage() {
                           <Input
                             value={directedTo}
                             onChange={(e) => setDirectedTo(e.target.value)}
-                            placeholder="إلى إدارة المشتريات..."
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
+                            placeholder="اسم المورد المعتمد..."
+                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background font-medium"
                           />
                         </div>
 
-                        <div className="space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            طالب الشراء
-                          </Label>
-                          <Input
-                            value={requesterName}
-                            onChange={(e) => setRequesterName(e.target.value)}
-                            placeholder="اسم طالب الشراء..."
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                            المعتمِد (المدير التنفيذي)
-                          </Label>
-                          <Input
-                            value={approverName}
-                            onChange={(e) => setApproverName(e.target.value)}
-                            placeholder="المدير التنفيذي..."
-                            className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background"
-                          />
-                        </div>
-
-                        <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                        <div className="space-y-1.5 sm:col-span-3">
                           <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
                             ملاحظات وشروط التوريد
                           </Label>
