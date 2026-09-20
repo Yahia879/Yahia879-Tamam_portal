@@ -398,11 +398,11 @@ export default function CsrLettersList() {
                           <td className="p-3">
                             <div className="space-y-0.5">
                               <p className="font-bold text-foreground">
-                                {letter.descriptiveName || `طلب #${letter.requestNumber}`}
+                                {letter.descriptiveName || `#${letter.requestNumber}`}
                               </p>
                               {letter.descriptiveName && (
                                 <p className="text-[11px] text-muted-foreground font-mono">
-                                  طلب #{letter.requestNumber}
+                                  #{letter.requestNumber}
                                 </p>
                               )}
                             </div>
