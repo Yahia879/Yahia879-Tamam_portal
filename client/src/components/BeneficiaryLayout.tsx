@@ -149,9 +149,9 @@ export default function BeneficiaryLayout({
               <Link href="/request-form-dynamic?service=sedana">
                 <Button
                   size="sm"
-                  className="rounded-xl shadow-xs bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white font-bold gap-1.5 px-3 h-8 text-xs cursor-pointer border border-white/20"
+                  className="rounded-xl shadow-xs bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-1.5 px-3 h-8 text-xs cursor-pointer border border-cyan-500/30"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
                   <span>طلب سدانة</span>
                 </Button>
               </Link>
@@ -177,10 +177,10 @@ export default function BeneficiaryLayout({
                         className={`rounded-xl font-bold gap-1.5 px-3.5 h-9 transition-all cursor-pointer ${
                           isSedanaActive
                             ? "bg-cyan-700 text-white ring-2 ring-cyan-400/60 shadow-md"
-                            : "bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-xs border border-white/20 hover:shadow-md hover:scale-[1.02]"
+                            : "bg-cyan-600 hover:bg-cyan-700 text-white shadow-xs border border-cyan-500/30 hover:shadow-md hover:scale-[1.02]"
                         }`}
                       >
-                        <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                        <Sparkles className="w-4 h-4 text-cyan-200" />
                         <span>{item.label}</span>
                       </Button>
                     </Link>
@@ -336,8 +336,8 @@ export default function BeneficiaryLayout({
               {/* Primary CTAs in Drawer */}
               <div className="px-4 py-2 space-y-2">
                 <Link href="/request-form-dynamic?service=sedana" onClick={() => setMobileMenuOpen(false)}>
-                  <Button className="w-full rounded-xl shadow-md bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer border border-cyan-400/30">
-                    <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                  <Button className="w-full rounded-xl shadow-md bg-cyan-600 hover:bg-cyan-700 text-white font-bold gap-2 h-10 transition-all cursor-pointer border border-cyan-500/30">
+                    <Sparkles className="w-4 h-4 text-cyan-200" />
                     <span>طلب برنامج سدانة</span>
                   </Button>
                 </Link>
