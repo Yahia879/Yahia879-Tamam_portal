@@ -543,8 +543,6 @@ export default function PurchaseOrdersList() {
                       <th className="p-3 w-12 text-center font-bold">#</th>
                       <th className="p-3 font-bold">رقم أمر الشراء</th>
                       <th className="p-3 font-bold">الطلب</th>
-                      <th className="p-3 font-bold">الموجه إليه</th>
-                      <th className="p-3 font-bold">طالب الشراء / الاعتماد</th>
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">تاريخ الأمر</th>
@@ -578,19 +576,6 @@ export default function PurchaseOrdersList() {
                                   #{order.requestNumber}
                                 </p>
                               )}
-                            </div>
-                          </td>
-
-                          {/* الموجه إليه */}
-                          <td className="p-3 font-medium text-foreground">
-                            {order.directedTo}
-                          </td>
-
-                          {/* طالب الشراء والاعتماد */}
-                          <td className="p-3">
-                            <div className="text-[11px] space-y-0.5">
-                              <p className="text-foreground font-semibold">{order.requesterName}</p>
-                              <p className="text-muted-foreground">الاعتماد: {order.approverName}</p>
                             </div>
                           </td>
 
