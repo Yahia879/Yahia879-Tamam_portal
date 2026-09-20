@@ -176,25 +176,25 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   if (inquiryData?.status === 'pending' && !isEditing) {
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-300">
-        <Card className="border-2 border-amber-400/50 bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-background dark:from-amber-950/30 dark:to-background overflow-hidden shadow-lg">
-          <CardHeader className="p-6 sm:p-8 border-b border-amber-200/60 dark:border-amber-900/40">
+        <Card className="border-2 border-cyan-200 dark:border-cyan-900 bg-gradient-to-br from-cyan-50/80 via-sky-50/30 to-background dark:from-cyan-950/30 dark:to-background overflow-hidden shadow-sm">
+          <CardHeader className="p-6 sm:p-8 border-b border-cyan-100 dark:border-cyan-900/60">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-right">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md ring-4 ring-amber-400/20 animate-pulse">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-md ring-4 ring-cyan-500/20">
                 <Clock className="w-8 h-8" />
               </div>
               <div className="space-y-1.5 flex-1">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <Badge className="bg-amber-500 text-white text-xs font-bold px-2.5 py-0.5">
+                  <Badge className="bg-cyan-600 text-white text-xs font-bold px-2.5 py-0.5">
                     قيد التواصل والمراجعة
                   </Badge>
                   <span className="text-xs text-muted-foreground font-mono">
                     تاريخ الإرسال: {new Date(inquiryData.createdAt).toLocaleDateString('ar-SA')}
                   </span>
                 </div>
-                <CardTitle className="text-xl sm:text-2xl font-black text-amber-950 dark:text-amber-300">
+                <CardTitle className="text-xl sm:text-2xl font-black text-cyan-950 dark:text-cyan-200">
                   استبيان برنامج سدانة قيد المراجعة والتواصل
                 </CardTitle>
-                <CardDescription className="text-sm text-amber-900/80 dark:text-amber-400 font-medium">
+                <CardDescription className="text-sm text-cyan-900/80 dark:text-cyan-300 font-medium">
                   المسجد: <strong>{selectedMosque?.name || inquiryData.mosqueName}</strong>
                 </CardDescription>
               </div>
@@ -202,9 +202,9 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
           </CardHeader>
 
           <CardContent className="p-6 sm:p-8 space-y-6">
-            <div className="p-4 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-amber-200 dark:border-amber-900/50 space-y-3 text-xs sm:text-sm text-foreground">
-              <div className="flex items-center gap-2 text-amber-900 dark:text-amber-300 font-bold text-sm">
-                <PhoneCall className="w-4 h-4 text-amber-600 shrink-0" />
+            <div className="p-4 rounded-xl bg-white/90 dark:bg-slate-900/60 border border-cyan-200 dark:border-cyan-900/50 space-y-3 text-xs sm:text-sm text-foreground">
+              <div className="flex items-center gap-2 text-cyan-900 dark:text-cyan-300 font-bold text-sm">
+                <PhoneCall className="w-4 h-4 text-cyan-600 shrink-0" />
                 <span>سيقوم فريق مشاريع الجمعية بالتواصل معكم هاتفياً</span>
               </div>
               <p className="text-muted-foreground leading-relaxed">
@@ -276,7 +276,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   setAdditionalNotes(inquiryData.additionalNotes || '');
                   setIsEditing(true);
                 }}
-                className="h-10 text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-100/60 dark:text-amber-400 gap-1.5"
+                className="h-10 text-xs font-bold text-cyan-700 hover:text-cyan-800 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-950/50 gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>تعديل الإجابات وإعادة الإرسال</span>
@@ -292,17 +292,17 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   if (inquiryData?.status === 'rejected' && !isEditing) {
     return (
       <div className="space-y-6 animate-in fade-in-50 duration-300">
-        <Card className="border-2 border-rose-300 bg-gradient-to-br from-rose-50/80 via-slate-50 to-background dark:from-rose-950/20 dark:to-background overflow-hidden shadow-lg">
-          <CardHeader className="p-6 sm:p-8 border-b border-rose-200/60 dark:border-rose-900/40">
+        <Card className="border-2 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50/80 via-cyan-50/20 to-background dark:from-slate-950 dark:to-background overflow-hidden shadow-sm">
+          <CardHeader className="p-6 sm:p-8 border-b border-slate-200/60 dark:border-slate-800">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-right">
-              <div className="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <div className="w-14 h-14 rounded-2xl bg-cyan-700 text-white flex items-center justify-center shrink-0 shadow-md">
                 <AlertCircle className="w-8 h-8" />
               </div>
               <div className="space-y-1.5 flex-1">
-                <Badge variant="outline" className="bg-rose-100 text-rose-800 border-rose-300 text-xs font-bold px-2.5 py-0.5">
+                <Badge variant="outline" className="bg-cyan-50 text-cyan-800 border-cyan-200 text-xs font-bold px-2.5 py-0.5">
                   توجيه فريق المشاريع
                 </Badge>
-                <CardTitle className="text-xl sm:text-2xl font-black text-rose-950 dark:text-rose-300">
+                <CardTitle className="text-xl sm:text-2xl font-black text-foreground">
                   توجيه الإدارة بخصوص طلب سدانة
                 </CardTitle>
                 <CardDescription className="text-sm text-muted-foreground font-medium">
@@ -313,13 +313,13 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
           </CardHeader>
 
           <CardContent className="p-6 sm:p-8 space-y-6">
-            <div className="p-4 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-rose-200 dark:border-rose-900/50 space-y-2 text-xs sm:text-sm text-foreground">
-              <p className="font-bold text-rose-900 dark:text-rose-300">ملاحظات وتوجيه فريق المشاريع:</p>
+            <div className="p-4 rounded-xl bg-white/80 dark:bg-slate-900/60 border border-border space-y-2 text-xs sm:text-sm text-foreground">
+              <p className="font-bold text-foreground">ملاحظات وتوجيه فريق المشاريع:</p>
               <p className="text-muted-foreground leading-relaxed">
                 {inquiryData.actionNotes || 'بعد دراسة الاستبيان والتواصل، تبين أن احتياج المسجد لا يتطابق حالياً مع متطلبات برنامج سدانة السنوي.'}
               </p>
               {inquiryData.redirectProgram && (
-                <div className="mt-3 p-3 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-xs text-sky-900 dark:text-sky-300 flex items-center justify-between gap-2">
+                <div className="mt-3 p-3 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-900 dark:text-cyan-300 flex items-center justify-between gap-2">
                   <span>تم توجيهكم لتقديم طلب ضمن البرنامج البديل: <strong>{inquiryData.redirectProgram}</strong></span>
                 </div>
               )}
@@ -344,7 +344,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                   setAdditionalNotes('');
                   setIsEditing(true);
                 }}
-                className="h-10 text-xs font-bold text-foreground border-border hover:bg-muted gap-1.5"
+                className="h-10 text-xs font-bold text-foreground border-border hover:bg-muted gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>تقديم استبيان جديد</span>
@@ -360,7 +360,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in-50 duration-300">
       {/* البطاقة الترحيبية والتوضيحية */}
-      <Card className="border-2 border-cyan-500/30 bg-gradient-to-r from-cyan-50/80 via-sky-50/40 to-teal-50/50 dark:from-cyan-950/20 dark:to-slate-900/40 shadow-sm overflow-hidden">
+      <Card className="border border-cyan-200 dark:border-cyan-900/60 bg-gradient-to-r from-cyan-50/70 via-sky-50/30 to-background dark:from-cyan-950/30 dark:to-background shadow-xs overflow-hidden">
         <CardHeader className="p-6 pb-4">
           <div className="flex items-start gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-md">
@@ -418,8 +418,8 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 </Badge>
               </div>
             ) : (
-              <Alert className="bg-amber-50 border-amber-200 text-amber-900 text-xs">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
+              <Alert className="bg-muted/40 border-border text-foreground text-xs">
+                <AlertCircle className="w-4 h-4 text-cyan-600" />
                 <AlertDescription>لا توجد مساجد مسجلة بحسابك حالياً. يرجى إضافة مسجدك أولاً للمتابعة.</AlertDescription>
               </Alert>
             )}
@@ -456,25 +456,46 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onValueChange={(val: any) => setHasCleaningWarehouse(val)}
               className="grid grid-cols-1 sm:grid-cols-3 gap-2.5"
             >
-              <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${hasCleaningWarehouse === 'yes' ? 'border-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/40' : 'border-border hover:bg-muted/40'}`}>
+              <div
+                onClick={() => setHasCleaningWarehouse('yes')}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  hasCleaningWarehouse === 'yes'
+                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                }`}
+              >
                 <RadioGroupItem value="yes" id="wh-yes" />
-                <label htmlFor="wh-yes" className="text-xs font-bold cursor-pointer text-foreground">
+                <span className="text-xs font-bold text-foreground flex-1">
                   نعم، متوفر مستودع مخصص
-                </label>
+                </span>
               </div>
 
-              <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${hasCleaningWarehouse === 'partial' ? 'border-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/40' : 'border-border hover:bg-muted/40'}`}>
+              <div
+                onClick={() => setHasCleaningWarehouse('partial')}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  hasCleaningWarehouse === 'partial'
+                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                }`}
+              >
                 <RadioGroupItem value="partial" id="wh-partial" />
-                <label htmlFor="wh-partial" className="text-xs font-bold cursor-pointer text-foreground">
+                <span className="text-xs font-bold text-foreground flex-1">
                   جزئياً (غرفة أو خزانة مغلقة)
-                </label>
+                </span>
               </div>
 
-              <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${hasCleaningWarehouse === 'no' ? 'border-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/40' : 'border-border hover:bg-muted/40'}`}>
+              <div
+                onClick={() => setHasCleaningWarehouse('no')}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  hasCleaningWarehouse === 'no'
+                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                }`}
+              >
                 <RadioGroupItem value="no" id="wh-no" />
-                <label htmlFor="wh-no" className="text-xs font-bold cursor-pointer text-foreground">
+                <span className="text-xs font-bold text-foreground flex-1">
                   لا يتوفر مستودع حالياً
-                </label>
+                </span>
               </div>
             </RadioGroup>
 
@@ -502,18 +523,32 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onValueChange={(val: any) => setHasOperationalPlan(val)}
               className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
             >
-              <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${hasOperationalPlan === 'yes' ? 'border-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/40' : 'border-border hover:bg-muted/40'}`}>
+              <div
+                onClick={() => setHasOperationalPlan('yes')}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  hasOperationalPlan === 'yes'
+                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                }`}
+              >
                 <RadioGroupItem value="yes" id="plan-yes" />
-                <label htmlFor="plan-yes" className="text-xs font-bold cursor-pointer text-foreground">
+                <span className="text-xs font-bold text-foreground flex-1">
                   نعم، توجد خطة وجدول دوري معتمد
-                </label>
+                </span>
               </div>
 
-              <div className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 ${hasOperationalPlan === 'no' ? 'border-cyan-600 bg-cyan-50/60 dark:bg-cyan-950/40' : 'border-border hover:bg-muted/40'}`}>
+              <div
+                onClick={() => setHasOperationalPlan('no')}
+                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
+                  hasOperationalPlan === 'no'
+                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                }`}
+              >
                 <RadioGroupItem value="no" id="plan-no" />
-                <label htmlFor="plan-no" className="text-xs font-bold cursor-pointer text-foreground">
+                <span className="text-xs font-bold text-foreground flex-1">
                   لا توجد خطة محددة حالياً
-                </label>
+                </span>
               </div>
             </RadioGroup>
 
