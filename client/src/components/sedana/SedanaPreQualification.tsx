@@ -541,7 +541,8 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onValueChange={(val: any) => setHasCleaningWarehouse(val)}
               className="grid grid-cols-1 sm:grid-cols-3 gap-2.5"
             >
-              <div
+              <label
+                htmlFor="wh-yes"
                 onClick={() => setHasCleaningWarehouse('yes')}
                 className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
                   hasCleaningWarehouse === 'yes'
@@ -550,12 +551,13 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 }`}
               >
                 <RadioGroupItem value="yes" id="wh-yes" />
-                <span className="text-xs font-bold text-foreground flex-1">
+                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
                   نعم، متوفر مستودع مخصص
                 </span>
-              </div>
+              </label>
 
-              <div
+              <label
+                htmlFor="wh-partial"
                 onClick={() => setHasCleaningWarehouse('partial')}
                 className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
                   hasCleaningWarehouse === 'partial'
@@ -564,12 +566,13 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 }`}
               >
                 <RadioGroupItem value="partial" id="wh-partial" />
-                <span className="text-xs font-bold text-foreground flex-1">
+                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
                   جزئياً (غرفة أو خزانة مغلقة)
                 </span>
-              </div>
+              </label>
 
-              <div
+              <label
+                htmlFor="wh-no"
                 onClick={() => setHasCleaningWarehouse('no')}
                 className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
                   hasCleaningWarehouse === 'no'
@@ -578,10 +581,10 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 }`}
               >
                 <RadioGroupItem value="no" id="wh-no" />
-                <span className="text-xs font-bold text-foreground flex-1">
+                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
                   لا يتوفر مستودع حالياً
                 </span>
-              </div>
+              </label>
             </RadioGroup>
 
             {hasCleaningWarehouse !== 'yes' && (
@@ -608,7 +611,8 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               onValueChange={(val: any) => setHasOperationalPlan(val)}
               className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
             >
-              <div
+              <label
+                htmlFor="plan-yes"
                 onClick={() => setHasOperationalPlan('yes')}
                 className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
                   hasOperationalPlan === 'yes'
@@ -617,12 +621,13 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 }`}
               >
                 <RadioGroupItem value="yes" id="plan-yes" />
-                <span className="text-xs font-bold text-foreground flex-1">
+                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
                   نعم، توجد خطة وجدول دوري معتمد
                 </span>
-              </div>
+              </label>
 
-              <div
+              <label
+                htmlFor="plan-no"
                 onClick={() => setHasOperationalPlan('no')}
                 className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
                   hasOperationalPlan === 'no'
@@ -631,10 +636,10 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 }`}
               >
                 <RadioGroupItem value="no" id="plan-no" />
-                <span className="text-xs font-bold text-foreground flex-1">
+                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
                   لا توجد خطة محددة حالياً
                 </span>
-              </div>
+              </label>
             </RadioGroup>
 
             {hasOperationalPlan === 'yes' && (
