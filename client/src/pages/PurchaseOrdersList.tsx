@@ -459,7 +459,7 @@ export default function PurchaseOrdersList() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => navigate(`/requests/${order.requestId}/purchase-order`)}
+                                onClick={() => navigate(`/requests/${order.requestId}/purchase-order?orderNumber=${encodeURIComponent(order.orderNumber)}`)}
                                 className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer px-2"
                                 title="معاينة وطباعة أمر الشراء"
                               >

@@ -35,6 +35,8 @@ import {
   AlertCircle,
   Store,
   Layers,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -72,6 +74,7 @@ export default function CreatePurchaseOrderPage() {
   // الكميات والبنود المحددة
   const [itemsQuantities, setItemsQuantities] = useState<Record<string, number>>({});
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [customItems, setCustomItems] = useState<Array<{ id: string; itemName: string; description: string; quantity: number; unit: string; unitPrice: number }>>([]);
 
   // استخراج الطلب المحدد
   const currentRequest = useMemo(() => {
@@ -156,8 +159,8 @@ export default function CreatePurchaseOrderPage() {
       utils.procurement.getAvailableRequestsForPO.invalidate();
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId: vars.requestId });
 
-      // الانتقال لمعاينة أمر الشراء
-      navigate(`/requests/${vars.requestId}/purchase-order`);
+      // الانتقال إلى قائمة أوامر الشراء ليظهر الأمر المنشأ فوراً
+      navigate("/purchase-orders");
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ أمر الشراء");
@@ -177,7 +180,7 @@ export default function CreatePurchaseOrderPage() {
       return;
     }
 
-    const itemsToSubmit = (currentSupplier.items || [])
+    const supplierItems = (currentSupplier.items || [])
       .filter((it: any) => selectedItemIds.includes(it.id))
       .map((it: any) => ({
         id: it.id,
@@ -188,6 +191,20 @@ export default function CreatePurchaseOrderPage() {
         unitPrice: it.unitPrice || 0,
         totalPrice: (itemsQuantities[it.id] ?? it.quantity ?? 1) * (it.unitPrice || 0),
       }));
+
+    const validCustomItems = customItems
+      .filter((it) => it.itemName.trim() !== "")
+      .map((it) => ({
+        id: it.id,
+        itemName: it.itemName,
+        description: it.description || "",
+        quantity: Number(it.quantity) || 1,
+        unit: it.unit || "وحدة",
+        unitPrice: Number(it.unitPrice) || 0,
+        totalPrice: (Number(it.quantity) || 1) * (Number(it.unitPrice) || 0),
+      }));
+
+    const itemsToSubmit = [...supplierItems, ...validCustomItems];
 
     if (itemsToSubmit.length === 0) {
       toast.error("يرجى تضمين صنف واحد على الأقل وتحديد كميته");
@@ -686,8 +703,121 @@ export default function CreatePurchaseOrderPage() {
                                 </tr>
                               );
                             })}
+                            {customItems.map((it, cIdx) => {
+                              const itemTotal = (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0);
+                              return (
+                                <tr key={it.id} className="bg-amber-50/20 dark:bg-amber-950/10">
+                                  <td className="p-3 text-center">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setCustomItems((prev) => prev.filter((item) => item.id !== it.id))}
+                                      className="h-7 w-7 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded"
+                                      title="حذف هذا البند"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </td>
+                                  <td className="p-3">
+                                    <Input
+                                      placeholder="اسم الصنف الجديد..."
+                                      value={it.itemName}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCustomItems((prev) =>
+                                          prev.map((item) => (item.id === it.id ? { ...item, itemName: val } : item))
+                                        );
+                                      }}
+                                      className="h-8 text-xs font-bold border-border bg-background"
+                                    />
+                                    <Input
+                                      placeholder="المواصفات أو البيان..."
+                                      value={it.description}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCustomItems((prev) =>
+                                          prev.map((item) => (item.id === it.id ? { ...item, description: val } : item))
+                                        );
+                                      }}
+                                      className="h-7 text-[11px] text-muted-foreground border-border bg-background mt-1"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Input
+                                      type="number"
+                                      min="0.01"
+                                      step="any"
+                                      value={it.quantity}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setCustomItems((prev) =>
+                                          prev.map((item) => (item.id === it.id ? { ...item, quantity: val } : item))
+                                        );
+                                      }}
+                                      className="h-8 text-xs text-center font-mono w-28 mx-auto rounded-lg border-border bg-background"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    <Input
+                                      value={it.unit}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCustomItems((prev) =>
+                                          prev.map((item) => (item.id === it.id ? { ...item, unit: val } : item))
+                                        );
+                                      }}
+                                      className="h-8 text-xs text-center font-mono w-16 mx-auto rounded-lg border-border bg-background"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-left">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="any"
+                                      value={it.unitPrice}
+                                      onChange={(e) => {
+                                        const val = parseFloat(e.target.value) || 0;
+                                        setCustomItems((prev) =>
+                                          prev.map((item) => (item.id === it.id ? { ...item, unitPrice: val } : item))
+                                        );
+                                      }}
+                                      className="h-8 text-xs text-center font-mono w-24 rounded-lg border-border bg-background"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-left font-mono font-bold text-foreground">
+                                    {itemTotal > 0 ? `${itemTotal.toLocaleString()} ر.س` : "-"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
+                      </div>
+
+                      <div className="flex justify-end pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setCustomItems((prev) => [
+                              ...prev,
+                              {
+                                id: `custom-${Date.now()}`,
+                                itemName: "",
+                                description: "",
+                                quantity: 1,
+                                unit: "وحدة",
+                                unitPrice: 0,
+                              },
+                            ]);
+                          }}
+                          className="h-8 text-xs font-bold gap-1.5 text-primary hover:bg-primary/10 border-primary/30 rounded-lg cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>إضافة بند إضافي لأمر الشراء</span>
+                        </Button>
                       </div>
                     </div>
 

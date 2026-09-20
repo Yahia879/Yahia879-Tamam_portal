@@ -116,8 +116,25 @@ export default function SedanaPurchaseOrderPrint() {
     return [];
   }, [boqResult, programData]);
 
+  // البحث عن أمر الشراء المحدد برقم الأمر إن وجد، أو الاعتماد على أمر الشراء النشط
+  const searchParams = new URLSearchParams(window.location.search);
+  const targetOrderNumber = searchParams.get("orderNumber");
+
+  const activePo = useMemo(() => {
+    const poList: any[] = Array.isArray(savedProc?.purchaseOrders) ? savedProc.purchaseOrders : [];
+    if (targetOrderNumber && poList.length > 0) {
+      const match = poList.find((p: any) => p.orderNumber === targetOrderNumber);
+      if (match) return match;
+    }
+    return savedProc?.activePurchaseOrder || (poList.length > 0 ? poList[0] : {});
+  }, [savedProc, targetOrderNumber]);
+
   // استخراج البنود المخصصة لأمر الشراء
   const poItems = useMemo(() => {
+    if (activePo?.items && Array.isArray(activePo.items) && activePo.items.length > 0) {
+      return activePo.items;
+    }
+
     const itemsAllocation = savedProc?.itemsAllocation || {};
     const filtered = allItems.filter((it: any) => itemsAllocation[it.id] === "purchase_order");
     if (filtered.length > 0) return filtered;
@@ -134,10 +151,17 @@ export default function SedanaPurchaseOrderPrint() {
 
     // في حال لم يتم التوزيع بعد، عرض البنود المسجلة
     return allItems;
-  }, [allItems, savedProc]);
+  }, [allItems, savedProc, activePo]);
 
   // اسم المورد الموجه إليه أمر الشراء
   const poSupplierName = useMemo(() => {
+    if (activePo?.directedTo && activePo.directedTo.trim() !== "") {
+      return activePo.directedTo;
+    }
+    if (activePo?.supplierName && activePo.supplierName.trim() !== "") {
+      return activePo.supplierName;
+    }
+
     const suppliersAllocation = savedProc?.suppliersAllocation || {};
     const itemSupplierMap = savedProc?.itemSupplierMap || {};
     const poSupplierNames = new Set<string>();
@@ -159,26 +183,22 @@ export default function SedanaPurchaseOrderPrint() {
       return Array.from(poSupplierNames).join("، ");
     }
 
-    return savedProc?.activePurchaseOrder?.directedTo || "المورد المعتمد";
-  }, [poItems, savedProc]);
+    return "المورد المعتمد";
+  }, [poItems, savedProc, activePo]);
 
   // إعداد بيانات أمر الشراء
   const execSignatory = signatoriesData.find((s: any) => s.roleTitle?.includes("تنفيذي") || s.roleTitle?.includes("مدير")) || signatoriesData[0];
-  const activePo = savedProc?.activePurchaseOrder || {};
 
-  let orderNum = activePo.orderNumber;
-  if (!orderNum || orderNum.startsWith(`PO-${requestId}-`) || orderNum === `PO-87-2026`) {
-    orderNum = `PO-1-${new Date().getFullYear()}`;
-  }
+  const orderNum = activePo?.orderNumber || `PO-${requestId}-${new Date().getFullYear()}`;
 
   const poData = {
     orderNumber: orderNum,
-    orderDate: activePo.orderDate || new Date().toISOString().split("T")[0],
-    requesterRole: activePo.requesterRole || "طالب الشراء / إدارة المشاريع",
-    requesterName: activePo.requesterName || user?.name || "طالب الشراء",
-    approverRole: activePo.approverRole || execSignatory?.roleTitle || "المدير التنفيذي",
-    approverName: activePo.approverName || execSignatory?.name || "م. عبدالهادي آل فائق",
-    approverSignatureUrl: activePo.approverSignatureUrl || execSignatory?.signatureUrl || "",
+    orderDate: activePo?.orderDate || new Date().toISOString().split("T")[0],
+    requesterRole: activePo?.requesterRole || "طالب الشراء / إدارة المشاريع",
+    requesterName: activePo?.requesterName || user?.name || "طالب الشراء",
+    approverRole: activePo?.approverRole || execSignatory?.roleTitle || "المدير التنفيذي",
+    approverName: activePo?.approverName || execSignatory?.name || "م. عبدالهادي آل فائق",
+    approverSignatureUrl: activePo?.approverSignatureUrl || execSignatory?.signatureUrl || "",
   };
 
   const handlePrint = () => {
@@ -189,7 +209,7 @@ export default function SedanaPurchaseOrderPrint() {
     if (window.history.length > 1) {
       window.history.back();
     } else {
-      setLocation(`/requests/${requestId}/procurement`);
+      setLocation("/purchase-orders");
     }
   };
 
