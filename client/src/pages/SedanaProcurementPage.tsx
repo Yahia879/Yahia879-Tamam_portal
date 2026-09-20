@@ -183,7 +183,7 @@ export default function SedanaProcurementPage() {
       return bItems.map((it: any, idx: number) => ({
         id: String(it.id || idx + 1),
         itemName: it.name || `بند ${idx + 1}`,
-        description: it.description || it.itemDescription || it.spec || it.notes || (it.frequency ? `دورية التوريد: ${it.frequency}` : "") || it.category || "",
+        description: it.description || it.itemDescription || it.spec || it.notes || "",
         quantity: parseFloat(it.quantity || "1"),
         unit: it.unit || "وحدة",
       }));
@@ -725,6 +725,12 @@ export default function SedanaProcurementPage() {
     window.print();
   };
 
+  // فتح تقرير خطاب المسؤولية المجتمعية في صفحة منفصلة
+  const handleOpenCsrLetter = () => {
+    handleSaveProcurement(false);
+    setLocation(`/requests/${requestId}/csr-letter`);
+  };
+
   const mosqueName = request?.mosque?.name || "المسجد";
   const orgName = orgSettings?.officialReportsName || orgSettings?.organizationName || "جمعية عمارة المساجد";
 
@@ -957,193 +963,11 @@ export default function SedanaProcurementPage() {
   }
 
   // =========================================================================
-  // 2. شاشة المعاينة كاملة الشاشة لخطاب المسؤولية المجتمعية
+  // 2. الانتقال لخطاب المسؤولية المجتمعية في صفحة منفصلة
   // =========================================================================
   if (fullScreenView === "csr") {
-    return (
-      <div className="min-h-screen bg-gray-100 dark:bg-slate-950 py-3 sm:py-8 print:py-0 print:bg-white text-right font-sans" dir="rtl">
-        {/* شريط التحكم العلوي المقاوم للطباعة */}
-        <div className="print:hidden w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur border-b border-border p-3 sticky top-0 z-50 shadow-xs sm:fixed sm:top-4 sm:right-4 sm:w-auto sm:bg-transparent sm:backdrop-blur-none sm:border-0 sm:p-0 sm:shadow-none">
-          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 max-w-6xl mx-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFullScreenView("none")}
-              className="h-8 sm:h-9 bg-white dark:bg-slate-800 border shadow-xs font-bold text-xs sm:text-sm gap-1.5 cursor-pointer"
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span>رجوع إلى جدول التأمين</span>
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={handlePrint}
-              className="h-8 sm:h-9 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs sm:text-sm gap-1.5 shadow-md cursor-pointer"
-            >
-              <Printer className="h-4 w-4" />
-              <span>تنزيل PDF / طباعة</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
-        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] print:min-h-0 relative flex flex-col justify-between overflow-hidden print:overflow-visible">
-          <div className="print-inner p-4 sm:p-8 print:p-0 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] print:min-h-0 leading-relaxed">
-            <div className="relative z-10 space-y-4 sm:space-y-6 print:space-y-3 flex-1">
-              {/* ترويسة الخطاب الرسمية */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-3 sm:pb-4 print:pb-2">
-                <div className="flex items-center gap-3">
-                  {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-20 print:h-14 w-auto object-contain" />
-                  ) : (
-                    <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
-                      سدانة
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-sky-900">{orgName}</h3>
-                    <p className="text-xs text-slate-500 font-medium">إدارة المسؤولية المجتمعية والشراكات • برنامج سدانة</p>
-                  </div>
-                </div>
-
-                <div className="text-xs space-y-1 text-left font-mono">
-                  <div><span className="text-slate-500">الرقم: </span><strong>{csrData.letterNumber}</strong></div>
-                  <div><span className="text-slate-500">التاريخ: </span><strong>{csrData.letterDate}</strong></div>
-                  <div><span className="text-slate-500">رقم الطلب: </span><strong>#{request?.requestNumber || requestId}</strong></div>
-                </div>
-              </div>
-
-              {/* المخاطبة: السادة / ... المحترمون */}
-              <div className="pt-2 text-sm sm:text-base font-bold text-slate-900">
-                <span>{csrData.salutation} / </span>
-                <span className="border-b-2 border-dotted border-slate-400 px-2 text-sky-900 font-bold">
-                  {csrData.recipientName || "الجهة المانحة / الشريك المجتمعية"}
-                </span>
-                <span className="mr-3">{csrData.honorific}</span>
-              </div>
-
-              {/* الديباجة الحرفية المعتمدة */}
-              <div className="text-xs sm:text-sm text-slate-800 leading-loose space-y-2">
-                <p className="font-bold text-slate-900">السلام عليكم ورحمة الله وبركاته،،،</p>
-                <p>
-                  تجدون برفقه البنود المراد تأمينها لمشروع <strong>({csrData.projectName || `مشروع جامع ${mosqueName}`})</strong>، وحيث إنكم من الجهات الحريصة على بذل الخير وخدمة المجتمع، عليه نرفع لكم المتطلبات التي يحتاجها المشروع:
-                </p>
-              </div>
-
-              {/* جدول الأصناف المرفقة */}
-              <div>
-                <table className="w-full border-collapse border border-slate-300 text-xs text-right">
-                  <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
-                    <tr>
-                      <th className="p-2 border-l border-slate-300 text-center w-12">م</th>
-                      <th className="p-2 border-l border-slate-300">الصنف والبيان</th>
-                      <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
-                      <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
-                      <th className="p-2 text-center w-20">الوحدة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-300">
-                    {csrItems.length > 0 ? (
-                      csrItems.map((it: any, idx: number) => (
-                        <tr key={it.id} className="h-9">
-                          <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
-                          <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
-                          <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
-                          <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
-                          <td className="p-2 text-center text-slate-700">{it.unit}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
-                          لم يتم تخصيص أي بنود للمسؤولية المجتمعية حتى الآن. يرجى الرجوع لجدول التأمين وتحديد البنود المطلوبة.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* عبارة الختام */}
-              <div className="pt-2 sm:pt-3 text-xs sm:text-sm font-bold text-slate-900">
-                <p>وتقبلوا وافر التحية والتقدير،،،</p>
-              </div>
-
-              {/* خانة التوقيع والاعتماد الرسمي */}
-              <div className="pt-6 sm:pt-8 flex justify-center break-inside-avoid">
-                <div className="w-64 text-center space-y-2">
-                  <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
-                  <div className="h-12 sm:h-14 flex items-center justify-center">
-                    <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
-                  </div>
-                  <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* تذييل الخطاب */}
-            <div className="mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
-              <span>{orgName} - سدانة</span>
-              <span>صفحة 1 من 1</span>
-            </div>
-          </div>
-        </div>
-
-        <style>{`
-          @media print {
-            @page {
-              size: A4 portrait;
-              margin: 8mm 10mm !important;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-sizing: border-box !important;
-            }
-            html, body {
-              background-color: white !important;
-              color: #0f172a !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              width: 100% !important;
-              height: 100% !important;
-              overflow: visible !important;
-            }
-            .print\\:hidden, header, nav, aside {
-              display: none !important;
-            }
-            .min-h-screen {
-              background-color: white !important;
-              padding: 0 !important;
-              min-height: 0 !important;
-              height: auto !important;
-            }
-            .print-container {
-              width: 100% !important;
-              max-width: 100% !important;
-              box-shadow: none !important;
-              padding: 0 !important;
-              margin: 0 !important;
-              min-height: auto !important;
-              height: 100% !important;
-              overflow: visible !important;
-              page-break-after: avoid !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            .print-inner {
-              padding: 0 !important;
-              min-height: auto !important;
-              height: 100% !important;
-            }
-            tr, table, .break-inside-avoid {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-          }
-        `}</style>
-      </div>
-    );
+    setLocation(`/requests/${requestId}/csr-letter`);
+    return null;
   }
 
   // =========================================================================
@@ -1630,9 +1454,9 @@ export default function SedanaProcurementPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setFullScreenView("csr")}
+                  onClick={handleOpenCsrLetter}
                   disabled={csrItems.length === 0}
-                  className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted"
+                  className="w-full h-8 text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
                 >
                   <Eye className="w-3.5 h-3.5 text-teal-600" />
                   معاينة وطباعة الخطاب الرسمي
