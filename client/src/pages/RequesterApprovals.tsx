@@ -2184,14 +2184,6 @@ export default function RequesterApprovals() {
           const isPending = inq.status === 'pending';
           const isApproved = inq.status === 'approved';
 
-          // البرامج الفعالة البديلة المقترحة (باستثناء سدانة)
-          const alternativePrograms = (activePrograms as any[]).filter(
-            (p: any) => p.id !== 'sedana' && !p.name?.includes('سدانة')
-          );
-          const isStandardProgram = alternativePrograms.some((p: any) => p.name === redirectProgram);
-          const currentSelectValue = isStandardProgram
-            ? redirectProgram
-            : (redirectProgram ? "__custom__" : "");
 
           return (
             <DialogContent className="max-w-4xl sm:max-w-4xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
@@ -2421,22 +2413,24 @@ export default function RequesterApprovals() {
                     <div
                       onClick={() => {
                         setActionDecision("rejected");
-                        if (actionType === "enable_sedana") setActionType("reject");
+                        setActionType("reject");
                       }}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                         actionDecision === "rejected"
-                          ? "border-slate-600 bg-slate-100/80 dark:bg-slate-800/60 shadow-xs ring-1 ring-slate-500/20"
-                          : "border-border bg-card hover:border-slate-400"
+                          ? "border-rose-600 bg-rose-50/70 dark:bg-rose-950/40 shadow-xs ring-1 ring-rose-500/20"
+                          : "border-border bg-card hover:border-rose-300 dark:hover:border-rose-800"
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
-                          actionDecision === "rejected" ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300"
+                          actionDecision === "rejected" ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300 dark:border-slate-700"
                         }`}>
                           {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-foreground">
+                          <p className={`font-bold text-sm ${
+                            actionDecision === "rejected" ? "text-rose-700 dark:text-rose-400" : "text-foreground"
+                          }`}>
                             رفض الطلب مع ذكر السبب
                           </p>
                         </div>
@@ -2444,94 +2438,14 @@ export default function RequesterApprovals() {
                     </div>
                   </div>
 
-                  {/* في حالة الرفض أو التوجيه */}
-                  {actionDecision === "rejected" && (
-                    <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={actionType === "redirect_alternative" ? "default" : "outline"}
-                          className={`text-xs h-8 rounded-xl cursor-pointer ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
-                          onClick={() => setActionType("redirect_alternative")}
-                        >
-                          اقتراح خدمة بديلة
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={actionType === "reject" ? "default" : "outline"}
-                          className={`text-xs h-8 rounded-xl cursor-pointer ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
-                          onClick={() => setActionType("reject")}
-                        >
-                          اعتذار وعدم ملاءمة
-                        </Button>
-                      </div>
-
-                      {/* سلكت قائمة البرامج والخدمات البديلة */}
-                      {actionType === "redirect_alternative" && (
-                        <div className="space-y-1.5 pt-1">
-                          <Label className="text-xs font-bold text-foreground">
-                            الخدمة البديلة المقترحة:
-                          </Label>
-
-                          <Select
-                            value={currentSelectValue}
-                            onValueChange={(val) => {
-                              if (val === "__custom__") {
-                                setRedirectProgram(customRedirectProgram || "");
-                              } else {
-                                setRedirectProgram(val);
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border shadow-2xs font-semibold">
-                              <SelectValue placeholder="-- اختر الخدمة أو البرنامج --" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-60 font-['Cairo',sans-serif]">
-                              {alternativePrograms.map((prog: any) => (
-                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-2 cursor-pointer">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-bold text-foreground">{prog.name}</span>
-                                    {prog.description && (
-                                      <span className="text-muted-foreground text-[10px]">- {prog.description}</span>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                              <SelectItem value="__custom__" className="text-xs py-2 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-0.5">
-                                + خدمة أخرى...
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          {/* حقل الإدخال اليدوي عند اختيار خدمة أخرى */}
-                          {(currentSelectValue === "__custom__" || (!isStandardProgram && redirectProgram !== "")) && (
-                            <div className="pt-1">
-                              <Input
-                                placeholder="اكتب اسم الخدمة البديلة..."
-                                value={redirectProgram}
-                                onChange={(e) => {
-                                  setCustomRedirectProgram(e.target.value);
-                                  setRedirectProgram(e.target.value);
-                                }}
-                                className="text-xs h-9 rounded-xl bg-background"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* حقل تسجيل الملاحظات */}
+                  {/* حقل تسجيل الملاحظات / سبب الرفض */}
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-foreground">
-                      الملاحظات والمبررات <span className="text-cyan-600">*</span>
+                      {actionDecision === "rejected" ? "سبب الرفض" : "الملاحظات والمبررات"} <span className={actionDecision === "rejected" ? "text-rose-600" : "text-cyan-600"}>*</span>
                     </Label>
                     <Textarea
                       rows={3}
-                      placeholder="أسباب القرار أو ما تم الاتفاق عليه مع الإمام..."
+                      placeholder={actionDecision === "rejected" ? "اكتب سبب ومبررات الرفض بالتفصيل..." : "أسباب القرار أو ما تم الاتفاق عليه مع الإمام..."}
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
                       className="text-xs resize-none rounded-xl"
@@ -2559,21 +2473,21 @@ export default function RequesterApprovals() {
                   disabled={reviewSedanaInquiryMutation.isPending || !actionNotes.trim()}
                   onClick={() => {
                     if (!actionNotes.trim()) {
-                      toast.error("يرجى كتابة الملاحظات ومبررات القرار");
+                      toast.error(actionDecision === "rejected" ? "يرجى كتابة سبب الرفض" : "يرجى كتابة الملاحظات ومبررات القرار");
                       return;
                     }
                     reviewSedanaInquiryMutation.mutate({
                       id: inq.id,
                       status: actionDecision,
-                      actionType,
+                      actionType: actionDecision === "approved" ? "enable_sedana" : "reject",
                       actionNotes: actionNotes.trim(),
-                      redirectProgram: actionDecision === "rejected" && actionType === "redirect_alternative" ? redirectProgram.trim() : null,
+                      redirectProgram: null,
                     });
                   }}
                   className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
                     actionDecision === "approved"
                       ? "bg-cyan-600 hover:bg-cyan-700 text-white"
-                      : "bg-slate-700 hover:bg-slate-800 text-white"
+                      : "bg-rose-600 hover:bg-rose-700 text-white"
                   }`}
                 >
                   {reviewSedanaInquiryMutation.isPending ? (
@@ -2584,7 +2498,7 @@ export default function RequesterApprovals() {
                   ) : (
                     <>
                       {actionDecision === "approved" ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                      <span>{actionDecision === "approved" ? "اعتماد التأهيل" : "تأكيد الإجراء"}</span>
+                      <span>{actionDecision === "approved" ? "اعتماد التأهيل" : "تأكيد الرفض"}</span>
                     </>
                   )}
                 </Button>
