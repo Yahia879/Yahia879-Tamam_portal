@@ -2411,17 +2411,17 @@ export default function RequesterApprovals() {
                             قبول وتأهيل للبرنامج
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            إتاحة توقيع الاتفاقية ورفع الطلب
+                            إتاحة اكمال الطلب من المستفيد
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    {/* خيار 2: الرفض أو التوجيه لبديل */}
+                    {/* خيار 2: الرفض مع ذكر السبب */}
                     <div
                       onClick={() => {
                         setActionDecision("rejected");
-                        if (actionType === "enable_sedana") setActionType("redirect_alternative");
+                        if (actionType === "enable_sedana") setActionType("reject");
                       }}
                       className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                         actionDecision === "rejected"
@@ -2437,10 +2437,7 @@ export default function RequesterApprovals() {
                         </div>
                         <div>
                           <p className="font-bold text-sm text-foreground">
-                            توجيه لبديل أو اعتذار
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            اقتراح خدمة أخرى أو عدم الملاءمة
+                            رفض الطلب مع ذكر السبب
                           </p>
                         </div>
                       </div>
