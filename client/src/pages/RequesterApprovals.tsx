@@ -1837,7 +1837,7 @@ export default function RequesterApprovals() {
                               <TableCell>
                                 <Badge variant="outline" className={`text-[10px] font-bold ${
                                   inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                                  inq.hasCleaningWarehouse === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                                  inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200' :
                                   'bg-slate-100 text-slate-700 border-slate-300'
                                 }`}>
                                   {inq.hasCleaningWarehouse === 'yes' ? 'مستودع متوفر' :
@@ -1846,13 +1846,13 @@ export default function RequesterApprovals() {
                               </TableCell>
                               <TableCell>
                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                  isPending ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300' :
-                                  isApproved ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
-                                  'bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300'
+                                  isPending ? 'bg-cyan-50 text-cyan-800 border border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300' :
+                                  isApproved ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
+                                  'bg-slate-100 text-slate-800 border border-slate-300 dark:bg-slate-900 dark:text-slate-300'
                                 }`}>
-                                  {isPending && <Clock className="w-3.5 h-3.5 animate-pulse text-amber-600" />}
+                                  {isPending && <Clock className="w-3.5 h-3.5 animate-pulse text-cyan-600" />}
                                   {isApproved && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                                  {!isPending && !isApproved && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
+                                  {!isPending && !isApproved && <XCircle className="w-3.5 h-3.5 text-slate-500" />}
                                   <span>{isPending ? 'قيد التواصل' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه'}</span>
                                 </span>
                               </TableCell>
@@ -1896,10 +1896,10 @@ export default function RequesterApprovals() {
                               </p>
                               <p className="text-xs text-muted-foreground">{item.userName} • {item.userPhone}</p>
                             </div>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              isPending ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                              isApproved ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
-                              'bg-rose-100 text-rose-900 border border-rose-300'
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              isPending ? 'bg-cyan-50 text-cyan-800 border border-cyan-200' :
+                              isApproved ? 'bg-emerald-50 text-emerald-800 border border-emerald-300' :
+                              'bg-slate-100 text-slate-800 border border-slate-300'
                             }`}>
                               {isPending ? 'قيد التواصل' : isApproved ? 'معتمد' : 'مرفوض/موجه'}
                             </span>
@@ -1913,7 +1913,7 @@ export default function RequesterApprovals() {
                             <Button
                               size="sm"
                               onClick={() => handleOpenSedanaAction(item)}
-                              className="flex-1 h-8 text-xs font-bold gap-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white"
+                              className="flex-1 h-8 text-xs font-bold gap-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
                             >
                               <PhoneCall className="w-3.5 h-3.5" />
                               <span>{isPending ? 'التواصل واتخاذ الإجراء' : 'تفاصيل الإجراء'}</span>
@@ -2173,9 +2173,9 @@ export default function RequesterApprovals() {
                 </div>
 
                 <Badge variant="outline" className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  isPending ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                  isPending ? 'bg-cyan-50 text-cyan-800 border-cyan-200' :
                   isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
-                  'bg-rose-50 text-rose-800 border-rose-300'
+                  'bg-slate-100 text-slate-800 border-slate-300'
                 }`}>
                   {isPending ? 'قيد التواصل والمراجعة' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه لبديل'}
                 </Badge>
@@ -2260,8 +2260,8 @@ export default function RequesterApprovals() {
                         </p>
                         <Badge variant="outline" className={`text-xs font-bold mb-1.5 ${
                           inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                          inq.hasCleaningWarehouse === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-300' :
-                          'bg-rose-50 text-rose-700 border-rose-300'
+                          inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200' :
+                          'bg-slate-100 text-slate-700 border-slate-300'
                         }`}>
                           {inq.hasCleaningWarehouse === 'yes' ? 'نعم - متوفر مستودع مخصص' :
                            inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً (مكان صغير)' : 'لا يوجد مستودع'}
@@ -2346,13 +2346,13 @@ export default function RequesterApprovals() {
                       }}
                       className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                         actionDecision === "approved"
-                          ? "border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/50 shadow-sm"
-                          : "border-border bg-card hover:border-emerald-300"
+                          ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs"
+                          : "border-border bg-card hover:border-cyan-300"
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
-                          actionDecision === "approved" ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300"
+                          actionDecision === "approved" ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300"
                         }`}>
                           {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
                         </div>
@@ -2375,13 +2375,13 @@ export default function RequesterApprovals() {
                       }}
                       className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
                         actionDecision === "rejected"
-                          ? "border-rose-600 bg-rose-50/70 dark:bg-rose-950/50 shadow-sm"
-                          : "border-border bg-card hover:border-rose-300"
+                          ? "border-slate-600 bg-slate-100/80 dark:bg-slate-800/60 shadow-xs"
+                          : "border-border bg-card hover:border-slate-400"
                       }`}
                     >
                       <div className="flex items-start gap-2.5">
                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
-                          actionDecision === "rejected" ? "border-rose-600 bg-rose-600 text-white" : "border-slate-300"
+                          actionDecision === "rejected" ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300"
                         }`}>
                           {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
                         </div>
@@ -2406,7 +2406,7 @@ export default function RequesterApprovals() {
                           type="button"
                           size="sm"
                           variant={actionType === "redirect_alternative" ? "default" : "outline"}
-                          className={`text-xs h-7 rounded-lg ${actionType === "redirect_alternative" ? "bg-amber-600 hover:bg-amber-700 text-white" : ""}`}
+                          className={`text-xs h-7 rounded-lg ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
                           onClick={() => setActionType("redirect_alternative")}
                         >
                           توجيه لبديل آخر (مثل تأمين مادة محددة لمرة واحدة)
@@ -2414,8 +2414,8 @@ export default function RequesterApprovals() {
                         <Button
                           type="button"
                           size="sm"
-                          variant={actionType === "reject" ? "destructive" : "outline"}
-                          className="text-xs h-7 rounded-lg"
+                          variant={actionType === "reject" ? "default" : "outline"}
+                          className={`text-xs h-7 rounded-lg ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
                           onClick={() => setActionType("reject")}
                         >
                           عدم ملاءمة واعتذار تام
@@ -2442,7 +2442,7 @@ export default function RequesterApprovals() {
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-bold text-foreground">
-                        ملخص المكالمة ومبررات القرار <span className="text-rose-500">*</span>
+                        ملخص المكالمة ومبررات القرار <span className="text-cyan-600">*</span>
                       </Label>
                       <span className="text-[10px] text-muted-foreground">تظهر الملاحظات للإمام ولأعضاء الفريق</span>
                     </div>
@@ -2489,8 +2489,8 @@ export default function RequesterApprovals() {
                   }}
                   className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
                     actionDecision === "approved"
-                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                      : "bg-rose-600 hover:bg-rose-700 text-white"
+                      ? "bg-cyan-600 hover:bg-cyan-700 text-white"
+                      : "bg-slate-700 hover:bg-slate-800 text-white"
                   }`}
                 >
                   {reviewSedanaInquiryMutation.isPending ? (
