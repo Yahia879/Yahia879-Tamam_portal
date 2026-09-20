@@ -19,6 +19,7 @@ import {
 import { ConditionalField } from '@/components/DynamicForm/ConditionalField';
 import { SedanaRequestForm } from '@/components/sedana/SedanaRequestForm';
 import { SedanaRequestReview } from '@/components/sedana/SedanaRequestReview';
+import { SedanaPreQualification } from '@/components/sedana/SedanaPreQualification';
 import { getItemLimitForFrequency, SedanaBasketItem } from '@/components/sedana/sedanaTypes';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -270,6 +271,32 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     if (selectedService === 'bunyan' || !currentMosque) return false;
     return currentMosque.approvalStatus && currentMosque.approvalStatus !== 'approved';
   }, [selectedService, currentMosque]);
+
+  // التحقق من حالة استبيان وتأهيل سدانة للإمام
+  const {
+    data: sedanaInquiryData,
+    isLoading: isLoadingSedanaInquiry,
+    refetch: refetchSedanaInquiry,
+  } = trpc.sedanaInquiries.getMyInquiryStatus.useQuery(
+    { mosqueId: Number(formData.mosqueId) || undefined },
+    { enabled: !!user && isSedana }
+  );
+
+  const linkCompletedInquiryMutation = trpc.sedanaInquiries.linkCompletedRequest.useMutation();
+
+  // فحص هل الإمام مؤهل لبرنامج سدانة (الموظفون والإداريون يتجاوزون الاستبيان تلقائياً)
+  const isSedanaQualified = useMemo(() => {
+    if (!isSedana) return true;
+    if (user?.role !== 'service_requester') return true;
+    return Boolean(sedanaInquiryData?.status === 'approved' && !sedanaInquiryData?.completedRequestId);
+  }, [isSedana, user?.role, sedanaInquiryData]);
+
+  // تعيين المسجد تلقائياً إذا كان للمستخدم مسجد واحد فقط
+  useEffect(() => {
+    if (userMosques && userMosques.length === 1 && !formData.mosqueId) {
+      setFormData(prev => ({ ...prev, mosqueId: userMosques[0].id }));
+    }
+  }, [userMosques, formData.mosqueId]);
 
   // الحصول على إعدادات البرنامج المختار
   const selectedProgramConfig = useMemo(() => {
@@ -632,6 +659,18 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         descriptiveName: formData.descriptiveName || null,
       });
 
+      // ربط استبيان سدانة بالطلب المكتمل
+      if (selectedService === 'sedana' && sedanaInquiryData?.id && result?.requestId) {
+        try {
+          await linkCompletedInquiryMutation.mutateAsync({
+            inquiryId: sedanaInquiryData.id,
+            requestId: result.requestId,
+          });
+        } catch (linkErr) {
+          console.error("Failed to link inquiry to request:", linkErr);
+        }
+      }
+
       // إذا كان هناك ملف مختار، قم برفعه وربطه بالطلب
       if (selectedFile && result.requestId) {
         const reader = new FileReader();
@@ -756,8 +795,28 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
         </div>
       )}
 
-      {/* شريط التقدم */}
-      <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
+      {/* فحص تأهيل سدانة للمستفيد: إظهار الاستبيان الأولي إذا لم يكن مؤهلاً بعد */}
+      {isSedana && user?.role === 'service_requester' && !isSedanaQualified ? (
+        <SedanaPreQualification
+          userMosques={userMosques}
+          selectedMosqueId={Number(formData.mosqueId) || (userMosques && userMosques.length === 1 ? userMosques[0].id : undefined)}
+          onSelectMosque={(id) => setFormData(prev => ({ ...prev, mosqueId: id }))}
+          inquiryData={sedanaInquiryData}
+          isLoadingInquiry={isLoadingSedanaInquiry}
+          onInquirySubmitted={() => refetchSedanaInquiry()}
+          onProceedToFullForm={() => {
+            setCurrentStep('terms');
+          }}
+          onBackToServices={() => {
+            setSelectedService(null);
+            setCurrentStep('service-selection');
+          }}
+          userPhone={(currentUser as any)?.phone}
+        />
+      ) : (
+        <>
+          {/* شريط التقدم */}
+          <div className="mb-6 sm:mb-8 overflow-x-auto pt-2 sm:pt-4 pb-2 hide-scrollbar">
         <div className="flex items-center justify-between min-w-[320px] sm:min-w-0 px-1">
           {activeSteps.map((step, index) => (
             <React.Fragment key={step.key}>
@@ -841,6 +900,14 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">الشروط والأحكام</h2>
             </div>
+            {isSedana && (
+              <Alert className="bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-200 shadow-xs mb-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <AlertDescription className="text-xs sm:text-sm font-semibold">
+                  تم اعتماد تأهيل مسجدكم ({currentMosque?.name || ''}) لبرنامج سدانة بنجاح. يرجى قراءة الشروط وتوقيع الاتفاقية والمتابعة لتحديد سلة الاحتياجات السنوية.
+                </AlertDescription>
+              </Alert>
+            )}
             <Alert className={isSedana ? "bg-cyan-50/80 border-cyan-200 text-cyan-900 dark:bg-cyan-950/30 dark:border-cyan-800 dark:text-cyan-200" : "bg-primary/5 border-primary/20"}>
               <AlertCircle className={`h-4 w-4 ${isSedana ? "text-cyan-600 dark:text-cyan-400" : "text-primary"}`} />
               <AlertDescription className="text-xs sm:text-sm">يرجى قراءة الشروط والأحكام بعناية قبل المتابعة</AlertDescription>
@@ -1530,6 +1597,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
           )}
         </div>
       </Card>
+        </>
+      )}
     </div>
 
       {/* نافذة معاينة الصور الفاخرة (Lightbox Modal) تماماً كما في صفحة الموردين */}
