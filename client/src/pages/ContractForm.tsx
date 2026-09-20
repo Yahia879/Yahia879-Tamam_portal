@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -385,18 +385,99 @@ export default function ContractForm() {
     { enabled: !!effectiveRequestId }
   );
 
-  // استخراج كافة عروض الأسعار المعتمدة للطلب
-  const allApprovedQuotations = Array.isArray((approvedQuotation as any)?.quotations)
-    ? (approvedQuotation as any).quotations.filter((q: any) => q.status === "accepted" || q.status === "approved")
-    : [];
-
-  const isMultiVendorSedana = allApprovedQuotations.length > 1;
-
-  // جلب تفاصيل الطلب للحصول على المشروع المرتبط
+  // جلب تفاصيل الطلب للحصول على المشروع المرتبط وبيانات التخصيص
   const { data: requestDetails, isLoading: isLoadingRequest } = trpc.requests.getById.useQuery(
     { id: effectiveRequestId! },
     { enabled: !!effectiveRequestId }
   );
+
+  // استخراج كافة عروض الأسعار المعتمدة للطلب في الأصل
+  const rawApprovedQuotations = useMemo(() => {
+    return Array.isArray((approvedQuotation as any)?.quotations)
+      ? (approvedQuotation as any).quotations.filter((q: any) => q.status === "accepted" || q.status === "approved")
+      : [];
+  }, [approvedQuotation]);
+
+  // استخراج بيانات التخصيص من جدول تأمين سدانة إن وجدت
+  const sedanaProcurementData = useMemo(() => {
+    let pData = (requestDetails as any)?.programData;
+    if (typeof pData === "string") {
+      try {
+        pData = JSON.parse(pData);
+      } catch {
+        pData = {};
+      }
+    }
+    return pData?.sedanaProcurement || null;
+  }, [requestDetails]);
+
+  // فلترة عروض الأسعار المعتمدة بحيث تشمل فقط الموردين المحددين لمسار "العقد" في جدول التأمين
+  const allApprovedQuotations = useMemo(() => {
+    if (!sedanaProcurementData) {
+      return rawApprovedQuotations;
+    }
+
+    const suppliersAlloc = sedanaProcurementData.suppliersAllocation || {};
+    const itemsAlloc = sedanaProcurementData.itemsAllocation || {};
+    const hasSupplierAlloc = Object.keys(suppliersAlloc).length > 0;
+    const hasItemAlloc = Object.keys(itemsAlloc).length > 0;
+
+    if (!hasSupplierAlloc && !hasItemAlloc) {
+      return rawApprovedQuotations;
+    }
+
+    return rawApprovedQuotations.filter((q: any) => {
+      // 1. فحص التخصيص المباشر للمورد أو عرض السعر في suppliersAllocation
+      const keysToCheck = [
+        `quo_${q.id}`,
+        String(q.id),
+        `quo_${q.quotationNumber}`,
+        `sup_${q.supplierId}`,
+        String(q.supplierId),
+      ];
+
+      for (const k of keysToCheck) {
+        if (suppliersAlloc[k] !== undefined) {
+          return suppliersAlloc[k] === "contract";
+        }
+      }
+
+      // فحص حسب اسم المورد إن وجد في مفاتيح التخصيص
+      if (q.supplierName) {
+        for (const [sKey, method] of Object.entries(suppliersAlloc)) {
+          if (sKey === `award_${q.supplierName}` || sKey.includes(q.supplierName)) {
+            return method === "contract";
+          }
+        }
+      }
+
+      // 2. فحص تخصيص بنود عرض السعر في itemsAllocation
+      if (hasItemAlloc) {
+        let qItems: any[] = [];
+        if (Array.isArray(q.items)) qItems = q.items;
+        else if (typeof q.items === "string") {
+          try { qItems = JSON.parse(q.items); } catch {}
+        }
+
+        if (qItems.length > 0) {
+          const hasContractItem = qItems.some((it: any) => {
+            const itId = String(it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id);
+            return itemsAlloc[itId] === "contract";
+          });
+          const hasOtherItem = qItems.some((it: any) => {
+            const itId = String(it.boqItemId ?? it.boq_item_id ?? it.itemId ?? it.id);
+            return itemsAlloc[itId] === "purchase_order" || itemsAlloc[itId] === "csr_letter";
+          });
+          if (hasContractItem) return true;
+          if (hasOtherItem) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [rawApprovedQuotations, sedanaProcurementData]);
+
+  const isMultiVendorSedana = rawApprovedQuotations.length > 1;
 
   // تحديد معرف المشروع المرتبط للحصول على التفاصيل المالية للأجور الإدارية
   const targetProjectId = contractData.projectId || projectDetails?.id || requestDetails?.project?.id;
@@ -779,7 +860,7 @@ export default function ContractForm() {
       const progTitle = isSedana ? 'نظافة وتشغيل' : 'توريد وخدمات';
 
       if (!updatedSubject || updatedSubject.includes("مسجد") || updatedSubject.startsWith("عقد ")) {
-        if (allApprovedQuotations.length > 1 && supplierName) {
+        if ((allApprovedQuotations.length > 1 || rawApprovedQuotations.length > 1) && supplierName) {
           updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName} - (${supplierName})`;
         } else if (mosqueName) {
           updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName}`;
@@ -819,7 +900,7 @@ export default function ContractForm() {
         }
       }
 
-      if (!contractData.supplierId) {
+      if (!contractData.supplierId || !allApprovedQuotations.some((q: any) => q.supplierId === contractData.supplierId)) {
         const uncontractedQ = allApprovedQuotations.find((q: any) => 
           !requestContractsList.some((c: any) => c.supplierId === q.supplierId)
         );
@@ -1356,7 +1437,7 @@ export default function ContractForm() {
                       ? <>{contractData.totalValue.toLocaleString('ar-SA')} <SaudiRiyal className="w-3.5 h-3.5 inline" /></>
                       : "لم يتم التحديد"}
                   </p>
-                  {allApprovedQuotations.length > 1 && (
+                  {(allApprovedQuotations.length > 1 || rawApprovedQuotations.length > 1) && (
                     <span className="block text-[11px] text-muted-foreground font-medium">
                       (خاص بالمورد المحدد من إجمالي الطلب)
                     </span>
@@ -1379,7 +1460,7 @@ export default function ContractForm() {
         )}
 
         {/* بطاقة اختيار المورد لعقود سدانة متعددة الموردين */}
-        {effectiveRequestId && allApprovedQuotations.length > 1 && (
+        {effectiveRequestId && allApprovedQuotations.length > 0 && (rawApprovedQuotations.length > 1 || allApprovedQuotations.length > 1 || !!sedanaProcurementData) && (
           <Card className="border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50/70 via-slate-50/50 to-teal-50/60 dark:from-emerald-950/20 dark:to-slate-900/40 shadow-sm overflow-hidden">
             <CardHeader className="pb-3 border-b border-emerald-100 dark:border-emerald-900/40">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1391,11 +1472,13 @@ export default function ContractForm() {
                     <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
                       عروض الأسعار المعتمدة للطلب (عقود سدانة للموردين)
                       <Badge variant="outline" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-xs">
-                        {allApprovedQuotations.length} موردين معتمدين
+                        {allApprovedQuotations.length === 1 ? "مورد واحد معتمد للعقد" : `${allApprovedQuotations.length} موردين معتمدين للعقود`}
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-xs">
-                      تمت ترسية بنود هذا الطلب على عدة موردين. يجب إنشاء عقد مستقل لكل مورد بقيمة البنود المعتمدة له.
+                      {allApprovedQuotations.length > 1
+                        ? "تمت ترسية بنود هذا الطلب لمسار العقود على عدة موردين. يجب إنشاء عقد مستقل لكل مورد بقيمة البنود المعتمدة له."
+                        : "المورد المعتمد لمسار عقود التوريد والخدمات وفقاً لجدول تأمين الطلب."}
                     </CardDescription>
                   </div>
                 </div>
