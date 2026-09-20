@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -536,56 +535,40 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">2</span>
               <span>هل يتوفر مستودع أو مكان مخصص لحفظ وتخزين مواد وأدوات النظافة بالمسجد؟ *</span>
             </Label>
-            <RadioGroup
-              value={hasCleaningWarehouse}
-              onValueChange={(val: any) => setHasCleaningWarehouse(val)}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-2.5"
-            >
-              <label
-                htmlFor="wh-yes"
-                onClick={() => setHasCleaningWarehouse('yes')}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
-                  hasCleaningWarehouse === 'yes'
-                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
-                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
-                }`}
-              >
-                <RadioGroupItem value="yes" id="wh-yes" />
-                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
-                  نعم، متوفر مستودع مخصص
-                </span>
-              </label>
-
-              <label
-                htmlFor="wh-partial"
-                onClick={() => setHasCleaningWarehouse('partial')}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
-                  hasCleaningWarehouse === 'partial'
-                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
-                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
-                }`}
-              >
-                <RadioGroupItem value="partial" id="wh-partial" />
-                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
-                  جزئياً (غرفة أو خزانة مغلقة)
-                </span>
-              </label>
-
-              <label
-                htmlFor="wh-no"
-                onClick={() => setHasCleaningWarehouse('no')}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
-                  hasCleaningWarehouse === 'no'
-                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
-                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
-                }`}
-              >
-                <RadioGroupItem value="no" id="wh-no" />
-                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
-                  لا يتوفر مستودع حالياً
-                </span>
-              </label>
-            </RadioGroup>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {[
+                { value: 'yes' as const, label: 'نعم، متوفر مستودع مخصص' },
+                { value: 'partial' as const, label: 'جزئياً (غرفة أو خزانة مغلقة)' },
+                { value: 'no' as const, label: 'لا يتوفر مستودع حالياً' },
+              ].map((opt) => {
+                const isSelected = hasCleaningWarehouse === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setHasCleaningWarehouse(opt.value)}
+                    className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
+                      isSelected
+                        ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                        : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? 'border-cyan-600 bg-background'
+                          : 'border-muted-foreground/40 bg-background'
+                      }`}
+                    >
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-cyan-600" />}
+                    </div>
+                    <span className="text-xs font-bold text-foreground flex-1">
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
             {hasCleaningWarehouse !== 'yes' && (
               <div className="pt-1">
@@ -606,41 +589,39 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               <span className="w-5 h-5 rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200 text-xs flex items-center justify-center font-bold">3</span>
               <span>هل توجد خطة تشغيلية أو جدول دوري لنظافة وصيانة المسجد (سنوية/شهرية)؟ *</span>
             </Label>
-            <RadioGroup
-              value={hasOperationalPlan}
-              onValueChange={(val: any) => setHasOperationalPlan(val)}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-2.5"
-            >
-              <label
-                htmlFor="plan-yes"
-                onClick={() => setHasOperationalPlan('yes')}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
-                  hasOperationalPlan === 'yes'
-                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
-                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
-                }`}
-              >
-                <RadioGroupItem value="yes" id="plan-yes" />
-                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
-                  نعم، توجد خطة وجدول دوري معتمد
-                </span>
-              </label>
-
-              <label
-                htmlFor="plan-no"
-                onClick={() => setHasOperationalPlan('no')}
-                className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none ${
-                  hasOperationalPlan === 'no'
-                    ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
-                    : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
-                }`}
-              >
-                <RadioGroupItem value="no" id="plan-no" />
-                <span className="text-xs font-bold text-foreground flex-1 cursor-pointer">
-                  لا توجد خطة محددة حالياً
-                </span>
-              </label>
-            </RadioGroup>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {[
+                { value: 'yes' as const, label: 'نعم، توجد خطة وجدول دوري معتمد' },
+                { value: 'no' as const, label: 'لا توجد خطة محددة حالياً' },
+              ].map((opt) => {
+                const isSelected = hasOperationalPlan === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setHasOperationalPlan(opt.value)}
+                    className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-2.5 select-none text-right w-full ${
+                      isSelected
+                        ? 'border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/40 shadow-xs ring-1 ring-cyan-500/20'
+                        : 'border-border hover:border-cyan-300 dark:hover:border-cyan-700 hover:bg-muted/40'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? 'border-cyan-600 bg-background'
+                          : 'border-muted-foreground/40 bg-background'
+                      }`}
+                    >
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-cyan-600" />}
+                    </div>
+                    <span className="text-xs font-bold text-foreground flex-1">
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
             {hasOperationalPlan === 'yes' && (
               <div className="pt-1">
