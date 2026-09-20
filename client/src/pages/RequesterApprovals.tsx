@@ -78,6 +78,8 @@ import {
   Truck,
   FileCheck,
   RefreshCw,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -180,6 +182,10 @@ export default function RequesterApprovals() {
   const [actionType, setActionType] = useState<"enable_sedana" | "redirect_alternative" | "reject">("enable_sedana");
   const [actionNotes, setActionNotes] = useState<string>("");
   const [redirectProgram, setRedirectProgram] = useState<string>("");
+  const [customRedirectProgram, setCustomRedirectProgram] = useState<string>("");
+  const [copiedPhone, setCopiedPhone] = useState(false);
+
+  const { data: activePrograms = [] } = trpc.programs.getActive.useQuery();
 
   const { data: sedanaStats = { total: 0, pending: 0, approved: 0, rejected: 0 } } = trpc.sedanaInquiries.getInquiriesStats.useQuery(undefined, {
     enabled: hasViewPermission || hasApprovePermission,
@@ -207,7 +213,10 @@ export default function RequesterApprovals() {
     setActionDecision(item.inquiry.status === "rejected" ? "rejected" : "approved");
     setActionType(item.inquiry.actionType || (item.inquiry.status === "rejected" ? "reject" : "enable_sedana"));
     setActionNotes(item.inquiry.actionNotes || "");
-    setRedirectProgram(item.inquiry.redirectProgram || "");
+    const prog = item.inquiry.redirectProgram || "";
+    setRedirectProgram(prog);
+    setCustomRedirectProgram(prog);
+    setCopiedPhone(false);
   };
 
   // فلاتر التبرعات والاستفسارات
@@ -1815,17 +1824,7 @@ export default function RequesterApprovals() {
                                   <p className="font-bold text-xs text-foreground">{item.userName}</p>
                                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                     <span dir="ltr">{item.userPhone}</span>
-                                    {waPhone && (
-                                      <a
-                                        href={`https://wa.me/${waPhone}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-emerald-600 hover:text-emerald-700"
-                                        title="محادثة واتساب"
-                                      >
-                                        <MessageCircle className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
+                                    
                                   </div>
                                 </div>
                               </TableCell>
@@ -2149,21 +2148,28 @@ export default function RequesterApprovals() {
       <Dialog open={!!selectedInquiryForAction} onOpenChange={(open) => !open && setSelectedInquiryForAction(null)}>
         {selectedInquiryForAction && (() => {
           const inq = selectedInquiryForAction.inquiry;
-          const rawPhone = selectedInquiryForAction.userPhone || "";
-          const waPhone = rawPhone.replace(/\D/g, "");
           const isPending = inq.status === 'pending';
           const isApproved = inq.status === 'approved';
 
+          // البرامج الفعالة البديلة المقترحة (باستثناء سدانة)
+          const alternativePrograms = (activePrograms as any[]).filter(
+            (p: any) => p.id !== 'sedana' && !p.name?.includes('سدانة')
+          );
+          const isStandardProgram = alternativePrograms.some((p: any) => p.name === redirectProgram);
+          const currentSelectValue = isStandardProgram
+            ? redirectProgram
+            : (redirectProgram ? "__custom__" : "");
+
           return (
-            <DialogContent className="max-w-3xl sm:max-w-3xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
+            <DialogContent className="max-w-2xl sm:max-w-2xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
               {/* رأس النافذة */}
               <div className="flex items-center justify-between pb-4 border-b border-border/60">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
-                    <Sparkles className="w-6 h-6" />
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <DialogTitle className="text-lg sm:text-xl font-black text-foreground">
+                    <DialogTitle className="text-base sm:text-lg font-black text-foreground">
                       مراجعة استبيان تأهيل برنامج سدانة
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground mt-0.5">
@@ -2173,130 +2179,166 @@ export default function RequesterApprovals() {
                 </div>
 
                 <Badge variant="outline" className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  isPending ? 'bg-cyan-50 text-cyan-800 border-cyan-200' :
-                  isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300' :
-                  'bg-slate-100 text-slate-800 border-slate-300'
+                  isPending ? 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/70 dark:text-cyan-300' :
+                  isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300' :
+                  'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                 }`}>
                   {isPending ? 'قيد التواصل والمراجعة' : isApproved ? 'معتمد ومؤهل' : 'مرفوض / موجه لبديل'}
                 </Badge>
               </div>
 
-              <div className="space-y-5 py-4">
-                {/* بطاقة معلومات الإمام وبيانات التواصل */}
-                <div className="p-4 rounded-2xl bg-muted/40 border border-border/60 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold text-xs">
+              <div className="space-y-4 py-3">
+                {/* بطاقة معلومات الإمام وبيانات التواصل بشكل واضح ومرتب وبدون تحويل لتطبيقات خارجية */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 space-y-3">
+                  {/* صف الاسم والمسجد والصفة */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0 border border-cyan-200 dark:border-cyan-800">
                         <User className="w-4 h-4" />
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-foreground flex items-center gap-2">
-                          {selectedInquiryForAction.userName}
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-foreground">
+                            {selectedInquiryForAction.userName}
+                          </p>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-md font-semibold">
                             {getRequesterTypeLabel(selectedInquiryForAction.requesterType)}
                           </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <Building2 className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                          <span>{selectedInquiryForAction.mosqueName}</span>
+                          {selectedInquiryForAction.mosqueCity && (
+                            <span className="text-muted-foreground/80">• {selectedInquiryForAction.mosqueCity}</span>
+                          )}
+                          {selectedInquiryForAction.mosqueDistrict && (
+                            <span className="text-muted-foreground/80">- {selectedInquiryForAction.mosqueDistrict}</span>
+                          )}
                         </p>
-                        <p className="text-xs text-muted-foreground">{selectedInquiryForAction.mosqueName} {selectedInquiryForAction.mosqueCity ? `(${selectedInquiryForAction.mosqueCity})` : ''}</p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {selectedInquiryForAction.userPhone && (
-                        <a
-                          href={`tel:${selectedInquiryForAction.userPhone}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold transition-colors shadow-xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>اتصال بالإمام</span>
-                        </a>
-                      )}
-                      {waPhone && (
-                        <a
-                          href={`https://wa.me/${waPhone}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>واتساب</span>
-                        </a>
-                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="text-foreground font-semibold" dir="ltr">{selectedInquiryForAction.userPhone || "غير مسجل"}</span>
+                  {/* تفاصيل الاتصال: رقم الجوال البارز مع زر النسخ + البريد الإلكتروني */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2.5 border-t border-slate-200/80 dark:border-slate-800">
+                    {/* رقم الجوال مع زر نسخ سريع */}
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+                          <Phone className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground font-medium leading-none mb-1">رقم الجوال للتواصل</p>
+                          <span className="text-xs sm:text-sm font-bold font-mono tracking-wider text-foreground select-all" dir="ltr">
+                            {selectedInquiryForAction.userPhone || "غير مسجل"}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedInquiryForAction.userPhone && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedInquiryForAction.userPhone);
+                            setCopiedPhone(true);
+                            toast.success("تم نسخ رقم الجوال بنجاح");
+                            setTimeout(() => setCopiedPhone(false), 2000);
+                          }}
+                          className="h-7 px-2.5 text-[11px] font-medium text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/80 rounded-lg gap-1 border border-cyan-200/60 dark:border-cyan-800/60 cursor-pointer shadow-2xs"
+                        >
+                          {copiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedPhone ? "تم النسخ" : "نسخ"}</span>
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="text-foreground font-semibold truncate">{selectedInquiryForAction.userEmail || "غير مسجل"}</span>
+
+                    {/* البريد الإلكتروني */}
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+                        <Mail className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground font-medium leading-none mb-1">البريد الإلكتروني</p>
+                        <p className="text-xs font-semibold text-foreground truncate select-all" title={selectedInquiryForAction.userEmail || "غير مسجل"}>
+                          {selectedInquiryForAction.userEmail || "غير مسجل"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* إجابات الاستبيان الأولي */}
-                <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-4">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <FileCheck className="w-4 h-4 text-cyan-600" />
-                    إجابات استبيان الجاهزية والاحتياج
-                  </h4>
+                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
+                      <FileCheck className="w-4 h-4 text-cyan-600" />
+                      <span>إجابات استبيان الجاهزية والاحتياج</span>
+                    </h4>
+                    <span className="text-[11px] text-muted-foreground font-medium">مقدم من الإمام</span>
+                  </div>
 
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
-                      <p className="text-xs text-muted-foreground font-semibold mb-1">
-                        1. ما الذي تحتاجونه تحديداً في المسجد من البرنامج؟
+                  <div className="space-y-2.5">
+                    {/* السؤال الأول */}
+                    <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
+                      <p className="text-[11px] font-bold text-muted-foreground mb-1.5">
+                        ١. ما الذي تحتاجونه تحديداً في المسجد من البرنامج؟
                       </p>
-                      <p className="text-sm font-bold text-foreground whitespace-pre-wrap">
+                      <p className="text-xs sm:text-sm font-semibold text-foreground whitespace-pre-wrap leading-relaxed">
                         {inq.specificNeeds || "لم يتم التحديد"}
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          2. هل لديكم مستودع لأدوات النظافة؟
+                    {/* السؤال الثاني والثالث */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1.5">
+                        <p className="text-[11px] font-bold text-muted-foreground">
+                          ٢. هل لديكم مستودع لأدوات النظافة؟
                         </p>
-                        <Badge variant="outline" className={`text-xs font-bold mb-1.5 ${
-                          inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                          inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200' :
-                          'bg-slate-100 text-slate-700 border-slate-300'
-                        }`}>
-                          {inq.hasCleaningWarehouse === 'yes' ? 'نعم - متوفر مستودع مخصص' :
-                           inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً (مكان صغير)' : 'لا يوجد مستودع'}
-                        </Badge>
+                        <div>
+                          <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                            inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
+                            inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300' :
+                            'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
+                            {inq.hasCleaningWarehouse === 'yes' ? '✓ نعم - متوفر مستودع مخصص' :
+                             inq.hasCleaningWarehouse === 'partial' ? '◐ متوفر جزئياً (مكان صغير)' : '✕ لا يوجد مستودع'}
+                          </Badge>
+                        </div>
                         {inq.warehouseDetails && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-[11px] text-muted-foreground bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-border/40 mt-1">
                             {inq.warehouseDetails}
                           </p>
                         )}
                       </div>
 
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          3. هل توجد خطة تشغيلية للمسجد؟
+                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1.5">
+                        <p className="text-[11px] font-bold text-muted-foreground">
+                          ٣. هل توجد خطة تشغيلية للمسجد؟
                         </p>
-                        <Badge variant="outline" className={`text-xs font-bold mb-1.5 ${
-                          inq.hasOperationalPlan === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                          'bg-slate-100 text-slate-700 border-slate-300'
-                        }`}>
-                          {inq.hasOperationalPlan === 'yes' ? 'نعم - توجد خطة تشغيلية' : 'لا توجد خطة حالياً'}
-                        </Badge>
+                        <div>
+                          <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                            inq.hasOperationalPlan === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
+                            'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
+                            {inq.hasOperationalPlan === 'yes' ? '✓ نعم - توجد خطة تشغيلية' : '✕ لا توجد خطة حالياً'}
+                          </Badge>
+                        </div>
                         {inq.operationalPlanDetails && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-[11px] text-muted-foreground bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-border/40 mt-1">
                             {inq.operationalPlanDetails}
                           </p>
                         )}
                       </div>
                     </div>
 
+                    {/* ملاحظات إضافية إن وجدت */}
                     {inq.additionalNotes && (
-                      <div className="p-3 rounded-xl bg-muted/30 border border-border/40">
-                        <p className="text-xs text-muted-foreground font-semibold mb-1">
-                          ملاحظات إضافية من الإمام:
+                      <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
+                        <p className="text-[11px] font-bold text-muted-foreground mb-1">
+                          ملاحظات إضافية مسجلة من الإمام:
                         </p>
-                        <p className="text-xs text-foreground">
+                        <p className="text-xs text-foreground font-medium leading-relaxed">
                           {inq.additionalNotes}
                         </p>
                       </div>
@@ -2324,8 +2366,8 @@ export default function RequesterApprovals() {
                   </div>
                 )}
 
-                {/* قسم اتخاذ القرار والمكالمة */}
-                <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
+                {/* قسم اتخاذ القرار والتوجيه بعد المكالمة */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
                   <div className="flex items-center gap-2">
                     <PhoneCall className="w-4 h-4 text-cyan-600" />
                     <h4 className="text-sm font-bold text-foreground">
@@ -2333,7 +2375,7 @@ export default function RequesterApprovals() {
                     </h4>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    بناءً على المكالمة الهاتفية مع الإمام والتأكد من الاحتياج الفعلي وجاهزية المسجد، حدد القرار المناسب:
+                    بناءً على دراسة الاحتياج والتواصل الهاتفي مع الإمام، حدد القرار والتوجيه المناسب:
                   </p>
 
                   {/* بطاقات خيارات القرار */}
@@ -2360,7 +2402,7 @@ export default function RequesterApprovals() {
                           <p className="font-bold text-xs sm:text-sm text-foreground">
                             القبول والتمكين (مؤهل للبرنامج)
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                             فتح صلاحية التقديم ليظهر للإمام زر توقيع الاتفاقية ورفع الطلب الكامل
                           </p>
                         </div>
@@ -2389,7 +2431,7 @@ export default function RequesterApprovals() {
                           <p className="font-bold text-xs sm:text-sm text-foreground">
                             الرفض أو التوجيه لبديل
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
                             المسجد غير محتاج للبرنامج السنوي، أو توجيهه لدعم بديل (تأمين لمرة واحدة مثلاً)
                           </p>
                         </div>
@@ -2406,33 +2448,75 @@ export default function RequesterApprovals() {
                           type="button"
                           size="sm"
                           variant={actionType === "redirect_alternative" ? "default" : "outline"}
-                          className={`text-xs h-7 rounded-lg ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
+                          className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
                           onClick={() => setActionType("redirect_alternative")}
                         >
-                          توجيه لبديل آخر (مثل تأمين مادة محددة لمرة واحدة)
+                          توجيه لبديل آخر (مثل برنامج أو خدمة أخرى)
                         </Button>
                         <Button
                           type="button"
                           size="sm"
                           variant={actionType === "reject" ? "default" : "outline"}
-                          className={`text-xs h-7 rounded-lg ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
+                          className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
                           onClick={() => setActionType("reject")}
                         >
                           عدم ملاءمة واعتذار تام
                         </Button>
                       </div>
 
+                      {/* سلكت قائمة البرامج والخدمات البديلة */}
                       {actionType === "redirect_alternative" && (
-                        <div className="space-y-1.5 pt-1">
-                          <Label className="text-xs font-bold text-foreground">
-                            البرنامج أو الخدمة البديلة المقترحة للإمام:
+                        <div className="space-y-2 pt-2">
+                          <Label className="text-xs font-bold text-foreground flex items-center justify-between">
+                            <span>البرنامج أو الخدمة البديلة المقترحة للإمام:</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">من قائمة برامج وخدمات المنصة</span>
                           </Label>
-                          <Input
-                            placeholder="مثال: تأمين كراتين منظفات لمرة واحدة / إحالة لقسم الصيانة الطارئة"
-                            value={redirectProgram}
-                            onChange={(e) => setRedirectProgram(e.target.value)}
-                            className="text-xs h-9"
-                          />
+
+                          <Select
+                            value={currentSelectValue}
+                            onValueChange={(val) => {
+                              if (val === "__custom__") {
+                                setRedirectProgram(customRedirectProgram || "");
+                              } else {
+                                setRedirectProgram(val);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border shadow-2xs font-semibold">
+                              <SelectValue placeholder="-- اختر البرنامج أو الخدمة البديلة --" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-64 font-['Cairo',sans-serif]">
+                              {alternativePrograms.map((prog: any) => (
+                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-2 cursor-pointer">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-foreground">{prog.name}</span>
+                                    {prog.description && (
+                                      <span className="text-muted-foreground text-[11px]">- {prog.description}</span>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                              <SelectItem value="__custom__" className="text-xs py-2 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-1">
+                                + خدمة أخرى / كتابة مخصصة...
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          {/* حقل الإدخال اليدوي إذا تم اختيار خدمة مخصصة أو كتابة إضافية */}
+                          {(currentSelectValue === "__custom__" || (!isStandardProgram && redirectProgram !== "")) && (
+                            <div className="pt-1 space-y-1">
+                              <Input
+                                placeholder="اكتب اسم الخدمة أو البرنامج البديل (مثال: تأمين كراتين معطرات لمرة واحدة)..."
+                                value={redirectProgram}
+                                onChange={(e) => {
+                                  setCustomRedirectProgram(e.target.value);
+                                  setRedirectProgram(e.target.value);
+                                }}
+                                className="text-xs h-9 rounded-xl bg-background"
+                              />
+                              <p className="text-[10px] text-muted-foreground">سيظهر هذا المسمى البديل للإمام في لوحة التحكم وتنبيهات النظام</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2448,7 +2532,7 @@ export default function RequesterApprovals() {
                     </div>
                     <Textarea
                       rows={3}
-                      placeholder="سجل ما تم الاتفاق عليه هاتفياً مع الإمام (مثلاً: تم التواصل وتم التأكد من توافر المستودع والحاجة الماسة للبرنامج، مؤهل للتقديم)..."
+                      placeholder="سجل ما تم الاتفاق عليه هاتفياً مع الإمام (مثلاً: تم التواصل والتأكد من توافر المستودع، مؤهل للتقديم)..."
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
                       className="text-xs resize-none"
