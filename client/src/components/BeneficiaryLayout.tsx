@@ -32,11 +32,12 @@ import {
   Menu,
   X,
   ChevronLeft,
+  Sparkles,
 } from "lucide-react";
 
 interface BeneficiaryLayoutProps {
   children: React.ReactNode;
-  activeTab?: "dashboard" | "requests" | "mosques" | "new-request" | "support";
+  activeTab?: "dashboard" | "requests" | "mosques" | "new-request" | "sedana" | "support";
   title?: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
@@ -93,6 +94,13 @@ export default function BeneficiaryLayout({
       path: "/my-mosques",
     },
     {
+      id: "sedana",
+      label: "طلب سدانة",
+      icon: Sparkles,
+      path: "/request-form-dynamic?service=sedana",
+      isSedana: true,
+    },
+    {
       id: "new-request",
       label: "تقديم طلب جديد",
       icon: Plus,
@@ -136,11 +144,48 @@ export default function BeneficiaryLayout({
               </Link>
             </div>
 
+            {/* Quick Sedana CTA for Tablet (visible on sm to md) */}
+            <div className="hidden sm:flex md:hidden items-center">
+              <Link href="/request-form-dynamic?service=sedana">
+                <Button
+                  size="sm"
+                  className="rounded-xl shadow-xs bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white font-bold gap-1.5 px-3 h-8 text-xs cursor-pointer border border-white/20"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-200 animate-pulse" />
+                  <span>طلب سدانة</span>
+                </Button>
+              </Link>
+            </div>
+
             {/* Desktop Navigation Bar */}
             <nav className="hidden md:flex items-center gap-1.5 bg-muted/60 dark:bg-muted/30 p-1.5 rounded-2xl border border-border/50 dark:border-border/60">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id || location === item.path;
+
+                if (item.isSedana) {
+                  const isSedanaActive =
+                    activeTab === "sedana" ||
+                    (location === "/request-form-dynamic" &&
+                      typeof window !== "undefined" &&
+                      window.location.search.includes("sedana"));
+
+                  return (
+                    <Link key={item.id} href={item.path}>
+                      <Button
+                        size="sm"
+                        className={`rounded-xl font-bold gap-1.5 px-3.5 h-9 transition-all cursor-pointer ${
+                          isSedanaActive
+                            ? "bg-cyan-700 text-white ring-2 ring-cyan-400/60 shadow-md"
+                            : "bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-xs border border-white/20 hover:shadow-md hover:scale-[1.02]"
+                        }`}
+                      >
+                        <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                        <span>{item.label}</span>
+                      </Button>
+                    </Link>
+                  );
+                }
 
                 if (item.isPrimary) {
                   return (
@@ -288,8 +333,14 @@ export default function BeneficiaryLayout({
                 </div>
               </div>
 
-              {/* Primary CTA in Drawer */}
-              <div className="px-4 py-2">
+              {/* Primary CTAs in Drawer */}
+              <div className="px-4 py-2 space-y-2">
+                <Link href="/request-form-dynamic?service=sedana" onClick={() => setMobileMenuOpen(false)}>
+                  <Button className="w-full rounded-xl shadow-md bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer border border-cyan-400/30">
+                    <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                    <span>طلب برنامج سدانة</span>
+                  </Button>
+                </Link>
                 <Link href="/request-form-dynamic" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full rounded-xl shadow-md gradient-primary text-white font-bold gap-2 h-10 hover:opacity-95 transition-all cursor-pointer">
                     <Plus className="w-4 h-4" />
@@ -301,7 +352,7 @@ export default function BeneficiaryLayout({
               {/* Navigation Links */}
               <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                 {navItems
-                  .filter((item) => !item.isPrimary)
+                  .filter((item) => !item.isPrimary && !item.isSedana)
                   .map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id || location === item.path;

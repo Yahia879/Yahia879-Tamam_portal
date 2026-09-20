@@ -107,7 +107,7 @@ const parseConditions = (conditions: any): string[] => {
 };
 
 export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ showLayout = true }) => {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useAuth();
   const { data: orgSettings } = trpc.organization.getSettings.useQuery();
 
@@ -142,18 +142,34 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
 
   const [selectedService, setSelectedService] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search).get('service');
+      const p = new URLSearchParams(window.location.search);
+      return p.get('service') || p.get('program');
     }
     return null;
   });
   const isSedana = selectedService === 'sedana';
   const [currentStep, setCurrentStep] = useState<Step>(() => {
     if (typeof window !== 'undefined') {
-      const s = new URLSearchParams(window.location.search).get('service');
+      const p = new URLSearchParams(window.location.search);
+      const s = p.get('service') || p.get('program');
       if (s === 'sedana') return 'terms';
     }
     return 'service-selection';
   });
+
+  // مزامنة حالة الخدمة تلقائياً عند النقر على رابط طلب سدانة من الهيدر
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const s = p.get('service') || p.get('program');
+      if (s && s !== selectedService) {
+        setSelectedService(s);
+        if (s === 'sedana') {
+          setCurrentStep('terms');
+        }
+      }
+    }
+  }, [location, selectedService]);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -2117,9 +2133,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     if (user?.role === "service_requester") {
       return (
         <BeneficiaryLayout
-          activeTab="new-request"
-          title="تقديم طلب خدمة جديد"
-          subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"
+          activeTab={isSedana ? "sedana" : "new-request"}
+          title={isSedana ? "طلب برنامج سدانة للعناية بالمساجد" : "تقديم طلب خدمة جديد"}
+          subtitle={isSedana ? "برنامج العناية الشاملة بالمساجد وتأمين المستلزمات والصيانة الدورية" : "قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"}
           backUrl="/requester"
           backLabel="العودة للرئيسية"
         >
@@ -2146,9 +2162,9 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
   if (user?.role === "service_requester") {
     return (
       <BeneficiaryLayout
-        activeTab="new-request"
-        title="تقديم طلب خدمة جديد"
-        subtitle="قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"
+        activeTab={isSedana ? "sedana" : "new-request"}
+        title={isSedana ? "طلب برنامج سدانة للعناية بالمساجد" : "تقديم طلب خدمة جديد"}
+        subtitle={isSedana ? "برنامج العناية الشاملة بالمساجد وتأمين المستلزمات والصيانة الدورية" : "قم باختيار نوع الخدمة وتعبئة البيانات المطلوبة لتقديم طلبك للجمعية"}
         backUrl="/requester"
         backLabel="العودة للرئيسية"
       >
