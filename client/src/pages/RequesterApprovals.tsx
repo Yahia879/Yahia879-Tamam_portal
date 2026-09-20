@@ -605,7 +605,7 @@ export default function RequesterApprovals() {
                 className="gap-2 px-3.5 sm:px-6 py-2.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-xs text-xs font-bold transition-all rounded-xl shrink-0"
               >
                 <Sparkles className="h-4 w-4 text-cyan-600" />
-                <span>استفسارات وتأهيل سدانة</span>
+                <span>طلبات برنامج سدانة</span>
                 {sedanaStats.pending > 0 && (
                   <span className="bg-cyan-600 text-white font-black text-[10px] px-1.5 py-0.2 rounded-full">
                     {sedanaStats.pending}
@@ -1708,7 +1708,7 @@ export default function RequesterApprovals() {
           </Card>
         )}
 
-        {/* 5. تبويب استفسارات وتأهيل سدانة */}
+        {/* 5. تبويب طلبات برنامج سدانة */}
         {activeTab === 'sedana_inquiries' && (
           <Card className="border border-border/70 shadow-xs rounded-3xl overflow-hidden">
             <CardHeader className="p-4 sm:p-6 pb-4 border-b border-border/60">
@@ -1716,10 +1716,10 @@ export default function RequesterApprovals() {
                 <div>
                   <CardTitle className="text-base sm:text-lg font-black text-foreground flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-cyan-600" />
-                    استفسارات وتأهيل طلبات برنامج سدانة
+                    طلبات برنامج سدانة
                   </CardTitle>
                   <CardDescription className="text-xs sm:text-sm mt-0.5">
-                    مراجعة استبيانات الأئمة الأولية والتواصل الهاتفي لاتخاذ إجراء القبول والتمكين أو التوجيه لبديل
+                    مراجعة استبيانات وطلبات برنامج سدانة والتواصل لاتخاذ إجراء القبول والتمكين أو التوجيه لبديل
                   </CardDescription>
                 </div>
 
@@ -1763,16 +1763,16 @@ export default function RequesterApprovals() {
               {isLoadingSedanaInquiries ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center">
                   <Loader2 className="h-8 w-8 animate-spin text-cyan-600 mb-2" />
-                  <p className="text-xs font-bold text-muted-foreground">جاري تحميل استفسارات سدانة...</p>
+                  <p className="text-xs font-bold text-muted-foreground">جاري تحميل طلبات سدانة...</p>
                 </div>
               ) : sedanaInquiriesList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center space-y-2">
                   <div className="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 flex items-center justify-center mb-1">
                     <Sparkles className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-bold text-foreground">لا توجد استفسارات مطابقة</p>
+                  <p className="text-sm font-bold text-foreground">لا توجد طلبات مطابقة</p>
                   <p className="text-xs text-muted-foreground max-w-sm">
-                    {sedanaStatusFilter !== 'all' || sedanaSearch ? 'جرّب تغيير خيارات البحث والفلترة لعرض نتائج أخرى.' : 'لم يتم تقديم أي استبيان تأهيل لبرنامج سدانة حتى الآن.'}
+                    {sedanaStatusFilter !== 'all' || sedanaSearch ? 'جرّب تغيير خيارات البحث والفلترة لعرض نتائج أخرى.' : 'لم يتم تقديم أي طلب لبرنامج سدانة حتى الآن.'}
                   </p>
                 </div>
               ) : (
@@ -1789,14 +1789,15 @@ export default function RequesterApprovals() {
                           <TableHead className="text-right text-[11px] font-bold text-muted-foreground">الاحتياج المحدد</TableHead>
                           <TableHead className="text-right text-[11px] font-bold text-muted-foreground">جاهزية المستودع</TableHead>
                           <TableHead className="text-right text-[11px] font-bold text-muted-foreground">الحالة</TableHead>
-                          <TableHead className="text-left text-[11px] font-bold text-muted-foreground pl-6">الإجراء</TableHead>
+                          <TableHead className="text-left text-[11px] font-bold text-muted-foreground pl-6">الإجراءات</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y">
                         {sedanaInquiriesList.map((item: any, idx: number) => {
                           const inq = item.inquiry;
                           const rawPhone = item.userPhone || "";
-                          const waPhone = rawPhone.replace(/\D/g, "");
+                          const cleanPhone = rawPhone.replace(/\D/g, "");
+                          const waPhone = cleanPhone.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
                           const isPending = inq.status === 'pending';
                           const isApproved = inq.status === 'approved';
 
@@ -1824,7 +1825,6 @@ export default function RequesterApprovals() {
                                   <p className="font-bold text-xs text-foreground">{item.userName}</p>
                                   <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                     <span dir="ltr">{item.userPhone}</span>
-                                    
                                   </div>
                                 </div>
                               </TableCell>
@@ -1856,18 +1856,39 @@ export default function RequesterApprovals() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-left pl-6">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleOpenSedanaAction(item)}
-                                  className={`h-8 text-xs font-bold gap-1.5 rounded-xl shadow-xs cursor-pointer ${
-                                    isPending
-                                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                                      : 'bg-muted hover:bg-muted/80 text-foreground border border-border'
-                                  }`}
-                                >
-                                  <PhoneCall className="w-3.5 h-3.5" />
-                                  <span>{isPending ? 'التواصل واتخاذ الإجراء' : 'تفاصيل الإجراء'}</span>
-                                </Button>
+                                <div className="flex items-center justify-end gap-2">
+                                  {waPhone && (
+                                    <a 
+                                      href={`https://wa.me/${waPhone}`} 
+                                      target="_blank" 
+                                      rel="noreferrer"
+                                      className="p-1.5 rounded-xl text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                                      title="محادثة واتساب"
+                                    >
+                                      <MessageCircle className="w-4 h-4" />
+                                    </a>
+                                  )}
+
+                                  {item.userEmail && (
+                                    <a 
+                                      href={`mailto:${item.userEmail}`} 
+                                      className="p-1.5 rounded-xl text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 transition-colors"
+                                      title="إرسال بريد إلكتروني"
+                                    >
+                                      <Mail className="w-4 h-4" />
+                                    </a>
+                                  )}
+
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenSedanaAction(item)}
+                                    className="h-8 text-xs font-bold gap-1 rounded-xl border-border/70 hover:border-primary"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    مراجعة الطلب
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -1883,7 +1904,8 @@ export default function RequesterApprovals() {
                       const isPending = inq.status === 'pending';
                       const isApproved = inq.status === 'approved';
                       const rawPhone = item.userPhone || "";
-                      const waPhone = rawPhone.replace(/\D/g, "");
+                      const cleanPhone = rawPhone.replace(/\D/g, "");
+                      const waPhone = cleanPhone.startsWith("05") ? `966${cleanPhone.slice(1)}` : cleanPhone;
 
                       return (
                         <div key={inq.id} className="p-4 space-y-3 bg-card">
@@ -1908,24 +1930,35 @@ export default function RequesterApprovals() {
                             <strong>الاحتياج: </strong>{inq.specificNeeds}
                           </p>
 
-                          <div className="flex items-center justify-between gap-2 pt-1">
+                          <div className="flex items-center gap-2 pt-1">
                             <Button
-                              size="sm"
+                              variant="outline"
                               onClick={() => handleOpenSedanaAction(item)}
-                              className="flex-1 h-8 text-xs font-bold gap-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white cursor-pointer"
+                              className="flex-1 h-9 text-xs font-bold gap-1.5 rounded-xl"
                             >
-                              <PhoneCall className="w-3.5 h-3.5" />
-                              <span>{isPending ? 'التواصل واتخاذ الإجراء' : 'تفاصيل الإجراء'}</span>
+                              <Eye className="w-3.5 h-3.5" />
+                              مراجعة الطلب
                             </Button>
+
                             {waPhone && (
-                              <a
-                                href={`https://wa.me/${waPhone}`}
-                                target="_blank"
+                              <a 
+                                href={`https://wa.me/${waPhone}`} 
+                                target="_blank" 
                                 rel="noreferrer"
-                                className="p-2 rounded-xl text-emerald-600 bg-emerald-50 border border-emerald-200"
+                                className="h-9 w-9 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 flex items-center justify-center shrink-0"
                                 title="محادثة واتساب"
                               >
                                 <MessageCircle className="w-4 h-4" />
+                              </a>
+                            )}
+
+                            {item.userEmail && (
+                              <a 
+                                href={`mailto:${item.userEmail}`} 
+                                className="h-9 w-9 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 flex items-center justify-center shrink-0"
+                                title="إرسال بريد إلكتروني"
+                              >
+                                <Mail className="w-4 h-4" />
                               </a>
                             )}
                           </div>
@@ -2161,169 +2194,162 @@ export default function RequesterApprovals() {
             : (redirectProgram ? "__custom__" : "");
 
           return (
-            <DialogContent className="max-w-xl sm:max-w-xl w-[95vw] sm:w-full rounded-2xl p-5 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[90vh] overflow-y-auto font-['Cairo',sans-serif]">
+            <DialogContent className="max-w-4xl sm:max-w-4xl w-[95vw] sm:w-full rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-border/80 shadow-2xl bg-card dark:bg-slate-900 max-h-[92vh] overflow-y-auto font-['Cairo',sans-serif]">
               {/* رأس النافذة */}
-              <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <DialogTitle className="text-base font-bold text-foreground">
-                      تأهيل برنامج سدانة
-                    </DialogTitle>
-                    <DialogDescription className="text-xs text-muted-foreground">
-                      {selectedInquiryForAction.mosqueName} • {new Date(inq.createdAt).toLocaleDateString("ar-SA")}
-                    </DialogDescription>
-                  </div>
+              <div className="flex items-center gap-3 sm:gap-4 text-right w-full pb-4 sm:pb-5 border-b border-border/60">
+                <div className="p-2.5 sm:p-3.5 rounded-2xl bg-cyan-500/10 text-cyan-600 border border-cyan-500/20 shrink-0">
+                  <Sparkles className="h-6 w-6 sm:h-8 sm:w-8" />
                 </div>
-
-                <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  isPending ? 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/70 dark:text-cyan-300' :
-                  isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300' :
-                  'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
-                }`}>
-                  {isPending ? 'قيد المراجعة' : isApproved ? 'معتمد' : 'مرفوض / موجه'}
-                </Badge>
+                <div className="text-right flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DialogTitle className="text-base sm:text-xl font-black text-foreground text-right m-0">
+                      طلب برنامج سدانة
+                    </DialogTitle>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold border ${
+                      isPending 
+                        ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800' 
+                        : isApproved 
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800' 
+                          : 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        isPending ? 'bg-amber-500' : isApproved ? 'bg-emerald-500' : 'bg-slate-500'
+                      }`} />
+                      {isPending ? 'قيد التواصل والمراجعة' : isApproved ? 'معتمد ومؤهل للتقديم' : 'مرفوض / موجه'}
+                    </span>
+                  </div>
+                  <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5 text-right">
+                    تاريخ التقديم: <span dir="ltr">{formatSubmissionDate(inq.createdAt)}</span>
+                  </DialogDescription>
+                </div>
               </div>
 
-              <div className="space-y-3.5 py-2">
-                {/* بطاقة معلومات الإمام والمسجد */}
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 space-y-2.5">
-                  <div className="flex items-center justify-between gap-2">
+              <div className="space-y-5 my-4 text-right">
+                {/* بيانات مقدم الطلب والتواصل */}
+                <div className="p-5 sm:p-6 rounded-3xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm sm:text-base font-black text-primary flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      بيانات مقدم الطلب والتواصل
+                    </h4>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-950/80 text-cyan-700 dark:text-cyan-300 flex items-center justify-center font-bold text-xs shrink-0">
-                        <User className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-foreground">
-                            {selectedInquiryForAction.userName}
-                          </p>
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded font-medium">
-                            {getRequesterTypeLabel(selectedInquiryForAction.requesterType)}
-                          </Badge>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Building2 className="w-3 h-3 text-cyan-600 shrink-0" />
-                          <span>{selectedInquiryForAction.mosqueName}</span>
-                          {selectedInquiryForAction.mosqueCity && (
-                            <span>• {selectedInquiryForAction.mosqueCity}</span>
-                          )}
-                        </p>
-                      </div>
+                      {selectedInquiryForAction.userPhone && (() => {
+                        const cleanP = selectedInquiryForAction.userPhone.replace(/[^0-9]/g, "");
+                        const waP = cleanP.startsWith("05") ? `966${cleanP.slice(1)}` : cleanP;
+                        return (
+                          <a 
+                            href={`https://wa.me/${waP}`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="h-8 px-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-all shadow-2xs"
+                            title="محادثة واتساب"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            واتساب
+                          </a>
+                        );
+                      })()}
+                      {selectedInquiryForAction.userEmail && (
+                        <a 
+                          href={`mailto:${selectedInquiryForAction.userEmail}`} 
+                          className="h-8 px-3.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 hover:bg-sky-100 transition-all shadow-2xs"
+                          title="إرسال بريد إلكتروني"
+                        >
+                          <Mail className="w-3.5 h-3.5" />
+                          البريد الإلكتروني
+                        </a>
+                      )}
                     </div>
                   </div>
 
-                  {/* رقم الجوال والبريد */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800 text-xs">
-                    {/* رقم الجوال */}
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                        <div>
-                          <span className="text-xs font-bold font-mono tracking-wide text-foreground select-all" dir="ltr">
-                            {selectedInquiryForAction.userPhone || "غير مسجل"}
-                          </span>
-                        </div>
-                      </div>
-                      {selectedInquiryForAction.userPhone && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(selectedInquiryForAction.userPhone);
-                            setCopiedPhone(true);
-                            toast.success("تم نسخ الرقم");
-                            setTimeout(() => setCopiedPhone(false), 2000);
-                          }}
-                          className="h-6 px-2 text-[10px] font-medium text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/80 rounded gap-1 cursor-pointer"
-                        >
-                          {copiedPhone ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedPhone ? "تم" : "نسخ"}</span>
-                        </Button>
-                      )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-xs text-muted-foreground block font-medium">الاسم الكامل:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{selectedInquiryForAction.userName}</span>
                     </div>
-
-                    {/* البريد */}
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80">
-                      <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <p className="text-xs font-semibold text-foreground truncate select-all" title={selectedInquiryForAction.userEmail || "غير مسجل"}>
-                        {selectedInquiryForAction.userEmail || "غير مسجل"}
-                      </p>
+                    <div>
+                      <span className="text-xs text-muted-foreground block font-medium">رقم الجوال:</span>
+                      <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block" dir="ltr">{selectedInquiryForAction.userPhone || "غير مسجل"}</span>
+                    </div>
+                    {selectedInquiryForAction.userEmail && (
+                      <div>
+                        <span className="text-xs text-muted-foreground block font-medium">البريد الإلكتروني:</span>
+                        <span className="text-sm sm:text-base font-bold font-mono text-foreground mt-0.5 block">{selectedInquiryForAction.userEmail}</span>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-xs text-muted-foreground block font-medium">الصفة / المنصب:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 block">{getRequesterTypeLabel(selectedInquiryForAction.requesterType)}</span>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block font-medium">المسجد المراد تقديم الطلب له:</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground mt-0.5 flex items-center gap-1.5">
+                        <Building2 className="w-4 h-4 text-cyan-600 shrink-0" />
+                        <span>{selectedInquiryForAction.mosqueName}</span>
+                        {selectedInquiryForAction.mosqueCity && (
+                          <span className="text-xs font-normal text-muted-foreground">({selectedInquiryForAction.mosqueCity})</span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* إجابات الاستبيان الأولي */}
-                <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-border/80 shadow-2xs space-y-2.5">
-                  <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <FileCheck className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>إجابات الاستبيان</span>
+                {/* نص الطلب والتفاصيل الإضافية */}
+                <div className="p-5 sm:p-6 rounded-3xl bg-muted/30 dark:bg-muted/10 border border-border/60 space-y-4">
+                  <h4 className="text-sm sm:text-base font-black text-foreground flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    نص الطلب والتفاصيل الإضافية
                   </h4>
-
-                  <div className="space-y-2">
-                    {/* السؤال الأول */}
-                    <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
-                      <p className="text-[11px] font-bold text-muted-foreground mb-1">
-                        ١. الاحتياج من البرنامج:
-                      </p>
-                      <p className="text-xs font-semibold text-foreground whitespace-pre-wrap leading-relaxed">
+                  <div className="space-y-3">
+                    <div className="bg-background/60 p-4 sm:p-5 rounded-2xl border border-border/40">
+                      <span className="text-xs text-muted-foreground block font-bold mb-1.5">تفاصيل الاحتياج والمواد المطلوبة:</span>
+                      <p className="text-sm sm:text-base text-foreground leading-relaxed whitespace-pre-wrap font-medium">
                         {inq.specificNeeds || "لم يتم التحديد"}
                       </p>
                     </div>
 
-                    {/* السؤال الثاني والثالث */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                          ٢. مستودع النظافة:
-                        </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="bg-background/60 p-4 rounded-2xl border border-border/40 space-y-1.5">
+                        <span className="text-xs text-muted-foreground block font-bold">جاهزية مستودع النظافة:</span>
                         <div>
-                          <Badge variant="outline" className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                          <Badge variant="outline" className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
                             inq.hasCleaningWarehouse === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
                             inq.hasCleaningWarehouse === 'partial' ? 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300' :
                             'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                           }`}>
-                            {inq.hasCleaningWarehouse === 'yes' ? 'متوفر مستودع' :
+                            {inq.hasCleaningWarehouse === 'yes' ? 'متوفر مستودع مخصص' :
                              inq.hasCleaningWarehouse === 'partial' ? 'متوفر جزئياً' : 'غير متوفر'}
                           </Badge>
                         </div>
                         {inq.warehouseDetails && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                             {inq.warehouseDetails}
                           </p>
                         )}
                       </div>
 
-                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50 space-y-1">
-                        <p className="text-[11px] font-bold text-muted-foreground">
-                          ٣. الخطة التشغيلية:
-                        </p>
+                      <div className="bg-background/60 p-4 rounded-2xl border border-border/40 space-y-1.5">
+                        <span className="text-xs text-muted-foreground block font-bold">الخطة التشغيلية:</span>
                         <div>
-                          <Badge variant="outline" className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                          <Badge variant="outline" className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
                             inq.hasOperationalPlan === 'yes' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300' :
                             'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300'
                           }`}>
-                            {inq.hasOperationalPlan === 'yes' ? 'توجد خطة' : 'لا توجد خطة'}
+                            {inq.hasOperationalPlan === 'yes' ? 'توجد خطة تشغيلية' : 'لا توجد خطة تشغيلية'}
                           </Badge>
                         </div>
                         {inq.operationalPlanDetails && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                             {inq.operationalPlanDetails}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    {/* ملاحظات إضافية */}
                     {inq.additionalNotes && (
-                      <div className="p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-border/50">
-                        <p className="text-[11px] font-bold text-muted-foreground mb-0.5">
-                          ملاحظات الإمام:
-                        </p>
-                        <p className="text-xs text-foreground font-medium leading-relaxed">
+                      <div className="bg-background/60 p-4 sm:p-5 rounded-2xl border border-border/40">
+                        <span className="text-xs text-muted-foreground block font-bold mb-1">ملاحظات إضافية من مقدم الطلب:</span>
+                        <p className="text-sm sm:text-base text-foreground leading-relaxed whitespace-pre-wrap font-medium">
                           {inq.additionalNotes}
                         </p>
                       </div>
@@ -2333,18 +2359,18 @@ export default function RequesterApprovals() {
 
                 {/* سجل مراجعة سابقة إن وجد */}
                 {selectedInquiryForAction.reviewerName && (
-                  <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-muted/30 dark:bg-muted/10 border border-border/60 text-xs sm:text-sm flex items-center justify-between">
                     <div>
                       <span className="text-muted-foreground">راجعها: </span>
                       <strong className="text-foreground">{selectedInquiryForAction.reviewerName}</strong>
                       {inq.reviewedAt && (
                         <span className="text-muted-foreground mr-1.5">
-                          • {new Date(inq.reviewedAt).toLocaleDateString("ar-SA")}
+                          • {formatSubmissionDate(inq.reviewedAt)}
                         </span>
                       )}
                     </div>
                     {inq.completedRequestId && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px]">
+                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-xs">
                         طلب #{inq.completedRequestId}
                       </Badge>
                     )}
@@ -2352,39 +2378,39 @@ export default function RequesterApprovals() {
                 )}
 
                 {/* قسم اتخاذ القرار */}
-                <div className="p-3.5 rounded-xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-3">
-                  <div className="flex items-center gap-1.5">
-                    <PhoneCall className="w-3.5 h-3.5 text-cyan-600" />
-                    <h4 className="text-xs font-bold text-foreground">
+                <div className="p-5 sm:p-6 rounded-3xl bg-cyan-50/40 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/60 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <PhoneCall className="w-4 h-4 text-cyan-600" />
+                    <h4 className="text-sm sm:text-base font-black text-foreground">
                       قرار التأهيل
                     </h4>
                   </div>
 
                   {/* بطاقات القرار */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* خيار 1: القبول والتمكين */}
                     <div
                       onClick={() => {
                         setActionDecision("approved");
                         setActionType("enable_sedana");
                       }}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                         actionDecision === "approved"
-                          ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs"
+                          ? "border-cyan-600 bg-cyan-50/70 dark:bg-cyan-950/50 shadow-xs ring-1 ring-cyan-500/20"
                           : "border-border bg-card hover:border-cyan-300"
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
                           actionDecision === "approved" ? "border-cyan-600 bg-cyan-600 text-white" : "border-slate-300"
                         }`}>
-                          {actionDecision === "approved" && <CheckCircle2 className="w-3 h-3" />}
+                          {actionDecision === "approved" && <CheckCircle2 className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-foreground">
+                          <p className="font-bold text-sm text-foreground">
                             قبول وتأهيل للبرنامج
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             إتاحة توقيع الاتفاقية ورفع الطلب
                           </p>
                         </div>
@@ -2397,23 +2423,23 @@ export default function RequesterApprovals() {
                         setActionDecision("rejected");
                         if (actionType === "enable_sedana") setActionType("redirect_alternative");
                       }}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
                         actionDecision === "rejected"
-                          ? "border-slate-600 bg-slate-100/80 dark:bg-slate-800/60 shadow-xs"
+                          ? "border-slate-600 bg-slate-100/80 dark:bg-slate-800/60 shadow-xs ring-1 ring-slate-500/20"
                           : "border-border bg-card hover:border-slate-400"
                       }`}
                     >
-                      <div className="flex items-start gap-2">
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-0.5 shrink-0 ${
                           actionDecision === "rejected" ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300"
                         }`}>
-                          {actionDecision === "rejected" && <XCircle className="w-3 h-3" />}
+                          {actionDecision === "rejected" && <XCircle className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <p className="font-bold text-xs text-foreground">
+                          <p className="font-bold text-sm text-foreground">
                             توجيه لبديل أو اعتذار
                           </p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             اقتراح خدمة أخرى أو عدم الملاءمة
                           </p>
                         </div>
@@ -2423,13 +2449,13 @@ export default function RequesterApprovals() {
 
                   {/* في حالة الرفض أو التوجيه */}
                   {actionDecision === "rejected" && (
-                    <div className="p-3 rounded-lg bg-card border border-border/80 space-y-2.5">
+                    <div className="p-4 rounded-2xl bg-card border border-border/80 space-y-3">
                       <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
                           size="sm"
                           variant={actionType === "redirect_alternative" ? "default" : "outline"}
-                          className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
+                          className={`text-xs h-8 rounded-xl cursor-pointer ${actionType === "redirect_alternative" ? "bg-cyan-600 hover:bg-cyan-700 text-white" : ""}`}
                           onClick={() => setActionType("redirect_alternative")}
                         >
                           اقتراح خدمة بديلة
@@ -2438,7 +2464,7 @@ export default function RequesterApprovals() {
                           type="button"
                           size="sm"
                           variant={actionType === "reject" ? "default" : "outline"}
-                          className={`text-xs h-7 rounded-lg cursor-pointer ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
+                          className={`text-xs h-8 rounded-xl cursor-pointer ${actionType === "reject" ? "bg-slate-700 text-white hover:bg-slate-800" : ""}`}
                           onClick={() => setActionType("reject")}
                         >
                           اعتذار وعدم ملاءمة
@@ -2462,12 +2488,12 @@ export default function RequesterApprovals() {
                               }
                             }}
                           >
-                            <SelectTrigger className="h-8 text-xs rounded-lg bg-background border-border shadow-2xs font-semibold">
+                            <SelectTrigger className="h-9 text-xs rounded-xl bg-background border-border shadow-2xs font-semibold">
                               <SelectValue placeholder="-- اختر الخدمة أو البرنامج --" />
                             </SelectTrigger>
                             <SelectContent className="max-h-60 font-['Cairo',sans-serif]">
                               {alternativePrograms.map((prog: any) => (
-                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-1.5 cursor-pointer">
+                                <SelectItem key={prog.id} value={prog.name} className="text-xs py-2 cursor-pointer">
                                   <div className="flex items-center gap-1.5">
                                     <span className="font-bold text-foreground">{prog.name}</span>
                                     {prog.description && (
@@ -2476,7 +2502,7 @@ export default function RequesterApprovals() {
                                   </div>
                                 </SelectItem>
                               ))}
-                              <SelectItem value="__custom__" className="text-xs py-1.5 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-0.5">
+                              <SelectItem value="__custom__" className="text-xs py-2 cursor-pointer font-bold text-cyan-700 dark:text-cyan-400 border-t border-border/60 mt-0.5">
                                 + خدمة أخرى...
                               </SelectItem>
                             </SelectContent>
@@ -2492,7 +2518,7 @@ export default function RequesterApprovals() {
                                   setCustomRedirectProgram(e.target.value);
                                   setRedirectProgram(e.target.value);
                                 }}
-                                className="text-xs h-8 rounded-lg bg-background"
+                                className="text-xs h-9 rounded-xl bg-background"
                               />
                             </div>
                           )}
@@ -2502,30 +2528,30 @@ export default function RequesterApprovals() {
                   )}
 
                   {/* حقل تسجيل الملاحظات */}
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-foreground">
                       الملاحظات والمبررات <span className="text-cyan-600">*</span>
                     </Label>
                     <Textarea
-                      rows={2}
+                      rows={3}
                       placeholder="أسباب القرار أو ما تم الاتفاق عليه مع الإمام..."
                       value={actionNotes}
                       onChange={(e) => setActionNotes(e.target.value)}
-                      className="text-xs resize-none rounded-lg"
+                      className="text-xs resize-none rounded-xl"
                     />
                   </div>
                 </div>
               </div>
 
               {/* أسفل النافذة والأزرار */}
-              <DialogFooter className="flex-row items-center justify-between gap-2 pt-2.5 border-t border-border/60">
+              <div className="flex items-center justify-between pt-5 border-t border-border/60">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedInquiryForAction(null)}
                   disabled={reviewSedanaInquiryMutation.isPending}
-                  className="text-xs cursor-pointer h-8"
+                  className="text-xs cursor-pointer h-9 px-4 rounded-xl"
                 >
                   إلغاء
                 </Button>
@@ -2547,7 +2573,7 @@ export default function RequesterApprovals() {
                       redirectProgram: actionDecision === "rejected" && actionType === "redirect_alternative" ? redirectProgram.trim() : null,
                     });
                   }}
-                  className={`text-xs font-bold px-5 h-8 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
+                  className={`text-xs font-bold px-6 h-9 rounded-xl shadow-xs gap-1.5 cursor-pointer ${
                     actionDecision === "approved"
                       ? "bg-cyan-600 hover:bg-cyan-700 text-white"
                       : "bg-slate-700 hover:bg-slate-800 text-white"
@@ -2565,7 +2591,7 @@ export default function RequesterApprovals() {
                     </>
                   )}
                 </Button>
-              </DialogFooter>
+              </div>
             </DialogContent>
           );
         })()}
