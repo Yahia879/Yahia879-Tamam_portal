@@ -38,6 +38,20 @@ interface SedanaPreQualificationProps {
   userPhone?: string | null;
 }
 
+const formatDateDisplay = (dateVal: any) => {
+  if (!dateVal) return '-';
+  try {
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '-';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${year}/${month}/${day}`;
+  } catch {
+    return '-';
+  }
+};
+
 export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
   userMosques,
   selectedMosqueId,
@@ -207,7 +221,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                     مؤهل ومعتمد للتقديم
                   </Badge>
                   <span className="text-xs text-muted-foreground font-mono">
-                    تاريخ الاعتماد: {new Date(inquiryData.reviewedAt || inquiryData.createdAt).toLocaleDateString('ar-SA')}
+                    تاريخ الاعتماد: <span dir="ltr" className="font-bold text-foreground">{formatDateDisplay(inquiryData.reviewedAt || inquiryData.createdAt)}</span>
                   </span>
                 </div>
                 <CardTitle className="text-xl sm:text-2xl font-black text-emerald-950 dark:text-emerald-300">
@@ -227,7 +241,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 تم فتح صلاحية إكمال الطلب وتوقيع الاتفاقية:
               </p>
               <p className="text-muted-foreground">
-                بناءً على مراجعة الاستبيان والتواصل الهاتفي، أصبح بإمكانكم الآن الدخول وتوقيع الاتفاقية الرسمية وتحديد سلة الاحتياجات السنوية لمسجدكم لرفع الطلب النهائي.
+                بناءً على مراجعة الاستبيان والتواصل، أصبح بإمكانكم الآن الدخول وتوقيع الاتفاقية الرسمية وتحديد سلة الاحتياجات السنوية لمسجدكم لرفع الطلب النهائي.
               </p>
               {inquiryData.actionNotes && (
                 <div className="mt-3 p-3 rounded-lg bg-emerald-100/60 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-xs">
@@ -272,12 +286,12 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
                 <Clock className="w-8 h-8" />
               </div>
               <div className="space-y-1.5 flex-1">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
                   <Badge className="bg-cyan-600 text-white text-xs font-bold px-2.5 py-0.5">
                     قيد التواصل والمراجعة
                   </Badge>
                   <span className="text-xs text-muted-foreground font-mono">
-                    تاريخ الإرسال: {new Date(inquiryData.createdAt).toLocaleDateString('ar-SA')}
+                    تاريخ الإرسال: <span dir="ltr" className="font-bold text-foreground">{formatDateDisplay(inquiryData.createdAt)}</span>
                   </span>
                 </div>
                 <CardTitle className="text-xl sm:text-2xl font-black text-cyan-950 dark:text-cyan-200">
@@ -294,7 +308,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
             <div className="p-4 rounded-xl bg-white/90 dark:bg-slate-900/60 border border-cyan-200 dark:border-cyan-900/50 space-y-3 text-xs sm:text-sm text-foreground">
               <div className="flex items-center gap-2 text-cyan-900 dark:text-cyan-300 font-bold text-sm">
                 <PhoneCall className="w-4 h-4 text-cyan-600 shrink-0" />
-                <span>سيقوم فريق مشاريع الجمعية بالتواصل معكم هاتفياً</span>
+                <span>سيقوم فريق مشاريع الجمعية بالتواصل معكم</span>
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 تم استلام استبيانكم بنجاح وهو الآن تحت دراسة فريق المشاريع. سيتواصل معكم أحد ممثلي الجمعية هاتفياً على رقم جوالكم ({userPhone || 'المسجل بالنظام'}) لمناقشة تفاصيل الاحتياج والتأكد من ملاءمة البرنامج للمسجد.
@@ -344,7 +358,7 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
+            <div className="flex items-center justify-start gap-3 pt-4 border-t border-border">
               <Button
                 variant="outline"
                 onClick={onBackToServices}
@@ -352,23 +366,6 @@ export const SedanaPreQualification: React.FC<SedanaPreQualificationProps> = ({
               >
                 <ArrowRight className="w-4 h-4" />
                 <span>العودة لقائمة الخدمات</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setSpecificNeeds(inquiryData.specificNeeds || '');
-                  setHasCleaningWarehouse(inquiryData.hasCleaningWarehouse || 'yes');
-                  setWarehouseDetails(inquiryData.warehouseDetails || '');
-                  setHasOperationalPlan(inquiryData.hasOperationalPlan || 'yes');
-                  setOperationalPlanDetails(inquiryData.operationalPlanDetails || '');
-                  setAdditionalNotes(inquiryData.additionalNotes || '');
-                  setIsEditing(true);
-                }}
-                className="h-10 text-xs font-bold text-cyan-700 hover:text-cyan-800 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:bg-cyan-950/50 gap-1.5 cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>تعديل الإجابات وإعادة الإرسال</span>
               </Button>
             </div>
           </CardContent>
