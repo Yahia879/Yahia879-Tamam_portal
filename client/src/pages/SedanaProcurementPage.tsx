@@ -250,7 +250,7 @@ export default function SedanaProcurementPage() {
   useEffect(() => {
     if (allItems.length > 0 && Object.keys(itemsAllocation).length === 0) {
       const initialAlloc: Record<string, ProcurementMethod> = {};
-      allItems.forEach((it) => {
+      allItems.forEach((it: any) => {
         initialAlloc[it.id] = "contract";
       });
       setItemsAllocation(initialAlloc);
@@ -259,15 +259,15 @@ export default function SedanaProcurementPage() {
 
   // البنود المخصصة لكل طريقة بدقة
   const contractItems = useMemo(() => {
-    return allItems.filter(it => (itemsAllocation[it.id] || "contract") === "contract");
+    return allItems.filter((it: any) => (itemsAllocation[it.id] || "contract") === "contract");
   }, [allItems, itemsAllocation]);
 
   const poItems = useMemo(() => {
-    return allItems.filter(it => itemsAllocation[it.id] === "purchase_order");
+    return allItems.filter((it: any) => itemsAllocation[it.id] === "purchase_order");
   }, [allItems, itemsAllocation]);
 
   const csrItems = useMemo(() => {
-    return allItems.filter(it => itemsAllocation[it.id] === "csr_letter");
+    return allItems.filter((it: any) => itemsAllocation[it.id] === "csr_letter");
   }, [allItems, itemsAllocation]);
 
   // تغيير طريقة التأمين لبند معين
@@ -501,7 +501,7 @@ export default function SedanaProcurementPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-300">
                     {poItems.length > 0 ? (
-                      poItems.map((it, idx) => (
+                      poItems.map((it: any, idx: number) => (
                         <tr key={it.id} className="h-9">
                           <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
@@ -782,7 +782,7 @@ export default function SedanaProcurementPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-300">
                     {csrItems.length > 0 ? (
-                      csrItems.map((it, idx) => (
+                      csrItems.map((it: any, idx: number) => (
                         <tr key={it.id} className="h-9">
                           <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
                           <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
@@ -961,7 +961,7 @@ export default function SedanaProcurementPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {allItems.map((item, idx) => {
+                  {allItems.map((item: any, idx: number) => {
                     const currentMethod = itemsAllocation[item.id] || "contract";
                     return (
                       <tr
@@ -1053,7 +1053,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بالعقد:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {contractItems.map(it => (
+                      {contractItems.map((it: any) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
@@ -1136,7 +1136,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بأمر الشراء:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {poItems.map(it => (
+                      {poItems.map((it: any) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
@@ -1195,7 +1195,7 @@ export default function SedanaProcurementPage() {
                       البنود المشمولة بالخطاب:
                     </p>
                     <ul className="space-y-1 pr-3 list-disc text-muted-foreground text-[11px]">
-                      {csrItems.map(it => (
+                      {csrItems.map((it: any) => (
                         <li key={it.id}>
                           <span className="font-medium text-foreground">{it.itemName}</span> ({it.quantity} {it.unit})
                         </li>
