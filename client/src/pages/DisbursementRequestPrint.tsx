@@ -374,7 +374,11 @@ export default function DisbursementRequestPrint() {
   }
 
   const hasContract = !!contract;
-  const isTamamLinked = !!customSupplier?.isTamamLinked;
+  const isTamamLinked = Boolean(
+    customSupplier?.isTamamLinked === true || 
+    customSupplier?.isTamamLinked === "true" || 
+    (request as any)?.isTamamLinked
+  );
   const actualProjectCost = isTamamLinked 
     ? parseFloat(customSupplier?.actualProjectValue?.toString() || "0") 
     : (hasContract ? parseFloat(contract.contractAmount || "0") : (project?.budget ? parseFloat(project.budget.toString()) : amount));
@@ -413,7 +417,9 @@ export default function DisbursementRequestPrint() {
 
   const adminFees = effectiveAdminFees;
   const managementPercentage = effectiveManagementPercentage;
-  const totalOpportunityValue = actualProjectCost;
+  const totalOpportunityValue = isTamamLinked 
+    ? (actualProjectCost + adminFees) 
+    : actualProjectCost;
 
   if (supportSources.length === 0 && supportingEntity && supportingEntity.trim() !== "" && supportingEntity !== '[{"entity":"","customEntity":"","amount":0}]') {
     const isDonationShop = supportingEntity === "متجر التبرعات";
@@ -450,9 +456,11 @@ export default function DisbursementRequestPrint() {
     ((request as any)?.fundingSourceName || (project as any)?.donorName || customSupplier?.fundingSupport || linkedRequestInfo?.fundingSupport || "—")
   );
 
-  const totalSupportedAmount = supportSources.length > 0 
-    ? supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)
-    : totalOpportunityValue;
+  const totalSupportedAmount = isTamamLinked 
+    ? totalOpportunityValue 
+    : (supportSources.length > 0 
+        ? supportSources.reduce((sum, s) => sum + (s.amount || 0), 0)
+        : totalOpportunityValue);
 
   // محاولة الحصول على اسم الحي للطلبات المرتبطة ببرنامج بنيان
   const getNeighborhoodName = () => {

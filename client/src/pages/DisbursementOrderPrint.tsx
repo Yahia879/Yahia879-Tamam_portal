@@ -284,8 +284,13 @@ export default function DisbursementOrderPrint() {
   // اسم المشروع الرئيسي
   const resolvedMainProjectName = customSupplier?.mainProjectName || linkedRequestInfo?.mainProjectName || "—";
 
-  const isTamamLinked = !!customSupplier?.isTamamLinked;
-  const actualProjectValue = parseFloat(customSupplier?.actualProjectValue?.toString() || "0");
+  const isTamamLinked = Boolean(
+    customSupplier?.isTamamLinked === true || 
+    customSupplier?.isTamamLinked === "true" ||
+    (request as any)?.isTamamLinked === true ||
+    (request as any)?.isTamamLinked === "true"
+  );
+  const actualProjectValue = parseFloat(customSupplier?.actualProjectValue?.toString() || (request as any)?.actualProjectValue?.toString() || "0");
   const amountsSpent = parseFloat(customSupplier?.amountsSpent?.toString() || "0");
 
   const hasContract = !!project?.contractAmount;
@@ -302,13 +307,21 @@ export default function DisbursementOrderPrint() {
     ? actualProjectValue 
     : (hasContract ? parseFloat(project.contractAmount.toString()) : (actualProjectValue > 0 ? actualProjectValue : amount));
 
-  const adminFees = request?.adminFees 
+  let adminFees = request?.adminFees 
     ? parseFloat(request.adminFees.toString()) 
     : (customSupplier?.adminFees 
         ? parseFloat(customSupplier.adminFees) 
         : (hasContract ? (actualProjectCost * managementPercentage) / 100 : 0));
 
-  const totalOpportunityValue = actualProjectCost;
+  if (isTamamLinked && customSupplier?.adminFees && adminFees === 0) {
+    adminFees = parseFloat(customSupplier.adminFees.toString());
+  }
+
+  const totalOpportunityValue = isTamamLinked 
+    ? (actualProjectCost + adminFees) 
+    : actualProjectCost;
+
+  const tamamTotalSupport = isTamamLinked ? (actualProjectValue + adminFees) : actualProjectValue;
 
   const resolvedFundingAmount = (project?.fundingAmount && project.fundingAmount > 0)
     ? project.fundingAmount
@@ -701,7 +714,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4 border-l border-slate-300">
                           {isTamamLinked 
-                            ? <span className="inline-flex items-center gap-1">{actualProjectValue.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            ? <span className="inline-flex items-center gap-1">{tamamTotalSupport.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
                             : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                         <td className="p-1.5 sm:p-2.5 bg-slate-100 font-bold text-slate-700 text-right w-1/4 border-l border-slate-300">
@@ -709,7 +722,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? <span className="inline-flex items-center gap-1">{actualProjectValue.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            ? <span className="inline-flex items-center gap-1">{tamamTotalSupport.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
                             : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.contractAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                       </tr>
@@ -728,7 +741,7 @@ export default function DisbursementOrderPrint() {
                         </td>
                         <td className="p-1.5 sm:p-2.5 text-slate-800 font-mono text-center w-1/4">
                           {isTamamLinked 
-                            ? <span className="inline-flex items-center gap-1">{(actualProjectValue - (amountsSpent + amount)).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
+                            ? <span className="inline-flex items-center gap-1">{(tamamTotalSupport - (amountsSpent + amount)).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> 
                             : (isCustomType ? "—" : (project ? <span className="inline-flex items-center gap-1">{project.remainingAmount.toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" /></span> : "—"))}
                         </td>
                       </tr>
