@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { trpc } from "@/lib/trpc";
@@ -56,6 +56,7 @@ export default function BeneficiaryLayout({
 }: BeneficiaryLayoutProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
+  const searchString = useSearch();
   const { theme, toggleTheme, switchable } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -167,8 +168,7 @@ export default function BeneficiaryLayout({
                   const isSedanaActive =
                     activeTab === "sedana" ||
                     (location === "/request-form-dynamic" &&
-                      typeof window !== "undefined" &&
-                      window.location.search.includes("sedana"));
+                      searchString.includes("sedana"));
 
                   return (
                     <Link key={item.id} href={item.path}>

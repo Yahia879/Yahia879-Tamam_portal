@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, Link } from 'wouter';
+import { useLocation, Link, useSearch } from 'wouter';
 import { useAuth } from '@/_core/hooks/useAuth';
 import { trpc } from '@/lib/trpc';
 import { ROLE_LABELS } from '@shared/constants';
@@ -140,6 +140,8 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     return true;
   }, [user, myRequests, exceptionStatus]);
 
+  const searchString = useSearch();
+
   const [selectedService, setSelectedService] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
@@ -157,19 +159,20 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
     return 'service-selection';
   });
 
-  // مزامنة حالة الخدمة تلقائياً عند النقر على رابط طلب سدانة من الهيدر
+  // مزامنة حالة الخدمة والخطوة تلقائياً وبشكل تفاعلي عند تغير معاملات الرابط (مثل ?service=sedana والانتقال إلى /request-form-dynamic والعكس)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const s = p.get('service') || p.get('program');
-      if (s && s !== selectedService) {
-        setSelectedService(s);
-        if (s === 'sedana') {
-          setCurrentStep('terms');
-        }
+    const p = new URLSearchParams(searchString);
+    const s = p.get('service') || p.get('program');
+    if (s) {
+      setSelectedService(s);
+      if (s === 'sedana') {
+        setCurrentStep('terms');
       }
+    } else {
+      setSelectedService(null);
+      setCurrentStep('service-selection');
     }
-  }, [location, selectedService]);
+  }, [searchString]);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -194,18 +197,6 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
       { key: 'review' as Step, label: 'المراجعة والإرسال', order: 5 },
     ];
   }, [isSedana]);
-
-  // الفحص التلقائي لمحدد الخدمة في الرابط (مثل ?service=sedana)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const serviceParam = params.get('service');
-    if (serviceParam) {
-      setSelectedService(serviceParam);
-      if (serviceParam === 'sedana' && currentStep === 'service-selection') {
-        setCurrentStep('terms');
-      }
-    }
-  }, []);
 
   // أمان إضافي: التأكد من أن الخطوة الحالية تنتمي دائماً للخطوات النشطة
   useEffect(() => {
