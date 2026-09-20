@@ -780,16 +780,16 @@ export default function SedanaProcurementPage() {
         </div>
 
         {/* ورقة أمر الشراء A4 المتموضعة في منتصف الشاشة */}
-        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          <div className="print-inner p-4 sm:p-8 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
-            <div className="relative z-10 space-y-6 flex-1">
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] print:min-h-0 relative flex flex-col justify-between overflow-hidden print:overflow-visible">
+          <div className="print-inner p-4 sm:p-8 print:p-0 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] print:min-h-0 leading-relaxed">
+            <div className="relative z-10 space-y-4 sm:space-y-6 print:space-y-3 flex-1">
               {/* الترويسة العلوية الرسمية */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-300 pb-3 sm:pb-4 print:pb-2">
                 <div className="flex items-center gap-3">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-20 print:h-14 w-auto object-contain" />
                   ) : (
-                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                    <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
                       سدانة
                     </div>
                   )}
@@ -862,7 +862,7 @@ export default function SedanaProcurementPage() {
               </div>
 
               {/* جدول التوقيعات والاعتماد */}
-              <div className="pt-4 break-inside-avoid">
+              <div className="pt-3 sm:pt-4 break-inside-avoid">
                 <table className="w-full border-collapse border border-slate-300 text-xs text-center">
                   <thead>
                     <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
@@ -874,24 +874,24 @@ export default function SedanaProcurementPage() {
                   </thead>
                   <tbody>
                     {/* طالب الشراء */}
-                    <tr className="border-b border-slate-300 h-14 sm:h-16">
+                    <tr className="border-b border-slate-300 h-12 sm:h-16 print:h-12">
                       <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.requesterRole}</td>
                       <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.requesterName || "طالب الشراء"}</td>
                       <td className="p-2 border-l border-slate-300">
-                        <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                        <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
                       </td>
                       <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
                     </tr>
 
                     {/* صاحب الصلاحية (المدير التنفيذي) */}
-                    <tr className="h-14 sm:h-16">
+                    <tr className="h-12 sm:h-16 print:h-12">
                       <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.approverRole}</td>
                       <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</td>
                       <td className="p-2 border-l border-slate-300">
                         {poData.approverSignatureUrl ? (
-                          <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-11 mx-auto object-contain" />
+                          <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
                         ) : (
-                          <div className="h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
+                          <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
                         )}
                       </td>
                       <td className="p-2 text-slate-600 font-medium text-[11px]">{poData.orderDate}</td>
@@ -902,12 +902,66 @@ export default function SedanaProcurementPage() {
             </div>
 
             {/* تذييل أمر الشراء */}
-            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+            <div className="mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
               <span>{orgName} - سدانة</span>
               <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
             </div>
           </div>
         </div>
+
+        <style>{`
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              background-color: white !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              overflow: visible !important;
+            }
+            .print\\:hidden, header, nav, aside {
+              display: none !important;
+            }
+            .min-h-screen {
+              background-color: white !important;
+              padding: 0 !important;
+              min-height: 0 !important;
+              height: auto !important;
+            }
+            .print-container {
+              width: 100% !important;
+              max-width: 100% !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              min-height: auto !important;
+              height: 100% !important;
+              overflow: visible !important;
+              page-break-after: avoid !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            .print-inner {
+              padding: 0 !important;
+              min-height: auto !important;
+              height: 100% !important;
+            }
+            tr, table, .break-inside-avoid {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -943,16 +997,16 @@ export default function SedanaProcurementPage() {
         </div>
 
         {/* ورقة الخطاب الرسمي A4 المتموضعة في منتصف الشاشة */}
-        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] relative flex flex-col justify-between overflow-hidden">
-          <div className="print-inner p-4 sm:p-8 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] leading-relaxed">
-            <div className="relative z-10 space-y-6 flex-1">
+        <div className="print-container w-full max-w-full sm:max-w-[210mm] mx-auto bg-white shadow-xl print:shadow-none p-6 sm:p-10 print:p-0 min-h-auto sm:min-h-[297mm] print:min-h-0 relative flex flex-col justify-between overflow-hidden print:overflow-visible">
+          <div className="print-inner p-4 sm:p-8 print:p-0 relative bg-white h-full flex-1 flex flex-col justify-between min-h-auto sm:min-h-[285mm] print:min-h-0 leading-relaxed">
+            <div className="relative z-10 space-y-4 sm:space-y-6 print:space-y-3 flex-1">
               {/* ترويسة الخطاب الرسمية */}
-              <div className="flex justify-between items-start border-b border-slate-300 pb-4">
+              <div className="flex justify-between items-start border-b border-slate-300 pb-3 sm:pb-4 print:pb-2">
                 <div className="flex items-center gap-3">
                   {orgSettings?.logoUrl ? (
-                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-16 sm:h-20 w-auto object-contain" />
+                    <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-20 print:h-14 w-auto object-contain" />
                   ) : (
-                    <div className="w-16 h-16 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
+                    <div className="w-14 h-14 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-center text-sky-700 font-bold text-xl">
                       سدانة
                     </div>
                   )}
@@ -1020,15 +1074,15 @@ export default function SedanaProcurementPage() {
               </div>
 
               {/* عبارة الختام */}
-              <div className="pt-3 text-xs sm:text-sm font-bold text-slate-900">
+              <div className="pt-2 sm:pt-3 text-xs sm:text-sm font-bold text-slate-900">
                 <p>وتقبلوا وافر التحية والتقدير،،،</p>
               </div>
 
               {/* خانة التوقيع والاعتماد الرسمي */}
-              <div className="pt-8 flex justify-end">
+              <div className="pt-6 sm:pt-8 flex justify-end break-inside-avoid">
                 <div className="w-60 text-center space-y-2">
                   <p className="font-bold text-xs sm:text-sm text-slate-800">{csrData.signatoryTitle || "المدير التنفيذي"}</p>
-                  <div className="h-14 flex items-center justify-center">
+                  <div className="h-12 sm:h-14 flex items-center justify-center">
                     <div className="border-b border-dashed border-slate-400 w-40 mx-auto" />
                   </div>
                   <p className="font-bold text-xs sm:text-sm text-slate-900">{csrData.signatoryName || "المهندس المفوض بالتوقيع"}</p>
@@ -1037,12 +1091,66 @@ export default function SedanaProcurementPage() {
             </div>
 
             {/* تذييل الخطاب */}
-            <div className="mt-8 pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
+            <div className="mt-4 sm:mt-8 pt-3 sm:pt-4 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center px-1">
               <span>{orgName} - سدانة</span>
               <span>الرمز المرجعي: #{request?.requestNumber || requestId} • صفحة 1 من 1</span>
             </div>
           </div>
         </div>
+
+        <style>{`
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 8mm 10mm !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              background-color: white !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              width: 100% !important;
+              height: 100% !important;
+              overflow: visible !important;
+            }
+            .print\\:hidden, header, nav, aside {
+              display: none !important;
+            }
+            .min-h-screen {
+              background-color: white !important;
+              padding: 0 !important;
+              min-height: 0 !important;
+              height: auto !important;
+            }
+            .print-container {
+              width: 100% !important;
+              max-width: 100% !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              min-height: auto !important;
+              height: 100% !important;
+              overflow: visible !important;
+              page-break-after: avoid !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            .print-inner {
+              padding: 0 !important;
+              min-height: auto !important;
+              height: 100% !important;
+            }
+            tr, table, .break-inside-avoid {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        `}</style>
       </div>
     );
   }
@@ -1082,6 +1190,16 @@ export default function SedanaProcurementPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              className="h-8 gap-1.5 text-xs font-semibold border-border hover:bg-muted cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              طباعة التقرير
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -1656,6 +1774,169 @@ export default function SedanaProcurementPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* تقرير الطباعة الرسمي A4 للصفحة الرئيسية عند الطباعة */}
+      <div className="hidden print:block printable-procurement-report w-full max-w-[210mm] mx-auto p-0 bg-white font-sans text-slate-900" dir="rtl">
+        {/* ترويسة التقرير */}
+        <div className="flex justify-between items-center pb-3 mb-4 border-b border-slate-300">
+          <div className="flex items-center gap-3">
+            {orgSettings?.logoUrl ? (
+              <img src={orgSettings.logoUrl} alt="شعار الجمعية" className="h-14 sm:h-16 w-auto object-contain" />
+            ) : (
+              <div className="w-14 h-14 bg-sky-50 rounded-lg flex items-center justify-center border border-sky-200">
+                <span className="text-sky-700 font-bold text-xl">سدانة</span>
+              </div>
+            )}
+            <div>
+              <h2 className="text-base font-bold text-sky-900">
+                {orgName}
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">إدارة المشاريع والمشتريات • برنامج سدانة</p>
+            </div>
+          </div>
+
+          <div className="text-xs space-y-1 text-left font-mono">
+            <div><span className="text-slate-500">رقم الطلب: </span><strong>#{request?.requestNumber || requestId}</strong></div>
+            <div><span className="text-slate-500">التاريخ: </span><strong>{new Date().toISOString().split("T")[0]}</strong></div>
+            <div><span className="text-slate-500">المسجد: </span><strong>{mosqueName} {request?.mosque?.city ? `(${request.mosque.city})` : ""}</strong></div>
+          </div>
+        </div>
+
+        {/* عنوان التقرير */}
+        <div className="bg-[#0284c7] text-white font-bold text-center py-2 px-4 rounded text-sm sm:text-base mb-4 shadow-2xs">
+          محضر توزيع بنود الطلب ومسارات التأمين والموردين
+        </div>
+
+        {/* ملخص المسارات */}
+        <div className="grid grid-cols-3 gap-3 mb-4 text-xs">
+          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded text-center">
+            <span className="text-slate-500 block">عقود التوريد والخدمات</span>
+            <strong className="text-sky-900 text-sm">{contractItems.length} بنود ({contractSuppliers.length} موردين)</strong>
+          </div>
+          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded text-center">
+            <span className="text-slate-500 block">أوامر الشراء الداخلية</span>
+            <strong className="text-slate-900 text-sm">{poItems.length} بنود ({poSuppliers.length} موردين)</strong>
+          </div>
+          <div className="border border-slate-200 bg-slate-50 p-2.5 rounded text-center">
+            <span className="text-slate-500 block">المسؤولية المجتمعية</span>
+            <strong className="text-teal-900 text-sm">{csrItems.length} بنود ({csrSuppliers.length} موردين)</strong>
+          </div>
+        </div>
+
+        {/* جدول البنود والتوزيع */}
+        <div className="mb-4">
+          <table className="w-full border-collapse border border-slate-300 text-xs text-right">
+            <thead className="bg-slate-100 text-slate-800 font-bold border-b border-slate-300">
+              <tr>
+                <th className="p-2 border-l border-slate-300 text-center w-10">م</th>
+                <th className="p-2 border-l border-slate-300">اسم الصنف</th>
+                <th className="p-2 border-l border-slate-300">الوصف والمواصفات</th>
+                <th className="p-2 border-l border-slate-300 text-center w-20">الكمية</th>
+                <th className="p-2 border-l border-slate-300 text-center w-16">الوحدة</th>
+                <th className="p-2 border-l border-slate-300">المورد المعتمد</th>
+                <th className="p-2 border-l border-slate-300 text-center w-28">طريقة التأمين</th>
+                <th className="p-2 text-center w-24">السعر التقديري</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-300">
+              {allItems.map((it: any, idx: number) => {
+                const supInfo = itemSupplierMap[it.id];
+                const method = itemsAllocation[it.id] || "contract";
+                const methodLabel = method === "contract" ? "عقد توريد" : method === "purchase_order" ? "أمر شراء" : "مسؤولية مجتمعية";
+                return (
+                  <tr key={it.id} className="h-9">
+                    <td className="p-2 border-l border-slate-300 text-center font-mono text-slate-600">{idx + 1}</td>
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{it.itemName}</td>
+                    <td className="p-2 border-l border-slate-300 text-slate-700">{it.description || "-"}</td>
+                    <td className="p-2 border-l border-slate-300 text-center font-bold text-slate-900">{it.quantity}</td>
+                    <td className="p-2 border-l border-slate-300 text-center text-slate-700">{it.unit}</td>
+                    <td className="p-2 border-l border-slate-300 text-slate-800 font-medium">{supInfo?.supplierName || "غير محدد"}</td>
+                    <td className="p-2 border-l border-slate-300 text-center font-medium">{methodLabel}</td>
+                    <td className="p-2 text-center font-mono">{supInfo?.totalPrice ? `${formatCurrency(supInfo.totalPrice)} ر.س` : "-"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* التوقيعات */}
+        <div className="pt-4 mt-6 border-t border-slate-300 break-inside-avoid">
+          <table className="w-full border-collapse border border-slate-300 text-xs text-center">
+            <thead>
+              <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800">
+                <th className="p-2 border-l border-slate-300 w-1/2">طالب الشراء / إدارة المشاريع</th>
+                <th className="p-2 w-1/2">المدير التنفيذي (صاحب الصلاحية)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="h-16">
+                <td className="p-2 border-l border-slate-300 align-bottom">
+                  <p className="font-bold text-slate-900">{poData.requesterName || "مسؤول المشتريات"}</p>
+                  <p className="text-[10px] text-slate-500">(التوقيع والاعتماد)</p>
+                </td>
+                <td className="p-2 align-bottom">
+                  <p className="font-bold text-slate-900">{poData.approverName || "المدير التنفيذي"}</p>
+                  {poData.approverSignatureUrl ? (
+                    <img src={poData.approverSignatureUrl} alt="التوقيع" className="max-h-10 mx-auto object-contain" />
+                  ) : (
+                    <p className="text-[10px] text-slate-500">(التوقيع والاعتماد)</p>
+                  )}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* تذييل الصفحة */}
+        <div className="mt-8 pt-3 border-t border-slate-200 text-center text-slate-400 text-[10px] flex justify-between items-center">
+          <span>{orgName} • برنامج سدانة لعمارة المساجد</span>
+          <span>صفحة 1 من 1</span>
+        </div>
+      </div>
+
+      <style>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 8mm 10mm !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-sizing: border-box !important;
+          }
+          html, body {
+            background-color: white !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: visible !important;
+          }
+          .print\\:hidden, header, nav, aside {
+            display: none !important;
+          }
+          .min-h-screen {
+            background-color: white !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }
+          .printable-procurement-report {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          tr, table, .break-inside-avoid {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
