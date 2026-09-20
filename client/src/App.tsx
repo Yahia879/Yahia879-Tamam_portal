@@ -37,6 +37,7 @@ import RequestDetails from "./pages/RequestDetailsNew";
 import SedanaEvaluationPage from "./pages/SedanaEvaluationPage";
 import SedanaProcurementPage from "./pages/SedanaProcurementPage";
 import SedanaCsrLetterPrint from "./pages/SedanaCsrLetterPrint";
+import SedanaPurchaseOrderPrint from "./pages/SedanaPurchaseOrderPrint";
 import PurchaseOrdersList from "./pages/PurchaseOrdersList";
 import CsrLettersList from "./pages/CsrLettersList";
 import RequestForm from "./pages/RequestForm";
@@ -297,6 +298,10 @@ function Router() {
       <Route path="/requests/:id/csr-letter" component={SedanaCsrLetterPrint} />
       <Route path="/requester/requests/:id/sedana-csr" component={SedanaCsrLetterPrint} />
       <Route path="/requester/requests/:id/csr-letter" component={SedanaCsrLetterPrint} />
+      <Route path="/requests/:id/sedana-po" component={SedanaPurchaseOrderPrint} />
+      <Route path="/requests/:id/purchase-order" component={SedanaPurchaseOrderPrint} />
+      <Route path="/requester/requests/:id/sedana-po" component={SedanaPurchaseOrderPrint} />
+      <Route path="/requester/requests/:id/purchase-order" component={SedanaPurchaseOrderPrint} />
       <Route path="/requests/:requestId/field-inspection">{() => <AdminRoute component={FieldInspectionForm} />}</Route>
       <Route path="/requests/:requestId/quick-response">{() => <AdminRoute component={QuickResponseReportForm} />}</Route>
       <Route path="/requests/:requestId/assign-final-report">{() => <AdminRoute component={AssignFinalReport} />}</Route>
