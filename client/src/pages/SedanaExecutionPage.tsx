@@ -398,8 +398,8 @@ export default function SedanaExecutionPage() {
         </div>
 
         {/* التبويبات الرئيسية */}
-        <Tabs defaultValue="stock" className="space-y-4">
-          <TabsList className="bg-muted/40 p-1 rounded-xl w-full justify-start overflow-x-auto flex-nowrap">
+        <Tabs defaultValue="stock" dir="rtl" className="space-y-4">
+          <TabsList dir="rtl" className="bg-muted/40 p-1 rounded-xl w-full justify-start overflow-x-auto flex-nowrap">
             <TabsTrigger value="stock" className="text-xs font-bold gap-1.5">
               <Boxes className="w-3.5 h-3.5" />
               <span>رصيد المستودع الافتراضي</span>
@@ -422,7 +422,7 @@ export default function SedanaExecutionPage() {
           </TabsList>
 
           {/* التبويب 1: رصيد المستودع الافتراضي */}
-          <TabsContent value="stock" className="space-y-4">
+          <TabsContent value="stock" dir="rtl" className="space-y-4">
             <Card className="border border-border/80 shadow-2xs">
               <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
                 <div>
@@ -462,8 +462,8 @@ export default function SedanaExecutionPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table className="text-xs text-right">
+                <div className="overflow-x-auto" dir="rtl">
+                  <Table className="text-xs text-right" dir="rtl">
                     <TableHeader className="bg-muted/30">
                       <TableRow className="border-b">
                         <th className="p-3 w-10 text-center font-bold">#</th>
@@ -550,7 +550,7 @@ export default function SedanaExecutionPage() {
           </TabsContent>
 
           {/* التبويب 2: أوامر الإخراج ومسوغات الصرف */}
-          <TabsContent value="outbound" className="space-y-4">
+          <TabsContent value="outbound" dir="rtl" className="space-y-4">
             <Card className="border border-border/80 shadow-2xs">
               <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
                 <div>
@@ -580,8 +580,8 @@ export default function SedanaExecutionPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="text-xs text-right">
+                  <div className="overflow-x-auto" dir="rtl">
+                    <Table className="text-xs text-right" dir="rtl">
                       <TableHeader className="bg-muted/30">
                         <TableRow className="border-b">
                           <th className="p-3 w-10 text-center font-bold">#</th>
@@ -646,7 +646,7 @@ export default function SedanaExecutionPage() {
           </TabsContent>
 
           {/* التبويب 3: أوامر التسليم وإثبات الاستلام الرقمي */}
-          <TabsContent value="deliveries" className="space-y-4">
+          <TabsContent value="deliveries" dir="rtl" className="space-y-4">
             <Card className="border border-border/80 shadow-2xs">
               <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
                 <div>
@@ -676,8 +676,8 @@ export default function SedanaExecutionPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="text-xs text-right">
+                  <div className="overflow-x-auto" dir="rtl">
+                    <Table className="text-xs text-right" dir="rtl">
                       <TableHeader className="bg-muted/30">
                         <TableRow className="border-b">
                           <th className="p-3 w-10 text-center font-bold">#</th>
@@ -748,7 +748,7 @@ export default function SedanaExecutionPage() {
           </TabsContent>
 
           {/* التبويب 4: سجل تنقلات الإمام والذاكرة المؤسسية للمسجد */}
-          <TabsContent value="history" className="space-y-4">
+          <TabsContent value="history" dir="rtl" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* سجل تنقلات الإمام */}
               <Card className="border border-border/80 shadow-2xs">
