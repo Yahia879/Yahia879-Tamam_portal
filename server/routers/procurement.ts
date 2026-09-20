@@ -151,6 +151,7 @@ export const procurementRouter = router({
           id: req.id,
           requestId: req.id,
           requestNumber: req.requestNumber || String(req.id),
+          descriptiveName: req.descriptiveName || null,
           currentStage: req.currentStage,
           mosqueId: mosque?.id || null,
           mosqueName: mosque?.name || "المسجد",
@@ -177,25 +178,37 @@ export const procurementRouter = router({
       let filtered = orders;
       if (input.search && input.search.trim()) {
         const q = input.search.trim().toLowerCase();
+        const cleanQ = q.replace(/^#/, "").replace(/^طلب\s*#?/, "").trim();
         filtered = filtered.filter((o) =>
           o.orderNumber?.toLowerCase().includes(q) ||
+          o.descriptiveName?.toLowerCase().includes(q) ||
+          o.directedTo?.toLowerCase().includes(q) ||
           o.mosqueName?.toLowerCase().includes(q) ||
           o.mosqueCity?.toLowerCase().includes(q) ||
+          o.mosqueRegion?.toLowerCase().includes(q) ||
           o.requestNumber?.toLowerCase().includes(q) ||
+          (cleanQ && o.requestNumber?.toLowerCase().includes(cleanQ)) ||
           o.requesterName?.toLowerCase().includes(q) ||
-          o.approverName?.toLowerCase().includes(q)
+          o.approverName?.toLowerCase().includes(q) ||
+          o.items?.some((it: any) => it.itemName?.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q))
         );
       }
 
       // التصفية بالحالة
       if (input.status && input.status !== "all") {
-        filtered = filtered.filter((o) => o.status === input.status);
+        if (input.status === "approved") {
+          filtered = filtered.filter((o) => o.status === "approved" || o.status === "ready");
+        } else if (input.status === "executed") {
+          filtered = filtered.filter((o) => o.status === "executed" || o.currentStage === "execution");
+        } else {
+          filtered = filtered.filter((o) => o.status === input.status);
+        }
       }
 
       // الإحصائيات الشاملة
       const stats = {
         totalOrders: orders.length,
-        approvedCount: orders.filter((o) => o.status === "approved").length,
+        approvedCount: orders.filter((o) => o.status === "approved" || o.status === "ready").length,
         draftCount: orders.filter((o) => o.status === "draft").length,
         executedCount: orders.filter((o) => o.currentStage === "execution" || o.status === "executed").length,
         totalItemsCount: orders.reduce((sum, o) => sum + (o.itemsCount || 0), 0),
@@ -353,6 +366,7 @@ export const procurementRouter = router({
           id: req.id,
           requestId: req.id,
           requestNumber: req.requestNumber || String(req.id),
+          descriptiveName: req.descriptiveName || null,
           currentStage: req.currentStage,
           mosqueId: mosque?.id || null,
           mosqueName: mosque?.name || "المسجد",
@@ -377,23 +391,33 @@ export const procurementRouter = router({
       let filtered = letters;
       if (input.search && input.search.trim()) {
         const q = input.search.trim().toLowerCase();
+        const cleanQ = q.replace(/^#/, "").replace(/^طلب\s*#?/, "").trim();
         filtered = filtered.filter((l) =>
           l.letterNumber?.toLowerCase().includes(q) ||
+          l.descriptiveName?.toLowerCase().includes(q) ||
           l.recipientName?.toLowerCase().includes(q) ||
+          l.projectName?.toLowerCase().includes(q) ||
           l.mosqueName?.toLowerCase().includes(q) ||
           l.mosqueCity?.toLowerCase().includes(q) ||
           l.requestNumber?.toLowerCase().includes(q) ||
-          l.signatoryName?.toLowerCase().includes(q)
+          (cleanQ && l.requestNumber?.toLowerCase().includes(cleanQ)) ||
+          l.signatoryName?.toLowerCase().includes(q) ||
+          l.signatoryTitle?.toLowerCase().includes(q) ||
+          l.items?.some((it: any) => it.itemName?.toLowerCase().includes(q) || it.description?.toLowerCase().includes(q))
         );
       }
 
       if (input.status && input.status !== "all") {
-        filtered = filtered.filter((l) => l.status === input.status);
+        if (input.status === "approved") {
+          filtered = filtered.filter((l) => l.status === "approved" || l.status === "ready");
+        } else {
+          filtered = filtered.filter((l) => l.status === input.status);
+        }
       }
 
       const stats = {
         totalLetters: letters.length,
-        approvedCount: letters.filter((l) => l.status === "approved").length,
+        approvedCount: letters.filter((l) => l.status === "approved" || l.status === "ready").length,
         draftCount: letters.filter((l) => l.status === "draft").length,
         totalRecipients: new Set(letters.map((l) => l.recipientName).filter(Boolean)).size,
         totalItemsCount: letters.reduce((sum, l) => sum + (l.itemsCount || 0), 0),
