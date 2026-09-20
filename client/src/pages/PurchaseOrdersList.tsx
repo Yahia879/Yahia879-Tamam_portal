@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -20,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -47,6 +51,7 @@ import {
   X,
   Edit,
   ArrowRight,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -95,10 +100,134 @@ export default function PurchaseOrdersList() {
 
   const utils = trpc.useUtils();
 
-
+  // استعلام الطلبات المتاحة لإنشاء أمر شراء
+  const { data: availableRequests = [] } = trpc.procurement.getAvailableRequestsForPO.useQuery();
 
   // أمر الشراء المحدد لعرض قائمة بنوده بالتفصيل
   const [selectedOrderForItems, setSelectedOrderForItems] = useState<any | null>(null);
+
+  // حالات نافذة إضافة / تعديل أمر الشراء
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
+  const [directedTo, setDirectedTo] = useState("إلى إدارة المشتريات");
+  const [requesterName, setRequesterName] = useState(user?.name || "طالب الشراء");
+  const [requesterRole, setRequesterRole] = useState("طالب الشراء / إدارة المشاريع");
+  const [approverName, setApproverName] = useState("المدير التنفيذي");
+  const [approverRole, setApproverRole] = useState("المدير التنفيذي");
+  const [orderNotes, setOrderNotes] = useState("");
+  const [itemsQuantities, setItemsQuantities] = useState<Record<string, number>>({});
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+
+  // Mutation: إنشاء أو تحديث أمر الشراء
+  const createOrderMutation = trpc.procurement.createOrUpdatePurchaseOrder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message);
+      setIsCreateModalOpen(false);
+      resetCreateForm();
+      utils.procurement.listPurchaseOrders.invalidate();
+      utils.procurement.getAvailableRequestsForPO.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء حفظ أمر الشراء");
+    },
+  });
+
+  // Mutation: اعتماد فوري لأمر الشراء
+  const approveOrderMutation = trpc.procurement.approvePurchaseOrder.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message);
+      utils.procurement.listPurchaseOrders.invalidate();
+      utils.procurement.getAvailableRequestsForPO.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "حدث خطأ أثناء اعتماد أمر الشراء");
+    },
+  });
+
+  const resetCreateForm = () => {
+    setSelectedRequestId(null);
+    setOrderNumber("");
+    setOrderDate(new Date().toISOString().split("T")[0]);
+    setDirectedTo("إلى إدارة المشتريات");
+    setOrderNotes("");
+    setItemsQuantities({});
+    setSelectedItemIds([]);
+  };
+
+  const handleSelectRequest = (reqId: number) => {
+    setSelectedRequestId(reqId);
+    const req = availableRequests.find((r) => r.id === reqId);
+    if (!req) return;
+
+    setOrderNumber(req.activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`);
+    setOrderDate(req.activePO?.orderDate || new Date().toISOString().split("T")[0]);
+    setDirectedTo(req.activePO?.directedTo || "إلى إدارة المشتريات");
+    setRequesterName(req.activePO?.requesterName || user?.name || "طالب الشراء");
+    setApproverName(req.activePO?.approverName || "المدير التنفيذي");
+    setOrderNotes(req.activePO?.notes || "");
+
+    const initialQtys: Record<string, number> = {};
+    const allIds: string[] = [];
+    
+    // إذا كان هناك بنود مسجلة في activePO نأخذ كمياتها
+    const existingPoItems = req.activePO?.items;
+    if (existingPoItems && Array.isArray(existingPoItems) && existingPoItems.length > 0) {
+      req.items.forEach((it: any) => {
+        allIds.push(it.id);
+        const match = existingPoItems.find((p: any) => p.id === it.id);
+        initialQtys[it.id] = match ? Number(match.quantity) : Number(it.quantity || 1);
+      });
+    } else {
+      req.items.forEach((it: any) => {
+        allIds.push(it.id);
+        initialQtys[it.id] = Number(it.quantity || 1);
+      });
+    }
+
+    setItemsQuantities(initialQtys);
+    setSelectedItemIds(allIds);
+  };
+
+  const handleSubmitOrder = (status: "approved" | "draft") => {
+    if (!selectedRequestId) {
+      toast.error("يرجى اختيار الطلب أولاً");
+      return;
+    }
+
+    const currentReq = availableRequests.find((r) => r.id === selectedRequestId);
+    if (!currentReq) return;
+
+    const chosenItems = currentReq.items
+      .filter((it: any) => selectedItemIds.includes(it.id))
+      .map((it: any) => ({
+        id: it.id,
+        itemName: it.name || it.itemName,
+        description: it.description || "",
+        quantity: itemsQuantities[it.id] ?? it.quantity ?? 1,
+        unit: it.unit || "وحدة",
+      }));
+
+    if (chosenItems.length === 0) {
+      toast.error("يرجى تحديد بند واحد على الأقل وتحديد كميته");
+      return;
+    }
+
+    createOrderMutation.mutate({
+      requestId: selectedRequestId,
+      orderNumber,
+      orderDate,
+      directedTo,
+      requesterName,
+      requesterRole,
+      approverName,
+      approverRole,
+      notes: orderNotes,
+      status,
+      items: chosenItems,
+    });
+  };
 
   // استعلام أوامر الشراء والإحصائيات
   const {
@@ -210,6 +339,19 @@ export default function PurchaseOrdersList() {
             </p>
           </div>
 
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              onClick={() => {
+                resetCreateForm();
+                setIsCreateModalOpen(true);
+              }}
+              className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground shadow-xs cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>إضافة أمر شراء جديد</span>
+            </Button>
+          </div>
         </div>
 
         {/* بطاقات الإحصائيات العلوية الـ 5 الأنيقة */}
@@ -357,7 +499,7 @@ export default function PurchaseOrdersList() {
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">تاريخ الأمر</th>
-                      <th className="p-3 font-bold text-center w-24">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-36">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -417,16 +559,32 @@ export default function PurchaseOrdersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => navigate(`/requests/${order.requestId}/purchase-order`)}
-                              className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer"
-                              title="معاينة وطباعة أمر الشراء"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>معاينة</span>
-                            </Button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              {order.status === "draft" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    approveOrderMutation.mutate({ requestId: order.requestId });
+                                  }}
+                                  disabled={approveOrderMutation.isPending}
+                                  className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer px-2"
+                                  title="اعتماد أمر الشراء فورياً"
+                                >
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>اعتماد</span>
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(`/requests/${order.requestId}/purchase-order`)}
+                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer px-2"
+                                title="معاينة وطباعة أمر الشراء"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>معاينة</span>
+                              </Button>
+                            </div>
                           </td>
                         </TableRow>
                       );
@@ -511,6 +669,259 @@ export default function PurchaseOrdersList() {
                 </tbody>
               </table>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة إضافة أمر شراء جديد وتحديد الطلب والبنود والكميات والاعتماد */}
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogContent className="max-w-2xl text-right font-sans max-h-[88vh] overflow-y-auto" dir="rtl">
+            <DialogHeader className="text-right sm:text-right pb-3 border-b">
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ShoppingCart className="w-5 h-5 text-sky-600" />
+                <span>إضافة وتوثيق أمر شراء جديد</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground text-right sm:text-right">
+                اختر الطلب وحدد البنود والكمية المطلوبة لكل بند مع إمكانية الاعتماد الفوري
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2 text-xs">
+              {/* خطوة 1: اختيار الطلب */}
+              <div>
+                <Label className="text-xs font-bold text-foreground mb-1 block">
+                  1. اختر الطلب المراد إصدار أمر شراء له:
+                </Label>
+                <Select
+                  value={selectedRequestId ? String(selectedRequestId) : ""}
+                  onValueChange={(val) => handleSelectRequest(Number(val))}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-background">
+                    <SelectValue placeholder="اختر الطلب من القائمة..." />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl" className="max-h-[300px]">
+                    {availableRequests.map((r) => (
+                      <SelectItem key={r.id} value={String(r.id)} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold font-mono">#{r.requestNumber}</span>
+                          <span>- {r.mosqueName}</span>
+                          {r.descriptiveName && <span className="text-muted-foreground truncate max-w-[150px]">({r.descriptiveName})</span>}
+                          <Badge variant="outline" className="text-[10px] mr-auto">
+                            {r.items.length} أصناف
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedRequestId && (
+                <>
+                  {/* خطوة 2: جدول تحديد البنود والكميات */}
+                  <div className="space-y-2 border rounded-xl p-3 bg-muted/20">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Package className="w-4 h-4 text-sky-600" />
+                        <span>2. تحديد البنود والكميات المطلوبة لكل بند:</span>
+                      </Label>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const req = availableRequests.find((r) => r.id === selectedRequestId);
+                            if (req) setSelectedItemIds(req.items.map((it: any) => it.id));
+                          }}
+                          className="h-6 text-[10px] text-sky-700 hover:bg-sky-50 px-1.5"
+                        >
+                          تحديد الكل
+                        </Button>
+                        <span className="text-muted-foreground">•</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedItemIds([])}
+                          className="h-6 text-[10px] text-muted-foreground hover:bg-muted px-1.5"
+                        >
+                          إلغاء التحديد
+                        </Button>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const req = availableRequests.find((r) => r.id === selectedRequestId);
+                      const items = req?.items || [];
+                      if (items.length === 0) {
+                        return (
+                          <div className="p-4 text-center text-muted-foreground bg-background rounded border">
+                            لا توجد بنود مسجلة لهذا الطلب.
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="border rounded-lg overflow-hidden bg-background">
+                          <table className="w-full text-xs text-right divide-y divide-border">
+                            <thead className="bg-muted/40 font-bold">
+                              <tr>
+                                <th className="p-2 w-10 text-center">تضمين</th>
+                                <th className="p-2">الصنف والبيان</th>
+                                <th className="p-2 text-center w-28">الكمية المطلوبة</th>
+                                <th className="p-2 text-center w-16">الوحدة</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {items.map((it: any) => {
+                                const isChecked = selectedItemIds.includes(it.id);
+                                return (
+                                  <tr key={it.id} className={isChecked ? "bg-sky-50/30 dark:bg-sky-950/20" : "opacity-60"}>
+                                    <td className="p-2 text-center">
+                                      <Checkbox
+                                        checked={isChecked}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            setSelectedItemIds((prev) => [...prev, it.id]);
+                                          } else {
+                                            setSelectedItemIds((prev) => prev.filter((id) => id !== it.id));
+                                          }
+                                        }}
+                                      />
+                                    </td>
+                                    <td className="p-2">
+                                      <div className="font-bold text-foreground">{it.name}</div>
+                                      {it.description && (
+                                        <div className="text-[10px] text-muted-foreground">{it.description}</div>
+                                      )}
+                                    </td>
+                                    <td className="p-2 text-center">
+                                      <Input
+                                        type="number"
+                                        min="0.01"
+                                        step="any"
+                                        disabled={!isChecked}
+                                        value={itemsQuantities[it.id] ?? it.quantity ?? 1}
+                                        onChange={(e) => {
+                                          const val = parseFloat(e.target.value) || 0;
+                                          setItemsQuantities((prev) => ({
+                                            ...prev,
+                                            [it.id]: val,
+                                          }));
+                                        }}
+                                        className="h-7 text-xs text-center font-mono w-24 mx-auto"
+                                      />
+                                    </td>
+                                    <td className="p-2 text-center text-muted-foreground font-mono">
+                                      {it.unit || "وحدة"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* خطوة 3: بيانات التوجيه والاعتماد */}
+                  <div className="space-y-2 border rounded-xl p-3 bg-muted/20">
+                    <Label className="text-xs font-bold text-foreground block">
+                      3. بيانات وتوجيه أمر الشراء:
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">رقم أمر الشراء</Label>
+                        <Input
+                          value={orderNumber}
+                          onChange={(e) => setOrderNumber(e.target.value)}
+                          placeholder="PO-..."
+                          className="h-8 text-xs font-mono mt-1 bg-background"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">تاريخ أمر الشراء</Label>
+                        <Input
+                          type="date"
+                          value={orderDate}
+                          onChange={(e) => setOrderDate(e.target.value)}
+                          className="h-8 text-xs mt-1 bg-background"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">الموجه إليه (إدارة المشتريات / المورد)</Label>
+                        <Input
+                          value={directedTo}
+                          onChange={(e) => setDirectedTo(e.target.value)}
+                          placeholder="إلى إدارة المشتريات..."
+                          className="h-8 text-xs mt-1 bg-background"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground">طالب الشراء</Label>
+                        <Input
+                          value={requesterName}
+                          onChange={(e) => setRequesterName(e.target.value)}
+                          placeholder="اسم طالب الشراء..."
+                          className="h-8 text-xs mt-1 bg-background"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-[11px] text-muted-foreground">اسم المعتمِد</Label>
+                        <Input
+                          value={approverName}
+                          onChange={(e) => setApproverName(e.target.value)}
+                          placeholder="المدير التنفيذي..."
+                          className="h-8 text-xs mt-1 bg-background"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label className="text-[11px] text-muted-foreground">ملاحظات أمر الشراء</Label>
+                        <Textarea
+                          value={orderNotes}
+                          onChange={(e) => setOrderNotes(e.target.value)}
+                          placeholder="أي شروط أو ملاحظات خاصة بالتوريد والتسليم..."
+                          className="text-xs mt-1 bg-background"
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2 pt-2 border-t flex flex-row items-center justify-between sm:justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="text-xs cursor-pointer"
+              >
+                إلغاء
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!selectedRequestId || createOrderMutation.isPending}
+                  onClick={() => handleSubmitOrder("draft")}
+                  className="text-xs font-bold cursor-pointer"
+                >
+                  {createOrderMutation.isPending ? "جاري الحفظ..." : "حفظ كمسودة"}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!selectedRequestId || createOrderMutation.isPending}
+                  onClick={() => handleSubmitOrder("approved")}
+                  className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span>{createOrderMutation.isPending ? "جاري الحفظ..." : "حفظ واعتماد أمر الشراء"}</span>
+                </Button>
+              </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

@@ -87,7 +87,9 @@ export const procurementRouter = router({
         const reqBoq = boqByRequest.get(req.id) || [];
         let itemsForPO: any[] = [];
 
-        if (reqBoq.length > 0) {
+        if (activePO?.items && Array.isArray(activePO.items) && activePO.items.length > 0) {
+          itemsForPO = activePO.items;
+        } else if (reqBoq.length > 0) {
           itemsForPO = reqBoq
             .filter((it) => allocatedItemIds.includes(String(it.id)))
             .map((it, idx) => ({
@@ -144,9 +146,9 @@ export const procurementRouter = router({
 
         const poNumber = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
         const poDate = activePO?.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) تكون الحالة معتمد، وعدا ذلك مسودة
+        // إذا كان الطلب في مرحلة "التشغيل والتنفيذ" (أو ما بعدها) أو تم اعتماده مسبقاً تكون الحالة معتمد
         const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
-        const status = isExecutionOrBeyond ? "approved" : "draft";
+        const status = (activePO?.status === "approved" || isExecutionOrBeyond) ? "approved" : "draft";
         const directedTo = activePO?.directedTo || (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات");
 
         orders.push({
@@ -438,6 +440,261 @@ export const procurementRouter = router({
         letters: paginatedLetters,
         total,
         stats,
+      };
+    }),
+
+  // ===============================================
+  // 3. جلب قائمة الطلبات المتاحة لإنشاء أمر شراء
+  // ===============================================
+  getAvailableRequestsForPO: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const requests = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .orderBy(desc(mosqueRequests.createdAt));
+
+      const allBoq = await db
+        .select()
+        .from(quantitySchedules);
+
+      const boqMap = new Map<number, any[]>();
+      allBoq.forEach((b) => {
+        if (!b.requestId) return;
+        const list = boqMap.get(b.requestId) || [];
+        list.push(b);
+        boqMap.set(b.requestId, list);
+      });
+
+      const result: any[] = [];
+
+      for (const row of requests) {
+        const req = row.request;
+        const mosque = row.mosque;
+
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        pData = pData && typeof pData === "object" ? pData : {};
+
+        // جمع البنود المعتمدة للطلب
+        const boqItems = boqMap.get(req.id) || [];
+        let items: any[] = [];
+
+        if (boqItems.length > 0) {
+          items = boqItems.map((b) => ({
+            id: String(b.id),
+            itemName: b.itemName,
+            description: b.itemDescription || "",
+            quantity: parseFloat(b.quantity || "1"),
+            unit: b.unit || "وحدة",
+          }));
+        } else if (pData.evaluation?.items && Array.isArray(pData.evaluation.items)) {
+          items = pData.evaluation.items.map((it: any, idx: number) => ({
+            id: String(it.key || it.id || idx + 1),
+            itemName: it.name || it.itemName || `بند ${idx + 1}`,
+            description: it.description || it.spec || "",
+            quantity: parseFloat(it.approvedQty || it.requestedQty || "1"),
+            unit: it.unit || "وحدة",
+          }));
+        } else if (pData.basketItems && Array.isArray(pData.basketItems)) {
+          items = pData.basketItems.map((b: any, idx: number) => ({
+            id: String(b.id || idx + 1),
+            itemName: b.name,
+            description: b.description || b.category || "",
+            quantity: parseFloat(b.quantity || "1"),
+            unit: b.unit || "وحدة",
+          }));
+        }
+
+        const activePO = pData.sedanaProcurement?.activePurchaseOrder || null;
+
+        result.push({
+          id: req.id,
+          requestNumber: req.requestNumber,
+          descriptiveName: req.descriptiveName,
+          currentStage: req.currentStage,
+          status: req.status,
+          mosqueName: mosque?.name || "المسجد",
+          mosqueCity: mosque?.city || "",
+          items,
+          activePO,
+        });
+      }
+
+      return result;
+    }),
+
+  // ===============================================
+  // 4. إنشاء أو تحديث أمر شراء مع تحديد البنود والكميات
+  // ===============================================
+  createOrUpdatePurchaseOrder: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      orderNumber: z.string().optional(),
+      orderDate: z.string().optional(),
+      directedTo: z.string().optional(),
+      requesterName: z.string().optional(),
+      requesterRole: z.string().optional(),
+      approverName: z.string().optional(),
+      approverRole: z.string().optional(),
+      notes: z.string().optional(),
+      status: z.enum(["approved", "draft"]).default("draft"),
+      items: z.array(z.object({
+        id: z.string(),
+        itemName: z.string(),
+        description: z.string().optional(),
+        quantity: z.number().min(0.01),
+        unit: z.string(),
+      })),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaProcurement = pData.sedanaProcurement || {};
+      pData.sedanaProcurement.itemsAllocation = pData.sedanaProcurement.itemsAllocation || {};
+
+      // تخصيص هذه البنود لأمر الشراء
+      input.items.forEach((it) => {
+        pData.sedanaProcurement.itemsAllocation[it.id] = "purchase_order";
+      });
+
+      const orderNumber = input.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+      const activePO = {
+        orderNumber,
+        orderDate: input.orderDate || new Date().toISOString().split("T")[0],
+        directedTo: input.directedTo || "إلى إدارة المشتريات",
+        requesterName: input.requesterName || ctx.user.name || "طالب الشراء",
+        requesterRole: input.requesterRole || "طالب الشراء / إدارة المشاريع",
+        approverName: input.approverName || "المدير التنفيذي",
+        approverRole: input.approverRole || "المدير التنفيذي",
+        approverSignatureUrl: input.status === "approved" ? "digital_signature_approved" : "",
+        notes: input.notes || "",
+        status: input.status,
+        items: input.items,
+        updatedAt: new Date().toISOString(),
+      };
+
+      pData.sedanaProcurement.activePurchaseOrder = activePO;
+
+      const updateData: any = {
+        programData: pData,
+        updatedAt: new Date(),
+      };
+
+      // إذا تم الاعتماد، وكان الطلب في مرحلة التأمين والتعاقد أو ما قبلها، يتم نقله لمرحلة التشغيل والتنفيذ
+      if (input.status === "approved" && (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval")) {
+        updateData.currentStage = "execution";
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set(updateData)
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return {
+        success: true,
+        orderNumber,
+        status: input.status,
+        message: input.status === "approved" ? "تم حفظ واعتماد أمر الشراء بنجاح" : "تم حفظ أمر الشراء كمسودة بنجاح",
+      };
+    }),
+
+  // ===============================================
+  // 5. اعتماد أمر الشراء فورياً
+  // ===============================================
+  approvePurchaseOrder: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      approverName: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+      }
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaProcurement = pData.sedanaProcurement || {};
+      const activePO = pData.sedanaProcurement.activePurchaseOrder || {};
+
+      activePO.status = "approved";
+      activePO.approverName = input.approverName || activePO.approverName || ctx.user.name || "المدير التنفيذي";
+      activePO.approverSignatureUrl = "digital_signature_approved";
+      activePO.approvedAt = new Date().toISOString();
+      pData.sedanaProcurement.activePurchaseOrder = activePO;
+
+      const updateData: any = {
+        programData: pData,
+        updatedAt: new Date(),
+      };
+
+      // ترقية الطلب لمرحلة التشغيل والتنفيذ
+      if (req.currentStage === "contracting" || req.currentStage === "financial_eval_and_approval") {
+        updateData.currentStage = "execution";
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set(updateData)
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      return {
+        success: true,
+        message: "تم اعتماد أمر الشراء بنجاح",
       };
     }),
 });
