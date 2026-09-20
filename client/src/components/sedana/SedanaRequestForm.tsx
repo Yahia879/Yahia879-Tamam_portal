@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Trash2, Plus, Upload, Check } from 'lucide-react';
@@ -95,6 +96,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           dbCategoryId: v.id,
           category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
           name: v.valueAr || v.value,
+          description: v.description || meta.description || '',
           monthlyLimit: Number(meta.monthlyLimit) || 0,
           quarterlyLimit: Number(meta.quarterlyLimit) || 0,
           semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
@@ -111,6 +113,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
+          description: 'تأمين صهاريج مياه شرب نقية للمسجد',
           quantity: 0,
           unit: 'صهريج',
           frequency: 'شهري',
@@ -172,6 +175,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
       dbCategoryId: availableOption.id,
       category: (meta.category || 'أدوات المسجد العامة') as SedanaCategory,
       name: availableOption.valueAr || availableOption.value,
+      description: (availableOption as any).description || meta.description || '',
       monthlyLimit: Number(meta.monthlyLimit) || 0,
       quarterlyLimit: Number(meta.quarterlyLimit) || 0,
       semiAnnualLimit: Number(meta.semiAnnualLimit) || 0,
@@ -197,6 +201,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           id: 'water_tankers',
           category: 'سقيا الماء',
           name: 'صهاريج مياه (وايت ماء 19 طن)',
+          description: 'تأمين صهاريج مياه شرب نقية للمسجد',
           quantity: 0,
           unit: 'صهريج',
           frequency: 'شهري',
@@ -399,8 +404,9 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           <table className="w-full text-xs text-right">
             <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
               <tr>
-                <th className="p-3 min-w-[200px]">اسم الصنف</th>
-                <th className="p-3 w-36 text-center">الكمية</th>
+                <th className="p-3 min-w-[180px]">اسم الصنف</th>
+                <th className="p-3 min-w-[200px]">الوصف والمواصفات</th>
+                <th className="p-3 w-32 text-center">الكمية</th>
                 <th className="p-3 w-24 text-center">وحدة القياس</th>
                 <th className="p-3 w-32 text-center">دورية التوريد</th>
                 <th className="p-3 w-12 text-center">إجراء</th>
@@ -444,9 +450,17 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                           </SelectContent>
                         </Select>
                       )}
-                      {item.description && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{item.description}</p>
-                      )}
+                    </td>
+                    <td className="p-3 align-middle">
+                      <Textarea
+                        value={item.description || ''}
+                        onChange={(e) =>
+                          handleUpdateItem(item.id, { description: e.target.value })
+                        }
+                        placeholder="اكتب مواصفات أو وصف الصنف..."
+                        rows={2}
+                        className="text-xs min-h-[46px] resize-y bg-background border-input py-1.5 px-2.5 leading-relaxed"
+                      />
                     </td>
                     <td className="p-3 text-center align-middle">
                       <div className="flex flex-col items-center justify-center">
