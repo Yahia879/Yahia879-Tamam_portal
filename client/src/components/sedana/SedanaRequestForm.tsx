@@ -404,11 +404,10 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
           <table className="w-full text-xs text-right">
             <thead className="bg-muted/40 text-muted-foreground border-b border-border/70 font-bold">
               <tr>
-                <th className="p-3 min-w-[180px]">اسم الصنف</th>
-                <th className="p-3 min-w-[200px]">الوصف والمواصفات</th>
-                <th className="p-3 w-32 text-center">الكمية</th>
-                <th className="p-3 w-24 text-center">وحدة القياس</th>
-                <th className="p-3 w-32 text-center">دورية التوريد</th>
+                <th className="p-3 text-right">اسم الصنف والمواصفات</th>
+                <th className="p-3 w-28 text-center">الكمية</th>
+                <th className="p-3 w-20 text-center">وحدة القياس</th>
+                <th className="p-3 w-28 text-center">دورية التوريد</th>
                 <th className="p-3 w-12 text-center">إجراء</th>
               </tr>
             </thead>
@@ -423,46 +422,46 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
 
                 return (
                   <tr key={item.id} className="hover:bg-muted/15 transition-colors">
-                    <td className="p-3 font-medium text-foreground align-middle">
+                    <td className="p-3 font-medium text-foreground align-top">
                       {item.isCustom || item.id === 'water_tankers' || dbOptions.length === 0 ? (
-                        <div>
-                          <span className="font-semibold">{item.name}</span>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="font-semibold text-xs sm:text-sm text-foreground">{item.name}</span>
                           {item.isCustom && (
-                            <span className="text-[10px] text-primary mr-1.5 font-normal bg-primary/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] text-primary font-normal bg-primary/10 px-1.5 py-0.5 rounded">
                               (مخصص)
                             </span>
                           )}
                         </div>
                       ) : (
-                        <Select
-                          value={String(item.dbCategoryId || dbOptions.find((v: any) => (v.valueAr || v.value) === item.name)?.id || '')}
-                          onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
-                        >
-                          <SelectTrigger size="sm" className="h-8 text-xs w-full bg-background border-input font-medium">
-                            <SelectValue placeholder="اختر الصنف..." />
-                          </SelectTrigger>
-                          <SelectContent dir="rtl">
-                            {dbOptions.map((opt: any) => (
-                              <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
-                                {opt.valueAr || opt.value} {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="mb-1.5">
+                          <Select
+                            value={String(item.dbCategoryId || dbOptions.find((v: any) => (v.valueAr || v.value) === item.name)?.id || '')}
+                            onValueChange={(val) => handleSelectDbCategory(item.id, Number(val))}
+                          >
+                            <SelectTrigger size="sm" className="h-8 text-xs w-full bg-background border-input font-medium">
+                              <SelectValue placeholder="اختر الصنف..." />
+                            </SelectTrigger>
+                            <SelectContent dir="rtl">
+                              {dbOptions.map((opt: any) => (
+                                <SelectItem key={opt.id} value={String(opt.id)} className="text-xs">
+                                  {opt.valueAr || opt.value} {opt.metadata?.unit ? `(${opt.metadata.unit})` : ''}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       )}
-                    </td>
-                    <td className="p-3 align-middle">
                       <Textarea
                         value={item.description || ''}
                         onChange={(e) =>
                           handleUpdateItem(item.id, { description: e.target.value })
                         }
-                        placeholder="اكتب مواصفات أو وصف الصنف..."
-                        rows={2}
-                        className="text-xs min-h-[46px] resize-y bg-background border-input py-1.5 px-2.5 leading-relaxed"
+                        placeholder="اكتب مواصفات أو تفاصيل إضافية للصنف (اختياري)..."
+                        rows={1}
+                        className="text-xs min-h-[36px] max-h-[90px] resize-y bg-muted/20 focus:bg-background border-input/80 py-1.5 px-2.5 leading-relaxed rounded-md transition-colors"
                       />
                     </td>
-                    <td className="p-3 text-center align-middle">
+                    <td className="p-3 text-center align-top pt-3.5">
                       <div className="flex flex-col items-center justify-center">
                         <Input
                           type="number"
@@ -471,7 +470,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                           onChange={(e) =>
                             handleUpdateItem(item.id, { quantity: Number(e.target.value) || 0 })
                           }
-                          className={`h-8 text-xs text-center w-24 mx-auto transition-all ${
+                          className={`h-8 text-xs text-center w-20 mx-auto transition-all ${
                             isUnderMin
                               ? 'border-amber-500 focus-visible:ring-amber-500/30 bg-amber-500/10 font-bold text-amber-700 dark:text-amber-300'
                               : ''
@@ -479,15 +478,15 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                         />
                         {isUnderMin && (
                           <div className="mt-1 text-[10px] text-amber-600 dark:text-amber-400 font-bold whitespace-nowrap bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/25">
-                            أقل من الحد الأدنى ({minLimit})
+                            أقل من الحد ({minLimit})
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-center text-muted-foreground font-medium align-middle">
+                    <td className="p-3 text-center text-muted-foreground font-medium align-top pt-4">
                       {item.unit}
                     </td>
-                    <td className="p-3 text-center align-middle">
+                    <td className="p-3 text-center align-top pt-3.5">
                       <Select
                         value={item.frequency}
                         onValueChange={(val) =>
@@ -496,7 +495,7 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                           })
                         }
                       >
-                        <SelectTrigger size="sm" className="h-8 text-xs w-28 mx-auto bg-background border-input font-medium">
+                        <SelectTrigger size="sm" className="h-8 text-xs w-24 mx-auto bg-background border-input font-medium">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent dir="rtl">
@@ -508,13 +507,13 @@ export const SedanaRequestForm: React.FC<SedanaRequestFormProps> = ({
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="p-3 text-center align-middle">
+                    <td className="p-3 text-center align-top pt-3.5">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveItem(item.id)}
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
                         title="حذف الصنف"
                       >
                         <Trash2 className="w-4 h-4" />
