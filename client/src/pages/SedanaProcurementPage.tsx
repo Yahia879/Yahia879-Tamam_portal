@@ -144,25 +144,7 @@ export default function SedanaProcurementPage() {
             (b.name && it.itemName && b.name.trim().toLowerCase() === it.itemName.trim().toLowerCase())
           );
           if (matchBasket) {
-            const parts: string[] = [];
-            if (matchBasket.description) parts.push(matchBasket.description);
-            if (matchBasket.spec) parts.push(matchBasket.spec);
-            if (matchBasket.notes) parts.push(matchBasket.notes);
-            if (matchBasket.frequency) parts.push(`دورية التوريد: ${matchBasket.frequency}`);
-            if (matchBasket.category && parts.length === 0) parts.push(matchBasket.category);
-            
-            // تفاصيل العمالة إن وجدت
-            if ((matchBasket.category === "العمالة" || it.itemName?.includes("عامل")) && pData?.workforce) {
-              if (pData.workforce.cleanerSalary) {
-                parts.push(`مكافأة شهرية: ${pData.workforce.cleanerSalary} ر.س`);
-              }
-              if (pData.workforce.cleanerNotes) {
-                parts.push(pData.workforce.cleanerNotes);
-              }
-            }
-            if (parts.length > 0) {
-              desc = parts.join(" • ");
-            }
+            desc = matchBasket.description || matchBasket.spec || matchBasket.notes || "";
           }
         }
 
