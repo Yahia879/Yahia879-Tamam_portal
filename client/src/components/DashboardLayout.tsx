@@ -58,6 +58,7 @@ import {
   BadgeCheck,
   PieChart,
   HeartHandshake,
+  ShoppingCart,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -147,6 +148,8 @@ const getMenuGroups = (role: string, isEn?: boolean, customRoleNameAr?: string, 
       { icon: Receipt, label: "عروض الأسعار", path: "/quotations" },
       { icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" },
       { icon: FileText, label: "العقود", path: "/contracts" },
+      { icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" },
+      { icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" },
       { icon: Banknote, label: "طلبات الصرف", path: "/disbursements" },
       { icon: FileText, label: "أوامر الصرف", path: "/disbursement-orders" },
       { icon: Coins, label: "سندات القبض", path: "/receipt-vouchers" },
@@ -297,8 +300,10 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   }
   if (has("quotations"))          finItems.push({ icon: Receipt,     label: "عروض الأسعار",    path: "/quotations" });
   if (has("financial_approval"))  finItems.push({ icon: CheckSquare, label: "الاعتماد المالي", path: "/financial-approval" });
-  if (has("contracts") || has("contracts.view")) {
+  if (has("contracts") || has("contracts.view") || has("requests")) {
     finItems.push({ icon: FileText, label: "العقود", path: "/contracts" });
+    finItems.push({ icon: ShoppingCart, label: "أوامر الشراء", path: "/purchase-orders" });
+    finItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
   }
   if (has("disbursement_requests")) finItems.push({ icon: Banknote,  label: "طلبات الصرف",    path: "/disbursements" });
   if (has("disbursement_orders")) finItems.push({ icon: FileText,    label: "أوامر الصرف",    path: "/disbursement-orders" });
