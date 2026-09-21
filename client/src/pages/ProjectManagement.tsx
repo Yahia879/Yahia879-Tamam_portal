@@ -21,6 +21,7 @@ import {
   BarChart3,
   FolderOpen,
   PauseCircle,
+  Sparkles,
 } from "lucide-react";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Link, useLocation } from "wouter";
@@ -238,8 +239,12 @@ export default function ProjectManagement() {
                     <div className="flex flex-col lg:flex-row lg:items-center gap-4 sm:gap-6">
                       {/* معلومات المشروع */}
                       <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                          <Briefcase className="w-6 h-6 sm:w-7 sm:h-7 text-primary" />
+                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0 ${project.programType === "sedana" ? "bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 border border-cyan-200" : "bg-primary/10 text-primary"}`}>
+                          {project.programType === "sedana" ? (
+                            <Sparkles className="w-6 h-6 sm:w-7 sm:h-7" />
+                          ) : (
+                            <Briefcase className="w-6 h-6 sm:w-7 sm:h-7" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -248,6 +253,12 @@ export default function ProjectManagement() {
                               {statusIcons[project.status || "planning"]}
                               <span className="mr-1">{project.currentPhaseName || statusLabels[project.status || "planning"]}</span>
                             </Badge>
+                            {project.programType === "sedana" && (
+                              <Badge variant="outline" className="bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300 text-[10px] sm:text-xs py-0 sm:py-0.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                <Sparkles className="w-3 h-3 text-cyan-600" />
+                                مشروع سدانة
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-muted-foreground text-xs sm:text-sm truncate">{project.name}</p>
                           <div className="flex items-center gap-3 sm:gap-4 mt-2 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
