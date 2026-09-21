@@ -487,6 +487,16 @@ export const contractsRouter = router({
         } catch (disbErr) {
           console.error("Error computing paid payments in contracts.getById:", disbErr);
         }
+
+        // ترتيب الدفعات حسب التاريخ تصاعدياً
+        paymentsList.sort((a, b) => {
+          const dA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+          const dB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+          if (dA !== dB) return dA - dB;
+          const cA = a.completionPercentage !== undefined && a.completionPercentage !== null ? Number(a.completionPercentage) : Infinity;
+          const cB = b.completionPercentage !== undefined && b.completionPercentage !== null ? Number(b.completionPercentage) : Infinity;
+          return cA - cB;
+        });
       }
       
       // جلب إعدادات الجمعية

@@ -37,6 +37,8 @@ import {
   AlertCircle,
   Heart,
   Lock,
+  Info,
+  ArrowUpDown,
 } from "lucide-react";
 
 // وحدات المدة
@@ -308,6 +310,21 @@ export default function ContractForm() {
   
   // جدول الدفعات
   const [paymentSchedule, setPaymentSchedule] = useState<PaymentScheduleItem[]>([]);
+  const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
+
+  // دالة مساعدة لترتيب الدفعات حسب التاريخ
+  const sortPaymentsByDate = (payments: PaymentScheduleItem[]): PaymentScheduleItem[] => {
+    return [...payments].sort((a, b) => {
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+      const compA = a.completionPercentage !== undefined && a.completionPercentage !== null ? Number(a.completionPercentage) : Infinity;
+      const compB = b.completionPercentage !== undefined && b.completionPercentage !== null ? Number(b.completionPercentage) : Infinity;
+      return compA - compB;
+    });
+  };
 
   // البنود المخصصة
   const [customClauses, setCustomClauses] = useState<{title: string; description: string}[]>([]);
@@ -706,7 +723,7 @@ export default function ContractForm() {
           console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
         }
       }
-      setPaymentSchedule(parsedSchedule);
+      setPaymentSchedule(sortPaymentsByDate(parsedSchedule));
 
       // تحميل بنود العقد من العقد الحالي
       let parsedClauses: ClauseValue[] = [];
@@ -974,7 +991,7 @@ export default function ContractForm() {
       description: "",
       completionPercentage: suggestedCompletion,
     };
-    setPaymentSchedule([...paymentSchedule, newPayment]);
+    setPaymentSchedule(sortPaymentsByDate([...paymentSchedule, newPayment]));
   };
 
   // إدراج دفعة بين دفعتين
@@ -1033,9 +1050,10 @@ export default function ContractForm() {
 
     const newSchedule = [...paymentSchedule];
     newSchedule.splice(targetIndex, 0, newPayment);
+    const sorted = sortPaymentsByDate(newSchedule);
 
     // إعادة ترقيم أسماء الدفعات التلقائية غير المعدلة يدوياً
-    const renamed = newSchedule.map((p, idx) => {
+    const renamed = sorted.map((p, idx) => {
       if (p.isPaid) return p;
       if (/^الدفعة \d+$/.test(p.name)) {
         return { ...p, name: `الدفعة ${idx + 1}` };
@@ -2181,10 +2199,25 @@ export default function ContractForm() {
                       حدد الدفعات ومواعيدها (اختياري)
                     </p>
                   </div>
-                  <Button onClick={addPayment} variant="outline" size="sm">
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة دفعة
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      type="button" 
+                      onClick={() => {
+                        setPaymentSchedule(prev => sortPaymentsByDate(prev));
+                        toast.success("تم ترتيب الدفعات حسب التاريخ بنجاح");
+                      }} 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-xl flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowUpDown className="h-3.5 w-3.5" />
+                      ترتيب حسب التاريخ
+                    </Button>
+                    <Button onClick={addPayment} variant="outline" size="sm" className="rounded-xl">
+                      <Plus className="h-4 w-4 ml-1.5" />
+                      إضافة دفعة
+                    </Button>
+                  </div>
                 </div>
 
                 {paymentSchedule.length === 0 ? (
@@ -2325,6 +2358,9 @@ export default function ContractForm() {
                                       }
                                       updatePayment(payment.id, "dueDate", selectedDate);
                                     }}
+                                    onBlur={() => {
+                                      setPaymentSchedule(prev => sortPaymentsByDate(prev));
+                                    }}
                                     min={prevPaymentDate || contractData.startDate || undefined}
                                     max={nextPaymentDate || (() => {
                                       if (!contractData.startDate || contractData.duration <= 0) return undefined;
@@ -2446,9 +2482,14 @@ export default function ContractForm() {
 
                                     const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp;
                                     const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp;
+                                    const hasRedAlert = isBelowPrev || isAboveNext;
                                     const minAllowed = index === 0 ? 0 : (prevComp !== null ? prevComp + 1 : 0);
                                     const maxAllowed = nextComp !== null ? Math.max(minAllowed, nextComp - 1) : 100;
                                     const isAfter100 = prevComp !== null && prevComp >= 100;
+
+                                    const isExpanded = expandedGuidanceMap[payment.id] !== undefined
+                                      ? expandedGuidanceMap[payment.id]
+                                      : hasRedAlert;
 
                                     const prevName = prevPayment ? (prevPayment.name || `الدفعة ${index}`) : "";
                                     const nextName = nextPayment ? (nextPayment.name || `الدفعة ${index + 2}`) : "";
@@ -2467,25 +2508,72 @@ export default function ContractForm() {
                                           </div>
                                         ) : (
                                           <>
-                                            {/* صندوق التوضيح والشروط تماماً كما في صفحة الدفعات بالمشروع */}
+                                            {/* صندوق التوضيح والشروط: قابل للطي ويكون مغلقاً تلقائياً إلا إذا كان هناك تنبيه أحمر */}
                                             {(prevComp !== null || nextComp !== null) && (
-                                              <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-xl p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1">
-                                                {prevComp !== null && (
-                                                  <p>
-                                                    📅 <strong>الدفعة السابقة ({prevName}):</strong> نسبة إنجازها <strong>{prevComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أكبر من ذلك</strong>
-                                                  </p>
+                                              <div className={cn(
+                                                "rounded-xl border transition-all duration-200 overflow-hidden mb-1.5",
+                                                hasRedAlert 
+                                                  ? "bg-destructive/5 border-destructive/40 shadow-xs" 
+                                                  : "bg-sky-50/70 dark:bg-sky-950/20 border-sky-200/80 dark:border-sky-900/40"
+                                              )}>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setExpandedGuidanceMap(prev => ({ ...prev, [payment.id]: !isExpanded }))}
+                                                  className={cn(
+                                                    "w-full flex items-center justify-between px-2.5 py-1.5 text-xs transition-colors select-none text-right font-semibold",
+                                                    hasRedAlert 
+                                                      ? "text-destructive hover:bg-destructive/10" 
+                                                      : "text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/30"
+                                                  )}
+                                                >
+                                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <Info className={cn("w-3.5 h-3.5 shrink-0", hasRedAlert ? "text-destructive" : "text-sky-600 dark:text-sky-400")} />
+                                                    <span>شروط ونطاق نسبة الإنجاز:</span>
+                                                    <span className={cn(
+                                                      "font-bold px-1.5 py-0.5 rounded text-[11px] font-sans border",
+                                                      hasRedAlert 
+                                                        ? "bg-destructive/10 text-destructive border-destructive/30" 
+                                                        : "bg-sky-100 dark:bg-sky-900/60 text-sky-800 dark:text-sky-200 border-sky-300/60 dark:border-sky-800/60"
+                                                    )}>
+                                                      {minAllowed}% – {maxAllowed}%
+                                                    </span>
+                                                    {hasRedAlert && (
+                                                      <span className="text-[10px] font-bold text-destructive bg-destructive/15 px-1.5 py-0.5 rounded border border-destructive/30 animate-pulse">
+                                                        ⚠️ يوجد تعارض في النسبة
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground font-normal shrink-0 mr-1">
+                                                    <span>{isExpanded ? "طي" : "عرض الشروط"}</span>
+                                                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", isExpanded && "rotate-180")} />
+                                                  </div>
+                                                </button>
+
+                                                {isExpanded && (
+                                                  <div className={cn(
+                                                    "p-2.5 pt-1.5 text-xs space-y-1 border-t animate-in fade-in duration-150",
+                                                    hasRedAlert 
+                                                      ? "border-destructive/20 text-destructive/95 bg-destructive/[0.02]" 
+                                                      : "border-sky-200/60 dark:border-sky-900/30 text-sky-800 dark:text-sky-300"
+                                                  )}>
+                                                    {prevComp !== null && (
+                                                      <p>
+                                                        📅 <strong>الدفعة السابقة ({prevName}):</strong> نسبة إنجازها <strong>{prevComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أكبر من ذلك</strong>
+                                                      </p>
+                                                    )}
+                                                    {nextComp !== null && (
+                                                      <p>
+                                                        📅 <strong>الدفعة التالية ({nextName}):</strong> نسبة إنجازها <strong>{nextComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أقل من ذلك</strong>
+                                                      </p>
+                                                    )}
+                                                    {prevComp === null && (
+                                                      <p>⭐ <strong>الدفعة الأولى:</strong> يمكن أن تبدأ نسبة الإنجاز من 0% فما فوق</p>
+                                                    )}
+                                                    <p className={cn("font-bold", hasRedAlert ? "text-destructive" : "text-sky-700 dark:text-sky-400")}>
+                                                      النطاق المسموح به: {minAllowed}% – {maxAllowed}%
+                                                    </p>
+                                                  </div>
                                                 )}
-                                                {nextComp !== null && (
-                                                  <p>
-                                                    📅 <strong>الدفعة التالية ({nextName}):</strong> نسبة إنجازها <strong>{nextComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أقل من ذلك</strong>
-                                                  </p>
-                                                )}
-                                                {prevComp === null && (
-                                                  <p>⭐ <strong>الدفعة الأولى:</strong> يمكن أن تبدأ نسبة الإنجاز من 0% فما فوق</p>
-                                                )}
-                                                <p className="font-bold text-sky-700 dark:text-sky-400">
-                                                  النطاق المسموح به: {minAllowed}% – {maxAllowed}%
-                                                </p>
                                               </div>
                                             )}
 
