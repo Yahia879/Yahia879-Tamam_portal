@@ -169,19 +169,33 @@ export default function EditPaymentPage() {
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
   
-  // حساب المتبقي للصرف (نستثني الدفعة الحالية لتجنب مضاعفتها في المعادلة)
-  const totalPaymentsSum = projectDetails?.payments
-    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
-    ?.reduce((sum: number, p: any) => {
-      if (p.id === paymentId) return sum;
-      if (payment?.contractPaymentId && p.contractPaymentId === payment.contractPaymentId) return sum;
-      if (paymentId.startsWith("disb-") && p.id === `cp-${payment?.contractPaymentId}`) return sum;
-      return sum + parseFloat(p.amount || "0");
-    }, 0) || 0;
+  const getPaymentEffectiveAmount = (p: any): number => {
+    const paidAmt = parseFloat(String(p.paidAmount || 0).replace(/,/g, ""));
+    const isPaid = Boolean(p.isPaid || p.status === "paid" || p.status === "partially_paid" || p.status === "executed" || !!p.paidAt || paidAmt > 0);
+    if (isPaid && paidAmt > 0) {
+      return paidAmt;
+    }
+    const agreedAmt = parseFloat(String(p.agreedAmount !== undefined && p.agreedAmount !== null ? p.agreedAmount : (p.amount || 0)).replace(/,/g, ""));
+    return isNaN(agreedAmt) ? 0 : agreedAmt;
+  };
+
+  const isCurrentPayment = (p: any): boolean => {
+    if (p.id === paymentId) return true;
+    if (paymentId.startsWith("cp-") && p.id === paymentId) return true;
+    if (paymentId.startsWith("manual-") && p.id === paymentId) return true;
+    if (paymentId.startsWith("disb-") && (p.id === paymentId || (payment?.contractPaymentId && p.id === `cp-${payment.contractPaymentId}`) || (payment?.paymentId && p.id === `manual-${payment.paymentId}`))) return true;
+    if (payment?.contractPaymentId && (p.contractPaymentId === payment.contractPaymentId || p.id === `cp-${payment.contractPaymentId}`)) return true;
+    return false;
+  };
+
+  // حساب المتبقي المتاح لهذه الدفعة (نستثني الدفعة الحالية من مجموع باقي الدفعات)
+  const otherPaymentsSum = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !isCurrentPayment(p))
+    ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
 
   const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
   const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
-  const remainingAmount = contractAmount - totalPaymentsSum;
+  const remainingAmount = Math.max(0, contractAmount - otherPaymentsSum);
 
   // تحديث بيانات المورد
   const updateSupplier = (id: string, field: keyof SupplierEntry, value: string | number) => {
@@ -392,8 +406,8 @@ export default function EditPaymentPage() {
         return;
       }
 
-      if (totalAmount > remainingAmount || remainingAmount < 0) {
-        toast.error(`المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للصرف (${Math.max(0, remainingAmount).toLocaleString()} ريال)`);
+      if (totalAmount > remainingAmount + 0.05 || remainingAmount < 0) {
+        toast.error(`المبلغ (${totalAmount.toLocaleString()} ريال) يتجاوز الإجمالي المتبقي المتاح لهذه الدفعة (${remainingAmount.toLocaleString()} ريال)`);
         return;
       }
     }
@@ -486,7 +500,7 @@ export default function EditPaymentPage() {
                         <span className="font-medium inline-flex items-center gap-1">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
                       <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground font-medium">الإجمالي المتبقي للصرف:</span>
+                        <span className="text-muted-foreground font-medium">الحد الأقصى المتاح للدفعة:</span>
                         <span className="font-bold text-emerald-600 inline-flex items-center gap-1">
                           {remainingAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>

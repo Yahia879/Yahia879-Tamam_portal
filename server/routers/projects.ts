@@ -1577,6 +1577,9 @@ export const projectsRouter = router({
 
   // ==================== الدفعات ====================
 
+  // دالة مساعدة للتحقق من عدم تجاوز مبالغ الدفعات للمتبقي من قيمة العقد
+  // (تستخدم عند إنشاء دفعة جديدة أو تعديل دفعة قائمة)
+
   // إنشاء دفعة
   createPayment: protectedProcedure
     .input(z.object({
@@ -1592,6 +1595,61 @@ export const projectsRouter = router({
     .mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      // التحقق من أن المبلغ لا يتجاوز الإجمالي المتبقي غير المجدول للعقد
+      const projectContractsList = await db
+        .select({ id: contractsEnhanced.id, amount: contractsEnhanced.contractAmount })
+        .from(contractsEnhanced)
+        .where(eq(contractsEnhanced.projectId, input.projectId));
+
+      const totalContractAmt = projectContractsList.reduce((sum: number, c: any) => sum + parseFloat(String(c.amount || "0")), 0);
+
+      if (totalContractAmt > 0) {
+        const contractIds = projectContractsList.map((c: any) => c.id);
+        const existingCps = contractIds.length > 0
+          ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+          : [];
+
+        const existingManuals = await db
+          .select()
+          .from(payments)
+          .where(and(eq(payments.projectId, input.projectId), ne(payments.status, "rejected")));
+
+        const pDisbs = await db
+          .select()
+          .from(disbursementRequests)
+          .where(eq(disbursementRequests.projectId, input.projectId));
+
+        let currentAllocatedSum = 0;
+
+        for (const cp of existingCps) {
+          const cpPaidDisbs = pDisbs.filter((d: any) => d.contractPaymentId === cp.id && d.status === "paid");
+          const paid = cpPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
+          if (paid > 0) {
+            currentAllocatedSum += paid;
+          } else {
+            currentAllocatedSum += parseFloat(String(cp.amount || "0"));
+          }
+        }
+
+        for (const m of existingManuals) {
+          const mPaidDisbs = pDisbs.filter((d: any) => d.paymentId === m.id && d.status === "paid");
+          const paid = mPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
+          if (paid > 0) {
+            currentAllocatedSum += paid;
+          } else {
+            currentAllocatedSum += parseFloat(String(m.amount || "0"));
+          }
+        }
+
+        const remainingAllowed = Math.max(0, totalContractAmt - currentAllocatedSum);
+        if (input.amount > remainingAllowed + 0.05) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `المبلغ (${input.amount.toLocaleString()} ريال) يتجاوز الإجمالي المتبقي غير المجدول للعقد (${remainingAllowed.toLocaleString()} ريال)`,
+          });
+        }
+      }
 
       const paymentNumber = generatePaymentNumber();
 
@@ -1738,6 +1796,7 @@ export const projectsRouter = router({
             id: input.id,
             projectId: payment.projectId || 0,
             contractId: payment.contractId || undefined,
+            paymentId: payment.id,
             title: payment.description || "",
             description: payment.description || "",
             amount: mAgreedAmt,
@@ -1809,28 +1868,27 @@ export const projectsRouter = router({
         ? (input.dateMiladi.includes('T') ? new Date(input.dateMiladi) : new Date(`${input.dateMiladi}T12:00:00`))
         : undefined;
 
+      let targetProjectId = 0;
+      let disbRec: any = null;
+      let manualRec: any = null;
+      let cpRec: any = null;
+
       if (input.id.startsWith("disb-")) {
         const actualId = parseInt(input.id.replace("disb-", ""));
-        const updateValues: any = { amount: input.amount.toString() };
-        if (input.title !== undefined) updateValues.title = input.title;
-        if (input.description !== undefined) updateValues.description = input.description;
-        if (dateVal !== undefined) updateValues.dateMiladi = dateVal;
-        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
-        
-        await db.update(disbursementRequests).set(updateValues).where(eq(disbursementRequests.id, actualId));
+        const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
+        if (!disb) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
 
-        if (dateVal !== undefined) {
-          const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
-          if (disb?.contractPaymentId) {
-            await db.update(contractPayments).set({ dueDate: dateVal }).where(eq(contractPayments.id, disb.contractPaymentId));
-          }
+        const dExec = await db.select().from(disbursementOrders).where(and(eq(disbursementOrders.disbursementRequestId, actualId), eq(disbursementOrders.status, "executed")));
+        if (disb.status === "paid" || dExec.length > 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل دفعة مسددة نهائياً" });
         }
+        disbRec = disb;
+        targetProjectId = disb.projectId || 0;
       } else if (input.id.startsWith("manual-")) {
         const actualId = parseInt(input.id.replace("manual-", ""));
         const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
         if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
 
-        // التحقق من حالة السداد: لا يمكن تعديل دفعة مسددة
         const mDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
         const mDisbIds = mDisbs.map(d => d.id);
         const mExec = mDisbIds.length > 0 
@@ -1839,38 +1897,13 @@ export const projectsRouter = router({
         if (p.status === "paid" || mExec.length > 0 || mDisbs.some(d => d.status === "paid")) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل دفعة مسددة نهائياً" });
         }
-
-        const updateValues: any = { amount: input.amount.toString() };
-        if (input.title !== undefined) updateValues.description = input.title;
-        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
-        await db.update(payments).set(updateValues).where(eq(payments.id, actualId));
-
-        if (dateVal !== undefined) {
-          const [existingDisb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
-          if (existingDisb) {
-            await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.id, existingDisb.id));
-          } else {
-            await db.insert(disbursementRequests).values({
-              requestNumber: `DISB-${p.paymentNumber}`,
-              projectId: p.projectId,
-              contractId: p.contractId,
-              paymentId: p.id,
-              title: input.title || p.description || "طلب دفعة",
-              description: input.description || p.description,
-              amount: input.amount.toString(),
-              paymentType: p.paymentType || "progress",
-              dateMiladi: dateVal,
-              completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : p.completionPercentage,
-              status: "pending",
-            });
-          }
-        }
+        manualRec = p;
+        targetProjectId = p.projectId || 0;
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
         const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
         if (!cp) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
 
-        // التحقق من حالة السداد: لا يمكن تعديل دفعة مسددة نهائياً
         const contractDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractPaymentId, actualId));
         const disbIds = contractDisbs.map(d => d.id);
         const executedOrders = disbIds.length > 0 
@@ -1880,7 +1913,150 @@ export const projectsRouter = router({
         if (isPaid) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل دفعة مسددة نهائياً" });
         }
+        cpRec = cp;
+        if (cp.contractId) {
+          const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
+          if (c) targetProjectId = c.projectId || 0;
+        }
+      } else {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
+      }
 
+      // التحقق من أن المبلغ المعدل لا يتجاوز إجمالي العقد مع بقية الدفعات الأخرى
+      if (targetProjectId > 0) {
+        const projectContractsList = await db
+          .select({ id: contractsEnhanced.id, amount: contractsEnhanced.contractAmount })
+          .from(contractsEnhanced)
+          .where(eq(contractsEnhanced.projectId, targetProjectId));
+
+        const totalContractAmt = projectContractsList.reduce((sum: number, c: any) => sum + parseFloat(String(c.amount || "0")), 0);
+
+        if (totalContractAmt > 0) {
+          const contractIds = projectContractsList.map((c: any) => c.id);
+          const existingCps = contractIds.length > 0
+            ? await db.select().from(contractPayments).where(inArray(contractPayments.contractId, contractIds))
+            : [];
+
+          const existingManuals = await db
+            .select()
+            .from(payments)
+            .where(and(eq(payments.projectId, targetProjectId), ne(payments.status, "rejected")));
+
+          const pDisbs = await db
+            .select()
+            .from(disbursementRequests)
+            .where(eq(disbursementRequests.projectId, targetProjectId));
+
+          let otherAllocatedSum = 0;
+
+          let editingCpId: number | null = null;
+          let editingPaymentId: number | null = null;
+          let editingDisbId: number | null = null;
+
+          if (input.id.startsWith("cp-")) {
+            editingCpId = cpRec.id;
+          } else if (input.id.startsWith("manual-")) {
+            editingPaymentId = manualRec.id;
+          } else if (input.id.startsWith("disb-")) {
+            editingDisbId = disbRec.id;
+            if (disbRec?.contractPaymentId) editingCpId = disbRec.contractPaymentId;
+            if (disbRec?.paymentId) editingPaymentId = disbRec.paymentId;
+          }
+
+          for (const cp of existingCps) {
+            if (editingCpId !== null && cp.id === editingCpId) continue;
+
+            const cpPaidDisbs = pDisbs.filter((d: any) => d.contractPaymentId === cp.id && d.status === "paid");
+            const paid = cpPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
+            if (paid > 0) {
+              otherAllocatedSum += paid;
+            } else {
+              otherAllocatedSum += parseFloat(String(cp.amount || "0"));
+            }
+          }
+
+          for (const m of existingManuals) {
+            if (editingPaymentId !== null && m.id === editingPaymentId) continue;
+
+            const mPaidDisbs = pDisbs.filter((d: any) => d.paymentId === m.id && d.status === "paid");
+            const paid = mPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
+            if (paid > 0) {
+              otherAllocatedSum += paid;
+            } else {
+              otherAllocatedSum += parseFloat(String(m.amount || "0"));
+            }
+          }
+
+          const standaloneDisbs = pDisbs.filter((d: any) => !d.contractPaymentId && !d.paymentId && d.status !== "rejected" && d.status !== "cancelled");
+          for (const sd of standaloneDisbs) {
+            if (editingDisbId !== null && sd.id === editingDisbId) continue;
+            otherAllocatedSum += parseFloat(String(sd.amount || "0"));
+          }
+
+          const remainingAllowed = Math.max(0, totalContractAmt - otherAllocatedSum);
+          if (input.amount > remainingAllowed + 0.05) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `المبلغ (${input.amount.toLocaleString()} ريال) يتجاوز الإجمالي المتبقي المتاح لهذه الدفعة (${remainingAllowed.toLocaleString()} ريال)`,
+            });
+          }
+        }
+      }
+
+      if (input.id.startsWith("disb-")) {
+        const actualId = disbRec.id;
+        const updateValues: any = { amount: input.amount.toString() };
+        if (input.title !== undefined) updateValues.title = input.title;
+        if (input.description !== undefined) updateValues.description = input.description;
+        if (dateVal !== undefined) updateValues.dateMiladi = dateVal;
+        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
+        
+        await db.update(disbursementRequests).set(updateValues).where(eq(disbursementRequests.id, actualId));
+
+        if (disbRec.contractPaymentId) {
+          const cpUpdate: any = { amount: input.amount.toString() };
+          if (dateVal !== undefined) cpUpdate.dueDate = dateVal;
+          if (input.title !== undefined) cpUpdate.phaseName = input.title;
+          if (input.completionPercentage !== undefined) cpUpdate.completionPercentage = input.completionPercentage;
+          await db.update(contractPayments).set(cpUpdate).where(eq(contractPayments.id, disbRec.contractPaymentId));
+        } else if (disbRec.paymentId) {
+          const mUpdate: any = { amount: input.amount.toString() };
+          if (input.title !== undefined) mUpdate.description = input.title;
+          if (input.completionPercentage !== undefined) mUpdate.completionPercentage = input.completionPercentage;
+          await db.update(payments).set(mUpdate).where(eq(payments.id, disbRec.paymentId));
+        }
+      } else if (input.id.startsWith("manual-")) {
+        const actualId = manualRec.id;
+        const updateValues: any = { amount: input.amount.toString() };
+        if (input.title !== undefined) updateValues.description = input.title;
+        if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
+        await db.update(payments).set(updateValues).where(eq(payments.id, actualId));
+
+        const [existingDisb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+        if (existingDisb) {
+          const disbUpdate: any = { amount: input.amount.toString() };
+          if (dateVal !== undefined) disbUpdate.dateMiladi = dateVal;
+          if (input.title !== undefined) disbUpdate.title = input.title;
+          if (input.description !== undefined) disbUpdate.description = input.description;
+          if (input.completionPercentage !== undefined) disbUpdate.completionPercentage = input.completionPercentage;
+          await db.update(disbursementRequests).set(disbUpdate).where(eq(disbursementRequests.id, existingDisb.id));
+        } else if (dateVal !== undefined) {
+          await db.insert(disbursementRequests).values({
+            requestNumber: `DISB-${manualRec.paymentNumber}`,
+            projectId: manualRec.projectId,
+            contractId: manualRec.contractId,
+            paymentId: manualRec.id,
+            title: input.title || manualRec.description || "طلب دفعة",
+            description: input.description || manualRec.description,
+            amount: input.amount.toString(),
+            paymentType: manualRec.paymentType || "progress",
+            dateMiladi: dateVal,
+            completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : manualRec.completionPercentage,
+            status: "pending",
+          });
+        }
+      } else if (input.id.startsWith("cp-")) {
+        const actualId = cpRec.id;
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.phaseName = input.title;
         if (dateVal !== undefined) {
@@ -1894,20 +2070,23 @@ export const projectsRouter = router({
         }
         await db.update(contractPayments).set(updateValues).where(eq(contractPayments.id, actualId));
 
-        if (dateVal !== undefined) {
-          await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.contractPaymentId, actualId));
-        }
+        const disbUpdate: any = { amount: input.amount.toString() };
+        if (dateVal !== undefined) disbUpdate.dateMiladi = dateVal;
+        if (input.title !== undefined) disbUpdate.title = input.title;
+        if (input.description !== undefined) disbUpdate.description = input.description;
+        if (input.completionPercentage !== undefined) disbUpdate.completionPercentage = input.completionPercentage;
+        await db.update(disbursementRequests).set(disbUpdate).where(eq(disbursementRequests.contractPaymentId, actualId));
 
         // مزامنة التعديل فوراً مع العقد في paymentScheduleJson وإعادة حساب التكلفة الفعلية
         try {
-          if (cp.contractId) {
+          if (cpRec.contractId) {
             const allCps = await db
               .select()
               .from(contractPayments)
-              .where(eq(contractPayments.contractId, cp.contractId))
+              .where(eq(contractPayments.contractId, cpRec.contractId))
               .orderBy(contractPayments.phaseOrder);
 
-            const cDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractId, cp.contractId));
+            const cDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractId, cpRec.contractId));
             const cDisbIds = cDisbs.map(d => d.id);
             const cOrders = cDisbIds.length > 0
               ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, cDisbIds))
@@ -1941,9 +2120,9 @@ export const projectsRouter = router({
 
             await db.update(contractsEnhanced).set({
               paymentScheduleJson: JSON.stringify(syncedSchedule),
-            }).where(eq(contractsEnhanced.id, cp.contractId));
+            }).where(eq(contractsEnhanced.id, cpRec.contractId));
 
-            const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
+            const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cpRec.contractId));
             if (c?.projectId) {
               const [res] = await db
                 .select({ total: sql<string>`SUM(CAST(contractAmount AS DECIMAL(15,2)))` })
@@ -1956,8 +2135,6 @@ export const projectsRouter = router({
         } catch (e) {
           console.error("Error syncing paymentScheduleJson for cp payment:", e);
         }
-      } else {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
       }
 
       return { success: true };

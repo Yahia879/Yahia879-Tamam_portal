@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -174,20 +174,41 @@ export default function NewDisbursementRequest() {
     },
   });
   
+  const getPaymentEffectiveAmount = (p: any): number => {
+    const paidAmt = parseFloat(String(p.paidAmount || 0).replace(/,/g, ""));
+    const isPaid = Boolean(p.isPaid || p.status === "paid" || p.status === "partially_paid" || p.status === "executed" || !!p.paidAt || paidAmt > 0);
+    if (isPaid && paidAmt > 0) {
+      return paidAmt;
+    }
+    const agreedAmt = parseFloat(String(p.agreedAmount !== undefined && p.agreedAmount !== null ? p.agreedAmount : (p.amount || 0)).replace(/,/g, ""));
+    return isNaN(agreedAmt) ? 0 : agreedAmt;
+  };
+
+  // حساب المتبقي غير المجدول للعقد
+  const totalPaymentsSum = projectDetails?.payments
+    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled")
+    ?.reduce((sum: number, p: any) => sum + getPaymentEffectiveAmount(p), 0) || 0;
+  const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
+  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
+  const remainingAmount = Math.max(0, contractAmount - totalPaymentsSum);
+
+  const hasInitializedSupplierRef = useRef(false);
+
   // تحديث بيانات المورد من العقد
   useEffect(() => {
-    if (contractDetails) {
+    if (contractDetails && !hasInitializedSupplierRef.current) {
+      hasInitializedSupplierRef.current = true;
       const supplierFromContract: SupplierEntry = {
         id: crypto.randomUUID(),
         name: contractDetails.contract.secondPartyName || "",
         work: contractDetails.contract.contractTitle || "",
-        amount: parseFloat(String(contractDetails.contract.contractAmount || "0")),
+        amount: remainingAmount,
         iban: contractDetails.contract.secondPartyIban || "",
         bank: contractDetails.contract.secondPartyBankName || "",
       };
       setSuppliers([supplierFromContract]);
     }
-  }, [contractDetails]);
+  }, [contractDetails, remainingAmount]);
 
   // اختيار العقد تلقائياً إذا كان هناك عقد واحد فقط للمشروع
   useEffect(() => {
@@ -200,14 +221,6 @@ export default function NewDisbursementRequest() {
   
   // حساب الإجمالي
   const totalAmount = suppliers.reduce((sum, s) => sum + (s.amount || 0), 0);
-  
-  // حساب المتبقي للدفعة
-  const totalPaymentsSum = projectDetails?.payments
-    ?.filter((p: any) => p.status !== "rejected" && p.status !== "cancelled" && !String(p.id).startsWith("cp-"))
-    ?.reduce((sum: number, p: any) => sum + parseFloat(p.amount || "0"), 0) || 0;
-  const totalContractsSum = projectDetails?.contracts?.reduce((sum: number, c: any) => sum + parseFloat(c.amount || "0"), 0) || 0;
-  const contractAmount = parseFloat(contractDetails?.contract?.contractAmount || "0") || totalContractsSum;
-  const remainingAmount = contractAmount - totalPaymentsSum;
 
   // إضافة مورد جديد
   const addSupplier = () => {
@@ -406,11 +419,11 @@ export default function NewDisbursementRequest() {
         return;
       }
 
-      if (totalAmount > remainingAmount || remainingAmount <= 0) {
+      if (totalAmount > remainingAmount + 0.05 || remainingAmount <= 0) {
         toast.error(
           remainingAmount <= 0
-            ? "تم الوصول للحد الأقصى لقيمة العقد ولا يمكن إضافة دفعات جديدة"
-            : `المبلغ لا يمكن أن يتجاوز الإجمالي المتبقي للدفعة (${Math.max(0, remainingAmount).toLocaleString()} ريال)`
+            ? "تمت جدولة كامل قيمة العقد ولا يمكن إضافة دفعات جديدة"
+            : `المبلغ (${totalAmount.toLocaleString()} ريال) يتجاوز الإجمالي المتبقي غير المجدول للعقد (${Math.max(0, remainingAmount).toLocaleString()} ريال)`
         );
         return;
       }
@@ -485,9 +498,9 @@ export default function NewDisbursementRequest() {
                         <span className="font-medium inline-flex items-center gap-1">{parseFloat(contractDetails.contract.contractAmount || "0").toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" /></span>
                       </div>
                       <div className="flex justify-between text-sm flex-row-reverse">
-                        <span className="text-muted-foreground font-medium">الإجمالي المتبقي للدفعة:</span>
+                        <span className="text-muted-foreground font-medium">المتبقي غير المجدول للعقد:</span>
                         <span className="font-bold text-emerald-600 inline-flex items-center gap-1">
-                          {(parseFloat(contractDetails.contract.contractAmount || "0") - (projectDetails?.payments?.reduce((sum, p) => sum + parseFloat(p.amount || "0"), 0) || 0)).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
+                          {remainingAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     </div>
