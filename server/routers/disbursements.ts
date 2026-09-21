@@ -2277,7 +2277,176 @@ export const disbursementsRouter = router({
       };
     }),
 
-  // إنشاء أمر صرف مباشر بدون طلب مسبق
+  // استرجاع أوامر الشراء وخطابات المسؤولية المجتمعية المعتمدة لإنشاء أوامر صرف لها
+  getApprovedProcurementOrders: protectedProcedure
+    .query(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const requestsWithMosque = await db
+        .select({
+          request: mosqueRequests,
+          mosque: mosques,
+        })
+        .from(mosqueRequests)
+        .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+        .where(isNotNull(mosqueRequests.programData))
+        .orderBy(desc(mosqueRequests.createdAt));
+
+      // جلب أوامر الصرف المسجلة لمطابقة الربط
+      const existingDisbOrders = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          purchaseOrderNumber: disbursementOrders.purchaseOrderNumber,
+          csrLetterNumber: disbursementOrders.csrLetterNumber,
+          status: disbursementOrders.status,
+          amount: disbursementOrders.amount,
+          adminFees: disbursementOrders.adminFees,
+          executedAt: disbursementOrders.executedAt,
+        })
+        .from(disbursementOrders);
+
+      const disbByPo = new Map<string, any>();
+      const disbByCsr = new Map<string, any>();
+      existingDisbOrders.forEach((d) => {
+        if (d.purchaseOrderNumber) disbByPo.set(d.purchaseOrderNumber.trim(), d);
+        if (d.csrLetterNumber) disbByCsr.set(d.csrLetterNumber.trim(), d);
+      });
+
+      // جلب الموردين المسجلين
+      const registeredSuppliers = await db.select().from(suppliers);
+      const supplierMap = new Map<string, any>();
+      registeredSuppliers.forEach((s) => {
+        if (s.name) supplierMap.set(s.name.trim().toLowerCase(), s);
+        if (s.id) supplierMap.set(`id_${s.id}`, s);
+      });
+
+      const results: any[] = [];
+
+      for (const row of requestsWithMosque) {
+        const req = row.request;
+        const mosque = row.mosque;
+
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          try {
+            pData = JSON.parse(pData);
+          } catch {
+            break;
+          }
+        }
+        if (!pData || typeof pData !== "object") continue;
+
+        const sedanaProc = pData.sedanaProcurement || {};
+        const pos: any[] = Array.isArray(sedanaProc.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
+        if (sedanaProc.activePurchaseOrder && !pos.some((p) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+          pos.push(sedanaProc.activePurchaseOrder);
+        }
+
+        const csrs: any[] = Array.isArray(sedanaProc.csrLetters) ? [...sedanaProc.csrLetters] : [];
+        if (sedanaProc.activeCsrLetter && !csrs.some((c) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+          csrs.push(sedanaProc.activeCsrLetter);
+        }
+
+        // 1. أوامر الشراء المعتمدة
+        for (const po of pos) {
+          if (po.status !== "approved") continue;
+
+          const poItems = Array.isArray(po.items) ? po.items.map((it: any) => {
+            const qty = parseFloat(it.quantity || "1");
+            const price = parseFloat(it.unitPrice || "0");
+            return {
+              id: String(it.id),
+              itemName: it.itemName || "صنف",
+              description: it.description || "",
+              quantity: qty,
+              unit: it.unit || "وحدة",
+              unitPrice: price,
+              totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+            };
+          }) : [];
+
+          const itemsTotal = poItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
+          const supName = po.supplierName || "";
+          const regSup = supplierMap.get(supName.trim().toLowerCase()) || (po.supplierId ? supplierMap.get(`id_${po.supplierId}`) : null);
+
+          const linkedDisb = disbByPo.get(po.orderNumber?.trim());
+
+          results.push({
+            type: "purchase_order",
+            typeLabel: "أمر شراء معتمد (سدانة)",
+            orderNumber: po.orderNumber,
+            orderDate: po.orderDate,
+            requestId: req.id,
+            requestNumber: req.requestNumber,
+            mosqueId: mosque?.id || null,
+            mosqueName: mosque?.name || "المسجد",
+            mosqueCity: mosque?.city || "",
+            supplierName: supName || "المورد المعتمد",
+            supplierBank: regSup?.bankName || "",
+            supplierIban: regSup?.iban || "",
+            supplierAccountName: regSup?.bankAccountName || supName,
+            supplierCommercialRegister: regSup?.commercialRegister || "",
+            supplierPhone: regSup?.phone || "",
+            items: poItems,
+            itemsCount: poItems.length,
+            itemsTotal,
+            disbursementOrder: linkedDisb || null,
+          });
+        }
+
+        // 2. خطابات المسؤولية المجتمعية المعتمدة
+        for (const csr of csrs) {
+          if (csr.status !== "approved") continue;
+
+          const csrItems = Array.isArray(csr.items) ? csr.items.map((it: any) => {
+            const qty = parseFloat(it.quantity || "1");
+            const price = parseFloat(it.unitPrice || "0");
+            return {
+              id: String(it.id),
+              itemName: it.itemName || "صنف",
+              description: it.description || "",
+              quantity: qty,
+              unit: it.unit || "وحدة",
+              unitPrice: price,
+              totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+            };
+          }) : [];
+
+          const itemsTotal = csrItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
+          const partnerName = csr.recipientName || "";
+          const regSup = supplierMap.get(partnerName.trim().toLowerCase());
+          const linkedDisb = disbByCsr.get(csr.letterNumber?.trim());
+
+          results.push({
+            type: "csr_letter",
+            typeLabel: "خطاب مسؤولية مجتمعية معتمد",
+            orderNumber: csr.letterNumber,
+            orderDate: csr.letterDate,
+            requestId: req.id,
+            requestNumber: req.requestNumber,
+            mosqueId: mosque?.id || null,
+            mosqueName: mosque?.name || "المسجد",
+            mosqueCity: mosque?.city || "",
+            supplierName: partnerName || "الجهة المانحة / الشريك المجتمعي",
+            supplierBank: regSup?.bankName || "",
+            supplierIban: regSup?.iban || "",
+            supplierAccountName: regSup?.bankAccountName || partnerName,
+            supplierCommercialRegister: regSup?.commercialRegister || "",
+            supplierPhone: regSup?.phone || "",
+            items: csrItems,
+            itemsCount: csrItems.length,
+            itemsTotal,
+            disbursementOrder: linkedDisb || null,
+          });
+        }
+      }
+
+      return results;
+    }),
+
+  // إنشاء أمر صرف مباشر بدون طلب مسبق (يدعم أيضاً أمر صرف من أمر شراء أو خطاب مسؤولية مجتمعية)
   createDirectOrder: protectedProcedure
     .input(
       z.object({
@@ -2285,6 +2454,13 @@ export const disbursementsRouter = router({
         contractId: z.number().optional().nullable(),
         contractPaymentId: z.number().optional().nullable(),
         paymentId: z.number().optional().nullable(),
+        requestId: z.number().optional().nullable(),
+        purchaseOrderNumber: z.string().optional().nullable(),
+        csrLetterNumber: z.string().optional().nullable(),
+        sourceType: z.string().optional().nullable(),
+        itemsJson: z.string().optional().nullable(),
+        itemsTotal: z.number().optional().nullable(),
+        adminFees: z.number().optional().nullable(),
         title: z.string().min(1, "عنوان الطلب مطلوب"),
         description: z.string().optional(),
         amount: z.number().positive("المبلغ يجب أن يكون أكبر من صفر"),
@@ -2340,6 +2516,7 @@ export const disbursementsRouter = router({
         title: input.title,
         description: input.description || null,
         amount: input.amount.toString(),
+        adminFees: input.adminFees !== undefined && input.adminFees !== null ? input.adminFees.toString() : "0.00",
         paymentType: "progress",
         dateMiladi: input.dateMiladi ? new Date(input.dateMiladi) : null,
         attachmentsJson: input.attachments ? JSON.stringify(input.attachments) : null,
@@ -2354,6 +2531,8 @@ export const disbursementsRouter = router({
 
       const orderNumber = await generateDisbursementOrderNumber(db);
 
+      const resolvedSourceType = input.sourceType || (input.purchaseOrderNumber ? "purchase_order" : (input.csrLetterNumber ? "csr_letter" : "direct"));
+
       const [orderResult] = await db.insert(disbursementOrders).values({
         orderNumber,
         disbursementRequestId,
@@ -2365,6 +2544,13 @@ export const disbursementsRouter = router({
         paymentMethod: input.paymentMethod || "bank_transfer",
         sadadNumber: input.sadadNumber || null,
         billerCode: input.billerCode || null,
+        purchaseOrderNumber: input.purchaseOrderNumber || null,
+        csrLetterNumber: input.csrLetterNumber || null,
+        sourceType: resolvedSourceType,
+        itemsJson: input.itemsJson || null,
+        itemsTotal: input.itemsTotal !== undefined && input.itemsTotal !== null ? input.itemsTotal.toString() : null,
+        adminFees: input.adminFees !== undefined && input.adminFees !== null ? input.adminFees.toString() : "0.00",
+        requestId: input.requestId || null,
         status: "pending",
         createdBy: ctx.user.id,
       });
