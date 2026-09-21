@@ -30,6 +30,27 @@ async function ensureSchemaUpdated(p: mysql.Pool) {
     if (!colNames.includes("rejectedRole")) {
       await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN rejectedRole VARCHAR(50) DEFAULT NULL");
     }
+    if (!colNames.includes("purchaseOrderNumber")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN purchaseOrderNumber VARCHAR(100) DEFAULT NULL");
+    }
+    if (!colNames.includes("csrLetterNumber")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN csrLetterNumber VARCHAR(100) DEFAULT NULL");
+    }
+    if (!colNames.includes("sourceType")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN sourceType VARCHAR(50) DEFAULT NULL");
+    }
+    if (!colNames.includes("itemsJson")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN itemsJson TEXT DEFAULT NULL");
+    }
+    if (!colNames.includes("itemsTotal")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN itemsTotal DECIMAL(15,2) DEFAULT '0.00'");
+    }
+    if (!colNames.includes("adminFees")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN adminFees DECIMAL(15,2) DEFAULT '0.00'");
+    }
+    if (!colNames.includes("requestId")) {
+      await promisePool.query("ALTER TABLE disbursement_orders ADD COLUMN requestId INT DEFAULT NULL");
+    }
 
     const [projCols] = await promisePool.query("SHOW COLUMNS FROM projects") as any[];
     const projColNames = Array.isArray(projCols) ? projCols.map((c: any) => c.Field) : [];
