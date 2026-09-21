@@ -646,11 +646,17 @@ export const projectsRouter = router({
           paidAmount = parseFloat(String((cp as any).paidAmount || "0"));
         }
 
+        const isFullyPaid = cp.status === "paid" || (paidAmount >= agreedAmount && agreedAmount > 0);
+        const isPartiallyPaid = !isFullyPaid && paidAmount > 0;
+
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (paidAmount > 0 || cp.status === "paid") {
+        if (isFullyPaid) {
           paymentStatus = "paid";
+          paidAtDate = executedOrders[0]?.executedAt || cp.paidAt || disbsForPayment[0]?.dateMiladi;
+        } else if (isPartiallyPaid) {
+          paymentStatus = "partially_paid";
           paidAtDate = executedOrders[0]?.executedAt || cp.paidAt || disbsForPayment[0]?.dateMiladi;
         } else if (ordersForPayment.some(o => o.status === "approved") || disbsForPayment.some(d => d.status === "approved" || d.status === "pending" || d.status === "pending_executive") || (cp as any).status === "due") {
           paymentStatus = "due";
@@ -727,11 +733,17 @@ export const projectsRouter = router({
             .reduce((sum, d) => sum + parseFloat(String(d.amount || "0")), 0);
         }
 
+        const isFullyPaid = p.status === "paid" || (paidAmount >= agreedAmount && agreedAmount > 0);
+        const isPartiallyPaid = !isFullyPaid && paidAmount > 0;
+
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if (paidAmount > 0 || p.status === "paid") {
+        if (isFullyPaid) {
           paymentStatus = "paid";
+          paidAtDate = executedOrders[0]?.executedAt || p.paidAt || disbsForManual[0]?.dateMiladi;
+        } else if (isPartiallyPaid) {
+          paymentStatus = "partially_paid";
           paidAtDate = executedOrders[0]?.executedAt || p.paidAt || disbsForManual[0]?.dateMiladi;
         } else if (ordersForManual.some(o => o.status === "approved") || disbsForManual.some(d => d.status === "approved" || d.status === "pending" || d.status === "pending_executive") || (p as any).status === "due") {
           paymentStatus = "due";

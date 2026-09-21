@@ -326,6 +326,17 @@ export default function ContractForm() {
     });
   };
 
+  // دالة مساعدة لحساب المبلغ الفعلي المعتمد للدفعة في إجمالي الجدول
+  // الدفعات المسددة كلياً أو جزئياً تعتمد المبلغ المسدد، والدفعات الأخرى غير المسددة تعتمد مبلغ الدفعة
+  const getPaymentEffectiveAmount = (p: PaymentScheduleItem): number => {
+    const paidAmt = Number(p.paidAmount || 0);
+    const isPaid = Boolean(p.isPaid || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
+    if (isPaid && paidAmt > 0) {
+      return paidAmt;
+    }
+    return Number(p.amount || 0);
+  };
+
   // البنود المخصصة
   const [customClauses, setCustomClauses] = useState<{title: string; description: string}[]>([]);
 
@@ -1243,7 +1254,7 @@ export default function ContractForm() {
           }
         }
 
-        const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
+        const totalPayments = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
         
         if (Math.abs(totalPayments - contractData.totalValue) > 0.05) {
           toast.error(`يجب أن يكون إجمالي مبالغ الدفعات مساوياً لقيمة العقد تماماً (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي: ${totalPayments.toLocaleString()} ريال`);
@@ -2269,6 +2280,7 @@ export default function ContractForm() {
                       const agreedAmt = Number(payment.agreedAmount || payment.amount || 0);
                       const paidAmt = Number(payment.paidAmount || 0);
                       const isPaid = Boolean(payment.isPaid || payment.status === "paid" || payment.status === "partially_paid" || paidAmt > 0);
+                      const isPartiallyPaid = Boolean(payment.isPartiallyPaid || payment.status === "partially_paid" || (paidAmt > 0 && paidAmt < agreedAmt));
 
                       const prevPayment = index > 0 ? paymentSchedule[index - 1] : null;
                       const nextPayment = index < paymentSchedule.length - 1 ? paymentSchedule[index + 1] : null;
@@ -2297,21 +2309,37 @@ export default function ContractForm() {
                           className={cn(
                             "p-4 sm:p-5 relative transition-all rounded-2xl border", 
                             isPaid 
-                              ? "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm"
+                              ? (isPartiallyPaid
+                                  ? "bg-amber-50/75 dark:bg-amber-950/25 border-2 border-amber-500/60 shadow-sm"
+                                  : "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm")
                               : "bg-card border-border/70"
                           )}
                         >
                           {isPaid && (
                             <div 
-                              className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit mb-3 border bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                              className={cn(
+                                "flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit mb-3 border",
+                                isPartiallyPaid
+                                  ? "bg-amber-500/15 border-amber-500/30 text-amber-900 dark:text-amber-200"
+                                  : "bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                              )}
                             >
                               <Lock className="w-3.5 h-3.5 shrink-0" />
-                              <span>دفعة مسددة بالكامل (مقفلة وغير قابلة للتعديل أو الحذف)</span>
+                              <span>
+                                {isPartiallyPaid 
+                                  ? "دفعة مسددة جزئياً (مقفلة وغير قابلة للتعديل أو الحذف)" 
+                                  : "دفعة مسددة بالكامل (مقفلة وغير قابلة للتعديل أو الحذف)"}
+                              </span>
                               <span className="bg-background/90 dark:bg-background/60 px-2 py-0.5 rounded shadow-xs font-semibold text-foreground">
                                 المتفق: {agreedAmt.toLocaleString()} ر.س
                               </span>
                               {paidAmt > 0 && (
-                                <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded shadow-xs font-bold">
+                                <span className={cn(
+                                  "px-2 py-0.5 rounded shadow-xs font-bold",
+                                  isPartiallyPaid
+                                    ? "bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-100"
+                                    : "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100"
+                                )}>
                                   المسدد: {paidAmt.toLocaleString()} ر.س
                                 </span>
                               )}
@@ -2460,7 +2488,7 @@ export default function ContractForm() {
                                 </div>
                                 <div className="space-y-1">
                                   <Label className="text-xs font-semibold">
-                                    {isPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ"}
+                                    {isPaid ? (isPartiallyPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ المسدد (ر.س)") : "المبلغ"}
                                   </Label>
                                   <Input
                                     type="number"
@@ -2481,6 +2509,11 @@ export default function ContractForm() {
                                     }}
                                     placeholder="0.00"
                                   />
+                                  {isPartiallyPaid && paidAmt > 0 && (
+                                    <p className="text-[11px] text-amber-700 dark:text-amber-400 font-semibold pt-0.5">
+                                      المبلغ المسدد الفعلي: {paidAmt.toLocaleString()} ر.س
+                                    </p>
+                                  )}
                                 </div>
                               </div>
 
@@ -2701,51 +2734,61 @@ export default function ContractForm() {
                     })}
 
                     {/* ملخص الدفعات */}
-                    <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">إجمالي المبالغ:</span>
-                            <span className={`font-black text-base ${
-                              paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue 
-                                ? "text-green-600 dark:text-green-400" 
-                                : paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue 
-                                  ? "text-destructive" 
-                                  : "text-amber-600"
-                            }`}>
-                                {paymentSchedule.reduce((sum, p) => sum + p.amount, 0).toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">من قيمة العقد:</span>
-                            <span className="font-bold text-foreground inline-flex items-center gap-1">
-                              {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
-                            </span>
-                          </div>
-                        </div>
+                    {(() => {
+                      const totalPaymentsAmount = paymentSchedule.reduce((sum, p) => sum + getPaymentEffectiveAmount(p), 0);
+                      const isExact = Math.abs(totalPaymentsAmount - contractData.totalValue) <= 0.05;
+                      const isOver = totalPaymentsAmount > contractData.totalValue + 0.05;
+                      const isUnder = totalPaymentsAmount < contractData.totalValue - 0.05;
+                      const diff = contractData.totalValue - totalPaymentsAmount;
 
-                        <div className="flex flex-col gap-2">
-                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) > contractData.totalValue && (
-                            <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
-                              <AlertTriangle className="h-4 w-4 shrink-0" />
-                              <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                      return (
+                        <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">إجمالي المبالغ:</span>
+                                <span className={`font-black text-base ${
+                                  isExact 
+                                    ? "text-green-600 dark:text-green-400" 
+                                    : isOver 
+                                      ? "text-destructive" 
+                                      : "text-amber-600"
+                                }`}>
+                                    {totalPaymentsAmount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">من قيمة العقد:</span>
+                                <span className="font-bold text-foreground inline-flex items-center gap-1">
+                                  {contractData.totalValue.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                                </span>
+                              </div>
                             </div>
-                          )}
-                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) < contractData.totalValue && (
-                            <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
-                              <AlertTriangle className="h-4 w-4 shrink-0" />
-                              <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { (contractData.totalValue - paymentSchedule.reduce((sum, p) => sum + p.amount, 0)).toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+
+                            <div className="flex flex-col gap-2">
+                              {isOver && (
+                                <div className="flex items-center gap-2 text-destructive text-xs font-bold bg-destructive/10 p-2 rounded-lg">
+                                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                                  <span>تنبيه: إجمالي الدفعات يتجاوز قيمة العقد</span>
+                                </div>
+                              )}
+                              {isUnder && (
+                                <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-500/10 p-2 rounded-lg">
+                                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                                  <span className="inline-flex items-center gap-1">تنبيه: متبقي للصرف { diff.toLocaleString() } <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
+                                </div>
+                              )}
+                              {isExact && (
+                                <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
+                                  <Check className="h-4 w-4 shrink-0" />
+                                  <span>تمت تغطية كامل قيمة العقد</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {paymentSchedule.reduce((sum, p) => sum + p.amount, 0) === contractData.totalValue && (
-                            <div className="flex items-center gap-2 text-green-600 text-xs font-bold bg-green-500/10 p-2 rounded-lg">
-                              <Check className="h-4 w-4 shrink-0" />
-                              <span>تمت تغطية كامل قيمة العقد</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
+                          </div>
+                        </Card>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -3007,12 +3050,31 @@ export default function ContractForm() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {paymentSchedule.map((payment, index) => (
-                          <div key={payment.id} className="flex items-center justify-between text-sm">
-                            <span>{payment.name}</span>
-                            <span className="font-medium inline-flex items-center gap-1">{payment.amount.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" /></span>
-                          </div>
-                        ))}
+                        {paymentSchedule.map((payment, index) => {
+                          const effAmt = getPaymentEffectiveAmount(payment);
+                          const paidAmt = Number(payment.paidAmount || 0);
+                          const isPaid = Boolean(payment.isPaid || payment.status === "paid" || payment.status === "partially_paid" || paidAmt > 0);
+                          const isPartiallyPaid = Boolean(payment.isPartiallyPaid || payment.status === "partially_paid" || (paidAmt > 0 && paidAmt < Number(payment.agreedAmount || payment.amount || 0)));
+
+                          return (
+                            <div key={payment.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0 border-border/40">
+                              <div className="flex items-center gap-2">
+                                <span>{payment.name}</span>
+                                {isPaid && (
+                                  <Badge variant="outline" className={cn(
+                                    "text-[10px] px-1.5 py-0 h-4 font-semibold",
+                                    isPartiallyPaid ? "border-amber-500 text-amber-600 bg-amber-50" : "border-emerald-500 text-emerald-600 bg-emerald-50"
+                                  )}>
+                                    {isPartiallyPaid ? "مسددة جزئياً" : "مسددة"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="font-medium inline-flex items-center gap-1">
+                                {effAmt.toLocaleString()} <SaudiRiyal className="w-3.5 h-3.5 inline" />
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>

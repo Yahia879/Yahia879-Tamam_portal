@@ -1155,19 +1155,40 @@ export const contractsRouter = router({
               .orderBy(contractPayments.phaseOrder);
 
             // جلب طلبات وأوامر الصرف لمعرفة الدفعات المسددة
-            const contractDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractId, id));
-            const disbIds = contractDisbs.map(d => d.id);
+            const contractDisbursements = await db
+              .select()
+              .from(disbursementRequests)
+              .where(
+                contract.projectId 
+                  ? or(eq(disbursementRequests.contractId, id), eq(disbursementRequests.projectId, contract.projectId))
+                  : eq(disbursementRequests.contractId, id)
+              );
+            const disbIds = contractDisbursements.map(d => d.id);
             const contractOrders = disbIds.length > 0 
               ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, disbIds))
               : [];
 
-            const isPaymentPaid = (ep: any) => {
-              if (ep.status === "paid") return true;
-              const disbs = contractDisbs.filter(d => d.contractPaymentId === ep.id);
+            const getPaymentPaidInfo = (ep: any) => {
+              const disbs = contractDisbursements.filter(d => 
+                d.contractPaymentId === ep.id || (ep.id && String(d.paymentId) === String(ep.id))
+              );
               const pDisbIds = disbs.map(d => d.id);
               const executed = contractOrders.filter(o => pDisbIds.includes(o.disbursementRequestId) && o.status === "executed");
-              return executed.length > 0 || disbs.some(d => d.status === "paid");
+              const paidOrdersSum = executed.reduce((sum, o) => sum + parseFloat(String(o.amount || 0)), 0);
+              
+              const agreedAmt = parseFloat(String(ep.amount || 0));
+              let actualPaid = (ep.status === "paid" && paidOrdersSum === 0) 
+                ? agreedAmt 
+                : (paidOrdersSum > 0 ? paidOrdersSum : (disbs.some(d => d.status === "paid") ? disbs.filter(d => d.status === "paid").reduce((s, d) => s + parseFloat(String(d.amount || 0)), 0) : 0));
+
+              const isFullyPaid = ep.status === "paid" || (actualPaid >= agreedAmt && agreedAmt > 0);
+              const isPartiallyPaid = !isFullyPaid && actualPaid > 0;
+              const isPaid = isFullyPaid || isPartiallyPaid;
+
+              return { isPaid, isFullyPaid, isPartiallyPaid, actualPaid, agreedAmt };
             };
+
+            const isPaymentPaid = (ep: any) => getPaymentPaidInfo(ep).isPaid;
 
             const existingMap = new Map(existingPayments.map(ep => [ep.id, ep]));
             const processedIds = new Set<number>();
@@ -1254,16 +1275,17 @@ export const contractsRouter = router({
               .orderBy(contractPayments.phaseOrder);
 
             const syncedSchedule = freshPayments.map(fp => {
-              const paid = isPaymentPaid(fp);
+              const { isPaid, isFullyPaid, isPartiallyPaid, actualPaid, agreedAmt } = getPaymentPaidInfo(fp);
               return {
                 id: `payment-${fp.id}`,
                 name: fp.phaseName,
                 phaseName: fp.phaseName,
-                amount: parseFloat(String(fp.amount)),
-                agreedAmount: parseFloat(String(fp.amount)),
-                paidAmount: paid ? parseFloat(String(fp.amount)) : 0,
-                status: paid ? "paid" : fp.status,
-                isPaid: paid,
+                amount: agreedAmt,
+                agreedAmount: agreedAmt,
+                paidAmount: actualPaid,
+                status: isFullyPaid ? "paid" : (isPartiallyPaid ? "partially_paid" : fp.status),
+                isPaid: isPaid,
+                isPartiallyPaid: isPartiallyPaid,
                 dueDate: fp.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(fp.dueDate)) : "",
                 notes: fp.notes,
                 description: fp.notes,
