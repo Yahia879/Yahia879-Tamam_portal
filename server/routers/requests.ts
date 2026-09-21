@@ -54,7 +54,7 @@ import {
   type PrerequisiteType,
 } from "@shared/constants";
 import { notifyRequestCreation, notifyUsersByRole, createNotification, notifyRequestStageChangeToOfficers, notifyQuotationApproval, sendEmailNotification } from "./notifications";
-import { generateProjectNumber } from "./projects";
+import { generateProjectNumber, createProjectForSedanaRequest } from "./projects";
 
 export function getSurveyBaseUrl(_req?: any): string {
   // الرابط الرسمي للمنصة لإرسال استبيانات رضا المستفيدين للمواطنين والمستفيدين
@@ -396,10 +396,20 @@ export const requestsRouter = router({
         newValues: { requestNumber, programType: input.programType, mosqueId: input.mosqueId },
       });
 
+      // إذا كان الطلب تابعاً لبرنامج سدانة، يتم إنشاء مشروع له تلقائياً في صفحة المشاريع
+      let createdProjectId: number | null = null;
+      if (input.programType === "sedana") {
+        try {
+          createdProjectId = await createProjectForSedanaRequest(db, requestId, input.descriptiveName);
+        } catch (projErr) {
+          console.error("Error auto-creating Sedana project:", projErr);
+        }
+      }
+
       // إرسال إشعار عند إنشاء طلب جديد
       await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
 
-      return { success: true, requestId, requestNumber, message: "تم تقديم الطلب بنجاح" };
+      return { success: true, requestId, projectId: createdProjectId, requestNumber, message: "تم تقديم الطلب بنجاح" };
     }),
 
   // تحديث التسمية التوضيحية للطلب
@@ -2713,6 +2723,13 @@ export const requestsRouter = router({
             action: 'technical_eval_convert_to_project',
             notes: input.notes || 'تم اعتماد الاحتياج السنوي لبرنامج سدانة',
           });
+
+          // التأكد من وجود المشروع المرتبط في صفحة المشاريع
+          try {
+            await createProjectForSedanaRequest(db, input.requestId);
+          } catch (projErr) {
+            console.error("Error ensuring Sedana project on evaluation:", projErr);
+          }
         } catch (logErr) {
           console.error("Evaluation log error:", logErr);
         }
