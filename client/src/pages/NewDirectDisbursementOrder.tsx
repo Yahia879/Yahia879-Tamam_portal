@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -7,6 +7,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   ArrowRight,
   Send,
   Building2,
@@ -27,6 +36,12 @@ import {
   ArrowLeft,
   Check,
   Coins,
+  ShoppingCart,
+  FileText,
+  Package,
+  AlertCircle,
+  Calculator,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,6 +75,19 @@ export default function NewDirectDisbursementOrder() {
   const [requestType, setRequestType] = useState<string>("supplier_one_time");
   const [showAttachmentFields, setShowAttachmentFields] = useState<boolean>(false);
 
+  // حالات أوامر الشراء وخطابات المسؤولية المجتمعية
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
+  const [procurementItems, setProcurementItems] = useState<Array<{
+    id: string;
+    itemName: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+    totalPrice: number;
+  }>>([]);
+  const [adminFees, setAdminFees] = useState<number>(0);
+
   // بيانات النموذج
   const [formData, setFormData] = useState({
     fundingSupport: "",
@@ -87,6 +115,97 @@ export default function NewDirectDisbursementOrder() {
   const { data: mainProjectsData } = trpc.categories.getCategoryByType.useQuery({ type: "main_projects" });
   const { data: sadadBillersData } = trpc.categories.getCategoryByType.useQuery({ type: "sadad_billers" });
   const { data: allSuppliers } = trpc.suppliers.getActiveSuppliers.useQuery({ includeUnapproved: true });
+  const { data: approvedProcurement, isLoading: isLoadingProcurement } = trpc.disbursements.getApprovedProcurementOrders.useQuery();
+
+  // تصفية الأوامر المعتمدة حسب نوع الصرف
+  const filteredProcurementOrders = useMemo(() => {
+    if (!approvedProcurement) return [];
+    if (requestType === "purchase_order") {
+      return approvedProcurement.filter((o: any) => o.type === "purchase_order");
+    }
+    if (requestType === "csr_letter") {
+      return approvedProcurement.filter((o: any) => o.type === "csr_letter");
+    }
+    return [];
+  }, [approvedProcurement, requestType]);
+
+  // استخراج معلمات URL إن وجدت (للربط المباشر من صفحات المشتريات)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const src = params.get("source");
+    const ordNum = params.get("orderNumber") || params.get("letterNumber");
+    if (src === "purchase_order" || src === "csr_letter") {
+      setRequestType(src);
+      if (ordNum) {
+        setSelectedOrderNumber(ordNum);
+      }
+    }
+  }, []);
+
+  // عند اختيار أمر شراء أو خطاب مسؤولية مجتمعية: تعبئة البيانات والبنود تلقائياً
+  useEffect(() => {
+    if (!selectedOrderNumber || !approvedProcurement) return;
+    const found = approvedProcurement.find((o: any) => o.orderNumber === selectedOrderNumber);
+    if (found) {
+      const items = Array.isArray(found.items) ? found.items.map((it: any) => {
+        const qty = parseFloat(it.quantity || "1");
+        const price = parseFloat(it.unitPrice || "0");
+        return {
+          id: String(it.id),
+          itemName: it.itemName || "صنف",
+          description: it.description || "",
+          quantity: qty,
+          unit: it.unit || "وحدة",
+          unitPrice: price,
+          totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+        };
+      }) : [];
+      setProcurementItems(items);
+
+      const itemsSum = items.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
+      const totalAmt = itemsSum + (adminFees || 0);
+
+      setFormData(prev => ({
+        ...prev,
+        mainProjectName: prev.mainProjectName || "برنامج سدانة لعمارة المساجد",
+        fundingSupport: prev.fundingSupport || "دعم مخصص / سدانة",
+        customProjectName: found.mosqueName ? `مشروع سدانة - ${found.mosqueName}` : `طلب سدانة #${found.requestNumber}`,
+        title: `${found.typeLabel} رقم ${found.orderNumber} - ${found.supplierName}`,
+        requiredWorksDesc: `توريد بنود ومستلزمات وفق ${found.typeLabel} رقم ${found.orderNumber} لصالح ${found.mosqueName}`,
+        amount: totalAmt,
+        beneficiaryName: found.supplierName || prev.beneficiaryName,
+        bankAccountName: found.supplierAccountName || found.supplierName || prev.bankAccountName,
+        beneficiaryBank: found.supplierBank || prev.beneficiaryBank,
+        beneficiaryIban: found.supplierIban || prev.beneficiaryIban,
+      }));
+    }
+  }, [selectedOrderNumber, approvedProcurement]);
+
+  // حساب مجموع البنود تلقائياً
+  const itemsTotal = useMemo(() => {
+    return procurementItems.reduce((sum, it) => sum + (it.totalPrice || 0), 0);
+  }, [procurementItems]);
+
+  // تحديث المبلغ الإجمالي عند تغير البنود أو الأجور الإدارية
+  useEffect(() => {
+    if (requestType === "purchase_order" || requestType === "csr_letter") {
+      const total = itemsTotal + (Number(adminFees) || 0);
+      setFormData(prev => ({ ...prev, amount: total }));
+    }
+  }, [itemsTotal, adminFees, requestType]);
+
+  // تعديل كمية أو سعر بند
+  const handleItemChange = (index: number, field: 'quantity' | 'unitPrice', val: number) => {
+    setProcurementItems(prev => {
+      const updated = [...prev];
+      const it = { ...updated[index] };
+      if (field === 'quantity') it.quantity = val;
+      if (field === 'unitPrice') it.unitPrice = val;
+      it.totalPrice = Math.round((it.quantity * it.unitPrice) * 100) / 100;
+      updated[index] = it;
+      return updated;
+    });
+  };
 
   const createDirectOrderMutation = trpc.disbursements.createDirectOrder.useMutation({
     onSuccess: (data) => {
@@ -143,6 +262,9 @@ export default function NewDirectDisbursementOrder() {
   // تغيير نوع الصرف
   const handleRequestTypeChange = (value: string) => {
     setRequestType(value);
+    setSelectedOrderNumber("");
+    setProcurementItems([]);
+    setAdminFees(0);
     setFormData(prev => ({
       ...prev,
       beneficiaryName: "",
@@ -152,11 +274,20 @@ export default function NewDirectDisbursementOrder() {
       sadadNumber: "",
       billerCode: "",
       billerName: "",
+      amount: 0,
+      title: "",
     }));
   };
 
   // التحقق من صلاحية البيانات للخطوة التالية
   const isNextDisabled = () => {
+    if (requestType === "purchase_order" || requestType === "csr_letter") {
+      if (!selectedOrderNumber || procurementItems.length === 0) return true;
+      if (!formData.title || formData.amount <= 0 || !formData.dateMiladi) return true;
+      if (!formData.beneficiaryName || !formData.beneficiaryBank || !formData.beneficiaryIban) return true;
+      return false;
+    }
+
     if (!formData.mainProjectName || !formData.fundingSupport) return true;
     if (!formData.title || formData.amount <= 0 || !formData.dateMiladi || !formData.customProjectName || !formData.requiredWorksDesc) return true;
 
@@ -185,6 +316,9 @@ export default function NewDirectDisbursementOrder() {
     }
 
     const isSadad = requestType === "sadad_invoice";
+    const isProcurement = requestType === "purchase_order" || requestType === "csr_letter";
+    const selectedProcOrder = approvedProcurement?.find((o: any) => o.orderNumber === selectedOrderNumber);
+
     const customSupplierMetadata = [{
       name: "custom_supplier_info",
       url: JSON.stringify({
@@ -202,6 +336,10 @@ export default function NewDirectDisbursementOrder() {
         billerName: isSadad ? formData.billerName : "",
         sadadNumber: isSadad ? formData.sadadNumber : "",
         billerCode: isSadad ? formData.billerCode : "",
+        purchaseOrderNumber: requestType === "purchase_order" ? selectedOrderNumber : undefined,
+        csrLetterNumber: requestType === "csr_letter" ? selectedOrderNumber : undefined,
+        itemsTotal: isProcurement ? itemsTotal : undefined,
+        adminFees: isProcurement ? (Number(adminFees) || 0) : undefined,
       }),
       type: "metadata"
     }];
@@ -217,6 +355,13 @@ export default function NewDirectDisbursementOrder() {
 
     createDirectOrderMutation.mutate({
       projectId: null,
+      requestId: selectedProcOrder?.requestId || null,
+      purchaseOrderNumber: requestType === "purchase_order" ? selectedOrderNumber : undefined,
+      csrLetterNumber: requestType === "csr_letter" ? selectedOrderNumber : undefined,
+      sourceType: isProcurement ? requestType : "direct",
+      itemsJson: isProcurement && procurementItems.length > 0 ? JSON.stringify(procurementItems) : undefined,
+      itemsTotal: isProcurement ? itemsTotal : undefined,
+      adminFees: isProcurement ? (Number(adminFees) || 0) : undefined,
       title: formData.title,
       amount: formData.amount,
       dateMiladi: formData.dateMiladi,
@@ -300,9 +445,187 @@ export default function NewDirectDisbursementOrder() {
                       <SelectItem value="supplier_one_time" className="text-right">سداد مورد لمرة واحدة بفاتورة</SelectItem>
                       <SelectItem value="sadad_invoice" className="text-right">فواتير نظام سداد</SelectItem>
                       <SelectItem value="misc_expenses" className="text-right">مصروفات منوعة</SelectItem>
+                      <SelectItem value="purchase_order" className="text-right font-bold text-emerald-700 dark:text-emerald-400">أمر شراء معتمد (سدانة)</SelectItem>
+                      <SelectItem value="csr_letter" className="text-right font-bold text-sky-700 dark:text-sky-400">خطاب مسؤولية مجتمعية معتمد (سدانة)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* بطاقة تحديد أمر الشراء أو خطاب المسؤولية المجتمعية والبنود */}
+                {(requestType === "purchase_order" || requestType === "csr_letter") && (
+                  <div className="space-y-4 p-4 rounded-xl bg-gradient-to-br from-emerald-500/5 via-primary/5 to-slate-500/5 border-2 border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {requestType === "purchase_order" ? (
+                          <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                        ) : (
+                          <FileText className="w-5 h-5 text-sky-600" />
+                        )}
+                        <span className="font-bold text-sm text-foreground">
+                          {requestType === "purchase_order"
+                            ? "اختيار أمر الشراء المعتمد (سدانة)"
+                            : "اختيار خطاب المسؤولية المجتمعية المعتمد (سدانة)"}
+                        </span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        {filteredProcurementOrders.length} مستندات معتمدة متاحة
+                      </Badge>
+                    </div>
+
+                    {/* اختيار المستند المعتمد */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold">
+                        {requestType === "purchase_order" ? "أمر الشراء المعتمد *" : "خطاب المسؤولية المجتمعية المعتمد *"}
+                      </Label>
+                      <Select
+                        value={selectedOrderNumber}
+                        onValueChange={(val) => setSelectedOrderNumber(val)}
+                      >
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                          <SelectValue placeholder={isLoadingProcurement ? "جاري جلب المستندات المعتمدة..." : "اختر المستند المعتمد للربط..."} />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl" className="max-h-72">
+                          {filteredProcurementOrders.map((ord: any) => (
+                            <SelectItem key={ord.orderNumber} value={ord.orderNumber} className="text-right py-2.5">
+                              <div className="flex flex-col gap-0.5 text-right">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="font-mono font-bold text-foreground text-xs">{ord.orderNumber}</span>
+                                  <span className="text-[11px] text-muted-foreground">{ord.mosqueName}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                                  <span>المورد: {ord.supplierName}</span>
+                                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                    {ord.itemsCount} أصناف • {ord.itemsTotal.toLocaleString()} ريال
+                                  </span>
+                                </div>
+                                {ord.disbursementOrder && (
+                                  <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                    ⚠️ مرتبط بأمر صرف سابق: {ord.disbursementOrder.orderNumber} ({ord.disbursementOrder.status})
+                                  </div>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {filteredProcurementOrders.length === 0 && !isLoadingProcurement && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>لا توجد {requestType === "purchase_order" ? "أوامر شراء معتمدة" : "خطابات مسؤولية مجتمعية معتمدة"} متاحة حالياً. تأكد من اعتمادها أولاً من قسم المشتريات.</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* جدول البنود المشتراة المحسوبة تلقائياً */}
+                    {selectedOrderNumber && procurementItems.length > 0 && (
+                      <div className="space-y-3 pt-3 border-t border-border/60">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                            <Package className="w-4 h-4 text-primary" />
+                            <span>بنود التوريد والمشتريات المعتمدة ({procurementItems.length} بنود):</span>
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            يتم قراءة السعر والكمية تلقائياً ويمكنك تدقيقها
+                          </span>
+                        </div>
+
+                        <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
+                          <Table className="text-xs text-right">
+                            <TableHeader className="bg-muted/40">
+                              <TableRow>
+                                <TableHead className="w-8 text-center font-bold">#</TableHead>
+                                <TableHead className="font-bold">اسم البند والوصف</TableHead>
+                                <TableHead className="w-24 text-center font-bold">الكمية</TableHead>
+                                <TableHead className="w-28 text-center font-bold">سعر الوحدة (ر.س)</TableHead>
+                                <TableHead className="w-28 text-center font-bold">الإجمالي (ر.س)</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody className="divide-y divide-border">
+                              {procurementItems.map((item, idx) => (
+                                <TableRow key={item.id || idx}>
+                                  <TableCell className="text-center font-mono text-muted-foreground">{idx + 1}</TableCell>
+                                  <TableCell>
+                                    <div className="font-bold text-foreground">{item.itemName}</div>
+                                    {item.description && (
+                                      <div className="text-[10px] text-muted-foreground">{item.description}</div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      step="any"
+                                      value={item.quantity}
+                                      onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                                      className="h-8 text-center font-mono font-bold text-xs"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="any"
+                                      value={item.unitPrice}
+                                      onChange={(e) => handleItemChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                      className="h-8 text-center font-mono font-bold text-xs"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                                    {(item.totalPrice || 0).toLocaleString()} <SaudiRiyal className="w-3 h-3 inline" />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {/* ملخص الحسابات وخانة الأجور الإدارية المخصصة */}
+                        <div className="p-3.5 bg-background rounded-xl border border-border/80 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <div className="space-y-1">
+                              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                مجموع بنود المشتريات (تلقائي):
+                              </Label>
+                              <div className="text-lg font-black text-emerald-700 dark:text-emerald-400 font-mono">
+                                {itemsTotal.toLocaleString()} <SaudiRiyal className="w-4 h-4 inline" />
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                                <span>الأجور الإدارية الإضافية (إن وجدت)</span>
+                                <span className="text-[10px] text-muted-foreground font-normal">(ر.س)</span>
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="any"
+                                placeholder="0.00"
+                                value={adminFees || ""}
+                                onChange={(e) => setAdminFees(parseFloat(e.target.value) || 0)}
+                                className="h-9 font-mono font-bold text-right text-xs bg-slate-50 dark:bg-slate-900"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-border/60 flex items-center justify-between">
+                            <div>
+                              <span className="text-xs font-black text-foreground block">
+                                المبلغ الإجمالي المحسوب لأمر الصرف:
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                (مجموع البنود {itemsTotal.toLocaleString()} + الأجور الإدارية {adminFees.toLocaleString()})
+                              </span>
+                            </div>
+                            <div className="text-xl font-black text-primary font-mono flex items-center gap-1">
+                              {formData.amount.toLocaleString()} <SaudiRiyal className="w-5 h-5 inline" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* اسم المشروع الرئيسي */}
@@ -388,8 +711,17 @@ export default function NewDirectDisbursementOrder() {
                       type="number"
                       placeholder="0.00"
                       value={formData.amount || ""}
-                      onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                      className="border-border rounded-xl h-11 text-right"
+                      readOnly={requestType === "purchase_order" || requestType === "csr_letter"}
+                      onChange={(e) => {
+                        if (requestType !== "purchase_order" && requestType !== "csr_letter") {
+                          setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 });
+                        }
+                      }}
+                      className={`border-border rounded-xl h-11 text-right ${
+                        (requestType === "purchase_order" || requestType === "csr_letter")
+                          ? "bg-muted/50 font-mono font-bold text-primary cursor-default"
+                          : ""
+                      }`}
                     />
                   </div>
 
@@ -726,6 +1058,52 @@ export default function NewDirectDisbursementOrder() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* تفاصيل بنود أمر الشراء والأجور الإدارية في الخطوة 2 */}
+            {(requestType === "purchase_order" || requestType === "csr_letter") && (
+              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                <CardHeader className="bg-muted/30 border-b border-border/40 py-3 text-right">
+                  <CardTitle className="flex items-center gap-2 text-foreground text-sm font-bold">
+                    <Package className="h-4 w-4 text-primary" />
+                    تفاصيل بنود أمر الشراء والأجور الإدارية
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3 text-right" dir="rtl">
+                  <div className="flex items-center justify-between text-xs pb-2 border-b border-border/60">
+                    <span className="text-muted-foreground">المستند المعتمد المرتبط:</span>
+                    <span className="font-mono font-bold text-foreground bg-muted px-2 py-0.5 rounded">
+                      {selectedOrderNumber}
+                    </span>
+                  </div>
+
+                  <div className="divide-y divide-border/60 text-xs">
+                    {procurementItems.map((it, idx) => (
+                      <div key={idx} className="py-2 flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-foreground">{it.itemName}</span>
+                          <span className="text-[11px] text-muted-foreground mr-2 font-mono">
+                            ({it.quantity} {it.unit || "وحدة"} × {it.unitPrice.toLocaleString()} ر.س)
+                          </span>
+                        </div>
+                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                          {(it.totalPrice || 0).toLocaleString()} ر.س
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-semibold">مجموع بنود المشتريات:</span>
+                    <span className="font-mono font-bold">{itemsTotal.toLocaleString()} ر.س</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-semibold">الأجور الإدارية:</span>
+                    <span className="font-mono font-bold text-amber-700 dark:text-amber-400">{adminFees.toLocaleString()} ر.س</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* ملخص الدفعة والتقرير المالي */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
