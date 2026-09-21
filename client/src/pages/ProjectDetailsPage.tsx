@@ -488,6 +488,15 @@ export default function ProjectDetailsPage() {
   const contractsCount = project?.contracts?.length || 0;
   const paymentsCount = project?.payments?.length || 0;
 
+  // فرز الدفعات زمنياً تصاعدياً حسب التاريخ
+  const sortedPayments = (project?.payments || []).slice().sort((a, b) => {
+    const dateA = a.paidAt || a.date || "";
+    const dateB = b.paidAt || b.date || "";
+    const cmp = dateA.localeCompare(dateB);
+    if (cmp !== 0) return cmp;
+    return (a.phaseOrder ?? 999) - (b.phaseOrder ?? 999);
+  });
+
   // أيقونة الريال المخصصة لشريط التنقل لتأخذ ألوان الأيقونات الأخرى (أخضر في الحالة العادية وأبيض عند التحديد)
   const RiyalNavIcon = ({ className = "w-4 h-4", style, ...props }: { className?: string; style?: React.CSSProperties; [key: string]: any }) => (
     <span
@@ -1623,7 +1632,7 @@ export default function ProjectDetailsPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {project.payments.map((payment, index) => {
+                              {sortedPayments.map((payment, index) => {
                                 const isUnpaid = payment.status !== "paid" && payment.status !== "executed" && !payment.paidAt;
                                 const hasDisbursement = Boolean((payment as any).hasDisbursementRequest);
                                 const hasReport = Boolean((payment as any).hasProgressReport);

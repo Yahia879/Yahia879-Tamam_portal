@@ -748,6 +748,15 @@ export const projectsRouter = router({
         });
       });
 
+      // فرز كافة الدفعات زمنياً تصاعدياً حسب التاريخ
+      unifiedPayments.sort((a, b) => {
+        const dateA = a.paidAt || a.date || "";
+        const dateB = b.paidAt || b.date || "";
+        const cmp = dateA.localeCompare(dateB);
+        if (cmp !== 0) return cmp;
+        return (a.phaseOrder ?? 999) - (b.phaseOrder ?? 999);
+      });
+
       // جلب جداول الكميات
       const boq = await db
         .select()
