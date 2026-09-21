@@ -1030,13 +1030,8 @@ export default function ContractPreview() {
                                 return (
                                   <tr key={p.id} className="border-b border-gray-200 last:border-b-0">
                                     <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
-                                    <td className="py-2.5 px-3 border-l border-gray-200 text-gray-900">
-                                      <div className="font-semibold">{p.phaseName || p.name || `الدفعة ${idx + 1}`}</div>
-                                      {(p.description || p.notes) && (
-                                        <div className="text-xs text-gray-500 font-normal mt-0.5 whitespace-pre-line">
-                                          {p.description || p.notes}
-                                        </div>
-                                      )}
+                                    <td className="py-2.5 px-3 border-l border-gray-200 font-semibold text-gray-900">
+                                      {p.phaseName || p.name || `الدفعة ${idx + 1}`}
                                     </td>
                                     <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
                                       <span className="inline-flex items-center gap-1">
@@ -1047,14 +1042,7 @@ export default function ContractPreview() {
                                       {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
                                     </td>
                                     <td className="py-2.5 px-3 text-gray-600">
-                                      <div>{p.dueDate ? (String(p.dueDate).includes('T') ? String(p.dueDate).split('T')[0] : String(p.dueDate).split(' ')[0]) : "عند الانتهاء من المرحلة"}</div>
-                                      {Boolean(p.isPaid || p.status === "paid" || Number(p.paidAmount || 0) > 0) && (
-                                        <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-800 font-bold">
-                                          {Number(p.paidAmount || 0) > 0 && Number(p.paidAmount) < pAmount 
-                                            ? `مسدد جزئياً (${Number(p.paidAmount).toLocaleString('ar-SA')} ر.س)`
-                                            : "مسددة"}
-                                        </span>
-                                      )}
+                                      {p.dueDate ? (String(p.dueDate).includes('T') ? String(p.dueDate).split('T')[0] : String(p.dueDate).split(' ')[0]) : "عند الانتهاء من المرحلة"}
                                     </td>
                                   </tr>
                                 );
