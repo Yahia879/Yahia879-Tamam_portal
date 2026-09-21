@@ -48,6 +48,7 @@ import {
   ArrowRight,
   Plus,
   RotateCcw,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -382,8 +383,9 @@ export default function CsrLettersList() {
                       <th className="p-3 font-bold">الطلب</th>
                       <th className="p-3 font-bold text-center">الأصناف المطلوبة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
+                      <th className="p-3 font-bold text-center">أمر الصرف</th>
                       <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
-                      <th className="p-3 font-bold text-center w-24">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-36">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -436,6 +438,39 @@ export default function CsrLettersList() {
                             </Badge>
                           </td>
 
+                          {/* أمر الصرف المرتبط */}
+                          <td className="p-3 text-center">
+                            {letter.disbursementOrder ? (
+                              <div className="space-y-0.5">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-bold px-2 py-0.5 ${
+                                    letter.disbursementOrder.status === "executed"
+                                      ? "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40"
+                                      : letter.disbursementOrder.status === "approved"
+                                      ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/40"
+                                      : "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/40"
+                                  }`}
+                                >
+                                  {letter.disbursementOrder.status === "executed"
+                                    ? "منفّذ"
+                                    : letter.disbursementOrder.status === "approved"
+                                    ? "معتمد"
+                                    : "قيد المراجعة"}
+                                </Badge>
+                                <div className="text-[10px] font-mono text-muted-foreground">
+                                  #{letter.disbursementOrder.orderNumber}
+                                </div>
+                              </div>
+                            ) : letter.status === "approved" ? (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                                لم يصدر بعد
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">-</span>
+                            )}
+                          </td>
+
                           {/* تاريخ الخطاب */}
                           <td className="p-3 text-center font-mono text-muted-foreground">
                             {letter.letterDate || "-"}
@@ -443,7 +478,7 @@ export default function CsrLettersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               {letter.status === "draft" && (
                                 <Button
                                   size="sm"
@@ -459,6 +494,17 @@ export default function CsrLettersList() {
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
                                   <span>اعتماد</span>
+                                </Button>
+                              )}
+                              {letter.status === "approved" && !letter.disbursementOrder && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigate(`/disbursement-orders/new-direct?source=csr_letter&letterNumber=${encodeURIComponent(letter.letterNumber)}&requestId=${letter.requestId}`)}
+                                  className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer px-2"
+                                  title="إنشاء أمر صرف لخطاب المسؤولية المجتمعية المعتمد"
+                                >
+                                  <Coins className="w-3.5 h-3.5" />
+                                  <span>أمر صرف</span>
                                 </Button>
                               )}
                               <Button
