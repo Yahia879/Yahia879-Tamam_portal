@@ -139,22 +139,31 @@ export default function NewDirectDisbursementOrder() {
 
     if (poNum) {
       setRequestType("purchase_order");
-      setSelectedOrderNumber(poNum);
+      setSelectedOrderNumber(poNum.trim());
     } else if (csrNum) {
       setRequestType("csr_letter");
-      setSelectedOrderNumber(csrNum);
+      setSelectedOrderNumber(csrNum.trim());
     } else if (src === "purchase_order" || src === "csr_letter") {
       setRequestType(src);
       if (ordNum) {
-        setSelectedOrderNumber(ordNum);
+        setSelectedOrderNumber(ordNum.trim());
       }
     }
-  }, []);
+  }, [window.location.search]);
+
+  // إذا تم اختيار نوع الصرف ولم يتم تحديد رقم المستند بعد، وكان هناك مستند واحد فقط متاح، حدده تلقائياً
+  useEffect(() => {
+    if ((requestType === "purchase_order" || requestType === "csr_letter") && !selectedOrderNumber && filteredProcurementOrders.length === 1) {
+      setSelectedOrderNumber(filteredProcurementOrders[0].orderNumber);
+    }
+  }, [requestType, selectedOrderNumber, filteredProcurementOrders]);
 
   // عند اختيار أمر شراء أو خطاب مسؤولية مجتمعية: تعبئة البيانات والبنود تلقائياً
   useEffect(() => {
     if (!selectedOrderNumber || !approvedProcurement) return;
-    const found = approvedProcurement.find((o: any) => o.orderNumber === selectedOrderNumber);
+    const found = approvedProcurement.find((o: any) => 
+      o.orderNumber?.trim().toLowerCase() === selectedOrderNumber?.trim().toLowerCase()
+    );
     if (found) {
       const items = Array.isArray(found.items) ? found.items.map((it: any) => {
         const qty = parseFloat(it.quantity || "1");

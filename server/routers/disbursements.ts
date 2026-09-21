@@ -2367,16 +2367,6 @@ export const disbursementsRouter = router({
         const suppliersAlloc = sedanaProc.suppliersAllocation || {};
         const reqBoq = boqByRequest.get(req.id) || [];
 
-        const pos: any[] = Array.isArray(sedanaProc.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
-        if (sedanaProc.activePurchaseOrder && !pos.some((p) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
-          pos.push(sedanaProc.activePurchaseOrder);
-        }
-
-        const csrs: any[] = Array.isArray(sedanaProc.csrLetters) ? [...sedanaProc.csrLetters] : [];
-        if (sedanaProc.activeCsrLetter && !csrs.some((c) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
-          csrs.push(sedanaProc.activeCsrLetter);
-        }
-
         // دالة مساعدة لاستخراج البنود لمسار محدد (أمر شراء أو خطاب)
         const getItemsForMethod = (method: string, explicitItems?: any[]) => {
           if (Array.isArray(explicitItems) && explicitItems.length > 0) {
@@ -2457,20 +2447,40 @@ export const disbursementsRouter = router({
           };
         };
 
+        const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
+
         // 1. أوامر الشراء المعتمدة
+        const pos: any[] = Array.isArray(sedanaProc.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
+        if (sedanaProc.activePurchaseOrder && !pos.some((p) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+          pos.push(sedanaProc.activePurchaseOrder);
+        }
+
+        const allocatedPoIds = Object.keys(allocations).filter((k) => allocations[k] === "purchase_order");
+        if (pos.length === 0 && allocatedPoIds.length > 0) {
+          pos.push({
+            orderNumber: `PO-${req.id}-${new Date().getFullYear()}`,
+            orderDate: req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "",
+            status: isExecutionOrBeyond ? "approved" : "draft",
+          });
+        }
+
         for (const po of pos) {
-          if (po.status !== "approved") continue;
+          const poStatus = po.status || (isExecutionOrBeyond ? "approved" : "draft");
+          if (poStatus !== "approved" && poStatus !== "ready") continue;
 
           const poItems = getItemsForMethod("purchase_order", po.items);
+          if (poItems.length === 0) continue;
+
           const itemsTotal = poItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
           const supInfo = getSupplierForMethod("purchase_order", po.supplierName, po.supplierId);
-          const linkedDisb = disbByPo.get(po.orderNumber?.trim());
+          const poNumber = po.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+          const linkedDisb = disbByPo.get(poNumber?.trim());
 
           results.push({
             type: "purchase_order",
             typeLabel: "أمر شراء معتمد (سدانة)",
-            orderNumber: po.orderNumber,
-            orderDate: po.orderDate,
+            orderNumber: poNumber,
+            orderDate: po.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : ""),
             requestId: req.id,
             requestNumber: req.requestNumber,
             mosqueId: mosque?.id || null,
@@ -2490,19 +2500,37 @@ export const disbursementsRouter = router({
         }
 
         // 2. خطابات المسؤولية المجتمعية المعتمدة
+        const csrs: any[] = Array.isArray(sedanaProc.csrLetters) ? [...sedanaProc.csrLetters] : [];
+        if (sedanaProc.activeCsrLetter && !csrs.some((c) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+          csrs.push(sedanaProc.activeCsrLetter);
+        }
+
+        const allocatedCsrIds = Object.keys(allocations).filter((k) => allocations[k] === "csr_letter");
+        if (csrs.length === 0 && allocatedCsrIds.length > 0) {
+          csrs.push({
+            letterNumber: `CSR-${req.id}-${new Date().getFullYear()}`,
+            letterDate: req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "",
+            status: isExecutionOrBeyond ? "approved" : "draft",
+          });
+        }
+
         for (const csr of csrs) {
-          if (csr.status !== "approved") continue;
+          const csrStatus = csr.status || (isExecutionOrBeyond ? "approved" : "draft");
+          if (csrStatus !== "approved" && csrStatus !== "ready") continue;
 
           const csrItems = getItemsForMethod("csr_letter", csr.items);
+          if (csrItems.length === 0) continue;
+
           const itemsTotal = csrItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
           const supInfo = getSupplierForMethod("csr_letter", csr.recipientName, csr.supplierId);
-          const linkedDisb = disbByCsr.get(csr.letterNumber?.trim());
+          const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
+          const linkedDisb = disbByCsr.get(letterNumber?.trim());
 
           results.push({
             type: "csr_letter",
             typeLabel: "خطاب مسؤولية مجتمعية معتمد",
-            orderNumber: csr.letterNumber,
-            orderDate: csr.letterDate,
+            orderNumber: letterNumber,
+            orderDate: csr.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : ""),
             requestId: req.id,
             requestNumber: req.requestNumber,
             mosqueId: mosque?.id || null,
