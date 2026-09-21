@@ -54,6 +54,8 @@ import {
   History,
   ShieldCheck,
   Check,
+  Coins,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -200,6 +202,13 @@ export default function SedanaExecutionPage() {
   const totalAvailableStock = inventoryItems.reduce((s, i) => s + i.availableStock, 0);
   const totalDelivered = inventoryItems.reduce((s, i) => s + i.totalDelivered, 0);
 
+  // المستند المرجعي المختار لأمر الإدخال والتحقق من تنفيذ أمر الصرف
+  const currentInwardRef = useMemo(() => {
+    return availableReferences.find((r: any) => r.type === inwardRefType) || availableReferences[0];
+  }, [availableReferences, inwardRefType]);
+
+  const isInwardBlocked = currentInwardRef && currentInwardRef.canCreateInward === false;
+
   // تهيئة سريعة لإدخال كامل الكميات
   const handleQuickInwardAll = () => {
     const itemsToInward = inventoryItems
@@ -217,6 +226,11 @@ export default function SedanaExecutionPage() {
     }
 
     const firstRef = availableReferences[0];
+    if (firstRef && firstRef.canCreateInward === false) {
+      toast.error(firstRef.blockedReason || "لا يمكن إدخال الكميات حتى يتم تنفيذ أمر الصرف المرتبط أولاً وتحول حالته إلى 'منفّذ'");
+      return;
+    }
+
     createInwardMutation.mutate({
       requestId,
       receivedBy: user?.name || "أمين المستودع",
@@ -959,6 +973,56 @@ export default function SedanaExecutionPage() {
                 </div>
               </div>
 
+              {/* تنبيه حالة أمر الصرف المرتبط */}
+              {isInwardBlocked && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-bold text-xs">لا يمكن عمل أمر إدخال مستودعي حالياً</p>
+                      <p className="text-[11px] leading-relaxed">
+                        {currentInwardRef?.blockedReason || "لا يمكن عمل أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-500/20">
+                    {currentInwardRef?.hasDisbursementOrder ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setLocation("/disbursement-orders")}
+                        className="h-7 text-xs font-bold gap-1 text-amber-800 dark:text-amber-300 border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 cursor-pointer"
+                      >
+                        <span>متابعة أمر الصرف (#{currentInwardRef.disbursementOrderNumber})</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => setLocation(`/disbursement-orders/new-direct?source=${inwardRefType}&orderNumber=${encodeURIComponent(inwardRefNumber || currentInwardRef?.documentNumber || "")}&requestId=${requestId}`)}
+                        className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+                      >
+                        <Coins className="w-3.5 h-3.5" />
+                        <span>إنشاء أمر صرف الآن</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {currentInwardRef?.isExecuted && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      أمر الصرف مرتبط ومنفّذ بنجاح (رقم أمر الصرف: <strong>{currentInwardRef.disbursementOrderNumber}</strong> بمبلغ <strong>{currentInwardRef.disbursementAmount}</strong> ر.س)
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40">
+                    منفّذ
+                  </Badge>
+                </div>
+              )}
+
               <div>
                 <Label className="text-xs font-bold">اسم المستلم (أمين المستودع / المنسق)</Label>
                 <Input
@@ -1048,10 +1112,18 @@ export default function SedanaExecutionPage() {
                     items,
                   });
                 }}
-                disabled={createInwardMutation.isPending}
-                className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                disabled={createInwardMutation.isPending || isInwardBlocked}
+                className={`text-xs font-bold ${
+                  isInwardBlocked
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer"
+                }`}
               >
-                {createInwardMutation.isPending ? "جاري الحفظ..." : "تأكيد وتوثيق أمر الإدخال"}
+                {createInwardMutation.isPending
+                  ? "جاري الحفظ..."
+                  : isInwardBlocked
+                  ? "بانتظار تنفيذ أمر الصرف"
+                  : "تأكيد وتوثيق أمر الإدخال"}
               </Button>
             </DialogFooter>
           </DialogContent>
