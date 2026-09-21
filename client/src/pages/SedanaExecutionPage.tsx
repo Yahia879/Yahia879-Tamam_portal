@@ -56,6 +56,10 @@ import {
   Check,
   Coins,
   AlertTriangle,
+  Store,
+  CalendarDays,
+  BadgeCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -122,6 +126,18 @@ export default function SedanaExecutionPage() {
   const [confirmRating, setConfirmRating] = useState(5);
   const [confirmNotes, setConfirmNotes] = useState("");
 
+  // تأكيد استلام أمر الإخراج من قبل الإمام
+  const [selectedOutboundToConfirm, setSelectedOutboundToConfirm] = useState<any | null>(null);
+  const [isConfirmOutboundModalOpen, setIsConfirmOutboundModalOpen] = useState(false);
+  const [confirmOutboundRecipientName, setConfirmOutboundRecipientName] = useState("");
+  const [confirmOutboundRating, setConfirmOutboundRating] = useState(5);
+  const [confirmOutboundNotes, setConfirmOutboundNotes] = useState("");
+  const [confirmOutboundDate, setConfirmOutboundDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // عرض تفاصيل استلام أمر الإخراج المكتمل
+  const [selectedOutboundToView, setSelectedOutboundToView] = useState<any | null>(null);
+  const [isViewOutboundModalOpen, setIsViewOutboundModalOpen] = useState(false);
+
   // الطفرات
   const createInwardMutation = trpc.sedanaExecution.createInwardOrder.useMutation({
     onSuccess: () => {
@@ -160,6 +176,17 @@ export default function SedanaExecutionPage() {
       utils.requests.getById.invalidate({ id: requestId });
     },
     onError: (err) => toast.error(err.message || "حدث خطأ أثناء تأكيد الاستلام"),
+  });
+
+  const confirmOutboundMutation = trpc.sedanaExecution.confirmOutboundReceipt.useMutation({
+    onSuccess: (res) => {
+      toast.success(res.message || "تم اعتماد وتأكيد استلام أمر الإخراج بنجاح");
+      setIsConfirmOutboundModalOpen(false);
+      setSelectedOutboundToConfirm(null);
+      utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
+      utils.requests.getById.invalidate({ id: requestId });
+    },
+    onError: (err) => toast.error(err.message || "حدث خطأ أثناء اعتماد وتأكيد أمر الإخراج"),
   });
 
   if (isLoading) {
@@ -585,11 +612,11 @@ export default function SedanaExecutionPage() {
                 </div>
                 <Button
                   size="sm"
-                  onClick={handleOpenOutboundModal}
-                  className="text-xs font-bold gap-1 bg-primary text-primary-foreground"
+                  onClick={() => setLocation(`/requests/${requestId}/sedana-outbound/new`)}
+                  className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>جدولة أمر إخراج جديد</span>
+                  <span>إنشاء أمر إخراج جديد</span>
                 </Button>
               </CardHeader>
               <CardContent className="p-0">
@@ -608,57 +635,126 @@ export default function SedanaExecutionPage() {
                         <TableRow className="border-b">
                           <th className="p-3 w-10 text-center font-bold">#</th>
                           <th className="p-3 font-bold">رقم أمر الإخراج</th>
+                          <th className="p-3 font-bold text-center">طريقة الإخراج</th>
                           <th className="p-3 font-bold text-center">مسوغ الصرف المحاسبي</th>
-                          <th className="p-3 font-bold">الدفعة / الفترة</th>
-                          <th className="p-3 font-bold text-center">تاريخ الجدولة</th>
+                          <th className="p-3 font-bold">المستلم / الصفة</th>
+                          <th className="p-3 font-bold text-center">تاريخ الإخراج</th>
                           <th className="p-3 font-bold text-center">الأصناف المشمولة</th>
-                          <th className="p-3 font-bold text-center">الحالة</th>
-                          <th className="p-3 font-bold text-center w-28">الإجراءات</th>
+                          <th className="p-3 font-bold text-center">حالة الاعتماد والاستلام</th>
+                          <th className="p-3 font-bold text-center w-48">الإجراءات</th>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-border">
-                        {outboundOrders.map((out: any, idx: number) => (
-                          <TableRow key={out.id} className="hover:bg-muted/10">
-                            <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
-                            <td className="p-3 font-bold font-mono">{out.orderNumber}</td>
-                            <td className="p-3 text-center">
-                              <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
-                                {out.disbursementVoucherCode}
-                              </span>
-                            </td>
-                            <td className="p-3 font-semibold">{out.periodLabel}</td>
-                            <td className="p-3 text-center font-mono">{out.scheduledDate}</td>
-                            <td className="p-3 text-center font-bold">{out.items?.length || 0} بنود</td>
-                            <td className="p-3 text-center">
-                              <Badge variant="outline" className={`text-[10px] ${
-                                out.status === "delivered"
-                                  ? "border-emerald-300 text-emerald-800 bg-emerald-50"
-                                  : out.status === "dispatched"
-                                  ? "border-sky-300 text-sky-800 bg-sky-50"
-                                  : "border-amber-300 text-amber-800 bg-amber-50"
-                              }`}>
-                                {out.status === "delivered" && "تم التسليم"}
-                                {out.status === "dispatched" && "قيد التسليم"}
-                                {out.status === "scheduled" && "مجدول للصرف"}
-                              </Badge>
-                            </td>
-                            <td className="p-3 text-center">
-                              {out.status === "scheduled" ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleOpenDeliveryModalFromOutbound(out)}
-                                  className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50"
-                                >
-                                  <Truck className="w-3.5 h-3.5" />
-                                  <span>إصدار أمر تسليم</span>
-                                </Button>
-                              ) : (
-                                <span className="text-[11px] text-muted-foreground">تم التحويل للتسليم</span>
-                              )}
-                            </td>
-                          </TableRow>
-                        ))}
+                        {outboundOrders.map((out: any, idx: number) => {
+                          const isDelivered = out.status === "delivered";
+                          const methodMap: Record<string, { label: string; icon: any; color: string }> = {
+                            direct_imam: { label: "تسليم مباشر بالمسجد", icon: Building2, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+                            courier_delivery: { label: "شحن وتوصيل للموقع", icon: Truck, color: "text-sky-700 bg-sky-50 border-sky-200" },
+                            warehouse_pickup: { label: "استلام من المستودع", icon: Store, color: "text-purple-700 bg-purple-50 border-purple-200" },
+                            scheduled_batch: { label: "دفعة مجدولة للصرف", icon: CalendarDays, color: "text-amber-700 bg-amber-50 border-amber-200" },
+                          };
+                          const method = methodMap[out.outboundMethod] || methodMap.direct_imam;
+                          const MethodIcon = method.icon;
+
+                          return (
+                            <TableRow key={out.id} className="hover:bg-muted/10">
+                              <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
+                              <td className="p-3 font-bold font-mono text-foreground">{out.orderNumber}</td>
+                              <td className="p-3 text-center">
+                                <Badge variant="outline" className={`text-[10px] gap-1 font-semibold ${method.color}`}>
+                                  <MethodIcon className="w-3 h-3" />
+                                  <span>{method.label}</span>
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
+                                  {out.disbursementVoucherCode}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-foreground">{out.recipientName || mosque?.imamName || "إمام المسجد"}</div>
+                                <div className="text-[10px] text-muted-foreground">{out.recipientRole || "إمام المسجد"} {out.recipientPhone ? `• ${out.recipientPhone}` : ""}</div>
+                              </td>
+                              <td className="p-3 text-center font-mono">{out.scheduledDate || out.createdAt?.split("T")[0]}</td>
+                              <td className="p-3 text-center">
+                                <span className="font-bold text-foreground">{out.items?.length || 0} بنود</span>
+                                <div className="text-[10px] text-muted-foreground">
+                                  ({out.items?.reduce((s: number, it: any) => s + (Number(it.quantity) || 0), 0) || 0} وحدة إجمالاً)
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                {isDelivered ? (
+                                  <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] gap-1 font-bold">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>معتمد ومؤكد الاستلام ✓</span>
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-amber-300 text-amber-800 bg-amber-50 text-[10px] gap-1 font-bold">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>بانتظار تأكيد استلام الإمام</span>
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  {isDelivered ? (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedOutboundToView(out);
+                                          setIsViewOutboundModalOpen(true);
+                                        }}
+                                        className="h-7 text-xs font-bold gap-1 text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                                      >
+                                        <BadgeCheck className="w-3.5 h-3.5" />
+                                        <span>إثبات الاستلام</span>
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                        title="طباعة محضر التسليم والاستلام"
+                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Printer className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedOutboundToConfirm(out);
+                                          setConfirmOutboundRecipientName(out.recipientName || mosque?.imamName || "إمام المسجد");
+                                          setConfirmOutboundDate(new Date().toISOString().split("T")[0]);
+                                          setConfirmOutboundRating(5);
+                                          setConfirmOutboundNotes("");
+                                          setIsConfirmOutboundModalOpen(true);
+                                        }}
+                                        className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
+                                      >
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>تأكيد استلام الإمام</span>
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                        title="طباعة أمر الإخراج ومحضر الاستلام"
+                                        className="h-7 px-2 text-xs font-medium gap-1 text-muted-foreground"
+                                      >
+                                        <Printer className="w-3.5 h-3.5" />
+                                        <span>المحضر</span>
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -855,68 +951,99 @@ export default function SedanaExecutionPage() {
 
 
 
-        {/* Modal: جدولة أمر إخراج جديد */}
-        <Dialog open={isOutboundModalOpen} onOpenChange={setIsOutboundModalOpen}>
+        {/* Modal: تأكيد استلام أمر الإخراج من قبل الإمام واعتماده */}
+        <Dialog open={isConfirmOutboundModalOpen} onOpenChange={setIsConfirmOutboundModalOpen}>
           <DialogContent className="max-w-md text-right font-sans" dir="rtl">
             <DialogHeader>
-              <DialogTitle className="text-base font-bold">جدولة أمر إخراج ومسوغ صرف</DialogTitle>
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <span>تأكيد استلام أمر الإخراج واعتماده رسمياً</span>
+              </DialogTitle>
               <DialogDescription className="text-xs">
-                تحديد كميات الدفعة المجدولة وتوليد مسوغ صرف محاسبي رسمي
+                توثيق استلام إمام المسجد للمواد وإسقاط مسؤولية التوريد واعتماد خروجها النهائي من المستودع
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-3 py-2 text-xs max-h-[60vh] overflow-y-auto">
+            <div className="space-y-3.5 py-2 text-xs max-h-[65vh] overflow-y-auto">
+              <div className="p-3 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 space-y-1.5">
+                <div className="flex items-center justify-between font-bold text-emerald-900 dark:text-emerald-200">
+                  <span>أمر الإخراج: {selectedOutboundToConfirm?.orderNumber}</span>
+                  <span className="font-mono text-xs">{selectedOutboundToConfirm?.disbursementVoucherCode}</span>
+                </div>
+                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 leading-relaxed">
+                  أقر أنا <span className="font-bold underline">{confirmOutboundRecipientName || "إمام المسجد"}</span> باستلام المواد المبينة أدناه لمسجد ({mosque?.name || "المسجد"}) بحالة سليمة ومطابقة للمواصفات.
+                </p>
+              </div>
+
+              {/* قائمة الأصناف المشمولة بأمر الإخراج */}
+              <div className="border rounded-md p-2.5 bg-muted/20 space-y-1.5">
+                <p className="font-bold text-foreground text-[11px]">الأصناف والكميات المراد تأكيد استلامها:</p>
+                <div className="divide-y divide-border/60">
+                  {selectedOutboundToConfirm?.items?.map((it: any, i: number) => (
+                    <div key={i} className="py-1.5 flex items-center justify-between">
+                      <span className="font-medium text-foreground">{it.itemName || it.name}</span>
+                      <span className="font-bold font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded text-[11px]">
+                        {it.quantity} {it.unit || "وحدة"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div>
-                <Label className="text-xs font-bold">مسمى الدفعة / الفترة</Label>
+                <Label className="text-xs font-bold">اسم المستلم الفعلي (الإمام / المفوض)</Label>
                 <Input
-                  value={outboundPeriod}
-                  onChange={(e) => setOutboundPeriod(e.target.value)}
-                  placeholder="مثال: الدفعة الربع سنوية الأولى (Q1)"
+                  value={confirmOutboundRecipientName}
+                  onChange={(e) => setConfirmOutboundRecipientName(e.target.value)}
+                  placeholder="الاسم الكامل لإمام المسجد أو المفوض بالاستلام..."
                   className="h-8 text-xs mt-1"
                 />
               </div>
 
               <div>
-                <Label className="text-xs font-bold">تاريخ الجدولة والتوزيع</Label>
+                <Label className="text-xs font-bold">تاريخ الاستلام الفعلي بالمسجد</Label>
                 <Input
                   type="date"
-                  value={outboundDate}
-                  onChange={(e) => setOutboundDate(e.target.value)}
+                  value={confirmOutboundDate}
+                  onChange={(e) => setConfirmOutboundDate(e.target.value)}
                   className="h-8 text-xs mt-1"
                 />
               </div>
 
-              <div className="space-y-2 border-t pt-2">
-                <Label className="text-xs font-bold">الكميات المجدولة للصرف في هذه الدفعة:</Label>
-                {inventoryItems.map((it) => (
-                  <div key={it.id} className="flex items-center justify-between gap-2 border-b pb-1">
-                    <div>
-                      <p className="font-medium text-foreground">{it.name}:</p>
-                      <p className="text-[10px] text-muted-foreground">المتاح بالمستودع: {it.availableStock} {it.unit}</p>
-                    </div>
-                    <Input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={outboundItems[it.id] ?? 0}
-                      onChange={(e) =>
-                        setOutboundItems((prev) => ({
-                          ...prev,
-                          [it.id]: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-24 h-7 text-xs text-center font-mono"
-                    />
-                  </div>
-                ))}
+              <div>
+                <Label className="text-xs font-bold">تقييم سلامة المواد وجودة التوريد</Label>
+                <div className="flex items-center gap-2 pt-1.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setConfirmOutboundRating(star)}
+                      className="p-1 rounded hover:bg-muted transition-colors"
+                    >
+                      <Star
+                        className={`w-6 h-6 transition-all ${
+                          star <= confirmOutboundRating
+                            ? "fill-amber-400 text-amber-500 scale-110"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 mr-2">
+                    {confirmOutboundRating === 5 && "ممتاز - مطابقة كاملة"}
+                    {confirmOutboundRating === 4 && "جيد جداً"}
+                    {confirmOutboundRating === 3 && "جيد"}
+                    {confirmOutboundRating <= 2 && "ملاحظات على المواد"}
+                  </span>
+                </div>
               </div>
 
               <div>
-                <Label className="text-xs font-bold">ملاحظات أمر الإخراج</Label>
+                <Label className="text-xs font-bold">ملاحظات تأكيد الاستلام (اختياري)</Label>
                 <Textarea
-                  value={outboundNotes}
-                  onChange={(e) => setOutboundNotes(e.target.value)}
-                  placeholder="ملاحظات توجيهية لفريق التوزيع..."
+                  value={confirmOutboundNotes}
+                  onChange={(e) => setConfirmOutboundNotes(e.target.value)}
+                  placeholder="أي ملاحظات حول سلامة المواد، أو ظروف التسليم الميداني..."
                   className="text-xs mt-1"
                   rows={2}
                 />
@@ -927,7 +1054,7 @@ export default function SedanaExecutionPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsOutboundModalOpen(false)}
+                onClick={() => setIsConfirmOutboundModalOpen(false)}
                 className="text-xs"
               >
                 إلغاء
@@ -935,35 +1062,129 @@ export default function SedanaExecutionPage() {
               <Button
                 size="sm"
                 onClick={() => {
-                  const items = Object.keys(outboundItems)
-                    .filter((k) => (outboundItems[k] || 0) > 0)
-                    .map((k) => {
-                      const found = inventoryItems.find((i) => i.id === k);
-                      return {
-                        id: k,
-                        itemName: found?.name || `بند ${k}`,
-                        quantity: outboundItems[k],
-                        unit: found?.unit || "وحدة",
-                      };
-                    });
-
-                  if (items.length === 0) {
-                    toast.error("يرجى إدخال كمية موجبة لصنف واحد على الأقل");
+                  if (!confirmOutboundRecipientName.trim()) {
+                    toast.error("يرجى إدخال اسم المستلم الفعلي بالمسجد");
                     return;
                   }
 
-                  createOutboundMutation.mutate({
+                  confirmOutboundMutation.mutate({
                     requestId,
-                    scheduledDate: outboundDate,
-                    periodLabel: outboundPeriod,
-                    notes: outboundNotes,
-                    items,
+                    outboundOrderId: selectedOutboundToConfirm?.id,
+                    recipientName: confirmOutboundRecipientName,
+                    deliveredDate: confirmOutboundDate,
+                    satisfactionRating: confirmOutboundRating,
+                    notes: confirmOutboundNotes,
                   });
                 }}
-                disabled={createOutboundMutation.isPending}
-                className="text-xs font-bold"
+                disabled={confirmOutboundMutation.isPending}
+                className="text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white gap-1.5 shadow-sm"
               >
-                {createOutboundMutation.isPending ? "جاري الحفظ..." : "إصدار أمر الإخراج ومسوغ الصرف"}
+                {confirmOutboundMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>جاري التوثيق والاعتماد...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>اعتماد وتأكيد الاستلام الفعلي ✓</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: عرض وثيقة إثبات الاستلام الرقمي المعتمد */}
+        <Dialog open={isViewOutboundModalOpen} onOpenChange={setIsViewOutboundModalOpen}>
+          <DialogContent className="max-w-md text-right font-sans" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                <span>وثيقة إثبات الاستلام الرقمي المعتمد</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                بيانات التوثيق الرقمي لاعتماد تسليم واستلام المواد من المستودع الافتراضي
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3.5 py-2 text-xs">
+              <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                <div className="flex justify-between border-b pb-1.5">
+                  <span className="text-muted-foreground">رقم أمر الإخراج:</span>
+                  <span className="font-mono font-bold text-foreground">{selectedOutboundToView?.orderNumber}</span>
+                </div>
+                <div className="flex justify-between border-b pb-1.5">
+                  <span className="text-muted-foreground">مسوغ الصرف المحاسبي:</span>
+                  <span className="font-mono font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200">
+                    {selectedOutboundToView?.disbursementVoucherCode}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-1.5">
+                  <span className="text-muted-foreground">المستلم المعتمد:</span>
+                  <span className="font-bold text-foreground">{selectedOutboundToView?.confirmation?.confirmedByName || selectedOutboundToView?.recipientName}</span>
+                </div>
+                <div className="flex justify-between border-b pb-1.5">
+                  <span className="text-muted-foreground">تاريخ الاستلام الفعلي:</span>
+                  <span className="font-mono font-semibold">{selectedOutboundToView?.deliveredDate || selectedOutboundToView?.confirmation?.confirmedAt?.split("T")[0]}</span>
+                </div>
+                <div className="flex justify-between border-b pb-1.5">
+                  <span className="text-muted-foreground">تقييم الجودة:</span>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-3.5 h-3.5 ${
+                          star <= (selectedOutboundToView?.confirmation?.satisfactionRating || 5)
+                            ? "fill-amber-400 text-amber-500"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                    <span className="font-bold mr-1 text-[11px] text-amber-700">({selectedOutboundToView?.confirmation?.satisfactionRating || 5}/5)</span>
+                  </div>
+                </div>
+                {selectedOutboundToView?.confirmation?.notes && (
+                  <div className="pt-1">
+                    <span className="text-muted-foreground block mb-0.5">ملاحظات الاستلام:</span>
+                    <p className="bg-background p-2 rounded border text-muted-foreground text-[11px]">{selectedOutboundToView?.confirmation?.notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* الأصناف المسلمة */}
+              <div className="border rounded-lg p-2.5 space-y-1.5">
+                <p className="font-bold text-foreground text-[11px]">الأصناف التي تم تأكيد استلامها:</p>
+                <div className="divide-y divide-border/60">
+                  {selectedOutboundToView?.items?.map((it: any, i: number) => (
+                    <div key={i} className="py-1 flex items-center justify-between text-xs">
+                      <span>{it.itemName || it.name}</span>
+                      <span className="font-mono font-bold text-emerald-700">{it.quantity} {it.unit || "وحدة"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsViewOutboundModalOpen(false)}
+                className="text-xs"
+              >
+                إغلاق
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsViewOutboundModalOpen(false);
+                  setLocation(`/requests/${requestId}/sedana-delivery`);
+                }}
+                className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>طباعة محضر الاستلام الرسمي</span>
               </Button>
             </DialogFooter>
           </DialogContent>
