@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Search, Building2, X, Loader2, FolderKanban } from "lucide-react";
+import { Check, ChevronsUpDown, Search, Building2, X, Loader2, FolderKanban, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -269,6 +269,15 @@ export function ProjectSearchSelect({
                           )}
                         >
                           {project.projectNumber}
+                        </Badge>
+                      )}
+                      {project.programType === "sedana" && (
+                        <Badge
+                          variant="outline"
+                          className="bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300 text-[10px] px-1.5 py-0 rounded shrink-0 font-bold inline-flex items-center gap-1"
+                        >
+                          <Sparkles className="w-2.5 h-2.5 text-cyan-600" />
+                          سدانة
                         </Badge>
                       )}
                       <span className="text-xs sm:text-sm font-bold leading-snug truncate">
