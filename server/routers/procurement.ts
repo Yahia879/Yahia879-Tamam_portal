@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
-import { mosqueRequests, mosques, quantitySchedules, suppliers } from "../../drizzle/schema";
+import { mosqueRequests, mosques, quantitySchedules, suppliers, disbursementOrders } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
@@ -21,6 +21,24 @@ export const procurementRouter = router({
       if (!db) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
+
+      // جلب أوامر الصرف لمطابقة كل أمر شراء بأمر صرفه إن وجد
+      const disbOrders = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          purchaseOrderNumber: disbursementOrders.purchaseOrderNumber,
+          status: disbursementOrders.status,
+          amount: disbursementOrders.amount,
+          adminFees: disbursementOrders.adminFees,
+          executedAt: disbursementOrders.executedAt,
+        })
+        .from(disbursementOrders);
+
+      const disbByPo = new Map<string, any>();
+      disbOrders.forEach((d) => {
+        if (d.purchaseOrderNumber) disbByPo.set(d.purchaseOrderNumber.trim(), d);
+      });
 
       // جلب جميع الطلبات التي تحتوي على برنامج سدانة أو بيانات تأمين
       const requestsWithMosque = await db
@@ -183,6 +201,7 @@ export const procurementRouter = router({
               status,
               items: poItems,
               itemsCount: poItems.length,
+              disbursementOrder: disbByPo.get(poNumber) || null,
               createdAt: req.createdAt,
               updatedAt: po.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
             });
@@ -216,6 +235,7 @@ export const procurementRouter = router({
             status,
             items: itemsForPO,
             itemsCount: itemsForPO.length,
+            disbursementOrder: disbByPo.get(poNumber) || null,
             createdAt: req.createdAt,
             updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
           });
@@ -307,6 +327,24 @@ export const procurementRouter = router({
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
         .where(isNotNull(mosqueRequests.programData))
         .orderBy(desc(mosqueRequests.createdAt));
+
+      // جلب أوامر الصرف لمطابقة كل خطاب مسؤولية بأمر صرفه إن وجد
+      const disbOrders = await db
+        .select({
+          id: disbursementOrders.id,
+          orderNumber: disbursementOrders.orderNumber,
+          csrLetterNumber: disbursementOrders.csrLetterNumber,
+          status: disbursementOrders.status,
+          amount: disbursementOrders.amount,
+          adminFees: disbursementOrders.adminFees,
+          executedAt: disbursementOrders.executedAt,
+        })
+        .from(disbursementOrders);
+
+      const disbByCsr = new Map<string, any>();
+      disbOrders.forEach((d) => {
+        if (d.csrLetterNumber) disbByCsr.set(d.csrLetterNumber.trim(), d);
+      });
 
       const allBoqItems = await db
         .select({
@@ -450,6 +488,7 @@ export const procurementRouter = router({
               status,
               items: finalItems,
               itemsCount: finalItems.length,
+              disbursementOrder: disbByCsr.get(letterNumber) || null,
               createdAt: req.createdAt,
               updatedAt: csr.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
             });
@@ -482,6 +521,7 @@ export const procurementRouter = router({
             status,
             items: itemsForCSR,
             itemsCount: itemsForCSR.length,
+            disbursementOrder: disbByCsr.get(letterNumber) || null,
             createdAt: req.createdAt,
             updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
           });
