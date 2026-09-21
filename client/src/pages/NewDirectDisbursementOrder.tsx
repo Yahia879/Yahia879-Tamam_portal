@@ -132,9 +132,18 @@ export default function NewDirectDisbursementOrder() {
   // استخراج معلمات URL إن وجدت (للربط المباشر من صفحات المشتريات)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const poNum = params.get("po");
+    const csrNum = params.get("csr");
     const src = params.get("source");
     const ordNum = params.get("orderNumber") || params.get("letterNumber");
-    if (src === "purchase_order" || src === "csr_letter") {
+
+    if (poNum) {
+      setRequestType("purchase_order");
+      setSelectedOrderNumber(poNum);
+    } else if (csrNum) {
+      setRequestType("csr_letter");
+      setSelectedOrderNumber(csrNum);
+    } else if (src === "purchase_order" || src === "csr_letter") {
       setRequestType(src);
       if (ordNum) {
         setSelectedOrderNumber(ordNum);
@@ -279,28 +288,51 @@ export default function NewDirectDisbursementOrder() {
     }));
   };
 
-  // التحقق من صلاحية البيانات للخطوة التالية
-  const isNextDisabled = () => {
+  // استخراج الحقول الناقصة لإرشاد المستخدم بدقة
+  const getMissingFields = () => {
+    const missing: string[] = [];
     if (requestType === "purchase_order" || requestType === "csr_letter") {
-      if (!selectedOrderNumber || procurementItems.length === 0) return true;
-      if (!formData.title || formData.amount <= 0 || !formData.dateMiladi) return true;
-      if (!formData.beneficiaryName || !formData.beneficiaryBank || !formData.beneficiaryIban) return true;
-      return false;
+      if (!selectedOrderNumber) missing.push(requestType === "purchase_order" ? "اختيار أمر الشراء المعتمد" : "اختيار خطاب المسؤولية المعتمد");
+      if (procurementItems.length === 0) missing.push("بنود المشتريات المعتمدة");
+      if (!formData.title) missing.push("عنوان أمر الصرف");
+      if (formData.amount <= 0) missing.push("المبلغ الإجمالي المحسوب");
+      if (!formData.dateMiladi) missing.push("تاريخ الصرف");
+      if (!formData.beneficiaryName) missing.push("اسم المورد / المستفيد");
+      if (!formData.beneficiaryBank) missing.push("اسم البنك للمستفيد");
+      if (!formData.beneficiaryIban) missing.push("رقم الآيبان (IBAN)");
+      return missing;
     }
 
-    if (!formData.mainProjectName || !formData.fundingSupport) return true;
-    if (!formData.title || formData.amount <= 0 || !formData.dateMiladi || !formData.customProjectName || !formData.requiredWorksDesc) return true;
+    if (!formData.mainProjectName) missing.push("اسم المشروع الرئيسي");
+    if (!formData.fundingSupport) missing.push("التمويل / الدعم");
+    if (!formData.title) missing.push("عنوان أمر الصرف");
+    if (formData.amount <= 0) missing.push("المبلغ الإجمالي");
+    if (!formData.dateMiladi) missing.push("تاريخ الصرف");
+    if (!formData.customProjectName) missing.push("اسم المشروع المخصص");
+    if (!formData.requiredWorksDesc) missing.push("وصف الأعمال المطلوبة");
 
     if (requestType === "sadad_invoice") {
-      return !formData.billerName || !formData.billerCode || !formData.sadadNumber;
+      if (!formData.billerName) missing.push("اسم المفوتر");
+      if (!formData.billerCode) missing.push("رمز المفوتر");
+      if (!formData.sadadNumber) missing.push("رقم سداد");
     } else {
-      return !formData.beneficiaryName || !formData.beneficiaryBank || !formData.beneficiaryIban || !formData.bankAccountName;
+      if (!formData.beneficiaryName) missing.push("اسم المستفيد");
+      if (!formData.beneficiaryBank) missing.push("اسم البنك");
+      if (!formData.beneficiaryIban) missing.push("رقم الآيبان");
+      if (!formData.bankAccountName) missing.push("اسم الحساب البنكي");
     }
+    return missing;
+  };
+
+  // التحقق من صلاحية البيانات للخطوة التالية
+  const isNextDisabled = () => {
+    return getMissingFields().length > 0;
   };
 
   const handleNextStep = () => {
-    if (isNextDisabled()) {
-      toast.error("يرجى إكمال جميع الحقول المطلوبة بشكل صحيح");
+    const missing = getMissingFields();
+    if (missing.length > 0) {
+      toast.error(`يرجى إكمال الحقول التالية للمتابعة: ${missing.join("، ")}`);
       return;
     }
     setStep(2);
@@ -903,11 +935,24 @@ export default function NewDirectDisbursementOrder() {
             </Card>
 
             {/* أزرار الانتقال */}
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-border/60">
+              <div className="text-xs">
+                {isNextDisabled() ? (
+                  <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>الحقول المتبقية للمتابعة: {getMissingFields().join(" • ")}</span>
+                  </span>
+                ) : (
+                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-bold">
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span>كافة البيانات مكتملة، يمكنك المتابعة للخطوة التالية.</span>
+                  </span>
+                )}
+              </div>
               <Button
                 onClick={handleNextStep}
                 disabled={isNextDisabled()}
-                className="bg-primary hover:bg-primary/95 text-white font-bold h-11 px-8 rounded-xl gap-2 shadow-sm transition-all"
+                className="bg-primary hover:bg-primary/95 text-white font-bold h-11 px-8 rounded-xl gap-2 shadow-sm transition-all cursor-pointer"
               >
                 <span>الخطوة التالية</span>
                 <ArrowLeft className="w-4 h-4" />

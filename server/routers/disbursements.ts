@@ -21,6 +21,7 @@ import {
   roles,
   projectFinancialDetails,
   receiptVouchers,
+  quantitySchedules,
 } from "../../drizzle/schema";
 import { eq, desc, and, sql, isNull, isNotNull, or, like, inArray, ne } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
@@ -2293,6 +2294,28 @@ export const disbursementsRouter = router({
         .where(isNotNull(mosqueRequests.programData))
         .orderBy(desc(mosqueRequests.createdAt));
 
+      // جلب بنود جداول الكميات لجميع الطلبات لربطها بالبنود المخصصة
+      const allBoqItems = await db
+        .select({
+          id: quantitySchedules.id,
+          requestId: quantitySchedules.requestId,
+          itemName: quantitySchedules.itemName,
+          itemDescription: quantitySchedules.itemDescription,
+          unit: quantitySchedules.unit,
+          quantity: quantitySchedules.quantity,
+          unitPrice: quantitySchedules.unitPrice,
+          totalPrice: quantitySchedules.totalPrice,
+        })
+        .from(quantitySchedules);
+
+      const boqByRequest = new Map<number, any[]>();
+      allBoqItems.forEach((b) => {
+        if (!b.requestId) return;
+        const current = boqByRequest.get(b.requestId) || [];
+        current.push(b);
+        boqByRequest.set(b.requestId, current);
+      });
+
       // جلب أوامر الصرف المسجلة لمطابقة الربط
       const existingDisbOrders = await db
         .select({
@@ -2339,6 +2362,11 @@ export const disbursementsRouter = router({
         if (!pData || typeof pData !== "object") continue;
 
         const sedanaProc = pData.sedanaProcurement || {};
+        const allocations = sedanaProc.itemsAllocation || {};
+        const itemSuppMap = sedanaProc.itemSupplierMap || {};
+        const suppliersAlloc = sedanaProc.suppliersAllocation || {};
+        const reqBoq = boqByRequest.get(req.id) || [];
+
         const pos: any[] = Array.isArray(sedanaProc.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
         if (sedanaProc.activePurchaseOrder && !pos.some((p) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
           pos.push(sedanaProc.activePurchaseOrder);
@@ -2349,28 +2377,93 @@ export const disbursementsRouter = router({
           csrs.push(sedanaProc.activeCsrLetter);
         }
 
+        // دالة مساعدة لاستخراج البنود لمسار محدد (أمر شراء أو خطاب)
+        const getItemsForMethod = (method: string, explicitItems?: any[]) => {
+          if (Array.isArray(explicitItems) && explicitItems.length > 0) {
+            return explicitItems.map((it: any, idx: number) => {
+              const qty = parseFloat(it.quantity || "1");
+              const price = parseFloat(it.unitPrice || "0");
+              return {
+                id: String(it.id || idx + 1),
+                itemName: it.itemName || `صنف ${idx + 1}`,
+                description: it.description || "",
+                quantity: qty,
+                unit: it.unit || "وحدة",
+                unitPrice: price,
+                totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+              };
+            });
+          }
+
+          const allocatedIds = Object.keys(allocations).filter((k) => allocations[k] === method);
+          if (allocatedIds.length === 0) return [];
+
+          return allocatedIds.map((itemId, idx) => {
+            const boq = reqBoq.find((b) => String(b.id) === String(itemId));
+            const suppData = itemSuppMap[itemId] || {};
+            const qty = parseFloat(boq?.quantity || "1");
+            const price = parseFloat(suppData.unitPrice || boq?.unitPrice || "0");
+            const total = suppData.totalPrice ? parseFloat(suppData.totalPrice) : (boq?.totalPrice ? parseFloat(boq.totalPrice) : qty * price);
+
+            return {
+              id: String(itemId),
+              itemName: boq?.itemName || `صنف ${idx + 1}`,
+              description: boq?.itemDescription || "",
+              quantity: qty,
+              unit: boq?.unit || "وحدة",
+              unitPrice: price,
+              totalPrice: total,
+            };
+          });
+        };
+
+        // دالة مساعدة لجلب بيانات المورد
+        const getSupplierForMethod = (method: string, defaultName?: string, explicitSupId?: number) => {
+          let supName = defaultName || "";
+          let supId = explicitSupId;
+
+          if (!supName) {
+            const allocatedIds = Object.keys(allocations).filter((k) => allocations[k] === method);
+            for (const id of allocatedIds) {
+              if (itemSuppMap[id]?.supplierName) {
+                supName = itemSuppMap[id].supplierName;
+                supId = itemSuppMap[id].supplierId;
+                break;
+              }
+            }
+          }
+
+          if (!supName) {
+            for (const sKey of Object.keys(suppliersAlloc)) {
+              if (suppliersAlloc[sKey]?.method === method && suppliersAlloc[sKey]?.supplierName) {
+                supName = suppliersAlloc[sKey].supplierName;
+                supId = suppliersAlloc[sKey].supplierId;
+                break;
+              }
+            }
+          }
+
+          const regSup = supId 
+            ? supplierMap.get(`id_${supId}`) 
+            : (supName ? supplierMap.get(supName.trim().toLowerCase()) : null);
+
+          return {
+            name: supName || regSup?.name || (method === "purchase_order" ? "المورد المعتمد" : "الجهة المانحة"),
+            bankName: regSup?.bankName || "",
+            iban: regSup?.iban || "",
+            accountName: regSup?.bankAccountName || supName,
+            commercialRegister: regSup?.commercialRegister || "",
+            phone: regSup?.phone || "",
+          };
+        };
+
         // 1. أوامر الشراء المعتمدة
         for (const po of pos) {
           if (po.status !== "approved") continue;
 
-          const poItems = Array.isArray(po.items) ? po.items.map((it: any) => {
-            const qty = parseFloat(it.quantity || "1");
-            const price = parseFloat(it.unitPrice || "0");
-            return {
-              id: String(it.id),
-              itemName: it.itemName || "صنف",
-              description: it.description || "",
-              quantity: qty,
-              unit: it.unit || "وحدة",
-              unitPrice: price,
-              totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
-            };
-          }) : [];
-
+          const poItems = getItemsForMethod("purchase_order", po.items);
           const itemsTotal = poItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
-          const supName = po.supplierName || "";
-          const regSup = supplierMap.get(supName.trim().toLowerCase()) || (po.supplierId ? supplierMap.get(`id_${po.supplierId}`) : null);
-
+          const supInfo = getSupplierForMethod("purchase_order", po.supplierName, po.supplierId);
           const linkedDisb = disbByPo.get(po.orderNumber?.trim());
 
           results.push({
@@ -2383,12 +2476,12 @@ export const disbursementsRouter = router({
             mosqueId: mosque?.id || null,
             mosqueName: mosque?.name || "المسجد",
             mosqueCity: mosque?.city || "",
-            supplierName: supName || "المورد المعتمد",
-            supplierBank: regSup?.bankName || "",
-            supplierIban: regSup?.iban || "",
-            supplierAccountName: regSup?.bankAccountName || supName,
-            supplierCommercialRegister: regSup?.commercialRegister || "",
-            supplierPhone: regSup?.phone || "",
+            supplierName: supInfo.name,
+            supplierBank: supInfo.bankName,
+            supplierIban: supInfo.iban,
+            supplierAccountName: supInfo.accountName,
+            supplierCommercialRegister: supInfo.commercialRegister,
+            supplierPhone: supInfo.phone,
             items: poItems,
             itemsCount: poItems.length,
             itemsTotal,
@@ -2400,23 +2493,9 @@ export const disbursementsRouter = router({
         for (const csr of csrs) {
           if (csr.status !== "approved") continue;
 
-          const csrItems = Array.isArray(csr.items) ? csr.items.map((it: any) => {
-            const qty = parseFloat(it.quantity || "1");
-            const price = parseFloat(it.unitPrice || "0");
-            return {
-              id: String(it.id),
-              itemName: it.itemName || "صنف",
-              description: it.description || "",
-              quantity: qty,
-              unit: it.unit || "وحدة",
-              unitPrice: price,
-              totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
-            };
-          }) : [];
-
+          const csrItems = getItemsForMethod("csr_letter", csr.items);
           const itemsTotal = csrItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
-          const partnerName = csr.recipientName || "";
-          const regSup = supplierMap.get(partnerName.trim().toLowerCase());
+          const supInfo = getSupplierForMethod("csr_letter", csr.recipientName, csr.supplierId);
           const linkedDisb = disbByCsr.get(csr.letterNumber?.trim());
 
           results.push({
@@ -2429,12 +2508,12 @@ export const disbursementsRouter = router({
             mosqueId: mosque?.id || null,
             mosqueName: mosque?.name || "المسجد",
             mosqueCity: mosque?.city || "",
-            supplierName: partnerName || "الجهة المانحة / الشريك المجتمعي",
-            supplierBank: regSup?.bankName || "",
-            supplierIban: regSup?.iban || "",
-            supplierAccountName: regSup?.bankAccountName || partnerName,
-            supplierCommercialRegister: regSup?.commercialRegister || "",
-            supplierPhone: regSup?.phone || "",
+            supplierName: supInfo.name,
+            supplierBank: supInfo.bankName,
+            supplierIban: supInfo.iban,
+            supplierAccountName: supInfo.accountName,
+            supplierCommercialRegister: supInfo.commercialRegister,
+            supplierPhone: supInfo.phone,
             items: csrItems,
             itemsCount: csrItems.length,
             itemsTotal,

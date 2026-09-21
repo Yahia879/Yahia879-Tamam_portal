@@ -542,7 +542,7 @@ export default function CsrLettersList() {
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      onClick={() => navigate(`/disbursement-orders/new-direct?source=csr_letter&letterNumber=${encodeURIComponent(letter.letterNumber)}&requestId=${letter.requestId}`)}
+                                      onClick={() => navigate(`/disbursement-orders/new-direct?csr=${encodeURIComponent(letter.letterNumber)}`)}
                                       className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
                                     >
                                       <Coins className="w-4 h-4 text-amber-600 shrink-0" />
