@@ -209,8 +209,8 @@ export default function SedanaPurchaseOrderPrint() {
   const poData = {
     orderNumber: orderNum,
     orderDate: activePo?.orderDate || new Date().toISOString().split("T")[0],
-    requesterRole: activePo?.requesterRole || "طالب الشراء / إدارة المشاريع",
-    requesterName: activePo?.requesterName || user?.name || "طالب الشراء",
+    supplierRole: "المورد المعتمد",
+    supplierName: poSupplierName || activePo?.supplierName || "المورد المعتمد",
     approverRole: activePo?.approverRole || execSignatory?.roleTitle || "المدير التنفيذي",
     approverName: activePo?.approverName || execSignatory?.name || "م. عبدالهادي آل فائق",
     approverSignatureUrl: activePo?.approverSignatureUrl || execSignatory?.signatureUrl || "",
@@ -386,10 +386,10 @@ export default function SedanaPurchaseOrderPrint() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* طالب الشراء */}
+                  {/* المورد المعتمد */}
                   <tr className="border-b border-slate-300 h-12 sm:h-16 print:h-12">
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.requesterRole}</td>
-                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.requesterName || "طالب الشراء"}</td>
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-700">{poData.supplierRole}</td>
+                    <td className="p-2 border-l border-slate-300 font-bold text-slate-900">{poData.supplierName}</td>
                     <td className="p-2 border-l border-slate-300">
                       <div className="h-7 sm:h-8 border-b border-dashed border-gray-300 mx-auto w-24 sm:w-32"></div>
                     </td>

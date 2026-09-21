@@ -1050,8 +1050,14 @@ export const procurementRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
       }
 
-      // جلب الموردين والشركاء المسجلين في النظام لاستخدامهم كجهات مانحة
+      // جلب جميع الموردين المسجلين في النظام لمطابقة معلوماتهم
       const registeredSuppliers = await db.select().from(suppliers);
+      const supplierMapByName = new Map<string, any>();
+      const supplierMapById = new Map<number, any>();
+      registeredSuppliers.forEach((s) => {
+        if (s.name) supplierMapByName.set(s.name.trim().toLowerCase(), s);
+        supplierMapById.set(s.id, s);
+      });
 
       // جلب طلبات المساجد
       const requests = await db
@@ -1078,50 +1084,6 @@ export const procurementRouter = router({
 
       const result: any[] = [];
 
-      // قائمة افتراضية للشركاء والجهات المانحة المعروفة للمسؤولية المجتمعية
-      const defaultDonors = [
-        {
-          id: "partner-stc",
-          recipientName: "شركة الاتصالات السعودية (STC) - المسؤولية المجتمعية",
-          recipientContactPerson: "إدارة الاستدامة والمسؤولية المجتمعية",
-          phone: "0118001000",
-          email: "csr@stc.com.sa",
-          city: "الرياض",
-        },
-        {
-          id: "partner-rajhi",
-          recipientName: "مؤسسة الراجحي الإنسانية",
-          recipientContactPerson: "أمانة المنح ودعم المساجد",
-          phone: "0112111111",
-          email: "grants@alrajhifoundation.org",
-          city: "الرياض",
-        },
-        {
-          id: "partner-awidah",
-          recipientName: "أوقاف الشيخ فهد العويضة الخيرية",
-          recipientContactPerson: "لجنة عمارة وصيانة بيوت الله",
-          phone: "0114777777",
-          email: "info@awidah-awqaf.org",
-          city: "الرياض",
-        },
-        {
-          id: "partner-aramco",
-          recipientName: "أرامكو السعودية - برنامج المواطنة والمسؤولية المجتمعية",
-          recipientContactPerson: "إدارة شؤون المجتمع",
-          phone: "0138720115",
-          email: "citizenship@aramco.com",
-          city: "الظهران",
-        },
-        {
-          id: "partner-sabic",
-          recipientName: "الشركة السعودية للصناعات الأساسية (سابك) - قطاع المسؤولية المجتمعية",
-          recipientContactPerson: "إدارة المسؤولية الاجتماعية",
-          phone: "0112258000",
-          email: "csr@sabic.com",
-          city: "الرياض",
-        },
-      ];
-
       for (const row of requests) {
         const req = row.request;
         const mosque = row.mosque;
@@ -1142,6 +1104,8 @@ export const procurementRouter = router({
 
         const sedanaProc = pData.sedanaProcurement || {};
         const itemsAlloc = sedanaProc.itemsAllocation || {};
+        const itemSuppMap = sedanaProc.itemSupplierMap || {};
+        const suppliersAlloc = sedanaProc.suppliersAllocation || {};
         const activeCSR = sedanaProc.activeCsrLetter || null;
         const existingCsrs: any[] = Array.isArray(sedanaProc.csrLetters) ? sedanaProc.csrLetters : [];
 
@@ -1175,71 +1139,155 @@ export const procurementRouter = router({
 
         if (baseItems.length === 0) continue;
 
-        // إتاحة كافة بنود الطلب دون استثناء ليتمكن المستخدم من اختيار أي صنف وتحديد كميته
-        const eligibleItems = baseItems;
+        // فحص طريقة التأمين المعتمدة للمورد في صفحة procurement
+        const getSupplierMethod = (sId?: number | null, sName?: string | null): string | null => {
+          const k1 = sId ? `sup_${sId}` : "";
+          const k2 = sName ? `name_${sName.trim()}` : "";
+          const k3 = sId ? String(sId) : "";
+          const k4 = sName ? sName.trim() : "";
 
-        // تجميع الشركاء والجهات المانحة المتاحة لهذا الطلب
-        const partnersMap = new Map<string, any>();
+          return (k1 && suppliersAlloc[k1]) ||
+                 (k2 && suppliersAlloc[k2]) ||
+                 (k3 && suppliersAlloc[k3]) ||
+                 (k4 && suppliersAlloc[k4]) ||
+                 null;
+        };
 
-        // 1. إضافة الشركاء من الخطابات السابقة
-        existingCsrs.forEach((c) => {
-          if (c.recipientName) {
-            partnersMap.set(c.recipientName.trim().toLowerCase(), {
-              id: c.letterNumber || c.recipientName,
-              recipientName: c.recipientName.trim(),
-              recipientContactPerson: c.recipientContactPerson || "إدارة المسؤولية المجتمعية",
-              phone: c.recipientPhone || "",
-              email: c.recipientEmail || "",
-              city: c.recipientCity || mosque?.city || "",
-              itemsCount: (c.items && c.items.length > 0) ? c.items.length : eligibleItems.length,
-              items: (c.items && c.items.length > 0) ? c.items : eligibleItems,
+        // تجميع الموردين والشركاء المعتمدين على المسؤولية المجتمعية حصراً
+        const supplierGroups = new Map<string, {
+          supplierId?: number | null;
+          supplierName: string;
+          items: any[];
+        }>();
+
+        baseItems.forEach((it) => {
+          const mapEntry = itemSuppMap[it.id];
+          const sName = mapEntry?.supplierName?.trim().replace(/\s+/g, " ");
+          const sId = mapEntry?.supplierId ? Number(mapEntry.supplierId) : null;
+
+          if (!sName || sName === "لم يحدد بعد" || sName === "غير محدد") {
+            return;
+          }
+
+          const supMethod = getSupplierMethod(sId, sName);
+
+          // إذا تم تحديد المورد كعقد توريد أو أمر شراء، يتم استبعاده فوراً من المسؤولية المجتمعية
+          if (supMethod === "contract" || supMethod === "purchase_order") {
+            return;
+          }
+
+          // يعتبر المورد والبنود تابعة للمسؤولية المجتمعية إذا حُدد كـ csr_letter
+          const itemMethod = itemsAlloc[it.id];
+          const isCsr = supMethod === "csr_letter" || itemMethod === "csr_letter";
+
+          if (!isCsr) {
+            return;
+          }
+
+          const groupKey = sName;
+          const currentGroup = supplierGroups.get(groupKey) || {
+            supplierId: sId,
+            supplierName: groupKey,
+            items: [] as any[],
+          };
+
+          if (!currentGroup.items.some((item) => item.id === it.id)) {
+            currentGroup.items.push({
+              id: it.id,
+              itemName: it.itemName,
+              description: it.description || "",
+              quantity: it.quantity,
+              unit: it.unit,
             });
+          }
+
+          supplierGroups.set(groupKey, currentGroup);
+        });
+
+        // فحص الموردين المحددين في suppliersAlloc كـ csr_letter مباشرة إن لم تُضف بنودهم أعلاه
+        Object.keys(suppliersAlloc).forEach((k) => {
+          if (suppliersAlloc[k] === "csr_letter") {
+            let matchedSupName = "";
+            let matchedSupId: number | null = null;
+            if (k.startsWith("name_")) {
+              matchedSupName = k.replace(/^name_/, "").trim().replace(/\s+/g, " ");
+            } else if (k.startsWith("sup_")) {
+              const idNum = parseInt(k.replace(/^sup_/, ""), 10);
+              const reg = supplierMapById.get(idNum);
+              if (reg) {
+                matchedSupId = reg.id;
+                matchedSupName = reg.name.trim().replace(/\s+/g, " ");
+              }
+            } else if (!isNaN(Number(k))) {
+              const idNum = parseInt(k, 10);
+              const reg = supplierMapById.get(idNum);
+              if (reg) {
+                matchedSupId = reg.id;
+                matchedSupName = reg.name.trim().replace(/\s+/g, " ");
+              }
+            } else {
+              matchedSupName = k.trim().replace(/\s+/g, " ");
+            }
+
+            if (matchedSupName && !supplierGroups.has(matchedSupName)) {
+              const supItems = baseItems.filter(
+                (it) => itemSuppMap[it.id]?.supplierName?.trim() === matchedSupName ||
+                        (matchedSupId && itemSuppMap[it.id]?.supplierId === matchedSupId)
+              );
+              const targetItems = supItems.length > 0 ? supItems : baseItems.filter((it) => itemsAlloc[it.id] === "csr_letter");
+
+              if (targetItems.length > 0) {
+                supplierGroups.set(matchedSupName, {
+                  supplierId: matchedSupId,
+                  supplierName: matchedSupName,
+                  items: targetItems.map((it) => ({
+                    id: it.id,
+                    itemName: it.itemName,
+                    description: it.description || "",
+                    quantity: it.quantity,
+                    unit: it.unit,
+                  })),
+                });
+              }
+            }
           }
         });
 
-        if (activeCSR?.recipientName && !partnersMap.has(activeCSR.recipientName.trim().toLowerCase())) {
-          partnersMap.set(activeCSR.recipientName.trim().toLowerCase(), {
-            id: activeCSR.letterNumber || activeCSR.recipientName,
-            recipientName: activeCSR.recipientName.trim(),
-            recipientContactPerson: activeCSR.recipientContactPerson || "إدارة المسؤولية المجتمعية",
-            phone: activeCSR.recipientPhone || "",
-            email: activeCSR.recipientEmail || "",
-            city: activeCSR.recipientCity || mosque?.city || "",
-            itemsCount: (activeCSR.items && activeCSR.items.length > 0) ? activeCSR.items.length : eligibleItems.length,
-            items: (activeCSR.items && activeCSR.items.length > 0) ? activeCSR.items : eligibleItems,
-          });
+        // استبعاد أي طلب لا يحوي موردين أو شركاء معتمدين للمسؤولية المجتمعية
+        if (supplierGroups.size === 0) {
+          continue;
         }
 
-        // 2. إضافة الشركاء والجهات المانحة الافتراضية
-        defaultDonors.forEach((donor) => {
-          const key = donor.recipientName.trim().toLowerCase();
-          if (!partnersMap.has(key)) {
-            partnersMap.set(key, {
-              ...donor,
-              itemsCount: eligibleItems.length,
-              items: eligibleItems,
-            });
-          }
+        // بناء قائمة الموردين المعتمدين للمسؤولية المجتمعية حصراً
+        const approvedSuppliers: any[] = [];
+        supplierGroups.forEach((group, sName) => {
+          const reg = (group.supplierId ? supplierMapById.get(group.supplierId) : null) || supplierMapByName.get(sName.toLowerCase());
+
+          approvedSuppliers.push({
+            id: group.supplierId || sName,
+            supplierId: group.supplierId || reg?.id || null,
+            supplierName: sName,
+            recipientName: sName,
+            recipientContactPerson: reg?.contactPerson || "إدارة المسؤولية المجتمعية",
+            commercialRegister: reg?.commercialRegister || "",
+            phone: reg?.phone || "",
+            email: reg?.email || "",
+            city: reg?.city || mosque?.city || "",
+            contactPerson: reg?.contactPerson || "",
+            itemsCount: group.items.length,
+            items: group.items,
+          });
         });
 
-        // 3. إضافة الشركات المسجلة كموردين والتي يمكن أن تكون جهات مانحة أو داعمة
-        registeredSuppliers.slice(0, 10).forEach((s) => {
-          const key = (s.name || "").trim().toLowerCase();
-          if (s.name && !partnersMap.has(key)) {
-            partnersMap.set(key, {
-              id: `supplier-${s.id}`,
-              recipientName: s.name,
-              recipientContactPerson: s.contactPerson || "إدارة الشراكات المجتمعية",
-              phone: s.phone || "",
-              email: s.email || "",
-              city: s.city || mosque?.city || "",
-              itemsCount: eligibleItems.length,
-              items: eligibleItems,
-            });
-          }
+        // الأصناف المؤهلة للمسؤولية المجتمعية في هذا الطلب
+        const allCsrItems: any[] = [];
+        approvedSuppliers.forEach((s) => {
+          s.items.forEach((it: any) => {
+            if (!allCsrItems.some((x) => x.id === it.id)) {
+              allCsrItems.push(it);
+            }
+          });
         });
-
-        const partnersList = Array.from(partnersMap.values());
 
         result.push({
           id: req.id,
@@ -1250,10 +1298,11 @@ export const procurementRouter = router({
           mosqueName: mosque?.name || "المسجد",
           mosqueCity: mosque?.city || "",
           mosqueDistrict: mosque?.district || "",
-          partners: partnersList,
+          suppliers: approvedSuppliers,
+          partners: approvedSuppliers,
           activeCSR,
           csrLetters: existingCsrs,
-          eligibleItems,
+          eligibleItems: allCsrItems,
         });
       }
 

@@ -30,6 +30,7 @@ import {
   Loader2,
   AlertCircle,
   Plus,
+  Store,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -58,7 +59,29 @@ export default function CreateCsrLetterPage() {
   // الحالة للطلب المختار
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(initialRequestId);
 
-  // اسم الجهة المانحة (فارغة افتراضياً)
+  // استخراج الطلب المحدد
+  const currentRequest = useMemo(() => {
+    return sedanaRequests.find((r: any) => r.id === selectedRequestId) || null;
+  }, [sedanaRequests, selectedRequestId]);
+
+  // الموردين المعتمدين للمسؤولية المجتمعية لهذا الطلب
+  const availableSuppliers = useMemo(() => {
+    return currentRequest?.suppliers || currentRequest?.partners || [];
+  }, [currentRequest]);
+
+  // المورد / الشريك المجتمعي المختار
+  const [selectedSupplierKey, setSelectedSupplierKey] = useState<string>("");
+
+  const currentSupplier = useMemo(() => {
+    if (!availableSuppliers.length) return null;
+    return (
+      availableSuppliers.find(
+        (s: any) => String(s.id) === selectedSupplierKey || s.supplierName === selectedSupplierKey
+      ) || availableSuppliers[0]
+    );
+  }, [availableSuppliers, selectedSupplierKey]);
+
+  // اسم الجهة المانحة / المورد
   const [recipientName, setRecipientName] = useState("");
 
   // تفاصيل الخطاب الرسمي
@@ -75,11 +98,6 @@ export default function CreateCsrLetterPage() {
   const [itemsQuantities, setItemsQuantities] = useState<Record<string, number>>({});
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
-  // استخراج الطلب المحدد
-  const currentRequest = useMemo(() => {
-    return sedanaRequests.find((r: any) => r.id === selectedRequestId) || null;
-  }, [sedanaRequests, selectedRequestId]);
-
   // تهيئة المفوض بالتوقيع الافتراضي
   useEffect(() => {
     if (!signatoryName) {
@@ -94,26 +112,13 @@ export default function CreateCsrLetterPage() {
     }
   }, [signatoriesData, user, signatoryName]);
 
-  // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
-  useEffect(() => {
-    if (!selectedRequestId && sedanaRequests.length > 0) {
-      if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
-        handleSelectRequest(initialRequestId);
-      } else {
-        handleSelectRequest(sedanaRequests[0].id);
-      }
-    }
-  }, [sedanaRequests, initialRequestId]);
+  // التعامل مع اختيار المورد المعتمد
+  const handleSelectSupplier = (supplier: any, parentReq?: any) => {
+    const sKey = String(supplier.id || supplier.supplierName);
+    setSelectedSupplierKey(sKey);
+    setRecipientName(supplier.supplierName || supplier.recipientName || "");
 
-  // التعامل مع اختيار الطلب
-  const handleSelectRequest = (reqId: number) => {
-    setSelectedRequestId(reqId);
-    const req = sedanaRequests.find((r: any) => r.id === reqId);
-    if (!req) return;
-
-    setProjectName(`مشروع جامع ${req.mosqueName || req.descriptiveName || `طلب #${req.id}`}`);
-    setRecipientName(""); // فارغة دائماً حسب طلب المستخدم
-
+    const req = parentReq || currentRequest;
     const year = new Date().getFullYear();
     const existingCSRs: any[] = Array.isArray(req?.csrLetters) ? req.csrLetters : [];
 
@@ -143,11 +148,11 @@ export default function CreateCsrLetterPage() {
 
     setLetterNumber(csrNum);
 
-    // تهيئة البنود والكميات المتاحة
+    // تهيئة البنود والكميات الخاصة بهذا المورد حصراً
     const initialQtys: Record<string, number> = {};
     const itemIds: string[] = [];
 
-    const items = req.eligibleItems || [];
+    const items = supplier.items || req?.eligibleItems || [];
     items.forEach((it: any) => {
       itemIds.push(it.id);
       initialQtys[it.id] = Number(it.quantity || 1);
@@ -156,6 +161,48 @@ export default function CreateCsrLetterPage() {
     setItemsQuantities(initialQtys);
     setSelectedItemIds(itemIds);
   };
+
+  // التعامل مع اختيار الطلب
+  const handleSelectRequest = (reqId: number) => {
+    setSelectedRequestId(reqId);
+    const req = sedanaRequests.find((r: any) => r.id === reqId);
+    if (!req) return;
+
+    setProjectName(`مشروع جامع ${req.mosqueName || req.descriptiveName || `طلب #${req.id}`}`);
+
+    const suppList = req.suppliers || req.partners || [];
+    if (suppList.length > 0) {
+      handleSelectSupplier(suppList[0], req);
+    } else {
+      setRecipientName("");
+      setLetterNumber(`CSR-${req.id}-${new Date().getFullYear()}`);
+      setSelectedItemIds([]);
+      setItemsQuantities({});
+    }
+  };
+
+  // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
+  useEffect(() => {
+    if (!selectedRequestId && sedanaRequests.length > 0) {
+      if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
+        handleSelectRequest(initialRequestId);
+      } else {
+        handleSelectRequest(sedanaRequests[0].id);
+      }
+    }
+  }, [sedanaRequests, initialRequestId]);
+
+  // تحديث المورد التلقائي عند تبديل الطلب إذا لم يكن محدداً
+  useEffect(() => {
+    if (availableSuppliers.length > 0) {
+      const exists = availableSuppliers.some(
+        (s: any) => String(s.id) === selectedSupplierKey || s.supplierName === selectedSupplierKey
+      );
+      if (!exists) {
+        handleSelectSupplier(availableSuppliers[0], currentRequest);
+      }
+    }
+  }, [availableSuppliers, currentRequest, selectedSupplierKey]);
 
   // Mutation: إنشاء خطاب المسؤولية المجتمعية
   const utils = trpc.useUtils();
@@ -186,8 +233,8 @@ export default function CreateCsrLetterPage() {
       return;
     }
 
-    const eligibleItems = currentRequest?.eligibleItems || [];
-    const itemsToSubmit = eligibleItems
+    const availableItems = currentSupplier?.items || currentRequest?.eligibleItems || [];
+    const itemsToSubmit = availableItems
       .filter((it: any) => selectedItemIds.includes(it.id))
       .map((it: any) => ({
         id: it.id,
@@ -205,6 +252,10 @@ export default function CreateCsrLetterPage() {
     createCsrMutation.mutate({
       requestId: selectedRequestId,
       recipientName: recipientName.trim(),
+      recipientContactPerson: currentSupplier?.contactPerson || currentSupplier?.recipientContactPerson || "",
+      recipientPhone: currentSupplier?.phone || "",
+      recipientEmail: currentSupplier?.email || "",
+      recipientCity: currentSupplier?.city || currentRequest.mosqueCity || "",
       letterNumber: letterNumber || `CSR-${selectedRequestId}-${new Date().getFullYear()}`,
       letterDate,
       salutation,
@@ -382,7 +433,7 @@ export default function CreateCsrLetterPage() {
                         <SelectContent dir="rtl" className="max-h-[300px]">
                           {sedanaRequests.map((req: any) => (
                             <SelectItem key={req.id} value={String(req.id)} className="text-right text-xs py-2">
-                              #{req.requestNumber} - مسجد {req.mosqueName} ({req.mosqueCity}) - {req.eligibleItems?.length || 0} أصناف
+                              #{req.requestNumber} - مسجد {req.mosqueName} ({req.mosqueCity}) - {req.suppliers?.length || 0} موردين معتمدين
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -409,8 +460,8 @@ export default function CreateCsrLetterPage() {
                             <span className="font-bold text-foreground">{currentRequest.mosqueCity}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground text-[11px] block">الأصناف المتاحة</span>
-                            <span className="font-bold text-foreground">{currentRequest.eligibleItems?.length || 0} أصناف</span>
+                            <span className="text-muted-foreground text-[11px] block">الموردين المتاحين</span>
+                            <span className="font-bold text-foreground">{currentRequest.suppliers?.length || 0} موردين معتمدين</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground text-[11px] block">خطابات CSR الحالية</span>
@@ -437,7 +488,7 @@ export default function CreateCsrLetterPage() {
                       disabled={!selectedRequestId}
                       className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 h-11 rounded-xl shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      <span>التالي: تحديد الجهة والكميات</span>
+                      <span>التالي: المورد المعتمد والكميات</span>
                       <ArrowLeft className="h-4 w-4" />
                     </Button>
                   </CardFooter>
@@ -445,33 +496,111 @@ export default function CreateCsrLetterPage() {
               </div>
             )}
 
-            {/* ======================= الخطوة 2: تحديد الشريك المجتمعي وتحديد الكميات ======================= */}
+            {/* ======================= الخطوة 2: اختيار المورد / الشريك المجتمعي وتحديد الكميات ======================= */}
             {step === 2 && (
               <div className="space-y-6">
                 <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
                   <CardHeader className="bg-muted/30 border-b border-border/40 py-4 px-6 text-right">
                     <CardTitle className="flex items-center gap-2 text-foreground text-base font-bold">
                       <HeartHandshake className="h-4.5 w-4.5 text-sky-600" />
-                      الخطوة 2: تحديد الشريك المجتمعي وتحديد الكميات
+                      الخطوة 2: اختيار المورد / الشريك المجتمعي وتحديد الكميات
                     </CardTitle>
                     <CardDescription className="text-right text-xs text-muted-foreground">
-                      أدخل اسم الجهة أو المؤسسة المانحة وحدد الأصناف والكميات المطلوب تضمينها في الخطاب
+                      {availableSuppliers.length > 1
+                        ? `يوجد ${availableSuppliers.length} موردين معتمدين كمسؤولية مجتمعية لهذا الطلب. اختر المورد لإصدار الخطاب له.`
+                        : "تم تحديد المورد المعتمد للمسؤولية المجتمعية لهذا الطلب وتوثيق بياناته."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
-                    {/* حقل اسم الجهة */}
-                    <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                        اسم الجهة / الشركة / المؤسسة المانحة *
-                      </Label>
-                      <Input
-                        value={recipientName}
-                        onChange={(e) => setRecipientName(e.target.value)}
-                        placeholder="أدخل اسم الجهة أو الشركة أو المؤسسة المانحة..."
-                        className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background font-bold text-xs sm:text-sm"
-                        autoFocus
-                      />
+                    {/* حقل اختيار المورد المعتمد كمسؤولية مجتمعية */}
+                    <div className="space-y-2 text-right pb-4 border-b border-border/40">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <HeartHandshake className="w-4 h-4 text-sky-600" />
+                          المورد المعتمد على المسؤولية المجتمعية *
+                        </Label>
+                        {availableSuppliers.length > 1 && (
+                          <Badge variant="secondary" className="text-xs font-bold">
+                            تعدد الموردين ({availableSuppliers.length})
+                          </Badge>
+                        )}
+                      </div>
+
+                      <Select
+                        value={selectedSupplierKey}
+                        onValueChange={(val) => {
+                          const supp = availableSuppliers.find(
+                            (s: any) => String(s.id) === val || s.supplierName === val
+                          );
+                          if (supp) handleSelectSupplier(supp);
+                        }}
+                      >
+                        <SelectTrigger
+                          className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background w-full text-xs sm:text-sm"
+                          dir="rtl"
+                        >
+                          <SelectValue placeholder="اختر المورد أو الشريك المجتمعي المعتمد..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {availableSuppliers.map((supp: any) => (
+                            <SelectItem
+                              key={supp.id || supp.supplierName}
+                              value={String(supp.id || supp.supplierName)}
+                              className="text-right text-xs py-2"
+                            >
+                              {supp.supplierName} (السجل: {supp.commercialRegister || "مسجل"} • {supp.itemsCount || supp.items?.length || 0} أصناف)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {/* بطاقة تفاصيل المورد / الشريك المجتمعي المعتمد */}
+                    {currentSupplier && (
+                      <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/40 space-y-4 text-right animate-in fade-in duration-200">
+                        <div className="flex items-center justify-between border-b border-border/40 pb-3">
+                          <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-sky-600" />
+                            بيانات الشريك المجتمعي / المورد المعتمد:
+                          </span>
+                          <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-300 text-xs">
+                            مسؤولية مجتمعية معتمدة
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">اسم الشركة / المؤسسة:</span>
+                            <span className="font-bold text-foreground text-sm">{currentSupplier.supplierName}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">رقم السجل التجاري:</span>
+                            <span className="font-mono font-bold text-foreground">{currentSupplier.commercialRegister || "مسجل بالنظام"}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">رقم التواصل / الجوال:</span>
+                            <span className="font-mono font-bold text-foreground">{currentSupplier.phone || "-"}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground text-[11px] block">المدينة / المقر:</span>
+                            <span className="font-bold text-foreground">{currentSupplier.city || currentRequest?.mosqueCity || "-"}</span>
+                          </div>
+                        </div>
+
+                        {/* إمكانية تعديل صيغة اسم الجهة في الخطاب إن لزم */}
+                        <div className="pt-2 border-t border-border/40 space-y-1.5">
+                          <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                            صيغة اسم الجهة الموجه إليها الخطاب *
+                          </Label>
+                          <Input
+                            value={recipientName}
+                            onChange={(e) => setRecipientName(e.target.value)}
+                            placeholder="اسم الجهة أو الشركة كما سيظهر في الخطاب الرسمي..."
+                            className="text-right border-border focus:ring-sky-600 rounded-xl h-10 bg-background font-bold text-xs"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* جدول أصناف الطلب وتحديد الكميات */}
                     <div className="space-y-3 pt-2">
@@ -485,7 +614,7 @@ export default function CreateCsrLetterPage() {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedItemIds((currentRequest?.eligibleItems || []).map((it: any) => it.id))}
+                            onClick={() => setSelectedItemIds((currentSupplier?.items || currentRequest?.eligibleItems || []).map((it: any) => it.id))}
                             className="h-8 text-xs text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-950/40 px-2.5 rounded-lg cursor-pointer font-bold"
                           >
                             تحديد الكل
@@ -514,7 +643,7 @@ export default function CreateCsrLetterPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/40">
-                            {(currentRequest?.eligibleItems || []).map((it: any) => {
+                            {(currentSupplier?.items || currentRequest?.eligibleItems || []).map((it: any) => {
                               const isChecked = selectedItemIds.includes(it.id);
                               const currentQty = itemsQuantities[it.id] ?? it.quantity ?? 1;
 
@@ -589,7 +718,7 @@ export default function CreateCsrLetterPage() {
                     <Button
                       onClick={() => {
                         if (!recipientName.trim()) {
-                          toast.error("يرجى إدخال اسم الجهة أو المؤسسة المانحة");
+                          toast.error("يرجى اختيار المورد أو إدخال اسم الجهة أو المؤسسة المانحة");
                           return;
                         }
                         if (selectedItemIds.length === 0) {
@@ -719,7 +848,7 @@ export default function CreateCsrLetterPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/40">
-                            {(currentRequest?.eligibleItems || [])
+                            {(currentSupplier?.items || currentRequest?.eligibleItems || [])
                               .filter((it: any) => selectedItemIds.includes(it.id))
                               .map((it: any, idx: number) => (
                                 <tr key={it.id} className="hover:bg-muted/10 transition-colors">
