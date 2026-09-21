@@ -576,7 +576,10 @@ export default function ContractForm() {
       const supportedAmount = c.supportedAmount ? parseFloat(c.supportedAmount) : 0;
 
       const fd = (c as any).financialDetail || projectFinancials?.financialDetail;
-      const cAmt = c.contractAmount ? parseFloat(c.contractAmount) : 0;
+      const approvedQ = allApprovedQuotations.find((q: any) => c.supplierId ? q.supplierId === c.supplierId : true)
+        || (allApprovedQuotations.length === 1 ? allApprovedQuotations[0] : null);
+      const approvedAmt = approvedQ?.totalAmount ? parseFloat(String(approvedQ.totalAmount)) : 0;
+      const cAmt = approvedAmt > 0 ? approvedAmt : (c.contractAmount ? parseFloat(c.contractAmount) : 0);
       let initMgmtPct = c.managementPercentage ? parseFloat(c.managementPercentage) : 0;
       let initMgmtAmt = (c as any).managementAmount !== undefined ? (c as any).managementAmount : ((cAmt > 0 && initMgmtPct > 0) ? (cAmt * initMgmtPct) / 100 : 0);
       let initFeeType: "percentage" | "fixed" = (fd?.adminFeeType as "percentage" | "fixed") || "percentage";
@@ -918,6 +921,27 @@ export default function ContractForm() {
     }
   }, [allApprovedQuotations, isEditMode, createdDraftId, supplierIdFromQuery, contractData.supplierId, requestContractsList]);
 
+  // تثبيت ومزامنة قيمة العقد دائماً مع عرض السعر المعتمد للمورد إن وجد
+  useEffect(() => {
+    if (approvedSupplierQuotation?.totalAmount) {
+      const qAmt = parseFloat(String(approvedSupplierQuotation.totalAmount));
+      if (qAmt > 0 && Math.abs(contractData.totalValue - qAmt) > 0.01) {
+        setContractData(prev => {
+          const mgmtAmt = prev.managementFeeType === "fixed"
+            ? prev.managementAmount
+            : (qAmt * prev.managementPercentage) / 100;
+          return {
+            ...prev,
+            totalValue: qAmt,
+            baseValue: qAmt,
+            managementAmount: mgmtAmt,
+            supportedAmount: prev.supportType === "full" ? qAmt : prev.supportedAmount,
+          };
+        });
+      }
+    }
+  }, [approvedSupplierQuotation?.totalAmount, contractData.totalValue]);
+
   // تحديث المشروع والحقول الأخرى من بيانات الطلب
   useEffect(() => {
     if (requestDetails && !isEditMode) {
@@ -1221,7 +1245,7 @@ export default function ContractForm() {
 
         const totalPayments = paymentSchedule.reduce((sum, p) => sum + p.amount, 0);
         
-        if (totalPayments !== contractData.totalValue) {
+        if (Math.abs(totalPayments - contractData.totalValue) > 0.05) {
           toast.error(`يجب أن يكون إجمالي مبالغ الدفعات مساوياً لقيمة العقد تماماً (${contractData.totalValue.toLocaleString()} ريال). الإجمالي الحالي: ${totalPayments.toLocaleString()} ريال`);
           return false;
         }
@@ -2097,12 +2121,22 @@ export default function ContractForm() {
                 {/* التفاصيل المالية */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label className="flex items-center gap-1">القيمة المتفقة مع المورد (<SaudiRiyal className="w-3.5 h-3.5" />) *</Label>
+                    <Label className="flex items-center gap-1">
+                      القيمة المتفقة مع المورد (<SaudiRiyal className="w-3.5 h-3.5" />) *
+                      {hasApprovedSupplier && (
+                        <span className="text-[11px] font-normal text-muted-foreground mr-1">
+                          (معتمدة من عرض السعر)
+                        </span>
+                      )}
+                    </Label>
                     <Input
                       type="number"
                       min={0}
                       value={contractData.totalValue || ""}
+                      disabled={hasApprovedSupplier}
+                      readOnly={hasApprovedSupplier}
                       onChange={(e) => {
+                        if (hasApprovedSupplier) return;
                         const val = parseFloat(e.target.value) || 0;
                         setContractData(prev => {
                           const mgmtAmt = prev.managementFeeType === "fixed"
@@ -2120,7 +2154,10 @@ export default function ContractForm() {
                         });
                       }}
                       placeholder="أدخل القيمة المتفق عليها"
-                      className="font-bold text-green-700 font-sans"
+                      className={cn(
+                        "font-bold text-green-700 font-sans",
+                        hasApprovedSupplier && "bg-muted cursor-not-allowed opacity-90"
+                      )}
                     />
                   </div>
                   

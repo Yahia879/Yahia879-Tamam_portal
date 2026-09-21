@@ -1927,12 +1927,8 @@ export const projectsRouter = router({
               };
             });
 
-            const newTotalAmount = allCps.reduce((sum, p) => sum + parseFloat(String(p.amount || "0")), 0);
-
             await db.update(contractsEnhanced).set({
               paymentScheduleJson: JSON.stringify(syncedSchedule),
-              contractAmount: String(newTotalAmount),
-              contractAmountText: numberToArabicText(newTotalAmount),
             }).where(eq(contractsEnhanced.id, cp.contractId));
 
             const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));

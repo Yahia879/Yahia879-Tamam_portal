@@ -258,6 +258,27 @@ export const contractsRouter = router({
         .where(eq(contractsEnhanced.requestId, input.requestId))
         .orderBy(desc(contractsEnhanced.createdAt));
       
+      if (contractsList.length > 0) {
+        const approvedQs = await db
+          .select()
+          .from(quotations)
+          .where(and(
+            eq(quotations.requestId, input.requestId),
+            inArray(quotations.status, ["accepted", "approved"])
+          ));
+        const qMap = new Map(approvedQs.map(q => [q.supplierId, q]));
+        for (const c of contractsList) {
+          if (c.supplierId && qMap.has(c.supplierId)) {
+            const q = qMap.get(c.supplierId)!;
+            const qAmt = parseFloat(String(q.totalAmount || "0"));
+            if (qAmt > 0) {
+              c.contractAmount = String(qAmt);
+              c.contractAmountText = numberToArabicText(qAmt);
+            }
+          }
+        }
+      }
+
       return contractsList;
     }),
 
@@ -286,6 +307,26 @@ export const contractsRouter = router({
       }
       
       const { contract, signatory, projectName } = contractData;
+
+      // تثبيت قيمة العقد دائماً على قيمة عرض السعر المعتمد للمورد
+      if (contract.requestId && contract.supplierId) {
+        const [appQ] = await db
+          .select()
+          .from(quotations)
+          .where(and(
+            eq(quotations.requestId, contract.requestId),
+            eq(quotations.supplierId, contract.supplierId),
+            inArray(quotations.status, ["accepted", "approved"])
+          ))
+          .limit(1);
+        if (appQ?.totalAmount) {
+          const qVal = parseFloat(String(appQ.totalAmount));
+          if (qVal > 0) {
+            contract.contractAmount = String(qVal);
+            contract.contractAmountText = numberToArabicText(qVal);
+          }
+        }
+      }
 
       // البحث عن المستخدم المرتبط بالمفوض أو المدير التنفيذي للتحقق من حالة إظهار التوقيع في المستندات
       let targetUser: { id: number; signatureUrl: string | null; showSignatureInDocuments: boolean | null; name: string; signatureName: string | null; signatureDepartment: string | null } | null = null;
@@ -654,8 +695,28 @@ export const contractsRouter = router({
       // توليد رقم العقد
       const { number: contractNumber, year, sequence } = await generateContractNumber(db);
       
+      // التحقق من وجود عرض سعر معتمد للمورد وتثبيت قيمة العقد عليه
+      let effectiveContractAmount = input.contractAmount;
+      if (input.requestId && input.supplierId) {
+        const [appQ] = await db
+          .select()
+          .from(quotations)
+          .where(and(
+            eq(quotations.requestId, input.requestId),
+            eq(quotations.supplierId, input.supplierId),
+            inArray(quotations.status, ["accepted", "approved"])
+          ))
+          .limit(1);
+        if (appQ?.totalAmount) {
+          const qVal = parseFloat(String(appQ.totalAmount));
+          if (qVal > 0) {
+            effectiveContractAmount = qVal;
+          }
+        }
+      }
+
       // تحويل المبلغ إلى نص عربي
-      const contractAmountText = numberToArabicText(input.contractAmount);
+      const contractAmountText = numberToArabicText(effectiveContractAmount);
       
       // إنشاء العقد
       const signatoryIdValue = (input.signatoryId && typeof input.signatoryId === 'number' && input.signatoryId > 0) ? input.signatoryId : undefined;
@@ -689,14 +750,14 @@ export const contractsRouter = router({
         mosqueName: input.mosqueName ?? null,
         mosqueNeighborhood: input.mosqueNeighborhood ?? null,
         mosqueCity: input.mosqueCity ?? null,
-        contractAmount: String(input.contractAmount),
+        contractAmount: String(effectiveContractAmount),
         contractAmountText,
         managementPercentage: (() => {
           if (input.managementFeeType === "fixed" && input.managementAmount !== undefined) {
-            return input.contractAmount > 0 ? ((input.managementAmount / input.contractAmount) * 100).toFixed(2) : "0.00";
+            return effectiveContractAmount > 0 ? ((input.managementAmount / effectiveContractAmount) * 100).toFixed(2) : "0.00";
           }
           if (input.managementAmount !== undefined && (input.managementPercentage === undefined || input.managementPercentage === 0)) {
-            return input.contractAmount > 0 ? ((input.managementAmount / input.contractAmount) * 100).toFixed(2) : "0.00";
+            return effectiveContractAmount > 0 ? ((input.managementAmount / effectiveContractAmount) * 100).toFixed(2) : "0.00";
           }
           return (input.managementPercentage ?? 0).toFixed(2);
         })(),
@@ -963,7 +1024,32 @@ export const contractsRouter = router({
           updates.status = input.status;
         }
       }
-      if (updateData.contractAmount) {
+      // تثبيت قيمة العقد دائماً على قيمة عرض السعر المعتمد للمورد
+      const reqId = (updates.requestId as number | undefined) || contract.requestId;
+      const suppId = (updates.supplierId as number | undefined) || contract.supplierId;
+      let approvedQuotationAmt: number | null = null;
+      if (reqId && suppId) {
+        const [appQ] = await db
+          .select()
+          .from(quotations)
+          .where(and(
+            eq(quotations.requestId, reqId),
+            eq(quotations.supplierId, suppId),
+            inArray(quotations.status, ["accepted", "approved"])
+          ))
+          .limit(1);
+        if (appQ?.totalAmount) {
+          const qVal = parseFloat(String(appQ.totalAmount));
+          if (qVal > 0) {
+            approvedQuotationAmt = qVal;
+          }
+        }
+      }
+
+      if (approvedQuotationAmt !== null) {
+        updates.contractAmount = String(approvedQuotationAmt);
+        updates.contractAmountText = numberToArabicText(approvedQuotationAmt);
+      } else if (updateData.contractAmount) {
         updates.contractAmount = String(updateData.contractAmount);
         updates.contractAmountText = numberToArabicText(updateData.contractAmount);
       }
