@@ -516,7 +516,7 @@ export const sedanaExecutionRouter = router({
     }),
 
   // ==========================================
-  // 3. إصدار أمر إخراج مجدول كمسوغ صرف محاسبي
+  // 3. إصدار أمر إخراج مجدول كمسوغ صرف محاسبي مع تحديد طريقة الإخراج
   // ==========================================
   createOutboundOrder: protectedProcedure
     .input(z.object({
@@ -524,6 +524,11 @@ export const sedanaExecutionRouter = router({
       orderNumber: z.string().optional(),
       scheduledDate: z.string(),
       periodLabel: z.string().default("دفعة دورية مجدولة"),
+      outboundMethod: z.enum(["direct_imam", "courier_delivery", "warehouse_pickup", "scheduled_batch"]).default("direct_imam").optional(),
+      recipientName: z.string().optional(),
+      recipientRole: z.string().default("إمام المسجد").optional(),
+      recipientPhone: z.string().optional(),
+      deliveryLocation: z.string().optional(),
       notes: z.string().optional(),
       items: z.array(z.object({
         id: z.string(),
@@ -555,26 +560,86 @@ export const sedanaExecutionRouter = router({
       pData = pData && typeof pData === "object" ? pData : {};
       pData.sedanaExecution = pData.sedanaExecution || {};
       pData.sedanaExecution.outboundOrders = pData.sedanaExecution.outboundOrders || [];
+      pData.sedanaExecution.deliveryOrders = pData.sedanaExecution.deliveryOrders || [];
+
+      // التحقق من الرصيد المتوفر في المستودع الافتراضي لكل صنف
+      const inwardMap: Record<string, number> = {};
+      const outboundMap: Record<string, number> = {};
+
+      (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
+        (inOrder.items || []).forEach((it: any) => {
+          inwardMap[it.id] = (inwardMap[it.id] || 0) + Number(it.quantity || 0);
+        });
+      });
+
+      (pData.sedanaExecution.outboundOrders || []).forEach((outOrder: any) => {
+        if (outOrder.status !== "cancelled") {
+          (outOrder.items || []).forEach((it: any) => {
+            outboundMap[it.id] = (outboundMap[it.id] || 0) + Number(it.quantity || 0);
+          });
+        }
+      });
+
+      for (const item of input.items) {
+        const available = Math.max(0, (inwardMap[item.id] || 0) - (outboundMap[item.id] || 0));
+        if (item.quantity > available + 0.0001) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `الكمية المدخلة للصنف (${item.itemName}) وقدرها ${item.quantity} تتجاوز الرصيد المتوفر حالياً في المستودع (${available} ${item.unit})`,
+          });
+        }
+      }
 
       const count = pData.sedanaExecution.outboundOrders.length + 1;
       const orderNumber = input.orderNumber || `OUT-${req.id}-${String(count).padStart(2, "0")}`;
       const disbursementVoucherCode = `DV-SED-${req.id}-${String(count).padStart(2, "0")}`;
 
+      const outboundId = `OUT-${req.id}-${Date.now()}`;
+      const deliveryId = `DEL-${req.id}-${Date.now()}`;
+
       const newOutbound = {
-        id: `OUT-${req.id}-${Date.now()}`,
+        id: outboundId,
         orderNumber,
         scheduledDate: input.scheduledDate,
         periodLabel: input.periodLabel,
+        outboundMethod: input.outboundMethod || "direct_imam",
+        recipientName: input.recipientName || "إمام المسجد",
+        recipientRole: input.recipientRole || "إمام المسجد",
+        recipientPhone: input.recipientPhone || "",
+        deliveryLocation: input.deliveryLocation || "",
         disbursementVoucherCode,
-        status: "scheduled" as const,
+        status: "pending_receipt" as const, // بانتظار تأكيد واستلام الإمام
         notes: input.notes || "",
         items: input.items,
+        linkedDeliveryId: deliveryId,
+        confirmation: null,
+        createdBy: ctx.user.id,
+        createdByName: ctx.user.name,
+        createdAt: new Date().toISOString(),
+      };
+
+      // إنشاء سجل أمر تسليم موازٍ تلقائياً لربطه بمسوغ الصرف والتوقيع الرقمي
+      const newDelivery = {
+        id: deliveryId,
+        deliveryNumber: `DEL-${req.id}-${String(count).padStart(2, "0")}`,
+        outboundOrderId: outboundId,
+        disbursementVoucherCode,
+        outboundMethod: input.outboundMethod || "direct_imam",
+        recipientName: input.recipientName || "إمام المسجد",
+        recipientRole: input.recipientRole || "إمام المسجد",
+        recipientPhone: input.recipientPhone || "",
+        scheduledDate: input.scheduledDate,
+        status: "pending_delivery" as const,
+        items: input.items,
+        notes: input.notes || "",
+        confirmation: null,
         createdBy: ctx.user.id,
         createdByName: ctx.user.name,
         createdAt: new Date().toISOString(),
       };
 
       pData.sedanaExecution.outboundOrders.push(newOutbound);
+      pData.sedanaExecution.deliveryOrders.push(newDelivery);
 
       await db
         .update(mosqueRequests)
@@ -593,7 +658,7 @@ export const sedanaExecutionRouter = router({
           fromStatus: req.status,
           toStatus: req.status,
           action: "sedana_outbound_order_created",
-          notes: `تم إنشاء أمر إخراج مجدول رقم ${orderNumber} ومسوغ صرف ${disbursementVoucherCode}`,
+          notes: `تم إنشاء أمر إخراج مجدول رقم ${orderNumber} (طريقة الإخراج: ${input.outboundMethod || "تسليم مباشر"}) ومسوغ صرف ${disbursementVoucherCode}`,
         });
       } catch (e) {
         console.error("Log error:", e);
@@ -602,6 +667,7 @@ export const sedanaExecutionRouter = router({
       return {
         success: true,
         order: newOutbound,
+        delivery: newDelivery,
       };
     }),
 
@@ -814,6 +880,142 @@ export const sedanaExecutionRouter = router({
         success: true,
         message: "تم تأكيد الاستلام وتوثيق العملية إلكترونياً بنجاح",
         delivery: deliveries[targetIndex],
+        allConfirmed,
+        currentStage: newStage,
+      };
+    }),
+
+  // ==========================================
+  // 5.1 إثبات وتأكيد استلام أمر الإخراج من قبل الإمام
+  // ==========================================
+  confirmOutboundReceipt: protectedProcedure
+    .input(z.object({
+      requestId: z.number(),
+      outboundOrderId: z.string(),
+      deliveredDate: z.string().optional(),
+      recipientName: z.string().optional(),
+      signatureUrl: z.string().optional(),
+      satisfactionRating: z.number().min(1).max(5).default(5),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+
+      const [req] = await db
+        .select()
+        .from(mosqueRequests)
+        .where(eq(mosqueRequests.id, input.requestId))
+        .limit(1);
+
+      if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+
+      let pData: any = req.programData;
+      while (typeof pData === "string") {
+        try {
+          pData = JSON.parse(pData);
+        } catch {
+          break;
+        }
+      }
+      pData = pData && typeof pData === "object" ? pData : {};
+      pData.sedanaExecution = pData.sedanaExecution || {};
+      const outbounds = pData.sedanaExecution.outboundOrders || [];
+      const deliveries = pData.sedanaExecution.deliveryOrders || [];
+
+      const targetOutIndex = outbounds.findIndex((o: any) => o.id === input.outboundOrderId || o.orderNumber === input.outboundOrderId);
+      if (targetOutIndex === -1) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "أمر الإخراج غير موجود" });
+      }
+
+      const confirmedAt = new Date().toISOString();
+      const deliveredDate = input.deliveredDate || confirmedAt.split("T")[0];
+      const recipientName = input.recipientName || outbounds[targetOutIndex].recipientName || ctx.user.name || "إمام المسجد";
+
+      const confirmationData = {
+        confirmedAt,
+        confirmedBy: ctx.user.id,
+        confirmedByName: recipientName,
+        signatureUrl: input.signatureUrl || `digital_sig_${Date.now()}`,
+        satisfactionRating: input.satisfactionRating,
+        notes: input.notes || "",
+      };
+
+      outbounds[targetOutIndex].status = "delivered";
+      outbounds[targetOutIndex].deliveredDate = deliveredDate;
+      outbounds[targetOutIndex].confirmation = confirmationData;
+
+      // تحديث أو إنشاء سجل التسليم المرتبط لضمان تكامل الإحصائيات والطباعة
+      let targetDelIndex = deliveries.findIndex((d: any) => d.outboundOrderId === outbounds[targetOutIndex].id || d.id === outbounds[targetOutIndex].linkedDeliveryId);
+      if (targetDelIndex !== -1) {
+        deliveries[targetDelIndex].status = "confirmed";
+        deliveries[targetDelIndex].deliveredDate = deliveredDate;
+        deliveries[targetDelIndex].confirmation = confirmationData;
+        if (input.recipientName) deliveries[targetDelIndex].recipientName = input.recipientName;
+      } else {
+        deliveries.push({
+          id: `DEL-${req.id}-${Date.now()}`,
+          deliveryNumber: `DEL-${req.id}-${String(deliveries.length + 1).padStart(2, "0")}`,
+          outboundOrderId: outbounds[targetOutIndex].id,
+          disbursementVoucherCode: outbounds[targetOutIndex].disbursementVoucherCode || `DV-SED-${req.id}-01`,
+          recipientName,
+          recipientRole: outbounds[targetOutIndex].recipientRole || "إمام المسجد",
+          recipientPhone: outbounds[targetOutIndex].recipientPhone || "",
+          scheduledDate: deliveredDate,
+          deliveredDate,
+          status: "confirmed",
+          items: outbounds[targetOutIndex].items || [],
+          notes: input.notes || "",
+          confirmation: confirmationData,
+          createdBy: ctx.user.id,
+          createdByName: ctx.user.name,
+          createdAt: confirmedAt,
+        });
+      }
+
+      // هل تم تأكيد جميع أوامر التسليم بنجاح؟
+      const allConfirmed = deliveries.length > 0 && deliveries.every((d: any) => d.status === "confirmed");
+      let newStage = req.currentStage;
+      let newStatus = req.status;
+
+      if (allConfirmed) {
+        if (req.currentStage === "execution") {
+          newStage = "handover";
+        } else if (req.currentStage === "handover") {
+          newStage = "closed";
+          newStatus = "completed";
+        }
+      }
+
+      await db
+        .update(mosqueRequests)
+        .set({
+          programData: pData,
+          currentStage: newStage,
+          status: newStatus,
+          updatedAt: new Date(),
+        })
+        .where(eq(mosqueRequests.id, input.requestId));
+
+      try {
+        await db.insert(requestHistory).values({
+          requestId: input.requestId,
+          userId: ctx.user.id,
+          fromStage: req.currentStage,
+          toStage: newStage,
+          fromStatus: req.status,
+          toStatus: newStatus,
+          action: "sedana_outbound_receipt_confirmed",
+          notes: `تم اعتماد وتأكيد استلام أمر الإخراج ${outbounds[targetOutIndex].orderNumber} (${outbounds[targetOutIndex].disbursementVoucherCode}) إلكترونياً من قبل الإمام`,
+        });
+      } catch (e) {
+        console.error("Log error:", e);
+      }
+
+      return {
+        success: true,
+        message: "تم اعتماد وتأكيد استلام أمر الإخراج وتوثيق المحضر بنجاح",
+        outbound: outbounds[targetOutIndex],
         allConfirmed,
         currentStage: newStage,
       };
