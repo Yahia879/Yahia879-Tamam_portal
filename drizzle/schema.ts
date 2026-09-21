@@ -479,6 +479,7 @@ export const projects = mysqlTable("projects", {
   description: text("description"),
   donorName: varchar("donorName", { length: 255 }),
   isMultiMosque: boolean("isMultiMosque").default(false),
+  programType: varchar("programType", { length: 50 }),
   managerId: int("managerId").references(() => users.id, { onDelete: "set null" }),
   status: mysqlEnum("status", ["planning", "in_progress", "on_hold", "completed", "cancelled"]).default("planning"),
   budget: decimal("budget", { precision: 15, scale: 2 }),
