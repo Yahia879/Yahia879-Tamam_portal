@@ -203,9 +203,7 @@ export default function SedanaExecutionPage() {
   const totalDelivered = inventoryItems.reduce((s, i) => s + i.totalDelivered, 0);
 
   // المستند المرجعي المختار لأمر الإدخال والتحقق من تنفيذ أمر الصرف
-  const currentInwardRef = useMemo(() => {
-    return availableReferences.find((r: any) => r.type === inwardRefType) || availableReferences[0];
-  }, [availableReferences, inwardRefType]);
+  const currentInwardRef = availableReferences.find((r: any) => r.type === inwardRefType) || availableReferences[0];
 
   const isInwardBlocked = currentInwardRef && currentInwardRef.canCreateInward === false;
 
