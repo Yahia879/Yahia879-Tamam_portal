@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Fragment } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -951,9 +951,13 @@ export default function ContractForm() {
     }
   }, [requestDetails]);
 
-  // إضافة دفعة جديدة
+  // إضافة دفعة جديدة في نهاية الجدول
   const addPayment = () => {
     const lastPayment = paymentSchedule.length > 0 ? paymentSchedule[paymentSchedule.length - 1] : null;
+    if (lastPayment && Number(lastPayment.completionPercentage) >= 100) {
+      toast.error("الدفعة الأخيرة بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعة تالية بنسبة أعلى. يمكنك إدراج دفعة بين الدفعات السابقة.");
+      return;
+    }
     let suggestedCompletion: number | undefined = undefined;
     if (lastPayment && lastPayment.completionPercentage !== undefined && lastPayment.completionPercentage !== null && !isNaN(Number(lastPayment.completionPercentage))) {
       suggestedCompletion = Math.min(100, Number(lastPayment.completionPercentage) + 10);
@@ -971,6 +975,76 @@ export default function ContractForm() {
       completionPercentage: suggestedCompletion,
     };
     setPaymentSchedule([...paymentSchedule, newPayment]);
+  };
+
+  // إدراج دفعة بين دفعتين
+  const insertPaymentAt = (targetIndex: number) => {
+    const prevPayment = targetIndex > 0 ? paymentSchedule[targetIndex - 1] : null;
+    const nextPayment = targetIndex < paymentSchedule.length ? paymentSchedule[targetIndex] : null;
+
+    const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
+      ? Number(prevPayment.completionPercentage)
+      : null;
+    const nextComp = (nextPayment?.completionPercentage !== undefined && nextPayment?.completionPercentage !== null && !isNaN(Number(nextPayment.completionPercentage)))
+      ? Number(nextPayment.completionPercentage)
+      : null;
+
+    if (prevComp !== null && prevComp >= 100) {
+      toast.error("الدفعة السابقة بلغت نسبة إنجازها 100%، ولا يمكن إدراج دفعة بنسبة أعلى منها.");
+      return;
+    }
+
+    let suggestedCompletion: number | undefined = undefined;
+    if (prevComp !== null && nextComp !== null) {
+      const mid = Math.floor((prevComp + nextComp) / 2);
+      suggestedCompletion = mid > prevComp && mid < nextComp ? mid : prevComp + 1;
+    } else if (prevComp !== null) {
+      suggestedCompletion = Math.min(100, prevComp + 10);
+    } else if (nextComp !== null) {
+      suggestedCompletion = Math.max(0, nextComp - 10);
+    } else {
+      suggestedCompletion = 0;
+    }
+
+    let suggestedDueDate = "";
+    if (prevPayment?.dueDate && nextPayment?.dueDate) {
+      try {
+        const d1 = new Date(prevPayment.dueDate).getTime();
+        const d2 = new Date(nextPayment.dueDate).getTime();
+        if (d2 > d1) {
+          const midDate = new Date(d1 + (d2 - d1) / 2);
+          suggestedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(midDate);
+        }
+      } catch (e) {}
+    } else if (prevPayment?.dueDate) {
+      suggestedDueDate = prevPayment.dueDate;
+    }
+
+    const newPayment: PaymentScheduleItem = {
+      id: `payment-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      name: `الدفعة ${targetIndex + 1}`,
+      type: "progress",
+      percentage: 0,
+      amount: 0,
+      dueDate: suggestedDueDate,
+      description: "",
+      completionPercentage: suggestedCompletion,
+    };
+
+    const newSchedule = [...paymentSchedule];
+    newSchedule.splice(targetIndex, 0, newPayment);
+
+    // إعادة ترقيم أسماء الدفعات التلقائية غير المعدلة يدوياً
+    const renamed = newSchedule.map((p, idx) => {
+      if (p.isPaid) return p;
+      if (/^الدفعة \d+$/.test(p.name)) {
+        return { ...p, name: `الدفعة ${idx + 1}` };
+      }
+      return p;
+    });
+
+    setPaymentSchedule(renamed);
+    toast.success(`تم إدراج دفعة جديدة بين الدفعات (الموضع: الدفعة ${targetIndex + 1})`);
   };
 
   // حذف دفعة
@@ -1084,7 +1158,11 @@ export default function ContractForm() {
             return false;
           }
           if (i > 0 && paymentSchedule[i - 1].dueDate && p.dueDate < paymentSchedule[i - 1].dueDate) {
-            toast.error(`تاريخ الدفعة ${i + 1} (${p.dueDate}) لا يمكن أن يكون قبل تاريخ الدفعة السابقة (${paymentSchedule[i - 1].dueDate})`);
+            toast.error(`تاريخ الدفعة ${i + 1} (${p.dueDate}) لا يمكن أن يكون قبل تاريخ الدفعة السابقة (${paymentSchedule[i - 1].name || `الدفعة ${i}`}: ${paymentSchedule[i - 1].dueDate})`);
+            return false;
+          }
+          if (i < paymentSchedule.length - 1 && paymentSchedule[i + 1].dueDate && p.dueDate > paymentSchedule[i + 1].dueDate) {
+            toast.error(`تاريخ الدفعة ${i + 1} (${p.dueDate}) لا يمكن أن يتجاوز تاريخ الدفعة التالية (${paymentSchedule[i + 1].name || `الدفعة ${i + 2}`}: ${paymentSchedule[i + 1].dueDate})`);
             return false;
           }
           if (!p.name) {
@@ -1107,7 +1185,16 @@ export default function ContractForm() {
             const prevComp = paymentSchedule[i - 1].completionPercentage;
             if (prevComp !== undefined && prevComp !== null && !isNaN(prevComp)) {
               if (p.completionPercentage <= prevComp) {
-                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${prevComp}%)`);
+                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أكبر من نسبة إنجاز الدفعة السابقة (${paymentSchedule[i - 1].name || `الدفعة ${i}`}: ${prevComp}%)`);
+                return false;
+              }
+            }
+          }
+          if (i < paymentSchedule.length - 1) {
+            const nextComp = paymentSchedule[i + 1].completionPercentage;
+            if (nextComp !== undefined && nextComp !== null && !isNaN(nextComp)) {
+              if (p.completionPercentage >= nextComp) {
+                toast.error(`نسبة إنجاز الدفعة ${i + 1} (${p.completionPercentage}%) يجب أن تكون أقل من نسبة إنجاز الدفعة التالية (${paymentSchedule[i + 1].name || `الدفعة ${i + 2}`}: ${nextComp}%)`);
                 return false;
               }
             }
@@ -2113,87 +2200,135 @@ export default function ContractForm() {
                       const paidAmt = Number(payment.paidAmount || 0);
                       const isPaid = Boolean(payment.isPaid || payment.status === "paid" || payment.status === "partially_paid" || paidAmt > 0);
 
+                      const prevPayment = index > 0 ? paymentSchedule[index - 1] : null;
+                      const nextPayment = index < paymentSchedule.length - 1 ? paymentSchedule[index + 1] : null;
+                      const prevPaymentDate = prevPayment?.dueDate || undefined;
+                      const nextPaymentDate = nextPayment?.dueDate || undefined;
+
                       return (
-                      <Card 
-                        key={payment.id} 
-                        className={cn(
-                          "p-4 sm:p-5 relative transition-all rounded-2xl border", 
-                          isPaid 
-                            ? "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm"
-                            : "bg-card border-border/70"
+                      <React.Fragment key={payment.id}>
+                        {index > 0 && (
+                          <div className="flex items-center justify-center my-2 py-1 group">
+                            <div className="h-[1px] flex-1 bg-border/60 group-hover:bg-primary/40 transition-all" />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => insertPaymentAt(index)}
+                              className="mx-3 text-xs text-muted-foreground hover:text-primary hover:border-primary/50 rounded-full h-7 px-3.5 flex items-center gap-1.5 shadow-2xs transition-all bg-background"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>إدراج دفعة بين الدفعة {index} والدفعة {index + 1}</span>
+                            </Button>
+                            <div className="h-[1px] flex-1 bg-border/60 group-hover:bg-primary/40 transition-all" />
+                          </div>
                         )}
-                      >
-                        {isPaid && (
-                          <div 
-                            className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit mb-3 border bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
-                          >
-                            <Lock className="w-3.5 h-3.5 shrink-0" />
-                            <span>دفعة مسددة بالكامل (مقفلة وغير قابلة للتعديل أو الحذف)</span>
-                            <span className="bg-background/90 dark:bg-background/60 px-2 py-0.5 rounded shadow-xs font-semibold text-foreground">
-                              المتفق: {agreedAmt.toLocaleString()} ر.س
-                            </span>
-                            {paidAmt > 0 && (
-                              <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded shadow-xs font-bold">
-                                المسدد: {paidAmt.toLocaleString()} ر.س
+                        <Card 
+                          className={cn(
+                            "p-4 sm:p-5 relative transition-all rounded-2xl border", 
+                            isPaid 
+                              ? "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm"
+                              : "bg-card border-border/70"
+                          )}
+                        >
+                          {isPaid && (
+                            <div 
+                              className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit mb-3 border bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                            >
+                              <Lock className="w-3.5 h-3.5 shrink-0" />
+                              <span>دفعة مسددة بالكامل (مقفلة وغير قابلة للتعديل أو الحذف)</span>
+                              <span className="bg-background/90 dark:bg-background/60 px-2 py-0.5 rounded shadow-xs font-semibold text-foreground">
+                                المتفق: {agreedAmt.toLocaleString()} ر.س
                               </span>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex flex-col md:flex-row items-start gap-4">
-                          <div className="flex items-center justify-between w-full md:w-auto md:flex-col md:justify-start gap-2 text-muted-foreground border-b md:border-0 pb-2 md:pb-0 mb-2 md:mb-0">
-                            <div className="flex items-center gap-2">
-                              {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
-                              {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
-                              <span className="font-bold text-primary md:text-foreground">الدفعة {index + 1}</span>
+                              {paidAmt > 0 && (
+                                <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded shadow-xs font-bold">
+                                  المسدد: {paidAmt.toLocaleString()} ر.س
+                                </span>
+                              )}
                             </div>
-                            {!isPaid && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removePayment(payment.id)}
-                                className="text-destructive h-8 w-8 p-0 md:hidden"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                          
-                          <div className="flex-1 space-y-4 w-full">
-                            {/* الصف الأول: معلومات الدفعة الأساسية */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
-                              <div className="space-y-1">
-                                <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
-                                <Input
-                                  type="date"
-                                  value={payment.dueDate}
-                                  disabled={isPaid}
-                                  required
-                                  className={cn(
-                                    "w-full rounded-xl", 
-                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
-                                  )}
-                                  onChange={(e) => {
-                                    if (isPaid) return;
-                                    const selectedDate = e.target.value;
-                                    const prevPaymentDate = index > 0 ? paymentSchedule[index - 1]?.dueDate : undefined;
+                          )}
+                          <div className="flex flex-col md:flex-row items-start gap-4">
+                            <div className="flex items-center justify-between w-full md:w-auto md:flex-col md:justify-start gap-2 text-muted-foreground border-b md:border-0 pb-2 md:pb-0 mb-2 md:mb-0">
+                              <div className="flex items-center gap-2">
+                                {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
+                                {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
+                                <span className="font-bold text-primary md:text-foreground">الدفعة {index + 1}</span>
+                              </div>
+                              {!isPaid && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removePayment(payment.id)}
+                                  className="text-destructive h-8 w-8 p-0 md:hidden"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 space-y-4 w-full">
+                              {/* الصف الأول: معلومات الدفعة الأساسية */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold">التاريخ الميلادي</Label>
+                                  <Input
+                                    type="date"
+                                    value={payment.dueDate}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl", 
+                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      const selectedDate = e.target.value;
 
-                                    // التحقق من ألا يكون التاريخ قبل تاريخ العقد
-                                    if (contractData.startDate && selectedDate < contractData.startDate) {
-                                      toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractData.startDate})`);
-                                      return;
-                                    }
+                                      // التحقق من ألا يكون التاريخ قبل تاريخ العقد
+                                      if (contractData.startDate && selectedDate < contractData.startDate) {
+                                        toast.error(`لا يمكن وضع تاريخ الدفعة قبل تاريخ العقد (${contractData.startDate})`);
+                                        return;
+                                      }
 
-                                    // التحقق من ألا يكون التاريخ قبل تاريخ الدفعة السابقة
-                                    if (prevPaymentDate && selectedDate < prevPaymentDate) {
-                                      toast.error(`لا يمكن وضع تاريخ الدفعة ${index + 1} قبل تاريخ الدفعة السابقة (${prevPaymentDate})`);
-                                      return;
-                                    }
+                                      // التحقق من ألا يكون التاريخ قبل تاريخ الدفعة السابقة
+                                      if (prevPaymentDate && selectedDate < prevPaymentDate) {
+                                        toast.error(`لا يمكن وضع تاريخ الدفعة ${index + 1} قبل تاريخ الدفعة السابقة (${prevPayment?.name || `الدفعة ${index}`}: ${prevPaymentDate})`);
+                                        return;
+                                      }
 
-                                    // التحقق من ألا يتجاوز التاريخ نهاية العقد
-                                    if (contractData.startDate && contractData.duration > 0) {
-                                      const startDate = new Date(contractData.startDate);
+                                      // التحقق من ألا يتجاوز التاريخ تاريخ الدفعة التالية إن وجدت
+                                      if (nextPaymentDate && selectedDate > nextPaymentDate) {
+                                        toast.error(`لا يمكن وضع تاريخ الدفعة ${index + 1} بعد تاريخ الدفعة التالية (${nextPayment?.name || `الدفعة ${index + 2}`}: ${nextPaymentDate})`);
+                                        return;
+                                      }
+
+                                      // التحقق من ألا يتجاوز التاريخ نهاية العقد
+                                      if (contractData.startDate && contractData.duration > 0) {
+                                        const startDate = new Date(contractData.startDate);
+                                        const endDate = new Date(contractData.startDate);
+                                        
+                                        if (contractData.durationUnit === "days") {
+                                          endDate.setDate(endDate.getDate() + contractData.duration);
+                                        } else if (contractData.durationUnit === "weeks") {
+                                          endDate.setDate(endDate.getDate() + (contractData.duration * 7));
+                                        } else if (contractData.durationUnit === "months") {
+                                          endDate.setMonth(endDate.getMonth() + contractData.duration);
+                                        } else if (contractData.durationUnit === "years") {
+                                          endDate.setFullYear(endDate.getFullYear() + contractData.duration);
+                                        }
+                                        
+                                        const selected = new Date(selectedDate);
+                                        if (selected > endDate) {
+                                          toast.error(`تاريخ الدفعة يتجاوز تاريخ نهاية العقد (${endDate.toLocaleDateString('ar-SA')})`);
+                                          return;
+                                        }
+                                      }
+                                      updatePayment(payment.id, "dueDate", selectedDate);
+                                    }}
+                                    min={prevPaymentDate || contractData.startDate || undefined}
+                                    max={nextPaymentDate || (() => {
+                                      if (!contractData.startDate || contractData.duration <= 0) return undefined;
                                       const endDate = new Date(contractData.startDate);
-                                      
                                       if (contractData.durationUnit === "days") {
                                         endDate.setDate(endDate.getDate() + contractData.duration);
                                       } else if (contractData.durationUnit === "weeks") {
@@ -2203,235 +2338,240 @@ export default function ContractForm() {
                                       } else if (contractData.durationUnit === "years") {
                                         endDate.setFullYear(endDate.getFullYear() + contractData.duration);
                                       }
-                                      
-                                      const selected = new Date(selectedDate);
-                                      if (selected > endDate) {
-                                        toast.error(`تاريخ الدفعة يتجاوز تاريخ نهاية العقد (${endDate.toLocaleDateString('ar-SA')})`);
-                                        return;
-                                      }
-                                    }
-                                    updatePayment(payment.id, "dueDate", selectedDate);
-                                  }}
-                                  min={(() => {
-                                    const prevPaymentDate = index > 0 ? paymentSchedule[index - 1]?.dueDate : undefined;
-                                    return prevPaymentDate || contractData.startDate || undefined;
-                                  })()}
-                                  max={(() => {
-                                    if (!contractData.startDate || contractData.duration <= 0) return undefined;
-                                    const endDate = new Date(contractData.startDate);
-                                    if (contractData.durationUnit === "days") {
-                                      endDate.setDate(endDate.getDate() + contractData.duration);
-                                    } else if (contractData.durationUnit === "weeks") {
-                                      endDate.setDate(endDate.getDate() + (contractData.duration * 7));
-                                    } else if (contractData.durationUnit === "months") {
-                                      endDate.setMonth(endDate.getMonth() + contractData.duration);
-                                    } else if (contractData.durationUnit === "years") {
-                                      endDate.setFullYear(endDate.getFullYear() + contractData.duration);
-                                    }
-                                    return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(endDate);
-                                  })()}
-                                />
+                                      return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(endDate);
+                                    })()}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
+                                  <Input
+                                    value={payment.name}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl", 
+                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      updatePayment(payment.id, "name", e.target.value);
+                                    }}
+                                    placeholder="عنوان الطلب"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
+                                  <Input
+                                    type="number"
+                                    value={payment.percentage || ""}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl font-bold font-sans", 
+                                      isPaid 
+                                        ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                        : "text-primary"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      const pct = parseFloat(e.target.value) || 0;
+                                      const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
+                                      setPaymentSchedule(prev => prev.map(p => 
+                                        p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
+                                      ));
+                                    }}
+                                    placeholder="0"
+                                    min="0"
+                                    max="100"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs font-semibold">
+                                    {isPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ"}
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    value={payment.amount || ""}
+                                    disabled={isPaid}
+                                    required
+                                    className={cn(
+                                      "w-full rounded-xl font-bold font-sans", 
+                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      const val = parseFloat(e.target.value) || 0;
+                                      const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
+                                      setPaymentSchedule(prev => prev.map(p => 
+                                        p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
+                                      ));
+                                    }}
+                                    placeholder="0.00"
+                                  />
+                                </div>
                               </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
-                                <Input
-                                  value={payment.name}
-                                  disabled={isPaid}
-                                  required
-                                  className={cn(
-                                    "w-full rounded-xl", 
-                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
-                                  )}
-                                  onChange={(e) => {
-                                    if (isPaid) return;
-                                    updatePayment(payment.id, "name", e.target.value);
-                                  }}
-                                  placeholder="عنوان الطلب"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs font-semibold text-foreground">النسبة (%) *</Label>
-                                <Input
-                                  type="number"
-                                  value={payment.percentage || ""}
-                                  disabled={isPaid}
-                                  required
-                                  className={cn(
-                                    "w-full rounded-xl font-bold font-sans", 
-                                    isPaid 
-                                      ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
-                                      : "text-primary"
-                                  )}
-                                  onChange={(e) => {
-                                    if (isPaid) return;
-                                    const pct = parseFloat(e.target.value) || 0;
-                                    const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
-                                    setPaymentSchedule(prev => prev.map(p => 
-                                      p.id === payment.id ? { ...p, percentage: pct, amount: Number(amount.toFixed(2)) } : p
-                                    ));
-                                  }}
-                                  placeholder="0"
-                                  min="0"
-                                  max="100"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs font-semibold">
-                                  {isPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ"}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={payment.amount || ""}
-                                  disabled={isPaid}
-                                  required
-                                  className={cn(
-                                    "w-full rounded-xl font-bold font-sans", 
-                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
-                                  )}
-                                  onChange={(e) => {
-                                    if (isPaid) return;
-                                    const val = parseFloat(e.target.value) || 0;
-                                    const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
-                                    setPaymentSchedule(prev => prev.map(p => 
-                                      p.id === payment.id ? { ...p, amount: val, percentage: Number(pct.toFixed(2)) } : p
-                                    ));
-                                  }}
-                                  placeholder="0.00"
-                                />
-                              </div>
-                            </div>
 
-                            {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
-                              <div className="space-y-1 md:col-span-3 text-right">
-                                <Label className="text-xs font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
-                                <Textarea
-                                  value={payment.description || ""}
-                                  disabled={isPaid}
-                                  required
-                                  placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
-                                  rows={2}
-                                  className={cn(
-                                    "w-full rounded-xl text-right", 
-                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
-                                  )}
-                                  onChange={(e) => {
-                                    if (isPaid) return;
-                                    updatePayment(payment.id, "description", e.target.value);
-                                  }}
-                                />
-                              </div>
-                              <div className="space-y-1 text-right">
-                                <Label className="text-xs font-semibold text-foreground">نسبة الإنجاز (%) *</Label>
-                                {(() => {
-                                  const prevPayment = index > 0 ? paymentSchedule[index - 1] : null;
-                                  const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null)
-                                    ? Number(prevPayment.completionPercentage)
-                                    : null;
-                                  const nextPayment = index < paymentSchedule.length - 1 ? paymentSchedule[index + 1] : null;
-                                  const nextComp = (nextPayment?.completionPercentage !== undefined && nextPayment?.completionPercentage !== null)
-                                    ? Number(nextPayment.completionPercentage)
-                                    : null;
-                                  const currentComp = (payment.completionPercentage !== undefined && payment.completionPercentage !== null)
-                                    ? Number(payment.completionPercentage)
-                                    : null;
+                              {/* الصف الثاني: تفاصيل الأعمال المطلوبة ونسبة الإنجاز لتفعيل الدفعة */}
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+                                <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
+                                  <Label className="text-xs font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
+                                  <Textarea
+                                    value={payment.description || ""}
+                                    disabled={isPaid}
+                                    required
+                                    placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
+                                    rows={3}
+                                    className={cn(
+                                      "w-full rounded-xl text-right", 
+                                      isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                    )}
+                                    onChange={(e) => {
+                                      if (isPaid) return;
+                                      updatePayment(payment.id, "description", e.target.value);
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-1 md:col-span-2 lg:col-span-2 text-right">
+                                  <Label className="text-xs font-semibold text-foreground">نسبة الإنجاز (%) *</Label>
+                                  {(() => {
+                                    const prevComp = (prevPayment?.completionPercentage !== undefined && prevPayment?.completionPercentage !== null && !isNaN(Number(prevPayment.completionPercentage)))
+                                      ? Number(prevPayment.completionPercentage)
+                                      : null;
+                                    const nextComp = (nextPayment?.completionPercentage !== undefined && nextPayment?.completionPercentage !== null && !isNaN(Number(nextPayment.completionPercentage)))
+                                      ? Number(nextPayment.completionPercentage)
+                                      : null;
+                                    const currentComp = (payment.completionPercentage !== undefined && payment.completionPercentage !== null && !isNaN(Number(payment.completionPercentage)))
+                                      ? Number(payment.completionPercentage)
+                                      : null;
 
-                                  const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp;
-                                  const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp;
-                                  const minAllowed = index === 0 ? 0 : (prevComp !== null ? prevComp + 1 : 0);
-                                  const maxAllowed = nextComp !== null ? Math.max(minAllowed, nextComp - 1) : 100;
+                                    const isBelowPrev = prevComp !== null && currentComp !== null && currentComp <= prevComp;
+                                    const isAboveNext = nextComp !== null && currentComp !== null && currentComp >= nextComp;
+                                    const minAllowed = index === 0 ? 0 : (prevComp !== null ? prevComp + 1 : 0);
+                                    const maxAllowed = nextComp !== null ? Math.max(minAllowed, nextComp - 1) : 100;
+                                    const isAfter100 = prevComp !== null && prevComp >= 100;
 
-                                  return (
-                                    <>
-                                      <Input
-                                        type="number"
-                                        min={minAllowed}
-                                        max={maxAllowed}
-                                        disabled={isPaid}
-                                        required
-                                        value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
-                                        placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
-                                        className={cn(
-                                          "w-full rounded-xl text-right font-bold transition-all font-sans",
-                                          (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20",
-                                          isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                    const prevName = prevPayment ? (prevPayment.name || `الدفعة ${index}`) : "";
+                                    const nextName = nextPayment ? (nextPayment.name || `الدفعة ${index + 2}`) : "";
+
+                                    return (
+                                      <div className="space-y-1.5">
+                                        {isAfter100 ? (
+                                          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-2.5 text-xs text-destructive font-bold flex items-center gap-2 animate-in fade-in">
+                                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                                            <div className="space-y-0.5">
+                                              <p className="font-bold">غير متاح إدراج نسبة إنجاز بعد دفعة مكتملة (100%)</p>
+                                              <p className="font-normal text-[11px] text-destructive/90">
+                                                الدفعة السابقة ({prevName}) بلغت نسبة إنجازها 100%. لا يمكن إضافة دفعة بنسبة أعلى من 100%.
+                                              </p>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {/* صندوق التوضيح والشروط تماماً كما في صفحة الدفعات بالمشروع */}
+                                            {(prevComp !== null || nextComp !== null) && (
+                                              <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/30 rounded-xl p-2.5 text-xs text-sky-800 dark:text-sky-300 space-y-1">
+                                                {prevComp !== null && (
+                                                  <p>
+                                                    📅 <strong>الدفعة السابقة ({prevName}):</strong> نسبة إنجازها <strong>{prevComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أكبر من ذلك</strong>
+                                                  </p>
+                                                )}
+                                                {nextComp !== null && (
+                                                  <p>
+                                                    📅 <strong>الدفعة التالية ({nextName}):</strong> نسبة إنجازها <strong>{nextComp}%</strong> ← يجب أن تكون النسبة الحالية <strong>أقل من ذلك</strong>
+                                                  </p>
+                                                )}
+                                                {prevComp === null && (
+                                                  <p>⭐ <strong>الدفعة الأولى:</strong> يمكن أن تبدأ نسبة الإنجاز من 0% فما فوق</p>
+                                                )}
+                                                <p className="font-bold text-sky-700 dark:text-sky-400">
+                                                  النطاق المسموح به: {minAllowed}% – {maxAllowed}%
+                                                </p>
+                                              </div>
+                                            )}
+
+                                            <Input
+                                              type="number"
+                                              min={minAllowed}
+                                              max={maxAllowed}
+                                              disabled={isPaid}
+                                              required
+                                              value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
+                                              placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
+                                              className={cn(
+                                                "w-full rounded-xl text-right font-bold transition-all font-sans",
+                                                (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20",
+                                                isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                              )}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                  e.currentTarget.blur();
+                                                }
+                                              }}
+                                              onChange={(e) => {
+                                                if (isPaid) return;
+                                                if (e.target.value === "") {
+                                                  updatePayment(payment.id, "completionPercentage", undefined);
+                                                } else {
+                                                  let val = parseInt(e.target.value);
+                                                  if (isNaN(val)) {
+                                                    updatePayment(payment.id, "completionPercentage", undefined);
+                                                  } else {
+                                                    if (val > 100) val = 100;
+                                                    if (val < 0) val = 0;
+                                                    updatePayment(payment.id, "completionPercentage", val);
+                                                  }
+                                                }
+                                              }}
+                                              onBlur={(e) => {
+                                                if (isPaid) return;
+                                                const val = e.target.value === "" ? undefined : parseInt(e.target.value);
+                                                if (val !== undefined && !isNaN(val)) {
+                                                  if (prevComp !== null && val <= prevComp) {
+                                                    toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أكبر من نسبة الدفعة السابقة (${prevName}: ${prevComp}%). تم ضبطها على الحد الأدنى (${minAllowed}%).`);
+                                                    updatePayment(payment.id, "completionPercentage", minAllowed);
+                                                  } else if (nextComp !== null && val >= nextComp) {
+                                                    const maxVal = Math.max(minAllowed, nextComp - 1);
+                                                    toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة — يجب أن تكون أقل من نسبة الدفعة التالية (${nextName}: ${nextComp}%). تم ضبطها على (${maxVal}%).`);
+                                                    updatePayment(payment.id, "completionPercentage", maxVal);
+                                                  }
+                                                }
+                                              }}
+                                            />
+
+                                            {isBelowPrev && (
+                                              <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                                                <AlertTriangle className="h-4 w-4 shrink-0" />
+                                                <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أكبر من الدفعة السابقة ({prevName}: {prevComp}%). الحد الأدنى هو {minAllowed}%.</span>
+                                              </div>
+                                            )}
+                                            {isAboveNext && (
+                                              <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
+                                                <AlertTriangle className="h-4 w-4 shrink-0" />
+                                                <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أقل من الدفعة التالية ({nextName}: {nextComp}%). الحد الأقصى هو {maxAllowed}%.</span>
+                                              </div>
+                                            )}
+                                          </>
                                         )}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            e.currentTarget.blur();
-                                          }
-                                        }}
-                                        onChange={(e) => {
-                                          if (isPaid) return;
-                                          if (e.target.value === "") {
-                                            updatePayment(payment.id, "completionPercentage", undefined);
-                                          } else {
-                                            let val = parseInt(e.target.value);
-                                            if (isNaN(val)) {
-                                              updatePayment(payment.id, "completionPercentage", undefined);
-                                            } else {
-                                              if (val > 100) val = 100;
-                                              if (val < 0) val = 0;
-                                              updatePayment(payment.id, "completionPercentage", val);
-                                            }
-                                          }
-                                        }}
-                                        onBlur={(e) => {
-                                          if (isPaid) return;
-                                          const val = e.target.value === "" ? undefined : parseInt(e.target.value);
-                                          if (val !== undefined && !isNaN(val)) {
-                                            if (prevComp !== null && val <= prevComp) {
-                                              toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة لأنها أقل من أو تساوي الدفعة السابقة (${prevComp}%). تم ضبطها تلقائياً على الحد الأدنى (${minAllowed}%).`);
-                                              updatePayment(payment.id, "completionPercentage", minAllowed);
-                                            } else if (nextComp !== null && val >= nextComp) {
-                                              const maxVal = Math.max(minAllowed, nextComp - 1);
-                                              toast.error(`نسبة إنجاز الدفعة ${index + 1} (${val}%) غير مقبولة لأنها أكبر من أو تساوي الدفعة التالية (${nextComp}%). تم ضبطها على (${maxVal}%).`);
-                                              updatePayment(payment.id, "completionPercentage", maxVal);
-                                            }
-                                          }
-                                        }}
-                                      />
-                                      {isBelowPrev && (
-                                        <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
-                                          <AlertTriangle className="h-4 w-4 shrink-0" />
-                                          <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أكبر من الدفعة السابقة ({prevComp}%). الحد الأدنى هو {minAllowed}%.</span>
-                                        </div>
-                                      )}
-                                      {isAboveNext && (
-                                        <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5 animate-in fade-in">
-                                          <AlertTriangle className="h-4 w-4 shrink-0" />
-                                          <span>غير مقبول: النسبة ({currentComp}%) يجب أن تكون أقل من الدفعة التالية ({nextComp}%). الحد الأقصى هو {maxAllowed}%.</span>
-                                        </div>
-                                      )}
-                                      {!isBelowPrev && !isAboveNext && index > 0 && prevComp !== null && (
-                                        <p className="text-[11px] text-muted-foreground mt-1">
-                                          الحد الأدنى: {minAllowed}% (تصاعدياً بعد {prevComp}%)
-                                        </p>
-                                      )}
-                                      {!isBelowPrev && !isAboveNext && index === 0 && (
-                                        <p className="text-[11px] text-muted-foreground mt-1">
-                                          الدفعة الأولى: يمكن أن تبدأ من 0% فما فوق
-                                        </p>
-                                      )}
-                                    </>
-                                  );
-                                })()}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                               </div>
                             </div>
+                            
+                            {!isPaid && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removePayment(payment.id)}
+                                className="text-destructive hidden md:flex"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
-                          
-                          {!isPaid && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removePayment(payment.id)}
-                              className="text-destructive hidden md:flex"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </Card>
+                        </Card>
+                      </React.Fragment>
                     );
                     })}
 
