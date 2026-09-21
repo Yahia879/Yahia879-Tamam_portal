@@ -56,7 +56,7 @@ import {
   Plus,
   RotateCcw,
   Coins,
-  MoreHorizontal,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -491,10 +491,10 @@ export default function CsrLettersList() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
+                                  className="h-8 w-8 rounded-full hover:bg-muted shrink-0"
                                   title="خيارات إضافية"
                                 >
-                                  <MoreHorizontal className="h-4.5 w-4.5" />
+                                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                   <span className="sr-only">قائمة الإجراءات</span>
                                 </Button>
                               </DropdownMenuTrigger>
