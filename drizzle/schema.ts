@@ -1177,7 +1177,16 @@ export const disbursementOrders = mysqlTable("disbursement_orders", {
   beneficiaryAccountName: varchar("beneficiaryAccountName", { length: 255 }),
   sadadNumber: varchar("sadadNumber", { length: 50 }),
   billerCode: varchar("billerCode", { length: 50 }),
-  
+
+  // ربط أمر الصرف بأمر الشراء أو خطاب المسؤولية المجتمعية والبنود والأجور الإدارية
+  purchaseOrderNumber: varchar("purchaseOrderNumber", { length: 100 }),
+  csrLetterNumber: varchar("csrLetterNumber", { length: 100 }),
+  sourceType: varchar("sourceType", { length: 50 }), // 'purchase_order' | 'csr_letter' | 'contract' | 'direct'
+  itemsJson: text("itemsJson"), // تفاصيل البنود والكميات والأسعار
+  itemsTotal: decimal("itemsTotal", { precision: 15, scale: 2 }), // مجموع بنود الشراء
+  adminFees: decimal("adminFees", { precision: 15, scale: 2 }).default("0.00"), // الأجور الإدارية
+  requestId: int("requestId"), // معرف طلب المسجد المرتبط
+
   // الحالة
   status: mysqlEnum("status", disbursementOrderStatuses).default("draft"),
   
