@@ -34,6 +34,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Eye,
   CheckCircle,
   Clock,
@@ -54,6 +61,8 @@ import {
   Plus,
   RotateCcw,
   Truck,
+  Coins,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -401,8 +410,9 @@ export default function PurchaseOrdersList() {
                       <th className="p-3 font-bold">المورد المعتمد</th>
                       <th className="p-3 font-bold text-center">البنود المشمولة</th>
                       <th className="p-3 font-bold text-center">الحالة</th>
+                      <th className="p-3 font-bold text-center">أمر الصرف</th>
                       <th className="p-3 font-bold text-center">تاريخ الأمر</th>
-                      <th className="p-3 font-bold text-center w-36">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-48">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -468,6 +478,39 @@ export default function PurchaseOrdersList() {
                             </Badge>
                           </td>
 
+                          {/* أمر الصرف المرتبط */}
+                          <td className="p-3 text-center">
+                            {order.disbursementOrder ? (
+                              <div className="space-y-0.5">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-bold px-2 py-0.5 ${
+                                    order.disbursementOrder.status === "executed"
+                                      ? "border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40"
+                                      : order.disbursementOrder.status === "approved"
+                                      ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/40"
+                                      : "border-amber-500 text-amber-700 bg-amber-50 dark:bg-amber-950/40"
+                                  }`}
+                                >
+                                  {order.disbursementOrder.status === "executed"
+                                    ? "منفّذ"
+                                    : order.disbursementOrder.status === "approved"
+                                    ? "معتمد"
+                                    : "قيد المراجعة"}
+                                </Badge>
+                                <div className="text-[10px] font-mono text-muted-foreground">
+                                  #{order.disbursementOrder.orderNumber}
+                                </div>
+                              </div>
+                            ) : order.status === "approved" ? (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground border-dashed">
+                                لم يصدر بعد
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">-</span>
+                            )}
+                          </td>
+
                           {/* تاريخ الأمر */}
                           <td className="p-3 text-center font-mono text-muted-foreground">
                             {order.orderDate || "-"}
@@ -475,7 +518,7 @@ export default function PurchaseOrdersList() {
 
                           {/* الإجراءات */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               {order.status === "draft" && (
                                 <Button
                                   size="sm"
@@ -491,6 +534,17 @@ export default function PurchaseOrdersList() {
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
                                   <span>اعتماد</span>
+                                </Button>
+                              )}
+                              {order.status === "approved" && !order.disbursementOrder && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigate(`/disbursement-orders/new-direct?source=purchase_order&orderNumber=${encodeURIComponent(order.orderNumber)}&requestId=${order.requestId}`)}
+                                  className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer px-2"
+                                  title="إنشاء أمر صرف لأمر الشراء المعتمد"
+                                >
+                                  <Coins className="w-3.5 h-3.5" />
+                                  <span>أمر صرف</span>
                                 </Button>
                               )}
                               <Button
