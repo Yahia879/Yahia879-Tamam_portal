@@ -39,6 +39,7 @@ import SedanaProcurementPage from "./pages/SedanaProcurementPage";
 import SedanaCsrLetterPrint from "./pages/SedanaCsrLetterPrint";
 import SedanaPurchaseOrderPrint from "./pages/SedanaPurchaseOrderPrint";
 import SedanaExecutionPage from "./pages/SedanaExecutionPage";
+import NewSedanaInwardOrderPage from "./pages/NewSedanaInwardOrderPage";
 import SedanaDeliveryOrderPrint from "./pages/SedanaDeliveryOrderPrint";
 import SedanaBulkPurchasingPage from "./pages/SedanaBulkPurchasingPage";
 import PurchaseOrdersList from "./pages/PurchaseOrdersList";
@@ -312,6 +313,9 @@ function Router() {
       <Route path="/sedana-execution">{() => <AdminRoute component={SedanaExecutionPage} />}</Route>
       <Route path="/requests/:id/sedana-execution" component={SedanaExecutionPage} />
       <Route path="/requester/requests/:id/sedana-execution" component={SedanaExecutionPage} />
+      <Route path="/requests/:id/sedana-inward/new" component={NewSedanaInwardOrderPage} />
+      <Route path="/requester/requests/:id/sedana-inward/new" component={NewSedanaInwardOrderPage} />
+      <Route path="/sedana-warehouse/inward/new">{() => <AdminRoute component={NewSedanaInwardOrderPage} />}</Route>
       <Route path="/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
       <Route path="/requests/:id/delivery-order" component={SedanaDeliveryOrderPrint} />
       <Route path="/requester/requests/:id/sedana-delivery" component={SedanaDeliveryOrderPrint} />
