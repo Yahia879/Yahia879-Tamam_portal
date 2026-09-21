@@ -15,7 +15,9 @@ import {
   FileText,
   Loader2,
   Plus,
+  Sparkles,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { SaudiRiyal } from "@/components/SaudiRiyal";
 import { Link, useLocation } from "wouter";
 import {
@@ -57,6 +59,7 @@ const filterOptions = [
 
 const typeFilterOptions = [
   { value: "all", label: "جميع أنواع المشاريع" },
+  { value: "sedana", label: "مشاريع سدانة ✨" },
   { value: "multi", label: "مشاريع متعددة المساجد" },
   { value: "single", label: "مشاريع مفردة (مسجد واحد)" },
 ];
@@ -281,13 +284,25 @@ export default function Projects() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projectsList.map((project: any) => (
-                        <TableRow key={project.id} className="group">
+                      {projectsList.map((project: any) => {
+                        const isSedana = project.programType === "sedana";
+                        return (
+                        <TableRow 
+                          key={project.id} 
+                          className={cn(
+                            "group transition-colors",
+                            isSedana && "bg-cyan-50/20 hover:bg-cyan-50/40 dark:bg-cyan-950/10 dark:hover:bg-cyan-950/20"
+                          )}
+                        >
                           <TableCell>
                             <div className="flex items-center gap-3">
                               {project.isMultiMosque ? (
                                 <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs shrink-0" title="مشروع مباشر لعدة مساجد">
                                   <MultiMosquesIcon className="w-5 h-5" />
+                                </div>
+                              ) : isSedana ? (
+                                <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200/80 dark:border-cyan-800/80 shadow-xs shrink-0" title="مشروع سدانة (تشغيل ورعاية المساجد)">
+                                  <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                                 </div>
                               ) : (
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -300,6 +315,12 @@ export default function Projects() {
                                   {project.isMultiMosque && (
                                     <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] py-0 px-1.5 font-semibold">
                                       عدّة مساجد
+                                    </Badge>
+                                  )}
+                                  {isSedana && (
+                                    <Badge variant="outline" className="bg-cyan-50/90 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300/80 dark:border-cyan-700/80 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                      <Sparkles className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                      مشروع سدانة
                                     </Badge>
                                   )}
                                 </div>
@@ -365,26 +386,51 @@ export default function Projects() {
                             </TableCell>
                           )}
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
 
                 {/* Mobile View Cards */}
                 <div className="md:hidden divide-y divide-border">
-                  {projectsList.map((project: any) => (
-                    <div key={project.id} className="p-4 space-y-4">
+                  {projectsList.map((project: any) => {
+                    const isSedana = project.programType === "sedana";
+                    return (
+                    <div 
+                      key={project.id} 
+                      className={cn(
+                        "p-4 space-y-4 transition-colors",
+                        isSedana && "bg-cyan-50/20 dark:bg-cyan-950/10 border-r-4 border-r-cyan-500"
+                      )}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <FolderKanban className="w-5 h-5 text-primary" />
-                          </div>
+                          {project.isMultiMosque ? (
+                            <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/60 shadow-xs shrink-0">
+                              <MultiMosquesIcon className="w-5 h-5" />
+                            </div>
+                          ) : isSedana ? (
+                            <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200/80 dark:border-cyan-800/80 shadow-xs shrink-0">
+                              <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                              <FolderKanban className="w-5 h-5 text-primary" />
+                            </div>
+                          )}
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1 flex-wrap">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-bold truncate">{project.name}</p>
                               {(!project.requestId || project.isMultiMosque) && (
                                 <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px] py-0 px-1 font-semibold">
                                   عدّة مساجد
+                                </Badge>
+                              )}
+                              {isSedana && (
+                                <Badge variant="outline" className="bg-cyan-50/90 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300/80 dark:border-cyan-700/80 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                  <Sparkles className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                                  مشروع سدانة
                                 </Badge>
                               )}
                             </div>
@@ -442,7 +488,8 @@ export default function Projects() {
                         <Progress value={project.completionPercentage || 0} className="h-1.5" />
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
