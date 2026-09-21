@@ -1047,21 +1047,7 @@ export default function ContractPreview() {
                                       {(p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "") ? p.completionPercentage : percentage}%
                                     </td>
                                     <td className="py-2.5 px-3 text-gray-600">
-                                      <div>
-                                        {(() => {
-                                          if (!p.dueDate) return "عند الانتهاء من المرحلة";
-                                          try {
-                                            const d = new Date(p.dueDate);
-                                            if (!isNaN(d.getTime())) {
-                                              return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-                                            }
-                                            const s = String(p.dueDate);
-                                            return s.includes('T') ? s.split('T')[0] : s.split(' ')[0];
-                                          } catch (e) {
-                                            return String(p.dueDate);
-                                          }
-                                        })()}
-                                      </div>
+                                      <div>{p.dueDate ? (String(p.dueDate).includes('T') ? String(p.dueDate).split('T')[0] : String(p.dueDate).split(' ')[0]) : "عند الانتهاء من المرحلة"}</div>
                                       {Boolean(p.isPaid || p.status === "paid" || Number(p.paidAmount || 0) > 0) && (
                                         <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-800 font-bold">
                                           {Number(p.paidAmount || 0) > 0 && Number(p.paidAmount) < pAmount 
