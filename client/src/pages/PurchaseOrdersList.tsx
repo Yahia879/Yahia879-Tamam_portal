@@ -412,7 +412,7 @@ export default function PurchaseOrdersList() {
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">أمر الصرف</th>
                       <th className="p-3 font-bold text-center">تاريخ الأمر</th>
-                      <th className="p-3 font-bold text-center w-48">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-16">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -516,48 +516,93 @@ export default function PurchaseOrdersList() {
                             {order.orderDate || "-"}
                           </td>
 
-                          {/* الإجراءات */}
+                          {/* الإجراءات عبر قائمة 3 نقاط */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                              {order.status === "draft" && (
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
                                 <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    approveOrderMutation.mutate({
-                                      requestId: order.requestId,
-                                      orderNumber: order.orderNumber,
-                                    });
-                                  }}
-                                  disabled={approveOrderMutation.isPending}
-                                  className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer px-2"
-                                  title="اعتماد أمر الشراء فورياً"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
+                                  title="خيارات إضافية"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>اعتماد</span>
+                                  <MoreHorizontal className="h-4.5 w-4.5" />
+                                  <span className="sr-only">قائمة الإجراءات</span>
                                 </Button>
-                              )}
-                              {order.status === "approved" && !order.disbursementOrder && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => navigate(`/disbursement-orders/new-direct?source=purchase_order&orderNumber=${encodeURIComponent(order.orderNumber)}&requestId=${order.requestId}`)}
-                                  className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer px-2"
-                                  title="إنشاء أمر صرف لأمر الشراء المعتمد"
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 text-right font-sans">
+                                {/* معاينة وطباعة أمر الشراء */}
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/requests/${order.requestId}/purchase-order?orderNumber=${encodeURIComponent(order.orderNumber)}`)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
                                 >
-                                  <Coins className="w-3.5 h-3.5" />
-                                  <span>أمر صرف</span>
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/requests/${order.requestId}/purchase-order?orderNumber=${encodeURIComponent(order.orderNumber)}`)}
-                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer px-2"
-                                title="معاينة وطباعة أمر الشراء"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>معاينة</span>
-                              </Button>
-                            </div>
+                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                  <span>معاينة وطباعة أمر الشراء</span>
+                                </DropdownMenuItem>
+
+                                {/* استعراض البنود المشمولة */}
+                                <DropdownMenuItem
+                                  onClick={() => setSelectedOrderForItems(order)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Package className="w-4 h-4 text-indigo-600 shrink-0" />
+                                  <span>عرض البنود المشمولة ({order.itemsCount})</span>
+                                </DropdownMenuItem>
+
+                                {/* اعتماد أمر الشراء فورياً إن كان مسودة */}
+                                {order.status === "draft" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        approveOrderMutation.mutate({
+                                          requestId: order.requestId,
+                                          orderNumber: order.orderNumber,
+                                        });
+                                      }}
+                                      disabled={approveOrderMutation.isPending}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                      <span>اعتماد أمر الشراء فورياً</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* إنشاء أمر صرف لأمر الشراء المعتمد */}
+                                {order.status === "approved" && !order.disbursementOrder && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => navigate(`/disbursement-orders/new-direct?source=purchase_order&orderNumber=${encodeURIComponent(order.orderNumber)}&requestId=${order.requestId}`)}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                                    >
+                                      <Coins className="w-4 h-4 text-amber-600 shrink-0" />
+                                      <span>إنشاء أمر صرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* متابعة أمر الصرف المرتبط إن وجد */}
+                                {order.disbursementOrder && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => navigate("/disbursement-orders")}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Coins className="w-4 h-4 text-primary shrink-0" />
+                                      <div className="flex flex-col text-right">
+                                        <span className="font-semibold">متابعة أمر الصرف</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          #{order.disbursementOrder.orderNumber} ({order.disbursementOrder.status === "executed" ? "منفّذ" : order.disbursementOrder.status === "approved" ? "معتمد" : "قيد المراجعة"})
+                                        </span>
+                                      </div>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </td>
                         </TableRow>
                       );

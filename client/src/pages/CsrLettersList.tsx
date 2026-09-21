@@ -30,6 +30,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Eye,
   CheckCircle,
   Clock,
@@ -49,6 +56,7 @@ import {
   Plus,
   RotateCcw,
   Coins,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { exportStyledExcel } from "@/lib/excelExportHelper";
@@ -385,7 +393,7 @@ export default function CsrLettersList() {
                       <th className="p-3 font-bold text-center">الحالة</th>
                       <th className="p-3 font-bold text-center">أمر الصرف</th>
                       <th className="p-3 font-bold text-center">تاريخ الخطاب</th>
-                      <th className="p-3 font-bold text-center w-36">الإجراءات</th>
+                      <th className="p-3 font-bold text-center w-16">الإجراءات</th>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-border">
@@ -476,48 +484,93 @@ export default function CsrLettersList() {
                             {letter.letterDate || "-"}
                           </td>
 
-                          {/* الإجراءات */}
+                          {/* الإجراءات عبر قائمة 3 نقاط */}
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                              {letter.status === "draft" && (
+                            <DropdownMenu dir="rtl">
+                              <DropdownMenuTrigger asChild>
                                 <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    approveLetterMutation.mutate({
-                                      requestId: letter.requestId,
-                                      letterNumber: letter.letterNumber,
-                                    });
-                                  }}
-                                  disabled={approveLetterMutation.isPending}
-                                  className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer px-2"
-                                  title="اعتماد خطاب المسؤولية المجتمعية فورياً"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 p-0 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
+                                  title="خيارات إضافية"
                                 >
-                                  <CheckCircle className="w-3.5 h-3.5" />
-                                  <span>اعتماد</span>
+                                  <MoreHorizontal className="h-4.5 w-4.5" />
+                                  <span className="sr-only">قائمة الإجراءات</span>
                                 </Button>
-                              )}
-                              {letter.status === "approved" && !letter.disbursementOrder && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => navigate(`/disbursement-orders/new-direct?source=csr_letter&letterNumber=${encodeURIComponent(letter.letterNumber)}&requestId=${letter.requestId}`)}
-                                  className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer px-2"
-                                  title="إنشاء أمر صرف لخطاب المسؤولية المجتمعية المعتمد"
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-56 text-right font-sans">
+                                {/* معاينة وطباعة الخطاب الرسمي */}
+                                <DropdownMenuItem
+                                  onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
                                 >
-                                  <Coins className="w-3.5 h-3.5" />
-                                  <span>أمر صرف</span>
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => navigate(`/requests/${letter.requestId}/csr-letter?letterNumber=${encodeURIComponent(letter.letterNumber)}`)}
-                                className="h-7 text-xs font-bold gap-1 text-sky-700 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-950/40 border-sky-200 dark:border-sky-800 cursor-pointer"
-                                title="معاينة وطباعة الخطاب الرسمي"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>معاينة</span>
-                              </Button>
-                            </div>
+                                  <Eye className="w-4 h-4 text-sky-600 shrink-0" />
+                                  <span>معاينة وطباعة الخطاب الرسمي</span>
+                                </DropdownMenuItem>
+
+                                {/* استعراض الأصناف المطلوبة */}
+                                <DropdownMenuItem
+                                  onClick={() => setSelectedLetterForItems(letter)}
+                                  className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs"
+                                >
+                                  <Package className="w-4 h-4 text-indigo-600 shrink-0" />
+                                  <span>عرض الأصناف المطلوبة ({letter.itemsCount})</span>
+                                </DropdownMenuItem>
+
+                                {/* اعتماد خطاب المسؤولية المجتمعية فورياً إن كان مسودة */}
+                                {letter.status === "draft" && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        approveLetterMutation.mutate({
+                                          requestId: letter.requestId,
+                                          letterNumber: letter.letterNumber,
+                                        });
+                                      }}
+                                      disabled={approveLetterMutation.isPending}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                                    >
+                                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                                      <span>اعتماد الخطاب فورياً</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* إنشاء أمر صرف لخطاب المسؤولية المجتمعية المعتمد */}
+                                {letter.status === "approved" && !letter.disbursementOrder && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => navigate(`/disbursement-orders/new-direct?source=csr_letter&letterNumber=${encodeURIComponent(letter.letterNumber)}&requestId=${letter.requestId}`)}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                                    >
+                                      <Coins className="w-4 h-4 text-amber-600 shrink-0" />
+                                      <span>إنشاء أمر صرف</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+
+                                {/* متابعة أمر الصرف المرتبط إن وجد */}
+                                {letter.disbursementOrder && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => navigate("/disbursement-orders")}
+                                      className="cursor-pointer flex items-center justify-start gap-2 py-2 text-xs text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Coins className="w-4 h-4 text-primary shrink-0" />
+                                      <div className="flex flex-col text-right">
+                                        <span className="font-semibold">متابعة أمر الصرف</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          #{letter.disbursementOrder.orderNumber} ({letter.disbursementOrder.status === "executed" ? "منفّذ" : letter.disbursementOrder.status === "approved" ? "معتمد" : "قيد المراجعة"})
+                                        </span>
+                                      </div>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </td>
                         </TableRow>
                       );
