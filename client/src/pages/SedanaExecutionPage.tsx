@@ -101,20 +101,9 @@ export default function SedanaExecutionPage() {
   );
 
   // حالات Modals
-  const [isInwardModalOpen, setIsInwardModalOpen] = useState(false);
   const [isOutboundModalOpen, setIsOutboundModalOpen] = useState(false);
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-
-  // عناصر النموذج
-  const [inwardItems, setInwardItems] = useState<Record<string, number>>({});
-  const [inwardNotes, setInwardNotes] = useState("");
-  const [inwardReceivedBy, setInwardReceivedBy] = useState("");
-  // الربط بالمستند المرجعي لأمر الإدخال (أمر شراء، خطاب مسؤولية مجتمعية، عقد مورد)
-  const [inwardRefType, setInwardRefType] = useState<string>("purchase_order");
-  const [inwardRefNumber, setInwardRefNumber] = useState<string>("");
-  const [inwardSupplierInvoice, setInwardSupplierInvoice] = useState<string>("");
-  const [inwardSupplierName, setInwardSupplierName] = useState<string>("");
 
   const [outboundItems, setOutboundItems] = useState<Record<string, number>>({});
   const [outboundDate, setOutboundDate] = useState(new Date().toISOString().split("T")[0]);
@@ -137,10 +126,6 @@ export default function SedanaExecutionPage() {
   const createInwardMutation = trpc.sedanaExecution.createInwardOrder.useMutation({
     onSuccess: () => {
       toast.success("تم تسجيل أمر الإدخال في المستودع الافتراضي وتوثيق المستند المرجعي بنجاح");
-      setIsInwardModalOpen(false);
-      setInwardItems({});
-      setInwardNotes("");
-      setInwardSupplierInvoice("");
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId });
     },
     onError: (err) => toast.error(err.message || "حدث خطأ أثناء حفظ أمر الإدخال"),
@@ -201,11 +186,6 @@ export default function SedanaExecutionPage() {
   const totalInward = inventoryItems.reduce((s, i) => s + i.totalInward, 0);
   const totalAvailableStock = inventoryItems.reduce((s, i) => s + i.availableStock, 0);
   const totalDelivered = inventoryItems.reduce((s, i) => s + i.totalDelivered, 0);
-
-  // المستند المرجعي المختار لأمر الإدخال والتحقق من تنفيذ أمر الصرف
-  const currentInwardRef = availableReferences.find((r: any) => r.type === inwardRefType) || availableReferences[0];
-
-  const isInwardBlocked = currentInwardRef && currentInwardRef.canCreateInward === false;
 
   // تهيئة سريعة لإدخال كامل الكميات
   const handleQuickInwardAll = () => {
@@ -469,26 +449,9 @@ export default function SedanaExecutionPage() {
                   <Button
                     size="sm"
                     onClick={() => {
-                      const initial: Record<string, number> = {};
-                      inventoryItems.forEach((i) => {
-                        if (i.pendingInward > 0) initial[i.id] = i.pendingInward;
-                      });
-                      setInwardItems(initial);
-                      // تعيين المستند المرجعي الافتراضي
-                      const firstRef = availableReferences[0];
-                      if (firstRef) {
-                        setInwardRefType(firstRef.type);
-                        setInwardRefNumber(firstRef.documentNumber);
-                        setInwardSupplierName(firstRef.partnerOrSupplier || "");
-                      } else {
-                        setInwardRefType("purchase_order");
-                        setInwardRefNumber(requestId > 0 ? `PO-${requestId}` : "");
-                        setInwardSupplierName("");
-                      }
-                      setInwardSupplierInvoice("");
-                      setIsInwardModalOpen(true);
+                      setLocation(requestId > 0 ? `/requests/${requestId}/sedana-inward/new` : "/sedana-warehouse/inward/new");
                     }}
-                    className="text-xs font-bold gap-1 bg-primary text-primary-foreground"
+                    className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>أمر إدخال جديد</span>
@@ -890,242 +853,7 @@ export default function SedanaExecutionPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Modal: أمر إدخال جديد مع الربط بالمستند المرجعي للتأمين */}
-        <Dialog open={isInwardModalOpen} onOpenChange={setIsInwardModalOpen}>
-          <DialogContent className="max-w-lg text-right font-sans" dir="rtl">
-            <DialogHeader>
-              <DialogTitle className="text-base font-bold flex items-center gap-2">
-                <Boxes className="w-5 h-5 text-emerald-600" />
-                <span>إصدار أمر إدخال مستودعي والربط بالمستند المرجعي</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                تسجيل الكميات الموردة وربطها بأمر الشراء أو عقد المورد أو خطاب المسؤولية المجتمعية وفاتورة التوريد
-              </DialogDescription>
-            </DialogHeader>
 
-            <div className="space-y-3 py-2 text-xs max-h-[65vh] overflow-y-auto pr-1">
-              {/* اختيار وتوثيق المستند المرجعي للتأمين والتعاقد */}
-              <div className="p-3 bg-muted/40 rounded-xl border border-border/80 space-y-2.5">
-                <div className="flex items-center gap-1.5 font-bold text-foreground">
-                  <FileText className="w-4 h-4 text-emerald-600" />
-                  <span>المستند المرجعي للتأمين / التعاقد:</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[11px] font-semibold text-muted-foreground">نوع مستند التأمين</Label>
-                    <Select
-                      value={inwardRefType}
-                      onValueChange={(val) => {
-                        setInwardRefType(val);
-                        const found = availableReferences.find((r: any) => r.type === val);
-                        if (found) {
-                          setInwardRefNumber(found.documentNumber);
-                          if (found.partnerOrSupplier) setInwardSupplierName(found.partnerOrSupplier);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs mt-1 bg-background">
-                        <SelectValue placeholder="اختر نوع المستند..." />
-                      </SelectTrigger>
-                      <SelectContent dir="rtl">
-                        {availableReferences.map((ref: any) => (
-                          <SelectItem key={ref.type} value={ref.type} className="text-xs">
-                            {ref.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-semibold text-muted-foreground">رقم المستند المرجعي</Label>
-                    <Input
-                      value={inwardRefNumber}
-                      onChange={(e) => setInwardRefNumber(e.target.value)}
-                      placeholder="مثال: PO-87-2026 أو CSR-87"
-                      className="h-8 text-xs font-mono mt-1 bg-background"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-border/60">
-                  <div>
-                    <Label className="text-[11px] font-semibold text-muted-foreground">اسم المورد / الشريك المانح</Label>
-                    <Input
-                      value={inwardSupplierName}
-                      onChange={(e) => setInwardSupplierName(e.target.value)}
-                      placeholder="اسم المورد أو الجهة المانحة..."
-                      className="h-8 text-xs mt-1 bg-background"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[11px] font-semibold text-muted-foreground">رقم فاتورة المورد / بوليصة الشحن</Label>
-                    <Input
-                      value={inwardSupplierInvoice}
-                      onChange={(e) => setInwardSupplierInvoice(e.target.value)}
-                      placeholder="رقم الفاتورة أو البوليصة..."
-                      className="h-8 text-xs font-mono mt-1 bg-background"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* تنبيه حالة أمر الصرف المرتبط */}
-              {isInwardBlocked && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-900 dark:text-amber-200 space-y-2">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="font-bold text-xs">لا يمكن عمل أمر إدخال مستودعي حالياً</p>
-                      <p className="text-[11px] leading-relaxed">
-                        {currentInwardRef?.blockedReason || "لا يمكن عمل أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'."}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-amber-500/20">
-                    {currentInwardRef?.hasDisbursementOrder ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setLocation("/disbursement-orders")}
-                        className="h-7 text-xs font-bold gap-1 text-amber-800 dark:text-amber-300 border-amber-400 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 cursor-pointer"
-                      >
-                        <span>متابعة أمر الصرف (#{currentInwardRef.disbursementOrderNumber})</span>
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => setLocation(`/disbursement-orders/new-direct?source=${inwardRefType}&orderNumber=${encodeURIComponent(inwardRefNumber || currentInwardRef?.documentNumber || "")}&requestId=${requestId}`)}
-                        className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
-                      >
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>إنشاء أمر صرف الآن</span>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentInwardRef?.isExecuted && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>
-                      أمر الصرف مرتبط ومنفّذ بنجاح (رقم أمر الصرف: <strong>{currentInwardRef.disbursementOrderNumber}</strong> بمبلغ <strong>{currentInwardRef.disbursementAmount}</strong> ر.س)
-                    </span>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-bold border-emerald-500 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40">
-                    منفّذ
-                  </Badge>
-                </div>
-              )}
-
-              <div>
-                <Label className="text-xs font-bold">اسم المستلم (أمين المستودع / المنسق)</Label>
-                <Input
-                  value={inwardReceivedBy}
-                  onChange={(e) => setInwardReceivedBy(e.target.value)}
-                  placeholder="أمين المستودع"
-                  className="h-8 text-xs mt-1"
-                />
-              </div>
-
-              <div className="space-y-2 border-t pt-2">
-                <Label className="text-xs font-bold">الكميات الموردة لكل صنف:</Label>
-                {inventoryItems.map((it) => (
-                  <div key={it.id} className="flex items-center justify-between gap-2 border-b pb-1">
-                    <div>
-                      <span className="font-medium text-foreground">{it.name} ({it.unit}):</span>
-                      <span className="text-[10px] text-muted-foreground mr-2 font-mono">
-                        (المتبقي: {it.pendingInward})
-                      </span>
-                    </div>
-                    <Input
-                      type="number"
-                      step="any"
-                      min="0"
-                      value={inwardItems[it.id] ?? 0}
-                      onChange={(e) =>
-                        setInwardItems((prev) => ({
-                          ...prev,
-                          [it.id]: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                      className="w-24 h-7 text-xs text-center font-mono"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <Label className="text-xs font-bold">ملاحظات الإدخال</Label>
-                <Textarea
-                  value={inwardNotes}
-                  onChange={(e) => setInwardNotes(e.target.value)}
-                  placeholder="ملاحظات حول حالة المواد أو مطابقتها للمواصفات..."
-                  className="text-xs mt-1"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsInwardModalOpen(false)}
-                className="text-xs"
-              >
-                إلغاء
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  const items = Object.keys(inwardItems)
-                    .filter((k) => (inwardItems[k] || 0) > 0)
-                    .map((k) => {
-                      const found = inventoryItems.find((i) => i.id === k);
-                      return {
-                        id: k,
-                        itemName: found?.name || `بند ${k}`,
-                        quantity: inwardItems[k],
-                        unit: found?.unit || "وحدة",
-                      };
-                    });
-
-                  if (items.length === 0) {
-                    toast.error("يرجى إدخال كمية موجبة لصنف واحد على الأقل");
-                    return;
-                  }
-
-                  createInwardMutation.mutate({
-                    requestId,
-                    receivedBy: inwardReceivedBy || user?.name || "أمين المستودع",
-                    referenceType: inwardRefType,
-                    referenceNumber: inwardRefNumber,
-                    supplierInvoiceNumber: inwardSupplierInvoice,
-                    supplierName: inwardSupplierName,
-                    notes: inwardNotes,
-                    items,
-                  });
-                }}
-                disabled={createInwardMutation.isPending || isInwardBlocked}
-                className={`text-xs font-bold ${
-                  isInwardBlocked
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-emerald-700 hover:bg-emerald-800 text-white cursor-pointer"
-                }`}
-              >
-                {createInwardMutation.isPending
-                  ? "جاري الحفظ..."
-                  : isInwardBlocked
-                  ? "بانتظار تنفيذ أمر الصرف"
-                  : "تأكيد وتوثيق أمر الإدخال"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Modal: جدولة أمر إخراج جديد */}
         <Dialog open={isOutboundModalOpen} onOpenChange={setIsOutboundModalOpen}>
