@@ -24,19 +24,11 @@ export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<t
 
   const existingNumbers = new Set(existingProjects.map(p => p.projectNumber));
 
-  let maxActualSeq = 0;
-  for (const p of existingProjects) {
-    const numPart = p.projectNumber.substring(prefix.length);
-    const parsed = parseInt(numPart, 10);
-    if (!isNaN(parsed) && parsed > maxActualSeq) {
-      maxActualSeq = parsed;
-    }
-  }
-
-  // الرقم التالي يجب أن يكون أكبر من التسلسل المسجل وأكبر من أي رقم موجود بالفعل
-  let nextSeq = Math.max(lastSeq, maxActualSeq) + 1;
+  // الرقم التالي يبدأ مباشرة من آخر تسلسل مسجل + 1
+  let nextSeq = lastSeq + 1;
   let candidateNumber = `${prefix}${String(nextSeq).padStart(4, "0")}`;
 
+  // في حال كان الرقم مستخدماً، نزيد حتى نجد أول رقم متاح
   while (existingNumbers.has(candidateNumber)) {
     nextSeq++;
     candidateNumber = `${prefix}${String(nextSeq).padStart(4, "0")}`;
@@ -50,6 +42,165 @@ export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<t
   }
 
   return candidateNumber;
+}
+
+// دالة إنشاء مشروع تلقائياً لطلب سدانة وربط كافة مراحله وبنوده
+export async function createProjectForSedanaRequest(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  requestId: number,
+  customName?: string | null
+): Promise<number | null> {
+  // التحقق أولاً من عدم وجود مشروع مرتبط بالطلب مسبقاً
+  const [existing] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.requestId, requestId))
+    .limit(1);
+
+  if (existing) {
+    return existing.id;
+  }
+
+  // جلب بيانات طلب سدانة
+  const [req] = await db
+    .select({
+      id: mosqueRequests.id,
+      requestNumber: mosqueRequests.requestNumber,
+      programType: mosqueRequests.programType,
+      currentStage: mosqueRequests.currentStage,
+      status: mosqueRequests.status,
+      mosqueId: mosqueRequests.mosqueId,
+      descriptiveName: mosqueRequests.descriptiveName,
+      programData: mosqueRequests.programData,
+      mosqueName: mosques.name,
+    })
+    .from(mosqueRequests)
+    .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
+    .where(eq(mosqueRequests.id, requestId))
+    .limit(1);
+
+  if (!req || req.programType !== "sedana") {
+    return null;
+  }
+
+  const projectNumber = await generateProjectNumber(db);
+
+  let pName = customName || req.descriptiveName;
+  if (!pName) {
+    let mName = req.mosqueName;
+    if (!mName && req.programData) {
+      try {
+        let pData: any = req.programData;
+        while (typeof pData === "string") {
+          pData = JSON.parse(pData);
+        }
+        if (pData?.customMosqueName) mName = pData.customMosqueName;
+      } catch {}
+    }
+    pName = mName ? `مشروع سدانة - ${mName}` : `مشروع سدانة (${req.requestNumber})`;
+  }
+
+  // تحديد الحالة ونسبة الإنجاز والمرحلة النشطة بناءً على المرحلة الحالية للطلب
+  let projectStatus: "planning" | "in_progress" | "on_hold" | "completed" | "cancelled" = "planning";
+  let completionPercentage = 17;
+  let activePhaseOrder = 2; // 1 = planning, 2 = boq, 3 = quotation, 4 = contracting, 5 = execution/payments, 6 = review/close
+
+  switch (req.currentStage) {
+    case "submitted":
+    case "boq_preparation":
+      projectStatus = "planning";
+      completionPercentage = 17;
+      activePhaseOrder = 2;
+      break;
+    case "financial_eval_and_approval":
+      projectStatus = "in_progress";
+      completionPercentage = 33;
+      activePhaseOrder = 3;
+      break;
+    case "contracting":
+      projectStatus = "in_progress";
+      completionPercentage = 50;
+      activePhaseOrder = 4;
+      break;
+    case "execution":
+      projectStatus = "in_progress";
+      completionPercentage = 67;
+      activePhaseOrder = 5;
+      break;
+    case "handover":
+      projectStatus = "in_progress";
+      completionPercentage = 83;
+      activePhaseOrder = 6;
+      break;
+    case "closed":
+      projectStatus = "completed";
+      completionPercentage = 100;
+      activePhaseOrder = 7;
+      break;
+    default:
+      projectStatus = "planning";
+      completionPercentage = 17;
+      activePhaseOrder = 2;
+  }
+
+  const [insertedProj] = await db.insert(projects).values({
+    projectNumber,
+    requestId: req.id,
+    name: pName,
+    description: `مشروع سدانة لتشغيل ورعاية المساجد وتوريد الاحتياجات الدورية - ${req.requestNumber}`,
+    status: projectStatus,
+    completionPercentage,
+    programType: "sedana",
+  });
+
+  const projectId = Number(insertedProj.insertId);
+
+  // إنشاء المراحل الست القياسية
+  const defaultPhases = [
+    { phaseName: "المرحلة الأولى : الإنشاء والتخطيط", phaseOrder: 1 },
+    { phaseName: "المرحلة الثانية : إعداد جدول الكميات", phaseOrder: 2 },
+    { phaseName: "المرحلة الثالثة : اعتماد عرض السعر المناسب", phaseOrder: 3 },
+    { phaseName: "المرحلة الرابعة : التعاقد", phaseOrder: 4 },
+    { phaseName: "المرحلة الخامسة : صرف المدفوعات", phaseOrder: 5 },
+    { phaseName: "المرحلة السادسة : المراجعة والإغلاق", phaseOrder: 6 },
+  ];
+
+  for (const phase of defaultPhases) {
+    let pStatus: "pending" | "in_progress" | "completed" = "pending";
+    let pComp = 0;
+    if (phase.phaseOrder < activePhaseOrder) {
+      pStatus = "completed";
+      pComp = 100;
+    } else if (phase.phaseOrder === activePhaseOrder) {
+      pStatus = "in_progress";
+      pComp = 0;
+    } else {
+      pStatus = "pending";
+      pComp = 0;
+    }
+
+    await db.insert(projectPhases).values({
+      projectId,
+      phaseName: phase.phaseName,
+      phaseOrder: phase.phaseOrder,
+      completionPercentage: pComp,
+      status: pStatus,
+    });
+  }
+
+  // ربط بنود جدول الكميات التابعة للطلب بهذا المشروع
+  await db
+    .update(quantitySchedules)
+    .set({ projectId })
+    .where(eq(quantitySchedules.requestId, requestId));
+
+  // ربط العقود التابعة للطلب بهذا المشروع
+  await db
+    .update(contractsEnhanced)
+    .set({ projectId })
+    .where(eq(contractsEnhanced.requestId, requestId));
+
+  return projectId;
 }
 
 // دالة إنشاء رقم طلب فريد للمشروع المباشر
@@ -211,7 +362,7 @@ export const projectsRouter = router({
           managerName: users.name,
           requestStage: mosqueRequests.currentStage,
           technicalEvalDecision: mosqueRequests.technicalEvalDecision,
-          programType: mosqueRequests.programType,
+          programType: sql<string>`COALESCE(${projects.programType}, ${mosqueRequests.programType})`.as('programType'),
           mosqueName: mosques.name,
           city: mosques.city,
           district: mosques.district,
@@ -289,8 +440,26 @@ export const projectsRouter = router({
       if (input.type && input.type !== "all") {
         if (input.type === "multi") {
           conditions.push(eq(projects.isMultiMosque, true));
+        } else if (input.type === "sedana") {
+          conditions.push(
+            or(
+              eq(projects.programType, "sedana"),
+              eq(mosqueRequests.programType, "sedana")
+            )!
+          );
         } else if (input.type === "single") {
-          conditions.push(or(eq(projects.isMultiMosque, false), sql`${projects.isMultiMosque} IS NULL`)!);
+          conditions.push(
+            and(
+              or(eq(projects.isMultiMosque, false), sql`${projects.isMultiMosque} IS NULL`)!,
+              or(
+                and(
+                  ne(sql`COALESCE(${projects.programType}, ${mosqueRequests.programType})`, "sedana"),
+                  sql`COALESCE(${projects.programType}, ${mosqueRequests.programType}) IS NOT NULL`
+                ),
+                sql`COALESCE(${projects.programType}, ${mosqueRequests.programType}) IS NULL`
+              )!
+            )!
+          );
         }
       }
       if (input.status && input.status !== "all") {
@@ -312,12 +481,22 @@ export const projectsRouter = router({
         }
       }
       if (input.search) {
-        conditions.push(
-          or(
-            sql`${projects.name} LIKE ${`%${input.search}%`}`,
-            sql`${projects.projectNumber} LIKE ${`%${input.search}%`}`
-          )!
-        );
+        const s = input.search.trim().toLowerCase();
+        const isSearchingSedana = s.includes("سدانة") || s.includes("sedana");
+        const searchConditions = [
+          sql`${projects.name} LIKE ${`%${input.search}%`}`,
+          sql`${projects.projectNumber} LIKE ${`%${input.search}%`}`,
+          sql`${mosqueRequests.requestNumber} LIKE ${`%${input.search}%`}`,
+        ];
+        if (isSearchingSedana) {
+          searchConditions.push(
+            or(
+              eq(projects.programType, "sedana"),
+              eq(mosqueRequests.programType, "sedana")
+            )!
+          );
+        }
+        conditions.push(or(...searchConditions)!);
       }
 
       const offset = (input.page - 1) * input.limit;
@@ -329,6 +508,7 @@ export const projectsRouter = router({
           name: projects.name,
           description: projects.description,
           isMultiMosque: projects.isMultiMosque,
+          programType: sql<string>`COALESCE(${projects.programType}, ${mosqueRequests.programType})`.as('programType'),
           status: projects.status,
           budget: sql<string>`COALESCE(${projects.budget}, (SELECT SUM(CAST(totalPrice AS DECIMAL(15,2))) FROM quantity_schedules WHERE projectId = ${projects.id}))`.as('budget'),
           actualCost: projects.actualCost,
@@ -338,6 +518,7 @@ export const projectsRouter = router({
           completionPercentage: projects.completionPercentage,
           createdAt: projects.createdAt,
           requestId: projects.requestId,
+          requestNumber: mosqueRequests.requestNumber,
           managerId: projects.managerId,
           managerName: users.name,
           requestCurrentStage: mosqueRequests.currentStage,
@@ -443,6 +624,7 @@ export const projectsRouter = router({
           createdAt: projects.createdAt,
           updatedAt: projects.updatedAt,
           requestId: projects.requestId,
+          programType: projects.programType,
           managerId: projects.managerId,
           managerName: users.name,
         })
@@ -471,6 +653,7 @@ export const projectsRouter = router({
             createdAt: projects.createdAt,
             updatedAt: projects.updatedAt,
             requestId: projects.requestId,
+            programType: projects.programType,
             managerId: projects.managerId,
             managerName: users.name,
           })
