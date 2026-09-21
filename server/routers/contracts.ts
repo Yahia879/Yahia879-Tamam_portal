@@ -468,12 +468,26 @@ export const contractsRouter = router({
             const isPaid = isFullyPaid || isPartiallyPaid;
 
             const matchedDisb = disbs[0];
-            const resolvedDueDate = p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
+            const rawDueDate = p.dueDate || p.paidAt || matchedDisb?.dateMiladi || null;
+            let formattedDueDate: string | null = null;
+            if (rawDueDate) {
+              try {
+                const d = new Date(rawDueDate);
+                if (!isNaN(d.getTime())) {
+                  formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+                } else {
+                  const s = String(rawDueDate);
+                  formattedDueDate = s.includes('T') ? s.split('T')[0] : s.split(' ')[0];
+                }
+              } catch (e) {
+                formattedDueDate = String(rawDueDate);
+              }
+            }
             const resolvedNotes = p.notes || p.description || matchedDisb?.description || matchedDisb?.title || "";
 
             return {
               ...p,
-              dueDate: resolvedDueDate,
+              dueDate: formattedDueDate,
               notes: resolvedNotes,
               description: resolvedNotes,
               amount: String(agreedAmt),
