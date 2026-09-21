@@ -196,10 +196,10 @@ export default function NewDisbursementRequest() {
 
   // تحديث بيانات المورد من العقد
   useEffect(() => {
-    if (contractDetails && !hasInitializedSupplierRef.current) {
+    if (contractDetails && (!hasInitializedSupplierRef.current || (suppliers.length === 1 && (!suppliers[0].amount || suppliers[0].amount === 0) && remainingAmount > 0))) {
       hasInitializedSupplierRef.current = true;
       const supplierFromContract: SupplierEntry = {
-        id: crypto.randomUUID(),
+        id: suppliers[0]?.id || crypto.randomUUID(),
         name: contractDetails.contract.secondPartyName || "",
         work: contractDetails.contract.contractTitle || "",
         amount: remainingAmount,

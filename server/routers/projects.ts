@@ -1620,26 +1620,59 @@ export const projectsRouter = router({
           .from(disbursementRequests)
           .where(eq(disbursementRequests.projectId, input.projectId));
 
+        const pDisbIds = pDisbs.map((d: any) => d.id);
+        const projectOrders = pDisbIds.length > 0
+          ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, pDisbIds))
+          : [];
+
         let currentAllocatedSum = 0;
 
         for (const cp of existingCps) {
-          const cpPaidDisbs = pDisbs.filter((d: any) => d.contractPaymentId === cp.id && d.status === "paid");
-          const paid = cpPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
-          if (paid > 0) {
-            currentAllocatedSum += paid;
-          } else {
-            currentAllocatedSum += parseFloat(String(cp.amount || "0"));
+          const isAdvance = cp.phaseOrder === 0;
+          const agreedAmount = parseFloat(String(cp.amount || "0"));
+          const disbsForPayment = pDisbs.filter((d: any) => (d.contractPaymentId === cp.id) || (isAdvance && d.paymentType === "advance"));
+          const disbIdsForPayment = disbsForPayment.map((d: any) => d.id);
+          const ordersForPayment = projectOrders.filter((o: any) => disbIdsForPayment.includes(o.disbursementRequestId));
+          const executedOrders = ordersForPayment.filter((o: any) => o.status === "executed");
+
+          let paidAmount = 0;
+          if (executedOrders.length > 0) {
+            paidAmount = executedOrders.reduce((sum: number, o: any) => sum + parseFloat(String(o.amount || "0")), 0);
+          } else if (cp.status === "paid") {
+            paidAmount = agreedAmount;
+          } else if (disbsForPayment.some((d: any) => d.status === "paid")) {
+            paidAmount = disbsForPayment.filter((d: any) => d.status === "paid").reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
           }
+
+          const isPaid = cp.status === "paid" || paidAmount > 0;
+          const effectiveAmount = (isPaid && paidAmount > 0) ? paidAmount : agreedAmount;
+          currentAllocatedSum += effectiveAmount;
         }
 
         for (const m of existingManuals) {
-          const mPaidDisbs = pDisbs.filter((d: any) => d.paymentId === m.id && d.status === "paid");
-          const paid = mPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
-          if (paid > 0) {
-            currentAllocatedSum += paid;
-          } else {
-            currentAllocatedSum += parseFloat(String(m.amount || "0"));
+          const agreedAmount = parseFloat(String(m.amount || "0"));
+          const disbsForM = pDisbs.filter((d: any) => d.paymentId === m.id);
+          const disbIdsForM = disbsForM.map((d: any) => d.id);
+          const ordersForM = projectOrders.filter((o: any) => disbIdsForM.includes(o.disbursementRequestId));
+          const executedOrders = ordersForM.filter((o: any) => o.status === "executed");
+
+          let paidAmount = 0;
+          if (executedOrders.length > 0) {
+            paidAmount = executedOrders.reduce((sum: number, o: any) => sum + parseFloat(String(o.amount || "0")), 0);
+          } else if (m.status === "paid") {
+            paidAmount = agreedAmount;
+          } else if (disbsForM.some((d: any) => d.status === "paid")) {
+            paidAmount = disbsForM.filter((d: any) => d.status === "paid").reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
           }
+
+          const isPaid = m.status === "paid" || paidAmount > 0;
+          const effectiveAmount = (isPaid && paidAmount > 0) ? paidAmount : agreedAmount;
+          currentAllocatedSum += effectiveAmount;
+        }
+
+        const standaloneDisbs = pDisbs.filter((d: any) => !d.contractPaymentId && !d.paymentId && d.status !== "rejected" && d.status !== "cancelled");
+        for (const sd of standaloneDisbs) {
+          currentAllocatedSum += parseFloat(String(sd.amount || "0"));
         }
 
         const remainingAllowed = Math.max(0, totalContractAmt - currentAllocatedSum);
@@ -1947,6 +1980,11 @@ export const projectsRouter = router({
             .from(disbursementRequests)
             .where(eq(disbursementRequests.projectId, targetProjectId));
 
+          const pDisbIds = pDisbs.map((d: any) => d.id);
+          const projectOrders = pDisbIds.length > 0
+            ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, pDisbIds))
+            : [];
+
           let otherAllocatedSum = 0;
 
           let editingCpId: number | null = null;
@@ -1966,25 +2004,48 @@ export const projectsRouter = router({
           for (const cp of existingCps) {
             if (editingCpId !== null && cp.id === editingCpId) continue;
 
-            const cpPaidDisbs = pDisbs.filter((d: any) => d.contractPaymentId === cp.id && d.status === "paid");
-            const paid = cpPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
-            if (paid > 0) {
-              otherAllocatedSum += paid;
-            } else {
-              otherAllocatedSum += parseFloat(String(cp.amount || "0"));
+            const isAdvance = cp.phaseOrder === 0;
+            const agreedAmount = parseFloat(String(cp.amount || "0"));
+            const disbsForPayment = pDisbs.filter((d: any) => (d.contractPaymentId === cp.id) || (isAdvance && d.paymentType === "advance"));
+            const disbIdsForPayment = disbsForPayment.map((d: any) => d.id);
+            const ordersForPayment = projectOrders.filter((o: any) => disbIdsForPayment.includes(o.disbursementRequestId));
+            const executedOrders = ordersForPayment.filter((o: any) => o.status === "executed");
+
+            let paidAmount = 0;
+            if (executedOrders.length > 0) {
+              paidAmount = executedOrders.reduce((sum: number, o: any) => sum + parseFloat(String(o.amount || "0")), 0);
+            } else if (cp.status === "paid") {
+              paidAmount = agreedAmount;
+            } else if (disbsForPayment.some((d: any) => d.status === "paid")) {
+              paidAmount = disbsForPayment.filter((d: any) => d.status === "paid").reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
             }
+
+            const isPaid = cp.status === "paid" || paidAmount > 0;
+            const effectiveAmount = (isPaid && paidAmount > 0) ? paidAmount : agreedAmount;
+            otherAllocatedSum += effectiveAmount;
           }
 
           for (const m of existingManuals) {
             if (editingPaymentId !== null && m.id === editingPaymentId) continue;
 
-            const mPaidDisbs = pDisbs.filter((d: any) => d.paymentId === m.id && d.status === "paid");
-            const paid = mPaidDisbs.reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
-            if (paid > 0) {
-              otherAllocatedSum += paid;
-            } else {
-              otherAllocatedSum += parseFloat(String(m.amount || "0"));
+            const agreedAmount = parseFloat(String(m.amount || "0"));
+            const disbsForM = pDisbs.filter((d: any) => d.paymentId === m.id);
+            const disbIdsForM = disbsForM.map((d: any) => d.id);
+            const ordersForM = projectOrders.filter((o: any) => disbIdsForM.includes(o.disbursementRequestId));
+            const executedOrders = ordersForM.filter((o: any) => o.status === "executed");
+
+            let paidAmount = 0;
+            if (executedOrders.length > 0) {
+              paidAmount = executedOrders.reduce((sum: number, o: any) => sum + parseFloat(String(o.amount || "0")), 0);
+            } else if (m.status === "paid") {
+              paidAmount = agreedAmount;
+            } else if (disbsForM.some((d: any) => d.status === "paid")) {
+              paidAmount = disbsForM.filter((d: any) => d.status === "paid").reduce((sum: number, d: any) => sum + parseFloat(String(d.amount || "0")), 0);
             }
+
+            const isPaid = m.status === "paid" || paidAmount > 0;
+            const effectiveAmount = (isPaid && paidAmount > 0) ? paidAmount : agreedAmount;
+            otherAllocatedSum += effectiveAmount;
           }
 
           const standaloneDisbs = pDisbs.filter((d: any) => !d.contractPaymentId && !d.paymentId && d.status !== "rejected" && d.status !== "cancelled");
