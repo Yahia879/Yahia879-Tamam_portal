@@ -447,9 +447,8 @@ export default function ProjectDetailsPage() {
 
   // 1. الدفعات المسددة فعلياً (تظهر في البار بالأسفل)
   const paidPaymentsSum = project?.payments
-    ?.filter(p => p.status === "paid" || p.status === "executed" || !!p.paidAt)
     ?.reduce((sum, p) => {
-      const amt = parseFloat(String(p.amount || "0").replace(/,/g, ""));
+      const amt = parseFloat(String(p.paidAmount !== undefined && p.paidAmount !== null ? p.paidAmount : ((p.status === "paid" || p.status === "executed" || !!p.paidAt) ? p.amount : 0)).replace(/,/g, ""));
       return sum + (isNaN(amt) ? 0 : amt);
     }, 0) || 0;
 
@@ -1625,7 +1624,8 @@ export default function ProjectDetailsPage() {
                               <TableRow>
                                 <TableHead className="text-right font-bold py-3.5 px-4">رقم الدفعة</TableHead>
                                 <TableHead className="text-right font-bold py-3.5 px-4">عنوان الدفعة</TableHead>
-                                <TableHead className="text-right font-bold py-3.5 px-4">المبلغ</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">المتفق</TableHead>
+                                <TableHead className="text-right font-bold py-3.5 px-4">المسدد</TableHead>
                                 <TableHead className="text-right font-bold py-3.5 px-4">الحالة</TableHead>
                                 <TableHead className="text-right font-bold py-3.5 px-4">التاريخ</TableHead>
                                 <TableHead className="text-center font-bold py-3.5 px-4">الإجراءات</TableHead>
@@ -1633,7 +1633,7 @@ export default function ProjectDetailsPage() {
                             </TableHeader>
                             <TableBody>
                               {sortedPayments.map((payment, index) => {
-                                const isUnpaid = payment.status !== "paid" && payment.status !== "executed" && !payment.paidAt;
+                                const isUnpaid = payment.status !== "paid" && payment.status !== "executed" && !payment.paidAt && Number(payment.paidAmount || 0) === 0;
                                 const hasDisbursement = Boolean((payment as any).hasDisbursementRequest);
                                 const hasReport = Boolean((payment as any).hasProgressReport);
                                 return (
@@ -1665,20 +1665,27 @@ export default function ProjectDetailsPage() {
                                       )}
                                     </div>
                                   </TableCell>
+                                  {/* المتفق */}
                                   <TableCell className="text-right py-3.5 px-4 font-bold text-foreground font-sans">
-                                    {formatCurrency(payment.amount)}
+                                    {formatCurrency(payment.agreedAmount !== undefined && payment.agreedAmount !== null ? payment.agreedAmount : payment.amount)}
+                                  </TableCell>
+                                  {/* المسدد */}
+                                  <TableCell className="text-right py-3.5 px-4 font-bold font-sans">
+                                    <span className={Number(payment.paidAmount || 0) > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                                      {formatCurrency(payment.paidAmount || 0)}
+                                    </span>
                                   </TableCell>
                                   <TableCell className="text-right py-3.5 px-4">
                                     <Badge variant="outline" className={
-                                      payment.status === "paid" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                      payment.status === "paid" || payment.status === "partially_paid" || Number(payment.paidAmount || 0) > 0 ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                                       payment.status === "approved" ? "bg-blue-50 text-blue-700 border-blue-200" :
                                       payment.status === "rejected" ? "bg-red-50 text-red-700 border-red-200" :
                                       payment.status === "due" ? "bg-amber-50 text-amber-700 border-amber-200" :
                                       "bg-yellow-50 text-yellow-700 border-yellow-200"
                                     }>
-                                      {payment.status === "pending" ? "قيد الانتظار" :
+                                      {payment.status === "paid" || payment.status === "partially_paid" || Number(payment.paidAmount || 0) > 0 ? "مسدد" :
+                                       payment.status === "pending" ? "قيد الانتظار" :
                                        payment.status === "approved" ? "معتمد" :
-                                       payment.status === "paid" ? "مسدد" : 
                                        payment.status === "due" ? "مستحق" : "مرفوض"}
                                     </Badge>
                                   </TableCell>
@@ -1749,7 +1756,7 @@ export default function ProjectDetailsPage() {
                                           </Button>
                                         )
                                       )}
-                                      {payment.id && payment.status !== "paid" && (
+                                      {payment.id && payment.status !== "paid" && payment.status !== "partially_paid" && !payment.paidAt && Number(payment.paidAmount || 0) === 0 && (
                                         <Button
                                           variant="ghost"
                                           size="icon"
@@ -1770,18 +1777,13 @@ export default function ProjectDetailsPage() {
                         </div>
                         <div className="mt-5 p-4 sm:p-5 bg-muted/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between border border-border/50 gap-4">
                           <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي قيم المدفوعات:</span>
-                            <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-sans">{formatCurrency(paidPaymentsSum.toString())}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground font-semibold text-xs sm:text-sm">المتبقي:</span>
-                            <span className="font-bold text-sm sm:text-base text-amber-600 dark:text-amber-400 font-sans">{formatCurrency(remainingContractSum.toString())}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground font-semibold text-xs sm:text-sm">من إجمالي قيمة العقد:</span>
+                            <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي المتفق:</span>
                             <span className="font-bold text-sm sm:text-base text-foreground font-sans">{formatCurrency(totalContractsSum.toString())}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground font-semibold text-xs sm:text-sm">إجمالي المسدد:</span>
+                            <span className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 font-sans">{formatCurrency(paidPaymentsSum.toString())}</span>
                           </div>
                         </div>
                       </>

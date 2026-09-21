@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ArrowRight,
   Send,
@@ -38,6 +39,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -89,6 +91,8 @@ export default function EditPaymentPage() {
       refetchOnWindowFocus: false,
     }
   );
+
+  const isPaid = Boolean(payment?.isPaid || payment?.status === "paid" || Number(payment?.paidAmount || 0) > 0);
   
   // جلب المشاريع
   const { data: projects } = trpc.projects.getAll.useQuery({});
@@ -328,6 +332,10 @@ export default function EditPaymentPage() {
 
   // حفظ التغييرات
   const handleSubmit = () => {
+    if (isPaid) {
+      toast.error("لا يمكن تعديل دفعة مسددة نهائياً");
+      return;
+    }
     if (!formData.projectId) {
       toast.error("يرجى اختيار المشروع");
       return;
@@ -425,12 +433,22 @@ export default function EditPaymentPage() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Button onClick={handleSubmit} disabled={updateMutation.isPending} className="w-full sm:w-auto shadow-sm">
+            <Button onClick={handleSubmit} disabled={updateMutation.isPending || isPaid} className="w-full sm:w-auto shadow-sm">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Send className="h-4 w-4 ml-2" />}
               حفظ التعديلات
             </Button>
           </div>
         </div>
+        
+        {isPaid && (
+          <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300">
+            <Lock className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="font-bold">تنبيه: هذه الدفعة مسددة ومقفلة</AlertTitle>
+            <AlertDescription>
+              تم سداد هذه الدفعة (أو تم تنفيذ أوامر صرف عليها). لا يمكن تعديل بياناتها أو مبالغها نهائياً حفاظاً على السلامة المالية والمحاسبية.
+            </AlertDescription>
+          </Alert>
+        )}
         
         {/* Form Grid */}
         <div className="flex flex-col-reverse lg:flex-row gap-6" dir="ltr">
@@ -512,7 +530,9 @@ export default function EditPaymentPage() {
                   <Input
                     type="date"
                     value={formData.dateMiladi}
+                    disabled={isPaid}
                     onChange={(e) => {
+                      if (isPaid) return;
                       const newDate = e.target.value;
                       const norm = formatDateToYYYYMMDD(newDate);
                       if (dateOf100 && norm && norm > dateOf100) {
@@ -521,7 +541,11 @@ export default function EditPaymentPage() {
                       setFormData({ ...formData, dateMiladi: newDate });
                     }}
                     required
-                    className={`text-right rounded-xl h-10 border-border/60 ${(formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) ? 'border-2 border-destructive' : ''}`}
+                    className={cn(
+                      "text-right rounded-xl h-10 border-border/60",
+                      (formData.dateMiladi && (isDateAlreadyUsed(formData.dateMiladi) || isAfter100PercentPayment)) && "border-2 border-destructive",
+                      isPaid && "bg-muted cursor-not-allowed opacity-80"
+                    )}
                   />
                   {formData.dateMiladi && isDateAlreadyUsed(formData.dateMiladi) && (
                     <div className="flex items-center gap-1.5 text-xs text-destructive font-bold bg-destructive/10 p-2 rounded-lg border border-destructive/30 mt-1.5">
@@ -575,10 +599,14 @@ export default function EditPaymentPage() {
                   <Label className="text-right font-semibold">عنوان طلب الصرف *</Label>
                   <Input
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    disabled={isPaid}
+                    onChange={(e) => {
+                      if (isPaid) return;
+                      setFormData({ ...formData, title: e.target.value });
+                    }}
                     placeholder="مثال: صرف الدفعة الأولى لمشروع ترميم مسجد..."
                     required
-                    className="text-right rounded-xl h-10 border-border/60"
+                    className={cn("text-right rounded-xl h-10 border-border/60", isPaid && "bg-muted cursor-not-allowed opacity-80")}
                   />
                 </div>
                 
@@ -586,11 +614,15 @@ export default function EditPaymentPage() {
                   <Label className="text-right font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
                   <Textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    disabled={isPaid}
+                    onChange={(e) => {
+                      if (isPaid) return;
+                      setFormData({ ...formData, description: e.target.value });
+                    }}
                     placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                     rows={3}
                     required
-                    className="text-right rounded-xl border-border/60"
+                    className={cn("text-right rounded-xl border-border/60", isPaid && "bg-muted cursor-not-allowed opacity-80")}
                   />
                 </div>
                 
@@ -646,13 +678,14 @@ export default function EditPaymentPage() {
                               required
                               placeholder={!formData.dateMiladi ? "حدد التاريخ أولاً" : prevPaymentCompletion === null ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
                               value={formData.completionPercentage}
-                              disabled={!formData.dateMiladi}
+                              disabled={!formData.dateMiladi || isPaid}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.currentTarget.blur();
                                 }
                               }}
                               onChange={(e) => {
+                                if (isPaid) return;
                                 if (e.target.value === "") {
                                   setFormData({ ...formData, completionPercentage: "" });
                                 } else {
@@ -664,6 +697,7 @@ export default function EditPaymentPage() {
                                 }
                               }}
                               onBlur={(e) => {
+                                if (isPaid) return;
                                 const val = e.target.value === "" ? null : parseInt(e.target.value);
                                 if (val !== null && !isNaN(val)) {
                                   if (prevPaymentCompletion !== null && val <= prevPaymentCompletion) {
@@ -680,7 +714,8 @@ export default function EditPaymentPage() {
                                 "text-right rounded-xl h-10 font-bold transition-all",
                                 (isBelowPrev || isAboveNext)
                                   ? "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20" 
-                                  : "border-border/60"
+                                  : "border-border/60",
+                                isPaid && "bg-muted cursor-not-allowed opacity-80"
                               )}
                             />
                             {isBelowPrev && (
@@ -729,7 +764,7 @@ export default function EditPaymentPage() {
                       <Select
                         value={supplier.name}
                         onValueChange={(value) => handleSelectSupplier(supplier.id, value)}
-                        disabled={formData.contractId > 0}
+                        disabled={formData.contractId > 0 || isPaid}
                       >
                         <SelectTrigger className="text-right bg-background border-border/60 rounded-xl w-full" dir="rtl">
                           <SelectValue placeholder="اسم المورد" />
@@ -790,14 +825,16 @@ export default function EditPaymentPage() {
                         min="0"
                         max="100"
                         step="0.01"
+                        disabled={isPaid}
                         value={contractAmount ? Number(((supplier.amount / contractAmount) * 100).toFixed(2)) : ""}
                         onChange={(e) => {
+                          if (isPaid) return;
                           const pct = parseFloat(e.target.value) || 0;
                           const calculatedAmount = contractAmount ? (contractAmount * pct) / 100 : 0;
                           updateSupplier(supplier.id, "amount", Number(calculatedAmount.toFixed(2)));
                         }}
                         placeholder="0"
-                        className="text-right font-bold text-primary border-border/60 rounded-xl h-10 bg-background"
+                        className={cn("text-right font-bold text-primary border-border/60 rounded-xl h-10 bg-background", isPaid && "bg-muted cursor-not-allowed opacity-80")}
                       />
                     </div>
 
@@ -809,13 +846,15 @@ export default function EditPaymentPage() {
                         min="0"
                         step="0.01"
                         required
+                        disabled={isPaid}
                         value={supplier.amount || ""}
                         onChange={(e) => {
+                          if (isPaid) return;
                           const val = parseFloat(e.target.value) || 0;
                           updateSupplier(supplier.id, "amount", val);
                         }}
                         placeholder="0.00"
-                        className="text-right font-bold text-foreground border-border/60 rounded-xl h-10 bg-background"
+                        className={cn("text-right font-bold text-foreground border-border/60 rounded-xl h-10 bg-background", isPaid && "bg-muted cursor-not-allowed opacity-80")}
                       />
                     </div>
                   </div>

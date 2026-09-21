@@ -36,6 +36,7 @@ import {
   AlertTriangle,
   AlertCircle,
   Heart,
+  Lock,
 } from "lucide-react";
 
 // وحدات المدة
@@ -202,6 +203,11 @@ interface PaymentScheduleItem {
   dueDate: string;
   description: string;
   completionPercentage?: number;
+  isPaid?: boolean;
+  status?: string;
+  agreedAmount?: number;
+  paidAmount?: number;
+  isPartiallyPaid?: boolean;
 }
 
 interface ClauseValue {
@@ -218,6 +224,7 @@ interface ClauseValue {
 
 export default function ContractForm() {
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const params = useParams();
   const search = useSearch();
   
@@ -243,7 +250,6 @@ export default function ContractForm() {
   const [effectiveRequestId, setEffectiveRequestId] = useState<number | null>(requestId || null);
   
   const { user } = useAuth();
-  const utils = trpc.useContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
@@ -596,44 +602,109 @@ export default function ContractForm() {
         supportedAmount,
       });
 
-      // تحميل جدول الدفعات من العقد الحالي (من JSON أو من جدول contractPayments)
+      // تحميل جدول الدفعات من العقد الحالي (الأولوية دائماً لجدول الدفعات الفعلي contractPayments من قاعدة البيانات)
       let parsedSchedule: PaymentScheduleItem[] = [];
-      if (c.paymentScheduleJson) {
+      if (existingContract.payments && existingContract.payments.length > 0) {
+        parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
+          const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
+            ? Number(p.completionPercentage)
+            : undefined;
+          const paidAmt = p.paidAmount ? parseFloat(String(p.paidAmount)) : 0;
+          const amt = p.agreedAmount ? parseFloat(String(p.agreedAmount)) : (p.amount ? parseFloat(String(p.amount)) : 0);
+          const totalVal = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
+          const pct = p.percentage ? parseFloat(String(p.percentage)) : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
+          const isPaid = Boolean(p.isPaid === true || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
+          const isPartiallyPaid = Boolean(p.isPartiallyPaid === true || p.status === "partially_paid" || (paidAmt > 0 && paidAmt < amt));
+
+          let formattedDueDate = "";
+          if (p.dueDate) {
+            try {
+              const dStr = String(p.dueDate);
+              if (dStr.includes("T")) {
+                formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate));
+              } else {
+                formattedDueDate = dStr.split(" ")[0];
+              }
+            } catch (e) {
+              formattedDueDate = "";
+            }
+          }
+
+          return {
+            id: p.id ? String(p.id) : `payment_${idx + 1}`,
+            name: p.phaseName || p.name || `الدفعة ${idx + 1}`,
+            type: p.type || "progress",
+            percentage: pct,
+            amount: amt,
+            agreedAmount: amt,
+            paidAmount: paidAmt,
+            dueDate: formattedDueDate,
+            description: p.notes || p.description || p.condition || "",
+            completionPercentage: comp,
+            status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
+            isPaid: isPaid,
+            isPartiallyPaid: isPartiallyPaid,
+          };
+        });
+      } else if (c.paymentScheduleJson) {
         try {
-          const schedule = typeof c.paymentScheduleJson === 'string'
-            ? JSON.parse(c.paymentScheduleJson)
-            : c.paymentScheduleJson;
+          let schedule = c.paymentScheduleJson;
+          if (typeof schedule === 'string') {
+            try {
+              schedule = JSON.parse(schedule);
+              if (typeof schedule === 'string') {
+                schedule = JSON.parse(schedule);
+              }
+            } catch (e) {
+              console.error("Failed to parse paymentScheduleJson string:", e);
+            }
+          }
           if (Array.isArray(schedule) && schedule.length > 0) {
-            parsedSchedule = schedule.map((p: any) => {
+            parsedSchedule = schedule.map((p: any, idx: number) => {
               const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
                 ? Number(p.completionPercentage)
                 : undefined;
+              const paidAmt = p.paidAmount ? parseFloat(String(p.paidAmount)) : 0;
+              const amt = p.agreedAmount ? parseFloat(String(p.agreedAmount)) : (p.amount ? parseFloat(String(p.amount)) : 0);
+              const totalVal = c.contractAmount ? parseFloat(String(c.contractAmount)) : 0;
+              const pct = p.percentage ? parseFloat(String(p.percentage)) : (totalVal > 0 ? Number(((amt / totalVal) * 100).toFixed(2)) : 0);
+              const isPaid = Boolean(p.isPaid === true || p.status === "paid" || p.status === "partially_paid" || paidAmt > 0);
+              const isPartiallyPaid = Boolean(p.isPartiallyPaid === true || p.status === "partially_paid" || (paidAmt > 0 && paidAmt < amt));
+
+              let formattedDueDate = "";
+              if (p.dueDate) {
+                try {
+                  const dStr = String(p.dueDate);
+                  if (dStr.includes("T")) {
+                    formattedDueDate = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate));
+                  } else {
+                    formattedDueDate = dStr.split(" ")[0];
+                  }
+                } catch (e) {
+                  formattedDueDate = "";
+                }
+              }
+
               return {
-                ...p,
+                id: p.id || `payment_${idx + 1}`,
+                name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
+                type: p.type || "progress",
+                percentage: pct,
+                amount: amt,
+                agreedAmount: amt,
+                paidAmount: paidAmt,
+                dueDate: formattedDueDate,
+                description: p.description || p.notes || "",
                 completionPercentage: comp,
+                status: isPaid ? (isPartiallyPaid ? "partially_paid" : "paid") : (p.status || "pending"),
+                isPaid: isPaid,
+                isPartiallyPaid: isPartiallyPaid,
               };
             });
           }
         } catch (e) {
           console.error("خطأ في تحليل جدول الدفعات من JSON:", e);
         }
-      }
-      if (parsedSchedule.length === 0 && existingContract.payments && existingContract.payments.length > 0) {
-        parsedSchedule = existingContract.payments.map((p: any, idx: number) => {
-          const comp = (p.completionPercentage !== undefined && p.completionPercentage !== null && p.completionPercentage !== "")
-            ? Number(p.completionPercentage)
-            : undefined;
-          return {
-            id: p.id ? String(p.id) : `payment_${idx + 1}`,
-            name: p.name || p.phaseName || `الدفعة ${idx + 1}`,
-            type: p.type || "progress",
-            percentage: p.percentage ? parseFloat(p.percentage) : 0,
-            amount: p.amount ? parseFloat(p.amount) : 0,
-            dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
-            description: p.description || p.notes || p.condition || "",
-            completionPercentage: comp,
-          };
-        });
       }
       setPaymentSchedule(parsedSchedule);
 
@@ -904,11 +975,21 @@ export default function ContractForm() {
 
   // حذف دفعة
   const removePayment = (id: string) => {
+    const target = paymentSchedule.find(p => p.id === id);
+    if (target && (target.isPaid || target.status === "paid" || Number(target.paidAmount || 0) > 0)) {
+      toast.error("لا يمكن حذف دفعة مسددة نهائياً");
+      return;
+    }
     setPaymentSchedule(paymentSchedule.filter(p => p.id !== id));
   };
 
   // تحديث دفعة
   const updatePayment = (id: string, field: keyof PaymentScheduleItem, value: any) => {
+    const target = paymentSchedule.find(p => p.id === id);
+    if (target && (target.isPaid || target.status === "paid" || Number(target.paidAmount || 0) > 0)) {
+      toast.error("لا يمكن تعديل دفعة مسددة");
+      return;
+    }
     setPaymentSchedule(paymentSchedule.map(p => {
       if (p.id === id) {
         return { ...p, [field]: value };
@@ -2027,22 +2108,54 @@ export default function ContractForm() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {paymentSchedule.map((payment, index) => (
-                      <Card key={payment.id} className="p-4 relative">
+                    {paymentSchedule.map((payment, index) => {
+                      const agreedAmt = Number(payment.agreedAmount || payment.amount || 0);
+                      const paidAmt = Number(payment.paidAmount || 0);
+                      const isPaid = Boolean(payment.isPaid || payment.status === "paid" || payment.status === "partially_paid" || paidAmt > 0);
+
+                      return (
+                      <Card 
+                        key={payment.id} 
+                        className={cn(
+                          "p-4 sm:p-5 relative transition-all rounded-2xl border", 
+                          isPaid 
+                            ? "bg-emerald-50/75 dark:bg-emerald-950/25 border-2 border-emerald-500/60 shadow-sm"
+                            : "bg-card border-border/70"
+                        )}
+                      >
+                        {isPaid && (
+                          <div 
+                            className="flex flex-wrap items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold w-fit mb-3 border bg-emerald-500/15 border-emerald-500/30 text-emerald-900 dark:text-emerald-200"
+                          >
+                            <Lock className="w-3.5 h-3.5 shrink-0" />
+                            <span>دفعة مسددة بالكامل (مقفلة وغير قابلة للتعديل أو الحذف)</span>
+                            <span className="bg-background/90 dark:bg-background/60 px-2 py-0.5 rounded shadow-xs font-semibold text-foreground">
+                              المتفق: {agreedAmt.toLocaleString()} ر.س
+                            </span>
+                            {paidAmt > 0 && (
+                              <span className="bg-emerald-100 dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 px-2 py-0.5 rounded shadow-xs font-bold">
+                                المسدد: {paidAmt.toLocaleString()} ر.س
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="flex flex-col md:flex-row items-start gap-4">
                           <div className="flex items-center justify-between w-full md:w-auto md:flex-col md:justify-start gap-2 text-muted-foreground border-b md:border-0 pb-2 md:pb-0 mb-2 md:mb-0">
                             <div className="flex items-center gap-2">
-                              <GripVertical className="h-5 w-5 hidden md:block" />
+                              {!isPaid && <GripVertical className="h-5 w-5 hidden md:block" />}
+                              {isPaid && <Lock className="h-4 w-4 hidden md:block text-emerald-600 dark:text-emerald-400" />}
                               <span className="font-bold text-primary md:text-foreground">الدفعة {index + 1}</span>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removePayment(payment.id)}
-                              className="text-destructive h-8 w-8 p-0 md:hidden"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {!isPaid && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removePayment(payment.id)}
+                                className="text-destructive h-8 w-8 p-0 md:hidden"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                           
                           <div className="flex-1 space-y-4 w-full">
@@ -2053,9 +2166,14 @@ export default function ContractForm() {
                                 <Input
                                   type="date"
                                   value={payment.dueDate}
+                                  disabled={isPaid}
                                   required
-                                  className="w-full rounded-xl"
+                                  className={cn(
+                                    "w-full rounded-xl", 
+                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                  )}
                                   onChange={(e) => {
+                                    if (isPaid) return;
                                     const selectedDate = e.target.value;
                                     const prevPaymentDate = index > 0 ? paymentSchedule[index - 1]?.dueDate : undefined;
 
@@ -2118,9 +2236,16 @@ export default function ContractForm() {
                                 <Label className="text-xs font-semibold">عنوان طلب الصرف</Label>
                                 <Input
                                   value={payment.name}
+                                  disabled={isPaid}
                                   required
-                                  className="w-full rounded-xl"
-                                  onChange={(e) => updatePayment(payment.id, "name", e.target.value)}
+                                  className={cn(
+                                    "w-full rounded-xl", 
+                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                  )}
+                                  onChange={(e) => {
+                                    if (isPaid) return;
+                                    updatePayment(payment.id, "name", e.target.value);
+                                  }}
                                   placeholder="عنوان الطلب"
                                 />
                               </div>
@@ -2129,9 +2254,16 @@ export default function ContractForm() {
                                 <Input
                                   type="number"
                                   value={payment.percentage || ""}
+                                  disabled={isPaid}
                                   required
-                                  className="w-full rounded-xl font-bold text-primary"
+                                  className={cn(
+                                    "w-full rounded-xl font-bold font-sans", 
+                                    isPaid 
+                                      ? "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner" 
+                                      : "text-primary"
+                                  )}
                                   onChange={(e) => {
+                                    if (isPaid) return;
                                     const pct = parseFloat(e.target.value) || 0;
                                     const amount = contractData.totalValue ? (contractData.totalValue * pct) / 100 : 0;
                                     setPaymentSchedule(prev => prev.map(p => 
@@ -2144,13 +2276,20 @@ export default function ContractForm() {
                                 />
                               </div>
                               <div className="space-y-1">
-                                <Label className="text-xs font-semibold">المبلغ</Label>
+                                <Label className="text-xs font-semibold">
+                                  {isPaid ? "المبلغ المتفق عليه (ر.س)" : "المبلغ"}
+                                </Label>
                                 <Input
                                   type="number"
                                   value={payment.amount || ""}
+                                  disabled={isPaid}
                                   required
-                                  className="w-full rounded-xl font-bold"
+                                  className={cn(
+                                    "w-full rounded-xl font-bold font-sans", 
+                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
+                                  )}
                                   onChange={(e) => {
+                                    if (isPaid) return;
                                     const val = parseFloat(e.target.value) || 0;
                                     const pct = contractData.totalValue ? (val / contractData.totalValue) * 100 : 0;
                                     setPaymentSchedule(prev => prev.map(p => 
@@ -2168,11 +2307,18 @@ export default function ContractForm() {
                                 <Label className="text-xs font-semibold">وصف الأعمال التي سوف تنفذ *</Label>
                                 <Textarea
                                   value={payment.description || ""}
+                                  disabled={isPaid}
                                   required
                                   placeholder="وصف تفصيلي للأعمال التي سوف تنفذ..."
                                   rows={2}
-                                  className="w-full rounded-xl text-right"
-                                  onChange={(e) => updatePayment(payment.id, "description", e.target.value)}
+                                  className={cn(
+                                    "w-full rounded-xl text-right", 
+                                    isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-medium cursor-not-allowed shadow-inner"
+                                  )}
+                                  onChange={(e) => {
+                                    if (isPaid) return;
+                                    updatePayment(payment.id, "description", e.target.value);
+                                  }}
                                 />
                               </div>
                               <div className="space-y-1 text-right">
@@ -2201,12 +2347,14 @@ export default function ContractForm() {
                                         type="number"
                                         min={minAllowed}
                                         max={maxAllowed}
+                                        disabled={isPaid}
                                         required
                                         value={payment.completionPercentage !== undefined && payment.completionPercentage !== null ? payment.completionPercentage : ""}
                                         placeholder={index === 0 ? "مثال: 0" : `الحد الأدنى: ${minAllowed}%`}
                                         className={cn(
-                                          "w-full rounded-xl text-right font-bold transition-all",
-                                          (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20"
+                                          "w-full rounded-xl text-right font-bold transition-all font-sans",
+                                          (isBelowPrev || isAboveNext) && "border-2 border-destructive bg-destructive/5 text-destructive ring-2 ring-destructive/20",
+                                          isPaid && "bg-slate-200/70 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed shadow-inner"
                                         )}
                                         onKeyDown={(e) => {
                                           if (e.key === 'Enter') {
@@ -2214,6 +2362,7 @@ export default function ContractForm() {
                                           }
                                         }}
                                         onChange={(e) => {
+                                          if (isPaid) return;
                                           if (e.target.value === "") {
                                             updatePayment(payment.id, "completionPercentage", undefined);
                                           } else {
@@ -2228,6 +2377,7 @@ export default function ContractForm() {
                                           }
                                         }}
                                         onBlur={(e) => {
+                                          if (isPaid) return;
                                           const val = e.target.value === "" ? undefined : parseInt(e.target.value);
                                           if (val !== undefined && !isNaN(val)) {
                                             if (prevComp !== null && val <= prevComp) {
@@ -2270,17 +2420,20 @@ export default function ContractForm() {
                             </div>
                           </div>
                           
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePayment(payment.id)}
-                            className="text-destructive hidden md:flex"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {!isPaid && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removePayment(payment.id)}
+                              className="text-destructive hidden md:flex"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </Card>
-                    ))}
+                    );
+                    })}
 
                     {/* ملخص الدفعات */}
                     <Card className="bg-muted/50 p-4 rounded-xl border-dashed border-2">

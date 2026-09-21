@@ -46,6 +46,14 @@ import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 type ProcurementMethod = "contract" | "purchase_order" | "csr_letter";
 
+interface ProcurementItem {
+  id: string;
+  itemName: string;
+  description: string;
+  quantity: number;
+  unit: string;
+}
+
 export default function SedanaProcurementPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -109,7 +117,7 @@ export default function SedanaProcurementPage() {
   });
 
   // استخراج بنود المسجد / الطلب
-  const allItems = useMemo(() => {
+  const allItems = useMemo<ProcurementItem[]>(() => {
     if (boqResult?.items && boqResult.items.length > 0) {
       return boqResult.items.map((it: any, idx: number) => ({
         id: String(it.id || idx + 1),

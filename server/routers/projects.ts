@@ -6,6 +6,7 @@ import { eq, desc, asc, and, sql, inArray, or, ne, like } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
+import { numberToArabicText } from "../../shared/tafqeet";
 
 // توليد رقم مشروع بمنهجية سنوية فريدة وآمنة تمنع أي تكرار
 export async function generateProjectNumber(db: NonNullable<Awaited<ReturnType<typeof getDb>>>): Promise<string> {
@@ -622,29 +623,44 @@ export const projectsRouter = router({
           (cp.phaseName && (cp.phaseName.includes("مقدمة") || cp.phaseName.includes("المقدمة")));
 
         const cleanId = String(cp.id);
+        const agreedAmount = parseFloat(String(cp.amount || "0"));
 
-        const linkedDisb = projectDisbursements.find(d => 
+        const disbsForPayment = projectDisbursements.filter(d => 
           (d.contractPaymentId === cp.id) ||
           (isAdvance && (d.paymentType === "advance" || (d as any).isAdvancePayment))
         );
-        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
-        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
+        const disbIdsForPayment = disbsForPayment.map(d => d.id);
+        const ordersForPayment = projectOrders.filter(o => disbIdsForPayment.includes(o.disbursementRequestId));
+        const executedOrders = ordersForPayment.filter(o => o.status === "executed");
 
-        // حالة الدفعة تصبح "مسدد" (paid) فقط عندما يكون أمر الصرف المرتبط بحالة "منفذ" (executed)
+        let paidAmount = 0;
+        if (executedOrders.length > 0) {
+          paidAmount = executedOrders.reduce((sum, o) => sum + parseFloat(String(o.amount || "0")), 0);
+        } else if (cp.status === "paid") {
+          paidAmount = agreedAmount;
+        } else if (disbsForPayment.some(d => d.status === "paid")) {
+          paidAmount = disbsForPayment
+            .filter(d => d.status === "paid")
+            .reduce((sum, d) => sum + parseFloat(String(d.amount || "0")), 0);
+        } else if ((cp as any).paidAmount) {
+          paidAmount = parseFloat(String((cp as any).paidAmount || "0"));
+        }
+
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if ((linkedOrder as any)?.status === "executed") {
+        if (paidAmount > 0 || cp.status === "paid") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder?.executedAt || cp.paidAt;
-        } else if (cp.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
-          paymentStatus = "paid";
-          paidAtDate = cp.paidAt;
-        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (cp as any).status === "due") {
+          paidAtDate = executedOrders[0]?.executedAt || cp.paidAt || disbsForPayment[0]?.dateMiladi;
+        } else if (ordersForPayment.some(o => o.status === "approved") || disbsForPayment.some(d => d.status === "approved" || d.status === "pending" || d.status === "pending_executive") || (cp as any).status === "due") {
           paymentStatus = "due";
         } else {
-          paymentStatus = cp.status === "paid" ? "paid" : "pending";
+          paymentStatus = "pending";
         }
+
+        const linkedDisb = disbsForPayment[0] || null;
+        const linkedOrder = executedOrders[0] || ordersForPayment[0] || null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || cp.dueDate || cp.createdAt;
 
         // التحقق مما إذا كان قد تم إنشاء طلب صرف قائم لهذه الدفعة
         const hasDisb = projectDisbursements.some(d => {
@@ -674,7 +690,9 @@ export const projectsRouter = router({
           paymentNumber: `PLAN-${cp.id}`,
           paymentType: isAdvance ? "advance" : "progress",
           phaseOrder: cp.phaseOrder,
-          amount: cp.amount,
+          amount: agreedAmount,
+          agreedAmount: agreedAmount,
+          paidAmount: paidAmount,
           status: paymentStatus,
           description: cp.phaseName,
           date: toLocalDateString(rawDate),
@@ -691,25 +709,39 @@ export const projectsRouter = router({
       // 2. إضافة الدفعات اليدوية
       manualPayments.forEach(p => {
         const cleanId = String(p.id);
+        const agreedAmount = parseFloat(String(p.amount || "0"));
 
-        const linkedDisb = projectDisbursements.find(d => d.paymentId === p.id);
-        const linkedOrder = linkedDisb ? projectOrders.find(o => o.disbursementRequestId === linkedDisb.id) : null;
-        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
+        const disbsForManual = projectDisbursements.filter(d => d.paymentId === p.id);
+        const disbIdsForManual = disbsForManual.map(d => d.id);
+        const ordersForManual = projectOrders.filter(o => disbIdsForManual.includes(o.disbursementRequestId));
+        const executedOrders = ordersForManual.filter(o => o.status === "executed");
+
+        let paidAmount = 0;
+        if (executedOrders.length > 0) {
+          paidAmount = executedOrders.reduce((sum, o) => sum + parseFloat(String(o.amount || "0")), 0);
+        } else if (p.status === "paid") {
+          paidAmount = agreedAmount;
+        } else if (disbsForManual.some(d => d.status === "paid")) {
+          paidAmount = disbsForManual
+            .filter(d => d.status === "paid")
+            .reduce((sum, d) => sum + parseFloat(String(d.amount || "0")), 0);
+        }
 
         let paymentStatus = "pending";
         let paidAtDate = null;
 
-        if ((linkedOrder as any)?.status === "executed") {
+        if (paidAmount > 0 || p.status === "paid") {
           paymentStatus = "paid";
-          paidAtDate = linkedOrder?.executedAt || p.paidAt;
-        } else if (p.status === "paid" && (!linkedDisb || (linkedDisb as any).status === "paid") && (!linkedOrder || (linkedOrder as any).status === "executed")) {
-          paymentStatus = "paid";
-          paidAtDate = p.paidAt;
-        } else if ((linkedOrder as any)?.status === "approved" || (linkedDisb as any)?.status === "approved" || (linkedDisb as any)?.status === "pending" || (linkedDisb as any)?.status === "pending_executive" || (p as any).status === "due") {
+          paidAtDate = executedOrders[0]?.executedAt || p.paidAt || disbsForManual[0]?.dateMiladi;
+        } else if (ordersForManual.some(o => o.status === "approved") || disbsForManual.some(d => d.status === "approved" || d.status === "pending" || d.status === "pending_executive") || (p as any).status === "due") {
           paymentStatus = "due";
         } else {
-          paymentStatus = p.status === "paid" ? "paid" : "pending";
+          paymentStatus = "pending";
         }
+
+        const linkedDisb = disbsForManual[0] || null;
+        const linkedOrder = executedOrders[0] || ordersForManual[0] || null;
+        const rawDate = linkedOrder?.executedAt || linkedDisb?.dateMiladi || p.createdAt;
 
         const hasDisb = projectDisbursements.some(d => {
           if (d.status === "rejected") return false;
@@ -734,8 +766,9 @@ export const projectsRouter = router({
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
-          paymentType: p.paymentType,
-          amount: p.amount,
+          amount: agreedAmount,
+          agreedAmount: agreedAmount,
+          paidAmount: paidAmount,
           status: paymentStatus,
           description: p.description,
           date: toLocalDateString(rawDate),
@@ -1679,16 +1712,30 @@ export const projectsRouter = router({
          // البحث عما إذا كان هناك طلب صرف مرتبط بالدفعة اليدوية للحصول على dateMiladi
          const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
 
-         return {
-           id: input.id,
-           projectId: payment.projectId || 0,
-           contractId: payment.contractId || undefined,
-           title: payment.description || "",
-           description: payment.description || "",
-           amount: parseFloat(payment.amount as string || "0"),
-           dateMiladi: disb?.dateMiladi ? toLocalDateString(disb.dateMiladi) : toLocalDateString(payment.createdAt),
-           completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : null,
-         };
+          const mDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+          const mDisbIds = mDisbs.map(d => d.id);
+          const mExec = mDisbIds.length > 0 
+            ? await db.select().from(disbursementOrders).where(and(inArray(disbursementOrders.disbursementRequestId, mDisbIds), eq(disbursementOrders.status, "executed")))
+            : [];
+          const mAgreedAmt = parseFloat(payment.amount as string || "0");
+          const mPaidOrdersSum = mExec.reduce((sum, o) => sum + parseFloat(String(o.amount || 0)), 0);
+          const mIsPaid = payment.status === "paid" || (mExec.length > 0 && mPaidOrdersSum >= mAgreedAmt) || mDisbs.some(d => d.status === "paid");
+          const mActualPaid = mIsPaid ? mAgreedAmt : mPaidOrdersSum;
+
+          return {
+            id: input.id,
+            projectId: payment.projectId || 0,
+            contractId: payment.contractId || undefined,
+            title: payment.description || "",
+            description: payment.description || "",
+            amount: mAgreedAmt,
+            agreedAmount: mAgreedAmt,
+            paidAmount: mActualPaid,
+            status: (mIsPaid || mActualPaid > 0) ? "paid" : payment.status,
+            isPaid: mIsPaid || mActualPaid > 0,
+            dateMiladi: disb?.dateMiladi ? toLocalDateString(disb.dateMiladi) : toLocalDateString(payment.createdAt),
+            completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : null,
+          };
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
         const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
@@ -1703,6 +1750,16 @@ export const projectsRouter = router({
           }
         }
 
+        const contractDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractPaymentId, actualId));
+        const disbIds = contractDisbs.map(d => d.id);
+        const executedOrders = disbIds.length > 0 
+          ? await db.select().from(disbursementOrders).where(and(inArray(disbursementOrders.disbursementRequestId, disbIds), eq(disbursementOrders.status, "executed")))
+          : [];
+        const agreedAmt = parseFloat(cp.amount as string || "0");
+        const paidOrdersSum = executedOrders.reduce((sum, o) => sum + parseFloat(String(o.amount || 0)), 0);
+        const isPaid = cp.status === "paid" || (executedOrders.length > 0 && paidOrdersSum >= agreedAmt) || contractDisbs.some(d => d.status === "paid");
+        const actualPaid = isPaid ? agreedAmt : paidOrdersSum;
+
         return {
           id: input.id,
           projectId,
@@ -1710,7 +1767,11 @@ export const projectsRouter = router({
           contractPaymentId: cp.id,
           title: cp.phaseName || "",
           description: cp.notes || "",
-          amount: parseFloat(cp.amount as string || "0"),
+          amount: agreedAmt,
+          agreedAmount: agreedAmt,
+          paidAmount: actualPaid,
+          status: (isPaid || actualPaid > 0) ? "paid" : cp.status,
+          isPaid: isPaid || actualPaid > 0,
           dateMiladi: toLocalDateString(cp.dueDate || cp.createdAt),
           completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
         };
@@ -1754,6 +1815,19 @@ export const projectsRouter = router({
         }
       } else if (input.id.startsWith("manual-")) {
         const actualId = parseInt(input.id.replace("manual-", ""));
+        const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
+        if (!p) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+
+        // التحقق من حالة السداد: لا يمكن تعديل دفعة مسددة
+        const mDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+        const mDisbIds = mDisbs.map(d => d.id);
+        const mExec = mDisbIds.length > 0 
+          ? await db.select().from(disbursementOrders).where(and(inArray(disbursementOrders.disbursementRequestId, mDisbIds), eq(disbursementOrders.status, "executed")))
+          : [];
+        if (p.status === "paid" || mExec.length > 0 || mDisbs.some(d => d.status === "paid")) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل دفعة مسددة نهائياً" });
+        }
+
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.description = input.title;
         if (input.completionPercentage !== undefined) updateValues.completionPercentage = input.completionPercentage;
@@ -1764,60 +1838,37 @@ export const projectsRouter = router({
           if (existingDisb) {
             await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.id, existingDisb.id));
           } else {
-            const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
-            if (p) {
-              await db.insert(disbursementRequests).values({
-                requestNumber: `DISB-${p.paymentNumber}`,
-                projectId: p.projectId,
-                contractId: p.contractId,
-                paymentId: p.id,
-                title: input.title || p.description || "طلب دفعة",
-                description: input.description || p.description,
-                amount: input.amount.toString(),
-                paymentType: p.paymentType || "progress",
-                dateMiladi: dateVal,
-                completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : p.completionPercentage,
-                status: "pending",
-              });
-            }
+            await db.insert(disbursementRequests).values({
+              requestNumber: `DISB-${p.paymentNumber}`,
+              projectId: p.projectId,
+              contractId: p.contractId,
+              paymentId: p.id,
+              title: input.title || p.description || "طلب دفعة",
+              description: input.description || p.description,
+              amount: input.amount.toString(),
+              paymentType: p.paymentType || "progress",
+              dateMiladi: dateVal,
+              completionPercentage: input.completionPercentage !== undefined ? input.completionPercentage : p.completionPercentage,
+              status: "pending",
+            });
           }
-        }
-
-        // مزامنة التعديل على paymentScheduleJson للعقد المرتبط إن وجد
-        try {
-          const [p] = await db.select().from(payments).where(eq(payments.id, actualId));
-          const targetContractId = p?.contractId;
-          if (targetContractId) {
-            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, targetContractId));
-            if (contract && contract.paymentScheduleJson) {
-              let schedule = typeof contract.paymentScheduleJson === "string" 
-                ? JSON.parse(contract.paymentScheduleJson) 
-                : contract.paymentScheduleJson;
-              if (Array.isArray(schedule)) {
-                const targetIdx = schedule.findIndex((s: any) => 
-                  s.id === `manual-${actualId}` || s.paymentId === actualId || s.name === p.description
-                );
-                if (targetIdx !== -1) {
-                  schedule[targetIdx].amount = input.amount;
-                  if (input.title) {
-                    schedule[targetIdx].name = input.title;
-                    schedule[targetIdx].phaseName = input.title;
-                  }
-                  if (input.description) schedule[targetIdx].description = input.description;
-                  if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
-                  if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
-                  await db.update(contractsEnhanced).set({
-                    paymentScheduleJson: JSON.stringify(schedule)
-                  }).where(eq(contractsEnhanced.id, targetContractId));
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error syncing paymentScheduleJson for manual payment:", e);
         }
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
+        const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
+        if (!cp) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+
+        // التحقق من حالة السداد: لا يمكن تعديل دفعة مسددة نهائياً
+        const contractDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractPaymentId, actualId));
+        const disbIds = contractDisbs.map(d => d.id);
+        const executedOrders = disbIds.length > 0 
+          ? await db.select().from(disbursementOrders).where(and(inArray(disbursementOrders.disbursementRequestId, disbIds), eq(disbursementOrders.status, "executed")))
+          : [];
+        const isPaid = cp.status === "paid" || executedOrders.length > 0 || contractDisbs.some(d => d.status === "paid");
+        if (isPaid) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "لا يمكن تعديل دفعة مسددة نهائياً" });
+        }
+
         const updateValues: any = { amount: input.amount.toString() };
         if (input.title !== undefined) updateValues.phaseName = input.title;
         if (dateVal !== undefined) {
@@ -1835,33 +1886,63 @@ export const projectsRouter = router({
           await db.update(disbursementRequests).set({ dateMiladi: dateVal }).where(eq(disbursementRequests.contractPaymentId, actualId));
         }
 
-        // مزامنة التعديل فوراً مع العقد في paymentScheduleJson
+        // مزامنة التعديل فوراً مع العقد في paymentScheduleJson وإعادة حساب التكلفة الفعلية
         try {
-          const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, actualId));
-          if (cp && cp.contractId) {
-            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
-            if (contract && contract.paymentScheduleJson) {
-              let schedule = typeof contract.paymentScheduleJson === "string" 
-                ? JSON.parse(contract.paymentScheduleJson) 
-                : contract.paymentScheduleJson;
-              if (Array.isArray(schedule)) {
-                const targetIdx = schedule.findIndex((s: any, idx: number) => 
-                  s.id === `cp-${actualId}` || s.id === actualId || s.phaseOrder === cp.phaseOrder || idx === cp.phaseOrder
-                );
-                if (targetIdx !== -1) {
-                  schedule[targetIdx].amount = input.amount;
-                  if (input.title) {
-                    schedule[targetIdx].name = input.title;
-                    schedule[targetIdx].phaseName = input.title;
-                  }
-                  if (input.description) schedule[targetIdx].description = input.description;
-                  if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
-                  if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
-                  await db.update(contractsEnhanced).set({
-                    paymentScheduleJson: JSON.stringify(schedule)
-                  }).where(eq(contractsEnhanced.id, cp.contractId));
-                }
-              }
+          if (cp.contractId) {
+            const allCps = await db
+              .select()
+              .from(contractPayments)
+              .where(eq(contractPayments.contractId, cp.contractId))
+              .orderBy(contractPayments.phaseOrder);
+
+            const cDisbs = await db.select().from(disbursementRequests).where(eq(disbursementRequests.contractId, cp.contractId));
+            const cDisbIds = cDisbs.map(d => d.id);
+            const cOrders = cDisbIds.length > 0
+              ? await db.select().from(disbursementOrders).where(inArray(disbursementOrders.disbursementRequestId, cDisbIds))
+              : [];
+
+            const isCpPaid = (p: any) => {
+              if (p.status === "paid") return true;
+              const pDisbs = cDisbs.filter(d => d.contractPaymentId === p.id);
+              const pIds = pDisbs.map(d => d.id);
+              const exec = cOrders.filter(o => pIds.includes(o.disbursementRequestId) && o.status === "executed");
+              return exec.length > 0 || pDisbs.some(d => d.status === "paid");
+            };
+
+            const syncedSchedule = allCps.map(p => {
+              const paid = isCpPaid(p);
+              return {
+                id: `payment-${p.id}`,
+                name: p.phaseName,
+                phaseName: p.phaseName,
+                amount: parseFloat(String(p.amount)),
+                agreedAmount: parseFloat(String(p.amount)),
+                paidAmount: paid ? parseFloat(String(p.amount)) : 0,
+                status: paid ? "paid" : p.status,
+                isPaid: paid,
+                dueDate: p.dueDate ? new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(p.dueDate)) : "",
+                notes: p.notes,
+                description: p.notes,
+                completionPercentage: p.completionPercentage,
+              };
+            });
+
+            const newTotalAmount = allCps.reduce((sum, p) => sum + parseFloat(String(p.amount || "0")), 0);
+
+            await db.update(contractsEnhanced).set({
+              paymentScheduleJson: JSON.stringify(syncedSchedule),
+              contractAmount: String(newTotalAmount),
+              contractAmountText: numberToArabicText(newTotalAmount),
+            }).where(eq(contractsEnhanced.id, cp.contractId));
+
+            const [c] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
+            if (c?.projectId) {
+              const [res] = await db
+                .select({ total: sql<string>`SUM(CAST(contractAmount AS DECIMAL(15,2)))` })
+                .from(contractsEnhanced)
+                .where(eq(contractsEnhanced.projectId, c.projectId));
+              const total = parseFloat(res?.total || "0");
+              await db.update(projects).set({ actualCost: total.toString() }).where(eq(projects.id, c.projectId));
             }
           }
         } catch (e) {
