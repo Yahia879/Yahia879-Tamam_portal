@@ -59,6 +59,7 @@ const filterOptions = [
 
 const typeFilterOptions = [
   { value: "all", label: "جميع أنواع المشاريع" },
+  { value: "sedana", label: "مشاريع برنامج سدانة" },
   { value: "multi", label: "مشاريع متعددة المساجد" },
   { value: "single", label: "مشاريع مفردة (مسجد واحد)" },
 ];
@@ -290,7 +291,7 @@ export default function Projects() {
                           key={project.id} 
                           className={cn(
                             "group transition-colors",
-                            isSedana && "bg-cyan-50/20 hover:bg-cyan-50/40 dark:bg-cyan-950/10 dark:hover:bg-cyan-950/20"
+                            isSedana && "bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-950/20 dark:hover:bg-blue-950/35 border-r-4 border-r-blue-600"
                           )}
                         >
                           <TableCell>
@@ -300,8 +301,8 @@ export default function Projects() {
                                   <MultiMosquesIcon className="w-5 h-5" />
                                 </div>
                               ) : isSedana ? (
-                                <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200/80 dark:border-cyan-800/80 shadow-xs shrink-0" title="مشروع سدانة (تشغيل ورعاية المساجد)">
-                                  <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs shrink-0" title="مشروع سدانة (تشغيل ورعاية المساجد)">
+                                  <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                 </div>
                               ) : (
                                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -317,9 +318,9 @@ export default function Projects() {
                                     </Badge>
                                   )}
                                   {isSedana && (
-                                    <Badge variant="outline" className="bg-cyan-50/90 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300/80 dark:border-cyan-700/80 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs">
-                                      <Sparkles className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                                      مشروع سدانة
+                                    <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] py-0 px-2 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                      <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                      برنامج سدانة
                                     </Badge>
                                   )}
                                 </div>
@@ -400,7 +401,7 @@ export default function Projects() {
                       key={project.id} 
                       className={cn(
                         "p-4 space-y-4 transition-colors",
-                        isSedana && "bg-cyan-50/20 dark:bg-cyan-950/10 border-r-4 border-r-cyan-500"
+                        isSedana && "bg-blue-50/40 dark:bg-blue-950/20 border-r-4 border-r-blue-600"
                       )}
                     >
                       <div className="flex items-start justify-between">
@@ -410,8 +411,8 @@ export default function Projects() {
                               <MultiMosquesIcon className="w-5 h-5" />
                             </div>
                           ) : isSedana ? (
-                            <div className="w-10 h-10 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center border border-cyan-200/80 dark:border-cyan-800/80 shadow-xs shrink-0">
-                              <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-300 dark:border-blue-700 shadow-xs shrink-0">
+                              <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </div>
                           ) : (
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -427,9 +428,9 @@ export default function Projects() {
                                 </Badge>
                               )}
                               {isSedana && (
-                                <Badge variant="outline" className="bg-cyan-50/90 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 border-cyan-300/80 dark:border-cyan-700/80 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs">
-                                  <Sparkles className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
-                                  مشروع سدانة
+                                <Badge variant="outline" className="bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 text-[10px] py-0 px-1.5 font-bold inline-flex items-center gap-1 shadow-2xs">
+                                  <Sparkles className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                  برنامج سدانة
                                 </Badge>
                               )}
                             </div>

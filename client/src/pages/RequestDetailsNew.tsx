@@ -661,6 +661,10 @@ export default function RequestDetailsNew() {
     { enabled: !!request }
   );
   const hasBoqItems = boqResult?.items && boqResult.items.length > 0;
+  const unpricedBoqItems = useMemo(() => {
+    return (boqResult?.items || []).filter((it: any) => !it.unitPrice || parseFloat(it.unitPrice) <= 0);
+  }, [boqResult]);
+  const isSedanaBoqPricingComplete = request?.programType !== 'sedana' || (hasBoqItems && unpricedBoqItems.length === 0);
 
   // إجمالي جدول الكميات المحسوب
   const boqTotal = useMemo(() => {
@@ -926,6 +930,18 @@ export default function RequestDetailsNew() {
       return;
     }
     
+    // التحقق من تسعير كافة البنود لطلب سدانة قبل الانتقال إلى التقييم المالي واعتماد العرض
+    if (nextStage === 'financial_eval_and_approval' && request.programType === 'sedana') {
+      if (!hasBoqItems) {
+        toast.error("لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود");
+        return;
+      }
+      if (unpricedBoqItems.length > 0) {
+        toast.error(`لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر)`);
+        return;
+      }
+    }
+
     // التحقق من اكتمال تحديد نوع التأمين لبرنامج سدانة
     if (request.programType === 'sedana' && request.currentStage === 'contracting') {
       if (!isSedanaProcurementComplete) {
@@ -1920,16 +1936,23 @@ export default function RequestDetailsNew() {
                       secondaryButton={
                         request.currentStage === 'boq_preparation' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                           ? {
-                              label: "الانتقال إلى التقييم المالي",
+                              label: "الانتقال إلى التقييم المالي واعتماد العرض",
                               onClick: () => {
                                 if (!hasBoqItems) {
-                                  toast.error("لا يمكن الانتقال إلى التقييم المالي قبل تعبئة جدول الكميات");
+                                  toast.error("لا يمكن الانتقال إلى التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود");
+                                  return;
+                                }
+                                if (request.programType === 'sedana' && unpricedBoqItems.length > 0) {
+                                  toast.error(`لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر)`);
                                   return;
                                 }
                                 updateStageMutation.mutate({ requestId, newStage: 'financial_eval_and_approval' as any });
                               },
-                              variant: 'default' as const,
-                              disabled: !hasBoqItems || updateStageMutation.isPending,
+                              variant: isSedanaBoqPricingComplete ? ('default' as const) : ('secondary' as const),
+                              disabled: !hasBoqItems || (request.programType === 'sedana' && unpricedBoqItems.length > 0) || updateStageMutation.isPending,
+                              title: request.programType === 'sedana' && unpricedBoqItems.length > 0
+                                ? `يرجى تسعير جميع البنود (${unpricedBoqItems.length} بند غير مسعر) في جدول الكميات قبل الانتقال للتقييم المالي`
+                                : undefined,
                             }
                         : request.currentStage === 'financial_eval_and_approval' && translatedAction.canPerformAction && !isFieldTeam && !isQuickResponseUser
                           ? {
@@ -2014,6 +2037,42 @@ export default function RequestDetailsNew() {
                     />
                   );
                 })()}
+
+                {/* تنبيه حالة تسعير بنود سدانة لمرحلة إعداد جدول الكميات */}
+                {request.programType === 'sedana' && request.currentStage === 'boq_preparation' && (
+                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs ${
+                    unpricedBoqItems.length > 0 || !hasBoqItems
+                      ? "bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200"
+                      : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
+                  }`}>
+                    <div className="flex items-center gap-2.5">
+                      <AlertCircle className={`w-5 h-5 shrink-0 ${unpricedBoqItems.length > 0 || !hasBoqItems ? "text-amber-600" : "text-emerald-600"}`} />
+                      <div>
+                        <span className="font-bold block text-sm">
+                          {!hasBoqItems
+                            ? "لم يتم إعداد بنود جدول الكميات بعد"
+                            : unpricedBoqItems.length > 0
+                            ? `تنبيه: يوجد ${unpricedBoqItems.length} بند غير مسعر في جدول الكميات`
+                            : "تم تسعير جميع بنود جدول الكميات بنجاح"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {!hasBoqItems || unpricedBoqItems.length > 0
+                            ? "لا يمكن الانتقال لمرحلة التقييم المالي واعتماد العرض إلا بعد إدخال أسعار الوحدات لجميع البنود."
+                            : "جميع بنود جدول الكميات مسعرة، يمكنك الآن الانتقال لمرحلة التقييم المالي واعتماد العرض."}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={unpricedBoqItems.length > 0 || !hasBoqItems ? "outline" : "default"}
+                      onClick={() => setBoqOpen(true)}
+                      className="text-xs h-8 font-bold gap-1.5 shrink-0"
+                    >
+                      <Calculator className="w-3.5 h-3.5" />
+                      فتح جدول الكميات للتسعير
+                    </Button>
+                  </div>
+                )}
 
 
 

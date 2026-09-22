@@ -395,14 +395,31 @@ export default function RequestDetails() {
     // المراحل الـ 11 الجديدة
     const standardStages = ["submitted", "initial_review", "field_visit", "technical_eval", "boq_preparation", "financial_eval_and_approval", "quotation_approval", "contracting", "execution", "handover", "closed"];
     const quickResponseStages = ["submitted", "initial_review", "field_visit", "technical_eval", "execution", "closed"];
+    const sedanaStages = ["submitted", "boq_preparation", "financial_eval_and_approval", "contracting", "execution", "handover", "closed"];
     
     // تحديد المسار بناءً على نوع الطلب
     const isQuickResponse = request.requestTrack === 'quick_response' || request.technicalEvalDecision === 'quick_response';
-    const stages = isQuickResponse ? quickResponseStages : standardStages;
+    const isSedana = request.programType === 'sedana';
+    const stages = isQuickResponse ? quickResponseStages : isSedana ? sedanaStages : standardStages;
     
     const currentIndex = stages.indexOf(request.currentStage);
     if (currentIndex < stages.length - 1) {
       const nextStage = stages[currentIndex + 1] as any;
+
+      // لطلب سدانة، التحقق من تسعير كافة البنود قبل الانتقال للتقييم المالي
+      if (nextStage === 'financial_eval_and_approval' && isSedana) {
+        const items = boqItems?.items || [];
+        if (items.length === 0) {
+          toast.error("لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود");
+          return;
+        }
+        const unpriced = items.filter((it: any) => !it.unitPrice || parseFloat(it.unitPrice) <= 0);
+        if (unpriced.length > 0) {
+          toast.error(`لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`);
+          return;
+        }
+      }
+
       updateStageMutation.mutate({
         requestId,
         newStage: nextStage,

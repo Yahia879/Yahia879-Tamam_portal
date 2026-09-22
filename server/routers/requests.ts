@@ -396,8 +396,17 @@ export const requestsRouter = router({
         newValues: { requestNumber, programType: input.programType, mosqueId: input.mosqueId },
       });
 
-      // ملاحظة: طلبات سدانة تُدار بشكل مستقل عبر منظومة سدانة ولا ينشأ لها مشروع في صفحة المشاريع
+      // إنشاء مشروع تلقائياً لطلب سدانة لكي يظهر في صفحة المشاريع
       let createdProjectId: number | null = null;
+      if (input.programType === "sedana") {
+        try {
+          const { createProjectForSedanaRequest } = await import("./projects");
+          createdProjectId = await createProjectForSedanaRequest(db, requestId, input.descriptiveName);
+          console.log(`[Request Create] Auto-created Sedana project #${createdProjectId} for request #${requestId}`);
+        } catch (projErr) {
+          console.error("[Request Create] Failed to auto-create project for Sedana request:", projErr);
+        }
+      }
 
       // إرسال إشعار عند إنشاء طلب جديد
       await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
@@ -1349,6 +1358,25 @@ export const requestsRouter = router({
         }
       }
 
+      // التحقق من تسعير كافة البنود عند الانتقال لمرحلة التقييم المالي واعتماد العرض لبرنامج سدانة
+      if (input.newStage === 'financial_eval_and_approval' && (isSedana || request[0].programType === 'sedana')) {
+        const boqItems = await db.select().from(quantitySchedules)
+          .where(eq(quantitySchedules.requestId, input.requestId));
+        if (boqItems.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض قبل إعداد جدول الكميات وتسعير البنود",
+          });
+        }
+        const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
+        if (unpriced.length > 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
+          });
+        }
+      }
+
       // التحقق من الشروط المسبقة للانتقال
       // ملاحظة: لا يمكن تجاوز الشروط الحرجة (المراجعة الأولية، الزيارة الميدانية) حتى مع skipPrerequisites
       const criticalStages = ['initial_review', 'field_visit'];
@@ -1385,11 +1413,25 @@ export const requestsRouter = router({
           else if (prereq.type === 'technical_eval_decision') {
             isMet = !!request[0].technicalEvalDecision;
           }
-          // التحقق من وجود جدول الكميات
+          // التحقق من وجود جدول الكميات وتسعير البنود
           else if (prereq.type === 'boq_created') {
             const boqItems = await db.select().from(quantitySchedules)
-              .where(eq(quantitySchedules.requestId, input.requestId)).limit(1);
-            isMet = boqItems.length > 0;
+              .where(eq(quantitySchedules.requestId, input.requestId));
+            if (boqItems.length === 0) {
+              isMet = false;
+            } else if (isSedana || request[0].programType === 'sedana') {
+              const unpriced = boqItems.filter(b => !b.unitPrice || Number(b.unitPrice) <= 0);
+              if (unpriced.length > 0) {
+                isMet = false;
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: `لا يمكن الانتقال إلى مرحلة التقييم المالي واعتماد العرض إلا بعد تسعير جميع البنود (${unpriced.length} بند غير مسعر)`,
+                });
+              }
+              isMet = true;
+            } else {
+              isMet = true;
+            }
           }
           // التحقق من وجود عروض أسعار مستلمة
           else if (prereq.type === 'quotes_received') {
