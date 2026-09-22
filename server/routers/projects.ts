@@ -690,6 +690,7 @@ export const projectsRouter = router({
           currentStage: mosqueRequests.currentStage,
           mosqueName: mosques.name,
           mosqueCity: mosques.city,
+          programData: mosqueRequests.programData,
         })
         .from(mosqueRequests)
         .leftJoin(mosques, eq(mosqueRequests.mosqueId, mosques.id))
@@ -728,6 +729,7 @@ export const projectsRouter = router({
           startDate: contractsEnhanced.startDate,
           endDate: contractsEnhanced.endDate,
           supplierName: contractsEnhanced.secondPartyName,
+          paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
         })
         .from(contractsEnhanced)
         .where(eq(contractsEnhanced.projectId, targetProjectId));
@@ -852,6 +854,37 @@ export const projectsRouter = router({
           return false;
         });
 
+        // استخراج أصناف الدفعة من جدول دفعات العقد paymentScheduleJson أو أمر الصرف
+        let paymentItems: any[] = [];
+        const parentContract = projectContracts.find(c => c.id === cp.contractId);
+        if (parentContract?.paymentScheduleJson) {
+          try {
+            const sched = typeof parentContract.paymentScheduleJson === "string" 
+              ? JSON.parse(parentContract.paymentScheduleJson) 
+              : parentContract.paymentScheduleJson;
+            if (Array.isArray(sched)) {
+              const matchedSched = sched.find((s: any, idx: number) => 
+                s.id === `cp-${cp.id}` || 
+                s.id === cp.id || 
+                s.name === cp.phaseName || 
+                idx === cp.phaseOrder
+              );
+              if (Array.isArray(matchedSched?.items)) {
+                paymentItems = matchedSched.items;
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing paymentScheduleJson for cp in getById:", e);
+          }
+        }
+
+        if (paymentItems.length === 0 && linkedOrder?.itemsJson) {
+          try {
+            const parsed = typeof linkedOrder.itemsJson === "string" ? JSON.parse(linkedOrder.itemsJson) : linkedOrder.itemsJson;
+            if (Array.isArray(parsed)) paymentItems = parsed;
+          } catch (e) {}
+        }
+
         unifiedPayments.push({
           id: `cp-${cp.id}`,
           paymentNumber: `PLAN-${cp.id}`,
@@ -868,6 +901,7 @@ export const projectsRouter = router({
           contractId: cp.contractId,
           hasDisbursementRequest: hasDisb,
           hasProgressReport: hasReport,
+          items: paymentItems,
         });
       });
 
@@ -914,6 +948,35 @@ export const projectsRouter = router({
           return false;
         });
 
+        let manualItems: any[] = [];
+        if (p.contractId) {
+          const parentContract = projectContracts.find(c => c.id === p.contractId);
+          if (parentContract?.paymentScheduleJson) {
+            try {
+              const sched = typeof parentContract.paymentScheduleJson === "string" 
+                ? JSON.parse(parentContract.paymentScheduleJson) 
+                : parentContract.paymentScheduleJson;
+              if (Array.isArray(sched)) {
+                const matchedSched = sched.find((s: any) => 
+                  s.id === `manual-${p.id}` || 
+                  s.paymentId === p.id || 
+                  s.name === p.description
+                );
+                if (Array.isArray(matchedSched?.items)) {
+                  manualItems = matchedSched.items;
+                }
+              }
+            } catch (e) {}
+          }
+        }
+
+        if (manualItems.length === 0 && linkedOrder?.itemsJson) {
+          try {
+            const parsed = typeof linkedOrder.itemsJson === "string" ? JSON.parse(linkedOrder.itemsJson) : linkedOrder.itemsJson;
+            if (Array.isArray(parsed)) manualItems = parsed;
+          } catch (e) {}
+        }
+
         unifiedPayments.push({
           id: `manual-${p.id}`,
           paymentNumber: p.paymentNumber,
@@ -928,6 +991,7 @@ export const projectsRouter = router({
           completionPercentage: (p.completionPercentage !== null && p.completionPercentage !== undefined) ? p.completionPercentage : null,
           hasDisbursementRequest: hasDisb,
           hasProgressReport: hasReport,
+          items: manualItems,
         });
       });
 
@@ -969,9 +1033,55 @@ export const projectsRouter = router({
         .leftJoin(mosques, eq(projectMosques.mosqueId, mosques.id))
         .where(eq(projectMosques.projectId, targetProjectId));
 
+      // تحليل programData للطلب
+      let parsedProgramData: any = null;
+      if (request?.programData) {
+        if (typeof request.programData === 'string') {
+          try {
+            parsedProgramData = JSON.parse(request.programData);
+          } catch {
+            parsedProgramData = null;
+          }
+        } else if (typeof request.programData === 'object') {
+          parsedProgramData = request.programData;
+        }
+      }
+
+      // فحص هل تم التعاقد مع أي مورد في مشاريع سدانة
+      // في سدانة: إذا لم يتم التعاقد مع أي مورد (تم اختيار أوامر شراء أو خطابات مسؤولية أو لا توجد عقود)، تختفي تبويبات العقود والدفعات
+      let hasSedanaContract = true;
+      const isSedanaProject = project.programType === "sedana" || request?.programType === "sedana";
+      if (isSedanaProject) {
+        if (projectContracts.length > 0) {
+          hasSedanaContract = true;
+        } else {
+          const sedanaProc = parsedProgramData?.sedanaProcurement;
+          if (sedanaProc) {
+            const suppliersAlloc = sedanaProc.suppliersAllocation || {};
+            const itemsAlloc = sedanaProc.itemsAllocation || {};
+            const hasContractInSuppliers = Object.values(suppliersAlloc).some((m: any) => m === "contract");
+            const hasContractInItems = Object.values(itemsAlloc).some((m: any) => m === "contract");
+            const hasAnyAlloc = Object.keys(suppliersAlloc).length > 0 || Object.keys(itemsAlloc).length > 0;
+            const hasOtherProc = (sedanaProc.purchaseOrders?.length || 0) > 0 || (sedanaProc.csrLetters?.length || 0) > 0;
+
+            if (hasAnyAlloc || hasOtherProc) {
+              hasSedanaContract = Boolean(hasContractInSuppliers || hasContractInItems);
+            } else {
+              hasSedanaContract = false;
+            }
+          } else {
+            hasSedanaContract = false;
+          }
+        }
+      }
+
       return {
         ...project,
-        request,
+        request: request ? {
+          ...request,
+          programData: parsedProgramData,
+        } : null,
+        hasSedanaContract,
         phases,
         evaluations,
         contracts: input.lightweight ? [] : projectContracts,
@@ -1717,6 +1827,7 @@ export const projectsRouter = router({
       description: z.string().optional(),
       completionPercentage: z.number().min(0).max(100).optional().nullable(),
       dateMiladi: z.string().optional(),
+      items: z.array(z.any()).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1762,6 +1873,46 @@ export const projectsRouter = router({
           completionPercentage: input.completionPercentage,
           status: "pending",
         });
+      }
+
+      // حفظ أصناف الدفعة في العقد المرتبط
+      if (input.items && (input.contractPaymentId || input.contractId)) {
+        try {
+          let cId = input.contractId;
+          if (!cId && input.contractPaymentId) {
+            const [cp] = await db.select({ contractId: contractPayments.contractId }).from(contractPayments).where(eq(contractPayments.id, input.contractPaymentId));
+            if (cp) cId = cp.contractId;
+          }
+          if (cId) {
+            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cId));
+            if (contract && contract.paymentScheduleJson) {
+              let schedule = typeof contract.paymentScheduleJson === "string" 
+                ? JSON.parse(contract.paymentScheduleJson) 
+                : contract.paymentScheduleJson;
+              if (Array.isArray(schedule)) {
+                let targetIdx = -1;
+                if (input.contractPaymentId) {
+                  targetIdx = schedule.findIndex((s: any) => s.id === `cp-${input.contractPaymentId}` || s.id === input.contractPaymentId);
+                }
+                if (targetIdx !== -1) {
+                  schedule[targetIdx].items = input.items;
+                } else {
+                  schedule.push({
+                    id: `manual-${payment.insertId}`,
+                    name: input.description || "دفعة جديدة",
+                    amount: input.amount,
+                    items: input.items,
+                  });
+                }
+                await db.update(contractsEnhanced).set({
+                  paymentScheduleJson: JSON.stringify(schedule)
+                }).where(eq(contractsEnhanced.id, cId));
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error syncing items in createPayment:", e);
+        }
       }
 
       return { id: payment.insertId, paymentNumber };
@@ -1834,6 +1985,24 @@ export const projectsRouter = router({
         const actualId = parseInt(input.id.replace("disb-", ""));
         const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.id, actualId));
         if (!disb) throw new TRPCError({ code: "NOT_FOUND", message: "الدفعة غير موجودة" });
+
+        let disbItems: any[] = [];
+        if (disb.contractPaymentId) {
+          const [cp] = await db.select().from(contractPayments).where(eq(contractPayments.id, disb.contractPaymentId));
+          if (cp?.contractId) {
+            const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, cp.contractId));
+            if (contract?.paymentScheduleJson) {
+              try {
+                const sched = typeof contract.paymentScheduleJson === "string" ? JSON.parse(contract.paymentScheduleJson) : contract.paymentScheduleJson;
+                if (Array.isArray(sched)) {
+                  const matched = sched.find((s: any, idx: number) => s.id === `cp-${cp.id}` || s.id === cp.id || idx === cp.phaseOrder || s.name === cp.phaseName);
+                  if (Array.isArray(matched?.items)) disbItems = matched.items;
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
         return {
           id: input.id,
           projectId: disb.projectId,
@@ -1844,6 +2013,7 @@ export const projectsRouter = router({
           amount: parseFloat(disb.amount as string || "0"),
           dateMiladi: toLocalDateString(disb.dateMiladi),
           completionPercentage: (disb.completionPercentage !== null && disb.completionPercentage !== undefined) ? disb.completionPercentage : null,
+          items: disbItems,
         };
       } else if (input.id.startsWith("manual-")) {
          const actualId = parseInt(input.id.replace("manual-", ""));
@@ -1852,6 +2022,20 @@ export const projectsRouter = router({
          
          // البحث عما إذا كان هناك طلب صرف مرتبط بالدفعة اليدوية للحصول على dateMiladi
          const [disb] = await db.select().from(disbursementRequests).where(eq(disbursementRequests.paymentId, actualId));
+
+         let manualItems: any[] = [];
+         if (payment.contractId) {
+           const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, payment.contractId));
+           if (contract?.paymentScheduleJson) {
+             try {
+               const sched = typeof contract.paymentScheduleJson === "string" ? JSON.parse(contract.paymentScheduleJson) : contract.paymentScheduleJson;
+               if (Array.isArray(sched)) {
+                 const matched = sched.find((s: any) => s.id === `manual-${actualId}` || s.paymentId === actualId || s.name === payment.description);
+                 if (Array.isArray(matched?.items)) manualItems = matched.items;
+               }
+             } catch (e) {}
+           }
+         }
 
          return {
            id: input.id,
@@ -1862,6 +2046,7 @@ export const projectsRouter = router({
            amount: parseFloat(payment.amount as string || "0"),
            dateMiladi: disb?.dateMiladi ? toLocalDateString(disb.dateMiladi) : toLocalDateString(payment.createdAt),
            completionPercentage: (payment.completionPercentage !== null && payment.completionPercentage !== undefined) ? payment.completionPercentage : null,
+           items: manualItems,
          };
       } else if (input.id.startsWith("cp-")) {
         const actualId = parseInt(input.id.replace("cp-", ""));
@@ -1870,10 +2055,30 @@ export const projectsRouter = router({
 
         let projectId = 0;
         let contractId = cp.contractId;
+        let cpItems: any[] = [];
         if (contractId) {
           const [contract] = await db.select().from(contractsEnhanced).where(eq(contractsEnhanced.id, contractId));
           if (contract) {
             projectId = contract.projectId || 0;
+            if (contract.paymentScheduleJson) {
+              try {
+                const sched = typeof contract.paymentScheduleJson === "string" 
+                  ? JSON.parse(contract.paymentScheduleJson) 
+                  : contract.paymentScheduleJson;
+                if (Array.isArray(sched)) {
+                  const matched = sched.find((s: any, idx: number) => 
+                    s.id === `cp-${actualId}` || 
+                    s.id === actualId || 
+                    s.phaseOrder === cp.phaseOrder || 
+                    idx === cp.phaseOrder ||
+                    s.name === cp.phaseName
+                  );
+                  if (Array.isArray(matched?.items)) {
+                    cpItems = matched.items;
+                  }
+                }
+              } catch (e) {}
+            }
           }
         }
 
@@ -1887,6 +2092,7 @@ export const projectsRouter = router({
           amount: parseFloat(cp.amount as string || "0"),
           dateMiladi: toLocalDateString(cp.dueDate || cp.createdAt),
           completionPercentage: (cp.completionPercentage !== null && cp.completionPercentage !== undefined) ? cp.completionPercentage : null,
+          items: cpItems,
         };
       } else {
         throw new TRPCError({ code: "BAD_REQUEST", message: "معرف الدفعة غير صالح" });
@@ -1901,6 +2107,7 @@ export const projectsRouter = router({
       description: z.string().optional(),
       dateMiladi: z.string().optional(),
       completionPercentage: z.number().min(0).max(100).optional().nullable(),
+      items: z.array(z.any()).optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -1980,6 +2187,7 @@ export const projectsRouter = router({
                   if (input.description) schedule[targetIdx].description = input.description;
                   if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
                   if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
+                  if (input.items !== undefined) schedule[targetIdx].items = input.items;
                   await db.update(contractsEnhanced).set({
                     paymentScheduleJson: JSON.stringify(schedule)
                   }).where(eq(contractsEnhanced.id, targetContractId));
@@ -2031,6 +2239,7 @@ export const projectsRouter = router({
                   if (input.description) schedule[targetIdx].description = input.description;
                   if (input.completionPercentage !== undefined) schedule[targetIdx].completionPercentage = input.completionPercentage;
                   if (dateVal && input.dateMiladi) schedule[targetIdx].dueDate = input.dateMiladi;
+                  if (input.items !== undefined) schedule[targetIdx].items = input.items;
                   await db.update(contractsEnhanced).set({
                     paymentScheduleJson: JSON.stringify(schedule)
                   }).where(eq(contractsEnhanced.id, cp.contractId));
