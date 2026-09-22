@@ -696,10 +696,6 @@ export default function SedanaExecutionPage() {
               <span>أوامر التسليم وإثبات الاستلام</span>
               <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{deliveryOrders.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs font-bold gap-1.5">
-              <History className="w-3.5 h-3.5" />
-              <span>سجل تنقلات الإمام والذاكرة المؤسسية</span>
-            </TabsTrigger>
           </TabsList>
 
           {/* التبويب 1: رصيد المستودع الافتراضي */}
@@ -715,16 +711,6 @@ export default function SedanaExecutionPage() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleQuickInwardAll}
-                    disabled={createInwardMutation.isPending}
-                    className="text-xs font-semibold gap-1 text-emerald-700 dark:text-emerald-300 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>إدخال كافة الكميات المتبقية</span>
-                  </Button>
                   <Button
                     size="sm"
                     onClick={() => {
@@ -744,7 +730,6 @@ export default function SedanaExecutionPage() {
                       <TableRow className="border-b">
                         <th className="p-3 w-10 text-center font-bold">#</th>
                         <th className="p-3 font-bold">الصنف</th>
-                        <th className="p-3 font-bold text-center">طريقة التأمين</th>
                         <th className="p-3 font-bold text-center">الكمية المعتمدة</th>
                         <th className="p-3 font-bold text-center text-emerald-700">المدخل بالمستودع</th>
                         <th className="p-3 font-bold text-center text-sky-700">المصروف / المجدول</th>
@@ -761,15 +746,6 @@ export default function SedanaExecutionPage() {
                             {it.description && (
                               <div className="text-[10px] text-muted-foreground mt-0.5">{it.description}</div>
                             )}
-                          </td>
-                          <td className="p-3 text-center">
-                            <Badge variant="outline" className="text-[10px]">
-                              {it.allocationMethod === "purchase_order" && "أمر شراء داخلي"}
-                              {it.allocationMethod === "csr_letter" && "مسؤولية مجتمعية"}
-                              {it.allocationMethod === "supplier_contract" && "عقد مورد"}
-                              {it.allocationMethod === "direct_purchase" && "شراء مباشر"}
-                              {it.allocationMethod === "in_kind_donation" && "تبرع عيني"}
-                            </Badge>
                           </td>
                           <td className="p-3 text-center font-bold font-mono">
                             {it.approvedQty} <span className="text-[10px] font-normal text-muted-foreground">{it.unit}</span>
@@ -1212,89 +1188,6 @@ export default function SedanaExecutionPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* التبويب 4: سجل تنقلات الإمام والذاكرة المؤسسية للمسجد */}
-          <TabsContent value="history" dir="rtl" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* سجل تنقلات الإمام */}
-              <Card className="border border-border/80 shadow-2xs">
-                <CardHeader className="p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-primary" />
-                    <CardTitle className="text-sm font-bold text-foreground">
-                      سجل تنقلات الإمام وكفاءة إدارة الموارد
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs mt-0.5">
-                    تتبع سجل الإمام وعقوده السابقة عبر المساجد المختلفة لضمان استمرارية تقييم الأداء
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 space-y-3">
-                  <div className="p-3 rounded-lg bg-muted/40 border text-xs space-y-1">
-                    <p className="font-bold text-foreground">المساجد التي أدار فيها الإمام برامج تشغيلية:</p>
-                    {imamHistoryData?.mosquesServed && imamHistoryData.mosquesServed.length > 0 ? (
-                      <ul className="list-disc list-inside space-y-1 text-muted-foreground pt-1">
-                        {imamHistoryData.mosquesServed.map((m: any) => (
-                          <li key={m.id}>
-                            <span className="font-semibold text-foreground">{m.name}</span> ({m.city}) - {m.requestsCount} طلبات سابقة
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-muted-foreground">جامع {mosque?.name || "المسجد الحالي"} (المسجد المسجل حالياً)</p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs p-3 rounded-lg border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20">
-                    <span className="font-bold text-emerald-800 dark:text-emerald-300">معدل التزام وتأكيد الاستلام:</span>
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-sm">100% (موثوق وممتاز)</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* الذاكرة المؤسسية للمسجد والتنبؤ بالاحتياج */}
-              <Card className="border border-border/80 shadow-2xs">
-                <CardHeader className="p-4 border-b">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-emerald-700" />
-                    <CardTitle className="text-sm font-bold text-foreground">
-                      الملف التعريفي والذاكرة المؤسسية للمسجد
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="text-xs mt-0.5">
-                    حفظ أرشيف العقود والمشتروات السنوية لتسهيل التنبؤ بالاحتياج المستقبلي
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 space-y-3 text-xs">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">اسم المسجد:</span>
-                      <span className="font-bold">{mosque?.name || "المسجد"}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">المدينة / الحي:</span>
-                      <span className="font-semibold">{mosque?.city || "-"} - {mosque?.district || "-"}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">نوع المسجد:</span>
-                      <span className="font-semibold">{mosque?.mosqueType || "جامع"}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">السعة الاستيعابية:</span>
-                      <span className="font-semibold font-mono">{mosque?.capacity || "-"} مصلٍ</span>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-lg bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 space-y-1">
-                    <p className="font-bold text-sky-900 dark:text-sky-300">التنبؤ التلقائي باحتياج العام القادم:</p>
-                    <p className="text-[11px] text-sky-800 dark:text-sky-400">
-                      بناءً على معدلات استهلاك هذا العام، يوصي النظام بتجديد التعاقد السنوي بنفس الكميات مع زيادة 5% في مواد السقيا لموسم الصيف.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
 
