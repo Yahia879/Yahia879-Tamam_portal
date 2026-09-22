@@ -1067,39 +1067,82 @@ export default function ContractForm() {
     const supplierObj = suppliersList.find((s: any) => s.id === sId);
     const supplierName = targetQuotation.supplierName || supplierObj?.name || "";
 
-    setContractData(prev => {
-      let updatedSubject = prev.subject;
-      const mosqueName = requestDetails?.mosque?.name || "";
-      const isSedana = requestDetails?.programType === 'sedana';
-      const progTitle = isSedana ? 'نظافة وتشغيل' : 'توريد وخدمات';
+    const mosqueName = requestDetails?.mosque?.name || "";
+    const isSedana = requestDetails?.programType === 'sedana';
+    const progTitle = isSedana ? 'نظافة وتشغيل' : 'توريد وخدمات';
 
-      if (!updatedSubject || updatedSubject.includes("مسجد") || updatedSubject.startsWith("عقد ")) {
-        if ((allApprovedQuotations.length > 1 || rawApprovedQuotations.length > 1) && supplierName) {
-          updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName} - (${supplierName})`;
-        } else if (mosqueName) {
-          updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName}`;
-        }
-      }
+    let updatedSubject = "";
+    if (supplierName && mosqueName) {
+      updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName} - (${supplierName})`;
+    } else if (mosqueName) {
+      updatedSubject = `عقد ${progTitle} لمسجد ${mosqueName}`;
+    }
 
-      let updatedDesc = prev.description;
-      if (!updatedDesc && itemsList.length > 0) {
-        const itemNames = itemsList.map((it: any) => it.itemName || it.item_name || it.name).filter(Boolean).join("، ");
-        if (itemNames) {
-          updatedDesc = `يشمل العقد البنود المعتمدة من عرض السعر: ${itemNames}`;
-        }
-      }
+    const itemNames = itemsList.map((it: any) => it.itemName || it.item_name || it.name).filter(Boolean).join("، ");
+    const updatedDesc = itemNames ? `يشمل العقد البنود المعتمدة من عرض السعر: ${itemNames}` : "";
 
-      return {
-        ...prev,
-        supplierId: sId,
-        baseValue: finalAmount,
-        totalValue: finalAmount,
-        managementPercentage: managementPercentage || prev.managementPercentage,
-        subject: updatedSubject,
-        description: updatedDesc,
-      };
-    });
+    setContractData(prev => ({
+      ...prev,
+      supplierId: sId,
+      baseValue: finalAmount,
+      totalValue: finalAmount,
+      managementPercentage: managementPercentage || prev.managementPercentage,
+      subject: updatedSubject || prev.subject,
+      description: updatedDesc,
+    }));
   };
+
+  // اختيار مورد من كارت عروض الأسعار والتعامل الذكي مع التبديل وتصفير البيانات
+  const handleSelectVendorForContract = (quotation: any, existingContract?: any) => {
+    const sId = quotation.supplierId;
+    const sObj = suppliersList.find((s: any) => s.id === sId);
+    const sName = quotation.supplierName || sObj?.name || `مورد رقم ${sId}`;
+
+    if (existingContract) {
+      setCurrentStep(1);
+      setEditDataLoaded(false);
+      setCreatedDraftId(null);
+      navigate(`/contracts/${existingContract.id}/edit`);
+      toast.info(`الانتقال لتعديل عقد (${sName})`);
+    } else {
+      // تصفير البيانات والعودة للخطوة الأولى لإنشاء عقد جديد للمورد الآخر
+      setCurrentStep(1);
+      setCreatedDraftId(null);
+      setEditDataLoaded(false);
+      setPaymentSchedule([]);
+      setClauseValues([]);
+      setCustomClauses([]);
+      loadedDraftStateRef.current = null;
+      hasInitializedSupplierRef.current = true;
+      applySupplierQuotation(quotation);
+      navigate(`/contracts/new?requestId=${effectiveRequestId || requestId}&supplierId=${sId}`);
+      toast.info(`بدء إنشاء عقد جديد للمورد (${sName}) من الخطوة الأولى`);
+    }
+  };
+
+  // مراقبة الانتقال بين وضع التعديل والإنشاء الجديد وتصفير الخطوات والدفعات
+  const prevSupplierQueryRef = useRef<number | null>(supplierIdFromQuery);
+  const prevIsEditModeRef = useRef<boolean>(isEditMode);
+
+  useEffect(() => {
+    const editModeChanged = prevIsEditModeRef.current !== isEditMode;
+    const supplierChanged = prevSupplierQueryRef.current !== supplierIdFromQuery;
+    prevIsEditModeRef.current = isEditMode;
+    prevSupplierQueryRef.current = supplierIdFromQuery;
+
+    if (!isEditMode && (editModeChanged || supplierChanged)) {
+      setCurrentStep(1);
+      setEditDataLoaded(false);
+      setPaymentSchedule([]);
+      setCreatedDraftId(null);
+      if (supplierIdFromQuery) {
+        const q = allApprovedQuotations.find((item: any) => item.supplierId === supplierIdFromQuery);
+        if (q) {
+          applySupplierQuotation(q);
+        }
+      }
+    }
+  }, [isEditMode, supplierIdFromQuery, allApprovedQuotations]);
 
   // تهيئة وتحديد المورد وعرض السعر المعتمد تلقائياً عند فتح النموذج
   const hasInitializedSupplierRef = useRef(false);
@@ -1901,15 +1944,7 @@ export default function ContractForm() {
                   return (
                     <div
                       key={`vendor-card-${sId || quotation.id}`}
-                      onClick={() => {
-                        if (existingContract) {
-                          navigate(`/contracts/${existingContract.id}/edit`);
-                        } else {
-                          setCreatedDraftId(null);
-                          applySupplierQuotation(quotation);
-                          toast.info(`تم اختيار المورد (${sName}) لإنشاء العقد`);
-                        }
-                      }}
+                      onClick={() => handleSelectVendorForContract(quotation, existingContract)}
                       className={cn(
                         "p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-3",
                         isSelected
@@ -1966,16 +2001,10 @@ export default function ContractForm() {
                           )}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (existingContract) {
-                              navigate(`/contracts/${existingContract.id}/edit`);
-                            } else {
-                              setCreatedDraftId(null);
-                              applySupplierQuotation(quotation);
-                              toast.info(`تم اختيار المورد (${sName}) لإنشاء العقد`);
-                            }
+                            handleSelectVendorForContract(quotation, existingContract);
                           }}
                         >
-                          {existingContract ? "تعديل العقد" : isSelected ? "محدد للإنشاء" : "اختيار المورد"}
+                          {existingContract ? "تعديل العقد" : isSelected && !isEditMode ? "محدد للإنشاء" : "إنشاء العقد لهذا المورد"}
                         </Button>
                       </div>
                     </div>
