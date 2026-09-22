@@ -39,6 +39,7 @@ import {
   Package,
   Sparkles,
   Layers,
+  Copy,
 } from "lucide-react";
 import {
   Table,
@@ -645,8 +646,60 @@ export default function ContractForm() {
       });
     }
 
-    return Array.from(itemsMap.values());
-  }, [isSedanaProgram, allApprovedQuotations, rawApprovedQuotations, contractData.supplierId, boqResult, sedanaProcurementData, requestDetails, paymentSchedule]);
+    // استخراج سلة الاحتياج (basketItems) لربط الكميات الدورية المتفق عليها
+    let pData = (requestDetails as any)?.programData;
+    if (typeof pData === "string") {
+      try { pData = JSON.parse(pData); } catch { pData = {}; }
+    }
+    const basket: any[] = Array.isArray(pData?.basketItems) ? pData.basketItems : [];
+
+    return Array.from(itemsMap.values()).map(item => {
+      const match = basket.find((b: any) => {
+        if (!b) return false;
+        if (b.name && item.itemName && b.name.trim().toLowerCase() === item.itemName.trim().toLowerCase()) return true;
+        if (b.itemName && item.itemName && b.itemName.trim().toLowerCase() === item.itemName.trim().toLowerCase()) return true;
+        if (b.id && (String(b.id) === String(item.id) || String(item.id).includes(String(b.id)))) return true;
+        return false;
+      });
+
+      const monthlyLimit = match?.monthlyLimit ?? match?.periodLimits?.['شهري'] ?? match?.periodLimits?.monthly;
+      const quarterlyLimit = match?.quarterlyLimit ?? match?.periodLimits?.['ربع سنوي'];
+      const semiAnnualLimit = match?.semiAnnualLimit ?? match?.periodLimits?.['نصف سنوي'];
+      const frequency = match?.frequency || 'شهري';
+
+      let agreedPeriodicLabel = '';
+      let suggestedPeriodQty = 1;
+
+      if (frequency === 'شهري' && monthlyLimit && Number(monthlyLimit) > 0) {
+        suggestedPeriodQty = Number(monthlyLimit);
+        agreedPeriodicLabel = `متفق عليه شهرياً: ${monthlyLimit} ${item.unit}`;
+      } else if (frequency === 'ربع سنوي' && quarterlyLimit && Number(quarterlyLimit) > 0) {
+        suggestedPeriodQty = Number(quarterlyLimit);
+        agreedPeriodicLabel = `متفق عليه ربع سنوياً: ${quarterlyLimit} ${item.unit}`;
+      } else if (frequency === 'نصف سنوي' && semiAnnualLimit && Number(semiAnnualLimit) > 0) {
+        suggestedPeriodQty = Number(semiAnnualLimit);
+        agreedPeriodicLabel = `متفق عليه نصف سنوياً: ${semiAnnualLimit} ${item.unit}`;
+      } else if (monthlyLimit && Number(monthlyLimit) > 0) {
+        suggestedPeriodQty = Number(monthlyLimit);
+        agreedPeriodicLabel = `متفق عليه شهرياً: ${monthlyLimit} ${item.unit}`;
+      } else if (contractData.duration && contractData.duration > 0 && item.totalQuantity > 0) {
+        const perMonth = Math.max(1, Math.round(item.totalQuantity / contractData.duration));
+        suggestedPeriodQty = perMonth;
+        agreedPeriodicLabel = `المتفق عليه شهرياً: ${perMonth} ${item.unit}`;
+      } else if (item.totalQuantity > 0) {
+        suggestedPeriodQty = item.totalQuantity;
+        agreedPeriodicLabel = `الكمية المعتمدة بالطلب: ${item.totalQuantity} ${item.unit}`;
+      }
+
+      return {
+        ...item,
+        monthlyLimit: monthlyLimit ? Number(monthlyLimit) : undefined,
+        frequency,
+        agreedPeriodicLabel,
+        suggestedPeriodQty,
+      };
+    });
+  }, [isSedanaProgram, allApprovedQuotations, rawApprovedQuotations, contractData.supplierId, contractData.duration, boqResult, sedanaProcurementData, requestDetails, paymentSchedule]);
 
   // عكس الأجور الإدارية ونسبة الجمعية المحددة في المشروع تلقائياً عند إنشاء العقد
   useEffect(() => {
@@ -1158,16 +1211,7 @@ export default function ContractForm() {
         return p;
       }
 
-      // حساب المتبقي من هذا الصنف في الدفعات الأخرى
-      const allocatedInOtherPayments = prev
-        .filter(other => other.id !== paymentId)
-        .reduce((sum, other) => {
-          const found = (other.items || []).find(i => String(i.id) === String(itemId));
-          return sum + (found?.quantity || 0);
-        }, 0);
-
-      const remaining = Math.max(0, targetItem.totalQuantity - allocatedInOtherPayments);
-      const initialQty = remaining > 0 ? remaining : (targetItem.totalQuantity || 1);
+      const initialQty = (targetItem as any).suggestedPeriodQty || (targetItem as any).monthlyLimit || (targetItem.totalQuantity > 0 ? targetItem.totalQuantity : 1);
 
       const newItem: PaymentScheduleContractItem = {
         id: String(targetItem.id),
@@ -1221,47 +1265,89 @@ export default function ContractForm() {
     }));
   };
 
-  // إضافة جميع البنود المتبقية للدفعة دفعة واحدة (خاص بسدانة)
-  const handleAutoFillRemainingItems = (paymentId: string) => {
+  // إدراج كافة بنود العقد لهذه الدفعة بالكميات الشهرية / الدورية المتفق عليها
+  const handleInsertAllItemsForPayment = (paymentId: string) => {
+    if (availableContractItems.length === 0) {
+      toast.error("لا توجد بنود متاحة في العقد");
+      return;
+    }
+
     setPaymentSchedule(prev => {
       const currentPayment = prev.find(p => p.id === paymentId);
       if (!currentPayment) return prev;
       const currentItems = Array.isArray(currentPayment.items) ? [...currentPayment.items] : [];
 
       availableContractItems.forEach(avail => {
-        const allocatedInOtherPayments = prev
-          .filter(other => other.id !== paymentId)
-          .reduce((sum, other) => {
-            const found = (other.items || []).find(i => String(i.id) === String(avail.id));
-            return sum + (found?.quantity || 0);
-          }, 0);
-
-        const remaining = Math.max(0, avail.totalQuantity - allocatedInOtherPayments);
+        const defaultQty = (avail as any).suggestedPeriodQty || (avail as any).monthlyLimit || (avail.totalQuantity > 0 ? avail.totalQuantity : 1);
         const existingIdx = currentItems.findIndex(i => String(i.id) === String(avail.id));
 
         if (existingIdx >= 0) {
-          if (remaining > 0) {
+          if (!currentItems[existingIdx].quantity || currentItems[existingIdx].quantity <= 0) {
             currentItems[existingIdx] = {
               ...currentItems[existingIdx],
-              quantity: remaining,
-              totalPrice: remaining * (currentItems[existingIdx].unitPrice || avail.unitPrice || 0),
+              quantity: defaultQty,
+              totalPrice: defaultQty * (currentItems[existingIdx].unitPrice || avail.unitPrice || 0),
             };
           }
-        } else if (remaining > 0) {
+        } else {
           currentItems.push({
             id: String(avail.id),
             itemName: avail.itemName,
-            quantity: remaining,
+            quantity: defaultQty,
             unit: avail.unit,
             unitPrice: avail.unitPrice || 0,
-            totalPrice: remaining * (avail.unitPrice || 0),
+            totalPrice: defaultQty * (avail.unitPrice || 0),
           });
         }
       });
 
       return prev.map(p => p.id === paymentId ? { ...p, items: currentItems } : p);
     });
-    toast.success("تمت تعبئة كافة البنود المتبقية في هذه الدفعة بنجاح");
+    toast.success("تم إدراج كافة بنود العقد بالكميات المتفق عليها لهذه الدفعة");
+  };
+
+  // تطبيق بنود هذه الدفعة على جميع الدفعات الأخرى (خاص بسدانة)
+  const handleApplyItemsToAllPayments = (sourcePaymentId: string) => {
+    const sourcePayment = paymentSchedule.find(p => p.id === sourcePaymentId);
+    if (!sourcePayment || !sourcePayment.items || sourcePayment.items.length === 0) {
+      toast.error("لا توجد أصناف في هذه الدفعة لتطبيقها");
+      return;
+    }
+
+    const itemsToCopy = sourcePayment.items.map(it => ({ ...it }));
+    setPaymentSchedule(prev => prev.map(p => ({
+      ...p,
+      items: itemsToCopy.map(it => ({ ...it })),
+    })));
+    toast.success(`تم نسخ وتطبيق البنود والكميات على جميع الدفعات (${paymentSchedule.length} دفعات)`);
+  };
+
+  // تعبئة كافة دفعات العقد تلقائياً بالبنود والكميات الدورية المتفق عليها
+  const handleAutoFillAllPaymentsWithAgreedItems = () => {
+    if (availableContractItems.length === 0) {
+      toast.error("لا توجد بنود متاحة للتعاقد");
+      return;
+    }
+    if (paymentSchedule.length === 0) {
+      toast.info("يرجى إضافة دفعات أولاً");
+      return;
+    }
+
+    setPaymentSchedule(prev => prev.map(p => {
+      const allItems = availableContractItems.map(avail => {
+        const defaultQty = (avail as any).suggestedPeriodQty || (avail as any).monthlyLimit || (avail.totalQuantity > 0 ? avail.totalQuantity : 1);
+        return {
+          id: String(avail.id),
+          itemName: avail.itemName,
+          quantity: defaultQty,
+          unit: avail.unit,
+          unitPrice: avail.unitPrice || 0,
+          totalPrice: defaultQty * (avail.unitPrice || 0),
+        };
+      });
+      return { ...p, items: allItems };
+    }));
+    toast.success(`تمت تعبئة جميع الدفعات (${paymentSchedule.length} دفعة) بكافة بنود العقد والكميات المتفق عليها`);
   };
 
   // مطابقة مبلغ الدفعة ونسبتها مع مجموع أسعار بنودها (خاص بسدانة)
@@ -1744,7 +1830,7 @@ export default function ContractForm() {
                   )}
                 </div>
               </div>
-              {requestDetails.project && (
+              {!isSedanaProgram && requestDetails.project && (
                 <div className="mt-4 pt-4 border-t border-blue-200">
                   <div className="flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-blue-600" />
@@ -2071,64 +2157,66 @@ export default function ContractForm() {
                   </p>
                 </div>
 
-                {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع */}
-                {(effectiveRequestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
-                  // عند وجود طلب مرتبط بمشروع أو في وضع التعديل، نعرض المشروع كقيمة ثابتة
-                  <div className="space-y-2">
-                    <Label>{effectiveRequestId ? "المشروع المرتبط" : "المشروع"}</Label>
-                    <div className="p-3 bg-muted rounded-lg border">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-primary" />
-                        {effectiveRequestId && requestDetails?.project ? (
-                          <>
-                            <span className="font-medium">
-                              {requestDetails.project.projectNumber}
-                            </span>
-                            <span className="text-muted-foreground">-</span>
-                            <span>
-                              {requestDetails.project.name}
-                            </span>
-                          </>
-                        ) : (
-                          // في وضع التعديل، نبحث عن اسم المشروع من البيانات المجلوبة بالمعرف
-                          (() => {
-                            const project = projectDetails || requestDetails?.project;
-                            return (
-                              <>
-                                <span className="font-medium">
-                                  {project?.projectNumber || "-"}
-                                </span>
-                                <span className="text-muted-foreground">-</span>
-                                <span>
-                                  {project?.name || "-"}
-                                </span>
-                              </>
-                            );
-                          })()
+                {/* إظهار المشروع المرتبط بالطلب أو اختيار مشروع (يتم إخفاؤه في برنامج سدانة) */}
+                {!isSedanaProgram && (
+                  (effectiveRequestId && requestDetails?.project?.id) || (isEditMode && contractData.projectId) ? (
+                    // عند وجود طلب مرتبط بمشروع أو في وضع التعديل، نعرض المشروع كقيمة ثابتة
+                    <div className="space-y-2">
+                      <Label>{effectiveRequestId ? "المشروع المرتبط" : "المشروع"}</Label>
+                      <div className="p-3 bg-muted rounded-lg border">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-primary" />
+                          {effectiveRequestId && requestDetails?.project ? (
+                            <>
+                              <span className="font-medium">
+                                {requestDetails.project.projectNumber}
+                              </span>
+                              <span className="text-muted-foreground">-</span>
+                              <span>
+                                {requestDetails.project.name}
+                              </span>
+                            </>
+                          ) : (
+                            // في وضع التعديل، نبحث عن اسم المشروع من البيانات المجلوبة بالمعرف
+                            (() => {
+                              const project = projectDetails || requestDetails?.project;
+                              return (
+                                <>
+                                  <span className="font-medium">
+                                    {project?.projectNumber || "-"}
+                                  </span>
+                                  <span className="text-muted-foreground">-</span>
+                                  <span>
+                                    {project?.name || "-"}
+                                  </span>
+                                </>
+                              );
+                            })()
+                          )}
+                        </div>
+                        {effectiveRequestId && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            هذا العقد مرتبط بالطلب رقم {requestDetails?.requestNumber}
+                          </p>
+                        )}
+                        {isEditMode && !effectiveRequestId && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            لا يمكن تغيير المشروع بعد إنشاء العقد.
+                          </p>
                         )}
                       </div>
-                      {effectiveRequestId && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          هذا العقد مرتبط بالطلب رقم {requestDetails?.requestNumber}
-                        </p>
-                      )}
-                      {isEditMode && !effectiveRequestId && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          لا يمكن تغيير المشروع بعد إنشاء العقد.
-                        </p>
-                      )}
                     </div>
-                  </div>
-                ) : (
-                  // عند عدم وجود طلب، نعرض اسم المشروع المحدد أو قيمة فارغة
-                  <div className="space-y-2">
-                    <Label>المشروع</Label>
-                    <Input 
-                      value={projectDetails ? `${projectDetails.projectNumber} - ${projectDetails.name}` : "بدون مشروع"} 
-                      readOnly 
-                      className="bg-muted" 
-                    />
-                  </div>
+                  ) : (
+                    // عند عدم وجود طلب، نعرض اسم المشروع المحدد أو قيمة فارغة
+                    <div className="space-y-2">
+                      <Label>المشروع</Label>
+                      <Input 
+                        value={projectDetails ? `${projectDetails.projectNumber} - ${projectDetails.name}` : "بدون مشروع"} 
+                        readOnly 
+                        className="bg-muted" 
+                      />
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -2389,7 +2477,7 @@ export default function ContractForm() {
             {/* الخطوة 4: جدول الدفعات */}
             {currentStep === 4 && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="font-medium flex items-center gap-2">
                       <span>جدول الدفعات</span>
@@ -2405,21 +2493,41 @@ export default function ContractForm() {
                         : "حدد الدفعات ومواعيدها (اختياري)"}
                     </p>
                   </div>
-                  <Button onClick={addPayment} variant="outline" size="sm">
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة دفعة
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isSedanaProgram && availableContractItems.length > 0 && paymentSchedule.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAutoFillAllPaymentsWithAgreedItems}
+                        className="border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/40 gap-1.5 text-xs font-semibold h-8"
+                        title="تعبئة جميع دفعات الجدول بكافة بنود العقد والكميات المتفق عليها تلقائياً"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                        تعبئة كافة الدفعات بالبنود المتفق عليها
+                      </Button>
+                    )}
+                    <Button onClick={addPayment} variant="outline" size="sm" className="h-8 text-xs gap-1">
+                      <Plus className="h-4 w-4" />
+                      إضافة دفعة
+                    </Button>
+                  </div>
                 </div>
 
-                {/* لوحة متابعة كميات بنود العقد على الدفعات - تظهر فقط وحصرياً لبرامج سدانة */}
+                {/* لوحة استعراض بنود العقد والكميات المتفق عليها - تظهر لبرامج سدانة */}
                 {isSedanaProgram && availableContractItems.length > 0 && (
                   <Card className="bg-sky-50/50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-900/50 p-4 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Layers className="w-5 h-5 text-sky-600" />
-                        <h4 className="text-sm font-bold text-sky-950 dark:text-sky-200">
-                          متابعة توزيع كميات بنود العقد على الدفعات
-                        </h4>
+                        <div>
+                          <h4 className="text-sm font-bold text-sky-950 dark:text-sky-200">
+                            بنود العقد المعتمدة والحصص التوريدية
+                          </h4>
+                          <p className="text-[11px] text-muted-foreground">
+                            عرض الكميات المعتمدة بالطلب والمتفق عليها دورياً ومجموع ما تم تخصيصه بالدفعات
+                          </p>
+                        </div>
                       </div>
                       <Badge variant="outline" className="bg-white dark:bg-slate-900 border-sky-300 text-sky-800 dark:text-sky-300 font-bold text-xs">
                         {availableContractItems.length} بنود في العقد
@@ -2432,43 +2540,34 @@ export default function ContractForm() {
                           const found = (p.items || []).find(i => String(i.id) === String(item.id));
                           return sum + (found?.quantity || 0);
                         }, 0);
-                        const remaining = Math.max(0, item.totalQuantity - totalAllocated);
-                        const isComplete = item.totalQuantity > 0 && totalAllocated === item.totalQuantity;
-                        const isOver = totalAllocated > item.totalQuantity;
 
                         return (
                           <div
                             key={item.id}
-                            className={cn(
-                              "p-2.5 rounded-lg border bg-white dark:bg-slate-900/90 text-xs space-y-1.5",
-                              isComplete && "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/20",
-                              isOver && "border-destructive/40 bg-destructive/5",
-                              !isComplete && !isOver && "border-sky-200/80"
-                            )}
+                            className="p-2.5 rounded-lg border border-sky-200/80 bg-white dark:bg-slate-900/90 text-xs space-y-1.5"
                           >
                             <div className="flex items-center justify-between font-medium">
                               <span className="truncate max-w-[140px] font-semibold">{item.itemName}</span>
-                              {isComplete ? (
-                                <Badge className="bg-emerald-600 text-white text-[10px] py-0 px-1.5 h-4">مكتمل 100%</Badge>
-                              ) : isOver ? (
-                                <Badge variant="destructive" className="text-[10px] py-0 px-1.5 h-4">تجاوز ({totalAllocated - item.totalQuantity})</Badge>
+                              {(item as any).agreedPeriodicLabel ? (
+                                <Badge variant="outline" className="bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 border-sky-300 text-[10px] py-0 px-1.5 h-4 font-semibold">
+                                  {(item as any).agreedPeriodicLabel}
+                                </Badge>
                               ) : (
-                                <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">متبقي {remaining}</span>
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4">
+                                  {item.unit}
+                                </Badge>
                               )}
                             </div>
 
                             <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                              <span>إجمالي العقد: {item.totalQuantity} {item.unit}</span>
-                              <span>موزع: <strong className="text-foreground">{totalAllocated}</strong></span>
+                              <span>إجمالي الطلب: <strong>{item.totalQuantity} {item.unit}</strong></span>
+                              <span>المخصص بالدفعات: <strong className="text-sky-950 dark:text-sky-200 font-mono">{totalAllocated}</strong></span>
                             </div>
 
                             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
                               <div
-                                className={cn(
-                                  "h-1.5 rounded-full transition-all",
-                                  isComplete ? "bg-emerald-500" : isOver ? "bg-destructive" : "bg-sky-500"
-                                )}
-                                style={{ width: `${Math.min(100, item.totalQuantity > 0 ? (totalAllocated / item.totalQuantity) * 100 : 0)}%` }}
+                                className="h-1.5 rounded-full transition-all bg-sky-500"
+                                style={{ width: `${Math.min(100, item.totalQuantity > 0 ? (totalAllocated / item.totalQuantity) * 100 : (totalAllocated > 0 ? 100 : 0))}%` }}
                               />
                             </div>
                           </div>
@@ -2749,47 +2848,74 @@ export default function ContractForm() {
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     {availableContractItems.length > 0 && (
                                       <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handleAutoFillRemainingItems(payment.id)}
-                                        className="text-xs h-8 border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/40 gap-1"
+                                        onClick={() => handleInsertAllItemsForPayment(payment.id)}
+                                        className="text-xs h-8 border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/40 gap-1 font-semibold"
+                                        title="إدراج كافة بنود العقد لهذه الدفعة بالكميات الشهرية المتفق عليها"
                                       >
                                         <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                                        إضافة كافة البنود المتبقية
+                                        إدراج كافة بنود العقد
+                                      </Button>
+                                    )}
+                                    {(payment.items || []).length > 0 && paymentSchedule.length > 1 && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleApplyItemsToAllPayments(payment.id)}
+                                        className="text-xs h-8 border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1 font-semibold"
+                                        title="تطبيق نفس هذه البنود والكميات على جميع الدفعات الأخرى في الجدول"
+                                      >
+                                        <Copy className="w-3.5 h-3.5 text-emerald-600" />
+                                        تطبيق هذه البنود على باقي الدفعات
                                       </Button>
                                     )}
                                   </div>
                                 </div>
 
                                 {(!payment.items || payment.items.length === 0) ? (
-                                  <div className="text-center py-6 px-4 bg-white/70 dark:bg-slate-900/60 rounded-lg border border-dashed border-sky-200 dark:border-sky-900/50 space-y-2">
+                                  <div className="text-center py-6 px-4 bg-white/70 dark:bg-slate-900/60 rounded-lg border border-dashed border-sky-200 dark:border-sky-900/50 space-y-3">
                                     <Package className="w-8 h-8 mx-auto text-sky-400 opacity-60" />
-                                    <p className="text-xs font-semibold text-sky-900 dark:text-sky-200">لم يتم ربط أي أصناف توريد بهذه الدفعة بعد</p>
-                                    <p className="text-[11px] text-muted-foreground">
-                                      اختر صنفاً من قائمة بنود العقد لإضافته إلى هذه الدفعة وتحديد كميته الموردة
-                                    </p>
-                                    <div className="pt-2 flex flex-wrap justify-center gap-2">
-                                      {availableContractItems.map((availIt) => {
-                                        const isAlreadyIn = (payment.items || []).some(i => String(i.id) === String(availIt.id));
-                                        if (isAlreadyIn) return null;
-                                        return (
-                                          <Button
-                                            key={availIt.id}
-                                            type="button"
-                                            variant="secondary"
-                                            size="sm"
-                                            onClick={() => handleAddItemToPayment(payment.id, availIt.id)}
-                                            className="text-xs h-7 gap-1 bg-white hover:bg-sky-50 text-sky-900 border border-sky-200 shadow-2xs"
-                                          >
-                                            <Plus className="w-3 h-3 text-sky-600" />
-                                            {availIt.itemName} ({availIt.totalQuantity} {availIt.unit})
-                                          </Button>
-                                        );
-                                      })}
+                                    <div>
+                                      <p className="text-xs font-semibold text-sky-900 dark:text-sky-200">لم يتم ربط أي أصناف توريد بهذه الدفعة بعد</p>
+                                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        يمكنك إدراج كافة بنود العقد بضغطة زر أو اختيار صنف محدد
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-wrap justify-center gap-2 pt-1">
+                                      <Button
+                                        type="button"
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => handleInsertAllItemsForPayment(payment.id)}
+                                        className="text-xs h-8 gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-xs"
+                                      >
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        إدراج جميع بنود العقد بالكميات المتفق عليها ({availableContractItems.length} أصناف)
+                                      </Button>
+                                    </div>
+                                    <div className="pt-1 flex flex-wrap justify-center gap-1.5">
+                                      {availableContractItems.map((availIt) => (
+                                        <Button
+                                          key={availIt.id}
+                                          type="button"
+                                          variant="secondary"
+                                          size="sm"
+                                          onClick={() => handleAddItemToPayment(payment.id, availIt.id)}
+                                          className="text-xs h-7 gap-1 bg-white hover:bg-sky-50 text-sky-900 border border-sky-200 shadow-2xs"
+                                        >
+                                          <Plus className="w-3 h-3 text-sky-600" />
+                                          {availIt.itemName}
+                                          <span className="text-sky-600 font-normal">
+                                            ({(availIt as any).agreedPeriodicLabel || `${availIt.totalQuantity} ${availIt.unit}`})
+                                          </span>
+                                        </Button>
+                                      ))}
                                     </div>
                                   </div>
                                 ) : (
@@ -2818,49 +2944,57 @@ export default function ContractForm() {
                                                 return sum + (found?.quantity || 0);
                                               }, 0);
                                             const totalAllocatedAll = inOtherPayments + (it.quantity || 0);
-                                            const isExceeding = totalItemContractQty > 0 && totalAllocatedAll > totalItemContractQty;
+                                            const suggestedQty = (avail as any)?.suggestedPeriodQty || (avail as any)?.monthlyLimit;
 
                                             return (
                                               <TableRow key={it.id || itIdx} className="hover:bg-sky-50/40 dark:hover:bg-sky-950/30">
                                                 <TableCell className="font-mono text-muted-foreground">{itIdx + 1}</TableCell>
                                                 <TableCell>
-                                                  <div className="space-y-0.5">
-                                                    <span className="font-semibold text-foreground">{it.itemName}</span>
-                                                    {totalItemContractQty > 0 && (
-                                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                                        <span>إجمالي العقد: {totalItemContractQty} {it.unit}</span>
-                                                        <span>•</span>
-                                                        <span className={isExceeding ? "text-destructive font-bold" : "text-emerald-700 dark:text-emerald-400 font-medium"}>
-                                                          مخصص عبر الدفعات: {totalAllocatedAll} {it.unit}
-                                                        </span>
-                                                      </div>
-                                                    )}
-                                                    {isExceeding && (
-                                                      <p className="text-[10px] text-destructive font-bold flex items-center gap-1">
-                                                        <AlertTriangle className="w-3 h-3" />
-                                                        تجاوزت كمية العقد بمقدار {totalAllocatedAll - totalItemContractQty} {it.unit}
-                                                      </p>
-                                                    )}
+                                                  <div className="space-y-1">
+                                                    <span className="font-semibold text-foreground text-xs">{it.itemName}</span>
+                                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
+                                                      {(avail as any)?.agreedPeriodicLabel && (
+                                                        <Badge variant="outline" className="bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 border-sky-300 font-medium text-[10px] py-0 px-1.5 h-4">
+                                                          {(avail as any).agreedPeriodicLabel}
+                                                        </Badge>
+                                                      )}
+                                                      {totalItemContractQty > 0 && (
+                                                        <span>إجمالي الطلب: <strong>{totalItemContractQty} {it.unit}</strong></span>
+                                                      )}
+                                                      <span>•</span>
+                                                      <span>مخصص بالدفعات: <strong>{totalAllocatedAll} {it.unit}</strong></span>
+                                                    </div>
                                                   </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                  <Input
-                                                    type="number"
-                                                    min="0.01"
-                                                    step="any"
-                                                    value={it.quantity || ""}
-                                                    className={cn(
-                                                      "h-8 text-right font-bold w-full rounded-lg",
-                                                      isExceeding && "border-destructive text-destructive bg-destructive/5"
+                                                  <div className="space-y-1">
+                                                    <Input
+                                                      type="number"
+                                                      min="0"
+                                                      step="any"
+                                                      value={it.quantity !== undefined && it.quantity !== null ? it.quantity : ""}
+                                                      className="h-8 text-right font-bold w-full rounded-lg"
+                                                      onChange={(e) => {
+                                                        const val = parseFloat(e.target.value) || 0;
+                                                        handleUpdatePaymentItem(payment.id, it.id, {
+                                                          quantity: val,
+                                                          totalPrice: val * (it.unitPrice || 0),
+                                                        });
+                                                      }}
+                                                    />
+                                                    {suggestedQty && suggestedQty !== it.quantity && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleUpdatePaymentItem(payment.id, it.id, {
+                                                          quantity: suggestedQty,
+                                                          totalPrice: suggestedQty * (it.unitPrice || 0),
+                                                        })}
+                                                        className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-0.5 cursor-pointer"
+                                                      >
+                                                        <span>المتفق عليه:</span> <strong>{suggestedQty} {it.unit}</strong>
+                                                      </button>
                                                     )}
-                                                    onChange={(e) => {
-                                                      const val = parseFloat(e.target.value) || 0;
-                                                      handleUpdatePaymentItem(payment.id, it.id, {
-                                                        quantity: val,
-                                                        totalPrice: val * (it.unitPrice || 0),
-                                                      });
-                                                    }}
-                                                  />
+                                                  </div>
                                                 </TableCell>
                                                 <TableCell>
                                                   <Badge variant="secondary" className="font-normal text-[11px]">
@@ -2902,7 +3036,7 @@ export default function ContractForm() {
                                             if (val) handleAddItemToPayment(payment.id, val);
                                           }}
                                         >
-                                          <SelectTrigger className="h-8 text-xs w-[220px] bg-white dark:bg-slate-900 rounded-lg border-sky-200">
+                                          <SelectTrigger className="h-8 text-xs w-[240px] bg-white dark:bg-slate-900 rounded-lg border-sky-200">
                                             <SelectValue placeholder="+ إضافة بند آخر للدفعة..." />
                                           </SelectTrigger>
                                           <SelectContent dir="rtl">
@@ -2910,7 +3044,7 @@ export default function ContractForm() {
                                               .filter(avail => !(payment.items || []).some(i => String(i.id) === String(avail.id)))
                                               .map(avail => (
                                                 <SelectItem key={avail.id} value={avail.id} className="text-xs">
-                                                  {avail.itemName} (المتاح: {avail.totalQuantity} {avail.unit})
+                                                  {avail.itemName} ({(avail as any).agreedPeriodicLabel || `إجمالي الطلب: ${avail.totalQuantity} ${avail.unit}`})
                                                 </SelectItem>
                                               ))}
                                           </SelectContent>
