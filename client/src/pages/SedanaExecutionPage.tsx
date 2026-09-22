@@ -204,6 +204,7 @@ export default function SedanaExecutionPage() {
   const mosque = data?.mosque;
   const inventoryItems = data?.inventoryItems || [];
   const availableReferences = (data as any)?.availableReferences || [];
+  const disbursementOrders: any[] = (data as any)?.disbursementOrders || [];
   const inwardOrders = data?.inwardOrders || [];
   const outboundOrders = data?.outboundOrders || [];
   const deliveryOrders = data?.deliveryOrders || [];
@@ -542,6 +543,98 @@ export default function SedanaExecutionPage() {
               </CardContent>
             </Card>
 
+            {/* بطاقة أوامر الصرف المنفذة وتتبع التوريد المستودعي */}
+            {disbursementOrders.length > 0 && (
+              <Card className="border border-border/80 shadow-2xs">
+                <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-emerald-600" />
+                      <span>أوامر الصرف المنفّذة ومتابعة استيفاء التوريد</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-0.5">
+                      الكميات المحددة في أمر الصرف تمثل السقف الأعلى (الماكسيموم) المسموح بإدخاله للمستودع
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {disbursementOrders.map((d: any) => {
+                      const isCompleted = d.isFullyInwarded;
+                      return (
+                        <div
+                          key={d.id}
+                          className="p-3.5 rounded-xl border border-border bg-card flex flex-col justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono font-bold text-sm text-foreground">
+                                أمر صرف: {d.orderNumber}
+                              </span>
+                              {d.isExecuted ? (
+                                <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] gap-1 font-bold">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>منفّذ بالتحويل</span>
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-amber-300 text-amber-800 bg-amber-50 text-[10px] gap-1">
+                                  <span>{d.statusLabel}</span>
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="space-y-1 text-muted-foreground text-[11px]">
+                              <div className="flex justify-between">
+                                <span>المرجع:</span>
+                                <span className="font-mono font-semibold text-foreground">{d.referenceNumber}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>المستفيد:</span>
+                                <span className="font-medium text-foreground">{d.beneficiaryName}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>المبلغ:</span>
+                                <span className="font-bold text-emerald-700 font-mono">{Number(d.amount).toLocaleString()} ر.س</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-border/50 space-y-2">
+                            <div className="flex justify-between text-[11px]">
+                              <span className="text-muted-foreground">الرصيد التوريدي:</span>
+                              <span className="font-mono">
+                                معتمد: <strong>{d.totalDisbursedUnits}</strong> | مدخل: <strong>{d.totalInwardUnits}</strong> | متبقي: <strong className={d.totalRemainingUnits > 0 ? "text-amber-700 font-bold" : "text-emerald-700"}>{d.totalRemainingUnits}</strong>
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                              {isCompleted ? (
+                                <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-300 text-[11px] gap-1 font-bold">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>مكتمل التوريد 100% ✓</span>
+                                </Badge>
+                              ) : d.canCreateInward ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => setLocation(`/requests/${requestId}/sedana-inward/new?disbursementOrderId=${d.id}`)}
+                                  className="text-xs h-7 gap-1 font-bold bg-emerald-700 hover:bg-emerald-800 text-white"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>إدخال دفعة من هذا الصرف (متبقي {d.totalRemainingUnits})</span>
+                                </Button>
+                              ) : (
+                                <span className="text-[11px] text-amber-700 font-medium">{d.blockedReason}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* سجل أوامر الإدخال السابقة والمستندات المرجعية */}
             {inwardOrders.length > 0 && (
               <Card className="border border-border/80 shadow-2xs">
@@ -559,6 +652,11 @@ export default function SedanaExecutionPage() {
                             <span className="font-mono font-bold bg-muted px-2 py-0.5 rounded">
                               {inOrder.orderNumber}
                             </span>
+                            {inOrder.disbursementOrderNumber && (
+                              <Badge variant="outline" className="font-mono text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
+                                أمر صرف: #{inOrder.disbursementOrderNumber}
+                              </Badge>
+                            )}
                             {inOrder.referenceNumber && (
                               <Badge variant="outline" className="font-mono text-[10px] bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                                 {inOrder.referenceType === "purchase_order" && "أمر شراء: "}
