@@ -414,19 +414,41 @@ export const sedanaExecutionRouter = router({
         });
       }
 
-      // 3. عقد مورد سنوي
-      const hasContract = Object.values(allocations).includes("supplier_contract");
+      // 3. عقود التوريد المعتمدة (سدانة)
+      const hasContract = Object.values(allocations).includes("contract") || Object.values(allocations).includes("supplier_contract");
       if (hasContract) {
-        availableReferences.push({
-          type: "supplier_contract",
-          label: "عقد مورد معتمد",
-          documentNumber: `CNT-${req.id}-${new Date().getFullYear()}`,
-          partnerOrSupplier: "المورد المعتمد",
-          hasDisbursementOrder: true,
-          isExecuted: true,
-          canCreateInward: true,
-          blockedReason: null,
-        });
+        const contractDisbs = enrichedDisbOrders.filter(d => d.referenceType === "contract");
+        if (contractDisbs.length > 0) {
+          contractDisbs.forEach((cd) => {
+            availableReferences.push({
+              type: "contract",
+              label: `عقد توريد (${cd.orderNumber})`,
+              documentNumber: cd.orderNumber,
+              partnerOrSupplier: cd.beneficiaryName || "المورد المتعاقد",
+              hasDisbursementOrder: true,
+              disbursementOrderNumber: cd.orderNumber,
+              disbursementOrderId: cd.id,
+              disbursementStatus: cd.status,
+              disbursementExecutedAt: cd.executedAt,
+              isExecuted: cd.isExecuted,
+              canCreateInward: cd.canCreateInward,
+              blockedReason: cd.blockedReason,
+              items: cd.items || [],
+            });
+          });
+        } else {
+          availableReferences.push({
+            type: "contract",
+            label: "عقد توريد وخدمات (سدانة)",
+            documentNumber: `CNT-${req.id}-${new Date().getFullYear()}`,
+            partnerOrSupplier: "المورد المعتمد",
+            hasDisbursementOrder: false,
+            isExecuted: false,
+            canCreateInward: false,
+            blockedReason: "لا يمكن عمل أمر إدخال؛ لم يتم إصدار أمر صرف للدفعة التعاقدية بعد أو لم يتم تنفيذه بالتحويل البنكي.",
+            items: [],
+          });
+        }
       }
 
       // 4. خيارات إضافية للتوريد المباشر أو التبرع العيني
