@@ -2876,8 +2876,6 @@ export default function ContractForm() {
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 min-w-[200px]">اسم الصنف / البند</TableHead>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-32">الكمية الموردة</TableHead>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-24">الوحدة</TableHead>
-                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-28">سعر الوحدة</TableHead>
-                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-32">إجمالي البند</TableHead>
                                             <TableHead className="w-12 text-center"></TableHead>
                                           </TableRow>
                                         </TableHeader>
@@ -2920,16 +2918,6 @@ export default function ContractForm() {
                                                     {it.unit || "وحدة"}
                                                   </Badge>
                                                 </TableCell>
-                                                <TableCell>
-                                                  <span className="font-mono text-xs">
-                                                    {(it.unitPrice || 0).toLocaleString("ar-SA")} ر.س
-                                                  </span>
-                                                </TableCell>
-                                                <TableCell>
-                                                  <span className="font-bold text-sky-900 dark:text-sky-300 font-mono text-xs">
-                                                    {(it.totalPrice || (it.quantity * (it.unitPrice || 0))).toLocaleString("ar-SA")} ر.س
-                                                  </span>
-                                                </TableCell>
                                                 <TableCell className="text-center">
                                                   <Button
                                                     type="button"
@@ -2963,38 +2951,6 @@ export default function ContractForm() {
                                           </Button>
                                         )}
                                       </div>
-
-                                      {(() => {
-                                        const itemsSum = (payment.items || []).reduce((s, i) => s + (i.totalPrice || (i.quantity * (i.unitPrice || 0))), 0);
-                                        const diff = Math.abs(itemsSum - (payment.amount || 0));
-                                        const isMatch = itemsSum > 0 && diff < 0.01;
-
-                                        return (
-                                          <div className="flex items-center gap-2 text-xs">
-                                            <span className="text-muted-foreground">
-                                              مجموع بنود الدفعة: <strong className="text-sky-900 dark:text-sky-200 font-mono">{itemsSum.toLocaleString("ar-SA")} ر.س</strong>
-                                            </span>
-                                            {itemsSum > 0 && !isMatch && (
-                                              <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleMatchPaymentWithItems(payment.id, itemsSum)}
-                                                className="text-[11px] h-7 px-2 border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 gap-1"
-                                              >
-                                                <Check className="w-3 h-3 text-emerald-600" />
-                                                مطابقة مبلغ الدفعة مع قيمة البنود ({itemsSum.toLocaleString("ar-SA")} ر.س)
-                                              </Button>
-                                            )}
-                                            {isMatch && (
-                                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] gap-1">
-                                                <Check className="w-3 h-3 text-emerald-600" />
-                                                متطابق مع مبلغ الدفعة
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
                                     </div>
                                   </div>
                                 )}

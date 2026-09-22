@@ -1032,15 +1032,6 @@ export default function ContractPreview() {
                                     <td className="py-2.5 px-3 border-l border-gray-200 font-mono text-gray-600">{idx + 1}</td>
                                     <td className="py-2.5 px-3 border-l border-gray-200 text-gray-900">
                                       <div className="font-semibold">{p.phaseName || p.name || p.description || `الدفعة ${idx + 1}`}</div>
-                                      {Array.isArray(p.items) && p.items.length > 0 && (
-                                        <div className="mt-1 flex flex-wrap gap-1">
-                                          {p.items.map((it: any, itIdx: number) => (
-                                            <span key={itIdx} className="inline-flex items-center gap-1 bg-sky-50 text-sky-800 border border-sky-200 text-[10px] px-1.5 py-0.5 rounded font-normal">
-                                              📦 {it.itemName} ({it.quantity} {it.unit})
-                                            </span>
-                                          ))}
-                                        </div>
-                                      )}
                                     </td>
                                     <td className="py-2.5 px-3 border-l border-gray-200 font-bold text-[#1a5f4a]">
                                       <span className="inline-flex items-center gap-1">
