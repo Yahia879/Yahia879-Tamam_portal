@@ -82,7 +82,10 @@ export default function NewSedanaInwardOrderPage() {
   const mosque = data?.mosque;
   const inventoryItems = data?.inventoryItems || [];
   const availableReferences = (data as any)?.availableReferences || [];
-  const disbursementOrders: any[] = (data as any)?.disbursementOrders || [];
+  const disbursementOrders: any[] = useMemo(() => {
+    const list: any[] = (data as any)?.disbursementOrders || [];
+    return list.filter((d: any) => d.status === "executed" || d.isExecuted);
+  }, [data]);
 
   // أمر الصرف المحدد
   const [selectedDisbOrderId, setSelectedDisbOrderId] = useState<number | null>(null);
@@ -111,17 +114,6 @@ export default function NewSedanaInwardOrderPage() {
     }
   }, [window.location.search]);
 
-  // تحديد أمر الصرف الافتراضي عند تحميل البيانات
-  useEffect(() => {
-    if (disbursementOrders.length > 0 && !selectedDisbOrderId) {
-      // اختر أمر الصرف المنفذ الذي به كميات متبقية أولاً، وإلا أول أمر صرف
-      const eligible = disbursementOrders.find((d: any) => d.canCreateInward) || disbursementOrders[0];
-      if (eligible) {
-        setSelectedDisbOrderId(eligible.id);
-      }
-    }
-  }, [disbursementOrders, selectedDisbOrderId]);
-
   // تعيين اسم المستلم الافتراضي
   useEffect(() => {
     if (user?.name && !inwardReceivedBy) {
@@ -129,27 +121,19 @@ export default function NewSedanaInwardOrderPage() {
     }
   }, [user, inwardReceivedBy]);
 
-  // أمر الصرف النشط المختار حالياً
+  // أمر الصرف النشط المختار حالياً (فقط بعد تحديده صراحة)
   const activeDisb = useMemo(() => {
-    if (!selectedDisbOrderId) return disbursementOrders[0] || null;
-    return disbursementOrders.find((d: any) => d.id === selectedDisbOrderId) || disbursementOrders[0] || null;
+    if (!selectedDisbOrderId) return null;
+    return disbursementOrders.find((d: any) => d.id === selectedDisbOrderId) || null;
   }, [disbursementOrders, selectedDisbOrderId]);
 
-  // قائمة الأصناف المعروضة للإدخال، مأخوذة من أمر الصرف المختار
+  // قائمة الأصناف المعروضة للإدخال، مأخوذة حصراً من أمر الصرف المختار
   const displayItems = useMemo(() => {
     if (activeDisb && Array.isArray(activeDisb.items) && activeDisb.items.length > 0) {
       return activeDisb.items;
     }
-    return inventoryItems.map((it: any) => ({
-      id: it.id,
-      itemName: it.name,
-      unit: it.unit,
-      maxDisbursedQty: it.approvedQty,
-      alreadyInwardQty: it.totalInward,
-      remainingAllowedQty: it.pendingInward,
-      isCompleted: it.pendingInward <= 0,
-    }));
-  }, [activeDisb, inventoryItems]);
+    return [];
+  }, [activeDisb]);
 
   // عند تغيير أمر الصرف المختار: تحديث المرجع وتعبئة الكميات المتبقية تلقائياً
   useEffect(() => {
@@ -173,8 +157,8 @@ export default function NewSedanaInwardOrderPage() {
   }, [activeDisb]);
 
   // التحقق من تعليق أو حظر أمر الإدخال
-  const isInwardBlocked = activeDisb ? !activeDisb.canCreateInward : false;
-  const blockedReason = activeDisb?.blockedReason || null;
+  const isInwardBlocked = !activeDisb || !activeDisb.canCreateInward;
+  const blockedReason = !activeDisb ? "لا يوجد أمر صرف مالي منفّذ لهذا الطلب حتى الآن" : (activeDisb?.blockedReason || null);
 
   // تعبئة كامل الكميات المتبقية لكافة البنود
   const handleFillAllRemaining = () => {
@@ -324,27 +308,6 @@ export default function NewSedanaInwardOrderPage() {
             </div>
           </div>
 
-          {/* محدد طلب سدانة في حال كان هناك أكثر من طلب */}
-          {sedanaRequests.length > 1 && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Label className="text-xs font-bold text-muted-foreground whitespace-nowrap">الطلب:</Label>
-              <Select
-                value={String(requestId)}
-                onValueChange={(val) => setLocation(`/requests/${val}/sedana-inward/new`)}
-              >
-                <SelectTrigger className="h-9 w-52 text-xs font-semibold bg-background" dir="rtl">
-                  <SelectValue placeholder="اختر طلب سدانة..." />
-                </SelectTrigger>
-                <SelectContent dir="rtl" className="max-h-64">
-                  {sedanaRequests.map((r) => (
-                    <SelectItem key={r.id} value={String(r.id)} className="text-xs">
-                      #{r.requestNumber} - {r.mosqueName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
 
         {/* القسم الأول: اختيار أمر الصرف المالي المنفّذ (المصدر المالي للتوريد والحد الأقصى) */}
@@ -361,9 +324,9 @@ export default function NewSedanaInwardOrderPage() {
                 </CardDescription>
               </div>
 
-              {disbursementOrders.length > 1 && (
-                <Badge variant="outline" className="text-xs bg-muted/60 self-start sm:self-auto">
-                  {disbursementOrders.length} أوامر صرف مسجلة لهذا الطلب
+              {disbursementOrders.length > 0 && (
+                <Badge variant="outline" className="text-xs bg-muted/60 self-start sm:self-auto text-emerald-700 dark:text-emerald-400 border-emerald-300 font-bold">
+                  {disbursementOrders.length === 1 ? "أمر صرف منفّذ واحد مسجل لهذا الطلب" : `${disbursementOrders.length} أوامر صرف منفّذة مسجلة لهذا الطلب`}
                 </Badge>
               )}
             </div>
@@ -373,19 +336,11 @@ export default function NewSedanaInwardOrderPage() {
               <div className="p-6 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-center space-y-3">
                 <AlertTriangle className="w-8 h-8 text-amber-600 mx-auto" />
                 <div>
-                  <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">لم يتم إنشاء أوامر صرف مالية لهذا الطلب بعد</h4>
+                  <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">لا توجد أوامر صرف مالية منفّذة بالتحويل البنكي لهذا الطلب</h4>
                   <p className="text-xs text-amber-800/90 dark:text-amber-300/80 mt-1 max-w-md mx-auto">
-                    وفق تدفق العمليات المعتمد، يجب أولاً إنشاء أمر الصرف المالي واعتماده وتنفيذه بالتحويل البنكي لتتمكن من إدخال المواد إلى المستودع الافتراضي.
+                    وفق مسار العمل المعتمد، لا يمكن توريد وإدخال بضائع إلى المستودع إلا بموجب أمر صرف مالي منفّذ (حالة: منفّذ بالتحويل البنكي) ومرتبط بأمر شراء أو خطاب مجتمعي أو طلب صرف خاص بهذا الطلب.
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => setLocation(`/disbursement-orders/new-direct?requestId=${requestId}`)}
-                  className="text-xs font-bold gap-1.5 bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  <Coins className="w-4 h-4" />
-                  <span>إنشاء أمر صرف مباشر الآن</span>
-                </Button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -505,17 +460,6 @@ export default function NewSedanaInwardOrderPage() {
                         {blockedReason}
                       </p>
                     </div>
-                    {!activeDisb.isExecuted && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setLocation("/disbursement-orders")}
-                        className="text-xs h-7 gap-1 text-amber-900 border-amber-400 bg-amber-100 hover:bg-amber-200 shrink-0"
-                      >
-                        <Coins className="w-3.5 h-3.5" />
-                        <span>متابعة الصرف</span>
-                      </Button>
-                    )}
                   </div>
                 ) : (
                   <div className="p-3 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 flex items-center justify-between gap-3 text-xs">
@@ -535,345 +479,228 @@ export default function NewSedanaInwardOrderPage() {
           </CardContent>
         </Card>
 
-        {/* القسم الثاني: بيانات المستند المرجعي والتوريد */}
-        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 text-right">
-            <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-              <FileText className="w-4 h-4 text-primary" />
-              <span>بيانات المستند المرجعي ومسؤول الاستلام</span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-              توثيق بيانات التوريد والمورد المعتمد وأمين المستودع المستلم
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 space-y-4 text-right" dir="rtl">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* نوع مستند التأمين */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">نوع مستند التأمين *</Label>
-                <Select
-                  value={inwardRefType}
-                  onValueChange={(val) => {
-                    setInwardRefType(val);
-                    const found = availableReferences.find((r: any) => r.type === val);
-                    if (found) {
-                      setInwardRefNumber(found.documentNumber);
-                      if (found.partnerOrSupplier) setInwardSupplierName(found.partnerOrSupplier);
-                    }
-                  }}
+
+        {/* القسم الثاني: جدول الأصناف والكميات (يظهر فقط بعد تحديد أمر الصرف) */}
+        {activeDisb && (
+          <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+            <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-right">
+              <div>
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                  <Package className="w-4 h-4 text-emerald-600" />
+                  <span>
+                    أصناف وكميات أمر الصرف المعتمد
+                    {activeDisb ? ` (${activeDisb.orderNumber})` : ""}
+                  </span>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
+                  الكمية المحددة في أمر الصرف هي الحد الأقصى للإدخال؛ يمكنك إدخال جزء من الكمية الآن وإدخال المتبقي لاحقاً
+                </CardDescription>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFillAllRemaining}
+                  disabled={isInwardBlocked}
+                  className="text-xs font-bold gap-1 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer h-8 rounded-lg"
                 >
-                  <SelectTrigger className="h-10 text-xs rounded-xl bg-background" dir="rtl">
-                    <SelectValue placeholder="اختر نوع المستند..." />
-                  </SelectTrigger>
-                  <SelectContent dir="rtl">
-                    {availableReferences.length > 0 ? (
-                      availableReferences.map((ref: any) => (
-                        <SelectItem key={ref.type} value={ref.type} className="text-xs">
-                          {ref.label}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <>
-                        <SelectItem value="purchase_order" className="text-xs">أمر شراء معتمد (سدانة)</SelectItem>
-                        <SelectItem value="csr_letter" className="text-xs">خطاب مسؤولية مجتمعية معتمد</SelectItem>
-                        <SelectItem value="supplier_contract" className="text-xs">عقد مورد</SelectItem>
-                        <SelectItem value="direct_purchase" className="text-xs">شراء مباشر</SelectItem>
-                        <SelectItem value="in_kind_donation" className="text-xs">تبرع عيني</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>تعبئة كامل المتبقي</span>
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetAll}
+                  disabled={isInwardBlocked}
+                  className="text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer h-8 rounded-lg"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>تصفير</span>
+                </Button>
               </div>
-
-              {/* رقم المستند المرجعي */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">رقم المستند المرجعي *</Label>
-                <Input
-                  value={inwardRefNumber}
-                  onChange={(e) => setInwardRefNumber(e.target.value)}
-                  placeholder="مثال: PO-98-2026 أو CSR-98-2026"
-                  className="h-10 text-xs font-mono rounded-xl bg-background"
-                />
-              </div>
-
-              {/* اسم المورد أو الشريك المانح */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">اسم المورد / الشريك المانح</Label>
-                <Input
-                  value={inwardSupplierName}
-                  onChange={(e) => setInwardSupplierName(e.target.value)}
-                  placeholder="اسم المورد المعتمد..."
-                  className="h-10 text-xs rounded-xl bg-background"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
-              {/* رقم فاتورة المورد أو بوليصة الشحن */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Receipt className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>رقم فاتورة المورد / بوليصة الشحن (إن وجدت)</span>
-                </Label>
-                <Input
-                  value={inwardSupplierInvoice}
-                  onChange={(e) => setInwardSupplierInvoice(e.target.value)}
-                  placeholder="مثال: INV-2026-0042 أو رقم بوليصة الشحن"
-                  className="h-10 text-xs font-mono rounded-xl bg-background"
-                />
-              </div>
-
-              {/* اسم المستلم */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <User className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>اسم المستلم (أمين المستودع / المنسق) *</span>
-                </Label>
-                <Input
-                  value={inwardReceivedBy}
-                  onChange={(e) => setInwardReceivedBy(e.target.value)}
-                  placeholder="أمين المستودع"
-                  className="h-10 text-xs rounded-xl bg-background"
-                />
-              </div>
-
-              {/* تاريخ الإدخال */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span>تاريخ أمر الإدخال *</span>
-                </Label>
-                <Input
-                  type="date"
-                  value={inwardDate}
-                  onChange={(e) => setInwardDate(e.target.value)}
-                  className="h-10 text-xs rounded-xl bg-background text-right"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* القسم الثالث: جدول الأصناف والكميات (مقيدة بالماكسيموم الخاص بأمر الصرف) */}
-        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-right">
-            <div>
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <Package className="w-4 h-4 text-emerald-600" />
-                <span>
-                  أصناف وكميات أمر الصرف المعتمد
-                  {activeDisb ? ` (${activeDisb.orderNumber})` : ""}
-                </span>
-              </CardTitle>
-              <CardDescription className="text-xs mt-0.5">
-                الكمية المحددة في أمر الصرف هي الحد الأقصى للإدخال؛ يمكنك إدخال جزء من الكمية الآن وإدخال المتبقي لاحقاً
-              </CardDescription>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleFillAllRemaining}
-                disabled={isInwardBlocked}
-                className="text-xs font-bold gap-1 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer h-8 rounded-lg"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>تعبئة كامل المتبقي</span>
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleResetAll}
-                className="text-xs gap-1 text-muted-foreground hover:text-foreground h-8 rounded-lg"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>تصفير</span>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto" dir="rtl">
-              <Table className="text-xs text-right" dir="rtl">
-                <TableHeader className="bg-muted/40">
-                  <TableRow className="border-b border-border/60">
-                    <TableHead className="w-12 text-center font-bold">#</TableHead>
-                    <TableHead className="font-bold min-w-[200px]">الصنف والوصف</TableHead>
-                    <TableHead className="text-center font-bold w-28">الكمية بأمر الصرف</TableHead>
-                    <TableHead className="text-center font-bold w-28 text-slate-600 dark:text-slate-400">المدخل سابقاً</TableHead>
-                    <TableHead className="text-center font-bold w-32 text-emerald-700 dark:text-emerald-400">الحد الأقصى المتاح الآن</TableHead>
-                    <TableHead className="text-center font-bold w-44 text-primary">الكمية المدخلة الآن</TableHead>
-                    <TableHead className="text-center font-bold w-36">حالة التوريد</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-border">
-                  {displayItems.map((it: any, idx: number) => {
-                    const currentVal = inwardItems[it.id] ?? 0;
-                    const maxDisbursed = it.maxDisbursedQty !== undefined ? it.maxDisbursedQty : (it.approvedQty || 0);
-                    const alreadyIn = it.alreadyInwardQty !== undefined ? it.alreadyInwardQty : (it.totalInward || 0);
-                    const maxAllowed = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : (it.pendingInward || 0);
-                    const isOverLimit = currentVal > maxAllowed + 0.0001;
-                    const isFullyCompletedNow = currentVal === maxAllowed && maxAllowed > 0;
-                    const isPartiallyInward = currentVal > 0 && currentVal < maxAllowed;
-
-                    return (
-                      <TableRow key={it.id} className="hover:bg-muted/10 transition-colors">
-                        <TableCell className="text-center font-mono text-muted-foreground font-bold">
-                          {idx + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-bold text-foreground text-xs sm:text-sm">{it.itemName || it.name}</div>
-                          {it.description && (
-                            <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{it.description}</div>
-                          )}
-                        </TableCell>
-
-                        {/* الكمية المعتمدة بأمر الصرف */}
-                        <TableCell className="text-center font-mono font-bold">
-                          <span className="text-foreground">{maxDisbursed}</span>{" "}
-                          <span className="text-[10px] font-normal text-muted-foreground">{it.unit}</span>
-                        </TableCell>
-
-                        {/* المدخل سابقاً من هذا الصرف */}
-                        <TableCell className="text-center font-mono font-semibold text-slate-600 dark:text-slate-400">
-                          <span>{alreadyIn}</span>{" "}
-                          <span className="text-[10px] font-normal">{it.unit}</span>
-                        </TableCell>
-
-                        {/* الحد الأقصى المتاح الآن (الماكسيموم) */}
-                        <TableCell className="text-center font-mono">
-                          <span className={`px-2 py-0.5 rounded font-bold text-xs ${
-                            maxAllowed > 0
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                              : "bg-muted text-muted-foreground"
-                          }`}>
-                            {maxAllowed} {it.unit}
-                          </span>
-                        </TableCell>
-
-                        {/* حقل كمية الإدخال الحالية مع زر المتبقي وتنبيه التجاوز */}
-                        <TableCell className="text-center">
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <Input
-                                type="number"
-                                step="any"
-                                min="0"
-                                max={maxAllowed}
-                                value={currentVal === 0 ? "" : currentVal}
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  setInwardItems((prev) => ({
-                                    ...prev,
-                                    [it.id]: val,
-                                  }));
-                                }}
-                                disabled={isInwardBlocked || maxAllowed <= 0}
-                                placeholder="0"
-                                className={`h-9 w-24 text-center font-mono font-bold text-xs rounded-lg transition-colors ${
-                                  isOverLimit
-                                    ? "border-rose-500 text-rose-700 bg-rose-50 dark:bg-rose-950/40 focus:ring-rose-500"
-                                    : "bg-slate-50 dark:bg-slate-900 border-emerald-300 dark:border-emerald-800 focus:ring-emerald-500"
-                                }`}
-                              />
-                              <span className="text-[10px] text-muted-foreground font-semibold shrink-0">{it.unit}</span>
-
-                              {maxAllowed > 0 && currentVal !== maxAllowed && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleFillSingleRemaining(it.id, maxAllowed)}
-                                  className="h-7 text-[10px] px-1.5 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 cursor-pointer"
-                                  title={`إدخال المتبقي كاملاً (${maxAllowed})`}
-                                >
-                                  المتبقي ({maxAllowed})
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* تنبيه مرئي فوري عند تجاوز الحد الأقصى المسموح */}
-                            {isOverLimit && (
-                              <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold flex items-center gap-0.5">
-                                <AlertTriangle className="w-3 h-3" />
-                                <span>تجاوز الحد الأقصى (الماكسيموم: {maxAllowed})</span>
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        {/* حالة التوريد والتقدم */}
-                        <TableCell className="text-center">
-                          {maxAllowed <= 0 ? (
-                            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 gap-1 font-bold">
-                              <Check className="w-3 h-3 text-emerald-600" />
-                              <span>مستوفى بالكامل</span>
-                            </Badge>
-                          ) : isFullyCompletedNow ? (
-                            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 gap-1 font-bold">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>اكتمال 100%</span>
-                            </Badge>
-                          ) : isPartiallyInward ? (
-                            <Badge variant="outline" className="text-[10px] border-sky-300 text-sky-800 bg-sky-50 dark:bg-sky-950/40 gap-1 font-semibold">
-                              <Clock className="w-3 h-3 text-sky-600" />
-                              <span>دفعة جزئية (متبقي {maxAllowed - currentVal})</span>
-                            </Badge>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">مؤجل لدفعة قادمة</span>
-                          )}
+            </CardHeader>
+            <CardContent className="p-0 text-right" dir="rtl">
+              <div className="overflow-x-auto">
+                <Table className="w-full text-right text-xs">
+                  <TableHeader className="bg-muted/40">
+                    <TableRow className="border-b border-border/60 hover:bg-transparent">
+                      <TableHead className="w-12 text-center font-bold">#</TableHead>
+                      <TableHead className="min-w-[200px] font-bold text-foreground">الصنف والوصف</TableHead>
+                      <TableHead className="w-28 text-center font-bold text-foreground">الكمية بأمر الصرف</TableHead>
+                      <TableHead className="w-24 text-center font-bold text-foreground">المدخل سابقاً</TableHead>
+                      <TableHead className="w-28 text-center font-bold text-emerald-800 dark:text-emerald-300">الحد الأقصى المتاح الآن</TableHead>
+                      <TableHead className="w-36 text-center font-bold text-primary">الكمية المدخلة الآن *</TableHead>
+                      <TableHead className="w-28 text-center font-bold text-foreground">حالة التوريد</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {displayItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-28 text-center text-muted-foreground text-xs">
+                          لا توجد أصناف مسجلة في هذا الصرف
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : (
+                      displayItems.map((it: any, idx: number) => {
+                        const enteredQty = inwardItems[it.id] !== undefined ? inwardItems[it.id] : 0;
+                        const maxQty = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : 999999;
+                        const isExceeded = enteredQty > maxQty + 0.0001;
+                        const isCompleted = maxQty <= 0;
 
-            {/* شريط ملخص الكميات */}
-            <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-muted-foreground">
-                  الأصناف المشمولة بالإدخال: <strong className="font-mono text-foreground font-bold">{totalItemsToInwardCount}</strong> صنف
-                </span>
-                <span>•</span>
-                <span className="text-muted-foreground">
-                  إجمالي الوحدات الموردة في هذا الأمر: <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{totalUnitsToInward}</strong> وحدة
-                </span>
+                        return (
+                          <TableRow
+                            key={it.id || idx}
+                            className={`border-b border-border/40 transition-colors ${
+                              isExceeded
+                                ? "bg-rose-50/60 dark:bg-rose-950/30"
+                                : isCompleted
+                                ? "bg-muted/30 opacity-70"
+                                : "hover:bg-muted/20"
+                            }`}
+                          >
+                            {/* رقم البند */}
+                            <TableCell className="text-center font-mono text-muted-foreground font-bold">
+                              {idx + 1}
+                            </TableCell>
+
+                            {/* اسم الصنف والوصف */}
+                            <TableCell>
+                              <div className="space-y-0.5">
+                                <div className="font-bold text-foreground text-xs sm:text-sm">
+                                  {it.itemName || it.name}
+                                </div>
+                                {it.description && (
+                                  <div className="text-[11px] text-muted-foreground line-clamp-1">
+                                    {it.description}
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            {/* الكمية المصروفة المعتمدة */}
+                            <TableCell className="text-center font-mono text-xs font-semibold">
+                              <span className="text-foreground">{it.maxDisbursedQty}</span>
+                              <span className="text-muted-foreground mr-1 text-[11px]">{it.unit}</span>
+                            </TableCell>
+
+                            {/* المدخل سابقاً */}
+                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                              <span>{it.alreadyInwardQty}</span>
+                              <span className="mr-1 text-[11px]">{it.unit}</span>
+                            </TableCell>
+
+                            {/* الحد الأقصى المتاح الآن للتوريد */}
+                            <TableCell className="text-center font-mono text-xs">
+                              <span className={`font-bold px-2 py-0.5 rounded-md ${
+                                isCompleted
+                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                  : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                              }`}>
+                                {it.remainingAllowedQty} {it.unit}
+                              </span>
+                            </TableCell>
+
+                            {/* خانة إدخال الكمية */}
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  max={maxQty}
+                                  disabled={isInwardBlocked || isCompleted}
+                                  value={enteredQty === 0 && !inwardItems[it.id] ? "0" : enteredQty}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    setInwardItems((prev) => ({
+                                      ...prev,
+                                      [it.id]: Math.max(0, val),
+                                    }));
+                                  }}
+                                  className={`h-9 text-center font-mono font-bold text-xs rounded-lg ${
+                                    isExceeded
+                                      ? "border-rose-500 focus-visible:ring-rose-500 bg-rose-50/50 text-rose-900"
+                                      : enteredQty > 0
+                                      ? "border-emerald-500 focus-visible:ring-emerald-500 bg-emerald-50/30 text-emerald-900 dark:text-emerald-200"
+                                      : ""
+                                  }`}
+                                />
+                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                  {it.unit}
+                                </span>
+                              </div>
+
+                              {isExceeded && (
+                                <p className="text-[10px] text-rose-600 font-bold mt-1">
+                                  تجاوز الحد الأقصى ({maxQty})
+                                </p>
+                              )}
+
+                              {!isCompleted && enteredQty < maxQty && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleFillSingleRemaining(it.id, maxQty)}
+                                  disabled={isInwardBlocked}
+                                  className="text-[10px] text-primary hover:underline font-semibold mt-1 inline-block"
+                                >
+                                  المتبقي ({maxQty})
+                                </button>
+                              )}
+                          </TableCell>
+
+                          {/* حالة التوريد */}
+                          <TableCell className="text-center">
+                            {isCompleted ? (
+                              <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600 border-slate-300">
+                                مكتمل التوريد
+                              </Badge>
+                            ) : enteredQty >= maxQty && maxQty > 0 ? (
+                              <Badge className="text-[10px] bg-emerald-600 text-white font-bold">
+                                استيفاء كامل
+                              </Badge>
+                            ) : enteredQty > 0 ? (
+                              <Badge variant="outline" className="text-[10px] text-primary border-primary/40 bg-primary/5 font-semibold">
+                                توريد جزئي
+                              </Badge>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground">
+                                مؤجل لدفعة قادمة
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }))}
+                  </TableBody>
+                </Table>
               </div>
 
-              {activeDisb && (
-                <div className="text-muted-foreground text-[11px]">
-                  أمر الصرف: <strong className="font-mono text-foreground">{activeDisb.orderNumber}</strong> ({activeDisb.referenceNumber || activeDisb.referenceType})
+              {/* شريط ملخص الكميات */}
+              <div className="p-4 bg-muted/20 border-t border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span className="text-muted-foreground">
+                    الأصناف المشمولة بالإدخال: <strong className="font-mono text-foreground font-bold">{totalItemsToInwardCount}</strong> صنف
+                  </span>
+                  <span>•</span>
+                  <span className="text-muted-foreground">
+                    إجمالي الوحدات الموردة في هذا الأمر: <strong className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">{totalUnitsToInward}</strong> وحدة
+                  </span>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* القسم الرابع: ملاحظات التوريد والفحص */}
-        <Card className="border-border/80 shadow-xs rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-          <CardHeader className="bg-muted/30 border-b border-border/50 py-3.5 px-5 text-right">
-            <CardTitle className="text-sm font-bold text-foreground">
-              ملاحظات الفحص والاستلام التوريدي
-            </CardTitle>
-            <CardDescription className="text-xs">
-              توثيق حالة الأصناف المستلمة ومطابقتها للمواصفات المعتمدة وأي ملاحظات فنية
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-5 text-right" dir="rtl">
-            <Textarea
-              value={inwardNotes}
-              onChange={(e) => setInwardNotes(e.target.value)}
-              placeholder="مثال: تم استلام وفحص البنود ومطابقتها لأمر الصرف المعتمد، وسلامة المواد تامة وجاهزة للإيداع في رصيد المستودع الافتراضي..."
-              rows={3}
-              className="text-xs leading-relaxed bg-background rounded-xl border-border focus:ring-primary text-right"
-            />
-          </CardContent>
-        </Card>
+                {activeDisb && (
+                  <div className="text-muted-foreground text-[11px]">
+                    أمر الصرف: <strong className="font-mono text-foreground">{activeDisb.orderNumber}</strong> ({activeDisb.referenceNumber || activeDisb.referenceType})
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* شريط أزرار الإجراءات */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2 pb-8 border-t border-border/60">
@@ -886,38 +713,40 @@ export default function NewSedanaInwardOrderPage() {
             إلغاء والعودة للمستودع
           </Button>
 
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={createInwardMutation.isPending || isInwardBlocked || totalItemsToInwardCount === 0 || hasExceededItems}
-            className={`h-11 px-8 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-sm transition-all cursor-pointer ${
-              isInwardBlocked || hasExceededItems || totalItemsToInwardCount === 0
-                ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                : "bg-emerald-700 hover:bg-emerald-800 text-white"
-            }`}
-          >
-            {createInwardMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>جاري حفظ وتوثيق أمر الإدخال...</span>
-              </>
-            ) : isInwardBlocked ? (
-              <>
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                <span>بانتظار تنفيذ أمر الصرف للمتابعة</span>
-              </>
-            ) : hasExceededItems ? (
-              <>
-                <AlertTriangle className="w-4 h-4 text-rose-500" />
-                <span>توجد كميات تتجاوز الحد الأقصى المسموح</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>تأكيد وتوثيق أمر الإدخال بالمستودع</span>
-              </>
-            )}
-          </Button>
+          {activeDisb && (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={createInwardMutation.isPending || isInwardBlocked || totalItemsToInwardCount === 0 || hasExceededItems}
+              className={`h-11 px-8 rounded-xl text-xs sm:text-sm font-bold gap-2 shadow-sm transition-all cursor-pointer ${
+                isInwardBlocked || hasExceededItems || totalItemsToInwardCount === 0
+                  ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  : "bg-emerald-700 hover:bg-emerald-800 text-white"
+              }`}
+            >
+              {createInwardMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>جاري حفظ وتوثيق أمر الإدخال...</span>
+                </>
+              ) : isInwardBlocked ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  <span>بانتظار تنفيذ أمر الصرف للمتابعة</span>
+                </>
+              ) : hasExceededItems ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-rose-500" />
+                  <span>توجد كميات تتجاوز الحد الأقصى المسموح</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>تأكيد وتوثيق أمر الإدخال بالمستودع</span>
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </DashboardLayout>

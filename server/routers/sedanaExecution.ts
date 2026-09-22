@@ -42,6 +42,15 @@ export const sedanaExecutionRouter = router({
         const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems;
         if (!isSedana) continue;
 
+        const sedanaProc = pData.sedanaProcurement || {};
+        const executionData = pData.sedanaExecution || {};
+        const itemsAlloc = sedanaProc.itemsAllocation || {};
+        const basketItems = Array.isArray(pData.basketItems) ? pData.basketItems : [];
+        const itemsCount = Object.keys(itemsAlloc).length || basketItems.length || 0;
+        const inwardCount = Array.isArray(executionData.inwardOrders) ? executionData.inwardOrders.length : 0;
+        const outboundCount = Array.isArray(executionData.outboundOrders) ? executionData.outboundOrders.length : 0;
+        const deliveryCount = Array.isArray(executionData.deliveryOrders) ? executionData.deliveryOrders.length : 0;
+
         sedanaList.push({
           id: req.id,
           requestNumber: req.requestNumber || String(req.id),
@@ -52,8 +61,29 @@ export const sedanaExecutionRouter = router({
           mosqueName: mosque?.name || "المسجد",
           mosqueCity: mosque?.city || "",
           createdAt: req.createdAt,
+          itemsCount,
+          inwardCount,
+          outboundCount,
+          deliveryCount,
         });
       }
+
+      // فرز: طلبات مرحلة التشغيل والتنفيذ أولاً، ثم مراحل التنفيذ اللاحقة، ثم الأحدث
+      sedanaList.sort((a, b) => {
+        const isAExec = a.currentStage === "execution";
+        const isBExec = b.currentStage === "execution";
+        if (isAExec && !isBExec) return -1;
+        if (!isAExec && isBExec) return 1;
+
+        const isAExecutionRelated = ["handover", "closed"].includes(a.currentStage);
+        const isBExecutionRelated = ["handover", "closed"].includes(b.currentStage);
+        if (isAExecutionRelated && !isBExecutionRelated) return -1;
+        if (!isAExecutionRelated && isBExecutionRelated) return 1;
+
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA;
+      });
 
       return sedanaList;
     }),
@@ -189,9 +219,25 @@ export const sedanaExecutionRouter = router({
         };
       });
 
-      // جلب أوامر الصرف المرتبطة بهذا الطلب للتحقق من حالة تنفيذها
+      // جلب أوامر الصرف المنفذة فقط المرتبطة بهذا الطلب (أمر شراء، خطاب مجتمعي، أو طلب صرف خاص بالطلب نفسه)
       const activePO = sedanaProc.activePurchaseOrder || null;
       const activeCSR = sedanaProc.activeCsrLetter || null;
+
+      const allPOs: string[] = [];
+      if (activePO?.orderNumber) allPOs.push(activePO.orderNumber);
+      if (Array.isArray(sedanaProc.purchaseOrders)) {
+        sedanaProc.purchaseOrders.forEach((p: any) => {
+          if (p.orderNumber && !allPOs.includes(p.orderNumber)) allPOs.push(p.orderNumber);
+        });
+      }
+
+      const allCSRs: string[] = [];
+      if (activeCSR?.letterNumber) allCSRs.push(activeCSR.letterNumber);
+      if (Array.isArray(sedanaProc.csrLetters)) {
+        sedanaProc.csrLetters.forEach((c: any) => {
+          if (c.letterNumber && !allCSRs.includes(c.letterNumber)) allCSRs.push(c.letterNumber);
+        });
+      }
 
       const linkedDisbursementOrders = await db
         .select({
@@ -210,10 +256,13 @@ export const sedanaExecutionRouter = router({
         })
         .from(disbursementOrders)
         .where(
-          or(
-            eq(disbursementOrders.requestId, req.id),
-            activePO?.orderNumber ? eq(disbursementOrders.purchaseOrderNumber, activePO.orderNumber) : sql`1=0`,
-            activeCSR?.letterNumber ? eq(disbursementOrders.csrLetterNumber, activeCSR.letterNumber) : sql`1=0`
+          and(
+            eq(disbursementOrders.status, "executed"),
+            or(
+              eq(disbursementOrders.requestId, req.id),
+              allPOs.length > 0 ? inArray(disbursementOrders.purchaseOrderNumber, allPOs) : sql`1=0`,
+              allCSRs.length > 0 ? inArray(disbursementOrders.csrLetterNumber, allCSRs) : sql`1=0`
+            )
           )
         );
 

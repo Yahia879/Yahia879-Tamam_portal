@@ -257,13 +257,19 @@ export default function CreateCsrLetterPage() {
     const availableItems = currentSupplier?.items || currentRequest?.eligibleItems || [];
     const itemsToSubmit = availableItems
       .filter((it: any) => selectedItemIds.includes(it.id))
-      .map((it: any) => ({
-        id: it.id,
-        itemName: it.itemName,
-        description: it.description || "",
-        quantity: itemsQuantities[it.id] ?? it.quantity ?? 1,
-        unit: it.unit || "وحدة",
-      }));
+      .map((it: any) => {
+        const qty = itemsQuantities[it.id] ?? it.quantity ?? 1;
+        const uPrice = Number(it.unitPrice || 0);
+        return {
+          id: it.id,
+          itemName: it.itemName,
+          description: it.description || "",
+          quantity: qty,
+          unit: it.unit || "وحدة",
+          unitPrice: uPrice,
+          totalPrice: qty * uPrice,
+        };
+      });
 
     if (itemsToSubmit.length === 0) {
       toast.error("يرجى تضمين صنف واحد على الأقل وتحديد كميته");

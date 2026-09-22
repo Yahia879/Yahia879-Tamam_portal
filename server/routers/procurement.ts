@@ -470,7 +470,22 @@ export const procurementRouter = router({
           const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
           const letterDate = csr.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
           const status = csr.status || (isExecutionOrBeyond ? "approved" : "draft");
-          const finalItems = csr.items;
+          const finalItems = (csr.items || []).map((it: any) => {
+            const suppData = itemSuppMap[it.id] || {};
+            const boq = reqBoq.find((b) => String(b.id) === String(it.id));
+            const qty = parseFloat(it.quantity || "1");
+            const uPrice = (it.unitPrice !== undefined && it.unitPrice !== null && it.unitPrice !== 0)
+              ? parseFloat(it.unitPrice)
+              : parseFloat(suppData.unitPrice || boq?.unitPrice || "0");
+            const tPrice = (it.totalPrice !== undefined && it.totalPrice !== null && it.totalPrice !== 0)
+              ? parseFloat(it.totalPrice)
+              : (qty * uPrice);
+            return {
+              ...it,
+              unitPrice: uPrice,
+              totalPrice: tPrice,
+            };
+          });
 
             letters.push({
               id: `${req.id}-${cIdx}`,
@@ -1230,6 +1245,8 @@ export const procurementRouter = router({
               description: it.description || "",
               quantity: it.quantity,
               unit: it.unit,
+              unitPrice: mapEntry?.unitPrice || 0,
+              totalPrice: mapEntry?.totalPrice || (it.quantity * (mapEntry?.unitPrice || 0)),
             });
           }
 
@@ -1278,6 +1295,8 @@ export const procurementRouter = router({
                     description: it.description || "",
                     quantity: it.quantity,
                     unit: it.unit,
+                    unitPrice: itemSuppMap[it.id]?.unitPrice || 0,
+                    totalPrice: itemSuppMap[it.id]?.totalPrice || (it.quantity * (itemSuppMap[it.id]?.unitPrice || 0)),
                   })),
                 });
               }
@@ -1368,6 +1387,8 @@ export const procurementRouter = router({
         description: z.string().optional(),
         quantity: z.number().min(0.01),
         unit: z.string(),
+        unitPrice: z.number().optional(),
+        totalPrice: z.number().optional(),
       })),
     }))
     .mutation(async ({ input, ctx }) => {
@@ -1447,6 +1468,18 @@ export const procurementRouter = router({
         }
       }
 
+      const itemSuppMap = pData.sedanaProcurement.itemSupplierMap || {};
+      const enrichedItems = input.items.map((it: any) => {
+        const supData = itemSuppMap[it.id] || {};
+        const uPrice = (it.unitPrice !== undefined && it.unitPrice !== null) ? it.unitPrice : (supData.unitPrice || 0);
+        const tPrice = (it.totalPrice !== undefined && it.totalPrice !== null) ? it.totalPrice : (it.quantity * uPrice);
+        return {
+          ...it,
+          unitPrice: uPrice,
+          totalPrice: tPrice,
+        };
+      });
+
       const newCSR = {
         letterNumber,
         letterDate: input.letterDate || nowIso.split("T")[0],
@@ -1464,7 +1497,7 @@ export const procurementRouter = router({
         approvedAt: isApproved ? nowIso : undefined,
         notes: input.notes || "",
         status: input.status,
-        items: input.items,
+        items: enrichedItems,
         updatedAt: nowIso,
       };
 

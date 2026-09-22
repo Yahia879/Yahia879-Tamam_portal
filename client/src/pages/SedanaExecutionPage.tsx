@@ -60,9 +60,14 @@ import {
   CalendarDays,
   BadgeCheck,
   Info,
+  Search,
+  ArrowLeft,
+  Sparkles,
+  Filter,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
+import { STAGE_LABELS } from "@shared/constants";
 
 export default function SedanaExecutionPage() {
   const params = useParams<{ id?: string }>();
@@ -72,16 +77,51 @@ export default function SedanaExecutionPage() {
   // جلب قائمة كافة طلبات سدانة لاختيار الطلب
   const { data: sedanaRequests = [], isLoading: isRequestsLoading } = trpc.sedanaExecution.listSedanaRequests.useQuery();
 
+  const [listSearch, setListSearch] = useState("");
+  const [listStageFilter, setListStageFilter] = useState<"all" | "execution" | "others">("all");
+
   const activeRequestId = useMemo(() => {
     const fromParam = parseInt(params.id || "0");
     if (fromParam > 0) return fromParam;
-    if (sedanaRequests.length > 0) return sedanaRequests[0].id;
+    if (typeof window !== "undefined") {
+      const sp = new URLSearchParams(window.location.search);
+      const q = sp.get("requestId");
+      if (q) return parseInt(q);
+    }
     return 0;
-  }, [params.id, sedanaRequests]);
+  }, [params.id]);
 
   const requestId = activeRequestId;
 
-  useDocumentTitle(requestId > 0 ? `المستودع الافتراضي #${requestId} - سدانة` : "المستودع الافتراضي - سدانة");
+  useDocumentTitle(requestId > 0 ? `المستودع الافتراضي #${requestId} - سدانة` : "المستودع الافتراضي - طلبات سدانة");
+
+  const executionStageCount = useMemo(() => {
+    return sedanaRequests.filter((r: any) => r.currentStage === "execution").length;
+  }, [sedanaRequests]);
+
+  const otherStagesCount = useMemo(() => {
+    return sedanaRequests.length - executionStageCount;
+  }, [sedanaRequests, executionStageCount]);
+
+  const filteredRequests = useMemo(() => {
+    let result = sedanaRequests;
+    if (listStageFilter === "execution") {
+      result = result.filter((r: any) => r.currentStage === "execution");
+    } else if (listStageFilter === "others") {
+      result = result.filter((r: any) => r.currentStage !== "execution");
+    }
+
+    if (listSearch.trim()) {
+      const q = listSearch.trim().toLowerCase();
+      result = result.filter((r: any) =>
+        r.requestNumber?.toLowerCase().includes(q) ||
+        r.mosqueName?.toLowerCase().includes(q) ||
+        r.mosqueCity?.toLowerCase().includes(q) ||
+        r.descriptiveName?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [sedanaRequests, listStageFilter, listSearch]);
 
   const utils = trpc.useUtils();
 
@@ -280,101 +320,312 @@ export default function SedanaExecutionPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 text-right font-sans" dir="rtl">
-        {/* الترويسة العلوية مع شريط اختيار طلب سدانة */}
-        <div className="flex flex-col gap-4 border-b pb-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation(requestId > 0 ? `/requests/${requestId}` : "/requests")}
-                  className="h-8 px-2 text-xs font-semibold gap-1 text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  <span>العودة للطلب</span>
-                </Button>
-                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
-                  <Boxes className="w-5 h-5" />
+        {requestId === 0 ? (
+          <div className="space-y-6">
+            {/* الترويسة الرئيسية */}
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-card p-4 sm:p-6 rounded-2xl border border-border/80 shadow-xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                    <Boxes className="w-6 h-6" />
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-black text-foreground">
+                    المستودع الافتراضي لطلبات سدانة
+                  </h1>
+                  <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 text-xs font-bold">
+                    برنامج سدانة
+                  </Badge>
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                  المستودع الافتراضي والتنفيذ المجدول
-                </h1>
-                <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs">
-                  برنامج سدانة
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  اختر أحد طلبات سدانة في مرحلة التشغيل والتنفيذ لإدارة المخزون الافتراضي، أوامر الإدخال، الإخراج، ومحاضر التسليم
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 px-3 py-1.5 font-bold text-xs gap-1.5 shadow-2xs">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{executionStageCount} طلبات في مرحلة التشغيل والتنفيذ</span>
                 </Badge>
               </div>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
-              </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              {requestId > 0 && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setLocation(`/requests/${requestId}/procurement`)}
-                    className="text-xs font-semibold"
+            {/* بطاقات الإحصائيات السريعة */}
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">إجمالي طلبات سدانة</p>
+                    <p className="text-2xl font-black text-foreground mt-0.5">{sedanaRequests.length}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">مسجلة في النظام</p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-emerald-500/30 dark:border-emerald-700/40 bg-emerald-50/20 dark:bg-emerald-950/10 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
+                      <span>مرحلة التشغيل والتنفيذ</span>
+                      <span className="text-[10px] bg-emerald-200/60 dark:bg-emerald-900/60 px-1.5 py-0.2 rounded font-normal">الأولوية</span>
+                    </p>
+                    <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">{executionStageCount}</p>
+                    <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">جاهزة لإدارة المستودع والتسليم</p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-100 dark:bg-emerald-950 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border border-border/80 shadow-2xs hover:shadow-xs transition-shadow">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold text-muted-foreground">مراحل أخرى</p>
+                    <p className="text-2xl font-black text-foreground mt-0.5">{otherStagesCount}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">قيد التقييم أو التعاقد</p>
+                  </div>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/30 text-amber-600">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* شريط البحث والتصفية */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 bg-card p-3 sm:p-4 rounded-xl border border-border/80 shadow-2xs">
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="البحث برقم الطلب، اسم المسجد، المدينة، أو الوصف..."
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                  className="pr-9 pl-9 h-10 text-xs"
+                />
+                {listSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setListSearch("")}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
                   >
-                    تأمين الطلب والتعاقد
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                    className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    نموذج أمر التسليم (A4)
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+                    ×
+                  </button>
+                )}
+              </div>
 
-          {/* شريط اختيار طلب سدانة */}
-          <div className="bg-muted/40 p-3 rounded-xl border border-border/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Label className="text-xs font-bold whitespace-nowrap text-foreground flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-emerald-600" />
-                <span>اختر طلب سدانة لعرض مستودعه:</span>
-              </Label>
-              <Select
-                value={String(requestId)}
-                onValueChange={(val) => setLocation(`/requests/${val}/sedana-execution`)}
-              >
-                <SelectTrigger className="h-9 w-full sm:w-[320px] text-xs font-semibold bg-background">
-                  <SelectValue placeholder="اختر طلب سدانة..." />
-                </SelectTrigger>
-                <SelectContent dir="rtl" className="max-h-[320px]">
-                  {sedanaRequests.map((r) => (
-                    <SelectItem key={r.id} value={String(r.id)} className="text-xs">
-                      <div className="flex items-center justify-between gap-2 w-full">
-                        <span className="font-bold">
-                          #{r.requestNumber} - {r.mosqueName}
-                        </span>
-                        {r.descriptiveName && (
-                          <span className="text-[11px] text-muted-foreground truncate max-w-[120px]">
-                            ({r.descriptiveName})
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0 overflow-x-auto pb-1 sm:pb-0">
+                <Button
+                  size="sm"
+                  variant={listStageFilter === "all" ? "default" : "outline"}
+                  onClick={() => setListStageFilter("all")}
+                  className={`text-xs font-bold h-9 px-3 cursor-pointer ${listStageFilter === "all" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                >
+                  الكل ({sedanaRequests.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={listStageFilter === "execution" ? "default" : "outline"}
+                  onClick={() => setListStageFilter("execution")}
+                  className={`text-xs font-bold h-9 px-3 gap-1.5 cursor-pointer ${listStageFilter === "execution" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "text-emerald-700 border-emerald-300"}`}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>التشغيل والتنفيذ ({executionStageCount})</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={listStageFilter === "others" ? "default" : "outline"}
+                  onClick={() => setListStageFilter("others")}
+                  className={`text-xs font-bold h-9 px-3 cursor-pointer ${listStageFilter === "others" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                >
+                  المراحل الأخرى ({otherStagesCount})
+                </Button>
+              </div>
             </div>
 
-            {req && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mr-auto sm:mr-0">
-                <span>المدينة: <strong className="text-foreground">{mosque?.city || "-"}</strong></span>
-                <span>•</span>
-                <span>المرحلة: <Badge variant="outline" className="text-[10px]">{req.currentStage}</Badge></span>
+            {/* شبكة كروت الطلبات */}
+            {isRequestsLoading ? (
+              <div className="p-12 text-center text-muted-foreground space-y-2">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-emerald-600" />
+                <p className="text-xs">جاري تحميل طلبات سدانة...</p>
+              </div>
+            ) : filteredRequests.length === 0 ? (
+              <div className="p-12 text-center bg-card rounded-2xl border border-dashed border-border text-muted-foreground space-y-3">
+                <Boxes className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                <p className="text-sm font-bold text-foreground">لا توجد طلبات سدانة مطابقة للبحث أو التصفية</p>
+                <p className="text-xs text-muted-foreground">جرب مسح البحث أو تغيير فلتر المرحلة</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border/80 bg-card overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <Table className="w-full text-right text-xs">
+                    <TableHeader className="bg-muted/60">
+                      <TableRow className="hover:bg-transparent border-b border-border/80">
+                        <TableHead className="text-right font-bold py-3 text-foreground w-[130px]">رقم الطلب</TableHead>
+                        <TableHead className="text-right font-bold py-3 text-foreground min-w-[220px]">المسجد والموقع</TableHead>
+                        <TableHead className="text-right font-bold py-3 text-foreground min-w-[150px]">مرحلة الطلب</TableHead>
+                        <TableHead className="text-center font-bold py-3 text-foreground w-[100px]">البنود</TableHead>
+                        <TableHead className="text-center font-bold py-3 text-foreground w-[110px]">أوامر الإدخال</TableHead>
+                        <TableHead className="text-center font-bold py-3 text-foreground w-[110px]">أوامر الإخراج</TableHead>
+                        <TableHead className="text-center font-bold py-3 text-foreground w-[110px]">محاضر التسليم</TableHead>
+                        <TableHead className="text-left font-bold py-3 text-foreground w-[140px] pl-4">الإجراء</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRequests.map((r: any) => {
+                        const isExec = r.currentStage === "execution";
+                        return (
+                          <TableRow
+                            key={r.id}
+                            onClick={() => setLocation(`/requests/${r.id}/sedana-execution`)}
+                            className={`cursor-pointer transition-colors border-b border-border/60 ${
+                              isExec
+                                ? "bg-emerald-500/[0.04] hover:bg-emerald-500/[0.09] dark:bg-emerald-950/20 dark:hover:bg-emerald-950/35 border-r-4 border-r-emerald-500 font-medium"
+                                : "hover:bg-muted/50"
+                            }`}
+                          >
+                            {/* رقم الطلب */}
+                            <TableCell className="py-3 font-mono font-black text-xs text-foreground">
+                              <span className="inline-block bg-muted/80 px-2.5 py-1 rounded-md border border-border/60">
+                                #{r.requestNumber}
+                              </span>
+                            </TableCell>
+
+                            {/* المسجد والموقع */}
+                            <TableCell className="py-3">
+                              <div className="space-y-0.5">
+                                <div className="font-bold text-sm text-foreground flex items-center gap-1.5">
+                                  <span>{r.mosqueName}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                  <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                  <span>{r.mosqueCity || "المدينة غير محددة"}</span>
+                                  {r.descriptiveName && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="truncate max-w-[200px] text-foreground/80 font-medium">
+                                        {r.descriptiveName}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            {/* مرحلة الطلب */}
+                            <TableCell className="py-3">
+                              {isExec ? (
+                                <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 font-bold text-xs gap-1 shadow-2xs">
+                                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                                  <span>التشغيل والتنفيذ</span>
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-muted-foreground font-normal">
+                                  {STAGE_LABELS[r.currentStage] || r.currentStage}
+                                </Badge>
+                              )}
+                            </TableCell>
+
+                            {/* عدد البنود */}
+                            <TableCell className="py-3 text-center">
+                              <span className="font-bold text-xs text-foreground">{r.itemsCount || 0}</span>
+                              <span className="text-[10px] text-muted-foreground mr-1">صنف</span>
+                            </TableCell>
+
+                            {/* أوامر الإدخال */}
+                            <TableCell className="py-3 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-md text-xs font-bold ${
+                                (r.inwardCount || 0) > 0
+                                  ? "bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                                  : "text-muted-foreground bg-muted/40"
+                              }`}>
+                                {r.inwardCount || 0}
+                              </span>
+                            </TableCell>
+
+                            {/* أوامر الإخراج */}
+                            <TableCell className="py-3 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-md text-xs font-bold ${
+                                (r.outboundCount || 0) > 0
+                                  ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                                  : "text-muted-foreground bg-muted/40"
+                              }`}>
+                                {r.outboundCount || 0}
+                              </span>
+                            </TableCell>
+
+                            {/* محاضر التسليم */}
+                            <TableCell className="py-3 text-center">
+                              <span className={`inline-flex items-center justify-center min-w-[26px] h-6 px-1.5 rounded-md text-xs font-bold ${
+                                (r.deliveryCount || 0) > 0
+                                  ? "bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                                  : "text-muted-foreground bg-muted/40"
+                              }`}>
+                                {r.deliveryCount || 0}
+                              </span>
+                            </TableCell>
+
+                            {/* زر الإجراء */}
+                            <TableCell className="py-3 text-left pl-4">
+                              <Button
+                                size="sm"
+                                className={`h-8 px-3 text-xs font-bold gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ${
+                                  isExec
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                    : "bg-primary hover:bg-primary/90 text-primary-foreground"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLocation(`/requests/${r.id}/sedana-execution`);
+                                }}
+                              >
+                                <Boxes className="w-3.5 h-3.5" />
+                                <span>دخول المستودع</span>
+                                <ArrowLeft className="w-3.5 h-3.5 mr-auto" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </div>
-        </div>
+        ) : (
+          <>
+            {/* الترويسة العلوية مع شريط اختيار طلب سدانة */}
+            <div className="flex flex-col gap-4 border-b pb-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation("/sedana-warehouse")}
+                      className="h-8 px-2.5 text-xs font-bold gap-1.5 text-muted-foreground hover:text-foreground border-border bg-card cursor-pointer"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>العودة لقائمة الطلبات</span>
+                    </Button>
+                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+                      <Boxes className="w-5 h-5" />
+                    </div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                      المستودع الافتراضي والتنفيذ المجدول
+                    </h1>
+                    <Badge variant="outline" className="text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-xs font-bold">
+                      برنامج سدانة
+                    </Badge>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    إدارة إدخال البنود الموردة، جدولة أوامر الإخراج ومسوغات الصرف، وإصدار أوامر التسليم الميداني لمسجد <span className="font-bold text-foreground">{mosque?.name || "المسجد"}</span> {req?.requestNumber ? `(#${req.requestNumber})` : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
 
         {/* بطاقات الإحصائيات الـ 4 السريعة */}
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
@@ -1491,6 +1742,8 @@ export default function SedanaExecutionPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );

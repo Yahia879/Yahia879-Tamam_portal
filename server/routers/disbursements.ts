@@ -2433,16 +2433,19 @@ export const disbursementsRouter = router({
         const getItemsForMethod = (method: string, explicitItems?: any[]) => {
           if (Array.isArray(explicitItems) && explicitItems.length > 0) {
             return explicitItems.map((it: any, idx: number) => {
+              const boq = reqBoq.find((b) => String(b.id) === String(it.id));
+              const suppData = itemSuppMap[it.id] || {};
               const qty = parseFloat(it.quantity || "1");
-              const price = parseFloat(it.unitPrice || "0");
+              const price = parseFloat(it.unitPrice || suppData.unitPrice || boq?.unitPrice || "0");
+              const total = it.totalPrice && parseFloat(it.totalPrice) > 0 ? parseFloat(it.totalPrice) : qty * price;
               return {
                 id: String(it.id || idx + 1),
-                itemName: it.itemName || `صنف ${idx + 1}`,
-                description: it.description || "",
+                itemName: it.itemName || boq?.itemName || `صنف ${idx + 1}`,
+                description: it.description || boq?.itemDescription || "",
                 quantity: qty,
-                unit: it.unit || "وحدة",
+                unit: it.unit || boq?.unit || "وحدة",
                 unitPrice: price,
-                totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+                totalPrice: total,
               };
             });
           }
@@ -2470,9 +2473,19 @@ export const disbursementsRouter = router({
         };
 
         // دالة مساعدة لجلب بيانات المورد
-        const getSupplierForMethod = (method: string, defaultName?: string, explicitSupId?: number) => {
+        const getSupplierForMethod = (method: string, defaultName?: string, explicitSupId?: number, explicitItems?: any[]) => {
           let supName = defaultName || "";
           let supId = explicitSupId;
+
+          if (!supId && Array.isArray(explicitItems)) {
+            for (const it of explicitItems) {
+              if (itemSuppMap[it.id]?.supplierId) {
+                supId = itemSuppMap[it.id].supplierId;
+                if (!supName) supName = itemSuppMap[it.id].supplierName;
+                break;
+              }
+            }
+          }
 
           if (!supName) {
             const allocatedIds = Object.keys(allocations).filter((k) => allocations[k] === method);
@@ -2584,7 +2597,7 @@ export const disbursementsRouter = router({
           if (csrItems.length === 0) continue;
 
           const itemsTotal = csrItems.reduce((sum: number, it: any) => sum + (it.totalPrice || 0), 0);
-          const supInfo = getSupplierForMethod("csr_letter", csr.recipientName, csr.supplierId);
+          const supInfo = getSupplierForMethod("csr_letter", csr.recipientName, csr.supplierId, csr.items);
           const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
           const linkedDisb = disbByCsr.get(letterNumber?.trim());
 

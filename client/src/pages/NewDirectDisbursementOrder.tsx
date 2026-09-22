@@ -129,6 +129,13 @@ export default function NewDirectDisbursementOrder() {
     return [];
   }, [approvedProcurement, requestType]);
 
+  // التحقق مما إذا كان المستند ممرراً عبر الرابط لتثبيته
+  const hasUrlOrder = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get("po") || params.get("csr") || params.get("orderNumber") || params.get("letterNumber"));
+  }, []);
+
   // استخراج معلمات URL إن وجدت (للربط المباشر من صفحات المشتريات)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -478,8 +485,9 @@ export default function NewDirectDisbursementOrder() {
                   <Select
                     value={requestType}
                     onValueChange={handleRequestTypeChange}
+                    disabled={hasUrlOrder}
                   >
-                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                    <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full disabled:opacity-75 disabled:cursor-not-allowed" dir="rtl">
                       <SelectValue placeholder="اختر نوع الصرف" />
                     </SelectTrigger>
                     <SelectContent>
@@ -521,8 +529,9 @@ export default function NewDirectDisbursementOrder() {
                       <Select
                         value={selectedOrderNumber}
                         onValueChange={(val) => setSelectedOrderNumber(val)}
+                        disabled={hasUrlOrder}
                       >
-                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full" dir="rtl">
+                        <SelectTrigger className="text-right border-border focus:ring-primary rounded-xl h-11 bg-background w-full disabled:opacity-75 disabled:cursor-not-allowed" dir="rtl">
                           <SelectValue placeholder={isLoadingProcurement ? "جاري جلب المستندات المعتمدة..." : "اختر المستند المعتمد للربط..."} />
                         </SelectTrigger>
                         <SelectContent dir="rtl" className="max-h-72">
@@ -566,7 +575,7 @@ export default function NewDirectDisbursementOrder() {
                             <span>بنود التوريد والمشتريات المعتمدة ({procurementItems.length} بنود):</span>
                           </span>
                           <span className="text-[11px] text-muted-foreground">
-                            يتم قراءة السعر والكمية تلقائياً ويمكنك تدقيقها
+                            بيانات البنود معتمدة رسمياً ولا يمكن تعديلها (تحديد الأجور الإدارية فقط متاح أدناه)
                           </span>
                         </div>
 
@@ -594,21 +603,17 @@ export default function NewDirectDisbursementOrder() {
                                   <TableCell className="text-center">
                                     <Input
                                       type="number"
-                                      min="1"
-                                      step="any"
                                       value={item.quantity}
-                                      onChange={(e) => handleItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                                      className="h-8 text-center font-mono font-bold text-xs"
+                                      disabled
+                                      className="h-8 text-center font-mono font-bold text-xs bg-muted/50 text-foreground cursor-not-allowed disabled:opacity-90 border-muted"
                                     />
                                   </TableCell>
                                   <TableCell className="text-center">
                                     <Input
                                       type="number"
-                                      min="0"
-                                      step="any"
                                       value={item.unitPrice}
-                                      onChange={(e) => handleItemChange(idx, 'unitPrice', parseFloat(e.target.value) || 0)}
-                                      className="h-8 text-center font-mono font-bold text-xs"
+                                      disabled
+                                      className="h-8 text-center font-mono font-bold text-xs bg-muted/50 text-foreground cursor-not-allowed disabled:opacity-90 border-muted"
                                     />
                                   </TableCell>
                                   <TableCell className="text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
@@ -644,7 +649,7 @@ export default function NewDirectDisbursementOrder() {
                                 placeholder="0.00"
                                 value={adminFees || ""}
                                 onChange={(e) => setAdminFees(parseFloat(e.target.value) || 0)}
-                                className="h-9 font-mono font-bold text-right text-xs bg-slate-50 dark:bg-slate-900"
+                                className="h-9 font-mono font-bold text-right text-xs bg-background border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary"
                               />
                             </div>
                           </div>
