@@ -178,6 +178,13 @@ export default function ContractsList() {
   const [editingClause, setEditingClause] = useState<any>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [expandedTemplates, setExpandedTemplates] = useState<number[]>([]);
+  const [expandedSedanaGroups, setExpandedSedanaGroups] = useState<number[]>([]);
+
+  const toggleSedanaGroup = (reqId: number) => {
+    setExpandedSedanaGroups(prev =>
+      prev.includes(reqId) ? prev.filter(id => id !== reqId) : [...prev, reqId]
+    );
+  };
 
   // نموذج القالب
   const [templateForm, setTemplateForm] = useState({
@@ -727,130 +734,147 @@ export default function ContractsList() {
                       item.requestInfo?.mosque?.name ||
                       item.contracts[0]?.mosqueName ||
                       "المسجد المستفيد";
+                    const isExpanded = expandedSedanaGroups.includes(item.requestId);
 
                     return (
                       <Card
                         key={`grouped-sedana-${item.requestId}`}
-                        className="border-2 border-sky-400/90 dark:border-sky-600 bg-gradient-to-br from-sky-50/80 via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-sky-950/40 shadow-sm hover:shadow-md transition-all overflow-hidden"
+                        className="hover:shadow-md transition-shadow overflow-hidden border-sky-300 dark:border-sky-800 bg-white dark:bg-card"
                       >
-                        <div className="p-4 sm:p-5 text-right border-b border-sky-200/80 dark:border-sky-800/60 bg-sky-100/50 dark:bg-sky-950/40">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2.5 rounded-xl bg-sky-600 text-white shadow-xs shrink-0 mt-0.5">
-                                <Layers className="h-5 w-5" />
+                        <CardContent className="p-4 text-right">
+                          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 sm:gap-4 flex-1">
+                              <div className="p-2 sm:p-3 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 shrink-0">
+                                <Layers className="h-5 w-5 sm:h-6 sm:w-6" />
                               </div>
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <Badge className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1 py-0.5 px-2.5 shadow-2xs">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">
+                                    عقود طلب سدانة - مسجد {mosqueName}
+                                  </h3>
+                                  <Badge className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1 py-0 px-2 h-5">
                                     <Sparkles className="w-3 h-3 text-amber-300" />
                                     عقود سدانة مجمعة ({item.contracts.length} عقود)
                                   </Badge>
-                                  <span className="text-xs text-muted-foreground font-mono">
-                                    طلب #{item.requestInfo?.requestNumber || item.requestId}
-                                  </span>
                                 </div>
-                                <h3 className="font-bold text-base sm:text-lg text-sky-950 dark:text-sky-100">
-                                  عقود مسجد {mosqueName}
-                                </h3>
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  تم إبرام عدة عقود توريد وتشغيل مستقلة لهذا الطلب مع موردين معتمدين
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                                  طلب #{item.requestInfo?.requestNumber || item.requestId} • تم إبرام {item.contracts.length} عقود توريد مستقلة
                                 </p>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 bg-white/95 dark:bg-slate-900/90 py-2 px-3.5 rounded-lg border border-sky-200 dark:border-sky-800 shadow-2xs self-start md:self-auto">
-                              <div className="text-right">
-                                <span className="text-[11px] text-muted-foreground block">إجمالي قيمة العقود:</span>
-                                <span className="font-bold text-sky-900 dark:text-sky-200 font-mono text-sm sm:text-base flex items-center gap-1">
-                                  {formatCurrency(totalAmount)}
-                                  <SaudiRiyal className="h-3.5 w-3.5 inline text-sky-700 dark:text-sky-300" />
-                                </span>
-                              </div>
-                              <div className="h-8 w-px bg-sky-200 dark:bg-sky-800 hidden sm:block" />
-                              <div className="text-right">
-                                <span className="text-[11px] text-muted-foreground block">الموردين:</span>
-                                <span className="font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
-                                  {new Set(item.contracts.map((c: any) => c.secondPartyName).filter(Boolean)).size} موردين
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <CardContent className="p-4 sm:p-5 space-y-3 bg-white/60 dark:bg-transparent">
-                          <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 mb-1 flex items-center gap-1.5">
-                            <FileText className="w-3.5 h-3.5 text-sky-600" />
-                            العقود المندرجة تحت هذا الطلب:
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-2.5">
-                            {item.contracts.map((contract: any, cIdx: number) => (
-                              <div
-                                key={contract.id}
-                                className="p-3.5 rounded-lg border border-sky-200/90 dark:border-sky-900/60 bg-white dark:bg-slate-900/90 hover:border-sky-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
-                              >
-                                <div className="flex items-start gap-3 min-w-0">
-                                  <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-300 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                                    {cIdx + 1}
+                                <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground">
+                                  <span className="flex items-center gap-1 font-semibold text-foreground">
+                                    <Building2 className="h-3.5 w-3.5 text-sky-600" />
+                                    <span>{new Set(item.contracts.map((c: any) => c.secondPartyName).filter(Boolean)).size} موردين معتمدين</span>
                                   </span>
-                                  <div className="min-w-0 space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="font-bold text-sm text-foreground truncate max-w-[280px]">
-                                        {contract.secondPartyName || "مورد معتمد"}
+                                  <span className="flex items-center gap-1 font-bold text-sky-900 dark:text-sky-200">
+                                    <SaudiRiyal className="h-3.5 w-3.5" />
+                                    <span>إجمالي العقود: {formatCurrency(totalAmount)}</span>
+                                  </span>
+                                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5 border-sky-300 text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50">
+                                    سدانة (توريد وخدمات)
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 sm:flex-none text-xs sm:text-sm border-sky-400 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950 font-bold gap-1 cursor-pointer"
+                                onClick={() => toggleSedanaGroup(item.requestId)}
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-3.5 w-3.5 ml-1" />
+                                    إخفاء العقود
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                                    عرض كافة العقود ({item.contracts.length})
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="mt-4 pt-3 border-t border-sky-100 dark:border-sky-900/60 bg-sky-50/40 dark:bg-sky-950/20 -mx-4 -mb-4 p-4 rounded-b-xl space-y-2.5">
+                              <div className="text-xs font-semibold text-sky-900 dark:text-sky-200 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5">
+                                  <FileText className="w-3.5 h-3.5 text-sky-600" />
+                                  العقود المندرجة تحت هذا الطلب ({item.contracts.length} عقود):
+                                </span>
+                              </div>
+
+                              <div className="space-y-2">
+                                {item.contracts.map((contract: any, cIdx: number) => (
+                                  <div
+                                    key={contract.id}
+                                    className="p-3 rounded-lg border border-sky-200/80 dark:border-sky-900/60 bg-white dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:border-sky-300 transition-colors"
+                                  >
+                                    <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                                      <span className="w-5 h-5 rounded-full bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-300 flex items-center justify-center font-bold text-[11px] shrink-0 mt-0.5 sm:mt-0">
+                                        {cIdx + 1}
                                       </span>
-                                      {getStatusBadge(contract.status)}
+                                      <div className="min-w-0 space-y-0.5">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <span className="font-bold text-xs sm:text-sm text-foreground truncate max-w-[260px]">
+                                            {contract.secondPartyName || "مورد معتمد"}
+                                          </span>
+                                          {getStatusBadge(contract.status)}
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] sm:text-xs text-muted-foreground">
+                                          <span className="font-mono">رقم العقد: {contract.contractNumber}</span>
+                                          <span className="flex items-center gap-0.5 font-bold font-mono text-sky-900 dark:text-sky-200">
+                                            <SaudiRiyal className="h-3 w-3" />
+                                            {formatCurrency(contract.contractAmount)}
+                                          </span>
+                                          {contract.contractDate && (
+                                            <span className="flex items-center gap-1">
+                                              <Calendar className="h-3 w-3" />
+                                              {formatDate(contract.contractDate)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                                      <span className="font-mono text-slate-600 dark:text-slate-400">
-                                        رقم العقد: {contract.contractNumber}
-                                      </span>
-                                      <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-semibold font-mono">
-                                        <SaudiRiyal className="h-3 w-3" />
-                                        {formatCurrency(contract.contractAmount)}
-                                      </span>
-                                      {contract.contractDate && (
-                                        <span className="flex items-center gap-1">
-                                          <Calendar className="h-3 w-3" />
-                                          {formatDate(contract.contractDate)}
-                                        </span>
+
+                                    <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 justify-end shrink-0">
+                                      {contract.status !== "draft" && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs h-7 px-2.5"
+                                          onClick={() => navigate(`/contracts/${contract.id}/preview`)}
+                                        >
+                                          <Eye className="h-3 w-3 ml-1" />
+                                          عرض
+                                        </Button>
                                       )}
+                                      {(contract.status === "draft" ||
+                                        (contract.status === "approved" && canEditApprovedContract)) &&
+                                        canApproveContract && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs h-7 px-2.5 border-amber-600 text-amber-600 hover:bg-amber-50 font-bold"
+                                            onClick={() => navigate(`/contracts/${contract.id}/edit`)}
+                                          >
+                                            <Edit className="h-3 w-3 ml-1" />
+                                            {contract.status === "approved"
+                                              ? "تعديل"
+                                              : contract.status === "draft"
+                                              ? "إكمال"
+                                              : "تعديل"}
+                                          </Button>
+                                        )}
                                     </div>
                                   </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 justify-end shrink-0">
-                                  {contract.status !== "draft" && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs h-8 px-3 border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/50"
-                                      onClick={() => navigate(`/contracts/${contract.id}/preview`)}
-                                    >
-                                      <Eye className="h-3.5 w-3.5 ml-1" />
-                                      عرض
-                                    </Button>
-                                  )}
-                                  {(contract.status === "draft" ||
-                                    (contract.status === "approved" && canEditApprovedContract)) &&
-                                    canApproveContract && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs h-8 px-3 border-amber-600 text-amber-600 hover:bg-amber-50 font-bold"
-                                        onClick={() => navigate(`/contracts/${contract.id}/edit`)}
-                                      >
-                                        <Edit className="h-3.5 w-3.5 ml-1" />
-                                        {contract.status === "approved"
-                                          ? "تعديل"
-                                          : contract.status === "draft"
-                                          ? "إكمال"
-                                          : "تعديل"}
-                                      </Button>
-                                    )}
-                                </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
