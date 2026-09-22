@@ -189,7 +189,7 @@ export default function NewDirectDisbursementOrder() {
         fundingSupport: prev.fundingSupport || "دعم مخصص / سدانة",
         customProjectName: found.mosqueName ? `مشروع سدانة - ${found.mosqueName}` : `طلب سدانة #${found.requestNumber}`,
         title: `${found.typeLabel} رقم ${found.orderNumber} - ${found.supplierName}`,
-        requiredWorksDesc: `توريد بنود ومستلزمات وفق ${found.typeLabel} رقم ${found.orderNumber} لصالح ${found.mosqueName}`,
+        requiredWorksDesc: prev.requiredWorksDesc || "",
         amount: totalAmt,
         beneficiaryName: found.supplierName || prev.beneficiaryName,
         bankAccountName: found.supplierAccountName || found.supplierName || prev.bankAccountName,
@@ -634,7 +634,7 @@ export default function NewDirectDisbursementOrder() {
 
                             <div className="space-y-1">
                               <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                                <span>الأجور الإدارية الإضافية (إن وجدت)</span>
+                                <span>الأجور الإدارية الإضافية</span>
                                 <span className="text-[10px] text-muted-foreground font-normal">(ر.س)</span>
                               </Label>
                               <Input
@@ -1113,51 +1113,6 @@ export default function NewDirectDisbursementOrder() {
               </CardContent>
             </Card>
 
-            {/* تفاصيل بنود أمر الشراء والأجور الإدارية في الخطوة 2 */}
-            {(requestType === "purchase_order" || requestType === "csr_letter") && (
-              <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                <CardHeader className="bg-muted/30 border-b border-border/40 py-3 text-right">
-                  <CardTitle className="flex items-center gap-2 text-foreground text-sm font-bold">
-                    <Package className="h-4 w-4 text-primary" />
-                    تفاصيل بنود أمر الشراء والأجور الإدارية
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 space-y-3 text-right" dir="rtl">
-                  <div className="flex items-center justify-between text-xs pb-2 border-b border-border/60">
-                    <span className="text-muted-foreground">المستند المعتمد المرتبط:</span>
-                    <span className="font-mono font-bold text-foreground bg-muted px-2 py-0.5 rounded">
-                      {selectedOrderNumber}
-                    </span>
-                  </div>
-
-                  <div className="divide-y divide-border/60 text-xs">
-                    {procurementItems.map((it, idx) => (
-                      <div key={idx} className="py-2 flex items-center justify-between">
-                        <div>
-                          <span className="font-bold text-foreground">{it.itemName}</span>
-                          <span className="text-[11px] text-muted-foreground mr-2 font-mono">
-                            ({it.quantity} {it.unit || "وحدة"} × {it.unitPrice.toLocaleString()} ر.س)
-                          </span>
-                        </div>
-                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          {(it.totalPrice || 0).toLocaleString()} ر.س
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground font-semibold">مجموع بنود المشتريات:</span>
-                    <span className="font-mono font-bold">{itemsTotal.toLocaleString()} ر.س</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground font-semibold">الأجور الإدارية:</span>
-                    <span className="font-mono font-bold text-amber-700 dark:text-amber-400">{adminFees.toLocaleString()} ر.س</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* ملخص الدفعة والتقرير المالي */}
             <Card className="border-border/60 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900">
