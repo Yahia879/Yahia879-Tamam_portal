@@ -36,10 +36,8 @@ import {
   User,
   Coins,
   Receipt,
-  Sparkles,
   Loader2,
   Check,
-  RotateCcw,
   Clock,
   Layers,
   ShieldCheck,
@@ -142,13 +140,13 @@ export default function NewSedanaInwardOrderPage() {
       setInwardRefNumber(activeDisb.referenceNumber || activeDisb.orderNumber || "");
       if (activeDisb.beneficiaryName) setInwardSupplierName(activeDisb.beneficiaryName);
 
-      // تعيين الكميات الافتراضية بالمتبقي المسموح
+      // تعيين الكميات الافتراضية بالمتبقي المسموح بأمر الصرف
       const initial: Record<string, number> = {};
       if (Array.isArray(activeDisb.items)) {
         activeDisb.items.forEach((it: any) => {
-          const remaining = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : 0;
-          if (remaining > 0) {
-            initial[it.id] = remaining;
+          const qty = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : (it.maxDisbursedQty ?? it.quantity ?? 0);
+          if (qty > 0) {
+            initial[it.id] = qty;
           }
         });
       }
@@ -160,36 +158,6 @@ export default function NewSedanaInwardOrderPage() {
   const isInwardBlocked = !activeDisb || !activeDisb.canCreateInward;
   const blockedReason = !activeDisb ? "لا يوجد أمر صرف مالي منفّذ لهذا الطلب حتى الآن" : (activeDisb?.blockedReason || null);
 
-  // تعبئة كامل الكميات المتبقية لكافة البنود
-  const handleFillAllRemaining = () => {
-    const updated: Record<string, number> = {};
-    displayItems.forEach((i: any) => {
-      const remaining = i.remainingAllowedQty !== undefined ? i.remainingAllowedQty : 0;
-      if (remaining > 0) {
-        updated[i.id] = remaining;
-      }
-    });
-    setInwardItems(updated);
-    toast.success("تمت تعبئة كامل الكميات المتبقية لهذا الصرف بنجاح");
-  };
-
-  // تصفير جميع الكميات المدخلة
-  const handleResetAll = () => {
-    const updated: Record<string, number> = {};
-    displayItems.forEach((i: any) => {
-      updated[i.id] = 0;
-    });
-    setInwardItems(updated);
-    toast.info("تم تصفير جميع الكميات");
-  };
-
-  // تعيين الكمية لبند محدد بالمتبقي المسموح
-  const handleFillSingleRemaining = (itemId: string, maxQty: number) => {
-    setInwardItems((prev) => ({
-      ...prev,
-      [itemId]: maxQty,
-    }));
-  };
 
   // إحصائيات الإدخال الحالي
   const totalItemsToInwardCount = Object.keys(inwardItems).filter((k) => (inwardItems[k] || 0) > 0).length;
@@ -343,106 +311,29 @@ export default function NewSedanaInwardOrderPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {disbursementOrders.map((d: any) => {
-                  const isSelected = selectedDisbOrderId === d.id;
-                  const isExecuted = d.isExecuted;
-                  const isCompleted = d.isFullyInwarded;
-
-                  return (
-                    <div
-                      key={d.id}
-                      onClick={() => setSelectedDisbOrderId(d.id)}
-                      className={`p-4 rounded-xl border transition-all cursor-pointer text-right flex flex-col justify-between relative ${
-                        isSelected
-                          ? "border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-xs ring-1 ring-emerald-500"
-                          : "border-border hover:border-emerald-300 hover:bg-muted/20 bg-background"
-                      }`}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                              isSelected ? "border-emerald-600 bg-emerald-600 text-white" : "border-muted-foreground/40"
-                            }`}>
-                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                            </div>
-                            <span className="font-bold font-mono text-sm text-foreground">{d.orderNumber}</span>
-                          </div>
-
-                          {isExecuted ? (
-                            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 gap-1 font-bold">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>منفّذ بالتحويل</span>
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950/40 gap-1 font-semibold">
-                              <Clock className="w-3 h-3 text-amber-600" />
-                              <span>{d.statusLabel}</span>
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="text-xs space-y-1">
-                          <div className="text-muted-foreground flex justify-between">
-                            <span>المرجع:</span>
-                            <span className="font-semibold text-foreground font-mono">
-                              {d.referenceNumber || (d.referenceType === "purchase_order" ? "أمر شراء" : "خطاب مسؤولية")}
-                            </span>
-                          </div>
-                          <div className="text-muted-foreground flex justify-between">
-                            <span>المستفيد:</span>
-                            <span className="font-medium text-foreground truncate max-w-[150px]">{d.beneficiaryName}</span>
-                          </div>
-                          <div className="text-muted-foreground flex justify-between">
-                            <span>المبلغ المصروف:</span>
-                            <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono">
-                              {Number(d.amount).toLocaleString()} ر.س
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* شريط حالة التوريد والكميات */}
-                      <div className="mt-3 pt-2.5 border-t border-border/50 text-[11px] space-y-1">
-                        <div className="flex justify-between font-semibold">
-                          <span className="text-muted-foreground">حالة التوريد المستودعي:</span>
-                          {isCompleted ? (
-                            <span className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-                              <Check className="w-3 h-3" />
-                              <span>مكتمل 100%</span>
-                            </span>
-                          ) : (
-                            <span className="text-amber-700 dark:text-amber-400 font-bold">
-                              متبقي {d.totalRemainingUnits} وحدة
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all ${
-                              isCompleted ? "bg-emerald-600" : "bg-primary"
-                            }`}
-                            style={{
-                              width: `${
-                                d.totalDisbursedUnits > 0
-                                  ? Math.min(100, Math.round((d.totalInwardUnits / d.totalDisbursedUnits) * 100))
-                                  : 0
-                              }%`,
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex justify-between text-[10px] text-muted-foreground font-mono pt-0.5">
-                          <span>المعتمد: {d.totalDisbursedUnits}</span>
-                          <span>المدخل: {d.totalInwardUnits}</span>
-                          <span>المتبقي: {d.totalRemainingUnits}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="max-w-xl">
+                <Select
+                  value={selectedDisbOrderId ? String(selectedDisbOrderId) : ""}
+                  onValueChange={(val) => setSelectedDisbOrderId(Number(val))}
+                >
+                  <SelectTrigger className="h-11 text-xs font-semibold bg-background border-border/80" dir="rtl">
+                    <SelectValue placeholder="-- اختر أمر الصرف المالي المنفّذ للمتابعة --" />
+                  </SelectTrigger>
+                  <SelectContent dir="rtl">
+                    {disbursementOrders.map((d: any) => (
+                      <SelectItem key={d.id} value={String(d.id)} className="text-xs">
+                        <span className="font-mono font-bold">{d.orderNumber}</span>
+                        {" - "}
+                        <span>{d.referenceNumber || (d.referenceType === "purchase_order" ? "أمر شراء" : "خطاب مسؤولية")}</span>
+                        {" - المستفيد: "}
+                        <span>{d.beneficiaryName}</span>
+                        {" ("}
+                        <span className="font-mono text-emerald-700 dark:text-emerald-400 font-semibold">{Number(d.amount).toLocaleString()} ر.س</span>
+                        {")"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -493,34 +384,8 @@ export default function NewSedanaInwardOrderPage() {
                   </span>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">
-                  الكمية المحددة في أمر الصرف هي الحد الأقصى للإدخال؛ يمكنك إدخال جزء من الكمية الآن وإدخال المتبقي لاحقاً
+                  أصناف وكميات أمر الصرف المعتمد المحددة للإدخال المستودعي
                 </CardDescription>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleFillAllRemaining}
-                  disabled={isInwardBlocked}
-                  className="text-xs font-bold gap-1 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 cursor-pointer h-8 rounded-lg"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>تعبئة كامل المتبقي</span>
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetAll}
-                  disabled={isInwardBlocked}
-                  className="text-xs font-bold gap-1 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer h-8 rounded-lg"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>تصفير</span>
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-0 text-right" dir="rtl">
@@ -530,37 +395,25 @@ export default function NewSedanaInwardOrderPage() {
                     <TableRow className="border-b border-border/60 hover:bg-transparent">
                       <TableHead className="w-12 text-center font-bold">#</TableHead>
                       <TableHead className="min-w-[200px] font-bold text-foreground">الصنف والوصف</TableHead>
-                      <TableHead className="w-28 text-center font-bold text-foreground">الكمية بأمر الصرف</TableHead>
-                      <TableHead className="w-24 text-center font-bold text-foreground">المدخل سابقاً</TableHead>
-                      <TableHead className="w-28 text-center font-bold text-emerald-800 dark:text-emerald-300">الحد الأقصى المتاح الآن</TableHead>
-                      <TableHead className="w-36 text-center font-bold text-primary">الكمية المدخلة الآن *</TableHead>
-                      <TableHead className="w-28 text-center font-bold text-foreground">حالة التوريد</TableHead>
+                      <TableHead className="w-32 text-center font-bold text-foreground">الكمية بأمر الصرف</TableHead>
+                      <TableHead className="w-36 text-center font-bold text-primary">الكمية</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {displayItems.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="h-28 text-center text-muted-foreground text-xs">
+                        <TableCell colSpan={4} className="h-28 text-center text-muted-foreground text-xs">
                           لا توجد أصناف مسجلة في هذا الصرف
                         </TableCell>
                       </TableRow>
                     ) : (
                       displayItems.map((it: any, idx: number) => {
-                        const enteredQty = inwardItems[it.id] !== undefined ? inwardItems[it.id] : 0;
-                        const maxQty = it.remainingAllowedQty !== undefined ? it.remainingAllowedQty : 999999;
-                        const isExceeded = enteredQty > maxQty + 0.0001;
-                        const isCompleted = maxQty <= 0;
+                        const enteredQty = inwardItems[it.id] !== undefined ? inwardItems[it.id] : (it.remainingAllowedQty ?? it.maxDisbursedQty ?? 0);
 
                         return (
                           <TableRow
                             key={it.id || idx}
-                            className={`border-b border-border/40 transition-colors ${
-                              isExceeded
-                                ? "bg-rose-50/60 dark:bg-rose-950/30"
-                                : isCompleted
-                                ? "bg-muted/30 opacity-70"
-                                : "hover:bg-muted/20"
-                            }`}
+                            className="border-b border-border/40 transition-colors hover:bg-muted/20"
                           >
                             {/* رقم البند */}
                             <TableCell className="text-center font-mono text-muted-foreground font-bold">
@@ -581,100 +434,31 @@ export default function NewSedanaInwardOrderPage() {
                               </div>
                             </TableCell>
 
-                            {/* الكمية المصروفة المعتمدة */}
+                            {/* الكمية بأمر الصرف */}
                             <TableCell className="text-center font-mono text-xs font-semibold">
                               <span className="text-foreground">{it.maxDisbursedQty}</span>
                               <span className="text-muted-foreground mr-1 text-[11px]">{it.unit}</span>
                             </TableCell>
 
-                            {/* المدخل سابقاً */}
-                            <TableCell className="text-center font-mono text-xs text-muted-foreground">
-                              <span>{it.alreadyInwardQty}</span>
-                              <span className="mr-1 text-[11px]">{it.unit}</span>
-                            </TableCell>
-
-                            {/* الحد الأقصى المتاح الآن للتوريد */}
-                            <TableCell className="text-center font-mono text-xs">
-                              <span className={`font-bold px-2 py-0.5 rounded-md ${
-                                isCompleted
-                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                  : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
-                              }`}>
-                                {it.remainingAllowedQty} {it.unit}
-                              </span>
-                            </TableCell>
-
-                            {/* خانة إدخال الكمية */}
+                            {/* خانة الكمية (غير قابلة للتعديل) */}
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-1.5 max-w-[130px] mx-auto">
                                 <Input
                                   type="number"
-                                  min="0"
-                                  step="any"
-                                  max={maxQty}
-                                  disabled={isInwardBlocked || isCompleted}
-                                  value={enteredQty === 0 && !inwardItems[it.id] ? "0" : enteredQty}
-                                  onChange={(e) => {
-                                    const val = parseFloat(e.target.value) || 0;
-                                    setInwardItems((prev) => ({
-                                      ...prev,
-                                      [it.id]: Math.max(0, val),
-                                    }));
-                                  }}
-                                  className={`h-9 text-center font-mono font-bold text-xs rounded-lg ${
-                                    isExceeded
-                                      ? "border-rose-500 focus-visible:ring-rose-500 bg-rose-50/50 text-rose-900"
-                                      : enteredQty > 0
-                                      ? "border-emerald-500 focus-visible:ring-emerald-500 bg-emerald-50/30 text-emerald-900 dark:text-emerald-200"
-                                      : ""
-                                  }`}
+                                  readOnly
+                                  disabled
+                                  value={enteredQty}
+                                  className="h-9 text-center font-mono font-bold text-xs rounded-lg bg-muted/40 cursor-not-allowed text-foreground border-border"
                                 />
                                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                                   {it.unit}
                                 </span>
                               </div>
-
-                              {isExceeded && (
-                                <p className="text-[10px] text-rose-600 font-bold mt-1">
-                                  تجاوز الحد الأقصى ({maxQty})
-                                </p>
-                              )}
-
-                              {!isCompleted && enteredQty < maxQty && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleFillSingleRemaining(it.id, maxQty)}
-                                  disabled={isInwardBlocked}
-                                  className="text-[10px] text-primary hover:underline font-semibold mt-1 inline-block"
-                                >
-                                  المتبقي ({maxQty})
-                                </button>
-                              )}
-                          </TableCell>
-
-                          {/* حالة التوريد */}
-                          <TableCell className="text-center">
-                            {isCompleted ? (
-                              <Badge variant="outline" className="text-[10px] bg-slate-100 text-slate-600 border-slate-300">
-                                مكتمل التوريد
-                              </Badge>
-                            ) : enteredQty >= maxQty && maxQty > 0 ? (
-                              <Badge className="text-[10px] bg-emerald-600 text-white font-bold">
-                                استيفاء كامل
-                              </Badge>
-                            ) : enteredQty > 0 ? (
-                              <Badge variant="outline" className="text-[10px] text-primary border-primary/40 bg-primary/5 font-semibold">
-                                توريد جزئي
-                              </Badge>
-                            ) : (
-                              <span className="text-[11px] text-muted-foreground">
-                                مؤجل لدفعة قادمة
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    }))}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </div>
