@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/usePermission";
@@ -363,6 +363,127 @@ export default function ProjectDetailsPage() {
     p.phaseOrder === 4 && p.status === "completed"
   );
 
+  const [selectedPaymentForItemsModal, setSelectedPaymentForItemsModal] = useState<any | null>(null);
+
+  // التحقق الحصري من برنامج سدانة
+  const isSedanaProgram = project?.programType === "sedana" || project?.request?.programType === "sedana";
+
+  // هل يجب إظهار تبويبي العقود والدفعات؟
+  // في المشاريع العادية: تظهران دائماً
+  // في برامج سدانة: تختفيان إذا لم نقم بعمل عقد مع أي مورد (سواء مسجل كعقد فعلي أو محدد كمسار عقد في التأمين)
+  const showContractsAndPayments = useMemo(() => {
+    if (!isSedanaProgram) return true;
+
+    // 1. إذا كان هناك عقود مسجلة بالفعل للمشروع
+    if (project?.contracts && project.contracts.length > 0) {
+      return true;
+    }
+
+    // 2. إذا حدد السيرفر hasSedanaContract
+    if (project && typeof (project as any).hasSedanaContract === "boolean") {
+      return (project as any).hasSedanaContract;
+    }
+
+    // 3. فحص مخرجات مسارات التأمين لسدانة (programData.sedanaProcurement)
+    const pData: any = project?.request?.programData;
+    let sedanaProc = pData?.sedanaProcurement;
+    if (typeof sedanaProc === "string") {
+      try { sedanaProc = JSON.parse(sedanaProc); } catch {}
+    }
+
+    if (sedanaProc) {
+      const suppliersAlloc = sedanaProc.suppliersAllocation || {};
+      const itemsAlloc = sedanaProc.itemsAllocation || {};
+
+      const hasContractInSuppliers = Object.values(suppliersAlloc).some((m: any) => m === "contract");
+      const hasContractInItems = Object.values(itemsAlloc).some((m: any) => m === "contract");
+
+      const hasAnyAlloc = Object.keys(suppliersAlloc).length > 0 || Object.keys(itemsAlloc).length > 0;
+      const hasOtherProc = (sedanaProc.purchaseOrders?.length || 0) > 0 || (sedanaProc.csrLetters?.length || 0) > 0;
+
+      if (hasAnyAlloc || hasOtherProc) {
+        return Boolean(hasContractInSuppliers || hasContractInItems);
+      }
+    }
+
+    return false;
+  }, [isSedanaProgram, project]);
+
+  // إعادة التوجيه لتبويب نظرة عامة إذا كان التبويب الحالي هو العقود أو الدفعات وتم إخفاؤهما
+  useEffect(() => {
+    if (!showContractsAndPayments && (activeTab === "contracts" || activeTab === "payments")) {
+      setActiveTab("overview");
+    }
+  }, [showContractsAndPayments, activeTab]);
+
+  // حساب توزيع بنود سدانة عبر الدفعات
+  const sedanaItemsSummary = useMemo(() => {
+    if (!isSedanaProgram || !project) return [];
+    const itemsMap: Record<string, { itemName: string; unit: string; totalRequired: number; scheduledQty: number }> = {};
+
+    // 1. من جدول الكميات
+    (project.boq || []).forEach((b: any) => {
+      const key = (b.itemDescription || b.itemName || "").trim();
+      if (key) {
+        if (!itemsMap[key]) {
+          itemsMap[key] = {
+            itemName: key,
+            unit: b.unit || "وحدة",
+            totalRequired: 0,
+            scheduledQty: 0,
+          };
+        }
+        itemsMap[key].totalRequired += Number(b.quantity || 0);
+      }
+    });
+
+    // 2. إذا لم تكن في BOQ، نحاول من paymentScheduleJson في العقود
+    if (Object.keys(itemsMap).length === 0) {
+      (project.contracts || []).forEach((c: any) => {
+        if (c.paymentScheduleJson) {
+          try {
+            const sched = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+            if (Array.isArray(sched)) {
+              sched.forEach((s: any) => {
+                (s.items || []).forEach((it: any) => {
+                  const key = (it.itemName || "").trim();
+                  if (key && !itemsMap[key]) {
+                    itemsMap[key] = {
+                      itemName: key,
+                      unit: it.unit || "وحدة",
+                      totalRequired: 0,
+                      scheduledQty: 0,
+                    };
+                  }
+                });
+              });
+            }
+          } catch (e) {}
+        }
+      });
+    }
+
+    // 3. احتساب ما تمت جدولته في كافة دفعات المشروع
+    (project.payments || []).forEach((p: any) => {
+      (p.items || []).forEach((it: any) => {
+        const key = (it.itemName || "").trim();
+        if (key) {
+          if (!itemsMap[key]) {
+            itemsMap[key] = {
+              itemName: key,
+              unit: it.unit || "وحدة",
+              totalRequired: 0,
+              scheduledQty: 0,
+            };
+          }
+          itemsMap[key].scheduledQty += Number(it.quantity || 0);
+        }
+      });
+    });
+
+    return Object.values(itemsMap);
+  }, [isSedanaProgram, project]);
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -530,20 +651,22 @@ export default function ProjectDetailsPage() {
       icon: RiyalNavIcon, 
       isLocked: isFinancialsLocked 
     }] : []),
-    { 
-      id: "contracts", 
-      label: "العقود", 
-      icon: FileSignature, 
-      badge: contractsCount > 0 ? `${contractsCount}` : undefined,
-      isLocked: isContractsLocked 
-    },
-    { 
-      id: "payments", 
-      label: "الدفعات", 
-      icon: CreditCard, 
-      badge: paymentsCount > 0 ? `${paymentsCount}` : undefined,
-      isLocked: isPaymentsLocked 
-    },
+    ...(showContractsAndPayments ? [
+      { 
+        id: "contracts", 
+        label: "العقود", 
+        icon: FileSignature, 
+        badge: contractsCount > 0 ? `${contractsCount}` : undefined,
+        isLocked: isContractsLocked 
+      },
+      { 
+        id: "payments", 
+        label: "الدفعات", 
+        icon: CreditCard, 
+        badge: paymentsCount > 0 ? `${paymentsCount}` : undefined,
+        isLocked: isPaymentsLocked 
+      },
+    ] : []),
   ];
 
   return (
@@ -1415,8 +1538,11 @@ export default function ProjectDetailsPage() {
                 </TabsContent>
               )}
 
-              {/* العقود */}
-              <TabsContent value="contracts" className="space-y-6 mt-0">
+              {/* العقود والدفعات (تظهران فقط في حال وجود عقد لمورد) */}
+              {showContractsAndPayments && (
+                <>
+                  {/* العقود */}
+                  <TabsContent value="contracts" className="space-y-6 mt-0">
                 <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
                   <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
                     <div className="flex-1">
@@ -1617,6 +1743,52 @@ export default function ProjectDetailsPage() {
                             </AlertDescription>
                           </Alert>
                         )}
+                        {/* ملخص متابعة توريد أصناف سدانة عبر دفعات المشروع */}
+                        {isSedanaProgram && sedanaItemsSummary.length > 0 && (
+                          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 mb-5 text-right space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-emerald-900 dark:text-emerald-300 font-bold text-sm">
+                                <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>متابعة توريد أصناف سدانة عبر دفعات المشروع</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {sedanaItemsSummary.every(item => item.totalRequired > 0 && item.scheduledQty >= item.totalRequired) ? (
+                                  <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                    تمت جدولة وتوزيع كافة أصناف المشروع على الدفعات بنجاح
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    توجد أصناف متبقية بانتظار جدولتها وتوزيعها على الدفعات
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {sedanaItemsSummary.map((item, idx) => {
+                                const progress = item.totalRequired > 0 ? Math.min(100, Math.round((item.scheduledQty / item.totalRequired) * 100)) : 0;
+                                const isComplete = item.totalRequired > 0 && item.scheduledQty >= item.totalRequired;
+                                return (
+                                  <div key={idx} className="p-3 bg-card rounded-xl border border-border/50 text-right space-y-1.5 shadow-2xs">
+                                    <div className="flex items-center justify-between text-xs font-bold">
+                                      <span className="truncate ml-2 text-foreground">{item.itemName}</span>
+                                      <Badge variant={isComplete ? "default" : "outline"} className={`text-[10px] px-1.5 py-0 ${isComplete ? "bg-emerald-600 text-white" : "border-amber-400 text-amber-700 dark:text-amber-300"}`}>
+                                        {isComplete ? "مكتمل 100%" : `${progress}%`}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                      <span>المجدول: <strong className="text-foreground font-sans">{item.scheduledQty}</strong> {item.unit}</span>
+                                      <span>المطلوب: <strong className="text-foreground font-sans">{item.totalRequired || "-"}</strong> {item.unit}</span>
+                                    </div>
+                                    <Progress value={progress} className="h-1.5" />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         <div className="overflow-x-auto w-full scrollbar-hide rounded-xl border border-border/40">
                           <Table>
                             <TableHeader className="bg-muted/40">
@@ -1657,6 +1829,48 @@ export default function ProjectDetailsPage() {
                                           {(!payment.workDescription || payment.workDescription.trim() === "") && (
                                             <span className="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded text-[10px] font-semibold border border-amber-200/50">
                                               وصف الأعمال ناقص
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* إظهار الأصناف المرتبطة بالدفعة لمشاريع سدانة فقط */}
+                                      {isSedanaProgram && (
+                                        <div className="mt-2 text-right">
+                                          {payment.items && payment.items.length > 0 ? (
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                              {payment.items.map((it: any, iIdx: number) => (
+                                                <Badge
+                                                  key={iIdx}
+                                                  variant="secondary"
+                                                  className="text-[11px] font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-800/40 flex items-center gap-1 py-0.5 px-2"
+                                                >
+                                                  <Package className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                  <span>{it.itemName}</span>
+                                                  <span className="font-sans font-bold text-emerald-700 dark:text-emerald-200">
+                                                    ({Number(it.quantity).toLocaleString()} {it.unit || "بند"})
+                                                  </span>
+                                                  {it.totalPrice && Number(it.totalPrice) > 0 && (
+                                                    <span className="text-[10px] text-muted-foreground font-sans">
+                                                      [{Number(it.totalPrice).toLocaleString()} ر.س]
+                                                    </span>
+                                                  )}
+                                                </Badge>
+                                              ))}
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-1.5 text-[10px] text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/60 rounded-md"
+                                                onClick={() => setSelectedPaymentForItemsModal(payment)}
+                                              >
+                                                <Eye className="w-3 h-3 ml-1" />
+                                                معاينة البنود
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <span className="text-[11px] text-muted-foreground/80 italic flex items-center gap-1">
+                                              <Package className="w-3 h-3 text-muted-foreground/50" />
+                                              لا توجد أصناف مرتبطة بهذه الدفعة
                                             </span>
                                           )}
                                         </div>
@@ -1791,7 +2005,79 @@ export default function ProjectDetailsPage() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
+
+                {/* مودال معاينة تفاصيل أصناف الدفعة لبرامج سدانة */}
+                <Dialog open={!!selectedPaymentForItemsModal} onOpenChange={(open) => !open && setSelectedPaymentForItemsModal(null)}>
+                  <DialogContent className="max-w-2xl text-right font-sans" dir="rtl">
+                    <DialogHeader className="text-right">
+                      <DialogTitle className="text-base sm:text-lg font-bold flex items-center gap-2 text-foreground">
+                        <Package className="w-5 h-5 text-emerald-600" />
+                        <span>أصناف التوريد المرتبطة بالدفعة ({selectedPaymentForItemsModal?.paymentNumber || ""})</span>
+                      </DialogTitle>
+                      <DialogDescription className="text-xs text-muted-foreground">
+                        {selectedPaymentForItemsModal?.description || ""} - قيمة الدفعة: {formatCurrency(selectedPaymentForItemsModal?.amount || "0")}
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-3">
+                      {selectedPaymentForItemsModal?.items && selectedPaymentForItemsModal.items.length > 0 ? (
+                        <div className="rounded-xl border border-border/50 overflow-hidden">
+                          <Table>
+                            <TableHeader className="bg-muted/40">
+                              <TableRow>
+                                <TableHead className="text-right font-bold text-xs py-2.5">اسم الصنف</TableHead>
+                                <TableHead className="text-right font-bold text-xs py-2.5">الكمية</TableHead>
+                                <TableHead className="text-right font-bold text-xs py-2.5">الوحدة</TableHead>
+                                <TableHead className="text-right font-bold text-xs py-2.5">سعر الوحدة</TableHead>
+                                <TableHead className="text-right font-bold text-xs py-2.5">إجمالي الصنف</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {selectedPaymentForItemsModal.items.map((it: any, idx: number) => (
+                                <TableRow key={idx} className="hover:bg-muted/20">
+                                  <TableCell className="font-semibold text-xs py-2.5 px-3">{it.itemName}</TableCell>
+                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-sans text-emerald-700 dark:text-emerald-300">
+                                    {Number(it.quantity).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="text-xs py-2.5 px-3 text-muted-foreground">{it.unit || "وحدة"}</TableCell>
+                                  <TableCell className="text-xs py-2.5 px-3 font-sans">
+                                    {it.unitPrice ? `${Number(it.unitPrice).toLocaleString()} ر.س` : "-"}
+                                  </TableCell>
+                                  <TableCell className="font-bold text-xs py-2.5 px-3 font-sans text-foreground">
+                                    {it.totalPrice ? `${Number(it.totalPrice).toLocaleString()} ر.س` : "-"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          <Package className="w-10 h-10 mx-auto text-muted-foreground/40 mb-2" />
+                          لم يتم ربط أي أصناف توريد بهذه الدفعة
+                        </div>
+                      )}
+                    </div>
+
+                    <DialogFooter className="flex justify-between items-center sm:justify-between w-full border-t border-border/40 pt-3">
+                      <div className="text-xs text-muted-foreground">
+                        مجموع أصناف الدفعة:{" "}
+                        <strong className="text-foreground font-sans">
+                          {Number(
+                            (selectedPaymentForItemsModal?.items || []).reduce((sum: number, it: any) => sum + (Number(it.totalPrice) || 0), 0)
+                          ).toLocaleString()}{" "}
+                          ر.س
+                        </strong>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedPaymentForItemsModal(null)}>
+                        إغلاق
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                  </TabsContent>
+                </>
+              )}
             </Tabs>
           </main>
         </div>
