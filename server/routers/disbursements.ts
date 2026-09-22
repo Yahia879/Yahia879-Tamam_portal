@@ -2220,6 +2220,64 @@ export const disbursementsRouter = router({
 
       const orderNumber = await generateDisbursementOrderNumber(db);
 
+      // استخراج بنود الدفعة من العقد في حال كان طلب الصرف مرتبطاً بعقد
+      let contractPaymentItemsJson: string | null = null;
+      let linkedRequestId: number | null = null;
+
+      if (request.contractId) {
+        try {
+          const [c] = await db
+            .select({
+              id: contractsEnhanced.id,
+              requestId: contractsEnhanced.requestId,
+              contractNumber: contractsEnhanced.contractNumber,
+              paymentScheduleJson: contractsEnhanced.paymentScheduleJson,
+            })
+            .from(contractsEnhanced)
+            .where(eq(contractsEnhanced.id, request.contractId))
+            .limit(1);
+
+          if (c) {
+            if (c.requestId) linkedRequestId = c.requestId;
+            if (c.paymentScheduleJson) {
+              const schedule = typeof c.paymentScheduleJson === "string" ? JSON.parse(c.paymentScheduleJson) : c.paymentScheduleJson;
+              if (Array.isArray(schedule) && schedule.length > 0) {
+                let matchedPayment = schedule.find((sp: any) => String(sp.id) === String(request.contractPaymentId) || sp.name === request.title);
+                if (!matchedPayment && request.contractPaymentId) {
+                  const [cp] = await db
+                    .select()
+                    .from(contractPayments)
+                    .where(eq(contractPayments.id, request.contractPaymentId))
+                    .limit(1);
+                  if (cp) {
+                    matchedPayment = schedule[cp.phaseOrder] || schedule.find((sp: any) => sp.name === cp.phaseName);
+                  }
+                }
+                if (!matchedPayment && schedule.length === 1) {
+                  matchedPayment = schedule[0];
+                }
+                if (matchedPayment?.items && Array.isArray(matchedPayment.items) && matchedPayment.items.length > 0) {
+                  contractPaymentItemsJson = JSON.stringify(matchedPayment.items);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Error resolving contract payment items for disbursement order:", e);
+        }
+      }
+
+      if (!linkedRequestId && request.projectId) {
+        try {
+          const [p] = await db
+            .select({ requestId: projects.requestId })
+            .from(projects)
+            .where(eq(projects.id, request.projectId))
+            .limit(1);
+          if (p?.requestId) linkedRequestId = p.requestId;
+        } catch (e) {}
+      }
+
       const [result] = await db.insert(disbursementOrders).values({
         orderNumber,
         disbursementRequestId: input.disbursementRequestId,
@@ -2227,9 +2285,13 @@ export const disbursementsRouter = router({
         beneficiaryName: input.beneficiaryName,
         beneficiaryBank: input.beneficiaryBank,
         beneficiaryIban: input.beneficiaryIban,
+        beneficiaryAccountName: input.beneficiaryAccountName || null,
         paymentMethod: input.paymentMethod,
         sadadNumber: input.sadadNumber || null,
         billerCode: input.billerCode || null,
+        sourceType: request.contractId ? "contract" : undefined,
+        itemsJson: contractPaymentItemsJson,
+        requestId: linkedRequestId,
         status: "pending",
         createdBy: ctx.user.id,
       });
