@@ -400,6 +400,26 @@ export const contractsRouter = router({
         }
       }
 
+      // دمج أصناف الدفعات المحفوظة في paymentScheduleJson لبرامج سدانة
+      if (contract.paymentScheduleJson && paymentsList.length > 0) {
+        try {
+          const parsed = typeof contract.paymentScheduleJson === "string" 
+            ? JSON.parse(contract.paymentScheduleJson) 
+            : contract.paymentScheduleJson;
+          if (Array.isArray(parsed)) {
+            paymentsList = paymentsList.map((p, idx) => {
+              const matching = parsed[idx] || parsed.find((sp: any) => sp.name === p.phaseName || String(sp.id) === String(p.id));
+              return {
+                ...p,
+                items: Array.isArray(matching?.items) ? matching.items : [],
+              };
+            });
+          }
+        } catch (e) {
+          console.error("Error merging payment items in getById:", e);
+        }
+      }
+
       // 3. خيار احتياطي فقط في حال عدم وجود أي دفعات مسجلة نهائياً في الجداول
       if (paymentsList.length === 0 && !input.lightweight && contract.paymentScheduleJson) {
         try {
@@ -417,6 +437,7 @@ export const contractsRouter = router({
               status: p.status || "pending",
               notes: p.description || p.notes || null,
               completionPercentage: (p.completionPercentage !== undefined && p.completionPercentage !== null) ? Number(p.completionPercentage) : null,
+              items: Array.isArray(p.items) ? p.items : [],
             }));
           }
         } catch (e) {
