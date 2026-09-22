@@ -36,7 +36,18 @@ import {
   AlertTriangle,
   AlertCircle,
   Heart,
+  Package,
+  Sparkles,
+  Layers,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // وحدات المدة
 const DURATION_UNITS = [
@@ -193,6 +204,16 @@ const PAYMENT_TYPES = [
   { value: "final", label: "دفعة نهائية" },
 ];
 
+export interface PaymentScheduleContractItem {
+  id: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitPrice?: number;
+  totalPrice?: number;
+  notes?: string;
+}
+
 interface PaymentScheduleItem {
   id: string;
   name: string;
@@ -202,6 +223,7 @@ interface PaymentScheduleItem {
   dueDate: string;
   description: string;
   completionPercentage?: number;
+  items?: PaymentScheduleContractItem[];
 }
 
 interface ClauseValue {
@@ -488,6 +510,144 @@ export default function ContractForm() {
     { enabled: !!targetProjectId }
   );
 
+  // جلب تفاصيل جدول الكميات للطلب
+  const { data: boqResult } = trpc.projects.getBOQ.useQuery(
+    { requestId: effectiveRequestId! },
+    { enabled: !!effectiveRequestId && effectiveRequestId > 0 }
+  );
+
+  // تحديد ما إذا كان العقد يخص برنامج سدانة حصراً
+  const isSedanaProgram = useMemo(() => {
+    if (requestDetails?.programType === "sedana") return true;
+    if (projectDetails?.programType === "sedana") return true;
+    const pData = (requestDetails as any)?.programData;
+    if (pData) {
+      if (typeof pData === "string") {
+        return pData.includes("sedana") || pData.includes("sedanaProcurement") || pData.includes("basketItems");
+      }
+      if (typeof pData === "object") {
+        return Boolean(pData.isSedana || pData.sedanaProcurement || pData.basketItems);
+      }
+    }
+    return false;
+  }, [requestDetails, projectDetails]);
+
+  // استخراج البنود والأصناف المتاحة للتعاقد في برنامج سدانة
+  const availableContractItems = useMemo(() => {
+    if (!isSedanaProgram) return [];
+
+    const itemsMap = new Map<string, {
+      id: string;
+      itemName: string;
+      unit: string;
+      totalQuantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      description?: string;
+    }>();
+
+    // 1. من عرض السعر المعتمد للمورد المحدد
+    const currentQuotation = (allApprovedQuotations || []).find((q: any) => q.supplierId === contractData.supplierId)
+      || (rawApprovedQuotations || []).find((q: any) => q.supplierId === contractData.supplierId)
+      || (allApprovedQuotations || [])[0];
+
+    if (currentQuotation?.items) {
+      let qItems: any[] = [];
+      if (Array.isArray(currentQuotation.items)) qItems = currentQuotation.items;
+      else if (typeof currentQuotation.items === "string") {
+        try { qItems = JSON.parse(currentQuotation.items); } catch {}
+      }
+
+      qItems.forEach((it: any, idx: number) => {
+        const id = String(it.boqItemId || it.itemId || it.id || `q_${idx + 1}`);
+        const name = it.itemName || it.item_name || it.name || `بند ${idx + 1}`;
+        const qty = parseFloat(it.quantity || "1");
+        const price = parseFloat(it.unitPrice || it.unit_price || "0");
+        itemsMap.set(id, {
+          id,
+          itemName: name,
+          unit: it.unit || "وحدة",
+          totalQuantity: qty,
+          unitPrice: price,
+          totalPrice: it.totalPrice ? parseFloat(it.totalPrice) : qty * price,
+          description: it.description || "",
+        });
+      });
+    }
+
+    // 2. من جدول الكميات (BOQ) إذا لم تكن بنود عرض السعر كافية
+    if (itemsMap.size === 0 && boqResult?.items && boqResult.items.length > 0) {
+      const itemsAlloc = sedanaProcurementData?.itemsAllocation || {};
+      const itemSuppMap = sedanaProcurementData?.itemSupplierMap || {};
+
+      boqResult.items.forEach((b: any, idx: number) => {
+        const bId = String(b.id);
+        const isForContract = !itemsAlloc[bId] || itemsAlloc[bId] === "contract";
+        const isForThisSupplier = !contractData.supplierId || !itemSuppMap[bId]?.supplierId || itemSuppMap[bId].supplierId === contractData.supplierId;
+
+        if (isForContract && isForThisSupplier) {
+          const qty = parseFloat(b.quantity || "1");
+          const price = parseFloat(b.unitPrice || "0");
+          itemsMap.set(bId, {
+            id: bId,
+            itemName: b.itemName || `صنف ${idx + 1}`,
+            unit: b.unit || "وحدة",
+            totalQuantity: qty,
+            unitPrice: price,
+            totalPrice: b.totalPrice ? parseFloat(b.totalPrice) : qty * price,
+            description: b.itemDescription || "",
+          });
+        }
+      });
+    }
+
+    // 3. من سلة الاحتياج (basketItems)
+    if (itemsMap.size === 0) {
+      let pData = (requestDetails as any)?.programData;
+      if (typeof pData === "string") {
+        try { pData = JSON.parse(pData); } catch { pData = {}; }
+      }
+      const basket = pData?.basketItems || [];
+      if (Array.isArray(basket) && basket.length > 0) {
+        basket.forEach((b: any, idx: number) => {
+          const id = String(b.id || `b_${idx + 1}`);
+          const qty = parseFloat(b.quantity || "1");
+          const price = parseFloat(b.price || b.unitPrice || "0");
+          itemsMap.set(id, {
+            id,
+            itemName: b.name || b.itemName || `صنف ${idx + 1}`,
+            unit: b.unit || "وحدة",
+            totalQuantity: qty,
+            unitPrice: price,
+            totalPrice: qty * price,
+          });
+        });
+      }
+    }
+
+    // 4. من الدفعات المسجلة مسبقاً إذا وُجدت
+    if (paymentSchedule.length > 0) {
+      paymentSchedule.forEach((p) => {
+        if (Array.isArray(p.items)) {
+          p.items.forEach((it) => {
+            if (!itemsMap.has(String(it.id))) {
+              itemsMap.set(String(it.id), {
+                id: String(it.id),
+                itemName: it.itemName,
+                unit: it.unit || "وحدة",
+                totalQuantity: it.quantity,
+                unitPrice: it.unitPrice || 0,
+                totalPrice: it.totalPrice || 0,
+              });
+            }
+          });
+        }
+      });
+    }
+
+    return Array.from(itemsMap.values());
+  }, [isSedanaProgram, allApprovedQuotations, rawApprovedQuotations, contractData.supplierId, boqResult, sedanaProcurementData, requestDetails, paymentSchedule]);
+
   // عكس الأجور الإدارية ونسبة الجمعية المحددة في المشروع تلقائياً عند إنشاء العقد
   useEffect(() => {
     if (!isEditMode && !hasInitializedFinancialsRef.current && projectFinancials?.financialDetail) {
@@ -692,6 +852,7 @@ export default function ContractForm() {
               return {
                 ...p,
                 completionPercentage: comp,
+                items: Array.isArray(p.items) ? p.items : [],
               };
             });
           }
@@ -979,8 +1140,147 @@ export default function ContractForm() {
       dueDate: "",
       description: "",
       completionPercentage: suggestedCompletion,
+      items: [],
     };
     setPaymentSchedule([...paymentSchedule, newPayment]);
+  };
+
+  // إضافة صنف لدفعة محددة (خاص بسدانة)
+  const handleAddItemToPayment = (paymentId: string, itemId: string) => {
+    const targetItem = availableContractItems.find(i => String(i.id) === String(itemId));
+    if (!targetItem) return;
+
+    setPaymentSchedule(prev => prev.map(p => {
+      if (p.id !== paymentId) return p;
+      const currentItems = Array.isArray(p.items) ? p.items : [];
+      if (currentItems.some(i => String(i.id) === String(itemId))) {
+        toast.info("هذا الصنف مضاف بالفعل لهذه الدفعة");
+        return p;
+      }
+
+      // حساب المتبقي من هذا الصنف في الدفعات الأخرى
+      const allocatedInOtherPayments = prev
+        .filter(other => other.id !== paymentId)
+        .reduce((sum, other) => {
+          const found = (other.items || []).find(i => String(i.id) === String(itemId));
+          return sum + (found?.quantity || 0);
+        }, 0);
+
+      const remaining = Math.max(0, targetItem.totalQuantity - allocatedInOtherPayments);
+      const initialQty = remaining > 0 ? remaining : (targetItem.totalQuantity || 1);
+
+      const newItem: PaymentScheduleContractItem = {
+        id: String(targetItem.id),
+        itemName: targetItem.itemName,
+        quantity: initialQty,
+        unit: targetItem.unit,
+        unitPrice: targetItem.unitPrice || 0,
+        totalPrice: initialQty * (targetItem.unitPrice || 0),
+      };
+
+      return {
+        ...p,
+        items: [...currentItems, newItem],
+      };
+    }));
+    toast.success(`تمت إضافة البند (${targetItem.itemName}) للدفعة`);
+  };
+
+  // تحديث صنف داخل دفعة (خاص بسدانة)
+  const handleUpdatePaymentItem = (paymentId: string, itemId: string, updates: Partial<PaymentScheduleContractItem>) => {
+    setPaymentSchedule(prev => prev.map(p => {
+      if (p.id !== paymentId) return p;
+      const currentItems = Array.isArray(p.items) ? p.items : [];
+      return {
+        ...p,
+        items: currentItems.map(it => {
+          if (String(it.id) === String(itemId)) {
+            const updated = { ...it, ...updates };
+            if (updates.quantity !== undefined || updates.unitPrice !== undefined) {
+              const q = updates.quantity !== undefined ? updates.quantity : updated.quantity;
+              const pr = updates.unitPrice !== undefined ? updates.unitPrice : (updated.unitPrice || 0);
+              updated.totalPrice = q * pr;
+            }
+            return updated;
+          }
+          return it;
+        }),
+      };
+    }));
+  };
+
+  // حذف صنف من دفعة (خاص بسدانة)
+  const handleRemoveItemFromPayment = (paymentId: string, itemId: string) => {
+    setPaymentSchedule(prev => prev.map(p => {
+      if (p.id !== paymentId) return p;
+      const currentItems = Array.isArray(p.items) ? p.items : [];
+      return {
+        ...p,
+        items: currentItems.filter(it => String(it.id) !== String(itemId)),
+      };
+    }));
+  };
+
+  // إضافة جميع البنود المتبقية للدفعة دفعة واحدة (خاص بسدانة)
+  const handleAutoFillRemainingItems = (paymentId: string) => {
+    setPaymentSchedule(prev => {
+      const currentPayment = prev.find(p => p.id === paymentId);
+      if (!currentPayment) return prev;
+      const currentItems = Array.isArray(currentPayment.items) ? [...currentPayment.items] : [];
+
+      availableContractItems.forEach(avail => {
+        const allocatedInOtherPayments = prev
+          .filter(other => other.id !== paymentId)
+          .reduce((sum, other) => {
+            const found = (other.items || []).find(i => String(i.id) === String(avail.id));
+            return sum + (found?.quantity || 0);
+          }, 0);
+
+        const remaining = Math.max(0, avail.totalQuantity - allocatedInOtherPayments);
+        const existingIdx = currentItems.findIndex(i => String(i.id) === String(avail.id));
+
+        if (existingIdx >= 0) {
+          if (remaining > 0) {
+            currentItems[existingIdx] = {
+              ...currentItems[existingIdx],
+              quantity: remaining,
+              totalPrice: remaining * (currentItems[existingIdx].unitPrice || avail.unitPrice || 0),
+            };
+          }
+        } else if (remaining > 0) {
+          currentItems.push({
+            id: String(avail.id),
+            itemName: avail.itemName,
+            quantity: remaining,
+            unit: avail.unit,
+            unitPrice: avail.unitPrice || 0,
+            totalPrice: remaining * (avail.unitPrice || 0),
+          });
+        }
+      });
+
+      return prev.map(p => p.id === paymentId ? { ...p, items: currentItems } : p);
+    });
+    toast.success("تمت تعبئة كافة البنود المتبقية في هذه الدفعة بنجاح");
+  };
+
+  // مطابقة مبلغ الدفعة ونسبتها مع مجموع أسعار بنودها (خاص بسدانة)
+  const handleMatchPaymentWithItems = (paymentId: string, itemsSum: number) => {
+    if (itemsSum <= 0) return;
+    const roundedSum = Number(itemsSum.toFixed(2));
+    const pct = contractData.totalValue > 0 ? Number(((roundedSum / contractData.totalValue) * 100).toFixed(2)) : 0;
+
+    setPaymentSchedule(prev => prev.map(p => {
+      if (p.id === paymentId) {
+        return {
+          ...p,
+          amount: roundedSum,
+          percentage: pct,
+        };
+      }
+      return p;
+    }));
+    toast.success(`تم تعديل مبلغ الدفعة ليصبح ${roundedSum.toLocaleString("ar-SA")} ر.س (${pct}%)`);
   };
 
   // حذف دفعة
@@ -2091,9 +2391,18 @@ export default function ContractForm() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium">جدول الدفعات</h3>
+                    <h3 className="font-medium flex items-center gap-2">
+                      <span>جدول الدفعات</span>
+                      {isSedanaProgram && (
+                        <Badge variant="outline" className="bg-sky-50 text-sky-800 border-sky-300 font-bold text-xs">
+                          برنامج سدانة - ربط البنود التوريدية
+                        </Badge>
+                      )}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      حدد الدفعات ومواعيدها (اختياري)
+                      {isSedanaProgram
+                        ? "حدد الدفعات واربط كل دفعة بالأصناف أو البنود الموردة خلالها لتسهيل الربط بأمر الإدخال المستودعي لاحقاً"
+                        : "حدد الدفعات ومواعيدها (اختياري)"}
                     </p>
                   </div>
                   <Button onClick={addPayment} variant="outline" size="sm">
@@ -2101,6 +2410,73 @@ export default function ContractForm() {
                     إضافة دفعة
                   </Button>
                 </div>
+
+                {/* لوحة متابعة كميات بنود العقد على الدفعات - تظهر فقط وحصرياً لبرامج سدانة */}
+                {isSedanaProgram && availableContractItems.length > 0 && (
+                  <Card className="bg-sky-50/50 dark:bg-sky-950/20 border-sky-200 dark:border-sky-900/50 p-4 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-sky-600" />
+                        <h4 className="text-sm font-bold text-sky-950 dark:text-sky-200">
+                          متابعة توزيع كميات بنود العقد على الدفعات
+                        </h4>
+                      </div>
+                      <Badge variant="outline" className="bg-white dark:bg-slate-900 border-sky-300 text-sky-800 dark:text-sky-300 font-bold text-xs">
+                        {availableContractItems.length} بنود في العقد
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                      {availableContractItems.map((item) => {
+                        const totalAllocated = paymentSchedule.reduce((sum, p) => {
+                          const found = (p.items || []).find(i => String(i.id) === String(item.id));
+                          return sum + (found?.quantity || 0);
+                        }, 0);
+                        const remaining = Math.max(0, item.totalQuantity - totalAllocated);
+                        const isComplete = item.totalQuantity > 0 && totalAllocated === item.totalQuantity;
+                        const isOver = totalAllocated > item.totalQuantity;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={cn(
+                              "p-2.5 rounded-lg border bg-white dark:bg-slate-900/90 text-xs space-y-1.5",
+                              isComplete && "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/20",
+                              isOver && "border-destructive/40 bg-destructive/5",
+                              !isComplete && !isOver && "border-sky-200/80"
+                            )}
+                          >
+                            <div className="flex items-center justify-between font-medium">
+                              <span className="truncate max-w-[140px] font-semibold">{item.itemName}</span>
+                              {isComplete ? (
+                                <Badge className="bg-emerald-600 text-white text-[10px] py-0 px-1.5 h-4">مكتمل 100%</Badge>
+                              ) : isOver ? (
+                                <Badge variant="destructive" className="text-[10px] py-0 px-1.5 h-4">تجاوز ({totalAllocated - item.totalQuantity})</Badge>
+                              ) : (
+                                <span className="text-[10px] text-sky-700 dark:text-sky-300 font-bold">متبقي {remaining}</span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>إجمالي العقد: {item.totalQuantity} {item.unit}</span>
+                              <span>موزع: <strong className="text-foreground">{totalAllocated}</strong></span>
+                            </div>
+
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={cn(
+                                  "h-1.5 rounded-full transition-all",
+                                  isComplete ? "bg-emerald-500" : isOver ? "bg-destructive" : "bg-sky-500"
+                                )}
+                                style={{ width: `${Math.min(100, item.totalQuantity > 0 ? (totalAllocated / item.totalQuantity) * 100 : 0)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
 
                 {paymentSchedule.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
@@ -2351,6 +2727,232 @@ export default function ContractForm() {
                                 })()}
                               </div>
                             </div>
+
+                            {/* قسم ربط الأصناف والبنود الموردة في هذه الدفعة - خاص ببرنامج سدانة فقط */}
+                            {isSedanaProgram && (
+                              <div className="mt-4 pt-4 border-t border-sky-100 dark:border-sky-950/60 bg-sky-50/40 dark:bg-sky-950/20 p-4 rounded-xl space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                                      <Package className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-bold text-sky-950 dark:text-sky-200 flex items-center gap-2">
+                                        الأصناف والبنود الموردة في هذه الدفعة
+                                        <Badge variant="outline" className="bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-300 border-sky-300 text-[11px] font-bold">
+                                          {(payment.items || []).length} أصناف
+                                        </Badge>
+                                      </h4>
+                                      <p className="text-[11px] text-muted-foreground">
+                                        حدد الكميات التي سيلتزم المورد بتسليمها في هذه الدفعة لربطها التلقائي بأمر الإدخال المستودعي
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {availableContractItems.length > 0 && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleAutoFillRemainingItems(payment.id)}
+                                        className="text-xs h-8 border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/40 gap-1"
+                                      >
+                                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                                        إضافة كافة البنود المتبقية
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {(!payment.items || payment.items.length === 0) ? (
+                                  <div className="text-center py-6 px-4 bg-white/70 dark:bg-slate-900/60 rounded-lg border border-dashed border-sky-200 dark:border-sky-900/50 space-y-2">
+                                    <Package className="w-8 h-8 mx-auto text-sky-400 opacity-60" />
+                                    <p className="text-xs font-semibold text-sky-900 dark:text-sky-200">لم يتم ربط أي أصناف توريد بهذه الدفعة بعد</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                      اختر صنفاً من قائمة بنود العقد لإضافته إلى هذه الدفعة وتحديد كميته الموردة
+                                    </p>
+                                    <div className="pt-2 flex flex-wrap justify-center gap-2">
+                                      {availableContractItems.map((availIt) => {
+                                        const isAlreadyIn = (payment.items || []).some(i => String(i.id) === String(availIt.id));
+                                        if (isAlreadyIn) return null;
+                                        return (
+                                          <Button
+                                            key={availIt.id}
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => handleAddItemToPayment(payment.id, availIt.id)}
+                                            className="text-xs h-7 gap-1 bg-white hover:bg-sky-50 text-sky-900 border border-sky-200 shadow-2xs"
+                                          >
+                                            <Plus className="w-3 h-3 text-sky-600" />
+                                            {availIt.itemName} ({availIt.totalQuantity} {availIt.unit})
+                                          </Button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <div className="overflow-x-auto bg-white dark:bg-slate-900/80 rounded-lg border border-sky-200/80 dark:border-sky-900/50 shadow-2xs">
+                                      <Table className="text-right text-xs">
+                                        <TableHeader className="bg-sky-100/50 dark:bg-sky-950/40">
+                                          <TableRow>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-10">م</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 min-w-[180px]">اسم الصنف / البند</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-32">الكمية الموردة</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-24">الوحدة</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-28">سعر الوحدة</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-32">إجمالي البند</TableHead>
+                                            <TableHead className="w-12 text-center"></TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {payment.items.map((it, itIdx) => {
+                                            const avail = availableContractItems.find(a => String(a.id) === String(it.id));
+                                            const totalItemContractQty = avail?.totalQuantity || 0;
+                                            const inOtherPayments = paymentSchedule
+                                              .filter(p => p.id !== payment.id)
+                                              .reduce((sum, p) => {
+                                                const found = (p.items || []).find(pi => String(pi.id) === String(it.id));
+                                                return sum + (found?.quantity || 0);
+                                              }, 0);
+                                            const totalAllocatedAll = inOtherPayments + (it.quantity || 0);
+                                            const isExceeding = totalItemContractQty > 0 && totalAllocatedAll > totalItemContractQty;
+
+                                            return (
+                                              <TableRow key={it.id || itIdx} className="hover:bg-sky-50/40 dark:hover:bg-sky-950/30">
+                                                <TableCell className="font-mono text-muted-foreground">{itIdx + 1}</TableCell>
+                                                <TableCell>
+                                                  <div className="space-y-0.5">
+                                                    <span className="font-semibold text-foreground">{it.itemName}</span>
+                                                    {totalItemContractQty > 0 && (
+                                                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                                        <span>إجمالي العقد: {totalItemContractQty} {it.unit}</span>
+                                                        <span>•</span>
+                                                        <span className={isExceeding ? "text-destructive font-bold" : "text-emerald-700 dark:text-emerald-400 font-medium"}>
+                                                          مخصص عبر الدفعات: {totalAllocatedAll} {it.unit}
+                                                        </span>
+                                                      </div>
+                                                    )}
+                                                    {isExceeding && (
+                                                      <p className="text-[10px] text-destructive font-bold flex items-center gap-1">
+                                                        <AlertTriangle className="w-3 h-3" />
+                                                        تجاوزت كمية العقد بمقدار {totalAllocatedAll - totalItemContractQty} {it.unit}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Input
+                                                    type="number"
+                                                    min="0.01"
+                                                    step="any"
+                                                    value={it.quantity || ""}
+                                                    className={cn(
+                                                      "h-8 text-right font-bold w-full rounded-lg",
+                                                      isExceeding && "border-destructive text-destructive bg-destructive/5"
+                                                    )}
+                                                    onChange={(e) => {
+                                                      const val = parseFloat(e.target.value) || 0;
+                                                      handleUpdatePaymentItem(payment.id, it.id, {
+                                                        quantity: val,
+                                                        totalPrice: val * (it.unitPrice || 0),
+                                                      });
+                                                    }}
+                                                  />
+                                                </TableCell>
+                                                <TableCell>
+                                                  <Badge variant="secondary" className="font-normal text-[11px]">
+                                                    {it.unit || "وحدة"}
+                                                  </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <span className="font-mono text-xs">
+                                                    {(it.unitPrice || 0).toLocaleString("ar-SA")} ر.س
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                  <span className="font-bold text-sky-900 dark:text-sky-300 font-mono text-xs">
+                                                    {(it.totalPrice || (it.quantity * (it.unitPrice || 0))).toLocaleString("ar-SA")} ر.س
+                                                  </span>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                  <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleRemoveItemFromPayment(payment.id, it.id)}
+                                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </Button>
+                                                </TableCell>
+                                              </TableRow>
+                                            );
+                                          })}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                                      <div className="flex items-center gap-2">
+                                        <Select
+                                          onValueChange={(val) => {
+                                            if (val) handleAddItemToPayment(payment.id, val);
+                                          }}
+                                        >
+                                          <SelectTrigger className="h-8 text-xs w-[220px] bg-white dark:bg-slate-900 rounded-lg border-sky-200">
+                                            <SelectValue placeholder="+ إضافة بند آخر للدفعة..." />
+                                          </SelectTrigger>
+                                          <SelectContent dir="rtl">
+                                            {availableContractItems
+                                              .filter(avail => !(payment.items || []).some(i => String(i.id) === String(avail.id)))
+                                              .map(avail => (
+                                                <SelectItem key={avail.id} value={avail.id} className="text-xs">
+                                                  {avail.itemName} (المتاح: {avail.totalQuantity} {avail.unit})
+                                                </SelectItem>
+                                              ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      {(() => {
+                                        const itemsSum = (payment.items || []).reduce((s, i) => s + (i.totalPrice || (i.quantity * (i.unitPrice || 0))), 0);
+                                        const diff = Math.abs(itemsSum - (payment.amount || 0));
+                                        const isMatch = itemsSum > 0 && diff < 0.01;
+
+                                        return (
+                                          <div className="flex items-center gap-2 text-xs">
+                                            <span className="text-muted-foreground">
+                                              مجموع بنود الدفعة: <strong className="text-sky-900 dark:text-sky-200 font-mono">{itemsSum.toLocaleString("ar-SA")} ر.س</strong>
+                                            </span>
+                                            {itemsSum > 0 && !isMatch && (
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleMatchPaymentWithItems(payment.id, itemsSum)}
+                                                className="text-[11px] h-7 px-2 border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 gap-1"
+                                              >
+                                                <Check className="w-3 h-3 text-emerald-600" />
+                                                مطابقة مبلغ الدفعة مع قيمة البنود ({itemsSum.toLocaleString("ar-SA")} ر.س)
+                                              </Button>
+                                            )}
+                                            {isMatch && (
+                                              <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] gap-1">
+                                                <Check className="w-3 h-3 text-emerald-600" />
+                                                متطابق مع مبلغ الدفعة
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           
                           <Button
