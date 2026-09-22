@@ -30,11 +30,7 @@ import {
   CheckCircle2,
   Save,
   Building2,
-  Edit,
-  Plus,
   Loader2,
-  Eye,
-  AlertTriangle,
   AlertCircle,
   Check,
   ExternalLink,
@@ -44,8 +40,6 @@ import {
   Sparkles,
   UserCheck,
   ArrowRightLeft,
-  FileEdit,
-  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -95,11 +89,7 @@ export default function SedanaProcurementPage() {
     { enabled: !!requestId && requestId > 0 }
   );
 
-  // جلب العقود المسجلة للطلب
-  const { data: contractsList = [] } = trpc.contracts.getAllByRequestId.useQuery(
-    { requestId },
-    { enabled: !!requestId && requestId > 0 }
-  );
+
 
   // جلب عروض الأسعار للطلب
   const { data: quotationsResult, isLoading: isQuotationsLoading } = trpc.projects.getQuotationsByRequest.useQuery(
@@ -770,12 +760,7 @@ export default function SedanaProcurementPage() {
     });
   };
 
-  // الانتقال لإنشاء عقد مع حفظ التخصيص الحالي تلقائياً
-  const handleCreateContract = (supplierId?: number) => {
-    handleSaveProcurement(false);
-    const query = supplierId ? `requestId=${requestId}&supplierId=${supplierId}` : `requestId=${requestId}`;
-    setLocation(`/contracts/new?${query}`);
-  };
+
 
 
   // فتح تقرير خطاب المسؤولية المجتمعية في صفحة منفصلة
@@ -944,10 +929,6 @@ export default function SedanaProcurementPage() {
           {/* بطاقات الموردين مع بنود كل مورد */}
           {supplierGroups.map((grp) => {
             const currentMethod = suppliersAllocation[grp.key] || grp.method || "";
-            const supplierContract = (contractsList || []).find((c: any) =>
-              (grp.supplierId && c.supplierId === grp.supplierId) ||
-              (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === grp.supplierName.trim().toLowerCase())
-            );
 
             return (
               <Card
@@ -999,30 +980,6 @@ export default function SedanaProcurementPage() {
                           <Badge variant="outline" className="text-xs font-mono font-bold text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200">
                             {formatCurrency(grp.totalAmount)} ر.س
                           </Badge>
-                        )}
-                        {currentMethod === "contract" && (
-                          supplierContract ? (
-                            supplierContract.status === 'approved' || supplierContract.status === 'active' ? (
-                              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 text-xs font-bold gap-1">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                العقد معتمد ({supplierContract.contractNumber})
-                              </Badge>
-                            ) : supplierContract.status === 'draft' ? (
-                              <Badge variant="outline" className="bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 text-xs font-bold gap-1">
-                                <FileEdit className="w-3 h-3 text-amber-600" />
-                                مسودة عقد ({supplierContract.contractNumber})
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border-sky-300 text-xs font-bold gap-1">
-                                <Clock className="w-3 h-3 text-sky-600" />
-                                عقد قيد الاعتماد ({supplierContract.contractNumber})
-                              </Badge>
-                            )
-                          ) : (
-                            <Badge variant="outline" className="text-amber-700 bg-amber-50/70 border-amber-300 text-[11px] font-bold">
-                              بانتظار إنشاء العقد
-                            </Badge>
-                          )
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -1144,78 +1101,6 @@ export default function SedanaProcurementPage() {
                     </table>
                   </div>
                 </CardContent>
-
-                {currentMethod === "contract" && (
-                  <div className="p-3.5 bg-sky-50/70 dark:bg-sky-950/40 border-t border-sky-200/80 dark:border-sky-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-xs">
-                      <div className="flex items-center gap-1.5 text-sky-900 dark:text-sky-200 font-bold">
-                        <FileSignature className="w-4 h-4 text-sky-600 shrink-0" />
-                        <span>نوع التأمين المعتمد: عقد توريد وخدمات</span>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {supplierContract ? (
-                          supplierContract.status === 'approved' || supplierContract.status === 'active' ? (
-                            <Badge className="bg-emerald-600 text-white font-bold text-xs gap-1 py-0.5 px-2">
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              تم إنشاء العقد (معتمد) • {supplierContract.contractNumber}
-                            </Badge>
-                          ) : supplierContract.status === 'draft' ? (
-                            <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-300 font-bold text-xs gap-1 py-0.5 px-2">
-                              <FileEdit className="w-3.5 h-3.5 text-amber-600" />
-                              تم إنشاء العقد (مسودة) • {supplierContract.contractNumber}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-sky-100 text-sky-900 border-sky-300 font-bold text-xs gap-1 py-0.5 px-2">
-                              <Clock className="w-3.5 h-3.5 text-sky-600" />
-                              تم إنشاء العقد (قيد الاعتماد) • {supplierContract.contractNumber}
-                            </Badge>
-                          )
-                        ) : (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 text-xs font-semibold">
-                            لم يتم إنشاء العقد لهذا المورد بعد
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                      {supplierContract ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setLocation(`/contracts/${supplierContract.id}/preview`)}
-                            className="text-xs h-8 px-3 border-sky-300 text-sky-800 hover:bg-sky-100/60 dark:text-sky-200 dark:border-sky-700 gap-1.5 font-bold cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>عرض العقد</span>
-                          </Button>
-                          {(supplierContract.status === 'draft' || supplierContract.status === 'pending_approval') && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setLocation(`/contracts/${supplierContract.id}/edit`)}
-                              className="text-xs h-8 px-3 border-amber-500 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:border-amber-600 gap-1.5 font-bold cursor-pointer"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              <span>تعديل العقد</span>
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => handleCreateContract(grp.supplierId)}
-                          className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-8 shadow-xs cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>إنشاء العقد لهذا المورد</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
               </Card>
             );
           })}
@@ -1255,12 +1140,6 @@ export default function SedanaProcurementPage() {
               </div>
             </div>
 
-            {contractItems.length > 0 && contractsList.length === 0 && (
-              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-amber-800 dark:text-amber-300 text-[11px] flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>ملاحظة: قمت بتخصيص {contractItems.length} بنود للعقود ولكن لم تقم بإنشاء العقد بعد. يمكنك المتابعة الآن وتحرير العقد في مرحلة التنفيذ.</span>
-              </div>
-            )}
           </div>
 
           <DialogFooter className="flex flex-row items-center justify-end gap-2 pt-2 border-t">
