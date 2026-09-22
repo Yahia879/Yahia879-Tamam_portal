@@ -183,10 +183,13 @@ export default function CreateCsrLetterPage() {
 
   // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
   useEffect(() => {
-    if (!selectedRequestId && sedanaRequests.length > 0) {
+    if (sedanaRequests.length > 0) {
       if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
         handleSelectRequest(initialRequestId);
-      } else {
+      } else if (initialRequestId && !sedanaRequests.some((r: any) => r.id === initialRequestId)) {
+        toast.error("هذا الطلب لم ينتقل بعد لمرحلة التشغيل والتنفيذ أو لا يتضمن مسار مسؤولية مجتمعية");
+        handleSelectRequest(sedanaRequests[0].id);
+      } else if (!selectedRequestId) {
         handleSelectRequest(sedanaRequests[0].id);
       }
     }
@@ -388,7 +391,7 @@ export default function CreateCsrLetterPage() {
             <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
             <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة متاحة</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              تظهر هنا طلبات برنامج سدانة التي تشتمل على بنود وجداول كميات معتمدة.
+              تظهر هنا طلبات برنامج سدانة التي تم اعتماد موردين/شركاء لها على مسار "المسؤولية المجتمعية" وانتقلت لمرحلة "التشغيل والتنفيذ".
             </p>
             <Button
               size="sm"
@@ -411,7 +414,7 @@ export default function CreateCsrLetterPage() {
                       الخطوة 1: اختيار طلب سدانة
                     </CardTitle>
                     <CardDescription className="text-right text-xs text-muted-foreground">
-                      اختر طلب سدانة المعتمد لتوجيه خطاب مسؤولية مجتمعية للجهة المانحة
+                      يتم هنا استعراض طلبات سدانة المعتمدة للمسؤولية المجتمعية في مرحلة "التشغيل والتنفيذ"
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">

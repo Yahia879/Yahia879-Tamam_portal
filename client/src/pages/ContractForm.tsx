@@ -434,6 +434,13 @@ export default function ContractForm() {
     return pData?.sedanaProcurement || null;
   }, [requestDetails]);
 
+  // التحقق مما إذا كان طلب سدانة لم ينتقل بعد إلى مرحلة التشغيل والتنفيذ
+  const isSedanaNotReadyForContract = useMemo(() => {
+    if (!requestDetails || (requestDetails as any).programType !== 'sedana') return false;
+    const currentStage = (requestDetails as any).currentStage;
+    return !['execution', 'handover', 'closed'].includes(currentStage);
+  }, [requestDetails]);
+
   // فلترة عروض الأسعار المعتمدة بحيث تشمل فقط الموردين المحددين لمسار "العقد" في جدول التأمين
   const allApprovedQuotations = useMemo(() => {
     if (!sedanaProcurementData) {
@@ -1571,6 +1578,10 @@ export default function ContractForm() {
 
   // إرسال العقد
   const handleSubmit = async () => {
+    if (isSedanaNotReadyForContract) {
+      toast.error("لا يمكن إبرام العقد لطلب سدانة إلا بعد انتقال الطلب إلى مرحلة 'التشغيل والتنفيذ'");
+      return;
+    }
     if (!validateStep(currentStep)) return;
     if (paymentSchedule.length > 0 && !validateStep(4)) return;
     
@@ -1688,6 +1699,10 @@ export default function ContractForm() {
 
   // حفظ العقد كمسودة في أي مرحلة
   const handleSaveDraft = async () => {
+    if (isSedanaNotReadyForContract) {
+      toast.error("لا يمكن حفظ العقد لطلب سدانة إلا بعد انتقال الطلب إلى مرحلة 'التشغيل والتنفيذ'");
+      return;
+    }
     setIsSavingDraft(true);
     
     const selectedTemplate = templatesData?.find((t: any) => t.id === contractData.templateId);
@@ -1886,6 +1901,19 @@ export default function ContractForm() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* تنبيه إذا كان طلب سدانة لم ينتقل بعد لمرحلة التشغيل والتنفيذ */}
+        {isSedanaNotReadyForContract && (
+          <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs sm:text-sm flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold block">تنبيه: الطلب لم يصل بعد إلى مرحلة التشغيل والتنفيذ</span>
+              <span className="text-xs text-amber-700 dark:text-amber-300">
+                طلب سدانة حالياً في مرحلة "{(requestDetails as any).currentStage === 'contracting' ? 'اعتماد نوع التأمين' : (requestDetails as any).currentStage}". يرجى استكمال خطة التأمين والانتقال لمرحلة "التشغيل والتنفيذ" قبل إبرام العقود.
+              </span>
+            </div>
+          </div>
         )}
 
         {/* بطاقة اختيار المورد لعقود سدانة متعددة الموردين */}

@@ -647,6 +647,10 @@ export const procurementRouter = router({
         const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems || boqItems.length > 0;
         if (!isSedana) continue;
 
+        // لا تتاح طلبات سدانة لإنشاء أوامر الشراء إلا بعد الوصول لمرحلة "التشغيل والتنفيذ"
+        const allowedExecutionStages = ["execution", "handover", "closed"];
+        if (!allowedExecutionStages.includes(req.currentStage)) continue;
+
         const sedanaProc = pData.sedanaProcurement || {};
         const itemsAlloc = sedanaProc.itemsAllocation || {};
         const itemSuppMap = sedanaProc.itemSupplierMap || {};
@@ -886,6 +890,17 @@ export const procurementRouter = router({
 
       if (!req) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من أن طلب سدانة في مرحلة "التشغيل والتنفيذ"
+      if (req.programType === "sedana") {
+        const allowedExecutionStages = ["execution", "handover", "closed"];
+        if (!allowedExecutionStages.includes(req.currentStage)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن إنشاء أو تعديل أمر شراء لطلب سدانة إلا بعد الانتقال لمرحلة 'التشغيل والتنفيذ'",
+          });
+        }
       }
 
       let pData: any = req.programData;
@@ -1142,6 +1157,10 @@ export const procurementRouter = router({
         const isSedana = req.programType === "sedana" || pData.isSedana || pData.sedanaProcurement || pData.basketItems || boqItems.length > 0;
         if (!isSedana) continue;
 
+        // لا تتاح طلبات سدانة لإنشاء خطابات المسؤولية المجتمعية إلا بعد الوصول لمرحلة "التشغيل والتنفيذ"
+        const allowedExecutionStages = ["execution", "handover", "closed"];
+        if (!allowedExecutionStages.includes(req.currentStage)) continue;
+
         const sedanaProc = pData.sedanaProcurement || {};
         const itemsAlloc = sedanaProc.itemsAllocation || {};
         const itemSuppMap = sedanaProc.itemSupplierMap || {};
@@ -1392,6 +1411,17 @@ export const procurementRouter = router({
 
       if (!req) {
         throw new TRPCError({ code: "NOT_FOUND", message: "الطلب غير موجود" });
+      }
+
+      // التحقق من أن طلب سدانة في مرحلة "التشغيل والتنفيذ"
+      if (req.programType === "sedana") {
+        const allowedExecutionStages = ["execution", "handover", "closed"];
+        if (!allowedExecutionStages.includes(req.currentStage)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لا يمكن إنشاء أو تعديل خطاب مسؤولية مجتمعية لطلب سدانة إلا بعد الانتقال لمرحلة 'التشغيل والتنفيذ'",
+          });
+        }
       }
 
       let pData: any = req.programData;

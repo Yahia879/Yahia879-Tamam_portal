@@ -99,10 +99,13 @@ export default function CreatePurchaseOrderPage() {
 
   // عند تحميل الطلبات لأول مرة أو تغيير initialRequestId
   useEffect(() => {
-    if (!selectedRequestId && sedanaRequests.length > 0) {
+    if (sedanaRequests.length > 0) {
       if (initialRequestId && sedanaRequests.some((r: any) => r.id === initialRequestId)) {
         handleSelectRequest(initialRequestId);
-      } else {
+      } else if (initialRequestId && !sedanaRequests.some((r: any) => r.id === initialRequestId)) {
+        toast.error("هذا الطلب لم ينتقل بعد لمرحلة التشغيل والتنفيذ أو لا يشتمل على موردين لمسار أمر الشراء");
+        handleSelectRequest(sedanaRequests[0].id);
+      } else if (!selectedRequestId) {
         handleSelectRequest(sedanaRequests[0].id);
       }
     }
@@ -360,8 +363,8 @@ export default function CreatePurchaseOrderPage() {
             <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
             <h3 className="text-base font-bold text-foreground">لا توجد طلبات سدانة بانتظار أوامر شراء</h3>
             <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-              تظهر هنا فقط طلبات برنامج سدانة التي تم اعتماد موردين لها على مسار "أمر شراء داخلي".
-              يمكنك اعتماد الموردين وتوزيع البنود من صفحة تأمين الطلب والتعاقد.
+              تظهر هنا فقط طلبات برنامج سدانة التي تم اعتماد موردين لها على مسار "أمر شراء داخلي" وانتقلت لمرحلة "التشغيل والتنفيذ".
+              يمكنك اعتماد الموردين وتوزيع البنود من صفحة تأمين الطلب ثم تأكيد الانتقال للتنفيذ.
             </p>
             <Button
               size="sm"
@@ -384,7 +387,7 @@ export default function CreatePurchaseOrderPage() {
                       الخطوة 1: اختيار طلب سدانة المعتمد
                     </CardTitle>
                     <CardDescription className="text-right text-xs text-muted-foreground">
-                      يتم هنا استعراض طلبات سدانة التي تشتمل على موردين معتمدين لأمر الشراء فقط
+                      يتم هنا استعراض طلبات سدانة التي تشتمل على موردين معتمدين لأمر الشراء وتكون في مرحلة "التشغيل والتنفيذ"
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6 pt-6 px-6 text-right">

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../_core/trpc";
 import { permissionProcedure, checkPermission } from "../permissions";
 import { getDb } from "../db";
@@ -597,6 +598,37 @@ export const contractsRouter = router({
       if (input.projectId && !input.requestId) {
         console.warn('[Contract Create] ⚠️ Project provided without requestId - stage update will not work automatically');
         console.warn('[Contract Create] projectId:', input.projectId, 'requestId:', input.requestId);
+      }
+
+      // التحقق من أن طلب سدانة في مرحلة "التشغيل والتنفيذ" قبل إبرام العقد
+      let effectiveReqId = input.requestId;
+      if (!effectiveReqId && input.projectId) {
+        const [proj] = await db
+          .select({ requestId: projects.requestId })
+          .from(projects)
+          .where(eq(projects.id, input.projectId))
+          .limit(1);
+        if (proj?.requestId) {
+          effectiveReqId = proj.requestId;
+        }
+      }
+
+      if (effectiveReqId) {
+        const [req] = await db
+          .select()
+          .from(mosqueRequests)
+          .where(eq(mosqueRequests.id, effectiveReqId))
+          .limit(1);
+
+        if (req && req.programType === "sedana") {
+          const allowedExecutionStages = ["execution", "handover", "closed"];
+          if (!allowedExecutionStages.includes(req.currentStage)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "لا يمكن إنشاء عقد لطلب سدانة إلا بعد انتقال الطلب إلى مرحلة 'التشغيل والتنفيذ'",
+            });
+          }
+        }
       }
       
       const contractData: any = {

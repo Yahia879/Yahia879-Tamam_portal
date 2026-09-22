@@ -453,9 +453,11 @@ export default function ContractsList() {
     (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
   );
 
-  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين
+  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين (لا تظهر إلا بعد الوصول لمرحلة "التشغيل والتنفيذ")
   const eligibleSedanaRequests = useMemo(() => {
-    const list = (sedanaRequestsData?.requests || []).filter((req: any) => req.currentStage === 'contracting');
+    const list = (sedanaRequestsData?.requests || []).filter((req: any) =>
+      ['execution', 'handover', 'closed'].includes(req.currentStage)
+    );
     const allContracts = allContractsData?.contracts || [];
 
     return list.map((req: any) => {
