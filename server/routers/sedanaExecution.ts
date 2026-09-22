@@ -203,7 +203,10 @@ export const sedanaExecutionRouter = router({
           status: disbursementOrders.status,
           amount: disbursementOrders.amount,
           adminFees: disbursementOrders.adminFees,
+          itemsJson: disbursementOrders.itemsJson,
+          beneficiaryName: disbursementOrders.beneficiaryName,
           executedAt: disbursementOrders.executedAt,
+          createdAt: disbursementOrders.createdAt,
         })
         .from(disbursementOrders)
         .where(
@@ -214,11 +217,118 @@ export const sedanaExecutionRouter = router({
           )
         );
 
+      // تجهيز قائمة أوامر الصرف المعتمدة مع تفاصيل الكميات المحسوبة (المعتمدة بأمر الصرف، والمدخلة سابقاً، والحد الأقصى المتبقي)
+      const enrichedDisbOrders = linkedDisbursementOrders.map((d) => {
+        const isExecuted = d.status === "executed";
+        const refType = d.sourceType || (d.purchaseOrderNumber ? "purchase_order" : (d.csrLetterNumber ? "csr_letter" : "direct"));
+        const refNumber = d.purchaseOrderNumber || d.csrLetterNumber || d.orderNumber;
+
+        // حساب ما تم إدخاله مسبقاً لأمر الصرف هذا
+        const alreadyInwardByDisb: Record<string, number> = {};
+        (executionData.inwardOrders || []).forEach((inOrder: any) => {
+          const matches = (inOrder.disbursementOrderId && Number(inOrder.disbursementOrderId) === Number(d.id)) ||
+                          (inOrder.disbursementOrderNumber && inOrder.disbursementOrderNumber === d.orderNumber);
+          if (matches) {
+            (inOrder.items || []).forEach((it: any) => {
+              const k = String(it.id);
+              alreadyInwardByDisb[k] = (alreadyInwardByDisb[k] || 0) + Number(it.quantity || 0);
+              if (it.itemName) {
+                alreadyInwardByDisb[`name:${it.itemName.trim().toLowerCase()}`] = 
+                  (alreadyInwardByDisb[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+              }
+            });
+          }
+        });
+
+        // استخراج أصناف أمر الصرف
+        let dItems: any[] = [];
+        if (d.itemsJson) {
+          try {
+            const parsed = JSON.parse(d.itemsJson);
+            if (Array.isArray(parsed) && parsed.length > 0) dItems = parsed;
+          } catch (e) {}
+        }
+        if (dItems.length === 0) {
+          if (d.purchaseOrderNumber) {
+            const po = (sedanaProc.purchaseOrders || []).find((p: any) => p.orderNumber === d.purchaseOrderNumber) || activePO;
+            if (po?.items) dItems = po.items;
+          } else if (d.csrLetterNumber) {
+            const csr = (sedanaProc.csrLetters || []).find((c: any) => c.letterNumber === d.csrLetterNumber) || activeCSR;
+            if (csr?.items) dItems = csr.items;
+          }
+        }
+        if (dItems.length === 0) {
+          dItems = baseItems;
+        }
+
+        const resolvedItems = dItems.map((it: any, idx: number) => {
+          const id = String(it.id || idx + 1);
+          const itemName = it.itemName || it.name || `بند ${id}`;
+          const unit = it.unit || "وحدة";
+          const maxDisbursedQty = Number(it.quantity || it.approvedQty || 0);
+          const alreadyInwardQty = alreadyInwardByDisb[id] || 
+                                   alreadyInwardByDisb[`name:${itemName.trim().toLowerCase()}`] || 0;
+          const remainingAllowedQty = Math.max(0, maxDisbursedQty - alreadyInwardQty);
+          return {
+            id,
+            itemName,
+            unit,
+            maxDisbursedQty,
+            alreadyInwardQty,
+            remainingAllowedQty,
+            unitPrice: Number(it.unitPrice || 0),
+            isCompleted: remainingAllowedQty <= 0,
+          };
+        });
+
+        const totalDisbursedUnits = resolvedItems.reduce((s, i) => s + i.maxDisbursedQty, 0);
+        const totalInwardUnits = resolvedItems.reduce((s, i) => s + i.alreadyInwardQty, 0);
+        const totalRemainingUnits = resolvedItems.reduce((s, i) => s + i.remainingAllowedQty, 0);
+        const isFullyInwarded = resolvedItems.length > 0 && resolvedItems.every(i => i.remainingAllowedQty <= 0);
+
+        const statusMap: Record<string, string> = {
+          draft: "مسودة",
+          pending: "قيد المراجعة المالية",
+          pending_executive: "بانتظار اعتماد المدير التنفيذي",
+          approved: "معتمد بانتظار التحويل البنكي",
+          executed: "منفّذ بالتحويل البنكي",
+          rejected: "مرفوض",
+          edited: "تم التعديل",
+        };
+
+        let blockedReason: string | null = null;
+        if (!isExecuted) {
+          blockedReason = `لا يمكن عمل أمر إدخال إلا بعد تنفيذ أمر الصرف (${d.orderNumber}) وتحول حالته إلى 'منفّذ'. الحالة الحالية: (${statusMap[d.status || ""] || d.status}).`;
+        } else if (isFullyInwarded) {
+          blockedReason = `تم استيفاء كامل كميات أمر الصرف هذا في المستودع بنسبة 100% (الرصيد المتبقي المسموح: 0).`;
+        }
+
+        return {
+          id: d.id,
+          orderNumber: d.orderNumber,
+          referenceType: refType,
+          referenceNumber: refNumber,
+          beneficiaryName: d.beneficiaryName || "المورد / المستفيد",
+          status: d.status,
+          statusLabel: statusMap[d.status || ""] || d.status,
+          isExecuted,
+          executedAt: d.executedAt,
+          amount: Number(d.amount || 0),
+          items: resolvedItems,
+          totalDisbursedUnits,
+          totalInwardUnits,
+          totalRemainingUnits,
+          isFullyInwarded,
+          canCreateInward: isExecuted && !isFullyInwarded,
+          blockedReason,
+        };
+      });
+
       const disbByPo = new Map<string, any>();
       const disbByCsr = new Map<string, any>();
-      linkedDisbursementOrders.forEach((d) => {
-        if (d.purchaseOrderNumber) disbByPo.set(d.purchaseOrderNumber.trim(), d);
-        if (d.csrLetterNumber) disbByCsr.set(d.csrLetterNumber.trim(), d);
+      enrichedDisbOrders.forEach((d) => {
+        if (d.referenceType === "purchase_order" && d.referenceNumber) disbByPo.set(d.referenceNumber.trim(), d);
+        if (d.referenceType === "csr_letter" && d.referenceNumber) disbByCsr.set(d.referenceNumber.trim(), d);
       });
 
       // المستندات المرجعية المتاحة للربط مع أمر الإدخال
@@ -235,42 +345,39 @@ export const sedanaExecutionRouter = router({
         isExecuted: boolean;
         canCreateInward: boolean;
         blockedReason?: string | null;
+        items?: any[];
       }[] = [];
 
       // 1. أمر شراء داخلي
       const hasPO = Object.values(allocations).includes("purchase_order") || !!activePO;
       if (hasPO) {
         const poNum = activePO?.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
-        const disb = disbByPo.get(poNum) || linkedDisbursementOrders.find(d => d.sourceType === "purchase_order");
-        const isExecuted = disb?.status === "executed";
+        const disb = disbByPo.get(poNum) || enrichedDisbOrders.find(d => d.referenceType === "purchase_order");
+        const isExecuted = disb?.isExecuted || false;
 
         let blockedReason: string | null = null;
         if (!disb) {
           blockedReason = "لا يمكن عمل أمر إدخال؛ لم يتم إنشاء أمر صرف لأمر الشراء المعتمد بعد. يجب إنشاء أمر الصرف أولاً واعتماده وتنفيذه بالتحويل البنكي.";
         } else if (!isExecuted) {
-          const statusText = disb.status === "pending"
-            ? "قيد المراجعة المالية"
-            : disb.status === "pending_executive"
-            ? "بانتظار اعتماد المدير التنفيذي"
-            : disb.status === "approved"
-            ? "معتمد بانتظار التحويل البنكي"
-            : disb.status;
-          blockedReason = `لا يمكن عمل أمر إدخال إلا بعد تنفيذ أمر الصرف (${disb.orderNumber}) وتحول حالته إلى "منفّذ". الحالة الحالية: (${statusText}).`;
+          blockedReason = disb.blockedReason;
+        } else if (disb.isFullyInwarded) {
+          blockedReason = disb.blockedReason;
         }
 
         availableReferences.push({
           type: "purchase_order",
           label: "أمر شراء داخلي معتمد",
           documentNumber: poNum,
-          partnerOrSupplier: activePO?.directedTo || "إدارة المشتريات",
+          partnerOrSupplier: activePO?.directedTo || disb?.beneficiaryName || "إدارة المشتريات",
           hasDisbursementOrder: !!disb,
           disbursementOrderNumber: disb?.orderNumber || null,
           disbursementOrderId: disb?.id || null,
           disbursementStatus: disb?.status || null,
           disbursementExecutedAt: disb?.executedAt || null,
           isExecuted,
-          canCreateInward: isExecuted,
+          canCreateInward: disb ? disb.canCreateInward : false,
           blockedReason,
+          items: disb?.items || [],
         });
       }
 
@@ -278,36 +385,32 @@ export const sedanaExecutionRouter = router({
       const hasCSR = Object.values(allocations).includes("csr_letter") || !!activeCSR;
       if (hasCSR) {
         const csrNum = activeCSR?.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
-        const disb = disbByCsr.get(csrNum) || linkedDisbursementOrders.find(d => d.sourceType === "csr_letter");
-        const isExecuted = disb?.status === "executed";
+        const disb = disbByCsr.get(csrNum) || enrichedDisbOrders.find(d => d.referenceType === "csr_letter");
+        const isExecuted = disb?.isExecuted || false;
 
         let blockedReason: string | null = null;
         if (!disb) {
           blockedReason = "لا يمكن عمل أمر إدخال؛ لم يتم إنشاء أمر صرف لخطاب المسؤولية المجتمعية بعد. يجب إنشاء أمر الصرف أولاً واعتماده وتنفيذه بالتحويل البنكي.";
         } else if (!isExecuted) {
-          const statusText = disb.status === "pending"
-            ? "قيد المراجعة المالية"
-            : disb.status === "pending_executive"
-            ? "بانتظار اعتماد المدير التنفيذي"
-            : disb.status === "approved"
-            ? "معتمد بانتظار التحويل البنكي"
-            : disb.status;
-          blockedReason = `لا يمكن عمل أمر إدخال إلا بعد تنفيذ أمر الصرف (${disb.orderNumber}) وتحول حالته إلى "منفّذ". الحالة الحالية: (${statusText}).`;
+          blockedReason = disb.blockedReason;
+        } else if (disb.isFullyInwarded) {
+          blockedReason = disb.blockedReason;
         }
 
         availableReferences.push({
           type: "csr_letter",
           label: "خطاب مسؤولية مجتمعية (CSR)",
           documentNumber: csrNum,
-          partnerOrSupplier: activeCSR?.recipientName || "الجهة المانحة / الشريك المجتمعي",
+          partnerOrSupplier: activeCSR?.recipientName || disb?.beneficiaryName || "الجهة المانحة / الشريك المجتمعي",
           hasDisbursementOrder: !!disb,
           disbursementOrderNumber: disb?.orderNumber || null,
           disbursementOrderId: disb?.id || null,
           disbursementStatus: disb?.status || null,
           disbursementExecutedAt: disb?.executedAt || null,
           isExecuted,
-          canCreateInward: isExecuted,
+          canCreateInward: disb ? disb.canCreateInward : false,
           blockedReason,
+          items: disb?.items || [],
         });
       }
 
@@ -326,7 +429,7 @@ export const sedanaExecutionRouter = router({
         });
       }
 
-      // 4. خيارات إضافية دائماً متاحة للتوريد المباشر أو التبرع العيني
+      // 4. خيارات إضافية للتوريد المباشر أو التبرع العيني
       availableReferences.push(
         {
           type: "direct_purchase",
@@ -362,6 +465,7 @@ export const sedanaExecutionRouter = router({
         mosque,
         inventoryItems,
         availableReferences,
+        disbursementOrders: enrichedDisbOrders,
         inwardOrders: executionData.inwardOrders || [],
         outboundOrders: executionData.outboundOrders || [],
         deliveryOrders: executionData.deliveryOrders || [],
@@ -377,6 +481,8 @@ export const sedanaExecutionRouter = router({
       orderNumber: z.string().optional(),
       orderDate: z.string().optional(),
       receivedBy: z.string().optional(),
+      disbursementOrderId: z.number().optional().nullable(),
+      disbursementOrderNumber: z.string().optional().nullable(),
       referenceType: z.string().optional(),
       referenceNumber: z.string().optional(),
       supplierInvoiceNumber: z.string().optional(),
@@ -413,10 +519,29 @@ export const sedanaExecutionRouter = router({
       pData.sedanaExecution = pData.sedanaExecution || {};
       pData.sedanaExecution.inwardOrders = pData.sedanaExecution.inwardOrders || [];
 
-      // التحقق النظامي: إذا كان التوريد ناتجاً عن أمر شراء أو خطاب مسؤولية مجتمعية، لا يُسمح بعمل أمر إدخال إلا بعد تنفيذ أمر الصرف
+      // =========================================================================
+      // التحقق النظامي والمطابقة مع أمر الصرف المالي
+      // =========================================================================
       let matchedDisbursementOrder: any = null;
-      if (input.referenceType === "purchase_order" || input.referenceType === "csr_letter") {
-        const [disbOrder] = await db
+
+      if (input.disbursementOrderId) {
+        const [d] = await db
+          .select()
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.id, input.disbursementOrderId))
+          .limit(1);
+        matchedDisbursementOrder = d;
+      } else if (input.disbursementOrderNumber) {
+        const [d] = await db
+          .select()
+          .from(disbursementOrders)
+          .where(eq(disbursementOrders.orderNumber, input.disbursementOrderNumber))
+          .limit(1);
+        matchedDisbursementOrder = d;
+      }
+
+      if (!matchedDisbursementOrder && (input.referenceType === "purchase_order" || input.referenceType === "csr_letter")) {
+        const [d] = await db
           .select()
           .from(disbursementOrders)
           .where(
@@ -435,15 +560,18 @@ export const sedanaExecutionRouter = router({
           )
           .orderBy(desc(disbursementOrders.id))
           .limit(1);
+        matchedDisbursementOrder = d;
+      }
 
-        if (!disbOrder) {
+      if (input.referenceType === "purchase_order" || input.referenceType === "csr_letter") {
+        if (!matchedDisbursementOrder) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "لا يمكن إصدار أمر إدخال؛ لم يتم إنشاء أمر صرف لهذا التوريد بعد. يجب أولاً إنشاء أمر الصرف واعتماده وتنفيذه بالتحويل البنكي.",
+            message: "لا يمكن إصدار أمر إدخال؛ لم يتم العثور على أمر صرف منفّذ لهذا التوريد. يجب أولاً اعتماد وتنفيذ أمر الصرف بالتحويل البنكي.",
           });
         }
 
-        if (disbOrder.status !== "executed") {
+        if (matchedDisbursementOrder.status !== "executed") {
           const statusMap: Record<string, string> = {
             draft: "مسودة",
             pending: "قيد المراجعة المالية",
@@ -452,14 +580,78 @@ export const sedanaExecutionRouter = router({
             rejected: "مرفوض",
             edited: "تم التعديل",
           };
-          const readableStatus = disbOrder.status ? (statusMap[disbOrder.status] || disbOrder.status) : "غير محدد";
+          const readableStatus = matchedDisbursementOrder.status ? (statusMap[matchedDisbursementOrder.status] || matchedDisbursementOrder.status) : "غير محدد";
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: `لا يمكن إصدار أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'. أمر الصرف المرتبط (${disbOrder.orderNumber}) حالته الحالية: (${readableStatus}).`,
+            message: `لا يمكن إصدار أمر إدخال إلا بعد تنفيذ أمر الصرف وتحول حالته إلى 'منفّذ'. أمر الصرف المرتبط (${matchedDisbursementOrder.orderNumber}) حالته الحالية: (${readableStatus}).`,
           });
         }
+      }
 
-        matchedDisbursementOrder = disbOrder;
+      // =========================================================================
+      // التحقق الصارم من الحد الأقصى للكميات المعتمدة في أمر الصرف (The user's rule)
+      // =========================================================================
+      if (matchedDisbursementOrder) {
+        // حساب ما تم إدخاله مسبقاً لأمر الصرف هذا تحديداً
+        const alreadyInwardForThisDisb: Record<string, number> = {};
+        (pData.sedanaExecution.inwardOrders || []).forEach((inOrder: any) => {
+          const isSameDisb = (inOrder.disbursementOrderId && Number(inOrder.disbursementOrderId) === Number(matchedDisbursementOrder.id)) ||
+                             (inOrder.disbursementOrderNumber && inOrder.disbursementOrderNumber === matchedDisbursementOrder.orderNumber);
+          if (isSameDisb) {
+            (inOrder.items || []).forEach((it: any) => {
+              const k = String(it.id);
+              alreadyInwardForThisDisb[k] = (alreadyInwardForThisDisb[k] || 0) + Number(it.quantity || 0);
+              if (it.itemName) {
+                alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] = 
+                  (alreadyInwardForThisDisb[`name:${it.itemName.trim().toLowerCase()}`] || 0) + Number(it.quantity || 0);
+              }
+            });
+          }
+        });
+
+        // استخراج بنود أمر الصرف
+        let disbItems: any[] = [];
+        if (matchedDisbursementOrder.itemsJson) {
+          try {
+            const parsed = JSON.parse(matchedDisbursementOrder.itemsJson);
+            if (Array.isArray(parsed) && parsed.length > 0) disbItems = parsed;
+          } catch (e) {}
+        }
+        if (disbItems.length === 0) {
+          if (matchedDisbursementOrder.purchaseOrderNumber) {
+            const po = (pData.sedanaProcurement?.purchaseOrders || []).find((p: any) => p.orderNumber === matchedDisbursementOrder.purchaseOrderNumber) || pData.sedanaProcurement?.activePurchaseOrder;
+            if (po?.items) disbItems = po.items;
+          } else if (matchedDisbursementOrder.csrLetterNumber) {
+            const csr = (pData.sedanaProcurement?.csrLetters || []).find((c: any) => c.letterNumber === matchedDisbursementOrder.csrLetterNumber) || pData.sedanaProcurement?.activeCsrLetter;
+            if (csr?.items) disbItems = csr.items;
+          }
+        }
+        if (disbItems.length === 0) {
+          disbItems = pData.basketItems || [];
+        }
+
+        // التدقيق في كمية كل صنف مدخل
+        for (const inputItem of input.items) {
+          const target = disbItems.find((di: any) => 
+            String(di.id) === String(inputItem.id) ||
+            (di.itemName && di.itemName.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase()) ||
+            (di.name && di.name.trim().toLowerCase() === inputItem.itemName.trim().toLowerCase())
+          );
+
+          if (target) {
+            const maxDisbQty = Number(target.quantity || target.approvedQty || 0);
+            const prevInward = alreadyInwardForThisDisb[String(inputItem.id)] || 
+                               alreadyInwardForThisDisb[`name:${inputItem.itemName.trim().toLowerCase()}`] || 0;
+            const remainingAllowed = Math.max(0, maxDisbQty - prevInward);
+
+            if (inputItem.quantity > remainingAllowed + 0.0001) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `الكمية المدخلة للصنف (${inputItem.itemName}) وقدرها ${inputItem.quantity} تتجاوز الحد الأقصى المتبقي من أمر الصرف ${matchedDisbursementOrder.orderNumber}. (المحدد بأمر الصرف: ${maxDisbQty}، المدخل سابقاً: ${prevInward}، الحد الأقصى المتاح للإدخال الآن: ${remainingAllowed} ${inputItem.unit})`,
+              });
+            }
+          }
+        }
       }
 
       const orderCount = pData.sedanaExecution.inwardOrders.length + 1;
@@ -470,13 +662,13 @@ export const sedanaExecutionRouter = router({
         orderNumber,
         orderDate: input.orderDate || new Date().toISOString().split("T")[0],
         receivedBy: input.receivedBy || ctx.user.name || "أمين المستودع",
-        referenceType: input.referenceType || "purchase_order",
-        referenceNumber: input.referenceNumber || "",
+        referenceType: input.referenceType || matchedDisbursementOrder?.sourceType || "purchase_order",
+        referenceNumber: input.referenceNumber || matchedDisbursementOrder?.purchaseOrderNumber || matchedDisbursementOrder?.csrLetterNumber || "",
         disbursementOrderId: matchedDisbursementOrder?.id || null,
         disbursementOrderNumber: matchedDisbursementOrder?.orderNumber || null,
         disbursementExecutedAt: matchedDisbursementOrder?.executedAt || null,
         supplierInvoiceNumber: input.supplierInvoiceNumber || "",
-        supplierName: input.supplierName || "",
+        supplierName: input.supplierName || matchedDisbursementOrder?.beneficiaryName || "",
         notes: input.notes || "",
         items: input.items,
         createdBy: ctx.user.id,
