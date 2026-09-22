@@ -44,7 +44,6 @@ import {
   ChevronUp,
   Edit,
   FileSignature,
-  Sparkles,
   Layers,
 } from "lucide-react";
 
@@ -503,14 +502,17 @@ export default function ContractsList() {
 
       if (contractSuppliers.length === 0) return null;
 
-      // فحص العقود المسجلة لهذا الطلب
-      const reqContracts = allContracts.filter((c: any) => c.requestId === req.id);
+      // فحص العقود المسجلة لهذا الطلب (سواء مسودة أو معتمد أو قيد المراجعة، باستثناء الملغاة)
+      const reqContracts = allContracts.filter((c: any) => c.requestId === req.id && c.status !== 'cancelled');
       const pendingSuppliers = contractSuppliers.filter((cs: any) => {
         return !reqContracts.some((c: any) =>
           (cs.supplierId && c.supplierId === cs.supplierId) ||
           (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === cs.supplierName.trim().toLowerCase())
         );
       });
+
+      // إذا تم إنشاء عقود لكافة الموردين المتفق عليهم (حالتهم مسودة أو معتمد)، يتم إزالة الطلب من قائمة المؤهلين للتعاقد
+      if (pendingSuppliers.length === 0) return null;
 
       return {
         id: req.id,
@@ -752,10 +754,6 @@ export default function ContractsList() {
                                   <h3 className="font-semibold truncate text-sm sm:text-base text-foreground">
                                     عقود طلب سدانة - مسجد {mosqueName}
                                   </h3>
-                                  <Badge className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1 py-0 px-2 h-5">
-                                    <Sparkles className="w-3 h-3 text-amber-300" />
-                                    عقود سدانة مجمعة ({item.contracts.length} عقود)
-                                  </Badge>
                                 </div>
                                 <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                                   طلب #{item.requestInfo?.requestNumber || item.requestId} • تم إبرام {item.contracts.length} عقود توريد مستقلة
@@ -769,9 +767,6 @@ export default function ContractsList() {
                                     <SaudiRiyal className="h-3.5 w-3.5" />
                                     <span>إجمالي العقود: {formatCurrency(totalAmount)}</span>
                                   </span>
-                                  <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-5 border-sky-300 text-sky-800 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50">
-                                    سدانة (توريد وخدمات)
-                                  </Badge>
                                 </div>
                               </div>
                             </div>
