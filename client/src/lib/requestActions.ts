@@ -127,12 +127,12 @@ export function getActiveAction(
         nextStage: "boq_preparation",
       };
     } else if (currentStage === 'contracting') {
-      title = "تأمين الطلب والتعاقد (سدانة)";
-      description = "اختر مسار تأمين بنود المشروع مع إمكانية التجزئة: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
+      title = "اعتماد نوع التأمين";
+      description = "اختر مسار تأمين بنود المشروع لكل مورد: عقد توريد وخدمات، أمر شراء داخلي لإدارة المشتريات، أو خطاب مسؤولية مجتمعية.";
       icon = "FileSignature";
       iconColor = "text-cyan-600";
       actionButton = {
-        label: "تأمين الطلب والتعاقد",
+        label: "تحديد نوع التأمين",
         redirectUrl: "/requests/:requestId/procurement",
       };
     }

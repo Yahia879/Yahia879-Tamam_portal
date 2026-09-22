@@ -302,6 +302,7 @@ export function getStageLabel(stage: string, track?: string, programType?: strin
     if (stage === 'submitted') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'initial_review') return 'دراسة وتدقيق الاحتياج';
     if (stage === 'technical_eval') return 'دراسة وتدقيق الاحتياج';
+    if (stage === 'contracting') return 'اعتماد نوع التأمين';
     if (stage === 'execution') return 'التشغيل والتنفيذ';
   }
   return STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage;
@@ -1258,7 +1259,7 @@ export const SEDANA_WORKFLOW = [
   { id: "submitted", label: "دراسة وتدقيق الاحتياج", order: 1 },
   { id: "boq_preparation", label: "جدول الكميات", order: 2 },
   { id: "financial_eval_and_approval", label: "التقييم المالي واعتماد العرض", order: 3 },
-  { id: "contracting", label: "التعاقد", order: 4 },
+  { id: "contracting", label: "اعتماد نوع التأمين", order: 4 },
   { id: "execution", label: "التشغيل والتنفيذ", order: 5 },
   { id: "handover", label: "الاستلام والتسليم", order: 6 },
   { id: "closed", label: "الإغلاق", order: 7 },

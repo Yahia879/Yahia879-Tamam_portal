@@ -59,7 +59,6 @@ const filterOptions = [
 
 const typeFilterOptions = [
   { value: "all", label: "جميع أنواع المشاريع" },
-  { value: "sedana", label: "مشاريع سدانة ✨" },
   { value: "multi", label: "مشاريع متعددة المساجد" },
   { value: "single", label: "مشاريع مفردة (مسجد واحد)" },
 ];

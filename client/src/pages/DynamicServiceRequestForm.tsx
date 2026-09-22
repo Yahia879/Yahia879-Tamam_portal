@@ -1413,25 +1413,25 @@ export const DynamicServiceRequestForm: React.FC<{ showLayout?: boolean }> = ({ 
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">المراجعة والإرسال</h2>
                 <p className="text-sm sm:text-base text-muted-foreground">يرجى مراجعة البيانات قبل إرسال الطلب</p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrint}
-                className={`gap-2 font-bold rounded-2xl h-11 px-5 shadow-xs self-start sm:self-center ${
-                  isSedana
-                    ? 'border-cyan-500/40 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40'
-                    : 'border-primary/30 text-primary hover:bg-primary/5'
-                }`}
-              >
-                <Printer className="w-4 h-4" />
-                <span>طباعة مسودة الطلب</span>
-              </Button>
+              {!isSedana && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrint}
+                  className="gap-2 font-bold rounded-2xl h-11 px-5 shadow-xs self-start sm:self-center border-primary/30 text-primary hover:bg-primary/5"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>طباعة مسودة الطلب</span>
+                </Button>
+              )}
             </div>
 
             <Alert className={`${isSedana ? 'bg-cyan-50/80 dark:bg-cyan-950/30 border-cyan-200 dark:border-cyan-900 text-cyan-900 dark:text-cyan-200' : 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-900 dark:text-emerald-200'} p-4 rounded-2xl`}>
               <CheckCircle2 className={`h-4 w-4 ${isSedana ? 'text-cyan-600 dark:text-cyan-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
               <AlertDescription className="text-xs sm:text-sm font-medium">
-                جميع البيانات صحيحة ومكتملة. يمكنك طباعة مسودة للطلب أو المتابعة لإرساله مباشرة.
+                {isSedana
+                  ? "جميع البيانات صحيحة ومكتملة. يمكنك المتابعة لإرسال الطلب مباشرة."
+                  : "جميع البيانات صحيحة ومكتملة. يمكنك طباعة مسودة للطلب أو المتابعة لإرساله مباشرة."}
               </AlertDescription>
             </Alert>
 

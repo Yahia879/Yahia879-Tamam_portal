@@ -221,6 +221,12 @@ export default function Quotations() {
     if (singleRequestData) {
       const targetReq = (singleRequestData as any).request || singleRequestData;
       if (targetReq && targetReq.id) {
+        // إذا كان الطلب المحدد قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى (وليس في مرحلة التقييم المالي)،
+        // فلا يتم عرضه كطلب نشط في عروض الأسعار
+        if (targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+          return allRequestsList;
+        }
+
         const reqUser = (singleRequestData as any).requester || (singleRequestData as any).user;
         const reqName = reqUser?.name || targetReq.requesterName || (singleRequestData as any).requesterName;
         const mosqueNameStr = typeof targetReq.mosqueName === "string" 
@@ -245,6 +251,18 @@ export default function Quotations() {
     }
     return allRequestsList;
   }, [allRequestsList, selectedRequestId, singleRequestData]);
+
+  // إذا تم فتح الصفحة برابط يحتوي على معرف طلب قد تم اعتماده مسبقاً وانتقل لمرحلة أخرى
+  useEffect(() => {
+    if (singleRequestData && selectedRequestId) {
+      const targetReq = (singleRequestData as any).request || singleRequestData;
+      if (targetReq && targetReq.currentStage && targetReq.currentStage !== "financial_eval_and_approval") {
+        toast.info(`الطلب ${targetReq.requestNumber || selectedRequestId} تم اعتماد وترسية عروضه وانتقل لمرحلة ${targetReq.currentStage === "contracting" ? "التعاقد" : targetReq.currentStage}`);
+        setSelectedRequestId("");
+        window.history.replaceState({}, "", "/quotations");
+      }
+    }
+  }, [singleRequestData, selectedRequestId]);
 
   // جلب الموردين النشطين (مع خيار إظهار غير المعتمدين)
   const { data: suppliers } = trpc.suppliers.getActiveSuppliers.useQuery({
@@ -309,12 +327,37 @@ export default function Quotations() {
     setSedanaFilterStatus("all");
   }, [selectedRequestId]);
 
+  // التحقق مما إذا كانت عروض سدانة معتمدة ومرساة مسبقاً
+  const isSedanaAlreadyAwarded = useMemo(() => {
+    if (!isSedanaProgram) return false;
+    const stage = currentSelectedRequest?.currentStage;
+    if (stage && stage !== "financial_eval_and_approval") return true;
+    const awarded = (currentSelectedRequest as any)?.programData?.awardedItemVendors;
+    if (Array.isArray(awarded) && awarded.length > 0) return true;
+    if (typeof awarded === "string") {
+      try {
+        const parsed = JSON.parse(awarded);
+        if (Array.isArray(parsed) && parsed.length > 0) return true;
+      } catch {}
+    }
+    return allQuotations.some((q: any) => q.status === "accepted" || q.status === "approved");
+  }, [isSedanaProgram, currentSelectedRequest, allQuotations]);
+
+  const utils = trpc.useUtils();
+
   // طفرة اعتماد عروض أسعار متعددة الموردين بحسب البنود
   const approveSedanaMultiVendorMutation = trpc.projects.approveSedanaMultiVendorQuotations.useMutation({
     onSuccess: () => {
-      toast.success("تم اعتماد وترسية عروض الموردين وحفظ تفكيك التوريد بنجاح");
+      toast.success("تم اعتماد وترسية عروض الموردين وحفظ تفكيك التوريد بنجاح، وتم نقل الطلب لمرحلة التعاقد");
+      utils.requests.search.invalidate();
+      utils.requests.getById.invalidate();
+      utils.projects.getQuotationsByRequest.invalidate();
       refetchQuotations();
       refetchBOQ();
+
+      // إزالة الطلب من صفحة عروض الأسعار ومسح المعرّف من الرابط
+      setSelectedRequestId("");
+      window.history.replaceState({}, "", "/quotations");
     },
     onError: (error: any) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد عروض الموردين");
@@ -2542,12 +2585,30 @@ export default function Quotations() {
 
                         <Button
                           onClick={handleApproveItemSelections}
-                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 shadow-sm"
+                          disabled={approveSedanaMultiVendorMutation.isPending || assignedItemsCount === 0 || isSedanaAlreadyAwarded}
+                          className={cn(
+                            "font-bold text-xs h-10 px-5 shadow-sm transition-all",
+                            isSedanaAlreadyAwarded
+                              ? "bg-slate-200 dark:bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700"
+                              : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          )}
                         >
-                          {approveSedanaMultiVendorMutation.isPending && <Loader2 className="h-4 w-4 ml-2 animate-spin" />}
-                          <CheckCircle2 className="h-4 w-4 ml-2" />
-                          اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                          {approveSedanaMultiVendorMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                              جاري الاعتماد والترسية...
+                            </>
+                          ) : isSedanaAlreadyAwarded ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 ml-2 text-emerald-600" />
+                              تم اعتماد وترسية عروض الأسعار
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 ml-2" />
+                              اعتماد وترسية عروض الأسعار ({assignedItemsCount} بند)
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>

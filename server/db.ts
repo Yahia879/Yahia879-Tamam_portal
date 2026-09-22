@@ -58,20 +58,7 @@ async function ensureSchemaUpdated(p: mysql.Pool) {
       await promisePool.query("ALTER TABLE projects ADD COLUMN programType VARCHAR(50) DEFAULT NULL");
     }
 
-    // التحقق من وجود طلبات سدانة ليس لها مشاريع وإنشاء مشاريع لها تلقائياً
-    const [unlinkedSedanaRequests] = await promisePool.query(
-      "SELECT id FROM mosque_requests WHERE programType = 'sedana' AND id NOT IN (SELECT requestId FROM projects WHERE requestId IS NOT NULL)"
-    ) as any[];
-    if (Array.isArray(unlinkedSedanaRequests) && unlinkedSedanaRequests.length > 0 && _db) {
-      const { createProjectForSedanaRequest } = await import("./routers/projects");
-      for (const req of unlinkedSedanaRequests) {
-        try {
-          await createProjectForSedanaRequest(_db, req.id);
-        } catch (e) {
-          console.error(`Error backfilling project for sedana request ${req.id}:`, e);
-        }
-      }
-    }
+    // ملاحظة: طلبات سدانة تُدار بشكل مستقل ولا يتم إنشاء مشاريع لها في جدول projects
   } catch (err) {
     console.warn("[Database] ensureSchemaUpdated warning:", err);
   }

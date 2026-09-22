@@ -396,15 +396,8 @@ export const requestsRouter = router({
         newValues: { requestNumber, programType: input.programType, mosqueId: input.mosqueId },
       });
 
-      // إذا كان الطلب تابعاً لبرنامج سدانة، يتم إنشاء مشروع له تلقائياً في صفحة المشاريع
+      // ملاحظة: طلبات سدانة تُدار بشكل مستقل عبر منظومة سدانة ولا ينشأ لها مشروع في صفحة المشاريع
       let createdProjectId: number | null = null;
-      if (input.programType === "sedana") {
-        try {
-          createdProjectId = await createProjectForSedanaRequest(db, requestId, input.descriptiveName);
-        } catch (projErr) {
-          console.error("Error auto-creating Sedana project:", projErr);
-        }
-      }
 
       // إرسال إشعار عند إنشاء طلب جديد
       await notifyRequestCreation(requestId, requestNumber, ctx.user.id);
@@ -2724,12 +2717,6 @@ export const requestsRouter = router({
             notes: input.notes || 'تم اعتماد الاحتياج السنوي لبرنامج سدانة',
           });
 
-          // التأكد من وجود المشروع المرتبط في صفحة المشاريع
-          try {
-            await createProjectForSedanaRequest(db, input.requestId);
-          } catch (projErr) {
-            console.error("Error ensuring Sedana project on evaluation:", projErr);
-          }
         } catch (logErr) {
           console.error("Evaluation log error:", logErr);
         }

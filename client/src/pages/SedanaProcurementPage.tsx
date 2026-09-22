@@ -56,7 +56,7 @@ export default function SedanaProcurementPage() {
   const requestId = parseInt(params.id || "0");
   const { user } = useAuth();
 
-  useDocumentTitle(`تأمين بنود الطلب والتعاقد #${requestId} - سدانة`);
+  useDocumentTitle(`اعتماد نوع التأمين #${requestId} - سدانة`);
 
   // وضع العرض كامل الشاشة: إما القائمة الرئيسية "none" أو معاينة أمر الشراء "po" أو معاينة الخطاب "csr"
   const [fullScreenView, setFullScreenView] = useState<"none" | "po" | "csr">("none");
@@ -442,20 +442,18 @@ export default function SedanaProcurementPage() {
         setItemSupplierMap(initialMap);
       }
 
-      // 2. استرجاع طرق التأمين للبند أو تهيئتها
+      // 2. استرجاع طرق التأمين للبند أو تهيئتها (بدون اختيار افتراضي)
       if (savedProc?.itemsAllocation && Object.keys(savedProc.itemsAllocation).length > 0) {
         setItemsAllocation(savedProc.itemsAllocation);
       } else {
-        const initialAlloc: Record<string, ProcurementMethod> = {};
-        allItems.forEach((it: any) => {
-          initialAlloc[it.id] = "contract";
-        });
-        setItemsAllocation(initialAlloc);
+        setItemsAllocation({});
       }
 
-      // 3. استرجاع تخصيص الموردين
+      // 3. استرجاع تخصيص الموردين (بدون اختيار افتراضي)
       if (savedProc?.suppliersAllocation && Object.keys(savedProc.suppliersAllocation).length > 0) {
         setSuppliersAllocation(savedProc.suppliersAllocation);
+      } else {
+        setSuppliersAllocation({});
       }
 
       // 4. استرجاع بيانات النماذج
@@ -552,7 +550,7 @@ export default function SedanaProcurementPage() {
 
     allItems.forEach((it: any) => {
       const sup = itemSupplierMap[it.id];
-      const itemMethod = itemsAllocation[it.id] || "contract";
+      const itemMethod = itemsAllocation[it.id];
 
       let key = "unassigned";
       let supName = "أصناف بانتظار تحديد المورد";
@@ -576,7 +574,7 @@ export default function SedanaProcurementPage() {
           supplierName: supName,
           quotationId: quoId,
           quotationNumber: quo?.quotationNumber,
-          method: suppliersAllocation[key] || itemMethod || (isUnassigned ? "csr_letter" : "contract"),
+          method: (suppliersAllocation[key] || itemMethod || "") as any,
           items: [],
           totalAmount: 0,
           isUnassigned,
@@ -599,7 +597,7 @@ export default function SedanaProcurementPage() {
 
   // البنود المخصصة لكل طريقة
   const contractItems = useMemo(() => {
-    return allItems.filter((it: any) => (itemsAllocation[it.id] || "contract") === "contract");
+    return allItems.filter((it: any) => itemsAllocation[it.id] === "contract");
   }, [allItems, itemsAllocation]);
 
   const poItems = useMemo(() => {
@@ -612,7 +610,7 @@ export default function SedanaProcurementPage() {
 
   // الموردون المخصصون لكل مسار
   const contractSuppliers = useMemo(() => {
-    return supplierGroups.filter(g => !g.isUnassigned && (suppliersAllocation[g.key] || g.method || "contract") === "contract");
+    return supplierGroups.filter(g => !g.isUnassigned && (suppliersAllocation[g.key] || g.method) === "contract");
   }, [supplierGroups, suppliersAllocation]);
 
   const poSuppliers = useMemo(() => {
@@ -635,6 +633,15 @@ export default function SedanaProcurementPage() {
   const activeSuppliersList = useMemo(() => {
     return supplierGroups.filter(g => !g.isUnassigned);
   }, [supplierGroups]);
+
+  // التحقق من تحديد نوع التأمين لجميع الموردين
+  const allSuppliersAssignedMethod = useMemo(() => {
+    if (activeSuppliersList.length === 0) return false;
+    return activeSuppliersList.every(grp => {
+      const m = suppliersAllocation[grp.key];
+      return Boolean(m && (m === "contract" || m === "purchase_order" || m === "csr_letter"));
+    });
+  }, [activeSuppliersList, suppliersAllocation]);
 
   // تغيير نوع/طريقة التأمين لمورد بالكامل (يطبق على المورد وكافة بنوده) مع الحفظ التلقائي
   const handleSupplierMethodChange = (supplierKey: string, method: ProcurementMethod) => {
@@ -743,6 +750,10 @@ export default function SedanaProcurementPage() {
 
   // حفظ التجزئة والبيانات
   const handleSaveProcurement = (advanceStage: boolean = false) => {
+    if (advanceStage && !allSuppliersAssignedMethod) {
+      toast.error("يرجى تحديد نوع التأمين لجميع الموردين قبل الانتقال للمرحلة القادمة");
+      return;
+    }
     saveProcurementMutation.mutate({
       requestId,
       procurementData: {
@@ -829,7 +840,7 @@ export default function SedanaProcurementPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold text-foreground">
-                  تأمين بنود الطلب والتعاقد
+                  اعتماد نوع التأمين
                 </h1>
                 <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
                   طلب #{request?.requestNumber || requestId}
@@ -844,12 +855,22 @@ export default function SedanaProcurementPage() {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              onClick={() => setShowConfirmModal(true)}
-              disabled={saveProcurementMutation.isPending}
-              className="h-8 gap-1.5 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+              onClick={() => {
+                if (!allSuppliersAssignedMethod) {
+                  toast.error("يرجى تحديد نوع التأمين لجميع الموردين قبل الانتقال للمرحلة القادمة");
+                  return;
+                }
+                setShowConfirmModal(true);
+              }}
+              disabled={!allSuppliersAssignedMethod || saveProcurementMutation.isPending}
+              className={`h-8 gap-1.5 text-xs font-bold shadow-xs cursor-pointer ${
+                allSuppliersAssignedMethod
+                  ? "bg-sky-600 hover:bg-sky-700 text-white"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-700"
+              }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              اعتماد التأمين والانتقال للتنفيذ
+              الانتقال للمرحلة التالية (التنفيذ)
             </Button>
           </div>
         </div>
@@ -920,7 +941,7 @@ export default function SedanaProcurementPage() {
 
           {/* بطاقات الموردين مع بنود كل مورد */}
           {supplierGroups.map((grp) => {
-            const currentMethod = suppliersAllocation[grp.key] || grp.method || "contract";
+            const currentMethod = suppliersAllocation[grp.key] || grp.method || "";
 
             return (
               <Card
@@ -932,7 +953,9 @@ export default function SedanaProcurementPage() {
                     ? "border-sky-200 dark:border-sky-800/60 bg-white dark:bg-card"
                     : currentMethod === "purchase_order"
                     ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-card"
-                    : "border-teal-200 dark:border-teal-800/60 bg-white dark:bg-card"
+                    : currentMethod === "csr_letter"
+                    ? "border-teal-200 dark:border-teal-800/60 bg-white dark:bg-card"
+                    : "border-amber-300 dark:border-amber-700/60 bg-white dark:bg-card shadow-sm"
                 }`}
               >
                 {/* ترويسة بطاقة المورد وتحديد النوع */}
@@ -946,9 +969,11 @@ export default function SedanaProcurementPage() {
                         ? "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
                         : currentMethod === "purchase_order"
                         ? "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
-                        : "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300"
+                        : currentMethod === "csr_letter"
+                        ? "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300"
+                        : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                     }`}>
-                      {grp.isUnassigned ? <AlertCircle className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
+                      {grp.isUnassigned || !currentMethod ? <AlertCircle className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
                     </div>
 
                     <div className="space-y-1">
@@ -973,6 +998,8 @@ export default function SedanaProcurementPage() {
                       <p className="text-xs text-muted-foreground">
                         {grp.isUnassigned
                           ? "هذه البنود لم تُسند لمورد بعد، يرجى اختيار مورد لها أدناه أو نقلها لمورد محدد"
+                          : !currentMethod
+                          ? "لم يتم تحديد نوع التأمين لهذا المورد بعد - يرجى اختيار أحد الخيارات أدناه"
                           : "الأصناف الموكلة لهذا المورد ونوع التأمين المعتمد له"}
                       </p>
                     </div>
@@ -980,7 +1007,14 @@ export default function SedanaProcurementPage() {
 
                   {/* تحديد النوع (طريقة التأمين للمورد بنقرة واحدة) */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 shrink-0">
-                    <span className="text-xs font-bold text-foreground">تحديد النوع:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-foreground">تحديد النوع:</span>
+                      {!currentMethod && !grp.isUnassigned && (
+                        <Badge variant="outline" className="text-[10px] text-amber-700 bg-amber-50 dark:bg-amber-950 border-amber-300 animate-pulse">
+                          مطلوب الاختيار
+                        </Badge>
+                      )}
+                    </div>
                     <div className="inline-flex rounded-xl border border-border p-1 bg-background/90 shadow-2xs gap-1">
                       {/* 1. عقد توريد وخدمات */}
                       <button

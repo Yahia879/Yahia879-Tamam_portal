@@ -126,7 +126,7 @@ export default function RequestDetailsNew() {
         boq_preparation: "BOQ Preparation",
         financial_eval_and_approval: "Financial Evaluation",
         quotation_approval: "Quotation Approval",
-        contracting: "Contracting",
+        contracting: programType === 'sedana' ? "Procurement Type Approval" : "Contracting",
         execution: programType === 'sedana' ? "Annual Operation" : "Execution",
         handover: "Handover",
         closed: "Closed",
@@ -490,6 +490,40 @@ export default function RequestDetailsNew() {
   );
   const hasApprovedContract = (linkedContract as any)?.status === 'approved' || (linkedContract as any)?.status === 'active';
 
+  // التحقق من اكتمال تحديد نوع التأمين لجميع الموردين لبرنامج سدانة
+  const isSedanaProcurementComplete = useMemo(() => {
+    if (request?.programType !== 'sedana') return false;
+    let pData: any = request?.programData;
+    if (typeof pData === 'string') {
+      try { pData = JSON.parse(pData); } catch { pData = {}; }
+    }
+    const proc = pData?.sedanaProcurement;
+    const suppliersAlloc = proc?.suppliersAllocation || {};
+    
+    // جمع كل الموردين المسند إليهم بنود
+    const supplierKeys = new Set<string>();
+    if (proc?.itemSupplierMap && Object.keys(proc.itemSupplierMap).length > 0) {
+      Object.values(proc.itemSupplierMap).forEach((sup: any) => {
+        if (sup?.supplierName && sup.supplierName !== 'لم يحدد بعد' && sup.supplierName !== 'غير محدد') {
+          supplierKeys.add(sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`);
+        }
+      });
+    } else if (Array.isArray(pData?.awardedItemVendors)) {
+      pData.awardedItemVendors.forEach((a: any) => {
+        if (a?.supplierName && a.supplierName !== 'لم يحدد بعد') {
+          supplierKeys.add(a.supplierId ? `sup_${a.supplierId}` : `name_${a.supplierName}`);
+        }
+      });
+    }
+
+    if (supplierKeys.size === 0) return false;
+
+    return Array.from(supplierKeys).every((key) => {
+      const method = suppliersAlloc[key];
+      return Boolean(method && ['contract', 'purchase_order', 'csr_letter'].includes(method));
+    });
+  }, [request]);
+
   // Fetch final report for this request
   const { data: finalReports } = trpc.finalReports.getByRequestId.useQuery(
     { requestId },
@@ -780,16 +814,16 @@ export default function RequestDetailsNew() {
     },
   });
 
-  // تحديث تلقائي للمرحلة عند وجود عقد معتمد
+  // تحديث تلقائي للمرحلة عند وجود عقد معتمد (للمشاريع العادية فقط)
   useEffect(() => {
-    if (request?.currentStage === 'contracting' && linkedContract && !updateStageMutation.isPending) {
+    if (request?.currentStage === 'contracting' && request?.programType !== 'sedana' && linkedContract && !updateStageMutation.isPending) {
       const contract = linkedContract as any;
       if (contract.status === 'approved' || contract.status === 'active') {
         console.log('[Request Workflow] Approved contract detected, transitioning to execution stage');
         updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
       }
     }
-  }, [request?.currentStage, linkedContract, updateStageMutation.isPending, requestId]);
+  }, [request?.currentStage, request?.programType, linkedContract, updateStageMutation.isPending, requestId]);
 
   // Handler for stage transition
   const handleStageTransition = () => {
@@ -839,6 +873,15 @@ export default function RequestDetailsNew() {
       return;
     }
     
+    // التحقق من اكتمال تحديد نوع التأمين لبرنامج سدانة
+    if (request.programType === 'sedana' && request.currentStage === 'contracting') {
+      if (!isSedanaProcurementComplete) {
+        toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين في صفحة التأمين");
+        setLocation(`/requests/${requestId}/procurement`);
+        return;
+      }
+    }
+
     // السماح بتجاوز شروط التعاقد عند وجود مسودة عقد لجميع الطلبات
     const skipPrerequisites = request.currentStage === 'contracting';
     
@@ -1055,7 +1098,7 @@ export default function RequestDetailsNew() {
   }
 
   // Override active action for contracting stage based on contract status
-  if (request.currentStage === 'contracting' && activeAction && linkedContract) {
+  if (request.currentStage === 'contracting' && activeAction && linkedContract && request.programType !== 'sedana') {
     const contract = linkedContract as any;
     if (contract.status === 'approved' || contract.status === 'active') {
       activeAction = {
@@ -1100,6 +1143,24 @@ export default function RequestDetailsNew() {
         canPerformAction: false,
       };
     }
+  }
+
+  // تخصيص الإجراء النشط لمرحلة اعتماد نوع التأمين لبرنامج سدانة
+  if (request.currentStage === 'contracting' && request.programType === 'sedana' && activeAction) {
+    activeAction = {
+      ...activeAction,
+      title: 'اعتماد نوع التأمين',
+      description: isSedanaProcurementComplete
+        ? 'تم تحديد نوع التأمين لجميع الموردين بنجاح. يمكنك الآن الانتقال للمرحلة التالية بالضغط على زر "الانتقال للمرحلة التالية".'
+        : 'يرجى تحديد نوع التأمين لكل مورد في صفحة التأمين. لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين.',
+      icon: 'FileSignature' as any,
+      iconColor: 'text-cyan-600',
+      actionButton: {
+        label: 'تحديد نوع التأمين',
+        onClick: () => setLocation(`/requests/${requestId}/procurement`),
+      } as any,
+      canPerformAction: true,
+    };
   }
 
   // Override active action for field_visit stage based on field visit status
@@ -1790,7 +1851,7 @@ export default function RequestDetailsNew() {
                                  : (request.programType === 'sedana' && (request.currentStage === 'execution' || request.currentStage === 'handover')
                                    ? "المستودع الافتراضي والتنفيذ المجدول"
                                    : (request.programType === 'sedana' && request.currentStage === 'contracting'
-                                     ? "تأمين الطلب والتعاقد"
+                                     ? "تحديد نوع التأمين"
                                      : translatedAction.actionButton.label)),
                                onClick: request.programType === 'sedana' && ['submitted', 'initial_review', 'technical_eval'].includes(request.currentStage)
                                  ? () => updateStageMutation.mutate({ requestId, newStage: 'boq_preparation' as any })
@@ -1822,6 +1883,21 @@ export default function RequestDetailsNew() {
                               label: "إدارة عروض الأسعار",
                               onClick: () => setLocation(`/quotations?requestId=${requestId}`),
                               variant: 'outline' as const,
+                            }
+                          : request.currentStage === 'contracting' && request.programType === 'sedana' && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
+                          ? {
+                              label: "الانتقال للمرحلة التالية",
+                              onClick: () => {
+                                if (!isSedanaProcurementComplete) {
+                                  toast.error("لا يمكن الانتقال للمرحلة التالية إلا بعد تحديد نوع التأمين لجميع الموردين في صفحة التأمين");
+                                  setLocation(`/requests/${requestId}/procurement`);
+                                  return;
+                                }
+                                updateStageMutation.mutate({ requestId, newStage: 'execution' as any });
+                              },
+                              variant: isSedanaProcurementComplete ? ('default' as const) : ('secondary' as const),
+                              disabled: !isSedanaProcurementComplete || updateStageMutation.isPending,
+                              title: !isSedanaProcurementComplete ? "يرجى تحديد نوع التأمين لجميع الموردين في صفحة التأمين أولاً" : undefined,
                             }
                           : request.currentStage === 'contracting' && request.programType !== 'sedana' && hasApprovedContract && (canTransitionStage(user?.role || '', 'contracting') || userPermissions.includes("requests.view_details")) && !isQuickResponseUser
                           ? {
