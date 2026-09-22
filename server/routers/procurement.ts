@@ -15,6 +15,7 @@ export const procurementRouter = router({
       status: z.string().optional(),
       page: z.number().default(1),
       limit: z.number().default(10),
+      requestId: z.number().optional(),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -77,6 +78,11 @@ export const procurementRouter = router({
         const req = row.request;
         const mosque = row.mosque;
 
+        // تصفية حسب الطلب إذا تم تمرير requestId
+        if (input.requestId && req.id !== input.requestId) {
+          continue;
+        }
+
         let pData: any = req.programData;
         while (typeof pData === "string") {
           try {
@@ -97,8 +103,11 @@ export const procurementRouter = router({
         const allocatedItemIds = Object.keys(allocations).filter(
           (k) => allocations[k] === "purchase_order"
         );
+        const hasAllocatedSupplier = Object.values(sedanaProc?.suppliersAllocation || {}).some(
+          (m: any) => m === "purchase_order" || m?.method === "purchase_order"
+        );
 
-        if (allocatedItemIds.length === 0 && !activePO && savedPOs.length === 0) {
+        if (allocatedItemIds.length === 0 && !hasAllocatedSupplier && (!activePO?.items || activePO.items.length === 0) && savedPOs.length === 0) {
           continue;
         }
 
@@ -311,6 +320,7 @@ export const procurementRouter = router({
       status: z.string().optional(),
       page: z.number().default(1),
       limit: z.number().default(10),
+      requestId: z.number().optional(),
     }))
     .query(async ({ input }) => {
       const db = await getDb();
@@ -371,6 +381,11 @@ export const procurementRouter = router({
         const req = row.request;
         const mosque = row.mosque;
 
+        // تصفية حسب الطلب إذا تم تمرير requestId
+        if (input.requestId && req.id !== input.requestId) {
+          continue;
+        }
+
         let pData: any = req.programData;
         while (typeof pData === "string") {
           try {
@@ -390,8 +405,11 @@ export const procurementRouter = router({
         const allocatedItemIds = Object.keys(allocations).filter(
           (k) => allocations[k] === "csr_letter"
         );
+        const hasAllocatedSupplier = Object.values(sedanaProc?.suppliersAllocation || {}).some(
+          (m: any) => m === "csr_letter" || m?.method === "csr_letter"
+        );
 
-        if (allocatedItemIds.length === 0 && !activeCSR && savedCsrs.length === 0) {
+        if (allocatedItemIds.length === 0 && !hasAllocatedSupplier && (!activeCSR?.items || activeCSR.items.length === 0) && savedCsrs.length === 0) {
           continue;
         }
 

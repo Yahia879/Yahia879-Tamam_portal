@@ -77,8 +77,15 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   },
 };
 
-export default function CsrLettersList() {
-  useDocumentTitle("خطابات المسؤولية المجتمعية - سدانة");
+export interface CsrLettersViewProps {
+  requestId?: number;
+  isEmbedded?: boolean;
+}
+
+export function CsrLettersView({ requestId, isEmbedded = false }: CsrLettersViewProps) {
+  if (!isEmbedded) {
+    useDocumentTitle("خطابات المسؤولية المجتمعية - سدانة");
+  }
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
@@ -111,6 +118,7 @@ export default function CsrLettersList() {
     isFetching,
     refetch,
   } = trpc.procurement.listCsrLetters.useQuery({
+    requestId: requestId || undefined,
     search: debouncedSearch || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     page: currentPage,
@@ -149,6 +157,7 @@ export default function CsrLettersList() {
     try {
       setIsExporting(true);
       const allMatching = await utils.procurement.listCsrLetters.fetch({
+        requestId: requestId || undefined,
         search: debouncedSearch || undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
         page: 1,
@@ -204,48 +213,56 @@ export default function CsrLettersList() {
 
 
 
-  return (
-    <DashboardLayout>
-      <div className="space-y-6 text-right font-sans" dir="rtl">
-        {/* العنوان والإجراءات العلوية */}
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300">
-                <HeartHandshake className="w-5 h-5" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">خطابات المسؤولية المجتمعية</h1>
-              <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
-                برنامج سدانة
-              </Badge>
+  const content = (
+    <div className="space-y-6 text-right font-sans" dir="rtl">
+      {/* العنوان والإجراءات العلوية */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300">
+              <HeartHandshake className="w-5 h-5" />
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              إدارة واستعراض وطباعة الخطابات الرسمية الموجهة للشركات والجهات المانحة لتأمين احتياجات المساجد
-            </p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+              {isEmbedded ? "الخطابات المجتمعية الخاصة بالطلب" : "خطابات المسؤولية المجتمعية"}
+            </h1>
+            <Badge variant="outline" className="text-sky-700 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800 text-xs">
+              برنامج سدانة
+            </Badge>
+            {requestId && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                طلب #{requestId}
+              </Badge>
+            )}
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
-              title="تحديث البيانات"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
-              <span>تحديث</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => navigate("/csr-letters/new")}
-              className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
-            </Button>
-          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {isEmbedded
+              ? "استعراض وإدارة وطباعة الخطابات الرسمية الموجهة للشركات والجهات المانحة لهذا المشروع والطلب"
+              : "إدارة واستعراض وطباعة الخطابات الرسمية الموجهة للشركات والجهات المانحة لتأمين احتياجات المساجد"}
+          </p>
         </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="text-xs font-bold gap-1.5 border-border hover:bg-muted cursor-pointer"
+            title="تحديث البيانات"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-sky-600" : ""}`} />
+            <span>تحديث</span>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => navigate(requestId ? `/csr-letters/new?requestId=${requestId}` : "/csr-letters/new")}
+            className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>إضافة خطاب مسؤولية مجتمعية جديد</span>
+          </Button>
+        </div>
+      </div>
 
         {/* بطاقات الإحصائيات العلوية الـ 5 الأنيقة */}
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
@@ -658,6 +675,15 @@ export default function CsrLettersList() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
   );
+
+  if (isEmbedded) {
+    return content;
+  }
+
+  return <DashboardLayout>{content}</DashboardLayout>;
+}
+
+export default function CsrLettersList() {
+  return <CsrLettersView isEmbedded={false} />;
 }

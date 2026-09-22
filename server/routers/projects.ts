@@ -1143,29 +1143,34 @@ export const projectsRouter = router({
         const suppliersAlloc = sedanaProc.suppliersAllocation || {};
         const itemsAlloc = sedanaProc.itemsAllocation || {};
 
+        const hasAllocatedPoSupplier = Object.values(suppliersAlloc).some((m: any) => m === "purchase_order" || m?.method === "purchase_order");
+        const hasAllocatedPoItem = Object.values(itemsAlloc).some((m: any) => m === "purchase_order");
+        const hasAllocatedCsrSupplier = Object.values(suppliersAlloc).some((m: any) => m === "csr_letter" || m?.method === "csr_letter");
+        const hasAllocatedCsrItem = Object.values(itemsAlloc).some((m: any) => m === "csr_letter");
+
         hasPurchaseOrderMethod = 
-          Object.values(suppliersAlloc).some((m: any) => m === "purchase_order" || m?.method === "purchase_order") ||
-          Object.values(itemsAlloc).some((m: any) => m === "purchase_order") ||
+          hasAllocatedPoSupplier ||
+          hasAllocatedPoItem ||
           (Array.isArray(sedanaProc.purchaseOrders) && sedanaProc.purchaseOrders.length > 0) ||
-          Boolean(sedanaProc.activePurchaseOrder);
+          Boolean(sedanaProc.activePurchaseOrder?.items?.length);
 
         hasCsrLetterMethod = 
-          Object.values(suppliersAlloc).some((m: any) => m === "csr_letter" || m?.method === "csr_letter") ||
-          Object.values(itemsAlloc).some((m: any) => m === "csr_letter") ||
+          hasAllocatedCsrSupplier ||
+          hasAllocatedCsrItem ||
           (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) ||
-          Boolean(sedanaProc.activeCsrLetter);
+          Boolean(sedanaProc.activeCsrLetter?.items?.length);
 
         if (Array.isArray(sedanaProc.purchaseOrders) && sedanaProc.purchaseOrders.length > 0) {
           purchaseOrdersList = [...sedanaProc.purchaseOrders];
         }
-        if (sedanaProc.activePurchaseOrder && !purchaseOrdersList.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+        if (sedanaProc.activePurchaseOrder && (hasAllocatedPoSupplier || hasAllocatedPoItem || sedanaProc.activePurchaseOrder.items?.length > 0) && !purchaseOrdersList.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
           purchaseOrdersList.push(sedanaProc.activePurchaseOrder);
         }
 
         if (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) {
           csrLettersList = [...sedanaProc.csrLetters];
         }
-        if (sedanaProc.activeCsrLetter && !csrLettersList.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+        if (sedanaProc.activeCsrLetter && (hasAllocatedCsrSupplier || hasAllocatedCsrItem || sedanaProc.activeCsrLetter.items?.length > 0) && !csrLettersList.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
           csrLettersList.push(sedanaProc.activeCsrLetter);
         }
       }

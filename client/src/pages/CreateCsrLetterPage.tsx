@@ -40,7 +40,8 @@ export default function CreateCsrLetterPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const params = useParams<{ id?: string }>();
-  const initialRequestId = params.id ? parseInt(params.id, 10) : null;
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
 
   // الخطوة الحالية في المعالج (1 أو 2 أو 3)
   const [step, setStep] = useState<1 | 2 | 3>(1);
