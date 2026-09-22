@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, useSearch } from "wouter";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ import {
   ChevronDown,
   ChevronUp,
   Edit,
+  FileSignature,
 } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
@@ -249,6 +250,13 @@ export default function ContractsList() {
     limit: 1000,
   });
 
+  // جلب طلبات سدانة في مرحلة اعتماد نوع التأمين
+  const { data: sedanaRequestsData, isLoading: sedanaRequestsLoading } = trpc.requests.search.useQuery({
+    currentStage: 'contracting' as any,
+    programType: 'sedana',
+    limit: 100,
+  });
+
   // جلب قوالب العقود
   const { data: templatesData, isLoading: templatesLoading, refetch: refetchTemplates } = trpc.contracts.getTemplates.useQuery();
 
@@ -438,14 +446,117 @@ export default function ContractsList() {
     (p: any) => p.requestStage === 'contracting' && !excludedProjectIds.has(p.id)
   );
 
-  const filteredEligibleProjects = eligibleProjects.filter((project: any) => {
-    if (!projectDialogSearch.trim()) return true;
-    const queryWords = normalizeArabic(projectDialogSearch).split(/\s+/).filter(Boolean);
-    const combinedText = normalizeArabic(
-      `${project.projectNumber || ""} ${project.name || ""} ${project.mosqueName || ""} ${project.city || ""}`
-    );
-    return queryWords.every((w) => combinedText.includes(w));
-  });
+  // تصفية طلبات سدانة التي تم تحديد نوع التأمين فيها كـ "عقد" لموردين
+  const eligibleSedanaRequests = useMemo(() => {
+    const list = sedanaRequestsData?.requests || [];
+    const allContracts = allContractsData?.contracts || [];
+
+    return list.map((req: any) => {
+      let pData: any = req.programData;
+      if (typeof pData === 'string') {
+        try { pData = JSON.parse(pData); } catch { pData = {}; }
+      }
+      const proc = pData?.sedanaProcurement;
+      const suppliersAlloc = proc?.suppliersAllocation || {};
+      const itemsAlloc = proc?.itemsAllocation || {};
+
+      const contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }> = [];
+      const seen = new Set<string>();
+
+      if (proc?.itemSupplierMap && Object.keys(proc.itemSupplierMap).length > 0) {
+        Object.entries(proc.itemSupplierMap).forEach(([itemId, sup]: [string, any]) => {
+          if (sup?.supplierName && sup.supplierName !== 'لم يحدد بعد' && sup.supplierName !== 'غير محدد') {
+            const key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
+            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[itemId] === 'contract') && !seen.has(key)) {
+              seen.add(key);
+              contractSuppliers.push({
+                supplierId: sup.supplierId,
+                supplierName: sup.supplierName,
+                key,
+              });
+            }
+          }
+        });
+      } else if (Array.isArray(pData?.awardedItemVendors)) {
+        pData.awardedItemVendors.forEach((a: any) => {
+          if (a?.supplierName && a.supplierName !== 'لم يحدد بعد') {
+            const key = a.supplierId ? `sup_${a.supplierId}` : `name_${a.supplierName}`;
+            if ((suppliersAlloc[key] === 'contract' || itemsAlloc[String(a.boqItemId)] === 'contract') && !seen.has(key)) {
+              seen.add(key);
+              contractSuppliers.push({
+                supplierId: a.supplierId,
+                supplierName: a.supplierName,
+                key,
+              });
+            }
+          }
+        });
+      }
+
+      if (contractSuppliers.length === 0) return null;
+
+      // فحص العقود المسجلة لهذا الطلب
+      const reqContracts = allContracts.filter((c: any) => c.requestId === req.id);
+      const pendingSuppliers = contractSuppliers.filter((cs: any) => {
+        return !reqContracts.some((c: any) =>
+          (cs.supplierId && c.supplierId === cs.supplierId) ||
+          (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === cs.supplierName.trim().toLowerCase())
+        );
+      });
+
+      return {
+        id: req.id,
+        requestId: req.id,
+        projectNumber: req.requestNumber ? `REQ-${req.requestNumber}` : `REQ-${req.id}`,
+        requestNumber: req.requestNumber,
+        name: `طلب سدانة #${req.requestNumber || req.id} - مسجد ${req.mosque?.name || 'المسجد'}`,
+        mosqueName: req.mosque?.name || '',
+        city: req.mosque?.city || '',
+        contractSuppliers,
+        pendingSuppliers,
+        createdContractsCount: reqContracts.length,
+        totalSuppliersCount: contractSuppliers.length,
+      };
+    }).filter(Boolean) as Array<{
+      id: number;
+      requestId: number;
+      projectNumber: string;
+      requestNumber?: string;
+      name: string;
+      mosqueName: string;
+      city: string;
+      contractSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
+      pendingSuppliers: Array<{ supplierId?: number; supplierName: string; key: string }>;
+      createdContractsCount: number;
+      totalSuppliersCount: number;
+    }>;
+  }, [sedanaRequestsData, allContractsData]);
+
+  // دمج المشاريع المؤهلة وطلبات سدانة في قائمة موحدة
+  const combinedEligibleItems = useMemo(() => {
+    const projectItems = eligibleProjects.map((p: any) => ({
+      ...p,
+      uniqueKey: `project_${p.id}`,
+      itemType: 'project' as const,
+    }));
+    const sedanaItems = eligibleSedanaRequests.map((s: any) => ({
+      ...s,
+      uniqueKey: `sedana_${s.id}`,
+      itemType: 'sedana_request' as const,
+    }));
+    return [...sedanaItems, ...projectItems];
+  }, [eligibleProjects, eligibleSedanaRequests]);
+
+  const filteredEligibleProjects = useMemo(() => {
+    return combinedEligibleItems.filter((item: any) => {
+      if (!projectDialogSearch.trim()) return true;
+      const queryWords = normalizeArabic(projectDialogSearch).split(/\s+/).filter(Boolean);
+      const combinedText = normalizeArabic(
+        `${item.projectNumber || item.requestNumber || item.requestId || ""} ${item.name || ""} ${item.mosqueName || ""} ${item.city || ""}`
+      );
+      return queryWords.every((w) => combinedText.includes(w));
+    });
+  }, [combinedEligibleItems, projectDialogSearch]);
 
   // فلترة العقود حسب البحث
   const filteredContracts = contracts.filter((contract: any) => {
@@ -1148,24 +1259,24 @@ export default function ContractsList() {
       </Dialog>
 
 
-      {/* نافذة اختيار المشروع لإنشاء عقد */}
+      {/* نافذة اختيار المشروع أو الطلب لإنشاء عقد */}
       <Dialog open={showProjectSelectionDialog} onOpenChange={setShowProjectSelectionDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle dir="rtl" className="text-right font-bold text-xl text-primary">
-              تحديد مشروع لإنشاء عقد جديد
+              تحديد مشروع أو طلب لإنشاء عقد جديد
             </DialogTitle>
             <DialogDescription dir="rtl" className="text-right text-muted-foreground mt-2">
-              يرجى تحديد المشروع الذي ترغب في إنشاء العقد واعتماده له. تظهر هنا فقط المشاريع التي لا تحتوي على عقود معتمدة بالفعل.
+              يرجى تحديد المشروع أو طلب سدانة الذي ترغب في إنشاء العقد له. تظهر هنا المشاريع والطلبات المؤهلة للتعاقد.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4" dir="rtl">
-            {eligibleProjects.length > 0 && (
+            {combinedEligibleItems.length > 0 && (
               <div className="relative">
                 <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="بحث برقم المشروع، الاسم، المسجد، أو المدينة..."
+                  placeholder="بحث برقم المشروع أو الطلب، الاسم، المسجد، أو المدينة..."
                   value={projectDialogSearch}
                   onChange={(e) => setProjectDialogSearch(e.target.value)}
                   className="pr-9 text-right"
@@ -1173,56 +1284,75 @@ export default function ContractsList() {
               </div>
             )}
 
-            {projectsLoading || allContractsLoading ? (
+            {projectsLoading || allContractsLoading || sedanaRequestsLoading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="text-muted-foreground text-sm">جاري تحميل المشاريع المتاحة...</span>
+                <span className="text-muted-foreground text-sm">جاري تحميل المشاريع والطلبات المتاحة...</span>
               </div>
-            ) : eligibleProjects.length === 0 ? (
+            ) : combinedEligibleItems.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 <Building2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع متاحة</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع أو طلبات متاحة للتعاقد</h3>
                 <p className="text-gray-500 text-sm max-w-md mx-auto">
-                  كافة المشاريع الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد مشاريع في النظام.
+                  كافة المشاريع والطلبات الحالية تحتوي على عقود معتمدة بالفعل أو لا توجد بنود محددة لمسار العقود.
                 </p>
               </div>
             ) : filteredEligibleProjects.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 <Search className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm font-semibold text-gray-700">لم يتم العثور على أي مشروع مطابق للبحث</p>
+                <p className="text-sm font-semibold text-gray-700">لم يتم العثور على أي مشروع أو طلب مطابق للبحث</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                {filteredEligibleProjects.map((project: any) => (
+                {filteredEligibleProjects.map((item: any) => (
                   <div
-                    key={project.id}
+                    key={item.uniqueKey}
                     onClick={() => {
                       setShowProjectSelectionDialog(false);
                       setProjectDialogSearch("");
-                      navigate(`/contracts/new?projectId=${project.id}`);
+                      if (item.itemType === 'sedana_request') {
+                        navigate(`/contracts/new?requestId=${item.requestId}`);
+                      } else {
+                        navigate(`/contracts/new?projectId=${item.id}`);
+                      }
                     }}
                     className="flex items-center justify-between p-4 bg-white hover:bg-primary/5 border border-gray-100 hover:border-primary/20 rounded-xl cursor-pointer transition-all shadow-sm group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
-                        <Building2 className="h-5 w-5" />
+                      <div className={`p-2.5 rounded-lg shrink-0 transition-colors ${
+                        item.itemType === 'sedana_request'
+                          ? 'bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300 group-hover:bg-sky-600 group-hover:text-white'
+                          : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'
+                      }`}>
+                        {item.itemType === 'sedana_request' ? <FileSignature className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
                       </div>
                       <div className="text-right">
-                        <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors">
-                          {project.name}
-                        </h4>
-                        <span className="text-xs text-muted-foreground">
-                          رقم المشروع: {project.projectNumber}
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 group-hover:text-primary transition-colors text-sm sm:text-base">
+                            {item.name}
+                          </h4>
+                          {item.itemType === 'sedana_request' && (
+                            <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200 text-[10px] font-bold">
+                              سدانة
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground block mt-0.5">
+                          {item.itemType === 'sedana_request'
+                            ? `طلب #${item.requestNumber || item.requestId} • تم تحديد ${item.totalSuppliersCount} موردين للعقود (${item.createdContractsCount} عقود منشأة)`
+                            : `رقم المشروع: ${item.projectNumber}`}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-gray-50 capitalize">
-                        {project.status === "planning" ? "تخطيط" : 
-                         project.status === "in_progress" ? "قيد التنفيذ" : 
-                         project.status === "on_hold" ? "موقوف مؤقتاً" : 
-                         project.status === "completed" ? "مكتمل" : 
-                         project.status === "cancelled" ? "ملغي" : project.status}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="bg-gray-50 capitalize text-xs">
+                        {item.itemType === 'sedana_request'
+                          ? (item.pendingSuppliers?.length > 0 ? "بانتظار إنشاء العقد" : "تم إنشاء كافة العقود")
+                          : (item.status === "planning" ? "تخطيط" : 
+                             item.status === "in_progress" ? "قيد التنفيذ" : 
+                             item.status === "on_hold" ? "موقوف مؤقتاً" : 
+                             item.status === "completed" ? "مكتمل" : 
+                             item.status === "cancelled" ? "ملغي" : item.status)}
                       </Badge>
                       <ChevronLeft className="h-5 w-5 text-gray-400 group-hover:translate-x-[-4px] transition-transform" />
                     </div>

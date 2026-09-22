@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShoppingCart, FileSignature, Layers } from "lucide-react";
+import { ArrowRight, FileText, Clock, Users, Paperclip, MessageSquare, Building2, Calendar, User, XCircle, Zap, PauseCircle, CheckCircle, CheckCircle2, AlertCircle, Calculator, RotateCcw, Download, ChevronDown, ChevronUp, Eye, X, Star, Camera, FolderKanban, Play, Loader2, HeartHandshake, Printer, Phone, Mail, Tag, Pencil, Info, StickyNote, Plus, UserPlus, UserCheck, ShieldCheck, ShoppingCart, FileSignature, Layers, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -522,6 +522,59 @@ export default function RequestDetailsNew() {
       const method = suppliersAlloc[key];
       return Boolean(method && ['contract', 'purchase_order', 'csr_letter'].includes(method));
     });
+  }, [request]);
+
+  // Fetch all contracts linked to this request (for multi-contract/Sedana requests)
+  const { data: requestContractsList = [] } = trpc.contracts.getAllByRequestId.useQuery(
+    { requestId },
+    { enabled: !!requestId && request?.currentStage === 'contracting' }
+  );
+
+  // قائمة الموردين الذين تم تحديد نوع التأمين لهم كـ "عقد" لبرنامج سدانة
+  const contractSuppliers = useMemo(() => {
+    if (request?.programType !== 'sedana') return [];
+    let pData: any = request?.programData;
+    if (typeof pData === 'string') {
+      try { pData = JSON.parse(pData); } catch { pData = {}; }
+    }
+    const proc = pData?.sedanaProcurement;
+    const suppliersAlloc = proc?.suppliersAllocation || {};
+    const itemsAlloc = proc?.itemsAllocation || {};
+
+    const list: Array<{ supplierId?: number; supplierName: string; key: string }> = [];
+    const seen = new Set<string>();
+
+    if (proc?.itemSupplierMap && Object.keys(proc.itemSupplierMap).length > 0) {
+      Object.entries(proc.itemSupplierMap).forEach(([itemId, sup]: [string, any]) => {
+        if (sup?.supplierName && sup.supplierName !== 'لم يحدد بعد' && sup.supplierName !== 'غير محدد') {
+          const key = sup.supplierId ? `sup_${sup.supplierId}` : `name_${sup.supplierName}`;
+          if ((suppliersAlloc[key] === 'contract' || itemsAlloc[itemId] === 'contract') && !seen.has(key)) {
+            seen.add(key);
+            list.push({
+              supplierId: sup.supplierId,
+              supplierName: sup.supplierName,
+              key,
+            });
+          }
+        }
+      });
+    } else if (Array.isArray(pData?.awardedItemVendors)) {
+      pData.awardedItemVendors.forEach((a: any) => {
+        if (a?.supplierName && a.supplierName !== 'لم يحدد بعد') {
+          const key = a.supplierId ? `sup_${a.supplierId}` : `name_${a.supplierName}`;
+          if ((suppliersAlloc[key] === 'contract' || itemsAlloc[String(a.boqItemId)] === 'contract') && !seen.has(key)) {
+            seen.add(key);
+            list.push({
+              supplierId: a.supplierId,
+              supplierName: a.supplierName,
+              key,
+            });
+          }
+        }
+      });
+    }
+
+    return list;
   }, [request]);
 
   // Fetch final report for this request
@@ -1948,10 +2001,134 @@ export default function RequestDetailsNew() {
                             }
                           : undefined
                       }
-                      additionalActions={[]}
+                      additionalActions={
+                        request.programType === 'sedana' && request.currentStage === 'contracting' && contractSuppliers.length > 0
+                          ? [
+                              {
+                                label: "إنشاء عقد جديد",
+                                onClick: () => setLocation(`/contracts/new?requestId=${requestId}`),
+                              }
+                            ]
+                          : []
+                      }
                     />
                   );
                 })()}
+
+              {/* قسم عقود التوريد والخدمات لبرنامج سدانة في مرحلة اعتماد نوع التأمين */}
+              {request.currentStage === 'contracting' && request.programType === 'sedana' && contractSuppliers.length > 0 && (
+                <div className="bg-sky-50/70 dark:bg-sky-950/30 p-4 sm:p-6 rounded-xl border-2 border-sky-200 dark:border-sky-800 shadow-sm space-y-4" dir="rtl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-200/80 dark:border-sky-800/80 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-sky-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <FileSignature className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sky-950 dark:text-sky-100 text-base sm:text-lg flex items-center gap-2">
+                          عقود التوريد والخدمات (سدانة)
+                          <Badge variant="outline" className="bg-sky-100 dark:bg-sky-900 text-sky-800 dark:text-sky-200 border-sky-300 font-bold text-xs">
+                            {contractSuppliers.length} موردين معتمدين للعقود
+                          </Badge>
+                        </h4>
+                        <p className="text-xs text-sky-700 dark:text-sky-300 mt-0.5">
+                          تم تحديد مسار "عقد توريد وخدمات" للموردين أدناه. يمكنك إنشاء العقد لكل مورد مباشرةً.
+                        </p>
+                      </div>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={() => setLocation(`/contracts/new?requestId=${requestId}`)}
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold gap-1.5 shadow-xs shrink-0 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      إنشاء عقد جديد
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    {contractSuppliers.map((supp: any) => {
+                      const contract = (requestContractsList || []).find((c: any) =>
+                        (supp.supplierId && c.supplierId === supp.supplierId) ||
+                        (c.secondPartyName && c.secondPartyName.trim().toLowerCase() === supp.supplierName.trim().toLowerCase())
+                      );
+
+                      return (
+                        <div
+                          key={supp.key}
+                          className="p-3.5 bg-white dark:bg-slate-900 rounded-lg border border-sky-100 dark:border-sky-900 shadow-2xs flex flex-col justify-between gap-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h5 className="font-bold text-foreground text-sm truncate">
+                                {supp.supplierName}
+                              </h5>
+                              {contract ? (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  عقد رقم: <span className="font-mono font-bold text-foreground">{contract.contractNumber}</span>
+                                </p>
+                              ) : (
+                                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                                  لم يتم إنشاء العقد لهذا المورد بعد
+                                </p>
+                              )}
+                            </div>
+
+                            {contract ? (
+                              <Badge
+                                variant={contract.status === 'approved' || contract.status === 'active' ? 'default' : 'secondary'}
+                                className="text-[11px]"
+                              >
+                                {contract.status === 'approved' || contract.status === 'active' ? 'معتمد' : contract.status === 'pending_approval' ? 'قيد الاعتماد' : 'مسودة'}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[11px] text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950">
+                                بانتظار الإنشاء
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-1 border-t border-border/40">
+                            {contract ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setLocation(`/contracts/view/${contract.id}`)}
+                                  className="flex-1 text-xs gap-1.5 h-8 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  عرض العقد
+                                </Button>
+                                {contract.status === 'draft' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setLocation(`/contracts/${contract.id}/edit`)}
+                                    className="flex-1 text-xs gap-1.5 h-8 border-sky-300 text-sky-700 hover:bg-sky-50 dark:hover:bg-sky-950 cursor-pointer"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                    تعديل العقد
+                                  </Button>
+                                )}
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => setLocation(`/contracts/new?requestId=${requestId}${supp.supplierId ? `&supplierId=${supp.supplierId}` : ''}`)}
+                                className="w-full text-xs font-bold gap-1.5 h-8 bg-sky-600 hover:bg-sky-700 text-white cursor-pointer shadow-xs"
+                              >
+                                <FileSignature className="w-3.5 h-3.5" />
+                                إنشاء العقد لهذا المورد
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
 
 

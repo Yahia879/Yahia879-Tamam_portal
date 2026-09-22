@@ -1114,6 +1114,23 @@ export default function SedanaProcurementPage() {
                     </table>
                   </div>
                 </CardContent>
+
+                {currentMethod === "contract" && (
+                  <div className="p-3 bg-sky-50/60 dark:bg-sky-950/30 border-t border-sky-100 dark:border-sky-900 flex flex-wrap items-center justify-between gap-2 px-4">
+                    <div className="flex items-center gap-2 text-xs text-sky-800 dark:text-sky-200">
+                      <FileSignature className="w-4 h-4 text-sky-600 shrink-0" />
+                      <span>نوع التأمين المعتمد لهذا المورد: <strong>عقد توريد وخدمات</strong></span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleCreateContract(grp.supplierId)}
+                      className="bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs gap-1.5 h-8 shadow-xs cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>إنشاء العقد لهذا المورد</span>
+                    </Button>
+                  </div>
+                )}
               </Card>
             );
           })}
