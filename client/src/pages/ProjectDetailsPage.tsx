@@ -2323,14 +2323,14 @@ export default function ProjectDetailsPage() {
               {/* تبويب أوامر الشراء لسدانة */}
               {(isSedanaProgram || hasPurchaseOrderMethod) && (
                 <TabsContent value="purchase_orders" className="space-y-6 mt-0">
-                  <PurchaseOrdersView requestId={project.requestId || undefined} isEmbedded={true} />
+                  <PurchaseOrdersView requestId={project.requestId || undefined} projectId={project.id} isEmbedded={true} />
                 </TabsContent>
               )}
 
               {/* تبويب الخطابات المجتمعية لسدانة */}
               {(isSedanaProgram || hasCsrLetterMethod) && (
                 <TabsContent value="csr_letters" className="space-y-6 mt-0">
-                  <CsrLettersView requestId={project.requestId || undefined} isEmbedded={true} />
+                  <CsrLettersView requestId={project.requestId || undefined} projectId={project.id} isEmbedded={true} />
                 </TabsContent>
               )}
             </Tabs>

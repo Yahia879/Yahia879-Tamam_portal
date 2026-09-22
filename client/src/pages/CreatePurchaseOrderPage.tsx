@@ -36,6 +36,7 @@ import {
   Store,
   Layers,
   Plus,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
@@ -47,6 +48,17 @@ export default function CreatePurchaseOrderPage() {
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
+  const projectId = searchParams.get("projectId") ? parseInt(searchParams.get("projectId")!, 10) : null;
+
+  const handleBack = () => {
+    if (projectId) {
+      navigate(`/projects/${projectId}`);
+    } else if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate("/purchase-orders");
+    }
+  };
 
   // الخطوة الحالية في المعالج (1 أو 2 أو 3)
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -114,6 +126,7 @@ export default function CreatePurchaseOrderPage() {
 
   // التعامل مع اختيار الطلب
   const handleSelectRequest = (reqId: number) => {
+    if (initialRequestId && reqId !== initialRequestId) return;
     setSelectedRequestId(reqId);
     const req = sedanaRequests.find((r: any) => r.id === reqId);
     if (!req) return;
@@ -186,8 +199,12 @@ export default function CreatePurchaseOrderPage() {
       utils.procurement.getAvailableRequestsForPO.invalidate();
       utils.sedanaExecution.getVirtualInventory.invalidate({ requestId: vars.requestId });
 
-      // الانتقال إلى قائمة أوامر الشراء ليظهر الأمر المنشأ فوراً
-      navigate("/purchase-orders");
+      // الانتقال إلى تفاصيل المشروع إذا تم الإنشاء منه، أو قائمة أوامر الشراء
+      if (projectId) {
+        navigate(`/projects/${projectId}`);
+      } else {
+        navigate("/purchase-orders");
+      }
     },
     onError: (err) => {
       toast.error(err.message || "حدث خطأ أثناء حفظ أمر الشراء");
@@ -255,13 +272,7 @@ export default function CreatePurchaseOrderPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => {
-                  if (window.history.length > 1) {
-                    window.history.back();
-                  } else {
-                    navigate("/purchase-orders");
-                  }
-                }}
+                onClick={handleBack}
                 className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-muted text-muted-foreground shrink-0 cursor-pointer"
               >
                 <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -394,15 +405,30 @@ export default function CreatePurchaseOrderPage() {
                   <CardContent className="space-y-6 pt-6 px-6 text-right">
                     {/* اختيار الطلب عبر Select منسق h-11 rounded-xl */}
                     <div className="space-y-2 text-right">
-                      <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
-                        اختر طلب سدانة *
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-right text-xs font-bold text-slate-700 dark:text-slate-300">
+                          اختر طلب سدانة *
+                        </Label>
+                        {initialRequestId && (
+                          <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                            <Lock className="w-3 h-3" />
+                            مثبت للمشروع الحالي
+                          </span>
+                        )}
+                      </div>
                       <Select
                         value={selectedRequestId ? String(selectedRequestId) : ""}
-                        onValueChange={(val) => handleSelectRequest(Number(val))}
+                        onValueChange={(val) => {
+                          if (initialRequestId) return;
+                          handleSelectRequest(Number(val));
+                        }}
+                        disabled={!!initialRequestId}
                       >
                         <SelectTrigger
-                          className="text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background w-full text-xs sm:text-sm"
+                          disabled={!!initialRequestId}
+                          className={`text-right border-border focus:ring-sky-600 rounded-xl h-11 bg-background w-full text-xs sm:text-sm ${
+                            initialRequestId ? "opacity-90 bg-muted/40 cursor-not-allowed" : ""
+                          }`}
                           dir="rtl"
                         >
                           <SelectValue placeholder="اختر طلب سدانة من القائمة..." />
@@ -415,6 +441,12 @@ export default function CreatePurchaseOrderPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {initialRequestId && (
+                        <div className="flex items-center gap-1.5 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 mt-1">
+                          <Lock className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                          <span>تم تثبيت هذا الطلب تلقائياً بناءً على المشروع الحالي ولا يمكن تغييره.</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* ملخص الطلب المختار */}
@@ -454,7 +486,7 @@ export default function CreatePurchaseOrderPage() {
                   <CardFooter className="border-t border-border/40 pt-4 flex justify-between items-center px-6">
                     <Button
                       variant="outline"
-                      onClick={() => navigate("/purchase-orders")}
+                      onClick={handleBack}
                       className="font-bold px-5 h-11 rounded-xl text-slate-700 border-border hover:bg-muted text-xs cursor-pointer"
                     >
                       إلغاء والعودة

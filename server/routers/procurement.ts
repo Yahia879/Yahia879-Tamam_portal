@@ -215,39 +215,6 @@ export const procurementRouter = router({
               updatedAt: po.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
             });
           });
-        } else {
-          const poNumber = `PO-${req.id}-${new Date().getFullYear()}`;
-          const poDate = req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "";
-          const status = isExecutionOrBeyond ? "approved" : "draft";
-          const directedTo = poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات";
-
-          orders.push({
-            id: req.id,
-            requestId: req.id,
-            requestNumber: req.requestNumber || String(req.id),
-            descriptiveName: req.descriptiveName || null,
-            currentStage: req.currentStage,
-            mosqueId: mosque?.id || null,
-            mosqueName: mosque?.name || "المسجد",
-            mosqueCity: mosque?.city || "",
-            mosqueRegion: mosque?.governorate || "",
-            orderNumber: poNumber,
-            orderDate: poDate,
-            directedTo,
-            supplierName: poSupplierName || "",
-            requesterName: "طالب الشراء",
-            requesterRole: "طالب الشراء / إدارة المشاريع",
-            approverName: "المدير التنفيذي",
-            approverRole: "المدير التنفيذي",
-            approverSignatureUrl: "",
-            notes: "",
-            status,
-            items: itemsForPO,
-            itemsCount: itemsForPO.length,
-            disbursementOrder: disbByPo.get(poNumber) || null,
-            createdAt: req.createdAt,
-            updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
-          });
         }
       }
 
@@ -510,38 +477,6 @@ export const procurementRouter = router({
               createdAt: req.createdAt,
               updatedAt: csr.updatedAt || sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
             });
-          });
-        } else {
-          const letterNumber = `CSR-${req.id}-${new Date().getFullYear()}`;
-          const letterDate = req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "";
-          const status = isExecutionOrBeyond ? "approved" : "draft";
-          const recipientName = csrSupplierName || "الجهة المانحة / الشريك المجتمعي";
-
-          letters.push({
-            id: req.id,
-            requestId: req.id,
-            requestNumber: req.requestNumber || String(req.id),
-            descriptiveName: req.descriptiveName || null,
-            currentStage: req.currentStage,
-            mosqueId: mosque?.id || null,
-            mosqueName: mosque?.name || "المسجد",
-            mosqueCity: mosque?.city || "",
-            mosqueRegion: mosque?.governorate || "",
-            letterNumber,
-            letterDate,
-            salutation: "السادة",
-            recipientName,
-            honorific: "المحترمون",
-            projectName: `مشروع جامع ${mosque?.name || "المسجد"}`,
-            signatoryTitle: "المدير التنفيذي",
-            signatoryName: "المهندس المفوض بالتوقيع",
-            notes: "",
-            status,
-            items: itemsForCSR,
-            itemsCount: itemsForCSR.length,
-            disbursementOrder: disbByCsr.get(letterNumber) || null,
-            createdAt: req.createdAt,
-            updatedAt: sedanaProc?.updatedAt || req.updatedAt || req.createdAt,
           });
         }
       }

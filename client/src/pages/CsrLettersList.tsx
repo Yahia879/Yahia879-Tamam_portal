@@ -79,10 +79,11 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 
 export interface CsrLettersViewProps {
   requestId?: number;
+  projectId?: number;
   isEmbedded?: boolean;
 }
 
-export function CsrLettersView({ requestId, isEmbedded = false }: CsrLettersViewProps) {
+export function CsrLettersView({ requestId, projectId, isEmbedded = false }: CsrLettersViewProps) {
   if (!isEmbedded) {
     useDocumentTitle("خطابات المسؤولية المجتمعية - سدانة");
   }
@@ -255,7 +256,13 @@ export function CsrLettersView({ requestId, isEmbedded = false }: CsrLettersView
           </Button>
           <Button
             size="sm"
-            onClick={() => navigate(requestId ? `/csr-letters/new?requestId=${requestId}` : "/csr-letters/new")}
+            onClick={() => {
+              const qParts = [];
+              if (requestId) qParts.push(`requestId=${requestId}`);
+              if (projectId) qParts.push(`projectId=${projectId}`);
+              const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
+              navigate(`/csr-letters/new${qStr}`);
+            }}
             className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />

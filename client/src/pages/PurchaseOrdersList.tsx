@@ -89,10 +89,11 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
 
 export interface PurchaseOrdersViewProps {
   requestId?: number;
+  projectId?: number;
   isEmbedded?: boolean;
 }
 
-export function PurchaseOrdersView({ requestId, isEmbedded = false }: PurchaseOrdersViewProps) {
+export function PurchaseOrdersView({ requestId, projectId, isEmbedded = false }: PurchaseOrdersViewProps) {
   if (!isEmbedded) {
     useDocumentTitle("أوامر الشراء - سدانة");
   }
@@ -273,7 +274,13 @@ export function PurchaseOrdersView({ requestId, isEmbedded = false }: PurchaseOr
           </Button>
           <Button
             size="sm"
-            onClick={() => navigate(requestId ? `/purchase-orders/new?requestId=${requestId}` : "/purchase-orders/new")}
+            onClick={() => {
+              const qParts = [];
+              if (requestId) qParts.push(`requestId=${requestId}`);
+              if (projectId) qParts.push(`projectId=${projectId}`);
+              const qStr = qParts.length > 0 ? `?${qParts.join("&")}` : "";
+              navigate(`/purchase-orders/new${qStr}`);
+            }}
             className="text-xs font-bold gap-1.5 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
