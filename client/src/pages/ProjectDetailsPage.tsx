@@ -434,12 +434,16 @@ export default function ProjectDetailsPage() {
 
     const suppliersAlloc = sedanaProc?.suppliersAllocation || {};
     const itemsAlloc = sedanaProc?.itemsAllocation || {};
-    const pos: any[] = Array.isArray(sedanaProc?.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
-    if (sedanaProc?.activePurchaseOrder && !pos.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+    const pos: any[] = (Array.isArray(sedanaProc?.purchaseOrders) ? sedanaProc.purchaseOrders : []).filter(
+      (p: any) => p && Array.isArray(p.items) && p.items.length > 0
+    );
+    if (sedanaProc?.activePurchaseOrder?.items?.length && !pos.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
       pos.push(sedanaProc.activePurchaseOrder);
     }
-    const csrs: any[] = Array.isArray(sedanaProc?.csrLetters) ? [...sedanaProc.csrLetters] : [];
-    if (sedanaProc?.activeCsrLetter && !csrs.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+    const csrs: any[] = (Array.isArray(sedanaProc?.csrLetters) ? sedanaProc.csrLetters : []).filter(
+      (c: any) => c && Array.isArray(c.items) && c.items.length > 0
+    );
+    if (sedanaProc?.activeCsrLetter?.items?.length && !csrs.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
       csrs.push(sedanaProc.activeCsrLetter);
     }
 

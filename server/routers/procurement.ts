@@ -172,20 +172,31 @@ export const procurementRouter = router({
           }
         }
 
-        const poList: any[] = [...savedPOs];
-        if (activePO && !poList.some((p: any) => p.orderNumber === activePO.orderNumber)) {
+        const validSavedPOs = (Array.isArray(sedanaProc?.purchaseOrders) ? sedanaProc.purchaseOrders : []).filter(
+          (p: any) => p && Array.isArray(p.items) && p.items.length > 0
+        );
+        const poList: any[] = [...validSavedPOs];
+        if (
+          activePO &&
+          Array.isArray(activePO.items) &&
+          activePO.items.length > 0 &&
+          !poList.some((p: any) => p.orderNumber === activePO.orderNumber)
+        ) {
           poList.push(activePO);
+        }
+
+        if (poList.length === 0) {
+          continue;
         }
 
         const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
 
-        if (poList.length > 0) {
-          poList.forEach((po: any, pIdx: number) => {
-            const poNumber = po.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
-            const poDate = po.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-            const status = po.status || (isExecutionOrBeyond ? "approved" : "draft");
-            const poItems = (po.items && Array.isArray(po.items) && po.items.length > 0) ? po.items : itemsForPO;
-            const directedTo = po.directedTo || (po.supplierName ? `إلى إدارة المشتريات (${po.supplierName})` : (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات"));
+        poList.forEach((po: any, pIdx: number) => {
+          const poNumber = po.orderNumber || `PO-${req.id}-${new Date().getFullYear()}`;
+          const poDate = po.orderDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
+          const status = po.status || (isExecutionOrBeyond ? "approved" : "draft");
+          const poItems = po.items;
+          const directedTo = po.directedTo || (po.supplierName ? `إلى إدارة المشتريات (${po.supplierName})` : (poSupplierName ? `إلى إدارة المشتريات (${poSupplierName})` : "إلى إدارة المشتريات"));
 
             orders.push({
               id: `${req.id}-${pIdx}`,
@@ -216,7 +227,6 @@ export const procurementRouter = router({
             });
           });
         }
-      }
 
       // فرز الأوامر بحيث تظهر الأحدث المنشأة أو المحدثة في المقدمة دائماً
       orders.sort((a, b) => {
@@ -437,19 +447,30 @@ export const procurementRouter = router({
           }
         }
 
-        const csrList: any[] = [...savedCsrs];
-        if (activeCSR && !csrList.some((c: any) => c.letterNumber === activeCSR.letterNumber)) {
+        const validSavedCsrs = (Array.isArray(sedanaProc?.csrLetters) ? sedanaProc.csrLetters : []).filter(
+          (c: any) => c && Array.isArray(c.items) && c.items.length > 0
+        );
+        const csrList: any[] = [...validSavedCsrs];
+        if (
+          activeCSR &&
+          Array.isArray(activeCSR.items) &&
+          activeCSR.items.length > 0 &&
+          !csrList.some((c: any) => c.letterNumber === activeCSR.letterNumber)
+        ) {
           csrList.push(activeCSR);
+        }
+
+        if (csrList.length === 0) {
+          continue;
         }
 
         const isExecutionOrBeyond = req.currentStage === "execution" || req.currentStage === "handover" || req.currentStage === "closed";
 
-        if (csrList.length > 0) {
-          csrList.forEach((csr: any, cIdx: number) => {
-            const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
-            const letterDate = csr.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
-            const status = csr.status || (isExecutionOrBeyond ? "approved" : "draft");
-            const finalItems = (csr.items && Array.isArray(csr.items) && csr.items.length > 0) ? csr.items : itemsForCSR;
+        csrList.forEach((csr: any, cIdx: number) => {
+          const letterNumber = csr.letterNumber || `CSR-${req.id}-${new Date().getFullYear()}`;
+          const letterDate = csr.letterDate || (req.createdAt ? new Date(req.createdAt).toISOString().split("T")[0] : "");
+          const status = csr.status || (isExecutionOrBeyond ? "approved" : "draft");
+          const finalItems = csr.items;
 
             letters.push({
               id: `${req.id}-${cIdx}`,
@@ -479,7 +500,6 @@ export const procurementRouter = router({
             });
           });
         }
-      }
 
       // فرز الخطابات بحيث تظهر الأحدث في المقدمة دائماً
       letters.sort((a, b) => {

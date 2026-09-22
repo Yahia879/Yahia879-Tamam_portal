@@ -1160,17 +1160,31 @@ export const projectsRouter = router({
           (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) ||
           Boolean(sedanaProc.activeCsrLetter?.items?.length);
 
-        if (Array.isArray(sedanaProc.purchaseOrders) && sedanaProc.purchaseOrders.length > 0) {
-          purchaseOrdersList = [...sedanaProc.purchaseOrders];
+        if (Array.isArray(sedanaProc.purchaseOrders)) {
+          purchaseOrdersList = sedanaProc.purchaseOrders.filter(
+            (p: any) => p && Array.isArray(p.items) && p.items.length > 0
+          );
         }
-        if (sedanaProc.activePurchaseOrder && (hasAllocatedPoSupplier || hasAllocatedPoItem || sedanaProc.activePurchaseOrder.items?.length > 0) && !purchaseOrdersList.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+        if (
+          sedanaProc.activePurchaseOrder &&
+          Array.isArray(sedanaProc.activePurchaseOrder.items) &&
+          sedanaProc.activePurchaseOrder.items.length > 0 &&
+          !purchaseOrdersList.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)
+        ) {
           purchaseOrdersList.push(sedanaProc.activePurchaseOrder);
         }
 
-        if (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) {
-          csrLettersList = [...sedanaProc.csrLetters];
+        if (Array.isArray(sedanaProc.csrLetters)) {
+          csrLettersList = sedanaProc.csrLetters.filter(
+            (c: any) => c && Array.isArray(c.items) && c.items.length > 0
+          );
         }
-        if (sedanaProc.activeCsrLetter && (hasAllocatedCsrSupplier || hasAllocatedCsrItem || sedanaProc.activeCsrLetter.items?.length > 0) && !csrLettersList.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+        if (
+          sedanaProc.activeCsrLetter &&
+          Array.isArray(sedanaProc.activeCsrLetter.items) &&
+          sedanaProc.activeCsrLetter.items.length > 0 &&
+          !csrLettersList.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)
+        ) {
           csrLettersList.push(sedanaProc.activeCsrLetter);
         }
       }
