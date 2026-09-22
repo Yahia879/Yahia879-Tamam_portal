@@ -2493,20 +2493,7 @@ export default function ContractForm() {
                         : "حدد الدفعات ومواعيدها (اختياري)"}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isSedanaProgram && availableContractItems.length > 0 && paymentSchedule.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAutoFillAllPaymentsWithAgreedItems}
-                        className="border-sky-300 text-sky-800 dark:text-sky-300 hover:bg-sky-100/60 dark:hover:bg-sky-900/40 gap-1.5 text-xs font-semibold h-8"
-                        title="تعبئة جميع دفعات الجدول بكافة بنود العقد والكميات المتفق عليها تلقائياً"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                        تعبئة كافة الدفعات بالبنود المتفق عليها
-                      </Button>
-                    )}
+                  <div>
                     <Button onClick={addPayment} variant="outline" size="sm" className="h-8 text-xs gap-1">
                       <Plus className="h-4 w-4" />
                       إضافة دفعة
@@ -2522,10 +2509,10 @@ export default function ContractForm() {
                         <Layers className="w-5 h-5 text-sky-600" />
                         <div>
                           <h4 className="text-sm font-bold text-sky-950 dark:text-sky-200">
-                            بنود العقد المعتمدة والحصص التوريدية
+                            بنود العقد المعتمدة
                           </h4>
                           <p className="text-[11px] text-muted-foreground">
-                            عرض الكميات المعتمدة بالطلب والمتفق عليها دورياً ومجموع ما تم تخصيصه بالدفعات
+                            البنود المعتمدة في هذا العقد وحصصها المتفق عليها
                           </p>
                         </div>
                       </div>
@@ -2535,44 +2522,23 @@ export default function ContractForm() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                      {availableContractItems.map((item) => {
-                        const totalAllocated = paymentSchedule.reduce((sum, p) => {
-                          const found = (p.items || []).find(i => String(i.id) === String(item.id));
-                          return sum + (found?.quantity || 0);
-                        }, 0);
-
-                        return (
-                          <div
-                            key={item.id}
-                            className="p-2.5 rounded-lg border border-sky-200/80 bg-white dark:bg-slate-900/90 text-xs space-y-1.5"
-                          >
-                            <div className="flex items-center justify-between font-medium">
-                              <span className="truncate max-w-[140px] font-semibold">{item.itemName}</span>
-                              {(item as any).agreedPeriodicLabel ? (
-                                <Badge variant="outline" className="bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 border-sky-300 text-[10px] py-0 px-1.5 h-4 font-semibold">
-                                  {(item as any).agreedPeriodicLabel}
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4">
-                                  {item.unit}
-                                </Badge>
-                              )}
-                            </div>
-
-                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                              <span>إجمالي الطلب: <strong>{item.totalQuantity} {item.unit}</strong></span>
-                              <span>المخصص بالدفعات: <strong className="text-sky-950 dark:text-sky-200 font-mono">{totalAllocated}</strong></span>
-                            </div>
-
-                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className="h-1.5 rounded-full transition-all bg-sky-500"
-                                style={{ width: `${Math.min(100, item.totalQuantity > 0 ? (totalAllocated / item.totalQuantity) * 100 : (totalAllocated > 0 ? 100 : 0))}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {availableContractItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2.5 rounded-lg border border-sky-200/80 bg-white dark:bg-slate-900/90 text-xs flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate max-w-[160px] font-semibold text-foreground">{item.itemName}</span>
+                          {(item as any).agreedPeriodicLabel ? (
+                            <Badge variant="outline" className="bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 border-sky-300 text-[10px] py-0 px-2 h-5 font-semibold shrink-0">
+                              {(item as any).agreedPeriodicLabel}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 h-4 shrink-0">
+                              {item.unit}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </Card>
                 )}
@@ -2884,10 +2850,10 @@ export default function ContractForm() {
                                     <div>
                                       <p className="text-xs font-semibold text-sky-900 dark:text-sky-200">لم يتم ربط أي أصناف توريد بهذه الدفعة بعد</p>
                                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        يمكنك إدراج كافة بنود العقد بضغطة زر أو اختيار صنف محدد
+                                        انقر على الزر أدناه لإدراج بنود العقد لهذه الدفعة
                                       </p>
                                     </div>
-                                    <div className="flex flex-wrap justify-center gap-2 pt-1">
+                                    <div className="flex justify-center pt-1">
                                       <Button
                                         type="button"
                                         variant="default"
@@ -2896,26 +2862,8 @@ export default function ContractForm() {
                                         className="text-xs h-8 gap-1.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-xs"
                                       >
                                         <Sparkles className="w-3.5 h-3.5" />
-                                        إدراج جميع بنود العقد بالكميات المتفق عليها ({availableContractItems.length} أصناف)
+                                        إدراج بنود العقد لهذه الدفعة
                                       </Button>
-                                    </div>
-                                    <div className="pt-1 flex flex-wrap justify-center gap-1.5">
-                                      {availableContractItems.map((availIt) => (
-                                        <Button
-                                          key={availIt.id}
-                                          type="button"
-                                          variant="secondary"
-                                          size="sm"
-                                          onClick={() => handleAddItemToPayment(payment.id, availIt.id)}
-                                          className="text-xs h-7 gap-1 bg-white hover:bg-sky-50 text-sky-900 border border-sky-200 shadow-2xs"
-                                        >
-                                          <Plus className="w-3 h-3 text-sky-600" />
-                                          {availIt.itemName}
-                                          <span className="text-sky-600 font-normal">
-                                            ({(availIt as any).agreedPeriodicLabel || `${availIt.totalQuantity} ${availIt.unit}`})
-                                          </span>
-                                        </Button>
-                                      ))}
                                     </div>
                                   </div>
                                 ) : (
@@ -2925,7 +2873,7 @@ export default function ContractForm() {
                                         <TableHeader className="bg-sky-100/50 dark:bg-sky-950/40">
                                           <TableRow>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-10">م</TableHead>
-                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 min-w-[180px]">اسم الصنف / البند</TableHead>
+                                            <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 min-w-[200px]">اسم الصنف / البند</TableHead>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-32">الكمية الموردة</TableHead>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-24">الوحدة</TableHead>
                                             <TableHead className="text-right font-bold text-sky-950 dark:text-sky-200 w-28">سعر الوحدة</TableHead>
@@ -2936,65 +2884,36 @@ export default function ContractForm() {
                                         <TableBody>
                                           {payment.items.map((it, itIdx) => {
                                             const avail = availableContractItems.find(a => String(a.id) === String(it.id));
-                                            const totalItemContractQty = avail?.totalQuantity || 0;
-                                            const inOtherPayments = paymentSchedule
-                                              .filter(p => p.id !== payment.id)
-                                              .reduce((sum, p) => {
-                                                const found = (p.items || []).find(pi => String(pi.id) === String(it.id));
-                                                return sum + (found?.quantity || 0);
-                                              }, 0);
-                                            const totalAllocatedAll = inOtherPayments + (it.quantity || 0);
-                                            const suggestedQty = (avail as any)?.suggestedPeriodQty || (avail as any)?.monthlyLimit;
 
                                             return (
                                               <TableRow key={it.id || itIdx} className="hover:bg-sky-50/40 dark:hover:bg-sky-950/30">
                                                 <TableCell className="font-mono text-muted-foreground">{itIdx + 1}</TableCell>
                                                 <TableCell>
-                                                  <div className="space-y-1">
+                                                  <div className="flex flex-col gap-0.5">
                                                     <span className="font-semibold text-foreground text-xs">{it.itemName}</span>
-                                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground">
-                                                      {(avail as any)?.agreedPeriodicLabel && (
-                                                        <Badge variant="outline" className="bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 border-sky-300 font-medium text-[10px] py-0 px-1.5 h-4">
-                                                          {(avail as any).agreedPeriodicLabel}
-                                                        </Badge>
-                                                      )}
-                                                      {totalItemContractQty > 0 && (
-                                                        <span>إجمالي الطلب: <strong>{totalItemContractQty} {it.unit}</strong></span>
-                                                      )}
-                                                      <span>•</span>
-                                                      <span>مخصص بالدفعات: <strong>{totalAllocatedAll} {it.unit}</strong></span>
-                                                    </div>
+                                                    {(avail as any)?.agreedPeriodicLabel && (
+                                                      <span className="text-[11px] text-sky-700 dark:text-sky-400 font-medium">
+                                                        {(avail as any).agreedPeriodicLabel}
+                                                      </span>
+                                                    )}
                                                   </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                  <div className="space-y-1">
-                                                    <Input
-                                                      type="number"
-                                                      min="0"
-                                                      step="any"
-                                                      value={it.quantity !== undefined && it.quantity !== null ? it.quantity : ""}
-                                                      className="h-8 text-right font-bold w-full rounded-lg"
-                                                      onChange={(e) => {
-                                                        const val = parseFloat(e.target.value) || 0;
-                                                        handleUpdatePaymentItem(payment.id, it.id, {
-                                                          quantity: val,
-                                                          totalPrice: val * (it.unitPrice || 0),
-                                                        });
-                                                      }}
-                                                    />
-                                                    {suggestedQty && suggestedQty !== it.quantity && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => handleUpdatePaymentItem(payment.id, it.id, {
-                                                          quantity: suggestedQty,
-                                                          totalPrice: suggestedQty * (it.unitPrice || 0),
-                                                        })}
-                                                        className="text-[10px] text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-0.5 cursor-pointer"
-                                                      >
-                                                        <span>المتفق عليه:</span> <strong>{suggestedQty} {it.unit}</strong>
-                                                      </button>
-                                                    )}
-                                                  </div>
+                                                  <Input
+                                                    type="number"
+                                                    min="0"
+                                                    step="any"
+                                                    placeholder="الكمية"
+                                                    value={it.quantity !== undefined && it.quantity !== null ? it.quantity : ""}
+                                                    className="h-8 text-right font-bold w-full rounded-lg bg-white dark:bg-slate-900"
+                                                    onChange={(e) => {
+                                                      const val = parseFloat(e.target.value) || 0;
+                                                      handleUpdatePaymentItem(payment.id, it.id, {
+                                                        quantity: val,
+                                                        totalPrice: val * (it.unitPrice || 0),
+                                                      });
+                                                    }}
+                                                  />
                                                 </TableCell>
                                                 <TableCell>
                                                   <Badge variant="secondary" className="font-normal text-[11px]">
@@ -3030,25 +2949,19 @@ export default function ContractForm() {
                                     </div>
 
                                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                                      <div className="flex items-center gap-2">
-                                        <Select
-                                          onValueChange={(val) => {
-                                            if (val) handleAddItemToPayment(payment.id, val);
-                                          }}
-                                        >
-                                          <SelectTrigger className="h-8 text-xs w-[240px] bg-white dark:bg-slate-900 rounded-lg border-sky-200">
-                                            <SelectValue placeholder="+ إضافة بند آخر للدفعة..." />
-                                          </SelectTrigger>
-                                          <SelectContent dir="rtl">
-                                            {availableContractItems
-                                              .filter(avail => !(payment.items || []).some(i => String(i.id) === String(avail.id)))
-                                              .map(avail => (
-                                                <SelectItem key={avail.id} value={avail.id} className="text-xs">
-                                                  {avail.itemName} ({(avail as any).agreedPeriodicLabel || `إجمالي الطلب: ${avail.totalQuantity} ${avail.unit}`})
-                                                </SelectItem>
-                                              ))}
-                                          </SelectContent>
-                                        </Select>
+                                      <div>
+                                        {availableContractItems.length > (payment.items || []).length && (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleInsertAllItemsForPayment(payment.id)}
+                                            className="text-xs h-7 text-sky-700 dark:text-sky-300 hover:bg-sky-100/50 gap-1 font-medium"
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            استعادة كافة بنود العقد
+                                          </Button>
+                                        )}
                                       </div>
 
                                       {(() => {
