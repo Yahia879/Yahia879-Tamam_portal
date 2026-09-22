@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  Package,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -132,6 +134,123 @@ export default function EditPaymentPage() {
       });
     }
   }, [payment]);
+
+  // إدارة أصناف سدانة
+  const [sedanaItems, setSedanaItems] = useState<any[]>([]);
+  const [selectedContractItemName, setSelectedContractItemName] = useState<string>("");
+
+  const isSedanaProgram = projectDetails?.programType === "sedana" || projectDetails?.request?.programType === "sedana";
+
+  useEffect(() => {
+    if (payment && Array.isArray((payment as any).items)) {
+      setSedanaItems((payment as any).items);
+    }
+  }, [payment]);
+
+  // الأصناف المتاحة من العقد أو جدول الكميات
+  const availableContractItems = useMemo(() => {
+    if (!isSedanaProgram) return [];
+    const itemsMap: Record<string, { itemName: string; unit: string; unitPrice: number; maxQuantity: number }> = {};
+    
+    (projectDetails?.boq || []).forEach((b: any) => {
+      const key = (b.itemDescription || b.itemName || "").trim();
+      if (key && !itemsMap[key]) {
+        itemsMap[key] = {
+          itemName: key,
+          unit: b.unit || "وحدة",
+          unitPrice: Number(b.unitPrice || 0),
+          maxQuantity: Number(b.quantity || 0),
+        };
+      }
+    });
+
+    if (contractDetails?.contract?.paymentScheduleJson) {
+      try {
+        const sched = typeof contractDetails.contract.paymentScheduleJson === "string" 
+          ? JSON.parse(contractDetails.contract.paymentScheduleJson) 
+          : contractDetails.contract.paymentScheduleJson;
+        if (Array.isArray(sched)) {
+          sched.forEach((s: any) => {
+            (s.items || []).forEach((it: any) => {
+              const key = (it.itemName || "").trim();
+              if (key && !itemsMap[key]) {
+                itemsMap[key] = {
+                  itemName: key,
+                  unit: it.unit || "وحدة",
+                  unitPrice: Number(it.unitPrice || 0),
+                  maxQuantity: Number(it.quantity || 0),
+                };
+              }
+            });
+          });
+        }
+      } catch (e) {}
+    }
+
+    return Object.values(itemsMap);
+  }, [isSedanaProgram, projectDetails, contractDetails]);
+
+  const handleAddSedanaItemFromContract = (itemName: string) => {
+    const found = availableContractItems.find(it => it.itemName === itemName);
+    if (!found) return;
+    const existing = sedanaItems.find(it => it.itemName === itemName);
+    if (existing) {
+      toast.info("هذا الصنف مضاف بالفعل، يمكنك تعديل كميته");
+      return;
+    }
+    setSedanaItems(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        itemName: found.itemName,
+        unit: found.unit || "وحدة",
+        quantity: 1,
+        unitPrice: found.unitPrice || 0,
+        totalPrice: found.unitPrice || 0,
+      }
+    ]);
+    setSelectedContractItemName("");
+  };
+
+  const handleAddCustomSedanaItem = () => {
+    setSedanaItems(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        itemName: "",
+        unit: "وحدة",
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+      }
+    ]);
+  };
+
+  const handleUpdateSedanaItem = (index: number, field: string, value: any) => {
+    setSedanaItems(prev => {
+      const next = [...prev];
+      const item = { ...next[index], [field]: value };
+      if (field === "quantity" || field === "unitPrice") {
+        const q = field === "quantity" ? Number(value) : Number(item.quantity || 0);
+        const p = field === "unitPrice" ? Number(value) : Number(item.unitPrice || 0);
+        item.totalPrice = Math.round(q * p * 100) / 100;
+      }
+      next[index] = item;
+      return next;
+    });
+  };
+
+  const handleRemoveSedanaItem = (index: number) => {
+    setSedanaItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleMatchAmountWithSedanaItems = () => {
+    const sum = sedanaItems.reduce((acc, it) => acc + (Number(it.totalPrice) || 0), 0);
+    if (sum > 0 && suppliers.length > 0) {
+      setSuppliers(prev => prev.map((s, idx) => idx === 0 ? { ...s, amount: sum } : s));
+      toast.success(`تم تحديث مبلغ الدفعة إلى ${sum.toLocaleString()} ريال بناءً على مجموع البنود`);
+    }
+  };
   
   // تحديث بيانات المورد من العقد أو تهيئة القائمة بالدفعة الحالية
   useEffect(() => {
@@ -373,6 +492,7 @@ export default function EditPaymentPage() {
       amount: totalAmount,
       dateMiladi: formData.dateMiladi,
       completionPercentage: Number(formData.completionPercentage),
+      items: isSedanaProgram ? sedanaItems : undefined,
     });
   };
   
@@ -645,6 +765,160 @@ export default function EditPaymentPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* بنود وأصناف التوريد - حصرياً لبرامج سدانة */}
+            {isSedanaProgram && (
+              <Card className="text-right border-emerald-500/30 bg-emerald-500/5 shadow-sm">
+                <CardHeader className="bg-emerald-500/10 border-b border-emerald-500/20 py-4 text-right">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-right">
+                      <CardTitle className="flex items-center gap-2 text-right text-base font-bold text-emerald-950 dark:text-emerald-200">
+                        <Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        أصناف التوريد المرتبطة بهذه الدفعة (خاص بسدانة)
+                      </CardTitle>
+                      <CardDescription className="text-right text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                        حدد البنود والكميات التي سيقوم المورد بتوريدها في هذه الدفعة لربطها بأوامر الإدخال
+                      </CardDescription>
+                    </div>
+                    {sedanaItems.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMatchAmountWithSedanaItems}
+                        className="text-xs bg-white dark:bg-card border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
+                      >
+                        مطابقة مبلغ الدفعة مع مجموع البنود
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="text-right pt-5 space-y-4">
+                  {/* أداة إضافة صنف من العقد */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-3 bg-card rounded-xl border border-emerald-500/20">
+                    <div className="flex-1 text-right">
+                      <Select
+                        value={selectedContractItemName}
+                        onValueChange={(val) => {
+                          setSelectedContractItemName(val);
+                          handleAddSedanaItemFromContract(val);
+                        }}
+                      >
+                        <SelectTrigger className="text-right bg-background border-border/60 rounded-xl h-9 text-xs" dir="rtl">
+                          <SelectValue placeholder="اختر صنفاً من بنود العقد / جدول الكميات لإضافته..." />
+                        </SelectTrigger>
+                        <SelectContent dir="rtl">
+                          {availableContractItems.length > 0 ? (
+                            availableContractItems.map((it, i) => (
+                              <SelectItem key={i} value={it.itemName} className="text-right text-xs">
+                                {it.itemName} ({it.unit}) {it.unitPrice ? `- ${it.unitPrice.toLocaleString()} ر.س` : ""}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="p-2 text-xs text-muted-foreground text-center">لا توجد بنود مسجلة في العقد</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleAddCustomSedanaItem}
+                      className="text-xs h-9"
+                    >
+                      <Plus className="w-3.5 h-3.5 ml-1" />
+                      إضافة بند مخصص
+                    </Button>
+                  </div>
+
+                  {/* جدول البنود المضافة */}
+                  {sedanaItems.length > 0 ? (
+                    <div className="rounded-xl border border-emerald-500/20 overflow-hidden bg-card">
+                      <Table>
+                        <TableHeader className="bg-emerald-500/10">
+                          <TableRow>
+                            <TableHead className="text-right font-bold text-xs py-2.5">اسم الصنف</TableHead>
+                            <TableHead className="text-right font-bold text-xs py-2.5 w-24">الكمية</TableHead>
+                            <TableHead className="text-right font-bold text-xs py-2.5 w-24">الوحدة</TableHead>
+                            <TableHead className="text-right font-bold text-xs py-2.5 w-28">سعر الوحدة</TableHead>
+                            <TableHead className="text-right font-bold text-xs py-2.5 w-28">الإجمالي</TableHead>
+                            <TableHead className="text-center font-bold text-xs py-2.5 w-12">حذف</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sedanaItems.map((item, idx) => (
+                            <TableRow key={item.id || idx}>
+                              <TableCell className="p-2">
+                                <Input
+                                  value={item.itemName}
+                                  onChange={(e) => handleUpdateSedanaItem(idx, "itemName", e.target.value)}
+                                  placeholder="اسم الصنف..."
+                                  className="h-8 text-xs text-right"
+                                />
+                              </TableCell>
+                              <TableCell className="p-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={item.quantity}
+                                  onChange={(e) => handleUpdateSedanaItem(idx, "quantity", e.target.value)}
+                                  className="h-8 text-xs font-sans text-right"
+                                />
+                              </TableCell>
+                              <TableCell className="p-2">
+                                <Input
+                                  value={item.unit}
+                                  onChange={(e) => handleUpdateSedanaItem(idx, "unit", e.target.value)}
+                                  placeholder="م² / حبة"
+                                  className="h-8 text-xs text-right"
+                                />
+                              </TableCell>
+                              <TableCell className="p-2">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={item.unitPrice || 0}
+                                  onChange={(e) => handleUpdateSedanaItem(idx, "unitPrice", e.target.value)}
+                                  className="h-8 text-xs font-sans text-right"
+                                />
+                              </TableCell>
+                              <TableCell className="p-2 font-bold text-xs font-sans text-foreground">
+                                {Number(item.totalPrice || (Number(item.quantity || 0) * Number(item.unitPrice || 0))).toLocaleString()} ر.س
+                              </TableCell>
+                              <TableCell className="p-2 text-center">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveSedanaItem(idx)}
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <div className="p-3 bg-muted/20 border-t border-emerald-500/20 flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">إجمالي قيمة أصناف الدفعة:</span>
+                        <span className="font-bold text-sm text-emerald-700 dark:text-emerald-300 font-sans">
+                          {sedanaItems.reduce((sum, it) => sum + (Number(it.totalPrice) || 0), 0).toLocaleString()} ر.س
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-emerald-500/30 rounded-xl">
+                      <Package className="w-8 h-8 text-emerald-600/40 mx-auto mb-2" />
+                      لم يتم ربط أي أصناف توريد بهذه الدفعة حتى الآن. يمكنك اختيار أصناف من القائمة أعلاه.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
             
             {/* الموردون المستفيدون */}
             <Card className="text-right border-border/60 shadow-sm">
