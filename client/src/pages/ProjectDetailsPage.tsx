@@ -37,6 +37,10 @@ import {
   AlertTriangle,
   X,
   Sparkles,
+  ShoppingBag,
+  HeartHandshake,
+  Printer,
+  ExternalLink,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
@@ -409,12 +413,72 @@ export default function ProjectDetailsPage() {
     return false;
   }, [isSedanaProgram, project]);
 
-  // إعادة التوجيه لتبويب نظرة عامة إذا كان التبويب الحالي هو العقود أو الدفعات وتم إخفاؤهما
+  // فحص طرق التأمين المتبعة في سدانة (أوامر الشراء / الخطابات المجتمعية)
+  const { hasPurchaseOrderMethod, hasCsrLetterMethod, sedanaPurchaseOrders, sedanaCsrLetters } = useMemo(() => {
+    if (!isSedanaProgram || !project) {
+      return {
+        hasPurchaseOrderMethod: false,
+        hasCsrLetterMethod: false,
+        sedanaPurchaseOrders: [],
+        sedanaCsrLetters: [],
+      };
+    }
+
+    const pData: any = project?.request?.programData;
+    let sedanaProc = pData?.sedanaProcurement;
+    if (typeof sedanaProc === "string") {
+      try { sedanaProc = JSON.parse(sedanaProc); } catch {}
+    }
+
+    const suppliersAlloc = sedanaProc?.suppliersAllocation || {};
+    const itemsAlloc = sedanaProc?.itemsAllocation || {};
+    const pos: any[] = Array.isArray(sedanaProc?.purchaseOrders) ? [...sedanaProc.purchaseOrders] : [];
+    if (sedanaProc?.activePurchaseOrder && !pos.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+      pos.push(sedanaProc.activePurchaseOrder);
+    }
+    const csrs: any[] = Array.isArray(sedanaProc?.csrLetters) ? [...sedanaProc.csrLetters] : [];
+    if (sedanaProc?.activeCsrLetter && !csrs.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+      csrs.push(sedanaProc.activeCsrLetter);
+    }
+
+    const serverHasPO = (project as any)?.hasPurchaseOrderMethod;
+    const serverHasCSR = (project as any)?.hasCsrLetterMethod;
+
+    const hasPO = serverHasPO !== undefined ? serverHasPO : (
+      Object.values(suppliersAlloc).some((m: any) => m === "purchase_order" || m?.method === "purchase_order") ||
+      Object.values(itemsAlloc).some((m: any) => m === "purchase_order") ||
+      pos.length > 0
+    );
+
+    const hasCSR = serverHasCSR !== undefined ? serverHasCSR : (
+      Object.values(suppliersAlloc).some((m: any) => m === "csr_letter" || m?.method === "csr_letter") ||
+      Object.values(itemsAlloc).some((m: any) => m === "csr_letter") ||
+      csrs.length > 0
+    );
+
+    const effectivePOs = (project as any)?.purchaseOrders?.length ? (project as any).purchaseOrders : pos;
+    const effectiveCSRs = (project as any)?.csrLetters?.length ? (project as any).csrLetters : csrs;
+
+    return {
+      hasPurchaseOrderMethod: Boolean(hasPO),
+      hasCsrLetterMethod: Boolean(hasCSR),
+      sedanaPurchaseOrders: effectivePOs,
+      sedanaCsrLetters: effectiveCSRs,
+    };
+  }, [isSedanaProgram, project]);
+
+  // إعادة التوجيه لتبويب نظرة عامة إذا كان التبويب الحالي غير مفعل
   useEffect(() => {
     if (!showContractsAndPayments && (activeTab === "contracts" || activeTab === "payments")) {
       setActiveTab("overview");
     }
-  }, [showContractsAndPayments, activeTab]);
+    if (!hasPurchaseOrderMethod && activeTab === "purchase_orders") {
+      setActiveTab("overview");
+    }
+    if (!hasCsrLetterMethod && activeTab === "csr_letters") {
+      setActiveTab("overview");
+    }
+  }, [showContractsAndPayments, hasPurchaseOrderMethod, hasCsrLetterMethod, activeTab]);
 
   // حساب توزيع بنود سدانة عبر الدفعات
   const sedanaItemsSummary = useMemo(() => {
@@ -667,6 +731,22 @@ export default function ProjectDetailsPage() {
         isLocked: isPaymentsLocked 
       },
     ] : []),
+    ...(hasPurchaseOrderMethod ? [
+      { 
+        id: "purchase_orders", 
+        label: "أوامر الشراء", 
+        icon: ShoppingBag, 
+        badge: sedanaPurchaseOrders.length > 0 ? `${sedanaPurchaseOrders.length}` : undefined 
+      },
+    ] : []),
+    ...(hasCsrLetterMethod ? [
+      { 
+        id: "csr_letters", 
+        label: "الخطابات المجتمعية", 
+        icon: HeartHandshake, 
+        badge: sedanaCsrLetters.length > 0 ? `${sedanaCsrLetters.length}` : undefined 
+      },
+    ] : []),
   ];
 
   return (
@@ -804,10 +884,10 @@ export default function ProjectDetailsPage() {
                         </Tooltip>
                       </div>
                       <p className="font-bold text-xs sm:text-base text-foreground truncate font-sans">
-                        {(!project.request || project.isMultiMosque || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
+                        {(!project.request || project.isMultiMosque || isSedanaProgram || BUDGET_VISIBLE_STAGES.includes(project.request.currentStage))
                           ? (boqData && boqData.total > 0
                               ? formatCurrency(boqData.total.toString())
-                              : formatCurrency(project.budget))
+                              : (project.budget ? formatCurrency(project.budget) : "غير محدد"))
                           : "غير محدد"
                         }
                       </p>
@@ -1174,7 +1254,7 @@ export default function ProjectDetailsPage() {
                           </div>
                         )}
                       </div>
-                      {project.description && (
+                      {!isSedanaProgram && project.description && (
                         <div className="pt-3 border-t border-border/50">
                           <p className="text-xs text-muted-foreground font-bold mb-1.5 flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5 text-primary" />
@@ -1355,6 +1435,165 @@ export default function ProjectDetailsPage() {
                           </div>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* قسم أوامر الشراء لسدانة في النظرة العامة */}
+                {hasPurchaseOrderMethod && (
+                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5 flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-primary" />
+                        <CardTitle className="text-base font-bold" dir="rtl">
+                          أوامر الشراء (برنامج سدانة)
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-lg text-xs">
+                          {sedanaPurchaseOrders.length > 0 ? `${sedanaPurchaseOrders.length} أوامر` : "مسار معتمد"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs font-bold gap-1 h-8"
+                          onClick={() => setActiveTab("purchase_orders")}
+                        >
+                          عرض الكل
+                          <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      {sedanaPurchaseOrders.length === 0 ? (
+                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
+                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التأمين كـ "أمر شراء" لهذا الطلب، ولم يتم بعد إصدار أمر شراء رسمي.</span>
+                          {project.requestId && (
+                            <Button
+                              size="sm"
+                              className="font-bold text-xs h-8 shrink-0 mr-3"
+                              onClick={() => navigate(`/requests/${project.requestId}/purchase-order`)}
+                            >
+                              إصدار أمر شراء
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {sedanaPurchaseOrders.slice(0, 3).map((po: any, idx: number) => {
+                            const poNum = po.orderNumber || `PO-${idx + 1}`;
+                            const poSupplier = po.directedTo || po.supplierName || "مورد معتمد";
+                            const poAmount = po.amount ? formatCurrency(po.amount) : "—";
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
+                                <div className="space-y-1 text-right">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-primary font-sans">{poNum}</span>
+                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[11px]">
+                                      {po.status === "approved" || po.status === "active" ? "معتمد" : (po.status || "نشط")}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">المورد: <span className="text-foreground font-medium">{poSupplier}</span></p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="text-left font-sans">
+                                    <p className="text-xs text-muted-foreground">المبلغ</p>
+                                    <p className="font-bold text-sm text-foreground">{poAmount}</p>
+                                  </div>
+                                  {project.requestId && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1 text-xs font-bold"
+                                      onClick={() => navigate(`/requests/${project.requestId}/purchase-order?orderNumber=${encodeURIComponent(poNum)}`)}
+                                    >
+                                      <Printer className="w-3.5 h-3.5" />
+                                      طباعة
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* قسم الخطابات المجتمعية لسدانة في النظرة العامة */}
+                {hasCsrLetterMethod && (
+                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="text-right border-b border-border/40 bg-muted/20 p-5 flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <HeartHandshake className="w-4 h-4 text-primary" />
+                        <CardTitle className="text-base font-bold" dir="rtl">
+                          الخطابات المجتمعية (برنامج سدانة)
+                        </CardTitle>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className="bg-primary/10 text-primary border-primary/20 font-bold px-2.5 py-0.5 rounded-lg text-xs">
+                          {sedanaCsrLetters.length > 0 ? `${sedanaCsrLetters.length} خطابات` : "مسار معتمد"}
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs font-bold gap-1 h-8"
+                          onClick={() => setActiveTab("csr_letters")}
+                        >
+                          عرض الكل
+                          <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      {sedanaCsrLetters.length === 0 ? (
+                        <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl border border-border/40 text-xs">
+                          <span className="text-muted-foreground font-medium">تم اختيار طريقة التأمين كـ "مسؤولية مجتمعية" لهذا الطلب، ولم يتم بعد إصدار خطاب رسمي.</span>
+                          {project.requestId && (
+                            <Button
+                              size="sm"
+                              className="font-bold text-xs h-8 shrink-0 mr-3"
+                              onClick={() => navigate(`/requests/${project.requestId}/csr-letter`)}
+                            >
+                              إصدار خطاب مجتمعي
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {sedanaCsrLetters.slice(0, 3).map((csr: any, idx: number) => {
+                            const letterNum = csr.letterNumber || `CSR-${idx + 1}`;
+                            const recipient = csr.directedTo || csr.organizationName || "الجهة المانحة";
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-3.5 bg-muted/20 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors">
+                                <div className="space-y-1 text-right">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-sm text-primary font-sans">{letterNum}</span>
+                                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[11px]">
+                                      {csr.status === "approved" || csr.status === "active" ? "معتمد" : (csr.status || "نشط")}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">الجهة الموجه إليها: <span className="text-foreground font-medium">{recipient}</span></p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  {project.requestId && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 gap-1 text-xs font-bold"
+                                      onClick={() => navigate(`/requests/${project.requestId}/csr-letter?letterNumber=${encodeURIComponent(letterNum)}`)}
+                                    >
+                                      <Printer className="w-3.5 h-3.5" />
+                                      طباعة
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
@@ -2077,6 +2316,265 @@ export default function ProjectDetailsPage() {
                 </Dialog>
                   </TabsContent>
                 </>
+              )}
+
+              {/* تبويب أوامر الشراء لسدانة */}
+              {hasPurchaseOrderMethod && (
+                <TabsContent value="purchase_orders" className="space-y-6 mt-0">
+                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
+                      <div className="flex-1">
+                        <CardTitle className="text-base font-bold flex items-center gap-2">
+                          <ShoppingBag className="w-4 h-4 text-primary" />
+                          أوامر الشراء (برنامج سدانة)
+                        </CardTitle>
+                        <CardDescription className="text-xs mt-1">
+                          أوامر الشراء المعتمدة والموجهة للموردين لتأمين بنود واحتياجات المشروع
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {project.requestId && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="gap-2 font-bold"
+                            onClick={() => navigate(`/requests/${project.requestId}/purchase-order`)}
+                          >
+                            <Printer className="w-4 h-4" />
+                            معاينة وطباعة أمر الشراء
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 font-bold"
+                          onClick={() => navigate("/purchase-orders")}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          كافة أوامر الشراء
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      {sedanaPurchaseOrders.length === 0 ? (
+                        <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border/60 bg-muted/10 space-y-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                            <ShoppingBag className="w-6 h-6" />
+                          </div>
+                          <h4 className="font-bold text-foreground">طريقة التأمين المعتمدة: أمر شراء</h4>
+                          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                            تم اعتماد طريقة أوامر الشراء لتأمين بنود هذا المشروع، ولكن لم يتم بعد إصدار أي أمر شراء رسمي. يمكنك إصدار وطباعة أمر الشراء من خلال صفحة الطلب.
+                          </p>
+                          {project.requestId && (
+                            <Button
+                              size="sm"
+                              className="font-bold gap-2 mt-2"
+                              onClick={() => navigate(`/requests/${project.requestId}/purchase-order`)}
+                            >
+                              <FileText className="w-4 h-4" />
+                              إعداد وطباعة أمر الشراء
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="overflow-x-auto rounded-xl border border-border/60">
+                            <Table dir="rtl">
+                              <TableHeader className="bg-muted/40">
+                                <TableRow>
+                                  <TableHead className="text-right font-bold py-3.5 pr-4">رقم أمر الشراء</TableHead>
+                                  <TableHead className="text-right font-bold py-3.5">المورد / الجهة</TableHead>
+                                  <TableHead className="text-right font-bold py-3.5">تاريخ الإصدار</TableHead>
+                                  <TableHead className="text-right font-bold py-3.5">إجمالي المبلغ</TableHead>
+                                  <TableHead className="text-center font-bold py-3.5">عدد البنود</TableHead>
+                                  <TableHead className="text-center font-bold py-3.5">الحالة</TableHead>
+                                  <TableHead className="text-left font-bold py-3.5 pl-4">الإجراءات</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {sedanaPurchaseOrders.map((po: any, idx: number) => {
+                                  const poNum = po.orderNumber || `PO-${idx + 1}`;
+                                  const poSupplier = po.directedTo || po.supplierName || "مورد معتمد";
+                                  const poAmount = po.amount ? formatCurrency(po.amount) : "—";
+                                  const poDate = po.createdAt ? formatDate(po.createdAt) : (po.orderDate || "—");
+                                  const itemsCount = Array.isArray(po.items) ? po.items.length : (po.itemsCount || 1);
+                                  return (
+                                    <TableRow key={idx} className="hover:bg-muted/20">
+                                      <TableCell className="font-bold font-sans text-primary pr-4">
+                                        {poNum}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-foreground">
+                                        {poSupplier}
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground font-sans">
+                                        {poDate}
+                                      </TableCell>
+                                      <TableCell className="font-bold font-sans text-foreground">
+                                        {poAmount}
+                                      </TableCell>
+                                      <TableCell className="text-center font-sans font-medium">
+                                        <Badge variant="secondary" className="font-mono">
+                                          {itemsCount}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs">
+                                          {po.status === "approved" || po.status === "active" ? "معتمد" : (po.status || "نشط")}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-left pl-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                          {project.requestId && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-8 gap-1.5 text-xs font-bold"
+                                              onClick={() => navigate(`/requests/${project.requestId}/purchase-order?orderNumber=${encodeURIComponent(poNum)}`)}
+                                            >
+                                              <Printer className="w-3.5 h-3.5" />
+                                              طباعة
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
+
+              {/* تبويب الخطابات المجتمعية لسدانة */}
+              {hasCsrLetterMethod && (
+                <TabsContent value="csr_letters" className="space-y-6 mt-0">
+                  <Card className="rounded-2xl border border-border/60 shadow-xs bg-card overflow-hidden">
+                    <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between text-right gap-4 border-b border-border/40 bg-muted/20 p-5">
+                      <div className="flex-1">
+                        <CardTitle className="text-base font-bold flex items-center gap-2">
+                          <HeartHandshake className="w-4 h-4 text-primary" />
+                          خطابات المسؤولية المجتمعية (برنامج سدانة)
+                        </CardTitle>
+                        <CardDescription className="text-xs mt-1">
+                          الخطابات الرسمية الموجهة للشركات والجهات المانحة لتأمين متطلبات واحتياجات المسجد
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {project.requestId && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="gap-2 font-bold"
+                            onClick={() => navigate(`/requests/${project.requestId}/csr-letter`)}
+                          >
+                            <Printer className="w-4 h-4" />
+                            معاينة وطباعة الخطاب المجتمعي
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 font-bold"
+                          onClick={() => navigate("/csr-letters")}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          كافة الخطابات
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                      {sedanaCsrLetters.length === 0 ? (
+                        <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border/60 bg-muted/10 space-y-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                            <HeartHandshake className="w-6 h-6" />
+                          </div>
+                          <h4 className="font-bold text-foreground">طريقة التأمين المعتمدة: مسؤولية مجتمعية</h4>
+                          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                            تم اعتماد طريقة المسؤولية المجتمعية مع الجهات المانحة لتأمين بنود هذا المشروع، ولكن لم يتم بعد إصدار أي خطاب رسمي. يمكنك إنشاء وطباعة الخطاب من صفحة الطلب.
+                          </p>
+                          {project.requestId && (
+                            <Button
+                              size="sm"
+                              className="font-bold gap-2 mt-2"
+                              onClick={() => navigate(`/requests/${project.requestId}/csr-letter`)}
+                            >
+                              <FileText className="w-4 h-4" />
+                              إعداد وطباعة الخطاب المجتمعي
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="overflow-x-auto rounded-xl border border-border/60">
+                            <Table dir="rtl">
+                              <TableHeader className="bg-muted/40">
+                                <TableRow>
+                                  <TableHead className="text-right font-bold py-3.5 pr-4">رقم الخطاب</TableHead>
+                                  <TableHead className="text-right font-bold py-3.5">الجهة الموجه إليها</TableHead>
+                                  <TableHead className="text-right font-bold py-3.5">تاريخ الإصدار</TableHead>
+                                  <TableHead className="text-center font-bold py-3.5">عدد الأصناف</TableHead>
+                                  <TableHead className="text-center font-bold py-3.5">الحالة</TableHead>
+                                  <TableHead className="text-left font-bold py-3.5 pl-4">الإجراءات</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {sedanaCsrLetters.map((csr: any, idx: number) => {
+                                  const letterNum = csr.letterNumber || `CSR-${idx + 1}`;
+                                  const recipient = csr.directedTo || csr.organizationName || "الجهة المانحة";
+                                  const letterDate = csr.createdAt ? formatDate(csr.createdAt) : (csr.letterDate || "—");
+                                  const itemsCount = Array.isArray(csr.items) ? csr.items.length : (csr.itemsCount || 1);
+                                  return (
+                                    <TableRow key={idx} className="hover:bg-muted/20">
+                                      <TableCell className="font-bold font-sans text-primary pr-4">
+                                        {letterNum}
+                                      </TableCell>
+                                      <TableCell className="font-medium text-foreground">
+                                        {recipient}
+                                      </TableCell>
+                                      <TableCell className="text-xs text-muted-foreground font-sans">
+                                        {letterDate}
+                                      </TableCell>
+                                      <TableCell className="text-center font-sans font-medium">
+                                        <Badge variant="secondary" className="font-mono">
+                                          {itemsCount}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs">
+                                          {csr.status === "approved" || csr.status === "active" ? "معتمد" : (csr.status || "نشط")}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-left pl-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                          {project.requestId && (
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-8 gap-1.5 text-xs font-bold"
+                                              onClick={() => navigate(`/requests/${project.requestId}/csr-letter?letterNumber=${encodeURIComponent(letterNum)}`)}
+                                            >
+                                              <Printer className="w-3.5 h-3.5" />
+                                              طباعة
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
               )}
             </Tabs>
           </main>

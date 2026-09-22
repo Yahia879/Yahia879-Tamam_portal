@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { projects, projectMosques, projectPhases, contracts, contractsEnhanced, payments, quantitySchedules, quotations, suppliers, mosqueRequests, users, mosques, projectNumberSequence, contractPayments, disbursementRequests, disbursementOrders, requestEvaluations, projectFinancialDetails, receiptVouchers, userPermissions, requestNumberSequence, requestHistory, auditLogs, progressReports } from "../../drizzle/schema";
-import { eq, desc, asc, and, sql, inArray, or, ne, like } from "drizzle-orm";
+import { eq, desc, asc, and, sql, inArray, or, ne, like, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { checkPermission } from "../permissions";
 import { notifyProjectManagerAssigned, notifyQuotationCreation, notifyQuotationApproval } from "./notifications";
@@ -58,6 +58,23 @@ export async function createProjectForSedanaRequest(
     .limit(1);
 
   if (existing) {
+    // التأكد من ربط جداول الكميات بالمشروع وتحديث الميزانية
+    await db
+      .update(quantitySchedules)
+      .set({ projectId: existing.id })
+      .where(and(eq(quantitySchedules.requestId, requestId), isNull(quantitySchedules.projectId)));
+
+    const [boqSumRow] = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(CAST(${quantitySchedules.totalPrice} AS DECIMAL(15,2))), 0)`,
+      })
+      .from(quantitySchedules)
+      .where(or(eq(quantitySchedules.requestId, requestId), eq(quantitySchedules.projectId, existing.id)));
+
+    if (boqSumRow?.total && parseFloat(boqSumRow.total) > 0) {
+      await db.update(projects).set({ budget: boqSumRow.total }).where(eq(projects.id, existing.id));
+    }
+
     return existing.id;
   }
 
@@ -193,6 +210,18 @@ export async function createProjectForSedanaRequest(
     .update(quantitySchedules)
     .set({ projectId })
     .where(eq(quantitySchedules.requestId, requestId));
+
+  // احتساب وتحديث الميزانية من جدول الكميات
+  const [newBoqSumRow] = await db
+    .select({
+      total: sql<string>`COALESCE(SUM(CAST(${quantitySchedules.totalPrice} AS DECIMAL(15,2))), 0)`,
+    })
+    .from(quantitySchedules)
+    .where(or(eq(quantitySchedules.requestId, requestId), eq(quantitySchedules.projectId, projectId)));
+
+  if (newBoqSumRow?.total && parseFloat(newBoqSumRow.total) > 0) {
+    await db.update(projects).set({ budget: newBoqSumRow.total }).where(eq(projects.id, projectId));
+  }
 
   // ربط العقود التابعة للطلب بهذا المشروع
   await db
@@ -1075,6 +1104,72 @@ export const projectsRouter = router({
         }
       }
 
+      // مزامنة projectId في جدول الكميات إذا وجد طلب مرتبط وكان projectId شاغراً
+      if (project.requestId) {
+        await db.update(quantitySchedules)
+          .set({ projectId: targetProjectId })
+          .where(and(
+            eq(quantitySchedules.requestId, project.requestId),
+            isNull(quantitySchedules.projectId)
+          ));
+      }
+
+      // حساب إجمالي جدول الكميات وعكسه على ميزانية المشروع
+      const [boqSumRow] = await db
+        .select({
+          total: sql<string>`COALESCE(SUM(CAST(${quantitySchedules.totalPrice} AS DECIMAL(15,2))), 0)`,
+        })
+        .from(quantitySchedules)
+        .where(
+          project.requestId
+            ? or(eq(quantitySchedules.projectId, targetProjectId), eq(quantitySchedules.requestId, project.requestId))
+            : eq(quantitySchedules.projectId, targetProjectId)
+        );
+
+      const boqTotal = boqSumRow?.total ? parseFloat(boqSumRow.total) : 0;
+      if (boqTotal > 0 && (!project.budget || parseFloat(project.budget) === 0 || isSedanaProject)) {
+        project.budget = boqTotal.toString();
+        await db.update(projects).set({ budget: boqTotal.toString() }).where(eq(projects.id, targetProjectId));
+      }
+
+      // فحص طرق التأمين المتبعة (أوامر الشراء والمسؤولية المجتمعية)
+      let hasPurchaseOrderMethod = false;
+      let hasCsrLetterMethod = false;
+      let purchaseOrdersList: any[] = [];
+      let csrLettersList: any[] = [];
+
+      const sedanaProc = parsedProgramData?.sedanaProcurement;
+      if (sedanaProc) {
+        const suppliersAlloc = sedanaProc.suppliersAllocation || {};
+        const itemsAlloc = sedanaProc.itemsAllocation || {};
+
+        hasPurchaseOrderMethod = 
+          Object.values(suppliersAlloc).some((m: any) => m === "purchase_order" || m?.method === "purchase_order") ||
+          Object.values(itemsAlloc).some((m: any) => m === "purchase_order") ||
+          (Array.isArray(sedanaProc.purchaseOrders) && sedanaProc.purchaseOrders.length > 0) ||
+          Boolean(sedanaProc.activePurchaseOrder);
+
+        hasCsrLetterMethod = 
+          Object.values(suppliersAlloc).some((m: any) => m === "csr_letter" || m?.method === "csr_letter") ||
+          Object.values(itemsAlloc).some((m: any) => m === "csr_letter") ||
+          (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) ||
+          Boolean(sedanaProc.activeCsrLetter);
+
+        if (Array.isArray(sedanaProc.purchaseOrders) && sedanaProc.purchaseOrders.length > 0) {
+          purchaseOrdersList = [...sedanaProc.purchaseOrders];
+        }
+        if (sedanaProc.activePurchaseOrder && !purchaseOrdersList.some((p: any) => p.orderNumber === sedanaProc.activePurchaseOrder.orderNumber)) {
+          purchaseOrdersList.push(sedanaProc.activePurchaseOrder);
+        }
+
+        if (Array.isArray(sedanaProc.csrLetters) && sedanaProc.csrLetters.length > 0) {
+          csrLettersList = [...sedanaProc.csrLetters];
+        }
+        if (sedanaProc.activeCsrLetter && !csrLettersList.some((c: any) => c.letterNumber === sedanaProc.activeCsrLetter.letterNumber)) {
+          csrLettersList.push(sedanaProc.activeCsrLetter);
+        }
+      }
+
       return {
         ...project,
         request: request ? {
@@ -1082,6 +1177,10 @@ export const projectsRouter = router({
           programData: parsedProgramData,
         } : null,
         hasSedanaContract,
+        hasPurchaseOrderMethod,
+        hasCsrLetterMethod,
+        purchaseOrders: purchaseOrdersList,
+        csrLetters: csrLettersList,
         phases,
         evaluations,
         contracts: input.lightweight ? [] : projectContracts,
@@ -1614,12 +1713,28 @@ export const projectsRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
 
-      // البحث باستخدام requestId أو projectId
+      // البحث باستخدام requestId أو projectId مع الدعم المتبادل
+      let queryRequestId = input.requestId;
+      let queryProjectId = input.projectId;
+
+      if (queryProjectId && !queryRequestId) {
+        const [proj] = await db
+          .select({ requestId: projects.requestId })
+          .from(projects)
+          .where(eq(projects.id, queryProjectId))
+          .limit(1);
+        if (proj?.requestId) {
+          queryRequestId = proj.requestId;
+        }
+      }
+
       const conditions: any[] = [];
-      if (input.requestId) {
-        conditions.push(eq(quantitySchedules.requestId, input.requestId));
-      } else if (input.projectId) {
-        conditions.push(eq(quantitySchedules.projectId, input.projectId));
+      if (queryRequestId && queryProjectId) {
+        conditions.push(or(eq(quantitySchedules.requestId, queryRequestId), eq(quantitySchedules.projectId, queryProjectId)));
+      } else if (queryRequestId) {
+        conditions.push(eq(quantitySchedules.requestId, queryRequestId));
+      } else if (queryProjectId) {
+        conditions.push(eq(quantitySchedules.projectId, queryProjectId));
       }
 
       if (input.mosqueId) {
