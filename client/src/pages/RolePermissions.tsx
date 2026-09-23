@@ -44,7 +44,8 @@ import {
   HeartHandshake,
   BarChart3,
   ShieldAlert,
-  ShoppingCart
+  ShoppingCart,
+  Boxes
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 
@@ -287,6 +288,14 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية في قسم المستودع الافتراضي إلا إذا كانت صلاحية العرض مفعلة
+    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
+      if (!selectedPerms.includes("sedana_warehouse.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية في قسم طلبات الصرف إلا إذا كانت صلاحية العرض مفعلة
     if (permId.startsWith("disbursements.") && permId !== "disbursements.view" && permId !== "disbursements.sign") {
       if (!selectedPerms.includes("disbursements.view")) {
@@ -380,6 +389,11 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المسؤولية المجتمعية الأخرى
         if (permId === "csr_letters.view") {
           next = next.filter(id => !id.startsWith("csr_letters."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض المستودع الافتراضي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المستودع الأخرى
+        if (permId === "sedana_warehouse.view") {
+          next = next.filter(id => !id.startsWith("sedana_warehouse."));
         }
 
 
@@ -727,6 +741,19 @@ export default function RolePermissions() {
             { id: "csr_letters.print", nameAr: "معاينة وطباعة الخطاب الرسمي" },
             { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
           ]
+        },
+        {
+          id: "sedana_warehouse",
+          nameAr: "المستودع الافتراضي",
+          icon: Boxes,
+          permissions: [
+            { id: "sedana_warehouse.view", nameAr: "عرض المستودع الافتراضي" },
+            { id: "sedana_warehouse.inward", nameAr: "تسجيل أمر إدخال بالمستودع" },
+            { id: "sedana_warehouse.outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف" },
+            { id: "sedana_warehouse.confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام" },
+            { id: "sedana_warehouse.print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم" },
+            { id: "sedana_warehouse.export", nameAr: "تصدير بيانات المستودع إكسيل" },
+          ]
         }
       ]
     }
@@ -922,6 +949,19 @@ export default function RolePermissions() {
             { id: "csr_letters.print", nameAr: "معاينة وطباعة الخطاب الرسمي" },
             { id: "csr_letters.export", nameAr: "تصدير الخطابات إكسيل" },
           ]
+        },
+        {
+          id: "sedana_warehouse",
+          nameAr: "المستودع الافتراضي",
+          icon: Boxes,
+          permissions: [
+            { id: "sedana_warehouse.view", nameAr: "عرض المستودع الافتراضي" },
+            { id: "sedana_warehouse.inward", nameAr: "تسجيل أمر إدخال بالمستودع" },
+            { id: "sedana_warehouse.outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف" },
+            { id: "sedana_warehouse.confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام" },
+            { id: "sedana_warehouse.print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم" },
+            { id: "sedana_warehouse.export", nameAr: "تصدير بيانات المستودع إكسيل" },
+          ]
         }
       ]
     }
@@ -973,6 +1013,7 @@ export default function RolePermissions() {
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
     {
@@ -1044,6 +1085,7 @@ export default function RolePermissions() {
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
     {
@@ -1241,6 +1283,14 @@ export default function RolePermissions() {
         print: "معاينة وطباعة الخطاب الرسمي",
         export: "تصدير الخطابات إكسيل",
       },
+      sedana_warehouse: {
+        view: "عرض المستودع الافتراضي",
+        inward: "تسجيل أمر إدخال بالمستودع",
+        outbound: "إنشاء أمر إخراج ومسوغ صرف",
+        confirm_receipt: "اعتماد وتأكيد الاستلام",
+        print: "معاينة وطباعة محاضر وأوامر التسليم",
+        export: "تصدير بيانات المستودع إكسيل",
+      },
       disbursements: {
         view: "عرض طلبات الصرف",
         add: "إنشاء طلب صرف",
@@ -1391,6 +1441,7 @@ export default function RolePermissions() {
       subsections: [
         { id: "purchase_orders", nameAr: "أوامر الشراء" },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية" },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي" },
       ],
     },
     {
@@ -1631,6 +1682,7 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                                  (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !selectedPerms.includes("purchase_orders.view")) ||
                                  (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !selectedPerms.includes("csr_letters.view")) ||
+                                 (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !selectedPerms.includes("sedana_warehouse.view")) ||
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                  (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                                  (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
