@@ -52,7 +52,8 @@ import {
   SlidersHorizontal,
   HeartHandshake,
   ShieldAlert,
-  ShoppingCart
+  ShoppingCart,
+  Boxes
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import DashboardLayout from "../components/DashboardLayout";
@@ -303,6 +304,14 @@ export default function UserPermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمستودع الافتراضي إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("sedana_warehouse.") && permId !== "sedana_warehouse.view") {
+      if (!isChecked("sedana_warehouse.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض المستودع الافتراضي' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!isChecked("reports.view_stats")) {
@@ -472,6 +481,9 @@ export default function UserPermissions() {
         }
         if (permId === "csr_letters.view") {
           cascadeRevoke("csr_letters.");
+        }
+        if (permId === "sedana_warehouse.view") {
+          cascadeRevoke("sedana_warehouse.");
         }
 
 
@@ -743,6 +755,14 @@ export default function UserPermissions() {
         print: "معاينة وطباعة الخطاب الرسمي",
         export: "تصدير الخطابات إكسيل",
       },
+      sedana_warehouse: {
+        view: "عرض المستودع الافتراضي",
+        inward: "تسجيل أمر إدخال بالمستودع",
+        outbound: "إنشاء أمر إخراج ومسوغ صرف",
+        confirm_receipt: "اعتماد وتأكيد الاستلام",
+        print: "معاينة وطباعة محاضر وأوامر التسليم",
+        export: "تصدير بيانات المستودع إكسيل",
+      },
       disbursements: {
         view: "عرض طلبات الصرف",
         add: "إنشاء طلب صرف",
@@ -911,6 +931,7 @@ export default function UserPermissions() {
       modules: [
         { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
+        { id: "sedana_warehouse", nameAr: "المستودع الافتراضي", icon: Boxes, perms: ["view", "inward", "outbound", "confirm_receipt", "print", "export"] },
       ]
     },
     {
@@ -1178,6 +1199,7 @@ export default function UserPermissions() {
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !isChecked("contracts.view")) ||
                               (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !isChecked("purchase_orders.view")) ||
                               (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !isChecked("csr_letters.view")) ||
+                              (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !isChecked("sedana_warehouse.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !isChecked("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !isChecked("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !isChecked("quotations.view")) ||
