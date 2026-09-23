@@ -304,6 +304,22 @@ export default function RolePermissions() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية لأوامر الصرف إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("disbursement_orders.") && permId !== "disbursement_orders.view" && permId !== "disbursement_orders.sign") {
+      if (!selectedPerms.includes("disbursement_orders.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض أوامر الصرف' أولاً");
+        return;
+      }
+    }
+
+    // منع تفعيل صلاحية إرسال التذكير لمركز الاعتماد المالي إذا كان عرض مركز الاعتماد معطلاً
+    if (permId === "board_leadership.remind") {
+      if (!selectedPerms.includes("board_chairman")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض مركز الاعتماد المالي' أولاً");
+        return;
+      }
+    }
+
 
 
     setSelectedPerms(prev => {
@@ -394,6 +410,11 @@ export default function RolePermissions() {
         // عند إلغاء تفعيل صلاحية 'عرض المستودع الافتراضي'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المستودع الأخرى
         if (permId === "sedana_warehouse.view") {
           next = next.filter(id => !id.startsWith("sedana_warehouse."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض مركز الاعتماد المالي'، نقوم تلقائياً بإلغاء تفعيل إرسال التذكير
+        if (permId === "board_chairman") {
+          next = next.filter(id => id !== "board_leadership.remind");
         }
 
 
@@ -710,6 +731,7 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
+            { id: "disbursement_orders.remind", nameAr: "إرسال تذكير بالاعتماد" },
           ]
         }
       ]
@@ -918,6 +940,7 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
+            { id: "disbursement_orders.remind", nameAr: "إرسال تذكير بالاعتماد" },
           ]
         }
       ]
@@ -1005,7 +1028,7 @@ export default function RolePermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
       ]
     },
     {
@@ -1076,7 +1099,7 @@ export default function RolePermissions() {
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
-        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+        { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve", "remind"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
       ]
     },
@@ -1138,7 +1161,7 @@ export default function RolePermissions() {
           id: "board_leadership",
           nameAr: "مجلس الإدارة والقيادة العليا",
           icon: Shield,
-          perms: ["board_chairman", "board_member"]
+          perms: ["board_chairman", "board_member", "remind"]
         }
       ]
     }
@@ -1179,6 +1202,7 @@ export default function RolePermissions() {
       board_leadership: {
         board_chairman: "عرض مركز الاعتماد المالي",
         board_member: "عرض لوحة عضو مجلس الإدارة",
+        remind: "إرسال تذكير بالاعتماد",
       },
       pending_reports: {
         view: "عرض التقارير",
@@ -1310,6 +1334,7 @@ export default function RolePermissions() {
         view_details: "عرض تفاصيل أوامر الصرف",
         create_direct: "انشاء امر صرف مخصص",
         exception_approve: "استثناء اعتماد مُعد الأمر",
+        remind: "إرسال تذكير بالاعتماد",
       },
       progress_reports: {
         view: "عرض تقارير الإنجاز",
@@ -1480,6 +1505,7 @@ export default function RolePermissions() {
             const boardIds: Record<string, string> = {
               board_chairman: "board_chairman",
               board_member: "board_member",
+              remind: "board_leadership.remind",
             };
             id = boardIds[p] || id;
           }
@@ -1683,6 +1709,8 @@ export default function RolePermissions() {
                                  (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !selectedPerms.includes("purchase_orders.view")) ||
                                  (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !selectedPerms.includes("csr_letters.view")) ||
                                  (perm.id.startsWith("sedana_warehouse.") && perm.id !== "sedana_warehouse.view" && !selectedPerms.includes("sedana_warehouse.view")) ||
+                                 (perm.id.startsWith("disbursement_orders.") && perm.id !== "disbursement_orders.view" && !selectedPerms.includes("disbursement_orders.view")) ||
+                                 (perm.id === "board_leadership.remind" && !selectedPerms.includes("board_chairman")) ||
                                  (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                                  (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                                  (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
