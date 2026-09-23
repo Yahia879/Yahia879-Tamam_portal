@@ -52,7 +52,9 @@ export default function NewSedanaInwardOrderPage() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const canInward = usePermission("sedana_warehouse.inward") || usePermission("sedana_warehouse");
+  const permWarehouse = usePermission("sedana_warehouse");
+  const permInward = usePermission("sedana_warehouse.inward");
+  const canInward = user?.role === "super_admin" || user?.role === "system_admin" || permWarehouse || permInward;
 
   // جلب قائمة كافة طلبات سدانة للاختيار في حال لم يتم تمرير id
   const { data: sedanaRequests = [] } = trpc.sedanaExecution.listSedanaRequests.useQuery();
