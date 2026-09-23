@@ -102,6 +102,20 @@ const PERMISSION_EXPANSION: Record<string, string[]> = {
   "csr_letters.create_disbursement": ["csr_letters.create_disbursement"],
   "csr_letters.print": ["csr_letters.print"],
   "csr_letters.export": ["csr_letters.export"],
+  sedana_warehouse: [
+    "sedana_warehouse.view",
+    "sedana_warehouse.inward",
+    "sedana_warehouse.outbound",
+    "sedana_warehouse.confirm_receipt",
+    "sedana_warehouse.print",
+    "sedana_warehouse.export",
+  ],
+  "sedana_warehouse.view": ["sedana_warehouse.view"],
+  "sedana_warehouse.inward": ["sedana_warehouse.inward"],
+  "sedana_warehouse.outbound": ["sedana_warehouse.outbound"],
+  "sedana_warehouse.confirm_receipt": ["sedana_warehouse.confirm_receipt"],
+  "sedana_warehouse.print": ["sedana_warehouse.print"],
+  "sedana_warehouse.export": ["sedana_warehouse.export"],
   disbursement_requests: ["disbursements.view", "disbursements.create", "disbursements.edit", "disbursements.approve", "disbursements.exception_approve"],
   disbursement_orders: ["disbursement_orders.view", "disbursement_orders.approve", "disbursement_orders.exception_approve", "disbursement_orders.reject", "disbursement_orders.create_direct"],
   progress_reports: ["progress_reports.view", "progress_reports.add", "progress_reports.edit", "progress_reports.approve", "progress_reports.exception_approve"],
@@ -792,6 +806,20 @@ async function ensureAllCustomPermissionsExist(db: any) {
       console.log("Inserted missing custom module: csr_letters");
     }
 
+    // Ensure 'sedana_warehouse' module exists in the modules table
+    const [existingWarehouseModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "sedana_warehouse")).limit(1);
+    if (!existingWarehouseModule) {
+      await db.insert(modules).values({
+        id: "sedana_warehouse",
+        nameAr: "المستودع الافتراضي",
+        nameEn: "Virtual Warehouse",
+        icon: "Boxes",
+        displayOrder: 11,
+        isActive: true
+      });
+      console.log("Inserted missing custom module: sedana_warehouse");
+    }
+
     // Ensure 'signing' module exists in the modules table
     const [existingSigningModule] = await db.select({ id: modules.id }).from(modules).where(eq(modules.id, "signing")).limit(1);
     if (!existingSigningModule) {
@@ -960,6 +988,12 @@ async function ensureAllCustomPermissionsExist(db: any) {
       { id: "csr_letters.create_disbursement", moduleId: "csr_letters", action: "create_disbursement", nameAr: "إنشاء أمر صرف للخطاب", nameEn: "Create Disbursement for CSR Letter" },
       { id: "csr_letters.print", moduleId: "csr_letters", action: "print", nameAr: "معاينة وطباعة الخطاب الرسمي", nameEn: "Print CSR Letter" },
       { id: "csr_letters.export", moduleId: "csr_letters", action: "export", nameAr: "تصدير الخطابات إكسيل", nameEn: "Export CSR Letters" },
+      { id: "sedana_warehouse.view", moduleId: "sedana_warehouse", action: "view", nameAr: "عرض المستودع الافتراضي", nameEn: "View Virtual Warehouse" },
+      { id: "sedana_warehouse.inward", moduleId: "sedana_warehouse", action: "inward", nameAr: "تسجيل أمر إدخال بالمستودع", nameEn: "Record Inward Warehouse Order" },
+      { id: "sedana_warehouse.outbound", moduleId: "sedana_warehouse", action: "outbound", nameAr: "إنشاء أمر إخراج ومسوغ صرف", nameEn: "Create Outbound & Disbursement Voucher" },
+      { id: "sedana_warehouse.confirm_receipt", moduleId: "sedana_warehouse", action: "confirm_receipt", nameAr: "اعتماد وتأكيد الاستلام", nameEn: "Approve & Confirm Receipt" },
+      { id: "sedana_warehouse.print", moduleId: "sedana_warehouse", action: "print", nameAr: "معاينة وطباعة محاضر وأوامر التسليم", nameEn: "Print Delivery Orders" },
+      { id: "sedana_warehouse.export", moduleId: "sedana_warehouse", action: "export", nameAr: "تصدير بيانات المستودع إكسيل", nameEn: "Export Warehouse Data" },
     ];
 
     for (const p of customPerms) {
@@ -1029,6 +1063,37 @@ async function ensureAllCustomPermissionsExist(db: any) {
     };
 
     for (const [rId, pIds] of Object.entries(csrDefaultRolePerms)) {
+      for (const pId of pIds) {
+        const [existing] = await db.select({ id: rolePermissions.id })
+          .from(rolePermissions)
+          .where(and(
+            eq(rolePermissions.roleId, rId),
+            eq(rolePermissions.permissionId, pId)
+          ))
+          .limit(1);
+
+        if (!existing) {
+          await db.insert(rolePermissions).values({
+            roleId: rId,
+            permissionId: pId
+          }).catch(() => {});
+        }
+      }
+    }
+
+    // إسناد الصلاحيات الافتراضية للمستودع الافتراضي للأدوار الأساسية إن لم تكن مسندة
+    const warehouseDefaultRolePerms: Record<string, string[]> = {
+      super_admin: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      system_admin: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      general_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      executive_director: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      financial_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      financial: ["sedana_warehouse.view", "sedana_warehouse.export"],
+      projects_office: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+      project_manager: ["sedana_warehouse.view", "sedana_warehouse.inward", "sedana_warehouse.outbound", "sedana_warehouse.confirm_receipt", "sedana_warehouse.print", "sedana_warehouse.export"],
+    };
+
+    for (const [rId, pIds] of Object.entries(warehouseDefaultRolePerms)) {
       for (const pId of pIds) {
         const [existing] = await db.select({ id: rolePermissions.id })
           .from(rolePermissions)
@@ -1443,6 +1508,18 @@ export async function calculateUserPermissions(userId: number): Promise<string[]
     allPermissions.add("disbursement_orders");
   } else {
     allPermissions.delete("disbursement_orders");
+  }
+  if (
+    allPermissions.has("sedana_warehouse.view") ||
+    allPermissions.has("sedana_warehouse.inward") ||
+    allPermissions.has("sedana_warehouse.outbound") ||
+    allPermissions.has("sedana_warehouse.confirm_receipt") ||
+    allPermissions.has("sedana_warehouse.print") ||
+    allPermissions.has("sedana_warehouse.export")
+  ) {
+    allPermissions.add("sedana_warehouse");
+  } else {
+    allPermissions.delete("sedana_warehouse");
   }
   if (
     allPermissions.has("progress_reports.view") ||
