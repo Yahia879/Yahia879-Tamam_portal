@@ -85,9 +85,7 @@ export default function NewSedanaOutboundOrderPage() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const permWarehouse = usePermission("sedana_warehouse");
-  const permOutbound = usePermission("sedana_warehouse.outbound");
-  const canOutbound = user?.role === "super_admin" || user?.role === "system_admin" || permWarehouse || permOutbound;
+  const canOutbound = usePermission("sedana_warehouse.outbound");
 
   // جلب قائمة طلبات سدانة للاختيار
   const { data: sedanaRequests = [] } = trpc.sedanaExecution.listSedanaRequests.useQuery();
@@ -252,28 +250,6 @@ export default function NewSedanaOutboundOrderPage() {
         <div className="p-16 flex flex-col items-center justify-center gap-4 text-center" dir="rtl">
           <Loader2 className="w-10 h-10 animate-spin text-primary" />
           <p className="text-sm font-semibold text-muted-foreground">جاري تحميل بيانات المستودع الافتراضي والبنود المتاحة للصرف...</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (!canOutbound) {
-    return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-8" dir="rtl">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4 text-destructive">
-            <Lock className="w-8 h-8" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">غير مصرح بالوصول</h2>
-          <p className="text-muted-foreground max-w-md text-sm mb-6">
-            عذراً، ليس لديك الصلاحية لإنشاء أمر إخراج ومسوغ صرف بالمستودع الافتراضي. يرجى التواصل مع مسؤول النظام لمنحك الصلاحية اللازمة.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setLocation(requestId > 0 ? `/requests/${requestId}/sedana-execution` : "/sedana-warehouse")}
-          >
-            العودة للمستودع الافتراضي
-          </Button>
         </div>
       </DashboardLayout>
     );
