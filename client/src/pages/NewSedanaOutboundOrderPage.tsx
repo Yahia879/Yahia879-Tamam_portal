@@ -374,15 +374,13 @@ export default function NewSedanaOutboundOrderPage() {
                     <TableHead className="font-bold min-w-[180px]">اسم الصنف والتصنيف</TableHead>
                     <TableHead className="text-center font-bold">الدورية</TableHead>
                     <TableHead className="text-center font-bold">الموجود بالمستودع</TableHead>
-                    <TableHead className="text-center font-bold">حصة الدورة</TableHead>
-                    <TableHead className="text-center font-bold">حالة الموعد</TableHead>
                     <TableHead className="text-center font-bold min-w-[160px]">الكمية للإخراج</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-border/60">
                   {(itemsToDisplay || []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="p-8 text-center text-muted-foreground">
+                      <TableCell colSpan={5} className="p-8 text-center text-muted-foreground">
                         لا توجد بنود متاحة للصرف بالمستودع حالياً.
                       </TableCell>
                     </TableRow>
@@ -391,7 +389,6 @@ export default function NewSedanaOutboundOrderPage() {
                       const isSelected = selectedItemIds.has(String(it.id));
                       const maxAllowed = Math.min(Number(it.availableStock || 0), Number(it.remainingToDisburse || 0));
                       const currentVal = outboundItems[String(it.id)] ?? Math.min(Number(it.cycleQuantity || 1), maxAllowed);
-                      const isDueTime = it.isDue || (it.nextDueDate && new Date(it.nextDueDate).getTime() <= Date.now());
 
                       return (
                         <TableRow
@@ -424,21 +421,6 @@ export default function NewSedanaOutboundOrderPage() {
                               <span>{it.availableStock}</span>
                               <span className="text-[10px] font-normal">{it.unit}</span>
                             </div>
-                          </TableCell>
-                          <TableCell className="p-3 text-center font-mono font-semibold text-muted-foreground">
-                            {it.cycleQuantity || 1} {it.unit}
-                          </TableCell>
-                          <TableCell className="p-3 text-center">
-                            {isDueTime ? (
-                              <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 text-[10px] font-bold gap-1">
-                                <CheckCircle2 className="w-2.5 h-2.5" />
-                                <span>حان الموعد</span>
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-800 bg-amber-50">
-                                <span>متبقي {it.daysUntilNextDue ?? 0} يوم</span>
-                              </Badge>
-                            )}
                           </TableCell>
                           <TableCell className="p-3 text-center">
                             <div className="inline-flex items-center gap-1.5">

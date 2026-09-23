@@ -788,11 +788,13 @@ export default function SedanaExecutionPage() {
           <Card className="border border-border/80 shadow-2xs">
             <CardContent className="p-4 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-semibold text-muted-foreground">أوامر التسليم المؤكدة</p>
-                <p className="text-xl font-extrabold text-purple-700 dark:text-purple-400 mt-0.5">{deliveryOrders.filter((d: any) => d.status === "confirmed").length} / {deliveryOrders.length}</p>
+                <p className="text-[11px] font-semibold text-muted-foreground">سجلات وحركات المستودع</p>
+                <p className="text-xl font-extrabold text-purple-700 dark:text-purple-400 mt-0.5">
+                  {inwardOrders.length + outboundOrders.length} <span className="text-xs font-normal text-muted-foreground">حركة</span>
+                </p>
               </div>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/40 text-purple-600">
-                <CheckCircle2 className="w-5 h-5" />
+                <History className="w-5 h-5" />
               </div>
             </CardContent>
           </Card>
@@ -811,10 +813,10 @@ export default function SedanaExecutionPage() {
               <span>أوامر الإخراج ومسوغات الصرف</span>
               <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{outboundOrders.length}</span>
             </TabsTrigger>
-            <TabsTrigger value="deliveries" className="text-xs font-bold gap-1.5">
-              <Truck className="w-3.5 h-3.5" />
-              <span>أوامر التسليم وإثبات الاستلام</span>
-              <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{deliveryOrders.length}</span>
+            <TabsTrigger value="records" className="text-xs font-bold gap-1.5">
+              <History className="w-3.5 h-3.5" />
+              <span>سجلات المستودع</span>
+              <span className="bg-muted px-1.5 py-0.2 rounded-full text-[10px]">{inwardOrders.length + outboundOrders.length}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1014,13 +1016,11 @@ export default function SedanaExecutionPage() {
                               </Badge>
                             </td>
                             <td className="p-3 text-center">
-                              <div className="inline-flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg bg-muted/60 border border-border/80 shadow-2xs">
-                                <div className="font-mono text-base font-black text-foreground">
-                                  <span className="text-primary font-black">{it.currentCycleNumber ?? 0}</span>
-                                  <span className="text-muted-foreground/50 mx-1 text-sm font-normal">/</span>
-                                  <span>{it.totalCycles || 1}</span>
-                                </div>
-                                <span className="text-[10px] text-muted-foreground font-medium">دفعة</span>
+                              <div className="inline-flex flex-col items-center justify-center px-3 py-1.5 rounded-lg bg-muted/60 border border-border/80 shadow-2xs">
+                                <span className="font-mono text-base font-black text-primary">
+                                  {it.currentCycleNumber ?? 0}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground font-medium">الدفعة الحالية</span>
                               </div>
                             </td>
                             <td className="p-3 text-center">
@@ -1341,36 +1341,44 @@ export default function SedanaExecutionPage() {
             </Card>
           </TabsContent>
 
-          {/* التبويب 3: أوامر التسليم وإثبات الاستلام الرقمي */}
-          <TabsContent value="deliveries" dir="rtl" className="space-y-4">
+          {/* التبويب 3: سجلات المستودع (أوامر الإدخال وأوامر الإخراج) */}
+          <TabsContent value="records" dir="rtl" className="space-y-4">
+            {/* بطاقة: سجلات أوامر الإدخال المستودعي */}
             <Card className="border border-border/80 shadow-2xs">
-              <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
+              <CardHeader className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/10">
                 <div>
-                  <CardTitle className="text-sm font-bold text-foreground">
-                    أوامر التسليم الميداني وإثبات الاستلام الرقمي (Closing the Loop)
-                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border border-emerald-200 dark:border-emerald-800">
+                      <Boxes className="w-4 h-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-foreground">
+                      سجلات أوامر الإدخال المستودعي (Inward Orders)
+                    </CardTitle>
+                  </div>
                   <CardDescription className="text-xs mt-0.5">
-                    النماذج الرسمية المسلّمة للإمام/المؤذن، مع إثبات وتوثيق الاستلام الرقمي لإنهاء العهدة
+                    توثيق توريد واستلام المواد إلى المستودع الافتراضي وربطها بأوامر الشراء والصرف
                   </CardDescription>
                 </div>
-                {canPrint && (
+                {canInward && (
                   <Button
                     size="sm"
-                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                    className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
+                    onClick={() => {
+                      setLocation(requestId > 0 ? `/requests/${requestId}/sedana-inward/new` : "/sedana-warehouse/inward/new");
+                    }}
+                    className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
                   >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>طباعة أمر التسليم (A4)</span>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>أمر إدخال جديد</span>
                   </Button>
                 )}
               </CardHeader>
               <CardContent className="p-0">
-                {deliveryOrders.length === 0 ? (
+                {inwardOrders.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground space-y-2">
-                    <Truck className="w-8 h-8 mx-auto text-muted-foreground/40 stroke-1" />
-                    <p className="text-sm font-bold text-foreground">لا توجد أوامر تسليم بعد</p>
+                    <Boxes className="w-8 h-8 mx-auto text-muted-foreground/40 stroke-1" />
+                    <p className="text-sm font-bold text-foreground">لا توجد أوامر إدخال مسجلة بعد</p>
                     <p className="text-xs max-w-sm mx-auto">
-                      يمكنك إصدار أمر تسليم من تبويب "أوامر الإخراج ومسوغات الصرف" عند الرغبة في إرسال الدفعة للمسجد.
+                      يمكنك تسجيل أمر إدخال جديد للمواد المعتمدة وتوثيق استلامها بالمستودع الافتراضي للمسجد.
                     </p>
                   </div>
                 ) : (
@@ -1379,66 +1387,227 @@ export default function SedanaExecutionPage() {
                       <TableHeader className="bg-muted/30">
                         <TableRow className="border-b">
                           <th className="p-3 w-10 text-center font-bold">#</th>
-                          <th className="p-3 font-bold">رقم أمر التسليم</th>
-                          <th className="p-3 font-bold text-center">مسوغ الصرف</th>
-                          <th className="p-3 font-bold">المستلم المعتمد</th>
-                          <th className="p-3 font-bold text-center">تاريخ التسليم</th>
+                          <th className="p-3 font-bold">رقم أمر الإدخال</th>
+                          <th className="p-3 font-bold text-center">المستند المرجعي</th>
+                          <th className="p-3 font-bold">المورد / الجهة الموردة</th>
+                          <th className="p-3 font-bold">أمين المستودع / المستلم</th>
+                          <th className="p-3 font-bold text-center">تاريخ الإدخال</th>
+                          <th className="p-3 font-bold text-center">الأصناف المدخلة</th>
                           <th className="p-3 font-bold text-center">الحالة</th>
-                          <th className="p-3 font-bold text-center w-36">الإجراءات</th>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-border">
-                        {deliveryOrders.map((del: any, idx: number) => (
-                          <TableRow key={del.id} className="hover:bg-muted/10">
+                        {inwardOrders.map((inw: any, idx: number) => (
+                          <TableRow key={inw.id || idx} className="hover:bg-muted/10">
                             <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
-                            <td className="p-3 font-bold font-mono">{del.deliveryNumber}</td>
-                            <td className="p-3 text-center font-mono text-[11px] text-muted-foreground">
-                              {del.disbursementVoucherCode || "-"}
+                            <td className="p-3 font-bold font-mono text-foreground">{inw.orderNumber}</td>
+                            <td className="p-3 text-center font-mono">
+                              <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-900 border-slate-300">
+                                {inw.referenceNumber || inw.disbursementOrderNumber || "-"}
+                              </Badge>
+                            </td>
+                            <td className="p-3 font-semibold text-foreground">
+                              {inw.supplierName || "المورد المعتمد"}
                             </td>
                             <td className="p-3">
-                              <div className="font-bold text-foreground">{del.recipientName}</div>
-                              <div className="text-[10px] text-muted-foreground">{del.recipientRole}</div>
+                              <div className="font-semibold text-foreground">{inw.receivedBy || "أمين المستودع"}</div>
                             </td>
-                            <td className="p-3 text-center font-mono">{del.scheduledDate}</td>
+                            <td className="p-3 text-center font-mono">{inw.orderDate || inw.createdAt?.split("T")[0]}</td>
                             <td className="p-3 text-center">
-                              {del.status === "confirmed" ? (
-                                <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px]">
-                                  تم الاستلام بنجاح ✓
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="border-amber-300 text-amber-800 bg-amber-50 text-[10px]">
-                                  بانتظار تأكيد الإمام
-                                </Badge>
-                              )}
-                            </td>
-                            <td className="p-3 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                {canPrint && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                    className="h-7 text-xs font-bold gap-1"
-                                    title="طباعة"
-                                  >
-                                    <Printer className="w-3.5 h-3.5" />
-                                    <span>طباعة</span>
-                                  </Button>
-                                )}
-                                {canConfirmReceipt && del.status !== "confirmed" && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleOpenConfirmModal(del)}
-                                    className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5" />
-                                    <span>تأكيد الاستلام</span>
-                                  </Button>
-                                )}
+                              <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                {inw.items?.length || 0} أصناف
+                              </span>
+                              <div className="text-[10px] text-muted-foreground">
+                                ({inw.items?.reduce((s: number, it: any) => s + (Number(it.quantity) || 0), 0) || 0} وحدة)
                               </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] gap-1 font-bold">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>مُدخل ومثبت بالمستودع ✓</span>
+                              </Badge>
                             </td>
                           </TableRow>
                         ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* بطاقة: سجلات أوامر الإخراج ومسوغات الصرف */}
+            <Card className="border border-border/80 shadow-2xs">
+              <CardHeader className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/10">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 border border-sky-200 dark:border-sky-800">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <CardTitle className="text-sm font-bold text-foreground">
+                      سجلات أوامر الإخراج ومسوغات الصرف المحاسبية (Outbound Orders)
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="text-xs mt-0.5">
+                    توثيق خروج المواد المصروفة للمسجد ومسوغات الصرف وإثباتات الاستلام
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleOpenOutboundModal}
+                  className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-2xs"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>إضافة أمر إخراج</span>
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {outboundOrders.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground space-y-2">
+                    <Layers className="w-8 h-8 mx-auto text-muted-foreground/40 stroke-1" />
+                    <p className="text-sm font-bold text-foreground">لا توجد أوامر إخراج مسجلة بعد</p>
+                    <p className="text-xs max-w-sm mx-auto">
+                      يمكنك إصدار أمر إخراج جديد وتحديد الكميات المراد صرفها للمسجد.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto" dir="rtl">
+                    <Table className="text-xs text-right" dir="rtl">
+                      <TableHeader className="bg-muted/30">
+                        <TableRow className="border-b">
+                          <th className="p-3 w-10 text-center font-bold">#</th>
+                          <th className="p-3 font-bold">رقم أمر الإخراج</th>
+                          <th className="p-3 font-bold text-center">طريقة الإخراج</th>
+                          <th className="p-3 font-bold text-center">مسوغ الصرف المحاسبي</th>
+                          <th className="p-3 font-bold">المستلم / الصفة</th>
+                          <th className="p-3 font-bold text-center">تاريخ الإخراج</th>
+                          <th className="p-3 font-bold text-center">الأصناف المشمولة</th>
+                          <th className="p-3 font-bold text-center">حالة الاعتماد والاستلام</th>
+                          <th className="p-3 font-bold text-center w-48">الإجراءات</th>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody className="divide-y divide-border">
+                        {outboundOrders.map((out: any, idx: number) => {
+                          const isDelivered = out.status === "delivered";
+                          const methodMap: Record<string, { label: string; icon: any; color: string }> = {
+                            direct_imam: { label: "تسليم مباشر بالمسجد", icon: Building2, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+                            courier_delivery: { label: "شحن وتوصيل للموقع", icon: Truck, color: "text-sky-700 bg-sky-50 border-sky-200" },
+                            warehouse_pickup: { label: "استلام من المستودع", icon: Store, color: "text-purple-700 bg-purple-50 border-purple-200" },
+                            scheduled_batch: { label: "دفعة مجدولة للصرف", icon: CalendarDays, color: "text-amber-700 bg-amber-50 border-amber-200" },
+                          };
+                          const method = methodMap[out.outboundMethod] || methodMap.direct_imam;
+                          const MethodIcon = method.icon;
+
+                          return (
+                            <TableRow key={out.id} className="hover:bg-muted/10">
+                              <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
+                              <td className="p-3 font-bold font-mono text-foreground">{out.orderNumber}</td>
+                              <td className="p-3 text-center">
+                                <Badge variant="outline" className={`text-[10px] gap-1 font-semibold ${method.color}`}>
+                                  <MethodIcon className="w-3 h-3" />
+                                  <span>{method.label}</span>
+                                </Badge>
+                              </td>
+                              <td className="p-3 text-center">
+                                <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
+                                  {out.disbursementVoucherCode}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="font-semibold text-foreground">{out.recipientName || mosque?.imamName || "إمام المسجد"}</div>
+                                <div className="text-[10px] text-muted-foreground">{out.recipientRole || "إمام المسجد"} {out.recipientPhone ? `• ${out.recipientPhone}` : ""}</div>
+                              </td>
+                              <td className="p-3 text-center font-mono">{out.scheduledDate || out.createdAt?.split("T")[0]}</td>
+                              <td className="p-3 text-center">
+                                <span className="font-bold text-foreground">{out.items?.length || 0} بنود</span>
+                                <div className="text-[10px] text-muted-foreground">
+                                  ({out.items?.reduce((s: number, it: any) => s + (Number(it.quantity) || 0), 0) || 0} وحدة)
+                                </div>
+                              </td>
+                              <td className="p-3 text-center">
+                                {out.status === "pending_confirmation" ? (
+                                  <Badge variant="outline" className="border-amber-400 text-amber-900 bg-amber-50 text-[10px] gap-1 font-bold">
+                                    <Clock className="w-3 h-3 text-amber-600 animate-pulse" />
+                                    <span>بانتظار تأكيد المسؤول</span>
+                                  </Badge>
+                                ) : isDelivered ? (
+                                  <Badge variant="outline" className="border-emerald-300 text-emerald-800 bg-emerald-50 text-[10px] gap-1 font-bold">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>معتمد ومؤكد الاستلام ✓</span>
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="border-sky-300 text-sky-800 bg-sky-50 text-[10px] gap-1 font-bold">
+                                    <Truck className="w-3 h-3 text-sky-600" />
+                                    <span>معتمد ومُخرج - بانتظار استلام الإمام</span>
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  {isDelivered ? (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setSelectedOutboundToView(out);
+                                          setIsViewOutboundModalOpen(true);
+                                        }}
+                                        className="h-7 text-xs font-bold gap-1 text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                                      >
+                                        <BadgeCheck className="w-3.5 h-3.5" />
+                                        <span>إثبات الاستلام</span>
+                                      </Button>
+                                      {canPrint && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                          title="طباعة محضر التسليم والاستلام"
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        >
+                                          <Printer className="w-3.5 h-3.5" />
+                                        </Button>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {canConfirmReceipt && (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedOutboundToConfirm(out);
+                                            setConfirmOutboundRecipientName(out.recipientName || mosque?.imamName || "إمام المسجد");
+                                            setConfirmOutboundDate(new Date().toISOString().split("T")[0]);
+                                            setConfirmOutboundRating(5);
+                                            setConfirmOutboundNotes("");
+                                            setIsConfirmOutboundModalOpen(true);
+                                          }}
+                                          className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
+                                        >
+                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <span>تأكيد استلام الإمام</span>
+                                        </Button>
+                                      )}
+                                      {canPrint && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                          title="طباعة أمر الإخراج ومحضر الاستلام"
+                                          className="h-7 px-2 text-xs font-medium gap-1 text-muted-foreground"
+                                        >
+                                          <Printer className="w-3.5 h-3.5" />
+                                          <span>المحضر</span>
+                                        </Button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
