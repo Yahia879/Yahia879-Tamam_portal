@@ -869,38 +869,73 @@ export default function SedanaExecutionPage() {
                     <TableHeader className="bg-muted/30">
                       <TableRow className="border-b">
                         <th className="p-3 w-10 text-center font-bold">#</th>
-                        <th className="p-3 font-bold">الصنف</th>
-                        <th className="p-3 font-bold text-center">الكمية المعتمدة</th>
-                        <th className="p-3 font-bold text-center text-emerald-700">المدخل بالمستودع</th>
-                        <th className="p-3 font-bold text-center text-sky-700">المصروف / المجدول</th>
-                        <th className="p-3 font-bold text-center text-indigo-700">المتاح للصرف</th>
-                        <th className="p-3 font-bold text-center text-purple-700">المستلم نهائياً</th>
+                        <th className="p-3 font-bold min-w-[170px]">الصنف والتصنيف</th>
+                        <th className="p-3 font-bold text-center min-w-[120px]">الكمية المعتمدة</th>
+                        <th className="p-3 font-bold text-center min-w-[130px] text-emerald-700 dark:text-emerald-400">المدخل بالمستودع</th>
+                        <th className="p-3 font-bold text-center min-w-[130px] text-sky-700 dark:text-sky-400">المصروف / المجدول</th>
+                        <th className="p-3 font-bold text-center min-w-[130px] text-indigo-700 dark:text-indigo-400">المتاح للصرف</th>
+                        <th className="p-3 font-bold text-center min-w-[130px] text-purple-700 dark:text-purple-400">المستلم نهائياً</th>
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-border">
-                      {inventoryItems.map((it, idx) => (
-                        <TableRow key={it.id} className="hover:bg-muted/10">
-                          <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
+                      {inventoryItems.map((it: any, idx: number) => (
+                        <TableRow key={it.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="p-3 text-center">
+                            <span className="font-mono text-xs font-bold text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                              {idx + 1}
+                            </span>
+                          </td>
                           <td className="p-3">
-                            <div className="font-bold text-foreground">{it.name}</div>
-                            {it.description && (
-                              <div className="text-[10px] text-muted-foreground mt-0.5">{it.description}</div>
-                            )}
+                            <div className="font-bold text-foreground text-sm">{it.name}</div>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-1">
+                              <span className="bg-muted px-2 py-0.5 rounded font-medium">{it.category || "مواد وتجهيزات"}</span>
+                              {it.description && (
+                                <span className="truncate max-w-[160px]">({it.description})</span>
+                              )}
+                            </div>
                           </td>
-                          <td className="p-3 text-center font-bold font-mono">
-                            {it.approvedQty} <span className="text-[10px] font-normal text-muted-foreground">{it.unit}</span>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                              <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100">{it.approvedQty}</span>
+                              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{it.unit}</span>
+                            </div>
                           </td>
-                          <td className="p-3 text-center font-bold font-mono text-emerald-700 dark:text-emerald-400">
-                            {it.totalInward} <span className="text-[10px] font-normal">{it.unit}</span>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-2xs">
+                              <span className="font-mono text-base font-black">{it.totalInward}</span>
+                              <span className="text-xs font-semibold">{it.unit}</span>
+                            </div>
                           </td>
-                          <td className="p-3 text-center font-bold font-mono text-sky-700 dark:text-sky-400">
-                            {it.totalOutbound} <span className="text-[10px] font-normal">{it.unit}</span>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-300 shadow-2xs">
+                              <span className="font-mono text-base font-black">{it.totalOutbound}</span>
+                              <span className="text-xs font-semibold">{it.unit}</span>
+                            </div>
                           </td>
-                          <td className="p-3 text-center font-bold font-mono text-indigo-700 dark:text-indigo-400">
-                            {it.availableStock} <span className="text-[10px] font-normal">{it.unit}</span>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex flex-col items-center justify-center">
+                              <div
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border shadow-2xs transition-colors ${
+                                  it.availableStock <= 0
+                                    ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800"
+                                    : "bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800"
+                                }`}
+                              >
+                                <span className="font-mono text-base font-black">{it.availableStock}</span>
+                                <span className="text-xs font-semibold">{it.unit}</span>
+                              </div>
+                              {it.availableStock <= 0 && (
+                                <span className="text-[10px] font-bold text-red-600 dark:text-red-400 mt-1">
+                                  نفد الرصيد
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="p-3 text-center font-bold font-mono text-purple-700 dark:text-purple-400">
-                            {it.totalDelivered} <span className="text-[10px] font-normal">{it.unit}</span>
+                          <td className="p-3 text-center">
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 shadow-2xs">
+                              <span className="font-mono text-base font-black">{it.totalDelivered}</span>
+                              <span className="text-xs font-semibold">{it.unit}</span>
+                            </div>
                           </td>
                         </TableRow>
                       ))}
@@ -911,7 +946,7 @@ export default function SedanaExecutionPage() {
             </Card>
           </TabsContent>
 
-                    {/* التبويب 2: أوامر الإخراج ومسوغات الصرف */}
+          {/* التبويب 2: أوامر الإخراج ومسوغات الصرف */}
           <TabsContent value="outbound" dir="rtl" className="space-y-4">
             {/* بطاقة: البنود المسجلة في الطلب وجدول الصرف الدوري */}
             <Card className="border border-border/80 shadow-2xs">
