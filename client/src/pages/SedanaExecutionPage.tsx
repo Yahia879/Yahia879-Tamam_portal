@@ -78,22 +78,12 @@ export default function SedanaExecutionPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // صلاحيات المستودع الافتراضي (استدعاء جميع الـ Hooks بشكل ثابت لمنع الـ conditional hook call)
-  const permWarehouse = usePermission("sedana_warehouse");
-  const permView = usePermission("sedana_warehouse.view");
-  const permInward = usePermission("sedana_warehouse.inward");
-  const permOutbound = usePermission("sedana_warehouse.outbound");
-  const permConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt");
-  const permPrint = usePermission("sedana_warehouse.print");
-  const permExport = usePermission("sedana_warehouse.export");
-
-  const isAdmin = user?.role === "super_admin" || user?.role === "system_admin";
-  const canView = isAdmin || permWarehouse || permView;
-  const canInward = isAdmin || permWarehouse || permInward;
-  const canOutbound = isAdmin || permWarehouse || permOutbound;
-  const canConfirmReceipt = isAdmin || permWarehouse || permConfirmReceipt;
-  const canPrint = isAdmin || permWarehouse || permPrint;
-  const canExport = isAdmin || permWarehouse || permExport;
+  // صلاحيات المستودع الافتراضي (نفس طريقة أوامر الشراء بدون تعقيد)
+  const canInward = usePermission("sedana_warehouse.inward");
+  const canOutbound = usePermission("sedana_warehouse.outbound");
+  const canConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt");
+  const canPrint = usePermission("sedana_warehouse.print");
+  const canExport = usePermission("sedana_warehouse.export");
 
   const [isExporting, setIsExporting] = useState(false);
 
@@ -383,25 +373,6 @@ export default function SedanaExecutionPage() {
     setConfirmNotes("");
     setIsConfirmModalOpen(true);
   };
-
-  if (user && !canView && user.role !== "super_admin" && user.role !== "system_admin") {
-    return (
-      <DashboardLayout>
-        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7" />
-          </div>
-          <h2 className="text-lg font-bold text-foreground">غير مصرح لك بعرض المستودع الافتراضي</h2>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            حسابك لا يمتلك صلاحية عرض المستودع الافتراضي لبرنامج سدانة. يرجى التواصل مع إدارة النظام لتفعيل الصلاحية لك.
-          </p>
-          <Button onClick={() => setLocation("/")} variant="outline" className="text-xs font-bold mt-2">
-            العودة للرئيسية
-          </Button>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
