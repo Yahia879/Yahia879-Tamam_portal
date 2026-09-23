@@ -23,21 +23,21 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   general_manager: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "purchase_orders", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "contracts", "purchase_orders", "csr_letters", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "purchase_orders", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "contracts", "purchase_orders", "csr_letters", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   projects_office: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts",
-    "suppliers", "quotations", "financial_approval", "contracts", "purchase_orders",
+    "suppliers", "quotations", "financial_approval", "contracts", "purchase_orders", "csr_letters",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
   ],
@@ -53,17 +53,17 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders",
+    "contracts", "purchase_orders", "csr_letters",
   ],
 
   financial_manager: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "purchase_orders", "requests",
+    "contracts", "purchase_orders", "csr_letters", "requests",
   ],
 
   project_manager: [
-    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "disbursement_requests", "receipt_vouchers"
+    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "csr_letters", "disbursement_requests", "receipt_vouchers"
   ],
 
   corporate_comm: [
@@ -157,8 +157,11 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   "/contracts/new": "contracts",
   "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
   "/purchase-orders/new": ["purchase_orders.add", "purchase_orders"],
-  "/csr-letters": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
-  "/csr-letters/new": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
+  "/csr-letters": ["csr_letters.view", "csr_letters"],
+  "/csr-letters/new": ["csr_letters.add", "csr_letters"],
+  "/requests/:id/new-csr-letter": ["csr_letters.add", "csr_letters"],
+  "/requests/:id/csr-letter": ["csr_letters.print", "csr_letters.view", "csr_letters"],
+  "/requests/:id/sedana-csr": ["csr_letters.print", "csr_letters.view", "csr_letters"],
   "/sedana-warehouse": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/sedana-execution": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
 
