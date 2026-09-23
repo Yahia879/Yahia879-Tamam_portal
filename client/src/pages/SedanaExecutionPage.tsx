@@ -64,8 +64,12 @@ import {
   ArrowLeft,
   Sparkles,
   Filter,
+  Lock,
+  FileSpreadsheet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/usePermission";
+import { exportStyledExcel } from "@/lib/excelExportHelper";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 import { STAGE_LABELS } from "@shared/constants";
 
@@ -73,6 +77,16 @@ export default function SedanaExecutionPage() {
   const params = useParams<{ id?: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  // صلاحيات المستودع الافتراضي
+  const canView = usePermission("sedana_warehouse.view") || usePermission("sedana_warehouse");
+  const canInward = usePermission("sedana_warehouse.inward") || usePermission("sedana_warehouse");
+  const canOutbound = usePermission("sedana_warehouse.outbound") || usePermission("sedana_warehouse");
+  const canConfirmReceipt = usePermission("sedana_warehouse.confirm_receipt") || usePermission("sedana_warehouse");
+  const canPrint = usePermission("sedana_warehouse.print") || usePermission("sedana_warehouse");
+  const canExport = usePermission("sedana_warehouse.export") || usePermission("sedana_warehouse");
+
+  const [isExporting, setIsExporting] = useState(false);
 
   // جلب قائمة كافة طلبات سدانة لاختيار الطلب
   const { data: sedanaRequests = [], isLoading: isRequestsLoading } = trpc.sedanaExecution.listSedanaRequests.useQuery();
@@ -299,6 +313,50 @@ export default function SedanaExecutionPage() {
     setIsOutboundModalOpen(true);
   };
 
+  // تصدير بيانات المستودع الافتراضي إلى Excel
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      if (filteredRequests.length === 0) {
+        toast.info("لا توجد بيانات لتصديرها");
+        return;
+      }
+      const columns = [
+        { header: "رقم الطلب", align: "center" as const, minWidth: 14 },
+        { header: "اسم المسجد", align: "right" as const, minWidth: 26 },
+        { header: "المدينة", align: "center" as const, minWidth: 16 },
+        { header: "المرحلة الحالية", align: "center" as const, minWidth: 20 },
+        { header: "الحالة", align: "center" as const, minWidth: 16 },
+        { header: "عدد البنود", align: "center" as const, minWidth: 14 },
+        { header: "أوامر الإدخال", align: "center" as const, minWidth: 14 },
+        { header: "أوامر الإخراج", align: "center" as const, minWidth: 14 },
+        { header: "أوامر التسليم", align: "center" as const, minWidth: 14 },
+      ];
+      const rows = filteredRequests.map((r: any) => [
+        `#${r.requestNumber || r.id}`,
+        r.mosqueName || "",
+        r.mosqueCity || "",
+        STAGE_LABELS[r.currentStage] || r.currentStage || "",
+        r.status || "",
+        r.itemsCount || 0,
+        r.inwardCount || 0,
+        r.outboundCount || 0,
+        r.deliveryCount || 0,
+      ]);
+      await exportStyledExcel({
+        sheetName: "طلبات المستودع الافتراضي",
+        columns,
+        rows,
+        fileName: `Sedana_Warehouse_${new Date().toISOString().split("T")[0]}.xlsx`,
+      });
+      toast.success("تم تصدير بيانات المستودع الافتراضي بنجاح");
+    } catch (e: any) {
+      toast.error(e?.message || "حدث خطأ أثناء تصدير البيانات");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // فتح نافذة تحويل أمر إخراج إلى أمر تسليم
   const handleOpenDeliveryModalFromOutbound = (outbound: any) => {
     setDeliverySelectedOutbound(outbound);
@@ -316,6 +374,25 @@ export default function SedanaExecutionPage() {
     setConfirmNotes("");
     setIsConfirmModalOpen(true);
   };
+
+  if (user && !canView && user.role !== "super_admin" && user.role !== "system_admin") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">غير مصرح لك بعرض المستودع الافتراضي</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            حسابك لا يمتلك صلاحية عرض المستودع الافتراضي لبرنامج سدانة. يرجى التواصل مع إدارة النظام لتفعيل الصلاحية لك.
+          </p>
+          <Button onClick={() => setLocation("/")} variant="outline" className="text-xs font-bold mt-2">
+            العودة للرئيسية
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -342,6 +419,18 @@ export default function SedanaExecutionPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {canExport && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportExcel}
+                    disabled={isExporting}
+                    className="text-xs font-bold gap-1.5 h-9"
+                  >
+                    {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />}
+                    <span>{isExporting ? "جاري التصدير..." : "تصدير إلى Excel"}</span>
+                  </Button>
+                )}
                 <Badge className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 px-3 py-1.5 font-bold text-xs gap-1.5 shadow-2xs">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
                   <span>{executionStageCount} طلبات في مرحلة التشغيل والتنفيذ</span>
@@ -710,18 +799,20 @@ export default function SedanaExecutionPage() {
                     متابعة كميات البنود المعتمدة، ما تم توريده وإدخاله، الرصيد المتاح، وما تم تسليمه للإمام
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setLocation(requestId > 0 ? `/requests/${requestId}/sedana-inward/new` : "/sedana-warehouse/inward/new");
-                    }}
-                    className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>أمر إدخال جديد</span>
-                  </Button>
-                </div>
+                {canInward && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setLocation(requestId > 0 ? `/requests/${requestId}/sedana-inward/new` : "/sedana-warehouse/inward/new");
+                      }}
+                      className="text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>أمر إدخال جديد</span>
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto" dir="rtl">
@@ -783,14 +874,16 @@ export default function SedanaExecutionPage() {
                     وفقاً لوثيقة سدانة، يمثل أمر الإخراج مسوغ صرف محاسبي رسمي لخروج المواد من المستودع الافتراضي
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => setLocation(`/requests/${requestId}/sedana-outbound/new`)}
-                  className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>إنشاء أمر إخراج جديد</span>
-                </Button>
+                {canOutbound && (
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation(`/requests/${requestId}/sedana-outbound/new`)}
+                    className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>إنشاء أمر إخراج جديد</span>
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {outboundOrders.length === 0 ? (
@@ -884,43 +977,49 @@ export default function SedanaExecutionPage() {
                                         <BadgeCheck className="w-3.5 h-3.5" />
                                         <span>إثبات الاستلام</span>
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                        title="طباعة محضر التسليم والاستلام"
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                      >
-                                        <Printer className="w-3.5 h-3.5" />
-                                      </Button>
+                                      {canPrint && (
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                          title="طباعة محضر التسليم والاستلام"
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                                        >
+                                          <Printer className="w-3.5 h-3.5" />
+                                        </Button>
+                                      )}
                                     </>
                                   ) : (
                                     <>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedOutboundToConfirm(out);
-                                          setConfirmOutboundRecipientName(out.recipientName || mosque?.imamName || "إمام المسجد");
-                                          setConfirmOutboundDate(new Date().toISOString().split("T")[0]);
-                                          setConfirmOutboundRating(5);
-                                          setConfirmOutboundNotes("");
-                                          setIsConfirmOutboundModalOpen(true);
-                                        }}
-                                        className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
-                                      >
-                                        <ShieldCheck className="w-3.5 h-3.5" />
-                                        <span>تأكيد استلام الإمام</span>
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                        title="طباعة أمر الإخراج ومحضر الاستلام"
-                                        className="h-7 px-2 text-xs font-medium gap-1 text-muted-foreground"
-                                      >
-                                        <Printer className="w-3.5 h-3.5" />
-                                        <span>المحضر</span>
-                                      </Button>
+                                      {canConfirmReceipt && (
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            setSelectedOutboundToConfirm(out);
+                                            setConfirmOutboundRecipientName(out.recipientName || mosque?.imamName || "إمام المسجد");
+                                            setConfirmOutboundDate(new Date().toISOString().split("T")[0]);
+                                            setConfirmOutboundRating(5);
+                                            setConfirmOutboundNotes("");
+                                            setIsConfirmOutboundModalOpen(true);
+                                          }}
+                                          className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
+                                        >
+                                          <ShieldCheck className="w-3.5 h-3.5" />
+                                          <span>تأكيد استلام الإمام</span>
+                                        </Button>
+                                      )}
+                                      {canPrint && (
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                          title="طباعة أمر الإخراج ومحضر الاستلام"
+                                          className="h-7 px-2 text-xs font-medium gap-1 text-muted-foreground"
+                                        >
+                                          <Printer className="w-3.5 h-3.5" />
+                                          <span>المحضر</span>
+                                        </Button>
+                                      )}
                                     </>
                                   )}
                                 </div>
@@ -948,14 +1047,16 @@ export default function SedanaExecutionPage() {
                     النماذج الرسمية المسلّمة للإمام/المؤذن، مع إثبات وتوثيق الاستلام الرقمي لإنهاء العهدة
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                  className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>طباعة أمر التسليم (A4)</span>
-                </Button>
+                {canPrint && (
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                    className="text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>طباعة أمر التسليم (A4)</span>
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 {deliveryOrders.length === 0 ? (
@@ -1006,17 +1107,19 @@ export default function SedanaExecutionPage() {
                             </td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                  className="h-7 text-xs font-bold gap-1"
-                                  title="طباعة"
-                                >
-                                  <Printer className="w-3.5 h-3.5" />
-                                  <span>طباعة</span>
-                                </Button>
-                                {del.status !== "confirmed" && (
+                                {canPrint && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
+                                    className="h-7 text-xs font-bold gap-1"
+                                    title="طباعة"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    <span>طباعة</span>
+                                  </Button>
+                                )}
+                                {canConfirmReceipt && del.status !== "confirmed" && (
                                   <Button
                                     size="sm"
                                     onClick={() => handleOpenConfirmModal(del)}
@@ -1265,17 +1368,19 @@ export default function SedanaExecutionPage() {
               >
                 إغلاق
               </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setIsViewOutboundModalOpen(false);
-                  setLocation(`/requests/${requestId}/sedana-delivery`);
-                }}
-                className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>طباعة محضر الاستلام الرسمي</span>
-              </Button>
+              {canPrint && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsViewOutboundModalOpen(false);
+                    setLocation(`/requests/${requestId}/sedana-delivery`);
+                  }}
+                  className="text-xs font-bold gap-1.5 bg-primary text-primary-foreground"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>طباعة محضر الاستلام الرسمي</span>
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
