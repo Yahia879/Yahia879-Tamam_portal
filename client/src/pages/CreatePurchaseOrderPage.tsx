@@ -39,12 +39,14 @@ import {
   Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { usePermission } from "@/hooks/usePermission";
 import { useDocumentTitle } from "@/contexts/DocumentTitleContext";
 
 export default function CreatePurchaseOrderPage() {
   useDocumentTitle("إنشاء أمر شراء معتمد - سدانة");
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const canAddOrder = usePermission("purchase_orders.add");
   const params = useParams<{ id?: string }>();
   const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const initialRequestId = params.id ? parseInt(params.id, 10) : (searchParams.get("requestId") ? parseInt(searchParams.get("requestId")!, 10) : null);
@@ -261,6 +263,25 @@ export default function CreatePurchaseOrderPage() {
       items: itemsToSubmit,
     });
   };
+
+  if (user && !canAddOrder && user.role !== "super_admin" && user.role !== "system_admin") {
+    return (
+      <DashboardLayout>
+        <div className="max-w-md mx-auto my-20 p-8 bg-card border border-border rounded-2xl shadow-sm text-center space-y-4 font-sans" dir="rtl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 border border-amber-200 dark:border-amber-900/50 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">غير مصرح لك بإنشاء أوامر شراء</h2>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            حسابك لا يمتلك صلاحية إنشاء أمر شراء جديد. يرجى التواصل مع إدارة النظام لتفعيل الصلاحية لك.
+          </p>
+          <Button onClick={() => navigate("/purchase-orders")} variant="outline" className="text-xs font-bold mt-2">
+            العودة لأوامر الشراء
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
