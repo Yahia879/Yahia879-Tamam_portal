@@ -636,18 +636,6 @@ export default function RolePermissions() {
           ]
         },
         {
-          id: "purchase_orders",
-          nameAr: "أوامر الشراء",
-          icon: ShoppingCart,
-          permissions: [
-            { id: "purchase_orders.view", nameAr: "عرض أوامر الشراء" },
-            { id: "purchase_orders.add", nameAr: "إنشاء أمر شراء جديد" },
-            { id: "purchase_orders.approve", nameAr: "اعتماد أوامر الشراء" },
-            { id: "purchase_orders.create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء" },
-            { id: "purchase_orders.export", nameAr: "تصدير أوامر الشراء إكسيل" },
-          ]
-        },
-        {
           id: "disbursements",
           nameAr: "طلبات الصرف",
           icon: Wallet,
@@ -678,6 +666,23 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
+          ]
+        }
+      ]
+    },
+    {
+      title: "إدارة المخزون",
+      modules: [
+        {
+          id: "purchase_orders",
+          nameAr: "أوامر الشراء",
+          icon: ShoppingCart,
+          permissions: [
+            { id: "purchase_orders.view", nameAr: "عرض أوامر الشراء" },
+            { id: "purchase_orders.add", nameAr: "إنشاء أمر شراء جديد" },
+            { id: "purchase_orders.approve", nameAr: "اعتماد أوامر الشراء" },
+            { id: "purchase_orders.create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء" },
+            { id: "purchase_orders.export", nameAr: "تصدير أوامر الشراء إكسيل" },
           ]
         }
       ]
@@ -813,18 +818,6 @@ export default function RolePermissions() {
           ]
         },
         {
-          id: "purchase_orders",
-          nameAr: "أوامر الشراء",
-          icon: ShoppingCart,
-          permissions: [
-            { id: "purchase_orders.view", nameAr: "عرض أوامر الشراء" },
-            { id: "purchase_orders.add", nameAr: "إنشاء أمر شراء جديد" },
-            { id: "purchase_orders.approve", nameAr: "اعتماد أوامر الشراء" },
-            { id: "purchase_orders.create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء" },
-            { id: "purchase_orders.export", nameAr: "تصدير أوامر الشراء إكسيل" },
-          ]
-        },
-        {
           id: "disbursements",
           nameAr: "طلبات الصرف",
           icon: Wallet,
@@ -855,6 +848,23 @@ export default function RolePermissions() {
             { id: "disbursement_orders.view", nameAr: "عرض أوامر الصرف" },
             { id: "disbursement_orders.create_direct", nameAr: "انشاء امر صرف مخصص" },
             { id: "disbursement_orders.exception_approve", nameAr: "استثناء اعتماد مُعد الأمر" },
+          ]
+        }
+      ]
+    },
+    {
+      title: "إدارة المخزون",
+      modules: [
+        {
+          id: "purchase_orders",
+          nameAr: "أوامر الشراء",
+          icon: ShoppingCart,
+          permissions: [
+            { id: "purchase_orders.view", nameAr: "عرض أوامر الشراء" },
+            { id: "purchase_orders.add", nameAr: "إنشاء أمر شراء جديد" },
+            { id: "purchase_orders.approve", nameAr: "اعتماد أوامر الشراء" },
+            { id: "purchase_orders.create_disbursement", nameAr: "إنشاء أمر صرف لأمر الشراء" },
+            { id: "purchase_orders.export", nameAr: "تصدير أوامر الشراء إكسيل" },
           ]
         }
       ]
@@ -897,10 +907,15 @@ export default function RolePermissions() {
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
+      ]
+    },
+    {
+      title: "إدارة المخزون",
+      modules: [
+        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
       ]
     },
     {
@@ -961,11 +976,16 @@ export default function RolePermissions() {
         { id: "quotations", nameAr: "عروض الأسعار", icon: Receipt, perms: ["view", "add", "approve"] },
         { id: "financial_approval", nameAr: "الاعتماد المالي", icon: CheckSquare, perms: ["view", "approve"] },
         { id: "contracts", nameAr: "العقود", icon: FileSignature, perms: ["view", "create", "approve", "edit_approved", "template_add", "template_edit", "template_delete", "clause_add"] },
-        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
         { id: "disbursements", nameAr: "طلبات الصرف", icon: Wallet, perms: ["view", "add", "edit", "delete", "approve", "create_custom", "exception_approve"] },
         { id: "receipt_vouchers", nameAr: "سندات القبض", icon: Receipt, perms: ["view", "edit", "exception_approve"] },
         { id: "disbursement_orders", nameAr: "أوامر الصرف", icon: Banknote, perms: ["view", "create_direct", "exception_approve"] },
         { id: "financial_reports", nameAr: "التقرير المالي", icon: FileBarChart, perms: ["view", "export"] },
+      ]
+    },
+    {
+      title: "إدارة المخزون",
+      modules: [
+        { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
       ]
     },
     {
@@ -1293,12 +1313,17 @@ export default function RolePermissions() {
         { id: "quotations", nameAr: "عروض الأسعار" },
         { id: "financial_approval", nameAr: "الاعتماد المالي" },
         { id: "contracts", nameAr: "العقود" },
-        { id: "purchase_orders", nameAr: "أوامر الشراء" },
         { id: "disbursement_requests", nameAr: "طلبات الصرف" },
         { id: "disbursement_orders", nameAr: "أوامر الصرف" },
         { id: "progress_reports", nameAr: "تقارير الإنجاز" },
         { id: "project_reports", nameAr: "تقارير المشاريع" },
         { id: "financial_report", nameAr: "التقرير المالي" },
+      ],
+    },
+    {
+      title: "إدارة المخزون",
+      subsections: [
+        { id: "purchase_orders", nameAr: "أوامر الشراء" },
       ],
     },
     {
