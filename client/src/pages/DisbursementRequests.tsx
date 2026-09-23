@@ -307,6 +307,7 @@ export default function DisbursementRequests() {
       setShowApproveDialog(false);
       setApprovalNotes("");
       refetchRequests();
+      refetchOrders();
     },
     onError: (error) => {
       toast.error(error.message || "حدث خطأ أثناء اعتماد طلب الصرف");
@@ -804,7 +805,7 @@ export default function DisbursementRequests() {
                             ) : false)
                           ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
-                          const isConverted = !!request.orderId || request.status === "paid";
+                          const isConverted = !!request.orderId || request.status === "paid" || request.status === "approved";
                           const isPendingMyAction = 
                             ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
                             (request.status === "pending_executive" && isExecutiveDirector);
@@ -921,18 +922,7 @@ export default function DisbursementRequests() {
                                           <span>عرض تقرير طلب الصرف</span>
                                         </DropdownMenuItem>
                                       )}
-                                      <DropdownMenuItem
-                                        disabled={!!request.rejectionReason}
-                                        onClick={() => handleDirectCreateOrder(request)}
-                                        className={`flex items-center gap-2 cursor-pointer ${
-                                          request.rejectionReason
-                                            ? "text-slate-400 dark:text-slate-500 opacity-50 cursor-not-allowed"
-                                            : "text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                        }`}
-                                      >
-                                        <Banknote className={`h-4 w-4 ${request.rejectionReason ? "text-slate-400" : "text-emerald-500"}`} />
-                                        <span>التحويل الى طلب صرف</span>
-                                      </DropdownMenuItem>
+
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 ) : isConverted ? (
@@ -1069,15 +1059,7 @@ export default function DisbursementRequests() {
                                           </DropdownMenuItem>
                                         </>
                                       )}
-                                      {canCreateOrder && request.status === "approved" && (
-                                        <DropdownMenuItem
-                                          onClick={() => handleDirectCreateOrder(request)}
-                                          className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                        >
-                                          <Banknote className="h-4 w-4 text-emerald-500" />
-                                          <span>تحويل إلى أمر صرف</span>
-                                        </DropdownMenuItem>
-                                      )}
+
                                     </DropdownMenuContent>
                                   </DropdownMenu>
                                 )}
@@ -1107,7 +1089,7 @@ export default function DisbursementRequests() {
                         ) : false)
                       ) || allReports?.find((report: any) => report.projectId === request.projectId);
 
-                        const isConverted = !!request.orderId || request.status === "paid";
+                        const isConverted = !!request.orderId || request.status === "paid" || request.status === "approved";
                         const isPendingMyAction = 
                           ((request.status === "pending" || request.status === "draft") && request.requestedBy === user?.id) ||
                           (request.status === "pending_executive" && isExecutiveDirector);
@@ -1247,18 +1229,6 @@ export default function DisbursementRequests() {
                                       </DropdownMenuItem>
                                     )}
 
-                                     {/* 5. Convert to Order - If allowed */}
-
-                                     {/* 6. Convert to Order - If allowed and approved */}
-                                     {canCreateOrder && request.status === "approved" && !isConverted && (
-                                      <DropdownMenuItem
-                                        onClick={() => handleDirectCreateOrder(request)}
-                                        className="flex items-center gap-2 cursor-pointer text-slate-700 hover:text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950/30"
-                                      >
-                                        <Banknote className="h-4 w-4 text-emerald-500" />
-                                        <span>تحويل إلى أمر صرف</span>
-                                      </DropdownMenuItem>
-                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
