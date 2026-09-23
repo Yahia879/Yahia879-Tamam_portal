@@ -93,6 +93,7 @@ const superAdminGroups = [
     title: "إدارة المخزون",
     modules: [
       { id: "purchase_orders", nameAr: "أوامر الشراء", icon: ShoppingCart, perms: ["view", "add", "approve", "create_disbursement", "export"] },
+      { id: "csr_letters", nameAr: "المسؤولية المجتمعية", icon: HeartHandshake, perms: ["view", "add", "approve", "create_disbursement", "print", "export"] },
     ]
   },
   {
@@ -264,6 +265,14 @@ const getDescriptiveLabel = (moduleId: string, action: string) => {
       approve: "اعتماد أوامر الشراء",
       create_disbursement: "إنشاء أمر صرف لأمر الشراء",
       export: "تصدير أوامر الشراء إكسيل",
+    },
+    csr_letters: {
+      view: "عرض خطابات المسؤولية المجتمعية",
+      add: "إنشاء خطاب مسؤولية مجتمعية جديد",
+      approve: "اعتماد خطابات المسؤولية المجتمعية",
+      create_disbursement: "إنشاء أمر صرف للخطاب",
+      print: "معاينة وطباعة الخطاب الرسمي",
+      export: "تصدير الخطابات إكسيل",
     },
     disbursements: {
       view: "عرض طلبات الصرف",
@@ -604,6 +613,14 @@ export default function RoleEdit() {
       }
     }
 
+    // منع تفعيل أي صلاحية فرعية للمسؤولية المجتمعية إذا كانت صلاحية العرض معطلة
+    if (permId.startsWith("csr_letters.") && permId !== "csr_letters.view") {
+      if (!selectedPerms.includes("csr_letters.view")) {
+        toast.warning("يجب تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية' أولاً");
+        return;
+      }
+    }
+
     // منع تفعيل أي صلاحية فرعية للتقارير إذا كانت صلاحية العرض معطلة
     if (permId.startsWith("reports.") && permId !== "reports.view_stats") {
       if (!selectedPerms.includes("reports.view_stats")) {
@@ -715,6 +732,11 @@ export default function RoleEdit() {
         // عند إلغاء تفعيل صلاحية 'عرض أوامر الشراء'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات أوامر الشراء الأخرى
         if (permId === "purchase_orders.view") {
           next = next.filter(id => !id.startsWith("purchase_orders."));
+        }
+
+        // عند إلغاء تفعيل صلاحية 'عرض خطابات المسؤولية المجتمعية'، نقوم تلقائياً بإلغاء تفعيل كافة صلاحيات المسؤولية المجتمعية الأخرى
+        if (permId === "csr_letters.view") {
+          next = next.filter(id => !id.startsWith("csr_letters."));
         }
 
 
@@ -967,6 +989,7 @@ export default function RoleEdit() {
                             const isDisabled = 
                               (perm.id.startsWith("contracts.") && perm.id !== "contracts.view" && !selectedPerms.includes("contracts.view")) ||
                               (perm.id.startsWith("purchase_orders.") && perm.id !== "purchase_orders.view" && !selectedPerms.includes("purchase_orders.view")) ||
+                              (perm.id.startsWith("csr_letters.") && perm.id !== "csr_letters.view" && !selectedPerms.includes("csr_letters.view")) ||
                               (perm.id.startsWith("mosques.") && perm.id !== "mosques.view" && !selectedPerms.includes("mosques.view")) ||
                               (perm.id.startsWith("suppliers.") && perm.id !== "suppliers.view" && !selectedPerms.includes("suppliers.view")) ||
                               (perm.id.startsWith("quotations.") && perm.id !== "quotations.view" && !selectedPerms.includes("quotations.view")) ||
