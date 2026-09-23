@@ -1191,46 +1191,19 @@ export default function SedanaExecutionPage() {
                         <TableRow className="border-b">
                           <th className="p-3 w-10 text-center font-bold">#</th>
                           <th className="p-3 font-bold">رقم أمر الإخراج</th>
-                          <th className="p-3 font-bold text-center">طريقة الإخراج</th>
-                          <th className="p-3 font-bold text-center">مسوغ الصرف المحاسبي</th>
-                          <th className="p-3 font-bold">المستلم / الصفة</th>
                           <th className="p-3 font-bold text-center">تاريخ الإخراج</th>
                           <th className="p-3 font-bold text-center">الأصناف المشمولة</th>
                           <th className="p-3 font-bold text-center">حالة الاعتماد والاستلام</th>
-                          <th className="p-3 font-bold text-center w-52">الإجراءات</th>
                         </TableRow>
                       </TableHeader>
                       <TableBody className="divide-y divide-border">
                         {outboundOrders.map((out: any, idx: number) => {
                           const isDelivered = out.status === "delivered";
-                          const methodMap: Record<string, { label: string; icon: any; color: string }> = {
-                            direct_imam: { label: "تسليم مباشر بالمسجد", icon: Building2, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
-                            courier_delivery: { label: "شحن وتوصيل للموقع", icon: Truck, color: "text-sky-700 bg-sky-50 border-sky-200" },
-                            warehouse_pickup: { label: "استلام من المستودع", icon: Store, color: "text-purple-700 bg-purple-50 border-purple-200" },
-                            scheduled_batch: { label: "دفعة مجدولة للصرف", icon: CalendarDays, color: "text-amber-700 bg-amber-50 border-amber-200" },
-                          };
-                          const method = methodMap[out.outboundMethod] || methodMap.direct_imam;
-                          const MethodIcon = method.icon;
 
                           return (
                             <TableRow key={out.id} className="hover:bg-muted/10">
                               <td className="p-3 text-center font-mono text-muted-foreground">{idx + 1}</td>
                               <td className="p-3 font-bold font-mono text-foreground">{out.orderNumber}</td>
-                              <td className="p-3 text-center">
-                                <Badge variant="outline" className={`text-[10px] gap-1 font-semibold ${method.color}`}>
-                                  <MethodIcon className="w-3 h-3" />
-                                  <span>{method.label}</span>
-                                </Badge>
-                              </td>
-                              <td className="p-3 text-center">
-                                <span className="font-mono font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded">
-                                  {out.disbursementVoucherCode}
-                                </span>
-                              </td>
-                              <td className="p-3">
-                                <div className="font-semibold text-foreground">{out.recipientName || mosque?.imamName || "إمام المسجد"}</div>
-                                <div className="text-[10px] text-muted-foreground">{out.recipientRole || "إمام المسجد"} {out.recipientPhone ? `• ${out.recipientPhone}` : ""}</div>
-                              </td>
                               <td className="p-3 text-center font-mono">{out.scheduledDate || out.createdAt?.split("T")[0]}</td>
                               <td className="p-3 text-center">
                                 <span className="font-bold text-foreground">{out.items?.length || 0} بنود</span>
@@ -1256,80 +1229,6 @@ export default function SedanaExecutionPage() {
                                   </Badge>
                                 )}
                               </td>
-                              <td className="p-3 text-center">
-                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                  {out.status === "pending_confirmation" ? (
-                                    canOutbound && (
-                                      <Button
-                                        size="sm"
-                                        onClick={() => handleOpenSupervisorConfirmModal(out)}
-                                        className="h-7 text-xs font-bold gap-1 bg-amber-600 hover:bg-amber-700 text-white shadow-2xs"
-                                      >
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
-                                        <span>تأكيد واعتماد الإخراج</span>
-                                      </Button>
-                                    )
-                                  ) : isDelivered ? (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setSelectedOutboundToView(out);
-                                          setIsViewOutboundModalOpen(true);
-                                        }}
-                                        className="h-7 text-xs font-bold gap-1 text-emerald-700 hover:bg-emerald-50 border-emerald-200"
-                                      >
-                                        <BadgeCheck className="w-3.5 h-3.5" />
-                                        <span>إثبات الاستلام</span>
-                                      </Button>
-                                      {canPrint && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                          title="طباعة محضر التسليم والاستلام"
-                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                                        >
-                                          <Printer className="w-3.5 h-3.5" />
-                                        </Button>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <>
-                                      {canConfirmReceipt && (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => {
-                                            setSelectedOutboundToConfirm(out);
-                                            setConfirmOutboundRecipientName(out.recipientName || mosque?.imamName || "إمام المسجد");
-                                            setConfirmOutboundDate(new Date().toISOString().split("T")[0]);
-                                            setConfirmOutboundRating(5);
-                                            setConfirmOutboundNotes("");
-                                            setIsConfirmOutboundModalOpen(true);
-                                          }}
-                                          className="h-7 text-xs font-bold gap-1 bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
-                                        >
-                                          <ShieldCheck className="w-3.5 h-3.5" />
-                                          <span>تأكيد استلام الإمام</span>
-                                        </Button>
-                                      )}
-                                      {canPrint && (
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setLocation(`/requests/${requestId}/sedana-delivery`)}
-                                          title="طباعة أمر الإخراج ومحضر الاستلام"
-                                          className="h-7 px-2 text-xs font-medium gap-1 text-muted-foreground"
-                                        >
-                                          <Printer className="w-3.5 h-3.5" />
-                                          <span>المحضر</span>
-                                        </Button>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              </td>
                             </TableRow>
                           );
                         })}
@@ -1352,7 +1251,7 @@ export default function SedanaExecutionPage() {
                       <Boxes className="w-4 h-4" />
                     </div>
                     <CardTitle className="text-sm font-bold text-foreground">
-                      سجلات أوامر الإدخال المستودعي (Inward Orders)
+                      سجلات أوامر الإدخال المستودعي
                     </CardTitle>
                   </div>
                   <CardDescription className="text-xs mt-0.5">
@@ -1445,7 +1344,7 @@ export default function SedanaExecutionPage() {
                       <Layers className="w-4 h-4" />
                     </div>
                     <CardTitle className="text-sm font-bold text-foreground">
-                      سجلات أوامر الإخراج ومسوغات الصرف المحاسبية (Outbound Orders)
+                      سجلات أوامر الإخراج ومسوغات الصرف المحاسبية
                     </CardTitle>
                   </div>
                   <CardDescription className="text-xs mt-0.5">
