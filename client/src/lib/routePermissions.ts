@@ -23,21 +23,21 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   general_manager: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "contracts", "purchase_orders", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   executive_director: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts", "suppliers", "quotations", "financial_approval",
-    "contracts", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
+    "contracts", "purchase_orders", "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports", "staff_management", "settings_center",
   ],
 
   projects_office: [
     "dashboard", "mosques", "mosques_map", "requests", "escalation", "appointments_calendar",
     "projects", "service_requester_accounts",
-    "suppliers", "quotations", "financial_approval", "contracts",
+    "suppliers", "quotations", "financial_approval", "contracts", "purchase_orders",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers",
     "progress_reports", "financial_report", "reports",
   ],
@@ -53,17 +53,17 @@ export const BASE_ROLE_PERMISSIONS: Record<string, string[]> = {
   financial: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts",
+    "contracts", "purchase_orders",
   ],
 
   financial_manager: [
     "dashboard", "suppliers", "quotations", "financial_approval",
     "disbursement_requests", "disbursement_orders", "receipt_vouchers", "financial_report",
-    "contracts", "requests",
+    "contracts", "purchase_orders", "requests",
   ],
 
   project_manager: [
-    "dashboard", "projects", "progress_reports", "requests", "contracts", "disbursement_requests", "receipt_vouchers"
+    "dashboard", "projects", "progress_reports", "requests", "contracts", "purchase_orders", "disbursement_requests", "receipt_vouchers"
   ],
 
   corporate_comm: [
@@ -155,8 +155,8 @@ export const ROUTE_PERMISSION_MAP: Record<string, string | string[]> = {
   // ── العقود وأوامر الشراء والمسؤولية المجتمعية ──
   "/contracts": "contracts",
   "/contracts/new": "contracts",
-  "/purchase-orders": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
-  "/purchase-orders/new": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
+  "/purchase-orders": ["purchase_orders.view", "purchase_orders"],
+  "/purchase-orders/new": ["purchase_orders.add", "purchase_orders"],
   "/csr-letters": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/csr-letters/new": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
   "/sedana-warehouse": ["contracts", "contracts.view", "requests", "requests.view", "requests.view_details"],
@@ -320,6 +320,9 @@ export const DYNAMIC_ROUTE_PERMISSIONS: Array<{
   { pattern: /^\/disbursement-orders\/\d+$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
   { pattern: /^\/disbursements\/orders\/new\/\d+$/, permission: "disbursement_orders" },
   { pattern: /^\/disbursements\/orders\/\d+\/print$/, permission: ["disbursement_orders", "disbursement_orders.view", "board_chairman", "board_chairman_view", "board_leadership.board_chairman", "board_leadership.board_chairman_view"] },
+
+  // معاينة وطباعة أمر الشراء
+  { pattern: /^\/requests\/\d+\/purchase-order$/, permission: ["purchase_orders.view", "purchase_orders"] },
 
   // التقارير الختامية
   { pattern: /^\/final-report\/\d+$/, permission: ["projects", "requests.view_details"] },
