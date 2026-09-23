@@ -334,7 +334,7 @@ const getMenuGroupsFromPermissions = (permissions: string[], role: string, isEn?
   if (has("csr_letters") || has("csr_letters.view")) {
     inventoryItems.push({ icon: HeartHandshake, label: "المسؤولية المجتمعية", path: "/csr-letters" });
   }
-  if (has("contracts") || has("contracts.view") || has("requests") || has("requests.view") || has("requests.view_details")) {
+  if (has("sedana_warehouse") || has("sedana_warehouse.view")) {
     inventoryItems.push({ icon: Boxes, label: "المستودع الافتراضي", path: "/sedana-warehouse" });
   }
   if (inventoryItems.length > 0) {
